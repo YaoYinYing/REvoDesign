@@ -1,0 +1,1652 @@
+import sys,os,pathlib
+
+import threading
+
+import time,shutil
+import tempfile
+import re
+from pymol import cmd
+from pymol.Qt import QtWidgets,QtCore
+from pymol.Qt.utils import loadUi, getSaveFileNameWithExt
+
+# using partial module to reduce duplicate code.
+from functools import partial
+import absl.logging as logging
+
+from Bio.Align import substitution_matrices
+
+
+logging.set_verbosity(logging.DEBUG)
+logging.info(f'REvoDesign is installed in {os.path.dirname(__file__)}')
+
+sys.path.append(os.path.dirname(__file__))
+
+from common.MutantTree import MutantTree
+from common.file_extensions import \
+    SessionFileExt, \
+    PDB_FileExt, \
+    PSSM_FileExt, \
+    MutableFileExt,\
+    TXT_FileExt,\
+    AnyFileExt, \
+    CompressedFileExt, \
+    PickleObjectFileExt, \
+    MSA_FileExt
+from common.magic_numbers import \
+        DEFAULT_SURFACE_PROBE_RADIUS, \
+        DEFAULT_SUBSTRATE_POCKET_RADIUS, \
+        DEFAULT_COFACTOR_POCKET_RADIUS, \
+        DEFAULT_CLUSTER_NUM, \
+        DEFAULT_CLUSTER_RANGE, \
+        DEFAULT_CLUSTER_MIN_MUT, \
+        DEFAULT_CLUSTER_MAX_MUT, \
+        DEFAULT_CLUSTER_BATCH_SIZE, \
+        DEFAULT_CLUSTER_SCORE_MTX, \
+        DEFAULT_GREMLIN_TOPN_NUM, \
+        DEFAULT_GREMLIN_SPATIAL_MAX_DIST
+
+from tools.utils import \
+    determine_chain_id, \
+    determine_exclusion, \
+    determine_molecule_objects, \
+    determine_nproc,\
+    determine_polymer_protein, \
+    determine_small_molecule, \
+    getOpenFileNameWithExt, \
+    check_dirname_exists, \
+    check_file_exists, \
+    get_molecule_sequence, \
+    run_command, \
+    refresh_window, \
+    getExistingDirectory, \
+    extract_archive, \
+    determine_system, \
+    ImageWidget, \
+    WorkerThread, \
+    QProgressBarton, \
+    QbuttonMatrix,\
+    run_worker_thread_with_progress
+
+from phylogenetics.PSSM_profile import PssmAnalyzer
+
+from common.MutantVisualizer import MutantVisualizer
+
+
+
+class REvoDesignPlugin:
+    def __init__(self,):
+
+        # global reference to avoid garbage collection of our dialog
+        self.window=None
+        
+
+        self.RUN_DIR=os.path.abspath(os.path.dirname(__file__))
+        self.PWD=os.getcwd()
+
+        self.ui_file = os.path.join(self.RUN_DIR,'UI', 'REvoDesign-PyMOL.ui')
+
+        self.num_selected_mutants=0
+
+        self.total_mutant_in_this_session=0
+        self.mutant_tree=None
+        self.gremlin_tool=None
+
+    def set_working_directory(self):
+        self.PWD=getExistingDirectory()
+        os.chdir(self.PWD)
+        
+    def load_test_data(self):
+        # menu actions
+        if determine_system()== 'Darwin':
+            self.PWD='/Users/yyy/Documents/RosettaWorkshop/2._Working/0._IntergatedProtocol/REvoDesign/tests/test_results'
+        else:
+            self.PWD='D:\repo\RosettaWorkshop/2._Working/0._IntergatedProtocol/REvoDesign\REvoDesign\tests/test_results'
+        # Tab `Determine`
+        self.set_widget_value(self.ui.checkBox_use_this_session_2,True)
+        self.set_widget_value(self.ui.lineEdit_output_pse_4, f'{self.PWD}/test_surface.pze')
+        
+        
+        # Tab `Load Mutants`
+        self.set_widget_value(self.ui.checkBox_use_this_session,True)
+        self.set_widget_value(self.ui.lineEdit_input_csv, f'{self.PWD}/../test_data/test.pssm')
+        self.set_widget_value(self.ui.lineEdit_input_customized_indices, f'{self.PWD}/surface_residue_records/residues_cutoff_15.txt')
+        self.set_widget_value(self.ui.lineEdit_output_pse,f'{self.PWD}/test_surface.pze')
+        self.set_widget_value(self.ui.lineEdit_reject_substitution,'PC')
+        self.set_widget_value(self.ui.lineEdit_preffer_substitution,'E:DATY K:RATY N:ATY Q:EDATY')
+        self.set_widget_value(self.ui.lineEdit_score_maxima,'2')
+
+        # Tab Choose Mutants
+        self.set_widget_value(self.ui.lineEdit_output_mut_table, f'{self.PWD}/surface_entropy.mut.txt')
+        self.set_widget_value(self.ui.checkBox_overide_to_save_mut_table,True)
+        self.set_widget_value(self.ui.checkBox_center_to_focus, True)
+        self.set_widget_value(self.ui.lineEdit_input_mut_table, f'{self.PWD}/../test_data/surface_entropy_ce1adb4bb8_mut.txt')
+        
+        # clusters
+        self.set_widget_value(self.ui.comboBox_cluster_batchsize, 100)
+        self.set_widget_value(self.ui.checkBox_use_this_session_5, True)
+        self.set_widget_value(self.ui.checkBox_cluster_override, True)
+        self.set_widget_value(self.ui.comboBox_num_mut_maximum,2)
+
+        # mutant visualizer
+        self.set_widget_value(self.ui.checkBox_use_this_session_3, True)
+        self.set_widget_value(self.ui.lineEdit_input_mut_table_csv, f'{self.PWD}/../test_data/test.best_leaf.csv')
+        self.set_widget_value(self.ui.lineEdit_output_pse_2, f'{self.PWD}/test_mutant_visualizer.pze')
+
+
+        # interact 
+        self.set_widget_value(self.ui.lineEdit_input_gremlin_mtx,f'{self.PWD}/expanded_compressed_files/bbe_PSSM_GREMLIN_results.zip/gremlin_res/bbe.i90c75_aln.GREMLIN.mrf.pkl')
+        
+    def run_plugin_gui(self):
+
+        if self.window is None:
+            self.window = self.make_window()
+        self.window.show()
+
+
+    def is_empty_session(self):
+        if len(cmd.get_names(type='objects',enabled_only=0,)) == 0:
+            logging.warning('Current session is empty!')
+            return True
+        else:
+            logging.warning('Current session is not empty!')
+            return False
+
+    # main function that makes the plugin window
+    def make_window(self):
+        main_window = QtWidgets.QMainWindow()
+        self.ui = loadUi(self.ui_file, main_window)# Store the UI form for later access
+
+
+        #self.ui.pushButton_run_PSSM_to_pse=QProgressBarton(self.ui.pushButton_run_PSSM_to_pse)
+
+        self.setup_nproc(self.ui.comboBox_nproc)
+        
+        self.setup_nproc(self.ui.comboBox_nproc_2)
+        self.setup_nproc(self.ui.comboBox_nproc_3)
+        self.setup_nproc(self.ui.comboBox_nproc_4)
+
+
+        # Set up Menu
+        self.ui.actionLoad_Tests.triggered.connect(self.load_test_data)
+        self.ui.actionSet_Working_Directory.triggered.connect(self.set_working_directory)
+
+        # Set up general arguments 
+        # Tab `Determine`
+        self.ui.checkBox_use_this_session_2.stateChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session_2,
+            self.ui.lineEdit_input_pse,
+            self.ui.comboBox_design_molecule,
+            ))
+        self.ui.pushButton_open_input_pse.clicked.connect(partial(
+            self.open_structure_or_session,
+            self.ui.lineEdit_input_pse,
+            'r'
+            ))
+        self.ui.pushButton_open_output_pse.clicked.connect(partial(
+            self.open_structure_or_session,
+            self.ui.lineEdit_output_pse_4,
+            'w'
+            ))
+        self.ui.comboBox_design_molecule.currentIndexChanged.connect(partial(
+            self.update_chain_id,
+            self.ui.comboBox_design_molecule,
+            self.ui.comboBox_chainid
+            ))
+        self.ui.pushButton_run_surface_refresh.clicked.connect(self.update_surface_exclusion)
+        self.ui.lineEdit_input_pse.textChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session_2,
+            self.ui.lineEdit_input_pse,
+            self.ui.comboBox_design_molecule,
+            ))
+        self.ui.lineEdit_output_pse_4.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_output_pse_4
+            ],
+            [
+                self.ui.pushButton_run_surface_detection,
+                self.ui.pushButton_run_pocket_detection
+            ]
+            
+            ))
+        self.ui.comboBox_design_molecule.currentIndexChanged.connect(partial(
+            self.update_chain_id,
+            self.ui.comboBox_design_molecule,
+            self.ui.comboBox_chainid
+            ))
+        
+        self.ui.comboBox_design_molecule.currentIndexChanged.connect(partial(
+            self.reload_determine_tab_setup,
+            self.ui.comboBox_design_molecule,
+            self.ui.comboBox_ligand_sel,
+            self.ui.comboBox_cofactor_sel,
+        ))
+
+        # Connect run buttons 
+        self.ui.pushButton_run_surface_detection.clicked.connect(self.run_surface_detection)
+        self.ui.pushButton_run_pocket_detection.clicked.connect(self.run_pocket_detection)
+
+        # Tab `Load Mutants`
+        self.ui.checkBox_use_this_session.stateChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session,
+            self.ui.lineEdit_input_pse_2,
+            self.ui.comboBox_molecule,
+            ))
+        self.ui.pushButton_open_input_pse.clicked.connect(partial(
+            self.open_structure_or_session,
+            self.ui.lineEdit_input_pse_2,
+            'r'
+            ))
+        self.ui.pushButton_open_output_pse_2.clicked.connect(partial(
+            self.open_structure_or_session,
+            self.ui.lineEdit_output_pse,
+            'w'
+            ))
+        self.ui.pushButton_open_customized_indices.clicked.connect(partial(
+            self.open_input_filepath,
+            self.ui.lineEdit_input_customized_indices,
+            [TXT_FileExt,AnyFileExt]
+        ))
+        self.ui.comboBox_molecule.currentIndexChanged.connect(partial(
+            self.update_chain_id,
+            self.ui.comboBox_molecule,
+            self.ui.comboBox_chainid_2
+            ))
+        self.ui.pushButton_open_input_csv.clicked.connect(partial(
+            self.open_input_filepath,
+            self.ui.lineEdit_input_csv,
+            [PSSM_FileExt,AnyFileExt,CompressedFileExt]
+        ))
+        self.ui.lineEdit_output_pse.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_output_pse,
+                self.ui.lineEdit_input_csv,
+                self.ui.lineEdit_input_customized_indices,
+            ],
+            [
+                self.ui.pushButton_run_PSSM_to_pse,
+            ]
+        ))
+
+
+
+        self.ui.pushButton_run_PSSM_to_pse.clicked.connect(self.run_mutant_loading_from_profile)
+
+
+        # Tab `Choose Mutants`
+        self.ui.pushButton_open_mut_table.clicked.connect(partial(
+            self.open_mutant_table,
+            self.ui.lineEdit_output_mut_table,
+        ))
+
+        self.ui.lineEdit_output_mut_table.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_output_mut_table,
+            ],
+            [
+                self.ui.pushButton_previous_mutant,
+                self.ui.pushButton_reject_this_mutant,
+                self.ui.pushButton_next_mutant,
+                self.ui.pushButton_accept_this_mutant,
+                
+            ]
+        ))
+
+        self.ui.checkBox_rock_pymol.stateChanged.connect(partial(
+            self.set_pymol_session_rock,
+            self.ui.checkBox_rock_pymol
+        ))
+
+        self.ui.pushButton_reinitialize_mutant_choosing.clicked.connect(partial(
+            self.initialize_design_candidates,
+            self.ui.pushButton_previous_mutant,
+            self.ui.pushButton_next_mutant,
+            self.ui.pushButton_reject_this_mutant,
+            self.ui.pushButton_accept_this_mutant,
+            self.ui.lcdNumber_total_mutant,
+            self.ui.lcdNumber_selected_mutant,
+            self.ui.lineEdit_output_mut_table,
+            self.ui.checkBox_overide_to_save_mut_table,
+            self.ui.checkBox_save_mutant_choice_checkpoints,
+            self.ui.progressBar_mutant_choosing
+
+        ))
+
+        self.ui.pushButton_load_mutant_choice_checkpoint.clicked.connect(partial(
+            self.recover_mutant_choices_from_checkpoint, 
+            self.ui.lcdNumber_selected_mutant,
+        ))
+
+        self.ui.pushButton_save_this_session.clicked.connect(
+            self.save_sessionfile
+        )
+
+        # Tab `Cluster`
+        self.ui.pushButton_open_input_pse_3.clicked.connect(partial(
+            self.open_structure_or_session,
+            self.ui.lineEdit_input_pse_3,
+            'r'
+        ))
+
+        self.ui.pushButton_open_mut_table_2.clicked.connect(partial(
+            self.open_mutant_table,
+            self.ui.lineEdit_input_mut_table,
+            'r'
+        ))
+
+        self.ui.checkBox_use_this_session_5.stateChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session_5,
+            self.ui.lineEdit_input_pse_3,
+            self.ui.comboBox_molecule_4,
+        ))
+
+        self.ui.comboBox_molecule_4.currentIndexChanged.connect(partial(
+            self.update_chain_id,
+            self.ui.comboBox_molecule_4,
+            self.ui.comboBox_chainid_3
+            ))
+        
+        self.set_widget_value(self.ui.comboBox_cluster_batchsize, DEFAULT_CLUSTER_BATCH_SIZE)
+        self.set_widget_value(self.ui.comboBox_num_cluster,DEFAULT_CLUSTER_RANGE)
+        self.set_widget_value(self.ui.comboBox_num_cluster,DEFAULT_CLUSTER_NUM)
+        self.set_widget_value(self.ui.comboBox_num_mut_minimun,DEFAULT_CLUSTER_MIN_MUT)
+        self.set_widget_value(self.ui.comboBox_num_mut_maximum,DEFAULT_CLUSTER_MAX_MUT)
+        self.set_widget_value(self.ui.comboBox_cluster_matrix, [mtx for mtx in os.listdir(os.path.join(substitution_matrices.__path__[0],'data'))])
+        self.set_widget_value(self.ui.comboBox_cluster_matrix, DEFAULT_CLUSTER_SCORE_MTX)
+        
+        self.ui.lineEdit_input_mut_table.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_input_mut_table,
+            ],
+            [
+                self.ui.pushButton_run_cluster,
+            ]
+        ))
+
+        self.ui.pushButton_run_cluster.clicked.connect(self.run_clustering)
+
+        # Tab Visualize
+        self.ui.checkBox_use_this_session_3.stateChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session_3,
+            self.ui.lineEdit_input_pse_4,
+            self.ui.comboBox_molecule_2,
+            ))
+        
+        self.ui.lineEdit_output_pse_2.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_output_pse_2,
+            ],
+            [
+                self.ui.pushButton_run_visualizing, 
+            ]
+        ))
+
+        self.ui.comboBox_molecule_2.currentIndexChanged.connect(partial(
+            self.update_chain_id,
+            self.ui.comboBox_molecule_2,
+            self.ui.comboBox_chainid_4
+            ))
+        
+        self.ui.pushButton_open_input_pse_4.clicked.connect(partial(
+            self.open_structure_or_session,
+            self.ui.lineEdit_input_pse_4,
+            'r'
+            
+        ))
+        
+        self.ui.pushButton_open_mut_table_csv.clicked.connect(partial(
+            self.open_mutant_table,
+            self.ui.lineEdit_input_mut_table_csv,
+            'r'
+        ))
+        
+        self.ui.lineEdit_input_mut_table_csv.textChanged.connect(partial(
+            self.update_mutant_table_columns,
+            self.ui.lineEdit_input_mut_table_csv,
+            self.ui.comboBox_best_leaf,
+            self.ui.comboBox_totalscore,
+        ))
+
+        self.ui.pushButton_open_output_pse_3.clicked.connect(partial(
+            self.open_structure_or_session,
+            self.ui.lineEdit_output_pse_2,
+            'w'
+
+        ))
+
+        self.set_widget_value(self.ui.comboBox_best_leaf,'best_leaf')
+        self.set_widget_value(self.ui.comboBox_totalscore,'totalscore')
+
+        self.ui.pushButton_run_visualizing.clicked.connect(self.visualize_mutants)
+
+        # Tab Interact
+        self.ui.pushButton_open_gremlin_mtx.clicked.connect(partial(
+            self.open_input_filepath,
+            self.ui.lineEdit_input_gremlin_mtx,
+            [PickleObjectFileExt, AnyFileExt]
+        ))
+
+        self.ui.checkBox_use_this_session_4.stateChanged.connect(partial(
+            self.set_widget_value,
+            self.ui.comboBox_molecule_3,
+            determine_molecule_objects()
+
+            ))
+
+        self.ui.comboBox_molecule_3.currentIndexChanged.connect(partial(
+            self.update_chain_id,
+            self.ui.comboBox_molecule_3,
+            self.ui.comboBox_chainid_9
+            ))
+        
+        
+
+        self.set_widget_value(self.ui.comboBox_gremlin_topN, DEFAULT_GREMLIN_TOPN_NUM)
+
+        self.ui.pushButton_reinitialize_interact.clicked.connect(self.load_gremlin_mrf)
+        self.ui.pushButton_run_interact_scan.clicked.connect(self.run_gremlin_tool)
+
+        self.set_widget_value(self.ui.comboBox_max_interact_dist, DEFAULT_GREMLIN_SPATIAL_MAX_DIST)
+
+        return main_window
+    
+
+    #class public function that can be shared with each tab
+    # callback for the "Browse" button
+    def browse_filename(self, mode='r', exts=[AnyFileExt]):
+        filter_strings = ';;'.join([f'{ext_discrition} ( *.{ext_} )' for ext in exts for ext_, ext_discrition in ext.items()])
+        
+        if mode == 'w' or mode == 'a':
+            browse_title = 'Save As...'
+            filename = getSaveFileNameWithExt(self.window, browse_title, filter=filter_strings)
+        else:
+            browse_title = "Open ..."
+            filename = getOpenFileNameWithExt(self.window, browse_title, filter=filter_strings)
+            
+            # Check if the selected file is a compressed archive
+            is_compressed = [True for ext_,_ in CompressedFileExt.items() if filename.endswith(ext_)]
+            if any(is_compressed):
+                # Ask whether to extract the file
+                msg = QtWidgets.QMessageBox()
+                msg.setIcon(QtWidgets.QMessageBox.Question)
+                msg.setWindowTitle("Extract Archive")
+                msg.setText(f"The selected file '{os.path.basename(filename)}' is a compressed archive. Do you want to extract it?")
+                msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+                result = msg.exec_()
+
+                if result == QtWidgets.QMessageBox.Yes:
+                    # Extract the archive and browse the extracted file
+                    extracted_path = self.flatten_compressed_files(filename)
+                    os.chdir(extracted_path)
+                    return self.browse_filename(mode, exts=exts)
+                else:
+                    # Keep the previously selected filename and return it
+                    return filename
+
+        if filename:
+            return filename
+        
+
+    # A universal and fussy function for value setting. ;-)
+    def set_widget_value(self,widget,value):
+        type_widget=type(widget)
+        type_value=type(value)
+
+        if type_widget== QtWidgets.QComboBox:
+            if type_value!= list and type_value != tuple :
+                widget.setCurrentText(str(value))
+            elif  type_value== list or type_value == tuple :
+                widget.clear()
+                widget.addItems(map(str,value))
+            else:
+                logging.warning(f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})')
+
+        elif type_widget == QtWidgets.QLineEdit:
+            widget.setText(str(value))
+
+        elif type_widget==QtWidgets.QProgressBar: 
+            if type_value== list or type_value == tuple:
+                widget.setRange(int(value[0]),int(value[1]))
+            elif type_value == int:
+                widget.setValue(int(value))
+            else:
+                logging.warning(f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})')
+                
+        elif type_widget == QtWidgets.QLCDNumber:
+            widget.display(str(value))
+
+        elif type_widget == QtWidgets.QCheckBox:
+            widget.setChecked(bool(value))
+        elif type_widget == QtWidgets.QStackedWidget:
+            # Check if the value is a list of image paths
+            if type_value == list:
+                # Remove all existing widgets from the stacked widget
+                while widget.count() > 0:
+                    widget.removeWidget(widget.widget(0))
+
+                # Add image widgets to the stacked widget
+                for image_path in value:
+                    image_widget = ImageWidget(image_path)
+                    widget.addWidget(image_widget)
+
+                # Show the first image by default
+                if len(value) > 0:
+                    widget.setCurrentIndex(0)
+            else:
+                logging.warning(f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})')
+        elif type_widget == QtWidgets.QGridLayout:
+            if type_value==str and os.path.exists(value):
+                # Clear the existing widgets from gridLayout_interact_pairs
+                for i in reversed(range(widget.count())):
+                    widget = widget.itemAt(i).widget()
+                    if widget is not None:
+                        widget.deleteLater()
+                image_widget = ImageWidget(value)
+                widget.addWidget(image_widget)
+            else:
+                logging.warning(f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})')
+
+        else:
+            logging.warning(f'FIX ME: Widget {widget} is not currently supported. ')
+
+    # A universal and fussy function for input file path browsing.
+    def open_input_filepath(self,lineEdit_input, exts=[AnyFileExt]):
+        input_fn = self.browse_filename(mode='r', exts=exts)
+        if input_fn:
+            self.set_widget_value(lineEdit_input, input_fn)
+            return input_fn
+
+    def reload_molecule_info(self,trigger_checkBox,lineEdit_input_session,output_comboBox):
+        self.temperal_session=tempfile.mktemp(suffix=".pse")
+        if trigger_checkBox.isChecked():
+            if not self.is_empty_session():
+                logging.info(f"Using current session: {trigger_checkBox.isChecked()}!")
+                cmd.save(self.temperal_session)
+                cmd.reinitialize()
+                cmd.load(self.temperal_session)
+            else:
+                logging.warning(f'Current session is empty! \n \
+                                Please load one PDB/PSE/PZE, otherwise uncheck `use_this_session`!')
+                return
+        else:
+            self.new_session=lineEdit_input_session.text()
+            if os.path.exists(os.path.abspath(self.new_session)):
+                logging.info(f'Loading {self.new_session} ...')
+                cmd.reinitialize()
+                cmd.load(self.new_session)
+                cmd.save(self.temperal_session)
+            else:
+                logging.warning(f'Abored recognizing sessions {self.new_session} .')
+                return
+            
+        molecule_objects=determine_molecule_objects()
+
+        self.set_widget_value(output_comboBox,molecule_objects)
+
+    def setup_nproc(self,comboBox_nproc):
+        nprocs=determine_nproc()
+        self.set_widget_value(comboBox_nproc, nprocs)
+        self.set_widget_value(comboBox_nproc, max(nprocs))
+
+    def open_structure_or_session(self,lineEdit_structure_session, mode='r'):
+        if mode=='r':
+            input_pse_fn = self.open_input_filepath(lineEdit_structure_session,[SessionFileExt, PDB_FileExt, AnyFileExt])
+            if input_pse_fn:
+                self.set_widget_value(lineEdit_structure_session,input_pse_fn)
+            else:
+                logging.warning(f'Could not open file for reading: {input_pse_fn}')
+        elif mode=='w':
+            output_pse_fn = self.browse_filename(mode=mode, exts=[SessionFileExt,AnyFileExt])
+            if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
+                logging.info(f"Output file is set as {output_pse_fn}")
+                self.set_widget_value(lineEdit_structure_session,output_pse_fn)
+            else:
+                logging.warning(f"Invalid output path: {output_pse_fn}.")
+        else:
+            logging.warning(f'Unknown mode {mode} ! Aborded.')
+
+    def save_sessionfile(self,sessionfile):
+        if not sessionfile: 
+            sessionfile = self.find_session_path()
+
+        if sessionfile.endswith('.pze') or sessionfile.endswith('.pse'):
+            cmd.save(sessionfile)
+        else:
+            logging.warning(f"Session file is not set properly: {sessionfile}")
+
+    def release_run_button_if_lineEdit_fp_is_valid(self,lineEdits_fp, buttons_to_release):
+        button_unlocked=True
+
+        for fp in lineEdits_fp:
+            _fp=fp.text()
+            logging.info(f'Checking file path: {_fp}')
+            if not check_dirname_exists(_fp):
+                logging.warning(f'The parent dirname of `{_fp}` is not valid. Keep design buttoms locked!')
+                button_unlocked=False
+                return
+            else:
+                if not check_file_exists(_fp):
+                    logging.warning(f'The file `{_fp}` is not valid.')
+                else:
+                    logging.info(f'The file `{_fp}` is valid.')
+
+        if button_unlocked:
+            for button in buttons_to_release:
+                button.setEnabled(True)
+        else:
+            
+            for button in buttons_to_release:
+                button.setEnabled(False)
+
+    def update_chain_id(self, comboBox_molecule,comboBox_chainid):
+        molecule = comboBox_molecule.currentText()
+        if not molecule:
+            logging.warning(f'No available designable molecule!')
+            return
+        chain_ids = determine_chain_id(molecule)
+        self.set_widget_value(comboBox_chainid,chain_ids)
+        self.set_widget_value(comboBox_chainid, chain_ids[0] if chain_ids else 0)
+
+    def open_mutant_table(self, lineEdit_mutant_table,mode='r'):
+        if mode=='r':
+            input_mut_txt_fn = self.open_input_filepath(lineEdit_mutant_table,[MutableFileExt,AnyFileExt,CompressedFileExt])
+            if input_mut_txt_fn:
+                self.set_widget_value(lineEdit_mutant_table,input_mut_txt_fn)
+            else:
+                logging.warning(f'Could not open file for reading: {input_mut_txt_fn}')
+        elif mode == 'w':
+            output_mut_txt_fn = self.browse_filename(mode=mode, exts=[SessionFileExt,AnyFileExt])
+            if output_mut_txt_fn and os.path.exists(os.path.dirname(output_mut_txt_fn)):
+                logging.info(f"Output file is set as {output_mut_txt_fn}")
+                self.set_widget_value(lineEdit_mutant_table, output_mut_txt_fn)
+            else:
+                logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
+        else:
+            logging.warning(f'Unknown mode {mode} ! Aborded.')
+    
+    def write_input_mutant_table(self, output_mut_txt_fn):
+        open(output_mut_txt_fn,'w').write('\n'.join(self.selected_mutants))
+
+    def save_mutant_choice_checkpoint(self,output_mut_txt_fn):
+
+        output_mut_txt_dir=os.path.dirname(output_mut_txt_fn)
+        output_mut_txt_bn=os.path.basename(output_mut_txt_fn)
+
+        output_mut_txt_dir_ckp=os.path.join(output_mut_txt_dir,f'{self.PWD}/checkpoints/')
+        os.makedirs(output_mut_txt_dir_ckp,exist_ok=True)
+
+        output_mut_txt_bn_ckp=f'ckp_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.{output_mut_txt_bn}'
+
+        output_mut_txt_ckp=os.path.join(output_mut_txt_dir_ckp, output_mut_txt_bn_ckp)
+        logging.info(f'Saving checkpoint: {output_mut_txt_ckp}')
+        shutil.copy(output_mut_txt_fn,output_mut_txt_ckp)
+
+    def save_mutant_choices(self, lineEdit_output_mut_txt,checkBox_overide,checkBox_make_checkpoint):
+        # TODO mutant_choices function
+        output_mut_txt_fn=lineEdit_output_mut_txt.text()
+        output_mut_txt_dir=os.path.dirname(output_mut_txt_fn)
+        if not os.path.exists(output_mut_txt_dir):
+            logging.warning(f'Parent dir for mutant table does NOT exist! {output_mut_txt_dir}')
+            # os.makedirs(output_mut_txt_dir,exist_ok=True)
+            logging.warning(f'Skip saving mutant file.')
+            return
+        
+        if os.path.exists(output_mut_txt_fn):
+            if checkBox_overide.isChecked():
+                logging.warning(f'Mutant table exists and will be overriden! {output_mut_txt_fn}')
+                self.write_input_mutant_table(output_mut_txt_fn)
+            else:
+                logging.error(f'Mutant table exists and will NOT be overriden! {output_mut_txt_fn}')
+                return
+        else:
+            logging.info(f'Mutant table is created at {output_mut_txt_fn}')
+            self.write_input_mutant_table(output_mut_txt_fn)
+            
+        if checkBox_make_checkpoint.isChecked():
+            self.save_mutant_choice_checkpoint(output_mut_txt_fn)
+            
+    def set_pymol_session_rock(self,checkBox_rock_pymol):
+        cmd.rock(mode=checkBox_rock_pymol.isChecked())
+
+    def center_design_area(self,mutant_id):
+        if self.mutant_tree and mutant_id:
+            logging.debug(f'Centering design area: {mutant_id}')
+            cmd.center(mutant_id)
+        else:
+            logging.debug(f'Giving up centering design area: {mutant_id}')
+    
+    def find_session_path(self):
+
+        session_path=cmd.get('session_file')
+        if session_path and (session_path.endswith('.pze') or session_path.endswith('.pse')):
+            logging.info(f'Found session path: {session_path}')
+            return session_path 
+        else:
+            logging.info('Session not found, please use a new session path to save.')
+            return self.browse_filename(mode='w', exts=[SessionFileExt])
+
+    def flatten_compressed_files(self, compressed_file):
+        flatten_path=os.path.join(self.PWD, 'expanded_compressed_files',os.path.basename(compressed_file))
+        os.makedirs(flatten_path, exist_ok=True)
+        extract_archive(archive_file=compressed_file, extract_to=flatten_path)
+        return flatten_path
+
+    
+    '''
+    Private functions used only in a specific tab.
+    '''
+    # Tab `Determine` 
+    def reload_determine_tab_setup(self,
+                                comboBox_design_molecule,
+                                comboBox_ligand_sel,
+                                comboBox_cofactor_sel):
+        # Setup surface determination arguments
+        self.ui.comboBox_surface_cutoff.clear()
+        self.ui.comboBox_surface_cutoff.addItems(map(str, range(1, 36)))
+        self.ui.comboBox_surface_cutoff.setCurrentIndex(self.ui.comboBox_surface_cutoff.findText(str(DEFAULT_SURFACE_PROBE_RADIUS)))
+
+        # Setup pocket determination arguments
+        small_molecules = determine_small_molecule(comboBox_design_molecule.currentText())
+        comboBox_ligand_sel.clear()
+        comboBox_ligand_sel.addItems(small_molecules)
+        comboBox_ligand_sel.setCurrentIndex(len(small_molecules))
+
+        comboBox_cofactor_sel.clear()
+        comboBox_cofactor_sel.addItems(small_molecules)
+        if len(small_molecules) >= 2:
+            comboBox_cofactor_sel.setCurrentIndex(len(small_molecules) - 1)
+        else:
+            comboBox_cofactor_sel.setCurrentIndex(0)
+        
+        self.ui.comboBox_ligand_radius.clear()
+        self.ui.comboBox_ligand_radius.addItems(map(str, range(1, 11)))
+        self.ui.comboBox_ligand_radius.setCurrentIndex(self.ui.comboBox_ligand_radius.findText(str(DEFAULT_SUBSTRATE_POCKET_RADIUS)))
+        
+        self.ui.comboBox_cofactor_radius.clear()
+        self.ui.comboBox_cofactor_radius.addItems(map(str, range(1, 11)))
+        self.ui.comboBox_cofactor_radius.setCurrentIndex(self.ui.comboBox_cofactor_radius.findText(str(DEFAULT_COFACTOR_POCKET_RADIUS)))
+
+    def update_surface_exclusion(self):
+        exclusion_list = determine_exclusion()
+        self.ui.comboBox_surface_exclusion.clear()
+        self.ui.comboBox_surface_exclusion.addItems(exclusion_list)
+        self.ui.comboBox_surface_exclusion.setCurrentIndex(0) if exclusion_list else 0
+
+    def run_surface_detection(self):
+        input_file =self.temperal_session
+        output_file = self.ui.lineEdit_output_pse_4.text()
+        molecule = self.ui.comboBox_design_molecule.currentText()
+        chain_id = self.ui.comboBox_chainid.currentText()
+        exclusion = self.ui.comboBox_surface_exclusion.currentText()
+        cutoff = int(self.ui.comboBox_surface_cutoff.currentText())
+        do_show_surf_CA = self.ui.checkBox_show_surf_CA.isChecked()
+
+        from structure.Surface.findSurfaceResidues import determine_surface_residue
+        determine_surface_residue(
+            input_file=input_file,
+            output_file=output_file,
+            molecule=molecule,
+            chain_id=chain_id,
+            exclude_residue_selection=exclusion,
+            cutoff=cutoff,
+            do_show_surf_CA=do_show_surf_CA,
+        )
+
+    def run_pocket_detection(self):
+        input_file = self.temperal_session
+        output_file = self.ui.lineEdit_output_pse_4.text()
+        molecule = self.ui.comboBox_design_molecule.currentText()
+        ligand = self.ui.comboBox_ligand_sel.currentText()
+        cofactor = self.ui.comboBox_cofactor_sel.currentText()
+        ligand_radius = int(self.ui.comboBox_ligand_radius.currentText())
+        cofactor_radius = int(self.ui.comboBox_cofactor_radius.currentText())
+
+        from structure.pocket.read_enzyme_pockets import read_enzyme_pockets
+        read_enzyme_pockets(
+            input_file=input_file,
+            output_file=output_file,
+            molecule=molecule,
+            ligand=ligand,
+            cofactor=cofactor,
+            save_dir=f'{self.PWD}/pockets/',
+            ligand_radius=ligand_radius,
+            cofactor_radius=cofactor_radius
+        )
+
+    # Tab `Load Mutants`
+
+    def run_mutant_loading_from_profile(self):
+        self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
+        
+        input_file = self.temperal_session
+        molecule=self.ui.comboBox_molecule.currentText()
+        chain_id=self.ui.comboBox_chainid_2.currentText()
+        pssm_profile=self.ui.lineEdit_input_csv.text()
+        preffered=self.ui.lineEdit_preffer_substitution.text().upper()
+        rejected=self.ui.lineEdit_reject_substitution.text().upper()
+        design_case=self.ui.lineEdit_design_case.text()
+        custom_indices_fp=self.ui.lineEdit_input_customized_indices.text()
+        cutoff=[int(self.ui.lineEdit_score_minima.text()),int(self.ui.lineEdit_score_maxima.text())]
+        output_pse=self.ui.lineEdit_output_pse.text()
+        create_full_pdb=self.ui.checkBox_generate_full_pdb.isChecked()
+        nproc=int(self.ui.comboBox_nproc_2.currentText())
+        progressbar=self.ui.progressBar_load_mutants
+        sequence=get_molecule_sequence(molecule, chain_id)
+        parallel_run=self.ui.checkBox_parallel.isChecked()
+
+        #progressbarton=self.ui.pushButton_run_PSSM_to_pse
+
+        logging.info(f"Sequence of `{molecule}`: \n {sequence}")
+        
+        
+        design=PssmAnalyzer(pssm_profile)
+        design.pwd=self.PWD
+        design.parallel_run=parallel_run
+        
+        mutation_json_fp,mutant_table_fp,mutation_png_fp=design.design_protein_using_pssm(sequence,
+                                    alias=molecule,
+                                    preffered=preffered,
+                                    design_case=design_case,
+                                    custom_indices_fp=custom_indices_fp,
+                                    cutoff=cutoff)
+        
+        design.load_mutants_to_pymol_session(input_pse=input_file,
+                                output_pse=output_pse,
+                                molecule=molecule, 
+                                chain_id=chain_id, 
+                                mutant_json=mutation_json_fp,
+                                reject=rejected,
+                                create_full_pdb=create_full_pdb,
+                                progress_bar=progressbar,
+                                nproc=nproc,
+                                #progressbarton=progressbarton
+                                )
+    
+        cmd.reinitialize()
+        cmd.load(output_pse)
+    
+        cmd.center(molecule)
+        cmd.set('surface_color','gray70')
+        cmd.set('cartoon_color', 'gray70')
+        cmd.set('surface_cavity_mode', 4)
+        cmd.set('transparency',.6)
+        cmd.set('cartoon_cylindrical_helices',)
+        cmd.set('cartoon_transparency', .3)
+        cmd.save(output_pse)  
+
+        self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
+
+        
+        
+    # Tab `Choose Mutants`
+    def activate_focused(self):
+        if self.mutant_tree.current_mutant_id:
+            cmd.enable(self.mutant_tree.current_mutant_id)
+            cmd.show('mesh', f'{self.mutant_tree.current_mutant_id} and (sidechain or n. CA)')
+        if self.mutant_tree.last_mutant_id:
+            #cmd.disable(self.mutant_tree.last_mutant_id)
+            cmd.hide('mesh', f'{self.mutant_tree.last_mutant_id} and (sidechain or n. CA)')
+
+
+    def accept_mutant(self,lcdNumber_selected_mutant):
+        if self.is_this_pymol_object_a_mutant(self.mutant_tree.current_mutant_id):
+            logging.debug(f'Accepting mutant {self.mutant_tree.current_mutant_id}')
+            cmd.enable(self.mutant_tree.current_mutant_id)
+            self.is_this_mutant_been_accepted=True
+            
+        else:
+            logging.warning(f'Ingoring non mutant {self.mutant_tree.current_mutant_id}')
+        
+        self.refresh_mutants_that_have_been_chosen()    
+        
+        self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+
+    def reject_mutant(self,lcdNumber_selected_mutant):
+        if self.is_this_pymol_object_a_mutant(self.mutant_tree.current_mutant_id):
+            logging.debug(f'Rejecting mutant {self.mutant_tree.current_mutant_id}')
+            cmd.disable(self.mutant_tree.current_mutant_id)
+            self.refresh_mutants_that_have_been_chosen()
+            self.is_this_mutant_been_accepted=False
+        else:
+            logging.warning(f'Ingoring non mutant {self.mutant_tree.current_mutant_id}')
+
+        self.refresh_mutants_that_have_been_chosen()    
+        
+        self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+
+    def has_this_mutant_been_accepted(self):
+        # this should be execute immidiately after self.mutant_tree.walk_the_mutants
+        return [x for x in cmd.get_names(type='nongroup_objects',enabled_only=1,selection=self.mutant_tree.current_mutant_id) if x == self.mutant_tree.current_mutant_id]
+
+    def walk_mutant_groups(self,walk_to_next,progressBar_mutant_choosing):
+
+        # disable the mutant that is not selected. 
+        if not self.is_this_mutant_been_accepted:
+            cmd.disable(self.mutant_tree.current_mutant_id)
+
+        self.mutant_tree.walk_the_mutants(walk_to_next_one=walk_to_next)
+
+        self.is_this_mutant_been_accepted=True if self.has_this_mutant_been_accepted() else False
+        
+        self.set_widget_value(progressBar_mutant_choosing, self.mutant_tree.get_mutant_index_in_all_mutants(self.mutant_tree.current_mutant_id))
+
+        self.activate_focused()
+        logging.info(f'Walked to the {"next" if walk_to_next else "previous"} mutant {self.mutant_tree.current_mutant_id}.')
+
+        # enable the current mutant by default.
+
+        if self.mutant_tree.current_branch_id == self.mutant_tree.last_branch_id:
+            logging.debug(f"In the same branch {self.mutant_tree.current_branch_id}")
+        else:
+            logging.debug(f"Jump from branch {self.mutant_tree.last_branch_id} to {self.mutant_tree.current_branch_id}")
+
+
+        # close group object if deactivated
+        if self.mutant_tree.last_branch_id != '' and self.mutant_tree.current_branch_id != self.mutant_tree.last_branch_id:
+            cmd.disable(self.mutant_tree.last_branch_id)
+            cmd.group(self.mutant_tree.current_branch_id,action='close')
+            
+        # expand group object if activated
+        if self.mutant_tree.current_branch_id and self.mutant_tree.current_branch_id != self.mutant_tree.last_branch_id:
+            cmd.enable(self.mutant_tree.current_branch_id)
+            cmd.group(self.mutant_tree.current_branch_id, action='open')
+        
+        self.center_design_area(self.mutant_tree.current_mutant_id)
+
+    # basic function that works for mutant_tree instantiation
+    def is_this_pymol_object_a_mutant(self,mutant):
+        if re.match(r'\d+\w_[-\d\.]+', mutant):
+            return True
+        else:
+            return False
+
+    # basic function that works for mutant_tree instantiation
+    def fetch_all_mutant_branch_ids(self):
+        self.all_mutant_branch_ids=[group_id for group_id in cmd.get_names(type='group_objects',enabled_only=0) if group_id.startswith('mt_') ]
+
+    # basic function that works for mutant_tree instantiation
+    def fetch_all_mutant_in_one_branch(self,group_id):
+
+        design_resi,wild_type_aa,wild_type_score=self.read_design_wt_info_from_group_id(group_id)
+        mutants_in_current_group = [mutant 
+            for mutant in cmd.get_names(type='nongroup_objects',enabled_only=0,selection=f'resi {design_resi}') 
+            if self.is_this_pymol_object_a_mutant(mutant)]
+        
+        all_mutants_in_current_branch={}
+        for mutant_id in mutants_in_current_group:
+            _resi, _resn, _score=self.read_design_candidates_info_from_mutant_id(mutant_id)
+            tmp={'resi':_resi,'resn':_resn,'score': _score}
+            all_mutants_in_current_branch.update({mutant_id:tmp})
+    
+
+        return all_mutants_in_current_branch
+    
+    # basic function that works for mutant_tree instantiation
+    def fetch_mutant_tree(self, reinitialize=False):
+        if reinitialize:
+
+            # self.all_mutant_groups
+            self.fetch_all_mutant_branch_ids() 
+            if not self.all_mutant_branch_ids:
+                logging.error(f'This sesion may not contain an mutant tree.')
+                return None
+            mutant_tree={}
+            
+            # self.all_mutants_in_all_groups
+            for group_id in self.all_mutant_branch_ids:
+                mutant_branch=self.fetch_all_mutant_in_one_branch(group_id)
+                mutant_tree.update({group_id: mutant_branch})
+                logging.info(f'update {group_id} with {len(mutant_branch.keys())} mutants.')
+
+            # instantialize a mutant tree from current session.
+            self.mutant_tree=MutantTree(mutant_tree)
+        else:
+            logging.warning(f'This sesion already has a valid mutant tree. To regenerate it, smash the `Reinitialize` button.')
+
+
+    def refresh_mutants_that_have_been_chosen(self):
+        
+        self.selected_mutants=[mutant_id for mutant_id in cmd.get_names(type='objects',enabled_only=1)
+                                    if self.is_this_pymol_object_a_mutant(mutant=mutant_id)]
+        self.num_selected_mutants=len(self.selected_mutants)
+        logging.debug(f'Refreshing chosen mutant: {self.num_selected_mutants}')
+
+
+    def read_design_wt_info_from_group_id(self,group_id):
+        logging.debug(f'Parsing group id {group_id}')
+        matched_group_id = re.match(r'mt_(\w)(\d+)_([\-\d\.]+)',group_id)
+        wild_type,design_resi,wild_type_score=matched_group_id.group(1),matched_group_id.group(2),matched_group_id.group(3)
+        return int(design_resi), wild_type, float(wild_type_score)
+    
+    def read_design_candidates_info_from_mutant_id(self,mutant_id):
+        logging.debug(f'Parsing {mutant_id}')
+        matched_mutant_id = re.match(r'(\d+)(\w)_([\-\d\.]+)',mutant_id)
+        design_resi=matched_mutant_id.group(1)
+        resn_substitution=matched_mutant_id.group(2)
+        mutant_score=matched_mutant_id.group(3)
+        logging.debug(f'{int(design_resi)},{resn_substitution}, {float(mutant_score)}')
+        return int(design_resi),{resn_substitution},float(mutant_score)
+
+    def recover_mutant_choices_from_checkpoint(self, lcdNumber_selected_mutant):
+        mutant_choice_checkpoint_fn = self.browse_filename(mode='r', exts=[MutableFileExt,AnyFileExt])
+        if os.path.exists(mutant_choice_checkpoint_fn):
+            mutants_from_checkpoint = open(mutant_choice_checkpoint_fn,'r').read().strip().split('\n')
+            cmd.disable(' or '.join(self.mutant_tree.all_mutant_ids))
+            cmd.enable(' or '.join(mutants_from_checkpoint))
+            logging.info(f'Recover mutants from checkpoint: {mutant_choice_checkpoint_fn}')
+            logging.info(mutants_from_checkpoint)
+            self.refresh_mutants_that_have_been_chosen()
+            self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+            
+
+    def initialize_design_candidates(self,
+                                pushButton_previous_mutant,
+                                pushButton_next_mutant,
+                                pushButton_reject_this_mutant,
+                                pushButton_accept_this_mutant,
+                                lcdNumber_total_mutant,
+                                lcdNumber_selected_mutant,
+                                lineEdit_output_mut_txt,
+                                checkBox_overide,
+                                checkBox_make_checkpoint,
+                                progressBar_mutant_choosing):
+        
+
+        self.fetch_mutant_tree(reinitialize=True)
+        if not self.all_mutant_branch_ids:
+            logging.error(f'This sesion may not contain an mutant tree.')
+            return None
+
+        # if mutant tree is available, disable the input box for saving.
+        
+        lineEdit_output_mut_txt.setEnabled(not ((self.mutant_tree) and (checkBox_make_checkpoint.isChecked() or checkBox_overide.isChecked())))
+        
+
+        if not self.mutant_tree:
+            logging.warning('Could not initialize mutant tree! This session may not be a REvoDesign session!')
+            return
+        
+        self.set_widget_value(progressBar_mutant_choosing,[0,len(self.mutant_tree.all_mutant_ids)])
+        
+        self.is_this_mutant_been_accepted=False
+
+        self.activate_focused()
+        self.center_design_area(self.mutant_tree.current_mutant_id)
+
+
+        cmd.disable(' or '.join(self.mutant_tree.all_mutant_branch_ids))
+        cmd.disable(' or '.join(self.mutant_tree.all_mutant_ids))
+
+        cmd.enable(self.mutant_tree.current_mutant_id)
+        cmd.enable(self.mutant_tree.current_branch_id)
+
+        self.set_widget_value(lcdNumber_total_mutant,len(self.mutant_tree.all_mutant_ids))
+        self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+
+        # initialize mutant walking
+
+        # set state changes to pushbuttons accroding to the mutant tree
+        for pushButton in [
+            pushButton_previous_mutant,
+            pushButton_next_mutant,
+            pushButton_reject_this_mutant,
+            pushButton_accept_this_mutant,
+            ]:
+                pushButton.setEnabled(bool(self.mutant_tree))
+
+        
+        pushButton_accept_this_mutant.clicked.connect(partial(
+            self.accept_mutant,
+            lcdNumber_selected_mutant
+        ))
+        pushButton_reject_this_mutant.clicked.connect(partial(
+            self.reject_mutant,
+            lcdNumber_selected_mutant
+        ))
+
+        pushButton_accept_this_mutant.clicked.connect(partial(
+            self.save_mutant_choices,
+            lineEdit_output_mut_txt,
+            checkBox_overide,
+            checkBox_make_checkpoint
+        ))
+        pushButton_reject_this_mutant.clicked.connect(partial(
+            self.save_mutant_choices,
+            lineEdit_output_mut_txt,
+            checkBox_overide,
+            checkBox_make_checkpoint
+        ))
+        
+        pushButton_next_mutant.clicked.connect(partial(
+            self.walk_mutant_groups,
+            True,
+            progressBar_mutant_choosing
+        ))
+
+        pushButton_previous_mutant.clicked.connect(partial(
+            self.walk_mutant_groups,
+            False,
+            progressBar_mutant_choosing
+            
+        ))
+
+    # combination and clustering
+    def run_clustering(self):
+
+        # lazy module loading to fasten plugin initializing
+        from clusters.combine_positions import Combinations
+        from clusters.cluster_sequence import Clustering
+
+        input_molecule=self.ui.comboBox_molecule_4.currentText()
+        input_chain_id=self.ui.comboBox_chainid_3.currentText()
+        input_mutant_table=self.ui.lineEdit_input_mut_table.text()
+
+
+        cluster_batch_size=int(self.ui.comboBox_cluster_batchsize.currentText())
+        cluster_number=int(self.ui.comboBox_num_cluster.currentText())
+        min_mut_num=int(self.ui.comboBox_num_mut_minimun.currentText())
+        max_mut_num=int(self.ui.comboBox_num_mut_maximum.currentText())
+        cluster_substitution_matrix=self.ui.comboBox_cluster_matrix.currentText()
+        
+        shuffle_variant=self.ui.checkBox_shuffle_clustering.isChecked()
+
+        nproc=int(self.ui.comboBox_nproc_3.currentText())
+
+        # output space
+        plot_space=self.ui.stackedWidget
+        progressbar=self.ui.progressBar_clustering
+
+        input_sequence=get_molecule_sequence(molecule=input_molecule,chain_id=input_chain_id)
+        logging.info(f'Sequence for {input_molecule}, chain id: {input_chain_id}: \n {input_sequence}')
+        input_fasta_file=f'{self.PWD}/{input_molecule}_{input_chain_id}.fasta'
+        open(input_fasta_file,'w').write(f'>{input_molecule}_{input_chain_id}\n{input_sequence}')
+        logging.info(f'Sequence file is saved as {input_fasta_file}')
+
+
+        # output files
+        cluster_outputs={}
+
+        #self.set_widget_value(progressbar,[min_mut_num,max_mut_num])
+
+
+        for num_mut in range(min_mut_num,max_mut_num+1):
+            
+
+            # combination
+            combinations=Combinations()
+            combinations.fastafile=input_fasta_file
+            combinations.inputfile=input_mutant_table
+            combinations.combi=num_mut
+            combinations.path=self.PWD
+            combinations.processors=nproc
+
+            # expected design combination file
+            
+            combinations.run_combinations()
+            expected_design_combinations=combinations.expected_output_fasta
+
+            #self.set_widget_value(progressbar, num_mut/2)
+
+
+            # clustering
+
+            clustering=Clustering(fastafile=expected_design_combinations)
+            clustering.batch_size=cluster_batch_size
+            clustering.num_proc=nproc
+            clustering.num_clusters=cluster_number
+            clustering.shuffle_variant=shuffle_variant
+            clustering.substitution_matrix=cluster_substitution_matrix
+            clustering._save_dir=self.PWD
+            
+            clustering.initialize_aligner()
+
+            clustering.run_clustering(progressbar=progressbar)
+            cluster_outputs.update({num_mut:clustering.cluster_output_fp})
+
+            #self.set_widget_value(progressbar, num_mut)
+            
+        
+        cluster_imgs=[_cluster['score'] for _,_cluster in cluster_outputs.items()]
+        self.set_widget_value(plot_space,cluster_imgs)
+
+    # Tab Visualize
+
+    def get_mutant_table_columns(self,mutfile):
+        import pandas as pd
+        table_extensions=[f'.{ext}' for ext,_ in MutableFileExt.items()]
+
+        if not any([True for ext in table_extensions if mutfile.lower().endswith(ext)]):
+            return None
+        
+        elif mutfile.lower().endswith('.txt'):
+            return None
+        
+        elif mutfile.lower().endswith('.csv'):
+            mutation_data=pd.read_csv(mutfile)
+            
+        elif mutfile.lower().endswith('.tsv'):
+            mutation_data=pd.read_fwf(mutfile)
+        
+        elif mutfile.lower().endswith('.xlsx') or mutfile.lower().endswith('.xls'):
+            mutation_data=pd.read_excel(mutfile)
+        
+        return list(mutation_data.columns)
+    
+    def update_mutant_table_columns(self,
+                                    lineEdit_input_mut_table_csv,
+                                    comboBox_best_leaf,
+                                    comboBox_totalscore):
+        mut_table_fp=lineEdit_input_mut_table_csv.text()
+        if not os.path.exists(mut_table_fp):
+            logging.warning(f'Mutant Table path is not valid: {mut_table_fp}')
+            return
+        else:
+            
+            mut_table_cols=self.get_mutant_table_columns(mutfile=mut_table_fp)
+
+            if not mut_table_cols:
+                logging.warning(f'Mutant Table column names is not valid: {mut_table_cols}')
+                return
+            else:
+                # set cols to combo boxes
+                for comboBox in [comboBox_best_leaf,comboBox_totalscore]:
+                    self.set_widget_value(comboBox,mut_table_cols)
+                
+                # set default col value 
+                if len(mut_table_cols) >1:
+                    self.set_widget_value(comboBox_best_leaf,mut_table_cols[0])
+                    self.set_widget_value(comboBox_totalscore,mut_table_cols[-1])
+
+    def visualize_mutants(self):
+        input_pse=self.temperal_session
+        input_mut_table_csv=self.ui.lineEdit_input_mut_table_csv.text()
+        molecule=self.ui.comboBox_molecule_2.currentText()
+        chainid=self.ui.comboBox_chainid_4.currentText()
+        output_pse=self.ui.lineEdit_output_pse_2.text()
+        best_leaf=self.ui.comboBox_best_leaf.currentText()
+        totalscore=self.ui.comboBox_totalscore.currentText()
+        nproc=int(self.ui.comboBox_nproc_4.currentText())
+        create_full_pdb=self.ui.checkBox_create_full_pdb.isChecked()
+        group_name=self.ui.lineEdit_group_name.text()
+        progressBar_visualize_mutants=self.ui.progressBar_visualize_mutants
+
+        
+
+
+        visualizer=MutantVisualizer(molecule=molecule,
+                                    chain_id=chainid,)
+        visualizer.mutfile=input_mut_table_csv
+        visualizer.input_session=input_pse
+        visualizer.nproc=nproc
+        visualizer.key_col=best_leaf
+        visualizer.score_col=totalscore
+        visualizer.save_session=output_pse
+        visualizer.full=create_full_pdb
+        visualizer.group_name=group_name
+        visualizer.run_with_progressbar(progress_bar=progressBar_visualize_mutants)
+        
+
+        
+        cmd.reinitialize()
+        cmd.load(output_pse)
+        cmd.center(molecule)
+        cmd.set('surface_color','gray70')
+        cmd.set('cartoon_color', 'gray70')
+        cmd.set('surface_cavity_mode', 4)
+        cmd.set('transparency',.6)
+        cmd.set('cartoon_cylindrical_helices',)
+        cmd.set('cartoon_transparency', .3)
+        cmd.save(output_pse)  
+
+
+    # Tab Interact via GREMLIN
+    def load_gremlin_mrf(self,):
+        from phylogenetics.GREMLIN_Tools import GREMLIN_Tools
+        self.ui.pushButton_reinitialize_interact.setEnabled(False)
+
+        try:
+
+            gremlin_mrf_fp=self.ui.lineEdit_input_gremlin_mtx.text()
+            
+            topN_gremlin_candidates=int(self.ui.comboBox_gremlin_topN.currentText())
+            molecule=self.ui.comboBox_molecule_3.currentText()
+            chain_id=self.ui.comboBox_chainid_9.currentText()
+            pushButton_run_interact_scan=self.ui.pushButton_run_interact_scan
+            gridLayout_interact_pairs=self.ui.gridLayout_interact_pairs
+            
+
+            progress_bar=self.ui.progressBar_gremlin_visualizing
+
+            
+
+            self.gremlin_tool=GREMLIN_Tools(molecule=molecule)
+
+
+            if self.ui.checkBox_use_this_session_4.isChecked():
+                self.gremlin_tool.sequence=get_molecule_sequence(molecule=molecule, chain_id=chain_id)
+                
+            if not molecule or not chain_id or not os.path.exists(gremlin_mrf_fp):
+                logging.error("Could not run GREMLIN tools. Please check your configuration")
+                return
+
+            run_worker_thread_with_progress(self.gremlin_tool.load_msa_and_mrf,
+                                            progress_bar=progress_bar,
+                                            mrf_path=gremlin_mrf_fp)
+
+            
+            pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
+
+            if not self.gremlin_tool: 
+                logging.error(f'Failed to create gremlin tool object. Please check the inputs.')
+                
+                return 
+            
+            self.gremlin_tool.pwd=self.PWD
+            self.gremlin_tool.topN=topN_gremlin_candidates
+
+            self.gremlin_tool.get_to_coevolving_pairs()
+            plot_mtx_fp=self.gremlin_tool.plot_mtx()
+
+            self.set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
+
+        finally:
+            self.ui.pushButton_reinitialize_interact.setEnabled(True)
+
+    def run_gremlin_tool(self):
+        molecule=self.ui.comboBox_molecule_3.currentText()
+        chain_id=self.ui.comboBox_chainid_9.currentText()
+
+        progress_bar=self.ui.progressBar_gremlin_visualizing
+
+        self.plot_w_fps={}
+
+        if self.any_posision_has_been_selected():
+            logging.info(f'One vs All mode.')
+            self.gremlin_tool_a2a_mode=False
+            resi=int(cmd.get_model('sele and n. CA').atom[0].resi)
+            logging.info(f'{resi} is selected.')
+            
+            self.plot_w_fps=run_worker_thread_with_progress(
+                self.gremlin_tool.analyze_coevolving_pairs_for_i,
+                progress_bar=progress_bar,
+                i=resi-1)
+            
+
+            if not self.plot_w_fps:
+                logging.warning(f'No Available co-evolutionary signal against {resi}')
+                # early return if no data.
+                return
+            
+            logging.info(f'Found {len(self.plot_w_fps.keys())} pairs against {resi}.')
+
+            self.renumber_plot_w_fps()
+            
+        else:
+            logging.info(f'All vs All mode.')
+            self.gremlin_tool_a2a_mode=True
+            self.plot_w_fps=run_worker_thread_with_progress(self.gremlin_tool.plot_w_in_batch,
+                                                            progress_bar=progress_bar)
+            
+            if not self.plot_w_fps:
+                logging.warning(f'No Available co-evolutionary signal in global')
+                # early return if no data.
+                return
+            
+            logging.info(f'Found {len(self.plot_w_fps.keys())} pairs in global')
+
+
+        
+        logging.debug(self.plot_w_fps)
+            
+        # visualize co-evolved pair in pymol UI
+        coevolved_pairs_resi={i:self.plot_w_fps[i][:2] for i in self.plot_w_fps.keys()}
+
+        ce_object_name=cmd.get_unused_name(f"ce_pairs_{molecule}_{chain_id}")
+
+        cmd.create(ce_object_name, f'{molecule} and c. {chain_id} and n. CA')
+        cmd.hide('cartoon', ce_object_name)
+        cmd.hide('surface',ce_object_name)
+        for i,pair_resi in coevolved_pairs_resi.items():
+            logging.debug(pair_resi)
+            cmd.bond(f'{ce_object_name} and resi {pair_resi[0][0]+1} and n. CA', f'{ce_object_name} and resi {pair_resi[0][1]+1} and n. CA' )
+        
+        cmd.show('sticks', ce_object_name)
+        cmd.set('stick_radius',.5, ce_object_name)
+        cmd.set('stick_color','brightorange',ce_object_name)
+
+        try:
+            self.ui.pushButton_previous.clicked.disconnect()
+            self.ui.pushButton_next.clicked.disconnect()
+        except:
+            pass
+        
+        self.ui.pushButton_previous.clicked.connect(partial(
+            self.load_co_evolving_pairs,
+            progress_bar,
+            False
+        ))
+
+
+        self.ui.pushButton_next.clicked.connect(partial(
+            self.load_co_evolving_pairs,
+            progress_bar,
+            True
+        ))
+
+        # intitialize
+        self.set_widget_value(progress_bar, [0,len(self.plot_w_fps.keys())])
+        self.current_gremlin_co_evoving_pair_index=-1
+
+
+        self.current_gremlin_co_evoving_pair_mutant_id=''
+        self.last_gremlin_co_evoving_pair_mutant_id=''
+
+        self.current_gremlin_co_evoving_pair_group_id=''
+        self.last_gremlin_co_evoving_pair_group_id=''
+
+        self.is_this_mutant_been_accepted=False
+
+        self.load_co_evolving_pairs(progress_bar)
+
+    def has_this_coevolved_mutant_been_accepted(self):
+        # this should be execute immidiately after self.mutant_tree.walk_the_mutants
+        return [x for x in cmd.get_names(type='nongroup_objects',enabled_only=1,selection=self.current_gremlin_co_evoving_pair_mutant_id) if x == self.current_gremlin_co_evoving_pair_mutant_id]
+
+    def any_posision_has_been_selected(self):
+        return bool([x for x in cmd.get_names(type='selections',enabled_only=1) if x == 'sele'])
+    
+    def renumber_plot_w_fps(self):
+        logging.info('Renumbering anaysis results.')
+        new_plot_w_fps = {}
+        for new_idx, data in enumerate(self.plot_w_fps.values()):
+            new_plot_w_fps[new_idx] = data
+        self.plot_w_fps = new_plot_w_fps
+
+
+    def load_co_evolving_pairs(self,progress_bar,walk_to_next=True,):
+        molecule=self.ui.comboBox_molecule_3.currentText()
+        chain_id=self.ui.comboBox_chainid_9.currentText()
+        ignore_wt=self.ui.checkBox_interact_ignore_wt.isChecked()
+        max_interact_dist=int(self.ui.comboBox_max_interact_dist.currentText())
+
+        lineEdit_current_design=self.ui.lineEdit_current_design
+
+
+        if not chain_id or not molecule:
+            logging.error(f'No available molecule or chain id.')
+            return
+        
+        
+        
+
+        if walk_to_next:
+            if self.current_gremlin_co_evoving_pair_index== -1:
+                logging.info('Initialized.')
+                self.current_gremlin_co_evoving_pair_index=0
+            elif self.current_gremlin_co_evoving_pair_index==len(self.plot_w_fps.keys())-1:
+                logging.info("Co-vary pairs are already reach the last one, returning to the first.")
+                self.current_gremlin_co_evoving_pair_index=0
+            else:
+                self.current_gremlin_co_evoving_pair_index+=1
+        else:
+            if self.current_gremlin_co_evoving_pair_index == -1:
+                logging.info('Initialized.')
+                self.current_gremlin_co_evoving_pair_index=len(self.plot_w_fps.keys())-1
+            elif self.current_gremlin_co_evoving_pair_index==0:
+                logging.info("Co-vary pairs are already reach the first one, returning to the last.")
+                self.current_gremlin_co_evoving_pair_index=len(self.plot_w_fps.keys())-1
+            else:
+                self.current_gremlin_co_evoving_pair_index-=1
+        
+        self.set_widget_value(progress_bar, self.current_gremlin_co_evoving_pair_index)
+
+        (wt_info,csv_fp,plot_fp)=self.plot_w_fps[self.current_gremlin_co_evoving_pair_index]
+
+        
+        
+        
+
+
+        # Clear the existing widgets from gridLayout_interact_pairs
+        for i in reversed(range(self.ui.gridLayout_interact_pairs.count())):
+            widget = self.ui.gridLayout_interact_pairs.itemAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
+
+
+        button_matrix = QbuttonMatrix(csv_fp)
+        button_matrix.sequence=self.gremlin_tool.sequence
+        button_matrix.pos_i,button_matrix.pos_j,_,__,___=wt_info
+
+        button_matrix.init_ui()
+
+        button_matrix.report_axes_signal.connect(lambda row, col:
+            self.mutate_with_gridbuttons(row, col,
+            molecule,
+            chain_id,
+            button_matrix.matrix,
+            button_matrix.min_value,
+            button_matrix.max_value,
+            wt_info,
+            ignore_wt
+        ))
+        self.ui.gridLayout_interact_pairs.addWidget(button_matrix)
+
+        spatial_distance=cmd.get_distance(
+            atom1=f'{molecule} and c. {chain_id} and i. {button_matrix.pos_i+1} and n. CA',
+            atom2=f'{molecule} and c. {chain_id} and i. {button_matrix.pos_j+1} and n. CA')
+        
+        self.set_widget_value(lineEdit_current_design, ' vs '.join(wt_info[-3:-1])+ f' in dist {spatial_distance:.2f} Å')
+
+        if max_interact_dist and spatial_distance > max_interact_dist:
+            logging.warning(f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist}')
+            self.set_widget_value(lineEdit_current_design,'Residues are out of distance.')
+            # To disable the QbuttonMatrix:
+            button_matrix.setEnabled(False)
+        else:
+            # To enable the QbuttonMatrix:
+            button_matrix.setEnabled(True)
+
+
+
+    def activate_focused_interaction(self):
+        if self.current_gremlin_co_evoving_pair_mutant_id==self.last_gremlin_co_evoving_pair_mutant_id:
+            return
+
+        if self.current_gremlin_co_evoving_pair_mutant_id:
+            cmd.enable(self.current_gremlin_co_evoving_pair_mutant_id)
+            cmd.show('sticks', f'{self.current_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA) and not hydrogen')
+            cmd.show('mesh', f'{self.current_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA)')
+        if self.last_gremlin_co_evoving_pair_mutant_id:
+            cmd.disable(self.last_gremlin_co_evoving_pair_mutant_id)
+            cmd.hide('mesh', f'{self.last_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA)')
+            cmd.hide('sticks', f'{self.last_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA) and not hydrogen')
+        
+
+    def mutate_with_gridbuttons(self,col,row, molecule, chain_id, matrix, min_score, max_score,wt_info,ignore_wt=False):
+        import matplotlib
+        matplotlib.use('Agg')
+
+        visualizer=MutantVisualizer(molecule, chain_id)
+        alphabet=self.gremlin_tool.alphabet
+        visualizer.group_name='_vs_'.join([wt.replace('_','') for wt in wt_info[-3:-1]])
+        logging.debug(f'Received col {col} and row {row}')
+
+        # aa from clicked button, mutant
+        WT_A=alphabet[col]
+        WT_B=alphabet[row]
+
+        score=matrix[col][row]
+        [i, j, i_aa, j_aa,zscore]=wt_info
+
+        # aa from wt
+        res_I=i_aa.split('_')[0] # in column
+        res_J=j_aa.split('_')[0] # in row
+
+
+        _mutant=[]
+
+        if self.current_gremlin_co_evoving_pair_mutant_id:
+            self.last_gremlin_co_evoving_pair_mutant_id=self.current_gremlin_co_evoving_pair_mutant_id
+
+
+        for mut,idx,wt in zip([WT_A,WT_B],[j+1,i+1],[res_I,res_J]):
+            _=f'{wt}{idx}{mut}'
+            if wt==mut and ignore_wt:
+                logging.debug(f'Ignore WT to WT mutagenese {_}')
+    
+            elif mut=='-':
+                logging.info(f'Igore deletion {_}')
+            else:
+                logging.debug(f'Adding mutagenesis {_}')
+                _mutant.append(_)
+            
+
+        mutant='_'.join(_mutant)
+
+        if not _mutant:
+            logging.info('No mutagenesis will be performed since the picked pair is a wt-wt pair')
+            return
+        
+        elif mutant in cmd.get_names(type='nongroup_objects',enabled_only=0,):
+            
+            logging.info(f'Picked mutant: {mutant} ( {score} ) already exists. Do nothing.')
+        else:
+
+            logging.info(f'Picked mutant: {mutant} ( {score} )')
+
+            color = visualizer.get_color(matplotlib.colormaps['bwr_r'], score, min_score, max_score)
+            logging.info(f" Visualizing {mutant} {score}: {color}")
+            visualizer.create_pymol_objects(mutant, color)
+            cmd.hide('everything', 'hydrogens and polymer.protein')
+            cmd.hide('cartoon', mutant)
+        
+            
+        self.current_gremlin_co_evoving_pair_mutant_id=mutant
+        self.activate_focused_interaction()
+
+
+
+
+
+
+
+# entrypoint of PyMOL plugin
+def __init_plugin__(app=None):
+    
+    '''
+    Add an entry to the PyMOL "Plugin" menu
+    '''
+    from pymol.plugins import addmenuitemqt
+    plugin = REvoDesignPlugin()
+    addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
+
