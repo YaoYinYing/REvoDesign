@@ -6,14 +6,6 @@ import numpy as np
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 
-'''
-
-Assume a single data file first column with names and second column values:
-
-
-python plot_data_w_mean_sd.py -f FILE --histogram True -n Histogram
-
-'''
 
 class GenerateVariantsinFastafile:
 

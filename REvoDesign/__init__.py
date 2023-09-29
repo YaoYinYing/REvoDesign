@@ -36,6 +36,7 @@ from common.magic_numbers import \
         DEFAULT_SURFACE_PROBE_RADIUS, \
         DEFAULT_SUBSTRATE_POCKET_RADIUS, \
         DEFAULT_COFACTOR_POCKET_RADIUS, \
+        DEFAULT_INTERCHAIN_RADIUS, \
         DEFAULT_CLUSTER_NUM, \
         DEFAULT_CLUSTER_RANGE, \
         DEFAULT_CLUSTER_MIN_MUT, \
@@ -159,7 +160,7 @@ class REvoDesignPlugin:
 
         #self.ui.pushButton_run_PSSM_to_pse=QProgressBarton(self.ui.pushButton_run_PSSM_to_pse)
 
-        self.setup_nproc(self.ui.comboBox_nproc)
+        #self.setup_nproc(self.ui.comboBox_nproc)
         
         self.setup_nproc(self.ui.comboBox_nproc_2)
         self.setup_nproc(self.ui.comboBox_nproc_3)
@@ -224,7 +225,10 @@ class REvoDesignPlugin:
             self.ui.comboBox_cofactor_sel,
         ))
 
+        self.set_widget_value(self.ui.comboBox_interface_cutoff, DEFAULT_INTERCHAIN_RADIUS)
+
         # Connect run buttons 
+        self.ui.pushButton_dump_interfaces.clicked.connect(self.run_chain_interface_detection)
         self.ui.pushButton_run_surface_detection.clicked.connect(self.run_surface_detection)
         self.ui.pushButton_run_pocket_detection.clicked.connect(self.run_pocket_detection)
 
@@ -772,7 +776,7 @@ class REvoDesignPlugin:
         self.ui.comboBox_ligand_radius.setCurrentIndex(self.ui.comboBox_ligand_radius.findText(str(DEFAULT_SUBSTRATE_POCKET_RADIUS)))
         
         self.ui.comboBox_cofactor_radius.clear()
-        self.ui.comboBox_cofactor_radius.addItems(map(str, range(1, 11)))
+        self.ui.comboBox_cofactor_radius.addItems(map(str, range(0, 11)))
         self.ui.comboBox_cofactor_radius.setCurrentIndex(self.ui.comboBox_cofactor_radius.findText(str(DEFAULT_COFACTOR_POCKET_RADIUS)))
 
     def update_surface_exclusion(self):
@@ -780,6 +784,12 @@ class REvoDesignPlugin:
         self.ui.comboBox_surface_exclusion.clear()
         self.ui.comboBox_surface_exclusion.addItems(exclusion_list)
         self.ui.comboBox_surface_exclusion.setCurrentIndex(0) if exclusion_list else 0
+
+    def run_chain_interface_detection(self):
+        molecule=self.ui.comboBox_design_molecule.currentText()
+        radius=int(self.ui.comboBox_interface_cutoff.currentText())
+        for chain_id in determine_chain_id():
+            cmd.select(f'if_{chain_id}', f'({molecule} and c. {chain_id} ) and byres ({molecule} and polymer.protein and (not c. {chain_id})) around {radius} and polymer.protein')
 
     def run_surface_detection(self):
         input_file =self.temperal_session

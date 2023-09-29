@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>655</width>
-    <height>514</height>
+    <width>649</width>
+    <height>513</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -15,6 +15,12 @@
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>16777215</height>
+   </size>
   </property>
   <property name="mouseTracking">
    <bool>false</bool>
@@ -36,7 +42,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>5</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_determine">
      <attribute name="title">
@@ -60,7 +66,7 @@
          <x>10</x>
          <y>30</y>
          <width>601</width>
-         <height>121</height>
+         <height>122</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_26">
@@ -104,9 +110,6 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
-           <widget class="QComboBox" name="comboBox_design_molecule"/>
-          </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_molecule">
             <property name="text">
@@ -147,6 +150,61 @@
             </item>
            </layout>
           </item>
+          <item row="1" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_28">
+            <item>
+             <widget class="QComboBox" name="comboBox_design_molecule">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>300</width>
+                <height>16777215</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_chainid">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Chain: </string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBox_chainid">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QComboBox::AdjustToContents</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
          </layout>
         </item>
         <item>
@@ -159,38 +217,53 @@
            </widget>
           </item>
           <item>
-           <layout class="QGridLayout" name="gridLayout_20">
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_chainid">
+           <layout class="QVBoxLayout" name="verticalLayout_3">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_27">
+              <item>
+               <widget class="QLabel" name="label_surface_cutoff_2">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Max. Dist.</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="comboBox_interface_cutoff">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="editable">
+                 <bool>true</bool>
+                </property>
+                <property name="minimumContentsLength">
+                 <number>0</number>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>16</width>
+                  <height>16</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_dump_interfaces">
               <property name="text">
-               <string>Chain: </string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QComboBox" name="comboBox_chainid">
-              <property name="sizeAdjustPolicy">
-               <enum>QComboBox::AdjustToContents</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="1">
-             <widget class="QComboBox" name="comboBox_nproc">
-              <property name="sizeAdjustPolicy">
-               <enum>QComboBox::AdjustToContents</enum>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_nproc">
-              <property name="text">
-               <string>CPUs: </string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               <string>Dump Interfaces</string>
               </property>
              </widget>
             </item>
@@ -216,9 +289,9 @@
       <widget class="QWidget" name="horizontalLayoutWidget">
        <property name="geometry">
         <rect>
-         <x>10</x>
+         <x>20</x>
          <y>30</y>
-         <width>591</width>
+         <width>581</width>
          <height>80</height>
         </rect>
        </property>
@@ -246,10 +319,36 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QComboBox" name="comboBox_ligand_sel"/>
+           <widget class="QComboBox" name="comboBox_ligand_sel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
           </item>
           <item row="0" column="4">
-           <widget class="QComboBox" name="comboBox_ligand_radius"/>
+           <widget class="QComboBox" name="comboBox_ligand_radius">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
           </item>
           <item row="0" column="3">
            <widget class="QLabel" name="label_ligand_radius">
@@ -262,10 +361,36 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QComboBox" name="comboBox_cofactor_sel"/>
+           <widget class="QComboBox" name="comboBox_cofactor_sel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
           </item>
           <item row="1" column="4">
-           <widget class="QComboBox" name="comboBox_cofactor_radius"/>
+           <widget class="QComboBox" name="comboBox_cofactor_radius">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
           </item>
           <item row="1" column="3">
            <widget class="QLabel" name="label_cofactor_radius">
@@ -323,9 +448,9 @@
       <widget class="QWidget" name="horizontalLayoutWidget_2">
        <property name="geometry">
         <rect>
-         <x>230</x>
+         <x>180</x>
          <y>30</y>
-         <width>371</width>
+         <width>421</width>
          <height>81</height>
         </rect>
        </property>
@@ -334,6 +459,18 @@
          <layout class="QGridLayout" name="gridLayout_10">
           <item row="1" column="1">
            <widget class="QComboBox" name="comboBox_surface_exclusion">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="editable">
              <bool>true</bool>
             </property>
@@ -367,6 +504,18 @@
           </item>
           <item row="0" column="1">
            <widget class="QComboBox" name="comboBox_surface_cutoff">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="editable">
              <bool>true</bool>
             </property>
@@ -410,8 +559,8 @@
        <property name="geometry">
         <rect>
          <x>20</x>
-         <y>30</y>
-         <width>141</width>
+         <y>40</y>
+         <width>177</width>
          <height>20</height>
         </rect>
        </property>
@@ -2150,8 +2299,8 @@
        <rect>
         <x>410</x>
         <y>90</y>
-        <width>221</width>
-        <height>291</height>
+        <width>225</width>
+        <height>298</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_18">
@@ -2466,7 +2615,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>655</width>
+     <width>649</width>
      <height>37</height>
     </rect>
    </property>

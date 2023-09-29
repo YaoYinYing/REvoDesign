@@ -2,10 +2,10 @@
 
 # kill all PyMOL session
 #ps aux |grep '/Applications/PyMOL.app' |awk '{system("kill "$2)}'
-
+git_repo_dir="$(dirname "$0")"
 # copy the package
 rm -r $HOME/.pymol/startup/REvoDesign
-cp -r /Users/yyy/Documents/protein_design/REvoDesign/REvoDesign $HOME/.pymol/startup
+cp -r $git_repo_dir/REvoDesign $HOME/.pymol/startup
 
 # launch a new session
-pymol $PROTEIN_DESIGN_KIT/2._Working/0._IntergatedProtocol/REvoDesign/tests/test_data/Test_Session.pze
+pymol /Users/yyy/Documents/projects/hands/SXL/CHS/models/diffdock_conformer/CHS_CM4.diffdock.unrelaxed.pdb

@@ -1,6 +1,7 @@
 import argparse
 import os
 from pymol import cmd
+from absl import logging
 
 def read_enzyme_pockets(input_file, output_file, molecule, ligand, cofactor, save_dir,ligand_radius=6,cofactor_radius=7):
     """
@@ -13,20 +14,22 @@ def read_enzyme_pockets(input_file, output_file, molecule, ligand, cofactor, sav
         ligand (str): Ligand molecule ID.
         cofactor (str or None): Cofactor molecule ID or None.
         save_dir (str): Save directory path for pocket residue record.
-
-    Example usage:
-        python enzyme_pocket_analysis.py -i input.pdb -o output.pze --obj obj_id -lig ligand_id -cof cofactor_id -s save_dir
     """
     cmd.load(input_file)
 
     cmd.select('pkt_res', f'( {molecule} ) and byres hetatm around {ligand_radius}')
-    cmd.select('pkt_res_lig', f'( {molecule} ) and (byres resn {ligand} around {cofactor_radius}) and polymer.protein')
+    cmd.select('pkt_res_lig', f'( {molecule} ) and (byres resn {ligand} around {ligand_radius}) and polymer.protein')
     cmd.select('design_shell', f'( {molecule} ) and polymer.protein and (pkt_res_lig)')
 
     selections = ["pkt_res", "pkt_res_lig", "design_shell"]
 
-    if cofactor is not None:
-        cmd.select('pkt_res_cof', f'( {molecule} ) and (byres resn {cofactor} around 3) and polymer.protein')
+
+    logging.debug(f'cofactor info {cofactor}: {cofactor_radius}')
+    if cofactor is None or  cofactor == '' or cofactor_radius > 0:
+        logging.debug('Skip setting cofactor.')
+    else:
+        logging.debug(f'Setting cofactor {cofactor}')
+        cmd.select('pkt_res_cof', f'( {molecule} ) and (byres resn {cofactor} around {cofactor_radius}) and polymer.protein')
         cmd.select('design_shell', f'design_shell and not (pkt_res_cof)')
         selections.append("pkt_res_cof")
 
