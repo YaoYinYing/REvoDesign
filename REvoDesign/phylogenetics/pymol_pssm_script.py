@@ -54,7 +54,7 @@ def process_pssm_mutations(filename):
 def create_pymol_objects(molecule, chain_id, position,  new_residue, color,is_reduced=False,wt_residue='A',wt_pssm_score=0, score=0):
     new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
     new_obj_name = f'{position}{new_residue}_{score}'
-    cmd.create(new_obj_name, molecule)
+    cmd.create(new_obj_name, f'{molecule} and c. {chain_id}')
     mutate(new_obj_name, chain_id, position, new_residue_3)
     cmd.hide('lines', f'{new_obj_name}')
     cmd.show("sticks", f" {new_obj_name} and resi {position} and (sidechain or n. CA)")

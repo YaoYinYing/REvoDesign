@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Skip detecting cofactor if not exists
+- PyMOL mutagenesis to the only selected chain.
 
 ### Changed
 - Fetch repo path by dirname in test Scripts 
