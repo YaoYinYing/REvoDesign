@@ -8,11 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Add chain-chain interface detection
+- Intra-chain interface detection
+- A full functional port for performing iterative mutagenesis with a full discription as mutant id with score
 
 ### Fixed
 - Skip detecting cofactor if not exists
 - PyMOL mutagenesis to the only selected chain.
+- Mutagenesis while no key or score cols is defined. this would be useful for mutant table in pure txt.
+- Mutagenesis with implicit chain identifier.
 
 ### Changed
 - Fetch repo path by dirname in test Scripts 

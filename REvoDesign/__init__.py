@@ -677,8 +677,8 @@ class REvoDesignPlugin:
         else:
             logging.warning(f'Unknown mode {mode} ! Aborded.')
     
-    def write_input_mutant_table(self, output_mut_txt_fn):
-        open(output_mut_txt_fn,'w').write('\n'.join(self.selected_mutants))
+    def write_input_mutant_table(self, output_mut_txt_fn,mutant_list):
+        open(output_mut_txt_fn,'w').write('\n'.join(mutant_list))
 
     def save_mutant_choice_checkpoint(self,output_mut_txt_fn):
 
@@ -707,7 +707,7 @@ class REvoDesignPlugin:
         if os.path.exists(output_mut_txt_fn):
             if checkBox_overide.isChecked():
                 logging.warning(f'Mutant table exists and will be overriden! {output_mut_txt_fn}')
-                self.write_input_mutant_table(output_mut_txt_fn)
+                self.write_input_mutant_table(output_mut_txt_fn,[mt for mt in self.selected_mutants])
             else:
                 logging.error(f'Mutant table exists and will NOT be overriden! {output_mut_txt_fn}')
                 return
@@ -1297,8 +1297,11 @@ class REvoDesignPlugin:
         visualizer.mutfile=input_mut_table_csv
         visualizer.input_session=input_pse
         visualizer.nproc=nproc
-        visualizer.key_col=best_leaf
-        visualizer.score_col=totalscore
+        if best_leaf:
+            visualizer.key_col=best_leaf 
+        if totalscore:
+            visualizer.score_col=totalscore
+
         visualizer.save_session=output_pse
         visualizer.full=create_full_pdb
         visualizer.group_name=group_name
@@ -1376,6 +1379,7 @@ class REvoDesignPlugin:
         chain_id=self.ui.comboBox_chainid_9.currentText()
 
         progress_bar=self.ui.progressBar_gremlin_visualizing
+        max_interact_dist=int(self.ui.comboBox_max_interact_dist.currentText())
 
         self.plot_w_fps={}
 
@@ -1427,8 +1431,15 @@ class REvoDesignPlugin:
         cmd.hide('surface',ce_object_name)
         for i,pair_resi in coevolved_pairs_resi.items():
             logging.debug(pair_resi)
-            cmd.bond(f'{ce_object_name} and resi {pair_resi[0][0]+1} and n. CA', f'{ce_object_name} and resi {pair_resi[0][1]+1} and n. CA' )
-        
+            spatial_distance=cmd.get_distance(
+            atom1=f'{molecule} and c. {chain_id} and i. {pair_resi[0][0]+1} and n. CA',
+            atom2=f'{molecule} and c. {chain_id} and i. {pair_resi[0][1]+1} and n. CA')
+            if spatial_distance <= max_interact_dist:
+                cmd.bond(f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][0]+1} and n. CA', f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][1]+1} and n. CA' )
+            else:
+                logging.info(f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}')
+            
+
         cmd.show('sticks', ce_object_name)
         cmd.set('stick_radius',.5, ce_object_name)
         cmd.set('stick_color','brightorange',ce_object_name)
@@ -1610,7 +1621,7 @@ class REvoDesignPlugin:
 
 
         for mut,idx,wt in zip([WT_A,WT_B],[j+1,i+1],[res_I,res_J]):
-            _=f'{wt}{idx}{mut}'
+            _=f'{chain_id}{wt}{idx}{mut}'
             if wt==mut and ignore_wt:
                 logging.debug(f'Ignore WT to WT mutagenese {_}')
     
@@ -1619,6 +1630,8 @@ class REvoDesignPlugin:
             else:
                 logging.debug(f'Adding mutagenesis {_}')
                 _mutant.append(_)
+
+        _mutant.append(f'{score:.3f}')
             
 
         mutant='_'.join(_mutant)
@@ -1636,7 +1649,7 @@ class REvoDesignPlugin:
 
             color = visualizer.get_color(matplotlib.colormaps['bwr_r'], score, min_score, max_score)
             logging.info(f" Visualizing {mutant} {score}: {color}")
-            visualizer.create_pymol_objects(mutant, color)
+            visualizer.create_mutagenesis_objects(mutant, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)
         

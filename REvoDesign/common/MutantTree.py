@@ -1,15 +1,28 @@
 class MutantTree():
     def __init__(self,mutant_tree):
         self.mutant_tree = mutant_tree
-        self.all_mutant_branch_ids = list(self.mutant_tree.keys())
+        
         self.current_branch_id=''
         self.current_mutant_id=''
         self.last_branch_id=''
         self.last_mutant_id=''
 
-        self.initialize_current_branch()
+
+
+        self.refresh_mutants()
+        
+        
+
+    def refresh_mutants(self):
+        self.all_mutant_branch_ids = list(self.mutant_tree.keys())
+        if not self.current_branch_id:
+            self.initialize_current_branch()
+
         self.all_mutants=[mutant for branch_id in self.mutant_tree.keys() for mutant in self.mutant_tree[branch_id].items()]
         self.all_mutant_ids=[mutant for mutant,_ in self.all_mutants]
+
+
+
 
 
     def get_branch_index(self,branch_id):
@@ -33,11 +46,33 @@ class MutantTree():
         return len(list(self.mutant_tree[branch_id].keys()))==0
     
     def initialize_current_branch(self):
+        
         for branch in self.all_mutant_branch_ids:
             if not self.is_this_branch_empty(branch):
                 self.current_branch_id=branch
                 self.current_mutant_id=list(self.mutant_tree[self.current_branch_id].keys())[0]
                 return
+            
+    def extend_tree_with_new_branches(self,new_branches):
+        for branch,leaves in new_branches.items():
+            if branch not in self.all_mutant_branch_ids:
+                self.mutant_tree[branch]=leaves
+            else:
+                self.mutant_tree[branch].extend(leaves)
+            
+        
+        self.refresh_mutants()
+
+    def remove_mutants_from_branch(self,branch,mutants):
+        for mut in mutants:
+            if mut in self.mutant_tree[branch].keys():
+                self.mutant_tree[branch].pop(mut)
+                self.refresh_mutants()
+
+        if self.is_this_branch_empty(branch):
+            self.mutant_tree.pop(branch)
+        
+
             
 
     # Completed mutant_tree walking function

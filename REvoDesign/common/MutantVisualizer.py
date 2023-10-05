@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import shutil
 import tempfile
@@ -57,7 +58,7 @@ class MutantVisualizer:
 
     def create_pymol_objects(self, mutant, color):
         new_obj_name = mutant
-        cmd.create(f"{new_obj_name}", self.molecule)
+        cmd.create(f"{new_obj_name}", f'{self.molecule} and c. {self.chain_id}')
 
         mut_pos=[]
 
@@ -84,7 +85,41 @@ class MutantVisualizer:
         if self.group_name:
             cmd.group(self.group_name, f'{new_obj_name}', )
 
-        
+    # provide a full function of PyMOL mutate that requires explicit mutagenesis description
+    def create_mutagenesis_objects(self, mutant, color):
+        # mutant: <chain_id><wt><pos><mut>_..._<score>
+        new_obj_name = mutant
+        cmd.create(f"{new_obj_name}", self.molecule)
+
+        mut_pos=[]
+
+        # TODO: suport '(\w)(\d+)(\w)' and '(\d+)(\w)' format, meaning that wt and chain can be set as default
+        for mut in mutant.split('_')[:-1]:
+            # a full match of mutagenesis description
+            matched_mut=re.match(r'(\w)(\w)(\d+)(\w)',mut)
+            chain_id=matched_mut.group(1)
+            wt_res=matched_mut.group(2)
+            position=int(matched_mut.group(3))
+            new_residue=matched_mut.group(4)
+            
+            new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
+            #mut_pos.append(position)
+
+            mut_pos.append(f'(c. {chain_id} and i. {str(position)})')
+            mutate(new_obj_name, chain_id, position, new_residue_3)
+            cmd.hide('lines', f'{new_obj_name}')
+            cmd.show("sticks", f' {new_obj_name} and c. {chain_id} and i. {position} and (sidechain or n. CA)')
+
+        if not self.full:
+            cmd.remove(f' {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
+
+        # set backbone color
+        cmd.set_color(f'color_{new_obj_name}', color)
+        cmd.color(f'color_{new_obj_name}', f'({new_obj_name} and ({" or ".join(mut_pos)}) )')
+        util.cnc(f'{new_obj_name} and ({" or ".join(mut_pos)})', _self=cmd)
+
+        if self.group_name:
+            cmd.group(self.group_name, f'{new_obj_name}', )
 
     def run_with_progressbar(self,progress_bar):
         # Check the file format and read data accordingly
