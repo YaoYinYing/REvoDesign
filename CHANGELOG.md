@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Fetch repo path by dirname in test Scripts 
+- Move `get_color` as a public function in `utils`
+- Use `stick_radius` to present co-evolved pairs
 
 
 ## [1.0.0] - 2023-09-24

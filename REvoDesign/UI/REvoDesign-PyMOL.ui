@@ -262,6 +262,9 @@
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_dump_interfaces">
+              <property name="toolTip">
+               <string>Dump chain-chain interface</string>
+              </property>
               <property name="text">
                <string>Dump Interfaces</string>
               </property>

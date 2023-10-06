@@ -3,6 +3,7 @@ from collections import defaultdict
 import contextlib
 import multiprocessing
 import threading
+
 from pymol import cmd
 import os
 from pymol.Qt import *
@@ -560,3 +561,25 @@ class QbuttonMatrix(QtWidgets.QWidget):
         from absl import logging
         logging.debug(f"Button at ({row}, {col}) clicked.")
         self.report_axes_signal.emit(row, col)
+
+
+def get_color(cmap, data, min_value, max_value):
+    import matplotlib
+    if min_value == max_value:
+        return [0.5,0.5,0.5]
+    _cmap=matplotlib.colormaps[cmap]
+    num_color = _cmap.N
+    scaled_value = (data - min_value) / (max_value - min_value)
+    color = _cmap(int(num_color * scaled_value))[:3]
+    return color
+
+def rescale_number(number, min_value, max_value):
+    # Ensure that min_value and max_value are valid.
+    if min_value >= max_value:
+        raise ValueError("min_value must be less than max_value")
+    
+    # Calculate the rescaled value.
+    rescaled_value = (number - min_value) / (max_value - min_value)
+    
+    # Ensure the result is within the [0, 1] range.
+    return max(0, min(1, rescaled_value))

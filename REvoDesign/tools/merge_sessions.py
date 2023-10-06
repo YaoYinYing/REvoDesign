@@ -2,7 +2,7 @@ import argparse,os
 from shutil import rmtree
 from pymol import cmd
 
-def merge_sessions(session_paths, save_path=None,mode=2,delete=0,quiet=0):
+def merge_sessions(session_paths, save_path=None,mode=1,delete=0,quiet=0):
     # this is important! we need to cleanup the session to prevent segmentation fault error!
     cmd.reinitialize()
 

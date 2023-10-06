@@ -66,7 +66,9 @@ from tools.utils import \
     WorkerThread, \
     QProgressBarton, \
     QbuttonMatrix,\
-    run_worker_thread_with_progress
+    run_worker_thread_with_progress, \
+    get_color, \
+    rescale_number
 
 from phylogenetics.PSSM_profile import PssmAnalyzer
 
@@ -1305,6 +1307,7 @@ class REvoDesignPlugin:
         visualizer.save_session=output_pse
         visualizer.full=create_full_pdb
         visualizer.group_name=group_name
+        
         visualizer.run_with_progressbar(progress_bar=progressBar_visualize_mutants)
         
 
@@ -1405,10 +1408,11 @@ class REvoDesignPlugin:
             self.renumber_plot_w_fps()
             
         else:
-            logging.info(f'All vs All mode.')
+            logging.info(f'No selection `sele` is picked, use All vs All mode.')
             self.gremlin_tool_a2a_mode=True
-            self.plot_w_fps=run_worker_thread_with_progress(self.gremlin_tool.plot_w_in_batch,
-                                                            progress_bar=progress_bar)
+            self.plot_w_fps=run_worker_thread_with_progress(
+                self.gremlin_tool.plot_w_in_batch,
+                progress_bar=progress_bar)
             
             if not self.plot_w_fps:
                 logging.warning(f'No Available co-evolutionary signal in global')
@@ -1422,27 +1426,33 @@ class REvoDesignPlugin:
         logging.debug(self.plot_w_fps)
             
         # visualize co-evolved pair in pymol UI
-        coevolved_pairs_resi={i:self.plot_w_fps[i][:2] for i in self.plot_w_fps.keys()}
+        min_gremlin_score=min([min([self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()]),0])
+        max_gremlin_score=max([self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()])
 
         ce_object_name=cmd.get_unused_name(f"ce_pairs_{molecule}_{chain_id}")
 
         cmd.create(ce_object_name, f'{molecule} and c. {chain_id} and n. CA')
         cmd.hide('cartoon', ce_object_name)
         cmd.hide('surface',ce_object_name)
-        for i,pair_resi in coevolved_pairs_resi.items():
+        for i,pair_resi in  self.plot_w_fps.items():
             logging.debug(pair_resi)
             spatial_distance=cmd.get_distance(
             atom1=f'{molecule} and c. {chain_id} and i. {pair_resi[0][0]+1} and n. CA',
             atom2=f'{molecule} and c. {chain_id} and i. {pair_resi[0][1]+1} and n. CA')
-            if spatial_distance <= max_interact_dist:
-                cmd.bond(f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][0]+1} and n. CA', f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][1]+1} and n. CA' )
-            else:
+            if spatial_distance > max_interact_dist:
                 logging.info(f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}')
             
-
+            cmd.bond(f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][0]+1} and n. CA', f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][1]+1} and n. CA' )
+            cmd.set('stick_radius', 
+                    #pair_resi[0][-1],
+                    rescale_number(pair_resi[0][-1], min_value=min_gremlin_score, max_value=max_gremlin_score),
+                    f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)')
+        
         cmd.show('sticks', ce_object_name)
-        cmd.set('stick_radius',.5, ce_object_name)
-        cmd.set('stick_color','brightorange',ce_object_name)
+        #cmd.set('stick_radius',.5, ce_object_name)
+        cmd.set('stick_use_shader', 0)
+        cmd.set('stick_round_nub',0)
+        cmd.set('stick_color','gray70',ce_object_name)
 
         try:
             self.ui.pushButton_previous.clicked.disconnect()
@@ -1647,7 +1657,9 @@ class REvoDesignPlugin:
 
             logging.info(f'Picked mutant: {mutant} ( {score} )')
 
-            color = visualizer.get_color(matplotlib.colormaps['bwr_r'], score, min_score, max_score)
+            color=get_color('bwr_r', score, min_score, max_score)
+
+            
             logging.info(f" Visualizing {mutant} {score}: {color}")
             visualizer.create_mutagenesis_objects(mutant, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')

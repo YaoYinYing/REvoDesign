@@ -11,6 +11,7 @@ import matplotlib
 matplotlib.use('Agg')
 from phylogenetics.pymol_pssm_script import mutate
 from tools.merge_sessions import merge_sessions
+from tools.utils import get_color
 from absl import logging
 
 class MutantVisualizer:
@@ -31,13 +32,13 @@ class MutantVisualizer:
         self.min_score = 0.5
         self.max_score = 0.5
 
-    def get_color(self, cmap, data, min_value, max_value):
-        if min_value == max_value:
-            return [0.5,0.5,0.5]
-        num_color = cmap.N
-        scaled_value = (data - min_value) / (max_value - min_value)
-        color = cmap(int(num_color * scaled_value))[:3]
-        return color
+    # def get_color(self, cmap, data, min_value, max_value):
+    #     if min_value == max_value:
+    #         return [0.5,0.5,0.5]
+    #     num_color = cmap.N
+    #     scaled_value = (data - min_value) / (max_value - min_value)
+    #     color = cmap(int(num_color * scaled_value))[:3]
+    #     return color
 
     
     def process_position(self,mutant, score,):
@@ -47,7 +48,8 @@ class MutantVisualizer:
 
         cmd.hide('surface')
 
-        color = self.get_color(matplotlib.colormaps[self.cmap], score, self.min_score, self.max_score)
+        #color = self.get_color(matplotlib.colormaps[self.cmap], score, self.min_score, self.max_score)
+        color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f" Visualizing {mutant} {score}: {color}")
         self.create_pymol_objects(mutant, color)
         cmd.hide('everything', 'hydrogens and polymer.protein')
@@ -57,7 +59,7 @@ class MutantVisualizer:
         return temp_session_path
 
     def create_pymol_objects(self, mutant, color):
-        new_obj_name = mutant
+        new_obj_name = f'{self.chain_id}{mutant}'
         cmd.create(f"{new_obj_name}", f'{self.molecule} and c. {self.chain_id}')
 
         mut_pos=[]
