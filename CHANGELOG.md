@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2023-10-07
+
 ### Added
 - Intra-chain interface detection
 - A full functional port for performing iterative mutagenesis with a full discription as mutant id with score
+- Mutant class to manage mutant objects
+- Mutant Table file handle for co-evolved pair designs
 
 ### Fixed
 - Skip detecting cofactor if not exists
@@ -24,10 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move `get_color` as a public function in `utils`
 - Use `stick_radius` to present co-evolved pairs
 - Use explicit mutant description in Mutagenesis from PSSM profile
+- Use Mutant object as the mutant id value of Mutant tree.
+- Minor changes of the order of `MutableFileExt`.
 
 
 ### Removed
 - Mutant table checkpoint saving function. Replaced with mutant table saving function.
+- QProgressBarton, which is no longer needed for now
 
 ## [1.0.0] - 2023-09-24
 
