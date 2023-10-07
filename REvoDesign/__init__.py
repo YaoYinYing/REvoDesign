@@ -89,10 +89,11 @@ class REvoDesignPlugin:
 
         self.ui_file = os.path.join(self.RUN_DIR,'UI', 'REvoDesign-PyMOL.ui')
 
-        self.num_selected_mutants=0
+        
 
         self.total_mutant_in_this_session=0
-        self.mutant_tree=None
+        self.mutant_tree_pssm=None
+        self.mutant_tree_pssm_selected=None
         self.mutant_tree_coevolved=None
         self.gremlin_tool=None
 
@@ -769,7 +770,7 @@ class REvoDesignPlugin:
         cmd.rock(mode=checkBox_rock_pymol.isChecked())
 
     def center_design_area(self,mutant_id):
-        if self.mutant_tree and mutant_id:
+        if self.mutant_tree_pssm and mutant_id:
             logging.debug(f'Centering design area: {mutant_id}')
             cmd.center(mutant_id)
         else:
@@ -946,96 +947,90 @@ class REvoDesignPlugin:
         
     # Tab `Choose Mutants`
     def activate_focused(self):
-        if self.mutant_tree.current_mutant_id:
-            cmd.enable(self.mutant_tree.current_mutant_id)
-            cmd.show('mesh', f'{self.mutant_tree.current_mutant_id} and (sidechain or n. CA)')
-            cmd.hide('cartoon',f'{self.mutant_tree.current_mutant_id}')
+        if self.mutant_tree_pssm.current_mutant_id:
+            cmd.enable(self.mutant_tree_pssm.current_mutant_id)
+            cmd.show('mesh', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA)')
+            cmd.show('sticks', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA)')
+            cmd.hide('cartoon',f'{self.mutant_tree_pssm.current_mutant_id}')
 
-        if self.mutant_tree.last_mutant_id:
-            #cmd.disable(self.mutant_tree.last_mutant_id)
-            cmd.hide('mesh', f'{self.mutant_tree.last_mutant_id} and (sidechain or n. CA)')
-            cmd.hide('sticks', f'{self.mutant_tree.last_mutant_id} and (sidechain or n. CA)')
-
-
+        if self.mutant_tree_pssm.last_mutant_id:
+            cmd.disable(self.mutant_tree_pssm.last_mutant_id)
+            cmd.hide('mesh', f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)')
+            cmd.hide('sticks', f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)')
 
 
     def accept_mutant(self,lcdNumber_selected_mutant):
-        if self.is_this_pymol_object_a_mutant(self.mutant_tree.current_mutant_id):
-            logging.debug(f'Accepting mutant {self.mutant_tree.current_mutant_id}')
-            cmd.enable(self.mutant_tree.current_mutant_id)
-            self.is_this_mutant_been_accepted=True
+        if self.is_this_pymol_object_a_mutant(self.mutant_tree_pssm.current_mutant_id):
+            logging.debug(f'Accepting mutant {self.mutant_tree_pssm.current_mutant_id}')
+            self.mutant_tree_pssm_selected.add_mutant_to_branch(
+                branch=self.mutant_tree_pssm.current_branch_id,
+                mutant=self.mutant_tree_pssm.current_mutant_id,
+                mutant_info=extract_mutants(self.mutant_tree_pssm.current_mutant_id)[1])
         else:
-            logging.warning(f'Ingoring non mutant {self.mutant_tree.current_mutant_id}')
+            logging.warning(f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}')
         
-        self.refresh_mutants_that_have_been_chosen()    
-        
-        self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+        self.set_widget_value(lcdNumber_selected_mutant, len(self.mutant_tree_pssm_selected.all_mutant_ids))
 
         self.save_mutant_choices(
-            self.ui.lineEdit_output_mut_txt,
-            self.selected_mutants,
-            self.ui.checkBox_overide.isChecked(),
-            self.ui.checkBox_make_checkpoint.isChecked())
+            self.ui.lineEdit_output_mut_table,
+            self.mutant_tree_pssm_selected,
+            self.ui.checkBox_overide_to_save_mut_table.isChecked(),
+            self.ui.checkBox_save_mutant_choice_checkpoints.isChecked())
 
 
 
 
     def reject_mutant(self,lcdNumber_selected_mutant):
-        if self.is_this_pymol_object_a_mutant(self.mutant_tree.current_mutant_id):
-            logging.debug(f'Rejecting mutant {self.mutant_tree.current_mutant_id}')
-            cmd.disable(self.mutant_tree.current_mutant_id)
-            self.is_this_mutant_been_accepted=False
-        else:
-            logging.warning(f'Ingoring non mutant {self.mutant_tree.current_mutant_id}')
+        if self.is_this_pymol_object_a_mutant(self.mutant_tree_pssm.current_mutant_id):
+            logging.debug(f'Rejecting mutant {self.mutant_tree_pssm.current_mutant_id}')
 
-        self.refresh_mutants_that_have_been_chosen()    
+            self.mutant_tree_pssm_selected.remove_mutant_from_branch(
+                branch=self.mutant_tree_pssm.current_branch_id,
+                mutant=self.mutant_tree_pssm.current_mutant_id)
+            
+        else:
+            logging.warning(f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}')
+
         
-        self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+        
+        self.set_widget_value(lcdNumber_selected_mutant, len(self.mutant_tree_pssm_selected.all_mutant_ids))
 
         self.save_mutant_choices(
-            self.ui.lineEdit_output_mut_txt,
-            self.selected_mutants,
-            self.ui.checkBox_overide.isChecked(),
-            self.ui.checkBox_make_checkpoint.isChecked())
-
-    def has_this_mutant_been_accepted(self):
-        # this should be execute immidiately after self.mutant_tree.walk_the_mutants
-        return [x for x in cmd.get_names(type='nongroup_objects',enabled_only=1,selection=self.mutant_tree.current_mutant_id) if x == self.mutant_tree.current_mutant_id]
+            self.ui.lineEdit_output_mut_table,
+            self.mutant_tree_pssm_selected,
+            self.ui.checkBox_overide_to_save_mut_table.isChecked(),
+            self.ui.checkBox_save_mutant_choice_checkpoints.isChecked())
 
     def walk_mutant_groups(self,walk_to_next,progressBar_mutant_choosing):
 
-        # disable the mutant that is not selected. 
-        if not self.is_this_mutant_been_accepted:
-            cmd.disable(self.mutant_tree.current_mutant_id)
 
-        self.mutant_tree.walk_the_mutants(walk_to_next_one=walk_to_next)
+        self.mutant_tree_pssm.walk_the_mutants(walk_to_next_one=walk_to_next)
 
-        self.is_this_mutant_been_accepted=True if self.has_this_mutant_been_accepted() else False
         
-        self.set_widget_value(progressBar_mutant_choosing, self.mutant_tree.get_mutant_index_in_all_mutants(self.mutant_tree.current_mutant_id))
+        self.set_widget_value(progressBar_mutant_choosing, self.mutant_tree_pssm.get_mutant_index_in_all_mutants(self.mutant_tree_pssm.current_mutant_id))
 
         self.activate_focused()
-        logging.info(f'Walked to the {"next" if walk_to_next else "previous"} mutant {self.mutant_tree.current_mutant_id}.')
+        logging.info(f'Walked to the {"next" if walk_to_next else "previous"} mutant {self.mutant_tree_pssm.current_mutant_id}.')
 
         # enable the current mutant by default.
 
-        if self.mutant_tree.current_branch_id == self.mutant_tree.last_branch_id:
-            logging.debug(f"In the same branch {self.mutant_tree.current_branch_id}")
+        if self.mutant_tree_pssm.current_branch_id == self.mutant_tree_pssm.last_branch_id:
+            logging.debug(f"In the same branch {self.mutant_tree_pssm.current_branch_id}")
         else:
-            logging.debug(f"Jump from branch {self.mutant_tree.last_branch_id} to {self.mutant_tree.current_branch_id}")
+            logging.debug(f"Jump from branch {self.mutant_tree_pssm.last_branch_id} to {self.mutant_tree_pssm.current_branch_id}")
 
 
         # close group object if deactivated
-        if self.mutant_tree.last_branch_id != '' and self.mutant_tree.current_branch_id != self.mutant_tree.last_branch_id:
-            cmd.disable(self.mutant_tree.last_branch_id)
-            cmd.group(self.mutant_tree.current_branch_id,action='close')
+        if self.mutant_tree_pssm.last_branch_id != '' and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
+            cmd.disable(self.mutant_tree_pssm.last_branch_id)
+            cmd.group(self.mutant_tree_pssm.current_branch_id,action='close')
             
         # expand group object if activated
-        if self.mutant_tree.current_branch_id and self.mutant_tree.current_branch_id != self.mutant_tree.last_branch_id:
-            cmd.enable(self.mutant_tree.current_branch_id)
-            cmd.group(self.mutant_tree.current_branch_id, action='open')
+        if self.mutant_tree_pssm.current_branch_id and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
+            cmd.enable(self.mutant_tree_pssm.current_branch_id)
+            cmd.group(self.mutant_tree_pssm.current_branch_id, action='open')
         
-        self.center_design_area(self.mutant_tree.current_mutant_id)
+        self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self,mutant):
@@ -1081,17 +1076,9 @@ class REvoDesignPlugin:
                 logging.info(f'update {group_id} with {len(mutant_branch.keys())} mutants.')
 
             # instantialize a mutant tree from current session.
-            self.mutant_tree=MutantTree(mutant_tree)
+            self.mutant_tree_pssm=MutantTree(mutant_tree)
         else:
             logging.warning(f'This sesion already has a valid mutant tree. To regenerate it, smash the `Reinitialize` button.')
-
-
-    def refresh_mutants_that_have_been_chosen(self):
-        
-        self.selected_mutants=[mutant_id for mutant_id in cmd.get_names(type='objects',enabled_only=1)
-                                    if self.is_this_pymol_object_a_mutant(mutant=mutant_id)]
-        self.num_selected_mutants=len(self.selected_mutants)
-        logging.debug(f'Refreshing chosen mutant: {self.num_selected_mutants}')
 
 
     def read_design_wt_info_from_group_id(self,group_id):
@@ -1106,12 +1093,12 @@ class REvoDesignPlugin:
         mutant_choice_checkpoint_fn = self.browse_filename(mode='r', exts=[MutableFileExt,AnyFileExt])
         if os.path.exists(mutant_choice_checkpoint_fn):
             mutants_from_checkpoint = open(mutant_choice_checkpoint_fn,'r').read().strip().split('\n')
-            cmd.disable(' or '.join(self.mutant_tree.all_mutant_ids))
-            cmd.enable(' or '.join(mutants_from_checkpoint))
+
+            self.mutant_tree_pssm_selected=self.mutant_tree_pssm.create_mutant_tree_from_list(mutants_from_checkpoint)
             logging.info(f'Recover mutants from checkpoint: {mutant_choice_checkpoint_fn}')
             logging.info(mutants_from_checkpoint)
-            self.refresh_mutants_that_have_been_chosen()
-            self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+
+            self.set_widget_value(lcdNumber_selected_mutant, len(self.mutant_tree_pssm_selected.all_mutant_ids))
             
 
     def initialize_design_candidates(self,
@@ -1131,33 +1118,38 @@ class REvoDesignPlugin:
         if not self.all_mutant_branch_ids:
             logging.error(f'This sesion may not contain an mutant tree.')
             return None
+        
+        self.selected_mutants=[]
+
+        
+
+
+        self.mutant_tree_pssm_selected=MutantTree({})
 
         # if mutant tree is available, disable the input box for saving.
         
-        lineEdit_output_mut_txt.setEnabled(not ((self.mutant_tree) and (checkBox_make_checkpoint.isChecked() or checkBox_overide.isChecked())))
+        lineEdit_output_mut_txt.setEnabled(not ((self.mutant_tree_pssm) and (checkBox_make_checkpoint.isChecked() or checkBox_overide.isChecked())))
         
-        self.refresh_mutants_that_have_been_chosen()
 
-        if not self.mutant_tree:
+        if not self.mutant_tree_pssm:
             logging.warning('Could not initialize mutant tree! This session may not be a REvoDesign session!')
             return
         
-        self.set_widget_value(progressBar_mutant_choosing,[0,len(self.mutant_tree.all_mutant_ids)])
+        self.set_widget_value(progressBar_mutant_choosing,[0,len(self.mutant_tree_pssm.all_mutant_ids)])
         
-        self.is_this_mutant_been_accepted=False
 
         self.activate_focused()
-        self.center_design_area(self.mutant_tree.current_mutant_id)
+        self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
 
 
-        cmd.disable(' or '.join(self.mutant_tree.all_mutant_branch_ids))
-        cmd.disable(' or '.join(self.mutant_tree.all_mutant_ids))
+        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_branch_ids))
+        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_ids))
 
-        cmd.enable(self.mutant_tree.current_mutant_id)
-        cmd.enable(self.mutant_tree.current_branch_id)
+        cmd.enable(self.mutant_tree_pssm.current_mutant_id)
+        cmd.enable(self.mutant_tree_pssm.current_branch_id)
 
-        self.set_widget_value(lcdNumber_total_mutant,len(self.mutant_tree.all_mutant_ids))
-        self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+        self.set_widget_value(lcdNumber_total_mutant,len(self.mutant_tree_pssm.all_mutant_ids))
+        self.set_widget_value(lcdNumber_selected_mutant, len(self.mutant_tree_pssm_selected.all_mutant_ids))
 
         # initialize mutant walking
 
@@ -1168,7 +1160,7 @@ class REvoDesignPlugin:
             pushButton_reject_this_mutant,
             pushButton_accept_this_mutant,
             ]:
-                pushButton.setEnabled(bool(self.mutant_tree))
+                pushButton.setEnabled(bool(self.mutant_tree_pssm))
 
         
         pushButton_accept_this_mutant.clicked.connect(partial(
@@ -1181,9 +1173,6 @@ class REvoDesignPlugin:
         ))
 
 
-
-
-        
         pushButton_next_mutant.clicked.connect(partial(
             self.walk_mutant_groups,
             True,
@@ -1233,8 +1222,6 @@ class REvoDesignPlugin:
         # output files
         cluster_outputs={}
 
-        #self.set_widget_value(progressbar,[min_mut_num,max_mut_num])
-
 
         for num_mut in range(min_mut_num,max_mut_num+1):
             
@@ -1252,8 +1239,6 @@ class REvoDesignPlugin:
             combinations.run_combinations()
             expected_design_combinations=combinations.expected_output_fasta
 
-            #self.set_widget_value(progressbar, num_mut/2)
-
 
             # clustering
 
@@ -1270,7 +1255,6 @@ class REvoDesignPlugin:
             clustering.run_clustering(progressbar=progressbar)
             cluster_outputs.update({num_mut:clustering.cluster_output_fp})
 
-            #self.set_widget_value(progressbar, num_mut)
             
         
         cluster_imgs=[_cluster['score'] for _,_cluster in cluster_outputs.items()]
@@ -1492,12 +1476,11 @@ class REvoDesignPlugin:
             
             cmd.bond(f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][0]+1} and n. CA', f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][1]+1} and n. CA' )
             cmd.set('stick_radius', 
-                    #pair_resi[0][-1],
+                    
                     rescale_number(pair_resi[0][-1], min_value=min_gremlin_score, max_value=max_gremlin_score),
                     f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)')
         
         cmd.show('sticks', ce_object_name)
-        #cmd.set('stick_radius',.5, ce_object_name)
         cmd.set('stick_use_shader', 0)
         cmd.set('stick_round_nub',0)
         cmd.set('stick_color','gray70',ce_object_name)
@@ -1532,7 +1515,6 @@ class REvoDesignPlugin:
         self.current_gremlin_co_evoving_pair_group_id=''
         self.last_gremlin_co_evoving_pair_group_id=''
 
-        self.is_this_mutant_been_accepted=False
 
         self.load_co_evolving_pairs(progress_bar)
 
@@ -1637,7 +1619,6 @@ class REvoDesignPlugin:
             self.current_gremlin_co_evoving_pair_mutant_id,
             extract_mutants(mutant_string=self.current_gremlin_co_evoving_pair_mutant_id)[1]
             )
-        logging.debug(str(self.mutant_tree_coevolved))
 
         self.save_mutant_choices(
             self.ui.lineEdit_output_mutant_table,
@@ -1753,10 +1734,6 @@ class REvoDesignPlugin:
             
         self.current_gremlin_co_evoving_pair_mutant_id=mutant
         self.activate_focused_interaction()
-
-
-
-
 
 
 

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Add 
+- `create_mutant_tree_from_list` for MutantTree to create a copy of the tree structure based on checkpoint file
+
+
+### Changed
+- use `mutant_tree_pssm_selected` to store the selected mutant tree structure
+- use `remove_mutant_from_branch` and `add_mutant_to_branch` to handle the mutant selection
+- mutant acceptance and rejection no longer requires enabling or disabling PyMOL objects, which makes selection clearer.
+
+### Removed
+- `refresh_mutants_that_have_been_chosen` function since we changed selected mutants into a new mutant tree.
+
+
 ## [1.1.0] - 2023-10-07
 
 ### Added

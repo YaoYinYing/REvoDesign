@@ -92,6 +92,27 @@ class MutantTree():
         if self.is_this_branch_empty(branch):
             self.mutant_tree.pop(branch)
             print(f'Branch {branch} is empty and has been removed.')
+
+    
+    def create_mutant_tree_from_list(self, mutant_id_list):
+        new_mutant_tree = {}
+        
+        # Iterate through the existing branches
+        for branch_id in self.mutant_tree.keys():
+            new_branch = {}
+            
+            # Iterate through mutants in the branch
+            for mutant_id, mutant_obj in self.mutant_tree[branch_id].items():
+                if mutant_id in mutant_id_list:
+                    new_branch[mutant_id] = mutant_obj
+            
+            # Add the new branch to the new_mutant_tree if it's not empty
+            if new_branch:
+                new_mutant_tree[branch_id] = new_branch
+        
+        # Create a new MutantTree instance with the filtered mutant tree
+        new_tree_instance = MutantTree(new_mutant_tree)
+        return new_tree_instance
         
 
     # Completed mutant_tree walking function
@@ -133,8 +154,3 @@ class MutantTree():
                     # Reached the beginning of the tree, wrap around to the end
                     self.current_branch_id = self.all_mutant_branch_ids[-1]
                     self.current_mutant_id = list(self.mutant_tree[self.current_branch_id].keys())[-1]
-
-
-
-
-
