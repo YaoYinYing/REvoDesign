@@ -5,12 +5,12 @@ SessionFileExt={
     }
 
 MutableFileExt={
+    'txt': 'Mutagenesis table file',
     'mut.txt': 'Mutagenesis table file',
     'csv': 'Scored Mutagenesis table file',
     'tsv': 'Scored Mutagenesis table file',
     'xlsx': 'Scored Mutagenesis table file',
     'xls': 'Scored Mutagenesis table file',
-    'txt': 'Mutagenesis table file'
     }
 
 PDB_FileExt={

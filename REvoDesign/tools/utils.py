@@ -2,12 +2,14 @@
 from collections import defaultdict
 import contextlib
 import multiprocessing
+import re
 import threading
 
 from pymol import cmd
 import os
 from pymol.Qt import *
 from pymol.Qt import QtWidgets,QtGui, QtCore
+from absl import logging
 
 from threading import  Thread
 
@@ -74,7 +76,7 @@ def check_file_exists(fp):
 
 
 def get_molecule_sequence(molecule,chain_id):
-    from absl import logging
+    
     from Bio.Data import IUPACData
     protein_letters_3to1_upper={key.upper():val.upper() for key,val in IUPACData.protein_letters_3to1.items()}
     logging.debug(f'( {molecule} and c. {chain_id} and n. CA )')
@@ -85,7 +87,7 @@ def run_command(command_list, excutable='python', ):
 
     import sys
     import subprocess
-    from absl import logging
+    
     if excutable == 'python':
         python_exe = os.path.realpath(sys.executable)
         command_list=[python_exe] + command_list
@@ -251,7 +253,7 @@ class ParallelExecutor(QtCore.QThread):
     
 
     def __init__(self, func, args, n_jobs, backend='auto',verbose=0):
-        from absl import logging
+        
         super().__init__()
         self.func = func
         self.args = args
@@ -269,7 +271,7 @@ class ParallelExecutor(QtCore.QThread):
         logging.debug(f"Parallel Executor initialized with backend {backend}: {self.backend}")
 
     def run(self):
-        from absl import logging
+        
         from joblib import Parallel, delayed
         logging.info(f'Workload in this run: {len(self.args)} ')
         self.results = Parallel(n_jobs=self.n_jobs,backend=self.backend,verbose=self.verbose)(delayed(self.func)(*arg) for arg in self.args)
@@ -279,7 +281,7 @@ class ParallelExecutor(QtCore.QThread):
         
         
     def handle_result(self):
-        from absl import logging
+        
         logging.debug(f'Sending results ...')
         return self.results
     
@@ -327,7 +329,7 @@ def extract_archive(archive_file, extract_to):
         if archive_file.endswith(".zip"):
             import zipfile
             import tarfile
-            from absl import logging
+            
 
             with zipfile.ZipFile(archive_file, 'r') as zip_ref:
                 zip_ref.extractall(extract_to)
@@ -359,110 +361,6 @@ def extract_archive(archive_file, extract_to):
         logging.error(f"Error extracting {archive_file}: {str(e)}")
 
 
-
-
-class QProgressBarton(QtWidgets.QPushButton):
-    def __init__(self, existing_button=None, parent=None):
-        super().__init__(parent)
-        self.setStyleSheet('''
-            QPushButton {
-                background-color: #ccc;
-                border: 1px solid #000;
-                border-radius: 5px;
-                min-height: 20px;
-            }
-        ''')
-        self.progress = 0
-        self.min_value = 0
-        self.max_value = 100  # Default maximum value
-        self.bounce_timer = QtCore.QTimer(self)
-        self.bounce_direction = 1
-
-        if existing_button:
-            self.replacePushButton(existing_button)
-
-    def setRange(self, min_val, max_val):
-        self.min_value = min_val
-        self.max_value = max(max_val, min_val + 1)  # Ensure max_value is at least min_value + 1
-        self.updateStyle()
-
-    def setValue(self, value):
-        # Ensure the value is within the specified range
-        value = max(self.min_value, min(value, self.max_value))
-        self.progress = value
-        self.updateStyle()
-
-    def value(self):
-        return self.progress
-
-    def updateStyle(self):
-        # Constrain the progress value within the specified range
-        self.progress = max(self.min_value, min(self.progress, self.max_value))
-
-        # Calculate the progress as a percentage within the range
-        scaling_factor = 4  # Adjust this factor to control the speed of progress
-        percentage = (self.progress - self.min_value) / (self.max_value - self.min_value) * 100 * scaling_factor
-
-        # Ensure that the percentage is within the [0, 100] range
-        percentage = max(0, min(percentage, 100))
-
-        # Calculate the text color transition from green to gray
-        text_color = f'rgb({255 - int(percentage * 2.55)}, 255, {255 - int(percentage * 2.55)})'
-
-        # Adjust the gradient stops for a narrower transition
-        green_stop = min(percentage / 200, 1.0) 
-        gray_stop = min((percentage / 200) + 0.01, 1.0)
-
-        style = f'''
-            QPushButton {{
-                background: qlineargradient(x1:0 y1:0, x2:{green_stop} y2:0, stop:0 #00FF00, stop:{green_stop} #00FF00, stop:{gray_stop} #ccc, stop: #ccc);
-                border: 1px solid #000;
-                border-radius: 5px;
-                min-height: 20px;
-            }}
-            QPushButton::disabled {{
-                color: {text_color};
-            }}
-        '''
-        print(style)
-
-        self.setStyleSheet(style)
-
-        # Check if minimum and maximum values are equal
-        if self.min_value == self.max_value:
-            # Start a bouncing animation
-            self.bounce_timer.timeout.connect(self.bounceAnimation)
-            self.bounce_timer.start(100)  # Adjust the bounce speed as needed
-
-
-
-
-
-    def bounceAnimation(self):
-        # Bounce the progress indicator
-        if self.bounce_direction == 1:
-            self.bounce_direction = -1
-        else:
-            self.bounce_direction = 1
-
-        # Calculate the new value
-        new_value = self.progress + (self.bounce_direction * 5)  # Adjust the bounce step as needed
-        self.setValue(new_value)
-
-    def replacePushButton(self, existing_button):
-        # Copy properties and settings from the existing button
-        self.setObjectName(existing_button.objectName())
-        self.setGeometry(existing_button.geometry())
-        self.setText(existing_button.text())
-        self.setEnabled(existing_button.isEnabled())
-        self.clicked.connect(existing_button.clicked)
-
-        # Hide the existing button and replace it with the QProgressBarton
-        existing_button.hide()
-        if existing_button.parentWidget() and existing_button.parentWidget().layout():
-            layout = existing_button.parentWidget().layout()
-            layout.replaceWidget(existing_button, self)
-
 class QbuttonMatrix(QtWidgets.QWidget):
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -482,7 +380,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
 
     def load_matrix_from_csv(self, csv_file):
         import numpy as np
-        from absl import logging
+        
         try:
             import pandas as pd  # Import pandas here
             df = pd.read_csv(csv_file, index_col=0)
@@ -508,7 +406,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
         return color
 
     def init_ui(self):
-        from absl import logging
+        
         layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
         font.setPointSize(self.button_size) 
@@ -558,7 +456,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
 
 
     def report_axises(self, row, col):
-        from absl import logging
+        
         logging.debug(f"Button at ({row}, {col}) clicked.")
         self.report_axes_signal.emit(row, col)
 
@@ -583,3 +481,33 @@ def rescale_number(number, min_value, max_value):
     
     # Ensure the result is within the [0, 1] range.
     return max(0, min(1, rescaled_value))
+
+def extract_mutants(mutant_string):
+
+    logging.debug(f'Parsing {mutant_string}')
+
+    from common.Mutant import Mutant
+
+    # Use regular expression to find all mutants in the string
+    mutants = re.findall(r'(\w\w\d+\w)', mutant_string)
+
+    mutant_info = []
+    for mut in mutants:
+        _mut=re.match(r'(\w)(\w)(\d+)(\w)',mut)
+        mutant_info.append({'chain_id': _mut.group(1), 'position': _mut.group(3), 'wt_res':  _mut.group(2), 'mut_res':  _mut.group(4)})
+
+    # if the mutation has a position of score, we need to extract it.
+    if re.match(r'[\w\w\d+\w]+_[-\d\.]+', mutant_string):
+        matched_mutant_id = re.match(r'[\w\d\-]+_(\-?\d+\.?\d*)$',mutant_string)
+        mutant_score=matched_mutant_id.group(1)
+        mutant_score = float(mutant_score)
+    else:
+        # set mutant_score to None if not found.
+        mutant_score=None
+        
+    # Instantializing a Mutant obj
+    mutant_obj = Mutant(mutant_info, mutant_score)
+
+    # Join the mutants into a single string separated by underscores and instantialized Mutant obj
+    return '_'.join(mutants), mutant_obj
+

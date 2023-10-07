@@ -64,13 +64,14 @@ from tools.utils import \
     determine_system, \
     ImageWidget, \
     WorkerThread, \
-    QProgressBarton, \
     QbuttonMatrix,\
     run_worker_thread_with_progress, \
     get_color, \
-    rescale_number
+    rescale_number, \
+    extract_mutants
 
 from phylogenetics.PSSM_profile import PssmAnalyzer
+from common.Mutant import Mutant
 
 from common.MutantVisualizer import MutantVisualizer
 
@@ -92,6 +93,7 @@ class REvoDesignPlugin:
 
         self.total_mutant_in_this_session=0
         self.mutant_tree=None
+        self.mutant_tree_coevolved=None
         self.gremlin_tool=None
 
     def set_working_directory(self):
@@ -310,6 +312,7 @@ class REvoDesignPlugin:
         self.ui.pushButton_open_mut_table.clicked.connect(partial(
             self.open_mutant_table,
             self.ui.lineEdit_output_mut_table,
+            'w'
         ))
 
         self.ui.lineEdit_output_mut_table.textChanged.connect(partial(
@@ -485,6 +488,20 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_interact_scan.clicked.connect(self.run_gremlin_tool)
 
         self.set_widget_value(self.ui.comboBox_max_interact_dist, DEFAULT_GREMLIN_SPATIAL_MAX_DIST)
+
+        self.ui.pushButton_open_save_mutant_table.clicked.connect(partial(
+            self.open_mutant_table,
+            self.ui.lineEdit_output_mutant_table,
+            'w'
+
+        ))
+
+
+        self.ui.pushButton_interact_reject.clicked.connect(self.reject_coevoled_mutant)
+        self.ui.pushButton_interact_accept.clicked.connect(self.accept_coevoled_mutant)
+
+
+        
 
         return main_window
     
@@ -685,15 +702,15 @@ class REvoDesignPlugin:
         self.set_widget_value(comboBox_chainid,chain_ids)
         self.set_widget_value(comboBox_chainid, chain_ids[0] if chain_ids else 0)
 
-    def open_mutant_table(self, lineEdit_mutant_table,mode='r'):
-        if mode=='r':
+    def open_mutant_table(self, lineEdit_mutant_table, mode='r'):
+        if mode =='r':
             input_mut_txt_fn = self.open_input_filepath(lineEdit_mutant_table,[MutableFileExt,AnyFileExt,CompressedFileExt])
             if input_mut_txt_fn:
                 self.set_widget_value(lineEdit_mutant_table,input_mut_txt_fn)
             else:
                 logging.warning(f'Could not open file for reading: {input_mut_txt_fn}')
         elif mode == 'w':
-            output_mut_txt_fn = self.browse_filename(mode=mode, exts=[SessionFileExt,AnyFileExt])
+            output_mut_txt_fn = self.browse_filename(mode=mode, exts=[MutableFileExt,AnyFileExt])
             if output_mut_txt_fn and os.path.exists(os.path.dirname(output_mut_txt_fn)):
                 logging.info(f"Output file is set as {output_mut_txt_fn}")
                 self.set_widget_value(lineEdit_mutant_table, output_mut_txt_fn)
@@ -703,23 +720,19 @@ class REvoDesignPlugin:
             logging.warning(f'Unknown mode {mode} ! Aborded.')
     
     def write_input_mutant_table(self, output_mut_txt_fn,mutant_list):
-        open(output_mut_txt_fn,'w').write('\n'.join(mutant_list))
 
-    def save_mutant_choice_checkpoint(self,output_mut_txt_fn):
+        open(output_mut_txt_fn,'w').write('\n'.join(mutant_list) if mutant_list else '')
 
-        output_mut_txt_dir=os.path.dirname(output_mut_txt_fn)
-        output_mut_txt_bn=os.path.basename(output_mut_txt_fn)
 
-        output_mut_txt_dir_ckp=os.path.join(output_mut_txt_dir,f'{self.PWD}/checkpoints/')
-        os.makedirs(output_mut_txt_dir_ckp,exist_ok=True)
 
-        output_mut_txt_bn_ckp=f'ckp_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.{output_mut_txt_bn}'
+    def save_mutant_choices(self, lineEdit_output_mut_txt,mutants_to_save,overide=True,make_checkpoint=True):
+        if not mutants_to_save:
+            logging.warning(f"Mutant list is empty or None!")
+            return None
+        
+        if type(mutants_to_save) == MutantTree:
+            mutants_to_save=mutants_to_save.all_mutant_ids
 
-        output_mut_txt_ckp=os.path.join(output_mut_txt_dir_ckp, output_mut_txt_bn_ckp)
-        logging.info(f'Saving checkpoint: {output_mut_txt_ckp}')
-        shutil.copy(output_mut_txt_fn,output_mut_txt_ckp)
-
-    def save_mutant_choices(self, lineEdit_output_mut_txt,checkBox_overide,checkBox_make_checkpoint):
         # TODO mutant_choices function
         output_mut_txt_fn=lineEdit_output_mut_txt.text()
         output_mut_txt_dir=os.path.dirname(output_mut_txt_fn)
@@ -730,18 +743,27 @@ class REvoDesignPlugin:
             return
         
         if os.path.exists(output_mut_txt_fn):
-            if checkBox_overide.isChecked():
+            if overide:
                 logging.warning(f'Mutant table exists and will be overriden! {output_mut_txt_fn}')
-                self.write_input_mutant_table(output_mut_txt_fn,[mt for mt in self.selected_mutants])
+                self.write_input_mutant_table(output_mut_txt_fn,[extract_mutants(mt)[0] for mt in mutants_to_save])
             else:
                 logging.error(f'Mutant table exists and will NOT be overriden! {output_mut_txt_fn}')
                 return
         else:
             logging.info(f'Mutant table is created at {output_mut_txt_fn}')
-            self.write_input_mutant_table(output_mut_txt_fn)
+            self.write_input_mutant_table(output_mut_txt_fn,[extract_mutants(mt)[0] for mt in mutants_to_save])
             
-        if checkBox_make_checkpoint.isChecked():
-            self.save_mutant_choice_checkpoint(output_mut_txt_fn)
+        if make_checkpoint:
+
+            output_mut_txt_dir_ckp=os.path.join(output_mut_txt_dir,f'{self.PWD}/checkpoints/')
+            os.makedirs(output_mut_txt_dir_ckp,exist_ok=True)
+
+            output_mut_txt_bn_ckp=f'ckp_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.{os.path.basename(output_mut_txt_fn)}'
+            output_mut_txt_ckp=os.path.join(output_mut_txt_dir_ckp, output_mut_txt_bn_ckp)
+            
+            logging.info(f'Saving checkpoint: {output_mut_txt_ckp}')
+            self.write_input_mutant_table(output_mut_txt_ckp,[mt for mt in mutants_to_save])
+
             
     def set_pymol_session_rock(self,checkBox_rock_pymol):
         cmd.rock(mode=checkBox_rock_pymol.isChecked())
@@ -927,9 +949,14 @@ class REvoDesignPlugin:
         if self.mutant_tree.current_mutant_id:
             cmd.enable(self.mutant_tree.current_mutant_id)
             cmd.show('mesh', f'{self.mutant_tree.current_mutant_id} and (sidechain or n. CA)')
+            cmd.hide('cartoon',f'{self.mutant_tree.current_mutant_id}')
+
         if self.mutant_tree.last_mutant_id:
             #cmd.disable(self.mutant_tree.last_mutant_id)
             cmd.hide('mesh', f'{self.mutant_tree.last_mutant_id} and (sidechain or n. CA)')
+            cmd.hide('sticks', f'{self.mutant_tree.last_mutant_id} and (sidechain or n. CA)')
+
+
 
 
     def accept_mutant(self,lcdNumber_selected_mutant):
@@ -937,7 +964,6 @@ class REvoDesignPlugin:
             logging.debug(f'Accepting mutant {self.mutant_tree.current_mutant_id}')
             cmd.enable(self.mutant_tree.current_mutant_id)
             self.is_this_mutant_been_accepted=True
-            
         else:
             logging.warning(f'Ingoring non mutant {self.mutant_tree.current_mutant_id}')
         
@@ -945,11 +971,19 @@ class REvoDesignPlugin:
         
         self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
 
+        self.save_mutant_choices(
+            self.ui.lineEdit_output_mut_txt,
+            self.selected_mutants,
+            self.ui.checkBox_overide.isChecked(),
+            self.ui.checkBox_make_checkpoint.isChecked())
+
+
+
+
     def reject_mutant(self,lcdNumber_selected_mutant):
         if self.is_this_pymol_object_a_mutant(self.mutant_tree.current_mutant_id):
             logging.debug(f'Rejecting mutant {self.mutant_tree.current_mutant_id}')
             cmd.disable(self.mutant_tree.current_mutant_id)
-            self.refresh_mutants_that_have_been_chosen()
             self.is_this_mutant_been_accepted=False
         else:
             logging.warning(f'Ingoring non mutant {self.mutant_tree.current_mutant_id}')
@@ -957,6 +991,12 @@ class REvoDesignPlugin:
         self.refresh_mutants_that_have_been_chosen()    
         
         self.set_widget_value(lcdNumber_selected_mutant, self.num_selected_mutants)
+
+        self.save_mutant_choices(
+            self.ui.lineEdit_output_mut_txt,
+            self.selected_mutants,
+            self.ui.checkBox_overide.isChecked(),
+            self.ui.checkBox_make_checkpoint.isChecked())
 
     def has_this_mutant_been_accepted(self):
         # this should be execute immidiately after self.mutant_tree.walk_the_mutants
@@ -999,7 +1039,7 @@ class REvoDesignPlugin:
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self,mutant):
-        if re.match(r'\d+\w_[-\d\.]+', mutant):
+        if re.match(r'\w\w\d+\w_[-\d\.]+', mutant):
             return True
         else:
             return False
@@ -1018,10 +1058,8 @@ class REvoDesignPlugin:
         
         all_mutants_in_current_branch={}
         for mutant_id in mutants_in_current_group:
-            _resi, _resn, _score=self.read_design_candidates_info_from_mutant_id(mutant_id)
-            tmp={'resi':_resi,'resn':_resn,'score': _score}
-            all_mutants_in_current_branch.update({mutant_id:tmp})
-    
+            mutant_,mutant_obj=extract_mutants(mutant_id)
+            all_mutants_in_current_branch.update({mutant_id:mutant_obj})
 
         return all_mutants_in_current_branch
     
@@ -1062,14 +1100,7 @@ class REvoDesignPlugin:
         wild_type,design_resi,wild_type_score=matched_group_id.group(1),matched_group_id.group(2),matched_group_id.group(3)
         return int(design_resi), wild_type, float(wild_type_score)
     
-    def read_design_candidates_info_from_mutant_id(self,mutant_id):
-        logging.debug(f'Parsing {mutant_id}')
-        matched_mutant_id = re.match(r'(\d+)(\w)_([\-\d\.]+)',mutant_id)
-        design_resi=matched_mutant_id.group(1)
-        resn_substitution=matched_mutant_id.group(2)
-        mutant_score=matched_mutant_id.group(3)
-        logging.debug(f'{int(design_resi)},{resn_substitution}, {float(mutant_score)}')
-        return int(design_resi),{resn_substitution},float(mutant_score)
+
 
     def recover_mutant_choices_from_checkpoint(self, lcdNumber_selected_mutant):
         mutant_choice_checkpoint_fn = self.browse_filename(mode='r', exts=[MutableFileExt,AnyFileExt])
@@ -1105,6 +1136,7 @@ class REvoDesignPlugin:
         
         lineEdit_output_mut_txt.setEnabled(not ((self.mutant_tree) and (checkBox_make_checkpoint.isChecked() or checkBox_overide.isChecked())))
         
+        self.refresh_mutants_that_have_been_chosen()
 
         if not self.mutant_tree:
             logging.warning('Could not initialize mutant tree! This session may not be a REvoDesign session!')
@@ -1148,18 +1180,9 @@ class REvoDesignPlugin:
             lcdNumber_selected_mutant
         ))
 
-        pushButton_accept_this_mutant.clicked.connect(partial(
-            self.save_mutant_choices,
-            lineEdit_output_mut_txt,
-            checkBox_overide,
-            checkBox_make_checkpoint
-        ))
-        pushButton_reject_this_mutant.clicked.connect(partial(
-            self.save_mutant_choices,
-            lineEdit_output_mut_txt,
-            checkBox_overide,
-            checkBox_make_checkpoint
-        ))
+
+
+
         
         pushButton_next_mutant.clicked.connect(partial(
             self.walk_mutant_groups,
@@ -1365,7 +1388,9 @@ class REvoDesignPlugin:
 
             progress_bar=self.ui.progressBar_gremlin_visualizing
 
-            
+            # Reinitialize Gremlin mutant tree
+            self.mutant_tree_coevolved=MutantTree({})
+
 
             self.gremlin_tool=GREMLIN_Tools(molecule=molecule)
 
@@ -1511,10 +1536,6 @@ class REvoDesignPlugin:
 
         self.load_co_evolving_pairs(progress_bar)
 
-    def has_this_coevolved_mutant_been_accepted(self):
-        # this should be execute immidiately after self.mutant_tree.walk_the_mutants
-        return [x for x in cmd.get_names(type='nongroup_objects',enabled_only=1,selection=self.current_gremlin_co_evoving_pair_mutant_id) if x == self.current_gremlin_co_evoving_pair_mutant_id]
-
     def any_posision_has_been_selected(self):
         return bool([x for x in cmd.get_names(type='selections',enabled_only=1) if x == 'sele'])
     
@@ -1538,8 +1559,6 @@ class REvoDesignPlugin:
         if not chain_id or not molecule:
             logging.error(f'No available molecule or chain id.')
             return
-        
-        
         
 
         if walk_to_next:
@@ -1565,9 +1584,6 @@ class REvoDesignPlugin:
 
         (wt_info,csv_fp,plot_fp)=self.plot_w_fps[self.current_gremlin_co_evoving_pair_index]
 
-        
-        
-        
 
 
         # Clear the existing widgets from gridLayout_interact_pairs
@@ -1611,6 +1627,42 @@ class REvoDesignPlugin:
             button_matrix.setEnabled(True)
 
 
+    def accept_coevoled_mutant(self):
+        
+        logging.debug(f'Accepting co-evolved mutant {self.current_gremlin_co_evoving_pair_mutant_id}')
+        cmd.enable(self.current_gremlin_co_evoving_pair_mutant_id)
+
+        self.mutant_tree_coevolved.add_mutant_to_branch(
+            self.current_gremlin_co_evoving_pair_group_id,
+            self.current_gremlin_co_evoving_pair_mutant_id,
+            extract_mutants(mutant_string=self.current_gremlin_co_evoving_pair_mutant_id)[1]
+            )
+        logging.debug(str(self.mutant_tree_coevolved))
+
+        self.save_mutant_choices(
+            self.ui.lineEdit_output_mutant_table,
+            self.mutant_tree_coevolved,
+            True,
+            True)
+    
+        
+
+    def reject_coevoled_mutant(self):
+        logging.debug(f'Rejecting co-evolved mutant {self.current_gremlin_co_evoving_pair_mutant_id}')
+        cmd.disable(self.current_gremlin_co_evoving_pair_mutant_id)
+        self.mutant_tree_coevolved.remove_mutant_from_branch(
+            self.current_gremlin_co_evoving_pair_group_id,
+            self.current_gremlin_co_evoving_pair_mutant_id
+            )
+        
+        self.save_mutant_choices(
+            self.ui.lineEdit_output_mutant_table,
+            self.mutant_tree_coevolved,
+            True,
+            True)
+        
+        
+
 
     def activate_focused_interaction(self):
         if self.current_gremlin_co_evoving_pair_mutant_id==self.last_gremlin_co_evoving_pair_mutant_id:
@@ -1620,10 +1672,14 @@ class REvoDesignPlugin:
             cmd.enable(self.current_gremlin_co_evoving_pair_mutant_id)
             cmd.show('sticks', f'{self.current_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA) and not hydrogen')
             cmd.show('mesh', f'{self.current_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA)')
+            cmd.hide('cartoon', f'{self.current_gremlin_co_evoving_pair_mutant_id}')
         if self.last_gremlin_co_evoving_pair_mutant_id:
             cmd.disable(self.last_gremlin_co_evoving_pair_mutant_id)
             cmd.hide('mesh', f'{self.last_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA)')
             cmd.hide('sticks', f'{self.last_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA) and not hydrogen')
+            cmd.hide('cartoon', f'{self.current_gremlin_co_evoving_pair_mutant_id}')
+
+    
         
 
     def mutate_with_gridbuttons(self,col,row, molecule, chain_id, matrix, min_score, max_score,wt_info,ignore_wt=False):
@@ -1633,6 +1689,11 @@ class REvoDesignPlugin:
         visualizer=MutantVisualizer(molecule, chain_id)
         alphabet=self.gremlin_tool.alphabet
         visualizer.group_name='_vs_'.join([wt.replace('_','') for wt in wt_info[-3:-1]])
+        if self.current_gremlin_co_evoving_pair_group_id:
+            self.last_gremlin_co_evoving_pair_group_id=self.current_gremlin_co_evoving_pair_group_id
+
+        self.current_gremlin_co_evoving_pair_group_id=visualizer.group_name
+
         logging.debug(f'Received col {col} and row {row}')
 
         # aa from clicked button, mutant
@@ -1651,6 +1712,7 @@ class REvoDesignPlugin:
 
         if self.current_gremlin_co_evoving_pair_mutant_id:
             self.last_gremlin_co_evoving_pair_mutant_id=self.current_gremlin_co_evoving_pair_mutant_id
+
 
 
         for mut,idx,wt in zip([WT_A,WT_B],[j+1,i+1],[res_I,res_J]):

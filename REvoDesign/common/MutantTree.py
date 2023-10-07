@@ -21,8 +21,14 @@ class MutantTree():
         self.all_mutants=[mutant for branch_id in self.mutant_tree.keys() for mutant in self.mutant_tree[branch_id].items()]
         self.all_mutant_ids=[mutant for mutant,_ in self.all_mutants]
 
-
-
+    def __str__(self):
+        tree_str = "Mutant Tree:\n"
+        for branch_id in self.mutant_tree.keys():
+            tree_str += f"Branch: {branch_id}\n"
+            for mutant_id, mutant_obj in self.mutant_tree[branch_id].items():
+                tree_str += f"  Mutant: {mutant_id}\n"
+                tree_str += f"    {str(mutant_obj)}\n"
+        return tree_str
 
 
     def get_branch_index(self,branch_id):
@@ -63,17 +69,30 @@ class MutantTree():
         
         self.refresh_mutants()
 
-    def remove_mutants_from_branch(self,branch,mutants):
-        for mut in mutants:
-            if mut in self.mutant_tree[branch].keys():
-                self.mutant_tree[branch].pop(mut)
-                self.refresh_mutants()
+
+    def add_mutant_to_branch(self,branch,mutant, mutant_info):
+        
+        if branch not in self.mutant_tree.keys():
+            self.mutant_tree[branch]={}
+
+        if mutant in self.mutant_tree[branch].keys():
+            print(f'Mutant {mutant} already exists and will be updated.')
+        
+        self.mutant_tree[branch].update({mutant:mutant_info})
+        self.refresh_mutants()
+
+    def remove_mutant_from_branch(self,branch,mutant):
+        
+        if mutant in self.mutant_tree[branch].keys():
+            self.mutant_tree[branch].pop(mutant)
+            self.refresh_mutants()
+        else:
+            print(f'Mutant {mutant} does not exist in this branch and there\'s no need to remove it.')
 
         if self.is_this_branch_empty(branch):
             self.mutant_tree.pop(branch)
+            print(f'Branch {branch} is empty and has been removed.')
         
-
-            
 
     # Completed mutant_tree walking function
     def walk_the_mutants(self, walk_to_next_one=True):
