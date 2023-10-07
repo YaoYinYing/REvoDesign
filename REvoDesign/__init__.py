@@ -278,6 +278,29 @@ class REvoDesignPlugin:
             ]
         ))
 
+        self.ui.lineEdit_input_csv.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_output_pse,
+                self.ui.lineEdit_input_csv,
+                self.ui.lineEdit_input_customized_indices,
+            ],
+            [
+                self.ui.pushButton_run_PSSM_to_pse,
+            ]
+        ))
+
+        self.ui.lineEdit_input_customized_indices.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_output_pse,
+                self.ui.lineEdit_input_csv,
+                self.ui.lineEdit_input_customized_indices,
+            ],
+            [
+                self.ui.pushButton_run_PSSM_to_pse,
+            ]
+        ))
 
 
         self.ui.pushButton_run_PSSM_to_pse.clicked.connect(self.run_mutant_loading_from_profile)

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PyMOL mutagenesis to the only selected chain.
 - Mutagenesis while no key or score cols is defined. this would be useful for mutant table in pure txt.
 - Mutagenesis with implicit chain identifier.
+- Multiple button locking.
 
 ### Changed
 - Fetch repo path by dirname in test Scripts 

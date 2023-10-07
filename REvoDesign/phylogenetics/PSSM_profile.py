@@ -5,7 +5,6 @@ import time
 import pandas as pd
 import re
 import tempfile
-from functools import partial
 from absl import logging
 from pymol import cmd
 import matplotlib
@@ -284,18 +283,15 @@ class PssmAnalyzer():
 
         logging.info(f'Filter out empty tasks: {len(mutations) - len(mutagenesis_tasks)}')
 
-
         progress_bar.setRange(0, 0)
         
         if self.parallel_run:
 
             parallel_executor = ParallelExecutor(self.process_position, mutagenesis_tasks, n_jobs=nproc)
-            #parallel_executor.progress_signal.connect(progress_bar.setValue)
             
             parallel_executor.start()
             
             while not parallel_executor.isFinished():
-                #logging.info(f'Running ....')
                 refresh_window()
                 time.sleep(0.001)
 
