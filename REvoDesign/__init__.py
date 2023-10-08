@@ -184,6 +184,14 @@ class REvoDesignPlugin:
             self.ui.lineEdit_input_pse,
             self.ui.comboBox_design_molecule,
             ))
+        
+        self.ui.lineEdit_input_pse.textChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session_2,
+            self.ui.lineEdit_input_pse,
+            self.ui.comboBox_design_molecule,
+            ))
+        
         self.ui.pushButton_open_input_pse.clicked.connect(partial(
             self.open_structure_or_session,
             self.ui.lineEdit_input_pse,
@@ -200,12 +208,8 @@ class REvoDesignPlugin:
             self.ui.comboBox_chainid
             ))
         self.ui.pushButton_run_surface_refresh.clicked.connect(self.update_surface_exclusion)
-        self.ui.lineEdit_input_pse.textChanged.connect(partial(
-            self.reload_molecule_info, 
-            self.ui.checkBox_use_this_session_2,
-            self.ui.lineEdit_input_pse,
-            self.ui.comboBox_design_molecule,
-            ))
+        
+        
         self.ui.lineEdit_output_pse_4.textChanged.connect(partial(
             self.release_run_button_if_lineEdit_fp_is_valid,
             [
@@ -389,6 +393,13 @@ class REvoDesignPlugin:
             self.ui.comboBox_molecule_4,
         ))
 
+        self.ui.lineEdit_input_pse_3.textChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session_5,
+            self.ui.lineEdit_input_pse_3,
+            self.ui.comboBox_molecule_4,
+        ))
+
         self.ui.comboBox_molecule_4.currentIndexChanged.connect(partial(
             self.update_chain_id,
             self.ui.comboBox_molecule_4,
@@ -417,6 +428,13 @@ class REvoDesignPlugin:
 
         # Tab Visualize
         self.ui.checkBox_use_this_session_3.stateChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session_3,
+            self.ui.lineEdit_input_pse_4,
+            self.ui.comboBox_molecule_2,
+            ))
+        
+        self.ui.lineEdit_input_pse_4.textChanged.connect(partial(
             self.reload_molecule_info, 
             self.ui.checkBox_use_this_session_3,
             self.ui.lineEdit_input_pse_4,
