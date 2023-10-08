@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Add
+- PSSM_GREMLIN Server accessing for phylogenetic calculations
+
 ### Fixed
 - PSE open file buttom at Load Mut Tab
 - `getExistingDirectory`

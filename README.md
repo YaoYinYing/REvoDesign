@@ -44,6 +44,7 @@ system pip install scikit-learn
 system pip install biopython
 system pip install numpy
 system pip install scipy
+system pip install requests
 ```
 
 3. **Press Enter**: After pasting the above commands, press Enter to execute them.

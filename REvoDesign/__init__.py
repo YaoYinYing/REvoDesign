@@ -71,6 +71,7 @@ from tools.utils import \
     extract_mutants
 
 from phylogenetics.PSSM_profile import PssmAnalyzer
+from phylogenetics.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from common.Mutant import Mutant
 
 from common.MutantVisualizer import MutantVisualizer
@@ -96,6 +97,7 @@ class REvoDesignPlugin:
         self.mutant_tree_pssm_selected=None
         self.mutant_tree_coevolved=None
         self.gremlin_tool=None
+        self.pssm_gremlin_calculator=PSSMGremlinCalculator()
 
     def set_working_directory(self):
         self.PWD=getExistingDirectory()
@@ -163,8 +165,6 @@ class REvoDesignPlugin:
         self.ui = loadUi(self.ui_file, main_window)# Store the UI form for later access
 
 
-        #self.ui.pushButton_run_PSSM_to_pse=QProgressBarton(self.ui.pushButton_run_PSSM_to_pse)
-
         #self.setup_nproc(self.ui.comboBox_nproc)
         
         self.setup_nproc(self.ui.comboBox_nproc_2)
@@ -178,6 +178,11 @@ class REvoDesignPlugin:
 
         # Set up general arguments 
         # Tab `Determine`
+
+
+        
+
+
         self.ui.checkBox_use_this_session_2.stateChanged.connect(partial(
             self.reload_molecule_info, 
             self.ui.checkBox_use_this_session_2,
@@ -207,6 +212,40 @@ class REvoDesignPlugin:
             self.ui.comboBox_design_molecule,
             self.ui.comboBox_chainid
             ))
+        
+
+        self.ui.comboBox_design_molecule.currentIndexChanged.connect(partial(
+            self.setup_pssm_gremlin_calculator,
+            self.ui.comboBox_design_molecule,
+            self.ui.comboBox_chainid,
+            
+            ))
+        
+        self.ui.comboBox_chainid.currentIndexChanged.connect(partial(
+            self.setup_pssm_gremlin_calculator,
+            self.ui.comboBox_design_molecule,
+            self.ui.comboBox_chainid,
+            
+            ))
+        
+        self.ui.pushButton_submit_pssm_gremlin_job.clicked.connect(partial(
+            self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
+            self.ui.lineEdit_pssm_gremlin_url.text(),
+            'submit'
+        ))
+
+        self.ui.pushButton_cancel_pssm_gremlin_job.clicked.connect(partial(
+            self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
+            self.ui.lineEdit_pssm_gremlin_url.text(),
+            'cancel'
+        ))
+
+        self.ui.pushButton_download_pssm_gremlin_job.clicked.connect(partial(
+            self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
+            self.ui.lineEdit_pssm_gremlin_url.text(),
+            'download'
+        ))
+
         self.ui.pushButton_run_surface_refresh.clicked.connect(self.update_surface_exclusion)
         
         
@@ -825,6 +864,25 @@ class REvoDesignPlugin:
     Private functions used only in a specific tab.
     '''
     # Tab `Determine` 
+
+    def setup_pssm_gremlin_calculator(self,comboBox_design_molecule,comboBox_chainid):
+        molecule=str(comboBox_design_molecule.currentText())
+        chain_id=str(comboBox_chainid.currentText())
+        sequence=get_molecule_sequence(
+                molecule=molecule,
+                chain_id=chain_id
+                )
+        
+        if molecule and chain_id and sequence:
+            self.pssm_gremlin_calculator.setup_calculator(
+                working_directory=self.PWD,
+                molecule=molecule,
+                chain_id=chain_id, 
+                sequence=sequence)
+        else:
+            logging.debug(f'Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}')
+
+
     def reload_determine_tab_setup(self,
                                 comboBox_design_molecule,
                                 comboBox_ligand_sel,
@@ -874,7 +932,7 @@ class REvoDesignPlugin:
         chain_id = self.ui.comboBox_chainid.currentText()
         exclusion = self.ui.comboBox_surface_exclusion.currentText()
         cutoff = int(self.ui.comboBox_surface_cutoff.currentText())
-        do_show_surf_CA = self.ui.checkBox_show_surf_CA.isChecked()
+        do_show_surf_CA = True
 
         from structure.Surface.findSurfaceResidues import determine_surface_residue
         determine_surface_residue(
@@ -886,6 +944,7 @@ class REvoDesignPlugin:
             cutoff=cutoff,
             do_show_surf_CA=do_show_surf_CA,
         )
+        
 
     def run_pocket_detection(self):
         input_file = self.temperal_session
