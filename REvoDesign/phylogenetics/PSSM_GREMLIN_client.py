@@ -88,8 +88,8 @@ class PSSMGremlinCalculator:
             else:
                 filename = f'{md5sum}_results.zip'
 
-            result_dir = os.path.join(self.DOWNLOAD_DIR, md5sum)
-            os.makedirs(result_dir, exist_ok=True)
+            result_dir = self.DOWNLOAD_DIR
+            
 
             # Save the file with the extracted or default filename
             logging.info('Downloading results...')
@@ -98,6 +98,8 @@ class PSSMGremlinCalculator:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         file.write(chunk)
+
+            logging.info(f'Finished downloading results. \n Stored at {os.path.abspath(file_path)}')
         else:
             logging.warning(f"Unexpected response when downloading: {response.status_code}")
 
