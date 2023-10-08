@@ -43,18 +43,10 @@ class PSSMGremlinCalculator:
             
 
         elif opt == 'download':
-            # Check the status of the calculation
-            response = self.check_calculation_status(url, self.md5sum)
-            logging.info(f"Checking...\n {response.content}")
-
-            if response.json() is not None:
-                status = response.json().get('status', '')
-                if status == 'still running' or status == 'still in queue':
-                    return
-
-            # Download the calculation results
+            # Directly attempt to download the results
             self.download_results(url, self.md5sum)
 
+            
         else:
             logging.warning(f"Unknown option: {opt}")
 
@@ -67,22 +59,27 @@ class PSSMGremlinCalculator:
 
     def submit_fasta_file(self, url, fasta_file_path):
         files = {'file': (os.path.basename(fasta_file_path), open(fasta_file_path, 'rb'))}
-        response = requests.post(f'{url}/PSSM_GREMLIN/api/post', files=files)
+        response = requests.post(f'{url}/PSSM_GREMLIN/api/post', files=files,timeout=10)
         return response
 
     def cancel_job(self, url, md5sum):
-        response = requests.post(f'{url}/PSSM_GREMLIN/api/cancel/{md5sum}')
+        response = requests.post(f'{url}/PSSM_GREMLIN/api/cancel/{md5sum}',timeout=10)
         return response
 
-    def check_calculation_status(self, url, md5sum):
-        response = requests.get(f'{url}/PSSM_GREMLIN/api/running/{md5sum}')
-        if response.status_code == 200:
-            return response
-        return response
 
     def download_results(self, url, md5sum):
         result_url = f'{url}/PSSM_GREMLIN/api/results/{md5sum}'
-        response = requests.get(result_url, stream=True)
+        response = requests.get(result_url, stream=True, allow_redirects=False)
+
+        if response.status_code == 302:  # Redirection status code
+            redirected_url = response.headers['Location']
+            logging.info(f"Redirected to download page: {redirected_url}")
+            self.download_from_redirected_url(redirected_url, md5sum)
+        else:
+            logging.warning(f"Unexpected response: {response.status_code}")
+
+    def download_from_redirected_url(self, redirected_url, md5sum):
+        response = requests.get(redirected_url, stream=True)
 
         if response.status_code == 200:
             content_disposition = response.headers.get('content-disposition')
@@ -101,6 +98,10 @@ class PSSMGremlinCalculator:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         file.write(chunk)
+        else:
+            logging.warning(f"Unexpected response when downloading: {response.status_code}")
+
+
 
 
 

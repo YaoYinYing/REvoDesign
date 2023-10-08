@@ -229,21 +229,27 @@ class REvoDesignPlugin:
             ))
         
         self.ui.pushButton_submit_pssm_gremlin_job.clicked.connect(partial(
-            self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
-            self.ui.lineEdit_pssm_gremlin_url.text(),
-            'submit'
+            run_worker_thread_with_progress,
+            worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
+            url=self.ui.lineEdit_pssm_gremlin_url.text(),
+            opt='submit',
+            progress_bar=self.ui.progressBar_download,
         ))
 
         self.ui.pushButton_cancel_pssm_gremlin_job.clicked.connect(partial(
-            self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
-            self.ui.lineEdit_pssm_gremlin_url.text(),
-            'cancel'
+            run_worker_thread_with_progress,
+            worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
+            url=self.ui.lineEdit_pssm_gremlin_url.text(),
+            opt='cancel',
+            progress_bar=self.ui.progressBar_download,
         ))
 
         self.ui.pushButton_download_pssm_gremlin_job.clicked.connect(partial(
-            self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
-            self.ui.lineEdit_pssm_gremlin_url.text(),
-            'download'
+            run_worker_thread_with_progress,
+            worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
+            url=self.ui.lineEdit_pssm_gremlin_url.text(),
+            opt='download',
+            progress_bar=self.ui.progressBar_download,
         ))
 
         self.ui.pushButton_run_surface_refresh.clicked.connect(self.update_surface_exclusion)

@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Add
 - PSSM_GREMLIN Server accessing for phylogenetic calculations
+- Progress bar to handle requesting time.
 
 ### Fixed
 - PSE open file buttom at Load Mut Tab
 - `getExistingDirectory`
+
+### Changed
+- Use `run_worker_thread_with_progress` to handle requests to avoid freezing windows.
+- Set timeout for task posting and cancelling
 
 ## [1.1.1] - 2023-10-07
 
