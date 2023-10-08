@@ -238,17 +238,27 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_pocket_detection.clicked.connect(self.run_pocket_detection)
 
         # Tab `Load Mutants`
+        self.ui.lineEdit_input_pse_2.textChanged.connect(partial(
+            self.reload_molecule_info, 
+            self.ui.checkBox_use_this_session,
+            self.ui.lineEdit_input_pse_2,
+            self.ui.comboBox_molecule,
+            ))
+        
+
         self.ui.checkBox_use_this_session.stateChanged.connect(partial(
             self.reload_molecule_info, 
             self.ui.checkBox_use_this_session,
             self.ui.lineEdit_input_pse_2,
             self.ui.comboBox_molecule,
             ))
-        self.ui.pushButton_open_input_pse.clicked.connect(partial(
+        
+        self.ui.pushButton_open_input_pse_2.clicked.connect(partial(
             self.open_structure_or_session,
             self.ui.lineEdit_input_pse_2,
             'r'
             ))
+
         self.ui.pushButton_open_output_pse_2.clicked.connect(partial(
             self.open_structure_or_session,
             self.ui.lineEdit_output_pse,
