@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>648</width>
-    <height>510</height>
+    <width>650</width>
+    <height>511</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -41,10 +41,22 @@
       <height>441</height>
      </rect>
     </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="statusTip">
+     <string/>
+    </property>
     <property name="currentIndex">
      <number>0</number>
     </property>
     <widget class="QWidget" name="tab_determine">
+     <property name="statusTip">
+      <string>Determine surfaces, pockets, interfaces and evolutionary profile.</string>
+     </property>
      <attribute name="title">
       <string>Determine</string>
      </attribute>
@@ -86,8 +98,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_16">
             <item>
              <widget class="QLineEdit" name="lineEdit_output_pse_4">
-              <property name="text">
+              <property name="statusTip">
                <string>Output session path</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -124,8 +139,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_15">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_pse">
+              <property name="statusTip">
+               <string>Input Structure or PyMOL session.</string>
+              </property>
               <property name="text">
-               <string>Input PDB/PSE/PZE path</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -166,6 +184,9 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="statusTip">
+               <string>Molecule for design.</string>
+              </property>
              </widget>
             </item>
             <item>
@@ -198,6 +219,9 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="statusTip">
+               <string>Chain ID for design.</string>
+              </property>
               <property name="sizeAdjustPolicy">
                <enum>QComboBox::AdjustToContents</enum>
               </property>
@@ -211,6 +235,9 @@
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
            <widget class="QCheckBox" name="checkBox_use_this_session_2">
+            <property name="statusTip">
+             <string>Just use the molecules in current session for design.</string>
+            </property>
             <property name="text">
              <string>Use this session</string>
             </property>
@@ -244,6 +271,9 @@
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
+                <property name="statusTip">
+                 <string>Max distance to inspect any chain-chain interface.</string>
+                </property>
                 <property name="editable">
                  <bool>true</bool>
                 </property>
@@ -266,7 +296,7 @@
                <string>Dump chain-chain interface</string>
               </property>
               <property name="text">
-               <string>Dump Interfaces</string>
+               <string>Inspect Interfaces</string>
               </property>
              </widget>
             </item>
@@ -321,6 +351,9 @@
               <height>16777215</height>
              </size>
             </property>
+            <property name="statusTip">
+             <string>Substrate/Product molecule</string>
+            </property>
            </widget>
           </item>
           <item row="1" column="2">
@@ -362,6 +395,9 @@
               <width>60</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="statusTip">
+             <string>Max distance from cofactor to pocket residue.</string>
             </property>
            </widget>
           </item>
@@ -405,6 +441,9 @@
               <height>16777215</height>
              </size>
             </property>
+            <property name="statusTip">
+             <string>Max distance from ligand to pocket residue.</string>
+            </property>
            </widget>
           </item>
           <item row="1" column="1">
@@ -426,6 +465,9 @@
               <width>60</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="statusTip">
+             <string>Co-factor or co-enzyme, HEM/FAD/NAD, etc.</string>
             </property>
            </widget>
           </item>
@@ -485,6 +527,9 @@
               <height>16777215</height>
              </size>
             </property>
+            <property name="statusTip">
+             <string>Excluded selection. Use PyMOL selection sytax</string>
+            </property>
             <property name="editable">
              <bool>true</bool>
             </property>
@@ -530,6 +575,9 @@
               <height>16777215</height>
              </size>
             </property>
+            <property name="statusTip">
+             <string>Probe radius for surface determination.</string>
+            </property>
             <property name="editable">
              <bool>true</bool>
             </property>
@@ -550,6 +598,9 @@
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
            <widget class="QPushButton" name="pushButton_run_surface_refresh">
+            <property name="whatsThis">
+             <string comment="Refresh to fetch PyMOL selections"/>
+            </property>
             <property name="text">
              <string>Refresh !</string>
             </property>
@@ -606,6 +657,9 @@
           </item>
           <item>
            <widget class="QLineEdit" name="lineEdit_pssm_gremlin_url">
+            <property name="statusTip">
+             <string>Server URL for PSSM GREMLIN calculation.</string>
+            </property>
             <property name="text">
              <string>http://ts.a100.yaoyy.moe:8080/</string>
             </property>
@@ -642,6 +696,9 @@
          <layout class="QHBoxLayout" name="horizontalLayout_65">
           <item>
            <widget class="QPushButton" name="pushButton_submit_pssm_gremlin_job">
+            <property name="statusTip">
+             <string>Submit the selected molecule and chain.</string>
+            </property>
             <property name="text">
              <string>Submit</string>
             </property>
@@ -649,6 +706,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_cancel_pssm_gremlin_job">
+            <property name="statusTip">
+             <string>Cancel running/queuing task.</string>
+            </property>
             <property name="text">
              <string>Cancel</string>
             </property>
@@ -656,6 +716,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_download_pssm_gremlin_job">
+            <property name="statusTip">
+             <string>Download completed results.</string>
+            </property>
             <property name="text">
              <string>Download</string>
             </property>
@@ -668,6 +731,9 @@
      </widget>
     </widget>
     <widget class="QWidget" name="tab_load_PSSM">
+     <property name="statusTip">
+      <string>Load Mutants from PSSM with biases.</string>
+     </property>
      <attribute name="title">
       <string>Load Mutants</string>
      </attribute>
@@ -699,8 +765,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_17">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_pse_2">
+              <property name="statusTip">
+               <string>Input Structure or PyMOL session.</string>
+              </property>
               <property name="text">
-               <string>Input PDB/PSE/PZE path</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -747,8 +816,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_19">
             <item>
              <widget class="QLineEdit" name="lineEdit_output_pse">
-              <property name="text">
+              <property name="statusTip">
                <string>Output session path</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -785,8 +857,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_18">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_csv">
-              <property name="text">
+              <property name="statusTip">
                <string>Input PSSM csv file path</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -803,8 +878,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_customized_indices">
-              <property name="text">
+              <property name="statusTip">
                <string>Input Custom indices txt file path</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -820,7 +898,11 @@
           <item row="3" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_30">
             <item>
-             <widget class="QComboBox" name="comboBox_molecule"/>
+             <widget class="QComboBox" name="comboBox_molecule">
+              <property name="statusTip">
+               <string>Molecule for design.</string>
+              </property>
+             </widget>
             </item>
             <item>
              <widget class="QLabel" name="label_chainid_2">
@@ -852,6 +934,9 @@
                 <height>16777215</height>
                </size>
               </property>
+              <property name="statusTip">
+               <string>Chain ID for design.</string>
+              </property>
              </widget>
             </item>
            </layout>
@@ -865,6 +950,9 @@
           </property>
           <item>
            <widget class="QCheckBox" name="checkBox_use_this_session">
+            <property name="statusTip">
+             <string>Just use the molecules in current session for design.</string>
+            </property>
             <property name="text">
              <string>Use this session</string>
             </property>
@@ -889,6 +977,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_parallel">
+            <property name="statusTip">
+             <string>Run parallelized mutagenesis in PyMOL</string>
+            </property>
             <property name="text">
              <string>Parallel</string>
             </property>
@@ -936,6 +1027,9 @@
          <height>21</height>
         </rect>
        </property>
+       <property name="statusTip">
+        <string>Preferred substitutions. eg. `E:DATY K:RATY N:ATY Q:EDATY` </string>
+       </property>
       </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_reject_substitution">
@@ -959,6 +1053,9 @@
          <height>21</height>
         </rect>
        </property>
+       <property name="statusTip">
+        <string>Substitutions to reject. eg. `PC` to reject proline and cysteine.</string>
+       </property>
       </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox">
@@ -981,6 +1078,9 @@
          <width>171</width>
          <height>21</height>
         </rect>
+       </property>
+       <property name="statusTip">
+        <string>You should name this design case with a proper label.</string>
        </property>
        <property name="text">
         <string>default</string>
@@ -1120,6 +1220,9 @@
      </widget>
     </widget>
     <widget class="QWidget" name="tab_mutant_choices">
+     <property name="statusTip">
+      <string>Choose mutant from structural insights</string>
+     </property>
      <attribute name="title">
       <string>Choose Mutants</string>
      </attribute>
@@ -1183,6 +1286,9 @@
         </item>
         <item row="0" column="1">
          <widget class="QLCDNumber" name="lcdNumber_total_mutant">
+          <property name="statusTip">
+           <string>Total number of design candidates</string>
+          </property>
           <property name="digitCount">
            <number>4</number>
           </property>
@@ -1190,6 +1296,9 @@
         </item>
         <item row="1" column="1">
          <widget class="QLCDNumber" name="lcdNumber_selected_mutant">
+          <property name="statusTip">
+           <string>Number of accepted mutants</string>
+          </property>
           <property name="digitCount">
            <number>4</number>
           </property>
@@ -1236,8 +1345,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_20">
             <item>
              <widget class="QLineEdit" name="lineEdit_output_mut_table">
-              <property name="text">
+              <property name="statusTip">
                <string>Output mutant table [*.mut.txt] path</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -1269,6 +1381,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_reinitialize_mutant_choosing">
+            <property name="statusTip">
+             <string>Initialize the design work space.</string>
+            </property>
             <property name="text">
              <string>Reinitialize</string>
             </property>
@@ -1276,6 +1391,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_load_mutant_choice_checkpoint">
+            <property name="statusTip">
+             <string>Load selection from a checkpoint backup.</string>
+            </property>
             <property name="text">
              <string>Load Checkpoint</string>
             </property>
@@ -1283,6 +1401,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_save_this_session">
+            <property name="statusTip">
+             <string>Save this session. </string>
+            </property>
             <property name="text">
              <string>Save Session</string>
             </property>
@@ -1346,8 +1467,11 @@
             <bold>true</bold>
            </font>
           </property>
+          <property name="statusTip">
+           <string>Go To Next Mutant. Shortcut: Shift+Opt+] </string>
+          </property>
           <property name="whatsThis">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Go To Next Mutant&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic; text-decoration: underline;&quot;&gt;( Shift+Opt+] )&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string/>
           </property>
           <property name="text">
            <string>Next</string>
@@ -1384,8 +1508,11 @@
             <bold>true</bold>
            </font>
           </property>
+          <property name="statusTip">
+           <string>Reject This Mutant. Shortcut: Shift+Opt+- </string>
+          </property>
           <property name="whatsThis">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Reject This Mutant&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic; text-decoration: underline;&quot;&gt;( Shift+Opt+- )&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string/>
           </property>
           <property name="text">
            <string>Reject</string>
@@ -1419,8 +1546,11 @@
             <bold>true</bold>
            </font>
           </property>
+          <property name="statusTip">
+           <string>Accept This Mutant. Shortcut: Shift+Opt++ </string>
+          </property>
           <property name="whatsThis">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Accept This Mutant&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic; text-decoration: underline;&quot;&gt;( Shift+Opt++ )&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string/>
           </property>
           <property name="text">
            <string>Accept</string>
@@ -1454,8 +1584,8 @@
             <bold>true</bold>
            </font>
           </property>
-          <property name="whatsThis">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Go To Previous Mutant&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic; text-decoration: underline;&quot;&gt;( Shift+Opt+[ )&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <property name="statusTip">
+           <string>Go To Previous Mutant. Shortcut: Shift+Opt+[ </string>
           </property>
           <property name="text">
            <string>Previous</string>
@@ -1511,6 +1641,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
          <widget class="QCheckBox" name="checkBox_save_mutant_choice_checkpoints">
+          <property name="statusTip">
+           <string>Always save checkpoints when rejecting or accepting mutants.</string>
+          </property>
           <property name="text">
            <string>Save checkpoints</string>
           </property>
@@ -1518,6 +1651,9 @@
         </item>
         <item>
          <widget class="QCheckBox" name="checkBox_overide_to_save_mut_table">
+          <property name="statusTip">
+           <string>Override existed mutant table file.</string>
+          </property>
           <property name="text">
            <string>Overide to Save</string>
           </property>
@@ -1525,6 +1661,9 @@
         </item>
         <item>
          <widget class="QCheckBox" name="checkBox_rock_pymol">
+          <property name="statusTip">
+           <string>Rock the space while making choices.</string>
+          </property>
           <property name="text">
            <string>Rock</string>
           </property>
@@ -1532,6 +1671,9 @@
         </item>
         <item>
          <widget class="QCheckBox" name="checkBox_center_to_focus">
+          <property name="statusTip">
+           <string>Center to the design.</string>
+          </property>
           <property name="text">
            <string>Center the design</string>
           </property>
@@ -1555,6 +1697,9 @@
      </widget>
     </widget>
     <widget class="QWidget" name="tab_cluster">
+     <property name="statusTip">
+      <string>Cluster mutagenesis space.</string>
+     </property>
      <attribute name="title">
       <string>Cluster</string>
      </attribute>
@@ -1606,8 +1751,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_21">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_pse_3">
+              <property name="statusTip">
+               <string>Input Structure or PyMOL session.</string>
+              </property>
               <property name="text">
-               <string>Input PDB</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -1624,8 +1772,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_22">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_mut_table">
-              <property name="text">
+              <property name="statusTip">
                <string>Input mutant table [*.mut.txt] path</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -1644,6 +1795,9 @@
          <layout class="QVBoxLayout" name="verticalLayout_9">
           <item>
            <widget class="QCheckBox" name="checkBox_use_this_session_5">
+            <property name="statusTip">
+             <string>Just use the molecules in current session for design.</string>
+            </property>
             <property name="text">
              <string>Use this session</string>
             </property>
@@ -1742,7 +1896,11 @@
            </widget>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_molecule_4"/>
+           <widget class="QComboBox" name="comboBox_molecule_4">
+            <property name="statusTip">
+             <string>Molecule for design.</string>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_shuffle_clustering">
@@ -1751,6 +1909,9 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Shuffle the sequence.</string>
             </property>
             <property name="text">
              <string>Shuffle</string>
@@ -1876,6 +2037,9 @@
               <height>16777215</height>
              </size>
             </property>
+            <property name="statusTip">
+             <string>Chain ID for design.</string>
+            </property>
            </widget>
           </item>
           <item row="3" column="3">
@@ -1926,6 +2090,9 @@
               <width>60</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="statusTip">
+             <string>Batch number used in clustering.</string>
             </property>
             <property name="editable">
              <bool>true</bool>
@@ -2045,6 +2212,9 @@
      </widget>
     </widget>
     <widget class="QWidget" name="tab_visualize_mutants">
+     <property name="statusTip">
+      <string>Visualize mutantsin structure model.</string>
+     </property>
      <attribute name="title">
       <string>Visualize</string>
      </attribute>
@@ -2066,7 +2236,7 @@
          <x>10</x>
          <y>30</y>
          <width>591</width>
-         <height>191</height>
+         <height>196</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_12">
@@ -2092,9 +2262,6 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
-           <widget class="QComboBox" name="comboBox_molecule_2"/>
-          </item>
           <item row="3" column="0">
            <widget class="QLabel" name="label_42">
             <property name="text">
@@ -2109,8 +2276,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_24">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_mut_table_csv">
-              <property name="text">
+              <property name="statusTip">
                <string>Input mutant table file [*.mut.txt / best_leaf.csv]</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -2137,8 +2307,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_23">
             <item>
              <widget class="QLineEdit" name="lineEdit_input_pse_4">
+              <property name="statusTip">
+               <string>Input Structure or PyMOL session.</string>
+              </property>
               <property name="text">
-               <string>Input PDB/PSE/PZE path</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -2155,8 +2328,11 @@
            <layout class="QHBoxLayout" name="horizontalLayout_25">
             <item>
              <widget class="QLineEdit" name="lineEdit_output_pse_2">
-              <property name="text">
+              <property name="statusTip">
                <string>Output session path</string>
+              </property>
+              <property name="text">
+               <string/>
               </property>
              </widget>
             </item>
@@ -2186,12 +2362,61 @@
             </property>
            </widget>
           </item>
+          <item row="2" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_67">
+            <item>
+             <widget class="QComboBox" name="comboBox_molecule_2">
+              <property name="statusTip">
+               <string>Molecule for design.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_46">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Chain: </string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBox_chainid_4">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>60</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="statusTip">
+               <string>Chain ID for design.</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
          </layout>
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_10">
           <item>
            <widget class="QCheckBox" name="checkBox_use_this_session_3">
+            <property name="statusTip">
+             <string>Just use the molecules in current session for design.</string>
+            </property>
             <property name="text">
              <string>Use this session</string>
             </property>
@@ -2206,6 +2431,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_parallel_2">
+            <property name="statusTip">
+             <string>Run parallelized mutagenesis in PyMOL</string>
+            </property>
             <property name="text">
              <string>Parallel</string>
             </property>
@@ -2234,7 +2462,7 @@
        <rect>
         <x>10</x>
         <y>250</y>
-        <width>611</width>
+        <width>341</width>
         <height>111</height>
        </rect>
       </property>
@@ -2246,7 +2474,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>591</width>
+         <width>321</width>
          <height>71</height>
         </rect>
        </property>
@@ -2261,35 +2489,13 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="4">
-         <widget class="QLabel" name="label_52">
-          <property name="text">
-           <string>Cmap:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QComboBox" name="comboBox_chainid_4"/>
-        </item>
         <item row="1" column="1">
          <widget class="QComboBox" name="comboBox_nproc_4"/>
         </item>
         <item row="0" column="3">
-         <widget class="QComboBox" name="comboBox_best_leaf"/>
-        </item>
-        <item row="0" column="5">
-         <widget class="QComboBox" name="comboBox_cmap"/>
-        </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_46">
-          <property name="text">
-           <string>Chain: </string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         <widget class="QComboBox" name="comboBox_best_leaf">
+          <property name="statusTip">
+           <string>Mutant column in CSV file.</string>
           </property>
          </widget>
         </item>
@@ -2304,7 +2510,11 @@
          </widget>
         </item>
         <item row="1" column="3">
-         <widget class="QComboBox" name="comboBox_totalscore"/>
+         <widget class="QComboBox" name="comboBox_totalscore">
+          <property name="statusTip">
+           <string>Score column in CSV file.</string>
+          </property>
+         </widget>
         </item>
         <item row="1" column="2">
          <widget class="QLabel" name="label_48">
@@ -2315,6 +2525,19 @@
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_52">
+          <property name="text">
+           <string>Cmap:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="comboBox_cmap"/>
         </item>
        </layout>
       </widget>
@@ -2334,6 +2557,9 @@
      </widget>
     </widget>
     <widget class="QWidget" name="tab_6">
+     <property name="statusTip">
+      <string>Inspect co-evolved pairs</string>
+     </property>
      <attribute name="title">
       <string>Interact</string>
      </attribute>
@@ -2378,8 +2604,11 @@
          <layout class="QHBoxLayout" name="horizontalLayout_33">
           <item>
            <widget class="QLineEdit" name="lineEdit_input_gremlin_mtx">
+            <property name="statusTip">
+             <string>GREMLIN MRF profiles in pkl</string>
+            </property>
             <property name="text">
-             <string>GREMLIN profiles</string>
+             <string/>
             </property>
            </widget>
           </item>
@@ -2396,8 +2625,11 @@
          <layout class="QHBoxLayout" name="horizontalLayout_29">
           <item>
            <widget class="QLineEdit" name="lineEdit_output_mutant_table">
+            <property name="statusTip">
+             <string>Mutant Table to save.</string>
+            </property>
             <property name="text">
-             <string>Mutant Table</string>
+             <string/>
             </property>
            </widget>
           </item>
@@ -2464,6 +2696,9 @@
              <height>30</height>
             </size>
            </property>
+           <property name="statusTip">
+            <string>Molecule for design.</string>
+           </property>
           </widget>
          </item>
         </layout>
@@ -2512,6 +2747,9 @@
              <height>30</height>
             </size>
            </property>
+           <property name="statusTip">
+            <string>Chain ID for design.</string>
+           </property>
           </widget>
          </item>
          <item>
@@ -2555,6 +2793,9 @@
              <width>16777215</width>
              <height>30</height>
             </size>
+           </property>
+           <property name="statusTip">
+            <string>Select top N interact pairs</string>
            </property>
            <property name="editable">
             <bool>true</bool>
@@ -2607,6 +2848,9 @@
              <height>30</height>
             </size>
            </property>
+           <property name="statusTip">
+            <string>Max distance to accept a co-evolved pair.</string>
+           </property>
            <property name="editable">
             <bool>true</bool>
            </property>
@@ -2625,6 +2869,9 @@
          </item>
          <item>
           <widget class="QCheckBox" name="checkBox_use_this_session_4">
+           <property name="statusTip">
+            <string>Just use the molecules in current session for design.</string>
+           </property>
            <property name="text">
             <string>Use this session</string>
            </property>
@@ -2636,6 +2883,9 @@
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
           <widget class="QPushButton" name="pushButton_reinitialize_interact">
+           <property name="statusTip">
+            <string>Initialize design work space</string>
+           </property>
            <property name="text">
             <string>Initialize</string>
            </property>
@@ -2646,6 +2896,9 @@
            <property name="enabled">
             <bool>false</bool>
            </property>
+           <property name="statusTip">
+            <string>Scan for co-evolved pairs.</string>
+           </property>
            <property name="text">
             <string>Scan</string>
            </property>
@@ -2655,15 +2908,11 @@
        </item>
        <item>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="1" column="1">
-          <widget class="QPushButton" name="pushButton_interact_accept">
-           <property name="text">
-            <string>Accept</string>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="0">
           <widget class="QPushButton" name="pushButton_previous">
+           <property name="statusTip">
+            <string>Previous co-evolved pair.</string>
+           </property>
            <property name="text">
             <string>Previous</string>
            </property>
@@ -2671,6 +2920,9 @@
          </item>
          <item row="0" column="1">
           <widget class="QPushButton" name="pushButton_next">
+           <property name="statusTip">
+            <string>Next co-evolved pair.</string>
+           </property>
            <property name="text">
             <string>Next</string>
            </property>
@@ -2678,8 +2930,21 @@
          </item>
          <item row="1" column="0">
           <widget class="QPushButton" name="pushButton_interact_reject">
+           <property name="statusTip">
+            <string>Reject picked pair.</string>
+           </property>
            <property name="text">
             <string>Reject</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="pushButton_interact_accept">
+           <property name="statusTip">
+            <string>Accept picked pair.</string>
+           </property>
+           <property name="text">
+            <string>Accept</string>
            </property>
           </widget>
          </item>
@@ -2724,7 +2989,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>648</width>
+     <width>650</width>
      <height>37</height>
     </rect>
    </property>

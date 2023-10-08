@@ -46,7 +46,7 @@ class PSSMGremlinCalculator:
             # Directly attempt to download the results
             self.download_results(url, self.md5sum)
 
-            
+
         else:
             logging.warning(f"Unknown option: {opt}")
 
@@ -74,12 +74,12 @@ class PSSMGremlinCalculator:
         if response.status_code == 302:  # Redirection status code
             redirected_url = response.headers['Location']
             logging.info(f"Redirected to download page: {redirected_url}")
-            self.download_from_redirected_url(redirected_url, md5sum)
+            self.download_from_redirected_url(url,redirected_url, md5sum)
         else:
             logging.warning(f"Unexpected response: {response.status_code}")
 
-    def download_from_redirected_url(self, redirected_url, md5sum):
-        response = requests.get(redirected_url, stream=True)
+    def download_from_redirected_url(self, url, redirected_url, md5sum):
+        response = requests.get(f'{url}/{redirected_url}', stream=True)
 
         if response.status_code == 200:
             content_disposition = response.headers.get('content-disposition')
