@@ -63,10 +63,12 @@ def getOpenFileNameWithExt(*args, **kwargs):
     return fname
 
 def getExistingDirectory():
-    return QtWidgets.QFileDialog.getExistingDirectory("Open Directory", 
-                                                os.path.expanduser('~'), 
-                                                QtWidgets.QFileDialog.ShowDirsOnly | 
-                                                QtWidgets.QFileDialog.DontResolveSymlinks)
+    return QtWidgets.QFileDialog.getExistingDirectory(None, 
+                                                    "Open Directory", 
+                                                    os.path.expanduser('~'), 
+                                                    QtWidgets.QFileDialog.ShowDirsOnly | 
+                                                    QtWidgets.QFileDialog.DontResolveSymlinks)
+
 
 def check_dirname_exists(fp):
     return os.path.exists(os.path.dirname(fp))
