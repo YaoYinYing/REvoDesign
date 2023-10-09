@@ -3,7 +3,6 @@ from collections import defaultdict
 import contextlib
 import multiprocessing
 import re
-import threading
 
 from pymol import cmd
 import os
@@ -11,7 +10,6 @@ from pymol.Qt import *
 from pymol.Qt import QtWidgets,QtGui, QtCore
 from absl import logging
 
-from threading import  Thread
 
 import time
 

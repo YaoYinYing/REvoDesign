@@ -1,7 +1,6 @@
 import os
 import hashlib
 import requests
-import time
 from absl import logging
 
 class PSSMGremlinCalculator:

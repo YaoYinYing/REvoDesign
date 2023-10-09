@@ -84,6 +84,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_26">
         <item>
          <layout class="QGridLayout" name="gridLayout_4">
+          <property name="verticalSpacing">
+           <number>0</number>
+          </property>
           <item row="2" column="0">
            <widget class="QLabel" name="label_output_pse">
             <property name="text">
@@ -331,6 +334,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <layout class="QGridLayout" name="gridLayout_5">
+          <property name="verticalSpacing">
+           <number>0</number>
+          </property>
           <item row="0" column="1">
            <widget class="QComboBox" name="comboBox_ligand_sel">
             <property name="sizePolicy">
@@ -513,6 +519,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_7">
         <item>
          <layout class="QGridLayout" name="gridLayout_10">
+          <property name="verticalSpacing">
+           <number>0</number>
+          </property>
           <item row="1" column="1">
            <widget class="QComboBox" name="comboBox_surface_exclusion">
             <property name="sizePolicy">
@@ -596,6 +605,9 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
            <widget class="QPushButton" name="pushButton_run_surface_refresh">
             <property name="whatsThis">
@@ -638,11 +650,14 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>271</width>
-         <height>81</height>
+         <width>275</width>
+         <height>83</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_21">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_66">
           <item>
@@ -755,12 +770,15 @@
          <x>10</x>
          <y>30</y>
          <width>591</width>
-         <height>208</height>
+         <height>201</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_IO">
         <item>
          <layout class="QGridLayout" name="gridLayout_IO">
+          <property name="verticalSpacing">
+           <number>0</number>
+          </property>
           <item row="0" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_17">
             <item>
@@ -945,6 +963,9 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_7">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <property name="sizeConstraint">
            <enum>QLayout::SetNoConstraint</enum>
           </property>
@@ -1122,6 +1143,12 @@
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_score_cutoff">
+        <property name="horizontalSpacing">
+         <number>-1</number>
+        </property>
+        <property name="verticalSpacing">
+         <number>0</number>
+        </property>
         <item row="0" column="0">
          <widget class="QLabel" name="label_score_minima">
           <property name="text">
@@ -1165,7 +1192,7 @@
         <x>150</x>
         <y>280</y>
         <width>111</width>
-        <height>31</height>
+        <height>32</height>
        </rect>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_31" stretch="0,0">
@@ -1325,10 +1352,13 @@
          <x>10</x>
          <y>30</y>
          <width>591</width>
-         <height>79</height>
+         <height>71</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_9">
           <item>
@@ -1727,6 +1757,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_11">
         <item>
          <layout class="QGridLayout" name="gridLayout_13">
+          <property name="verticalSpacing">
+           <number>0</number>
+          </property>
           <item row="0" column="0">
            <widget class="QLabel" name="label_input_pse_3">
             <property name="text">
@@ -2236,12 +2269,15 @@
          <x>10</x>
          <y>30</y>
          <width>591</width>
-         <height>196</height>
+         <height>191</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_12">
         <item>
          <layout class="QGridLayout" name="gridLayout_16">
+          <property name="verticalSpacing">
+           <number>0</number>
+          </property>
           <item row="1" column="0">
            <widget class="QLabel" name="label_43">
             <property name="text">
@@ -2596,10 +2632,13 @@
          <x>10</x>
          <y>30</y>
          <width>201</width>
-         <height>78</height>
+         <height>81</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_6">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_33">
           <item>
@@ -2614,6 +2653,18 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_open_gremlin_mtx">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>...</string>
             </property>
@@ -2635,6 +2686,18 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_open_save_mutant_table">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>...</string>
             </property>
@@ -2655,6 +2718,9 @@
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_18">
+       <property name="spacing">
+        <number>0</number>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <property name="sizeConstraint">
