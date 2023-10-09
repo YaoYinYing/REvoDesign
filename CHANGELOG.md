@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use strick matching re pattern for `extract_mutants`
 - Use `MutantVisualizer` for PSSM mutant loading
 
+### Fixed
+- Missing GREMLIN co-evolved pair if i>j
+
 ## [1.1.2] - 2023-10-09
 
 ### Add

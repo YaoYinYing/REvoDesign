@@ -248,11 +248,16 @@ class GREMLIN_Tools:
 
 
     def plot_w(self, i, j, i_aa, j_aa, idx=0):
+        if i > j:
+            j,i=i,j
+            i_aa,j_aa=j_aa,i_aa
+
         matching_indices = np.where((self.mrf["w_idx"][:, 0] == i) & (self.mrf["w_idx"][:, 1] == j))[0]
 
         if len(matching_indices) == 0:
             # No matching pairs found, handle this case
-            logging.warning(f"No matching co-evolutionary pairs found for positions {i} and {j}")
+            logging.warning(f"No matching co-evolutionary pairs found for positions {i} and {j}.")
+
             return None, None
 
         n = int(matching_indices[0]) 
