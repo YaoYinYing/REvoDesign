@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use('Agg')
 from phylogenetics.pymol_pssm_script import mutate
 from tools.merge_sessions import merge_sessions
-from tools.utils import get_color
+from tools.utils import get_color,extract_mutants
 from absl import logging
 
 class MutantVisualizer:
@@ -44,41 +44,14 @@ class MutantVisualizer:
         #color = self.get_color(matplotlib.colormaps[self.cmap], score, self.min_score, self.max_score)
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f" Visualizing {mutant} {score}: {color}")
-        self.create_pymol_objects(mutant, color)
+        self.create_mutagenesis_objects(mutant, color)
         cmd.hide('everything', 'hydrogens and polymer.protein')
         cmd.delete(self.molecule)
         cmd.save(temp_session_path)
         cmd.reinitialize()
         return temp_session_path
 
-    def create_pymol_objects(self, mutant, color):
-        new_obj_name = f'{self.chain_id}{mutant}'
-        cmd.create(f"{new_obj_name}", f'{self.molecule} and c. {self.chain_id}')
-
-        mut_pos=[]
-
-        for mut in mutant.split('_'):
-            if mut[0].isdigit():
-                position = int(mut[0:-1])
-            else:
-                position = int(mut[1:-1])
-            new_residue=mut[-1]
-            new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
-            mut_pos.append(position)
-            mutate(new_obj_name, self.chain_id, position, new_residue_3)
-            cmd.hide('lines', f'{new_obj_name}')
-            cmd.show("sticks", f" {new_obj_name} and resi {position} and (sidechain or n. CA)")
-
-        if not self.full:
-            cmd.remove(f" {new_obj_name} and not ( resi {'+'.join([str(i) for i in mut_pos])} and (sidechain or n. CA))")
-
-        # set backbone color
-        cmd.set_color(f'color_{new_obj_name}', color)
-        cmd.color(f'color_{new_obj_name}', f'( {new_obj_name} and resi {"+".join([str(i) for i in mut_pos])} )')
-        util.cnc(f'({new_obj_name} and resi {"+".join([str(i) for i in mut_pos])})', _self=cmd)
-
-        if self.group_name:
-            cmd.group(self.group_name, f'{new_obj_name}', )
+    
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description
     def create_mutagenesis_objects(self, mutant, color):
@@ -88,24 +61,26 @@ class MutantVisualizer:
 
         mut_pos=[]
 
-        # TODO: suport '(\w)(\d+)(\w)' and '(\d+)(\w)' format, meaning that wt and chain can be set as default
-        for mut in mutant.split('_')[:-1]:
-            # a full match of mutagenesis description
-            matched_mut=re.match(r'(\w)(\w)(\d+)(\w)',mut)
-            chain_id=matched_mut.group(1)
-            wt_res=matched_mut.group(2)
-            position=int(matched_mut.group(3))
-            new_residue=matched_mut.group(4)
-            
+        _,mut_obj=extract_mutants(mutant_string=mutant)
+        score=mut_obj.get_mutant_score()
+
+        for mut_info in mut_obj.get_mutant_info():
+            chain_id=mut_info['chain_id']
+            position=mut_info['position']
+            new_residue=mut_info['mut_res']
+
             new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
             #mut_pos.append(position)
 
             mut_pos.append(f'(c. {chain_id} and i. {str(position)})')
             mutate(new_obj_name, chain_id, position, new_residue_3)
+
+            cmd.alter(f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA)", f'b={score}')
             cmd.hide('lines', f'{new_obj_name}')
-            cmd.show("sticks", f' {new_obj_name} and c. {chain_id} and i. {position} and (sidechain or n. CA)')
+            cmd.show("sticks", f' {new_obj_name} and c. {chain_id} and i. {str(position)} and (sidechain or n. CA)')
 
         if not self.full:
+            #logging.debug(f'Removing:  {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
             cmd.remove(f' {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
 
         # set backbone color

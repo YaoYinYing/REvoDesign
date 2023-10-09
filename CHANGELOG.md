@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Add
 - Cmap for Mutant Visualizer
+- `setup_url` for `PSSM_GREMLIN_client`
+
+### Removed
+- `create_pymol_objects` from `MutantVisualizer`
+- Most function in `REvoDesign/phylogenetics/pymol_pssm_script.py`
+
+### Changed
+- Use `extract_mutants` to handle mutant info in mutation combination.
+- Use strick matching re pattern for `extract_mutants`
+- Use `MutantVisualizer` for PSSM mutant loading
 
 ## [1.1.2] - 2023-10-09
 

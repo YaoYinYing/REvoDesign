@@ -1,10 +1,11 @@
 from itertools import *
 import os
-import sys
+import re
 import pathlib
 import numpy as np
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
+from tools.utils import extract_mutants
 
 
 class GenerateVariantsinFastafile:
@@ -167,7 +168,11 @@ class Combinations:
         '''
         with open(datafile) as f:
             for line in f:
-                self.list_of_mutations.append(line.strip() ) 
+                _line=line.strip()
+                _,mut_obj=extract_mutants(_line)
+                mut_id=''.join([f'{_mut["wt_res"]}{_mut["position"]}{_mut["mut_res"]}' for _mut in mut_obj.get_mutant_info()])
+
+                self.list_of_mutations.append(mut_id) 
         self.list_of_mutations = list(set(self.list_of_mutations ))
 
     def getUniquePositions(self, list_w_mutations):

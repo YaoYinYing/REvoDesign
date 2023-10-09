@@ -10,15 +10,17 @@ from pymol import cmd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
-from tools.utils import refresh_window, ParallelExecutor
+from tools.utils import refresh_window, ParallelExecutor,get_color
+from common.MutantVisualizer import MutantVisualizer
 from tools.merge_sessions import merge_sessions
-from phylogenetics.pymol_pssm_script import create_pymol_objects, process_pssm_mutations, get_color
+from phylogenetics.pymol_pssm_script import process_pssm_mutations
 
 class PssmAnalyzer():
     def __init__(self, input_pssm_file):
         self.input_pssm_file = input_pssm_file
         self.pwd='.'
         self.PSSM_Alphabet = 'ARNDCQEGHILKMFPSTWYV'
+        self.cmap = "bwr_r"
 
 
         self.results = []
@@ -241,12 +243,16 @@ class PssmAnalyzer():
                 continue
             else:
                 refresh_window()
-                color = get_color(cmap, new_residue_score, max_abs_pssm)
+                color = get_color(cmap, new_residue_score, -max_abs_pssm, max_abs_pssm)
+
                 logging.info(
                     f"Mutating {position}{wt_residue}( {wt_pssm_score} ) to {new_residue}( {new_residue_score} ): {color}")
-                create_pymol_objects(molecule, chain_id, position, new_residue, color,
-                                     is_reduced=(not create_full_pdb), wt_residue=wt_residue,
-                                     wt_pssm_score=wt_pssm_score, score=new_residue_score)
+                visualizer=MutantVisualizer(molecule=molecule,chain_id=chain_id)
+                visualizer.group_name=f"mt_{wt_residue}{position}_{str(wt_pssm_score)}"
+                visualizer.full=create_full_pdb
+
+                visualizer.create_mutagenesis_objects(mutant=f'{chain_id}{wt_residue}{position}{new_residue}_{new_residue_score}',color=color)
+
                 refresh_window()
                 time.sleep(0.01)
 
@@ -275,10 +281,10 @@ class PssmAnalyzer():
                 new_residue_scores.append(new_residue_score)
 
         max_abs_pssm = max(abs(min(new_residue_scores)), abs(max(new_residue_scores)))
-        cmap = matplotlib.colormaps['bwr_r']
+
 
         mutagenesis_tasks = [(position, wt_residue, wt_pssm_score, candidates, input_pse, molecule, chain_id, reject,
-                              create_full_pdb, max_abs_pssm, cmap) for position, wt_residue, wt_pssm_score, candidates
+                              create_full_pdb, max_abs_pssm, self.cmap) for position, wt_residue, wt_pssm_score, candidates
                              in mutations if candidates]
 
         logging.info(f'Filter out empty tasks: {len(mutations) - len(mutagenesis_tasks)}')

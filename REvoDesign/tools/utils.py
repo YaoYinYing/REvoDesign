@@ -482,22 +482,67 @@ def rescale_number(number, min_value, max_value):
     # Ensure the result is within the [0, 1] range.
     return max(0, min(1, rescaled_value))
 
-def extract_mutants(mutant_string):
+def extract_mutants(mutant_string, chain_id=None, sequence=None):
 
     logging.debug(f'Parsing {mutant_string}')
 
     from common.Mutant import Mutant
 
     # Use regular expression to find all mutants in the string
-    mutants = re.findall(r'(\w\w\d+\w)', mutant_string)
+    mutants = re.findall(r'([A-Z]{0,2}\d+[A-Z]{1})', mutant_string)
 
     mutant_info = []
     for mut in mutants:
-        _mut=re.match(r'(\w)(\w)(\d+)(\w)',mut)
-        mutant_info.append({'chain_id': _mut.group(1), 'position': _mut.group(3), 'wt_res':  _mut.group(2), 'mut_res':  _mut.group(4)})
+        # full description of mutation, <chain_id><wt_res><pos><mut>
+        if re.match(r'[A-Z]{2}\d+[A-Z]{1}',mut):
+
+            logging.debug(f'full description: {mut}')
+            _mut=re.match(r'([A-Z]{1})([A-Z]{1})(\d+)([A-Z]{1})',mut)
+            _chain_id= _mut.group(1)
+            _position=_mut.group(3)
+            _wt_res= _mut.group(2)
+            _mut_res=_mut.group(4)
+
+        # reduced description of mutation, <wt_res><pos><mut>, missing <chain_id>
+        elif re.match(r'[A-Z]{1}\d+[A-Z]{1}',mut):
+            logging.debug(f'reduced description: {mut}')
+            if not (mutant_info or chain_id):
+                logging.error(f'Error while processing mutant id {mut}: Invalid chain id: {chain_id}')
+                continue
+            _mut=re.match(r'([A-Z]{1})(\d+)([A-Z]{1})',mut)
+
+            _chain_id= chain_id
+            _position=int(_mut.group(2))
+            _wt_res= _mut.group(1)
+            _mut_res=_mut.group(3)
+
+        # fuzzy description of mutation, <pos><mut>, missing <chain_id> and <wt_res>
+        elif re.match(r'\d+[A-Z]{1}',mut):
+            logging.debug(f'fuzzy description: {mut}')
+            # silent error report while mismatching the score term
+            if not (mutant_info or chain_id):
+                logging.error(f'Error while processing mutant id {mut}: Invalid chain id: {chain_id}')
+                continue
+            if not (sequence or mutant_info):
+                logging.error(f'Error while processing mutant id {mut}: Invalid sequence: {sequence}')
+                continue
+
+            _mut=re.match(r'(\d+)([A-Z]{1})',mut)
+
+            _chain_id= chain_id
+            _position=int(_mut.group(1))
+            _wt_res= sequence[_position-1]
+            _mut_res=_mut.group(2)
+            
+        else:
+            logging.error(f'Error while processing mutant id {mut}. ')
+            continue
+        
+        mutant_info.append({'chain_id':_chain_id, 'position': _position, 'wt_res': _wt_res, 'mut_res': _mut_res })
+            
 
     # if the mutation has a position of score, we need to extract it.
-    if re.match(r'[\w\w\d+\w]+_[-\d\.]+', mutant_string):
+    if re.match(r'[\d+\w]+_[-\d\.]+', mutant_string):
         matched_mutant_id = re.match(r'[\w\d\-]+_(\-?\d+\.?\d*)$',mutant_string)
         mutant_score=matched_mutant_id.group(1)
         mutant_score = float(mutant_score)
@@ -507,6 +552,8 @@ def extract_mutants(mutant_string):
         
     # Instantializing a Mutant obj
     mutant_obj = Mutant(mutant_info, mutant_score)
+
+    logging.debug(mutant_obj)
 
     # Join the mutants into a single string separated by underscores and instantialized Mutant obj
     return '_'.join(mutants), mutant_obj

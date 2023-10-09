@@ -1892,9 +1892,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>130</y>
+        <y>160</y>
         <width>331</width>
-        <height>251</height>
+        <height>201</height>
        </rect>
       </property>
       <property name="title">
@@ -1906,7 +1906,7 @@
          <x>10</x>
          <y>30</y>
          <width>311</width>
-         <height>211</height>
+         <height>162</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -1955,6 +1955,9 @@
         </item>
         <item>
          <layout class="QGridLayout" name="gridLayout_21">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item row="1" column="0">
            <widget class="QLabel" name="label_27">
             <property name="sizePolicy">
@@ -2022,7 +2025,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>75</width>
               <height>16777215</height>
              </size>
             </property>
@@ -2041,7 +2044,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>75</width>
               <height>16777215</height>
              </size>
             </property>
@@ -2066,7 +2069,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>75</width>
               <height>16777215</height>
              </size>
             </property>
@@ -2085,7 +2088,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>75</width>
               <height>16777215</height>
              </size>
             </property>
@@ -2104,7 +2107,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>75</width>
               <height>16777215</height>
              </size>
             </property>
@@ -2120,7 +2123,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>75</width>
               <height>16777215</height>
              </size>
             </property>
@@ -2218,7 +2221,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>75</width>
               <height>16777215</height>
              </size>
             </property>
