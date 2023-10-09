@@ -7,15 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Cmap for PSSM mutant loading
+
+### Changed
+- Don't show hydrogen when selecting mutants.
+
 ## [1.1.3] - 2023-10-09
 
-### Add
+### Added
 - Cmap for Mutant Visualizer
 - `setup_url` for `PSSM_GREMLIN_client`
 
 ### Removed
 - `create_pymol_objects` from `MutantVisualizer`
-- Most function in `REvoDesign/phylogenetics/pymol_pssm_script.py`
+- Most of functions in `REvoDesign/phylogenetics/pymol_pssm_script.py`
 
 ### Changed
 - Use `extract_mutants` to handle mutant info in mutation combination.
@@ -27,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.2] - 2023-10-09
 
-### Add
+### Added
 - PSSM_GREMLIN Server accessing for phylogenetic calculations
 - Progress bar to handle requesting time.
 - Status bar description from inputs in UI file.
@@ -44,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.1] - 2023-10-07
 
-### Add 
+### Added
 - `create_mutant_tree_from_list` for MutantTree to create a copy of the tree structure based on checkpoint file
 
 

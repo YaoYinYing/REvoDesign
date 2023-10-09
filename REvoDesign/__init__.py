@@ -11,6 +11,7 @@ from functools import partial
 import absl.logging as logging
 
 from Bio.Align import substitution_matrices
+import matplotlib
 
 
 logging.set_verbosity(logging.DEBUG)
@@ -283,6 +284,10 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_pocket_detection.clicked.connect(self.run_pocket_detection)
 
         # Tab `Load Mutants`
+        
+        self.set_widget_value(self.ui.comboBox_cmap_2,matplotlib.colormaps())
+        self.set_widget_value(self.ui.comboBox_cmap_2,'bwr_r')
+
         self.ui.lineEdit_input_pse_2.textChanged.connect(partial(
             self.reload_molecule_info, 
             self.ui.checkBox_use_this_session,
@@ -528,7 +533,7 @@ class REvoDesignPlugin:
         self.set_widget_value(self.ui.comboBox_best_leaf,'best_leaf')
         self.set_widget_value(self.ui.comboBox_totalscore,'totalscore')
         
-        import matplotlib
+        
         self.set_widget_value(self.ui.comboBox_cmap,matplotlib.colormaps())
         self.set_widget_value(self.ui.comboBox_cmap,'bwr_r')
 
@@ -993,6 +998,7 @@ class REvoDesignPlugin:
         output_pse=self.ui.lineEdit_output_pse.text()
         create_full_pdb=self.ui.checkBox_generate_full_pdb.isChecked()
         nproc=int(self.ui.comboBox_nproc_2.currentText())
+        cmap=self.ui.comboBox_cmap_2.currentText()
         progressbar=self.ui.progressBar_load_mutants
         sequence=get_molecule_sequence(molecule, chain_id)
         parallel_run=self.ui.checkBox_parallel.isChecked()
@@ -1005,6 +1011,7 @@ class REvoDesignPlugin:
         design=PssmAnalyzer(pssm_profile)
         design.pwd=self.PWD
         design.parallel_run=parallel_run
+        design.cmap=cmap
         
         mutation_json_fp,mutant_table_fp,mutation_png_fp=design.design_protein_using_pssm(sequence,
                                     alias=molecule,
@@ -1045,8 +1052,8 @@ class REvoDesignPlugin:
     def activate_focused(self):
         if self.mutant_tree_pssm.current_mutant_id:
             cmd.enable(self.mutant_tree_pssm.current_mutant_id)
-            cmd.show('mesh', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA)')
-            cmd.show('sticks', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA)')
+            cmd.show('mesh', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA) and not hydrogen')
+            cmd.show('sticks', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA) and not hydrogen')
             cmd.hide('cartoon',f'{self.mutant_tree_pssm.current_mutant_id}')
 
         if self.mutant_tree_pssm.last_mutant_id:
