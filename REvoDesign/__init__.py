@@ -1,8 +1,5 @@
-import sys,os,pathlib
-
-import threading
-
-import time,shutil
+import sys,os
+import time
 import tempfile
 import re
 from pymol import cmd
@@ -30,8 +27,8 @@ from common.file_extensions import \
     TXT_FileExt,\
     AnyFileExt, \
     CompressedFileExt, \
-    PickleObjectFileExt, \
-    MSA_FileExt
+    PickleObjectFileExt
+
 from common.magic_numbers import \
         DEFAULT_SURFACE_PROBE_RADIUS, \
         DEFAULT_SUBSTRATE_POCKET_RADIUS, \
@@ -51,19 +48,15 @@ from tools.utils import \
     determine_exclusion, \
     determine_molecule_objects, \
     determine_nproc,\
-    determine_polymer_protein, \
     determine_small_molecule, \
     getOpenFileNameWithExt, \
     check_dirname_exists, \
     check_file_exists, \
     get_molecule_sequence, \
-    run_command, \
-    refresh_window, \
     getExistingDirectory, \
     extract_archive, \
     determine_system, \
     ImageWidget, \
-    WorkerThread, \
     QbuttonMatrix,\
     run_worker_thread_with_progress, \
     get_color, \
@@ -72,7 +65,6 @@ from tools.utils import \
 
 from phylogenetics.PSSM_profile import PssmAnalyzer
 from phylogenetics.PSSM_GREMLIN_client import PSSMGremlinCalculator
-from common.Mutant import Mutant
 
 from common.MutantVisualizer import MutantVisualizer
 
@@ -531,6 +523,11 @@ class REvoDesignPlugin:
 
         self.set_widget_value(self.ui.comboBox_best_leaf,'best_leaf')
         self.set_widget_value(self.ui.comboBox_totalscore,'totalscore')
+        
+        import matplotlib
+        self.set_widget_value(self.ui.comboBox_cmap,matplotlib.colormaps())
+        self.set_widget_value(self.ui.comboBox_cmap,'bwr_r')
+
 
         self.ui.pushButton_run_visualizing.clicked.connect(self.visualize_mutants)
 
@@ -879,14 +876,16 @@ class REvoDesignPlugin:
                 chain_id=chain_id
                 )
         
+        logging.debug(f'Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}')
+        
         if molecule and chain_id and sequence:
             self.pssm_gremlin_calculator.setup_calculator(
                 working_directory=self.PWD,
                 molecule=molecule,
                 chain_id=chain_id, 
                 sequence=sequence)
-        else:
-            logging.debug(f'Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}')
+        
+            
 
 
     def reload_determine_tab_setup(self,
@@ -1412,6 +1411,7 @@ class REvoDesignPlugin:
         nproc=int(self.ui.comboBox_nproc_4.currentText())
         create_full_pdb=self.ui.checkBox_create_full_pdb.isChecked()
         group_name=self.ui.lineEdit_group_name.text()
+        cmap=self.ui.comboBox_cmap.currentText()
         progressBar_visualize_mutants=self.ui.progressBar_visualize_mutants
 
         
@@ -1422,6 +1422,7 @@ class REvoDesignPlugin:
         visualizer.mutfile=input_mut_table_csv
         visualizer.input_session=input_pse
         visualizer.nproc=nproc
+
         if best_leaf:
             visualizer.key_col=best_leaf 
         if totalscore:
@@ -1430,6 +1431,7 @@ class REvoDesignPlugin:
         visualizer.save_session=output_pse
         visualizer.full=create_full_pdb
         visualizer.group_name=group_name
+        visualizer.cmap=cmap
         
         visualizer.run_with_progressbar(progress_bar=progressBar_visualize_mutants)
         

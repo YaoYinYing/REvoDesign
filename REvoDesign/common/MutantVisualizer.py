@@ -32,13 +32,6 @@ class MutantVisualizer:
         self.min_score = 0.5
         self.max_score = 0.5
 
-    # def get_color(self, cmap, data, min_value, max_value):
-    #     if min_value == max_value:
-    #         return [0.5,0.5,0.5]
-    #     num_color = cmap.N
-    #     scaled_value = (data - min_value) / (max_value - min_value)
-    #     color = cmap(int(num_color * scaled_value))[:3]
-    #     return color
 
     
     def process_position(self,mutant, score,):

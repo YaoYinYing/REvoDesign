@@ -537,7 +537,7 @@
              </size>
             </property>
             <property name="statusTip">
-             <string>Excluded selection. Use PyMOL selection sytax</string>
+             <string>Excluded selection. Use PyMOL selection syntax</string>
             </property>
             <property name="editable">
              <bool>true</bool>
