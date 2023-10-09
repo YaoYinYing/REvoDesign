@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PSSM_GREMLIN Server accessing for phylogenetic calculations
 - Progress bar to handle requesting time.
 - Status bar description from inputs in UI file.
+- `update_REvoDesign_from_repo.bat` for Windows, not tested.
 
 ### Fixed
 - PSE open file buttom at Load Mut Tab
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Use `run_worker_thread_with_progress` to handle requests to avoid freezing windows.
 - Set timeout for task posting and cancelling
+- rename `test_REvoDesign.sh` as `update_REvoDesign_from_repo.sh`
 
 ## [1.1.1] - 2023-10-07
 
