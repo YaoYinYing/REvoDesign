@@ -63,6 +63,7 @@ from tools.utils import \
     QbuttonMatrix,\
     run_worker_thread_with_progress, \
     get_color, \
+    cmap_reverser, \
     rescale_number, \
     extract_mutants
 
@@ -425,6 +426,15 @@ class REvoDesignPlugin:
             self.ui.comboBox_group_ids,
             self.ui.checkBox_show_wt,
 
+        ))
+
+        self.ui.pushButton_goto_best_hit_in_group.clicked.connect(partial(
+            self.jump_to_the_best_mutant,
+            self.ui.checkBox_show_wt,
+            self.ui.comboBox_molecule_7,
+            self.ui.comboBox_chainid_7,
+            self.ui.progressBar_mutant_choosing,
+            self.ui.checkBox_reverse_mutant_effect_2
         ))
 
         self.ui.pushButton_load_mutant_choice_checkpoint.clicked.connect(partial(
@@ -1023,6 +1033,9 @@ class REvoDesignPlugin:
 
     # Tab `Load Mutants`
 
+
+
+
     def run_mutant_loading_from_profile(self):
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
         
@@ -1036,9 +1049,14 @@ class REvoDesignPlugin:
         design_case=self.ui.lineEdit_design_case.text()
         custom_indices_fp=self.ui.lineEdit_input_customized_indices.text()
         cutoff=[int(self.ui.lineEdit_score_minima.text()),int(self.ui.lineEdit_score_maxima.text())]
+        reversed_mutant_effect=self.ui.checkBox_reverse_mutant_effect.isChecked()
         output_pse=self.ui.lineEdit_output_pse.text()
         nproc=int(self.ui.comboBox_nproc_2.currentText())
-        cmap=self.ui.comboBox_cmap_2.currentText()
+        
+        cmap=cmap_reverser(
+            cmap=self.ui.comboBox_cmap_2.currentText(),
+            reverse=reversed_mutant_effect)
+        
         progressbar=self.ui.progressBar_load_mutants
         sequence=get_molecule_sequence(molecule, chain_id)
         parallel_run=self.ui.checkBox_parallel.isChecked()
@@ -1127,6 +1145,8 @@ class REvoDesignPlugin:
             cmd.enable(self.mutant_tree_pssm.current_branch_id)
             cmd.group(self.mutant_tree_pssm.current_branch_id, action='open')
 
+        self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
+
 
     def accept_mutant(self,lcdNumber_selected_mutant):
         if self.is_this_pymol_object_a_mutant(self.mutant_tree_pssm.current_mutant_id):
@@ -1177,17 +1197,6 @@ class REvoDesignPlugin:
         self.activate_focused(checkBox_show_wt,comboBox_molecule,comboBox_chainid)
         logging.info(f'Walked to the {"next" if walk_to_next else "previous"} mutant {self.mutant_tree_pssm.current_mutant_id}.')
 
-        # enable the current mutant by default.
-
-        if self.mutant_tree_pssm.current_branch_id == self.mutant_tree_pssm.last_branch_id:
-            logging.debug(f"In the same branch {self.mutant_tree_pssm.current_branch_id}")
-        else:
-            logging.debug(f"Jump from branch {self.mutant_tree_pssm.last_branch_id} to {self.mutant_tree_pssm.current_branch_id}")
-
-
-        
-        self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
-
 
     def jump_to_branch(self, comboBox_group_ids,checkBox_show_wt,comboBox_molecule,comboBox_chainid,progressBar_mutant_choosing):
         branch=comboBox_group_ids.currentText()
@@ -1200,15 +1209,27 @@ class REvoDesignPlugin:
         else:
             logging.info(f'Jump to {branch} as required.')
             self.mutant_tree_pssm.jump_to_branch(branch_id=branch)
-            
 
             progress=self.mutant_tree_pssm.get_mutant_index_in_all_mutants(self.mutant_tree_pssm.current_mutant_id)
             logging.info(f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}')
             self.set_widget_value(progressBar_mutant_choosing, progress)
 
             self.activate_focused(checkBox_show_wt,comboBox_molecule,comboBox_chainid)
-            self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
             return
+        
+
+    def jump_to_the_best_mutant(self,checkBox_show_wt,comboBox_molecule,comboBox_chainid,progressBar_mutant_choosing, checkBox_reverse_mutant_effect):
+        self.mutant_tree_pssm.jump_to_the_best_mutant_in_branch(
+            branch_id=self.mutant_tree_pssm.current_branch_id,
+            reversed=checkBox_reverse_mutant_effect.isChecked()
+            )
+        logging.info(f'Jump to the best hit of {self.mutant_tree_pssm.current_branch_id}: {self.mutant_tree_pssm.current_mutant_id}')
+        self.activate_focused(checkBox_show_wt,comboBox_molecule,comboBox_chainid)
+
+        progress=self.mutant_tree_pssm.get_mutant_index_in_all_mutants(self.mutant_tree_pssm.current_mutant_id)
+        logging.info(f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}')
+        self.set_widget_value(progressBar_mutant_choosing, progress)
+
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self,mutant):
@@ -1331,7 +1352,6 @@ class REvoDesignPlugin:
         self.set_widget_value(comboBox_group_ids,self.mutant_tree_pssm.all_mutant_branch_ids[0])
 
         self.activate_focused(checkBox_show_wt,comboBox_molecule,comboBox_chainid)
-        self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
 
         # show the current branch and mutant
         cmd.enable(self.mutant_tree_pssm.current_mutant_id)

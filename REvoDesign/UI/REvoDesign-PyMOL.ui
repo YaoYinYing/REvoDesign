@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>651</width>
-    <height>518</height>
+    <height>511</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1125,9 +1125,9 @@
      <widget class="QGroupBox" name="groupBox_preffer_substitution">
       <property name="geometry">
        <rect>
-        <x>160</x>
+        <x>10</x>
         <y>320</y>
-        <width>451</width>
+        <width>391</width>
         <height>61</height>
        </rect>
       </property>
@@ -1139,7 +1139,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>431</width>
+         <width>371</width>
          <height>21</height>
         </rect>
        </property>
@@ -1151,8 +1151,8 @@
      <widget class="QGroupBox" name="groupBox_reject_substitution">
       <property name="geometry">
        <rect>
-        <x>400</x>
-        <y>260</y>
+        <x>410</x>
+        <y>320</y>
         <width>211</width>
         <height>61</height>
        </rect>
@@ -1177,9 +1177,9 @@
      <widget class="QGroupBox" name="groupBox">
       <property name="geometry">
        <rect>
-        <x>160</x>
+        <x>410</x>
         <y>260</y>
-        <width>231</width>
+        <width>211</width>
         <height>61</height>
        </rect>
       </property>
@@ -1191,7 +1191,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>211</width>
+         <width>191</width>
          <height>21</height>
         </rect>
        </property>
@@ -1216,69 +1216,72 @@
        <number>0</number>
       </property>
      </widget>
-     <widget class="QGroupBox" name="groupBox_score_cutoff">
+     <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
-        <x>20</x>
+        <x>10</x>
         <y>260</y>
-        <width>111</width>
-        <height>121</height>
+        <width>391</width>
+        <height>61</height>
        </rect>
       </property>
       <property name="title">
-       <string>Score Cutoffs</string>
+       <string>Score cutoff</string>
       </property>
-      <widget class="QWidget" name="gridLayoutWidget_11">
+      <widget class="QWidget" name="horizontalLayoutWidget_11">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
-         <width>91</width>
-         <height>81</height>
+         <y>20</y>
+         <width>221</width>
+         <height>41</height>
         </rect>
        </property>
-       <layout class="QGridLayout" name="gridLayout_score_cutoff">
-        <property name="horizontalSpacing">
-         <number>-1</number>
-        </property>
-        <property name="verticalSpacing">
-         <number>0</number>
-        </property>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_score_minima">
+       <layout class="QHBoxLayout" name="horizontalLayout_36">
+        <item>
+         <widget class="QLineEdit" name="lineEdit_score_minima">
           <property name="text">
-           <string>Minima:</string>
+           <string>-2</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_output_pse_3">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ &lt;/span&gt;&lt;span style=&quot; font-size:18pt; font-style:italic;&quot;&gt;Δ&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Score &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;Sub-WT &lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="lineEdit_score_minima">
-          <property name="text">
-           <string>-10</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
+        <item>
          <widget class="QLineEdit" name="lineEdit_score_maxima">
           <property name="text">
            <string>10</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_score_maxima">
-          <property name="text">
-           <string>Maxima:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
        </layout>
+      </widget>
+      <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
+       <property name="geometry">
+        <rect>
+         <x>250</x>
+         <y>30</y>
+         <width>87</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Reversed</string>
+       </property>
       </widget>
      </widget>
     </widget>
@@ -1393,7 +1396,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>591</width>
+         <width>593</width>
          <height>122</height>
         </rect>
        </property>
@@ -1506,7 +1509,7 @@
              <string>Initialize the design work space.</string>
             </property>
             <property name="text">
-             <string>Reinitialize</string>
+             <string>Initialize</string>
             </property>
            </widget>
           </item>
@@ -1529,19 +1532,6 @@
              <string>Save Session</string>
             </property>
            </widget>
-          </item>
-          <item>
-           <spacer name="verticalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_rock_pymol">
@@ -1575,6 +1565,13 @@
             </property>
             <property name="checked">
              <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox_reverse_mutant_effect_2">
+            <property name="text">
+             <string>Reversed</string>
             </property>
            </widget>
           </item>
@@ -1821,6 +1818,25 @@
             </property>
             <property name="text">
              <string>Go</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_goto_best_hit_in_group">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>70</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Best Hit</string>
             </property>
            </widget>
           </item>
@@ -3775,6 +3791,22 @@
     <hint type="destinationlabel">
      <x>271</x>
      <y>119</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_reverse_mutant_effect</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBox_reverse_mutant_effect_2</receiver>
+   <slot>toggle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>306</x>
+     <y>362</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>573</x>
+     <y>195</y>
     </hint>
    </hints>
   </connection>

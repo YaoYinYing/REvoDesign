@@ -478,6 +478,16 @@ def get_color(cmap, data, min_value, max_value):
     color = _cmap(int(num_color * scaled_value))[:3]
     return color
 
+def cmap_reverser(cmap,reverse=False):
+    if reverse:
+        if cmap.endswith('_r'): 
+            cmap=cmap.replace('_r','')
+        else:
+            cmap+='_r'
+        
+    return cmap
+
+
 def rescale_number(number, min_value, max_value):
     # Ensure that min_value and max_value are valid.
     if min_value >= max_value:

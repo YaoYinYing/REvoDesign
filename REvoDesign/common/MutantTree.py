@@ -115,6 +115,13 @@ class MutantTree():
         new_tree_instance = MutantTree(new_mutant_tree)
         return new_tree_instance
         
+    def jump_to_the_best_mutant_in_branch(self, branch_id, reversed=False):
+        mutants_scores={mutant_id: mutant_obj.get_mutant_score() for mutant_id, mutant_obj in self.mutant_tree[branch_id].items()}
+        sorted_mutants_scores = sorted(mutants_scores.items(), key=lambda x:x[1],reverse=not reversed)
+        
+        self.last_mutant_id=self.current_mutant_id
+        self.current_mutant_id=sorted_mutants_scores[0][0] 
+
 
     # Completed mutant_tree walking function
     def walk_the_mutants(self, walk_to_next_one=True):

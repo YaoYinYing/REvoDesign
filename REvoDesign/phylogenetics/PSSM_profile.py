@@ -72,7 +72,7 @@ class PssmAnalyzer():
         max_abs_value = df.abs().max().max()
 
         plt.figure(figsize=(0.31 * len(sequence), 5))
-        pcm = plt.imshow(df, cmap='bwr_r', vmin=-max_abs_value, vmax=max_abs_value)
+        pcm = plt.imshow(df, cmap=self.cmap, vmin=-max_abs_value, vmax=max_abs_value)
 
         al_a = list(self.profile_alphabet)
 
@@ -101,8 +101,7 @@ class PssmAnalyzer():
                                                     "candidates": {}}
 
             substitutions = pssm_scores[
-                (pssm_scores <= pssm_scores.loc[wt_aa] - cutoff[0]) & (
-                        pssm_scores.loc[wt_aa] - cutoff[1] <= pssm_scores)]
+                (cutoff[0]<= pssm_scores  - pssm_scores.loc[wt_aa]) & (pssm_scores - pssm_scores.loc[wt_aa] <=  cutoff[1])]
 
             # logging.debug('=' * 70)
             # logging.debug(
@@ -261,6 +260,10 @@ class PssmAnalyzer():
         for position, wt_residue, wt_pssm_score, candidates in mutations:
             for new_residue, new_residue_score in candidates.items():
                 new_residue_scores.append(new_residue_score)
+
+        if not new_residue_scores:
+            logging.warning(f'No available designs!')
+            return
 
         max_abs_pssm = max(abs(min(new_residue_scores)), abs(max(new_residue_scores)))
 

@@ -9,7 +9,7 @@ from Bio.Data import IUPACData
 from pymol import cmd, util
 import matplotlib
 matplotlib.use('Agg')
-from common.magic_numbers import DEFAULT_PROFILE_TYPE,DEFAULT_PROFILE_TYPE_GROUP
+from common.magic_numbers import DEFAULT_PROFILE_TYPE
 from phylogenetics.pymol_pssm_script import mutate
 from tools.merge_sessions import merge_sessions
 from tools.utils import get_color,extract_mutants,get_molecule_sequence
@@ -32,11 +32,12 @@ class MutantVisualizer:
         self.profile=''
         self.profile_format=DEFAULT_PROFILE_TYPE
 
-
-
-
         self.min_score = 0.5
         self.max_score = 0.5
+
+
+        self.min_score_profile=0
+        self.max_score_profile=0
 
 
     
@@ -117,7 +118,7 @@ class MutantVisualizer:
         elif profile_format== 'CSV':
             df = pd.read_csv(profile_fp, index_col=0)
             df=df.astype(float)
-            logging.debug(df.head())
+            #logging.debug(df.head())
 
 
             # try to transpose if the shape is 20 col x N row
@@ -150,6 +151,8 @@ class MutantVisualizer:
 
             if len(df.columns) > 20 and str(df.columns[0])=='0':
                 logging.debug(f'Profile data matches default format.')
+                self.min_score_profile=df.min().min()
+                self.max_score_profile=df.max().max()
                 return df
             else:
                 logging.debug(f'Failed to process profile data {profile_fp}..')

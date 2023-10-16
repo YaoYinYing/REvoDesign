@@ -13,11 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Showing WT sidechain lines option in mutant selecting.
 - `get_atom_pair_cst` for future uses.
 - `renumber_chain_ids` for future uses.
+- Cmap reverser.
+- Best-hit mutant jumping.
+- Supporting ddG-like scoring profile, which should be used reversely.
 
 ### Changed
 - Don't show hydrogen when selecting mutants.
 - Move `convert_PSSM_file_to_csv` in `PssmAnalyzer` to `convert_PSSM_file_to_df` in `MutantVisualizer`
 - In `PssmAnalyzer`, `MutantVisualizer.parse_profile` is called to handle profile parsing so that transposed profile is now supported.
+- Use cutoff[0] <= Score (Sub-WT) <= cutoff[1]
 
 ### Fixed
 - Segmentation fault while missing input session/structure file.
