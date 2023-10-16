@@ -876,7 +876,7 @@
             <item>
              <widget class="QLineEdit" name="lineEdit_input_csv">
               <property name="statusTip">
-               <string>Input PSSM csv file path</string>
+               <string>Input protein profile. eg. PSSM/DMS/CSV</string>
               </property>
               <property name="text">
                <string/>
@@ -909,6 +909,9 @@
                 <width>16777215</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="statusTip">
+               <string>Format of profile, automatically determined.</string>
               </property>
              </widget>
             </item>
@@ -1100,6 +1103,9 @@
                 <height>50</height>
                </size>
               </property>
+              <property name="statusTip">
+               <string>Color map.</string>
+              </property>
              </widget>
             </item>
            </layout>
@@ -1253,6 +1259,9 @@
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="statusTip">
+           <string>Scoring criteria.</string>
+          </property>
           <property name="text">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ &lt;/span&gt;&lt;span style=&quot; font-size:18pt; font-style:italic;&quot;&gt;Δ&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Score &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;Sub-WT &lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -1278,6 +1287,9 @@
          <width>87</width>
          <height>20</height>
         </rect>
+       </property>
+       <property name="statusTip">
+        <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
        </property>
        <property name="text">
         <string>Reversed</string>
@@ -1558,7 +1570,7 @@
              </sizepolicy>
             </property>
             <property name="statusTip">
-             <string>Rock the space while making choices.</string>
+             <string>Show WT sidechain for comparing</string>
             </property>
             <property name="text">
              <string>Show WT</string>
@@ -1570,6 +1582,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_reverse_mutant_effect_2">
+            <property name="statusTip">
+             <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
+            </property>
             <property name="text">
              <string>Reversed</string>
             </property>
@@ -1800,6 +1815,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="statusTip">
+             <string>Jump to a specific mutant group.</string>
+            </property>
            </widget>
           </item>
           <item>
@@ -1815,6 +1833,9 @@
               <width>70</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="statusTip">
+             <string>Jump to a mutant group.</string>
             </property>
             <property name="text">
              <string>Go</string>
@@ -1834,6 +1855,9 @@
               <width>70</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="statusTip">
+             <string>Jump to the best hit in this mutant group.</string>
             </property>
             <property name="text">
              <string>Best Hit</string>
@@ -2471,7 +2495,7 @@
             <item>
              <widget class="QLineEdit" name="lineEdit_input_csv_2">
               <property name="statusTip">
-               <string>Input PSSM csv file path</string>
+               <string>Input protein profile. eg. PSSM/DMS/CSV</string>
               </property>
               <property name="text">
                <string/>
@@ -2504,6 +2528,9 @@
                 <width>16777215</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="statusTip">
+               <string>Format of profile, automatically determined.</string>
               </property>
              </widget>
             </item>
