@@ -97,6 +97,7 @@ class Clustering:
         
         plt.savefig(img_fp)
         self.cluster_output_fp['score']=img_fp
+        plt.close()
 
     def handle_calculation_result(self, results):
         # Handle the results of the calculation as needed
@@ -234,6 +235,7 @@ class Clustering:
         plt.ylabel('Cluster')
         img_fp=f'{self.save_dir}/variants_per_clusters.png'
         plt.savefig(img_fp)
+        plt.close()
 
         self.cluster_output_fp['variant']=img_fp
 

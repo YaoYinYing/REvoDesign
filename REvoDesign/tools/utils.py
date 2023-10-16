@@ -40,6 +40,13 @@ def determine_system():
     return platform.system()
 
 
+def renumber_chain_ids(target_protein):
+    chain_ids = cmd.get_chains(target_protein)
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    for chain_id, _alphabet in zip(chain_ids, alphabet):
+        logging.info(f'rechain: {chain_id} - {_alphabet}')
+        cmd.alter(f'{target_protein} and c. {chain_id}', f'chain=\'{_alphabet}\'')
+
 # an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
 def getOpenFileNameWithExt(*args, **kwargs):
     """
@@ -558,3 +565,10 @@ def extract_mutants(mutant_string, chain_id=None, sequence=None):
     # Join the mutants into a single string separated by underscores and instantialized Mutant obj
     return '_'.join(mutants), mutant_obj
 
+def get_atom_pair_cst(selection='sele'):
+    _sele=cmd.get_model(selection=selection).atom
+    if len(_sele)!=2:
+        logging.error(f'Atom pair selection {selection} must contain exactly 2 atoms!')
+        return
+    else:
+        return f'AtomPair {_sele[0].name} {_sele[0].resi}{_sele[0].chain_id} {_sele[1].name} {_sele[1].resi}{_sele[1].chain_id} HARMONIC 3 0.5'

@@ -9,13 +9,10 @@ from tools.utils import extract_mutants
 
 
 class GenerateVariantsinFastafile:
-
-
     def __init__(self):
         self.data = {}
         self.fastaseq = ""
         self.newfasta = ""
-        self.chain = "LC"
         self.group = ""
         self.name = "-1"
         self.filename_id = ""
@@ -93,13 +90,12 @@ class GenerateVariantsinFastafile:
             f.write(self.newfasta)
 
 
-    def run_analysis(self,fastafile,mutation, native, position,chain):
+    def run_analysis(self,fastafile,mutation, native, position):
         '''
         :param fastafile: native fastafile - i think need to be a sequnce
         :param mutations: mutations string separated with comma
         :param native: native amino acids
         :param position: positions to mutate
-        :param chain: heavy or light chain
         :return: fasta sequence with new mutations
         '''
         # self.fastaseq
@@ -127,6 +123,7 @@ class Combinations:
         
         # number of combinations
         self.debug = 0
+        self.chain_id='A'
 
         self.init_name = ""
         self.modulus = 21000
@@ -169,7 +166,7 @@ class Combinations:
         with open(datafile) as f:
             for line in f:
                 _line=line.strip()
-                _,mut_obj=extract_mutants(_line)
+                _,mut_obj=extract_mutants(_line,chain_id=self.chain_id,sequence=self.fastasequence)
                 mut_id=''.join([f'{_mut["wt_res"]}{_mut["position"]}{_mut["mut_res"]}' for _mut in mut_obj.get_mutant_info()])
 
                 self.list_of_mutations.append(mut_id) 
@@ -178,17 +175,14 @@ class Combinations:
     def getUniquePositions(self, list_w_mutations):
         unique = True
         for i in list_w_mutations:
-            tmp = i.strip()
-            position = tmp[1:-1]
+            _,mut_obj_i = extract_mutants(i.strip(),chain_id=self.chain_id,sequence=self.fastasequence)
+            position = mut_obj_i.get_mutant_info()[0]['position']
             for j in list_w_mutations:
-
-                if(i != j):
-                    tmp2 = j.strip()
-
-                    position2 = tmp2[1:-1]
-
+                if i != j:
+                    _,mut_obj_j=extract_mutants(j.strip(),chain_id=self.chain_id,sequence=self.fastasequence)
+                    position2 = mut_obj_j.get_mutant_info()[0]['position']
                     if( position == position2 ):
-                        # print "same:   ",chain, chain2, position, position2, list_w_mutations
+                        print(f"skip {i} - {j} : {position} == {position2}")
                         return False
                     else:
                         continue
@@ -197,8 +191,7 @@ class Combinations:
 
 
     def generate_fasta_in_parallel(self, mutationalstr, groupnr):
-        exe = ""
-        hc_dummy = 1
+
         name = self.init_name
         newfastasequence = self.fastasequence
         for tmpposition in mutationalstr:
@@ -206,7 +199,6 @@ class Combinations:
             tmp_native = tmpstr[0]
             tmp_pos = int(tmpstr[1:-1])
             tmp_mutant = tmpstr[-1]
-            tmp_chain = "A"
             newfastasequence = self.gvf.get_mutated_fasta_string( tmp_pos, tmp_native, tmp_mutant, newfastasequence)
             name += tmpposition+"_"
         if( self.dummy_count):
@@ -230,7 +222,7 @@ class Combinations:
         b = self.combinations(self.list_of_mutations, self.combi)
 
         mutations = []
-        self.fastasequence = self.gvf.get_fastasequence_from_file( fastafile)
+        #self.fastasequence = self.gvf.get_fastasequence_from_file( fastafile)
         # insert method here to evaluate the WT AA with the given fasta
         self.evalute_fasta_file()
 

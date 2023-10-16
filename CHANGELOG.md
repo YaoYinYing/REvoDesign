@@ -9,9 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Cmap for PSSM mutant loading
+- Jumping between mutant group ids
+- Show WT sidechain lines option in mutant selecting.
+- `get_atom_pair_cst` for future uses.
+- `renumber_chain_ids` for future uses.
 
 ### Changed
 - Don't show hydrogen when selecting mutants.
+
+### Fixed
+- Segmentation fault while missing input session/structure file.
+- Mutant extraction while missing chain id and wt sequence
+- Surface residue exclusion while using PyMOL syntax
+- Close ploting instance after drawing is done.
+- B-factor altering while score is not available in Mutant Visualizer
+
+### Removed
+- CheckBoxes of saving mutant table checkpoints and overiding. Set both `True` as default.
 
 ## [1.1.3] - 2023-10-09
 

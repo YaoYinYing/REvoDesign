@@ -109,7 +109,7 @@ def determine_surface_residue(input_file, output_file, molecule, chain_id='A', e
     logging.debug(f'exclude_residue_selection = {exclude_residue_selection}')
 
     if exclude_residue_selection or exclude_residue_selection != '' :
-        _sel_exclude_residue_selection=f'and not {exclude_residue_selection}'
+        _sel_exclude_residue_selection=f'and (not {exclude_residue_selection})'
         ray_selection_list=[exclude_residue_selection,molecule]
     else:
         _sel_exclude_residue_selection=''

@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use('Agg')
 from phylogenetics.pymol_pssm_script import mutate
 from tools.merge_sessions import merge_sessions
-from tools.utils import get_color,extract_mutants
+from tools.utils import get_color,extract_mutants,get_molecule_sequence
 from absl import logging
 
 class MutantVisualizer:
@@ -27,6 +27,9 @@ class MutantVisualizer:
         self.key_col = "best_leaf"
         self.score_col = "totalscore"
         self.group_name = 'default_group'
+        self.sequence=get_molecule_sequence(molecule=self.molecule,chain_id=self.chain_id)
+
+
 
 
         self.min_score = 0.5
@@ -61,7 +64,7 @@ class MutantVisualizer:
 
         mut_pos=[]
 
-        _,mut_obj=extract_mutants(mutant_string=mutant)
+        _,mut_obj=extract_mutants(mutant_string=mutant,chain_id=self.chain_id,sequence=self.sequence)
         score=mut_obj.get_mutant_score()
 
         for mut_info in mut_obj.get_mutant_info():
@@ -75,7 +78,7 @@ class MutantVisualizer:
             mut_pos.append(f'(c. {chain_id} and i. {str(position)})')
             mutate(new_obj_name, chain_id, position, new_residue_3)
 
-            cmd.alter(f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA)", f'b={score}')
+            if score: cmd.alter(f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA)", f'b={score}')
             cmd.hide('lines', f'{new_obj_name}')
             cmd.show("sticks", f' {new_obj_name} and c. {chain_id} and i. {str(position)} and (sidechain or n. CA)')
 

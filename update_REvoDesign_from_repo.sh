@@ -8,4 +8,3 @@ rm -r $HOME/.pymol/startup/REvoDesign
 cp -r $git_repo_dir/REvoDesign $HOME/.pymol/startup
 
 # launch a new session
-pymol /Users/yyy/Documents/projects/hands/SXL/CHS/models/diffdock_conformer/CHS_CM4.diffdock.unrelaxed.pdb

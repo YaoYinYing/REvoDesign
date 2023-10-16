@@ -7,8 +7,6 @@ class MutantTree():
         self.last_branch_id=''
         self.last_mutant_id=''
 
-
-
         self.refresh_mutants()
         
         
@@ -37,6 +35,9 @@ class MutantTree():
 
     def get_a_branch(self, branch_id):
         return self.mutant_tree[branch_id]
+    
+    def search_a_branch(self, branch_kw):
+        return [x for x in self.all_mutant_branch_ids if branch_kw in x]
     
     def get_mutant_index_in_branch(self,branch_id,mutant_id):
         return list(self.mutant_tree[branch_id].keys()).index(mutant_id)
@@ -154,3 +155,19 @@ class MutantTree():
                     # Reached the beginning of the tree, wrap around to the end
                     self.current_branch_id = self.all_mutant_branch_ids[-1]
                     self.current_mutant_id = list(self.mutant_tree[self.current_branch_id].keys())[-1]
+
+
+    def jump_to_branch(self, branch_id):
+        if branch_id not in self.all_mutant_branch_ids:
+            print(f'Could not find a branch with the specified id {branch_id}')
+            return
+        elif self.is_this_branch_empty(branch_id):
+            print(f'Branch {branch_id} is empty')
+            return
+        else:
+            self.last_branch_id=self.current_branch_id
+            self.last_mutant_id=self.current_mutant_id
+            self.current_branch_id=branch_id
+            self.current_mutant_id=list(self.mutant_tree[self.current_branch_id].keys())[0]
+
+
