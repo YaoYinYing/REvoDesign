@@ -10,6 +10,7 @@ from pymol import cmd, util
 import matplotlib
 matplotlib.use('Agg')
 from common.magic_numbers import DEFAULT_PROFILE_TYPE
+from common.Mutant import Mutant
 from phylogenetics.pymol_pssm_script import mutate
 from tools.merge_sessions import merge_sessions
 from tools.utils import get_color,extract_mutants,get_molecule_sequence
@@ -32,6 +33,13 @@ class MutantVisualizer:
         self.profile=''
         self.profile_format=DEFAULT_PROFILE_TYPE
 
+        # this should be set via the following:
+        # visualizer=MutantVisualizer(molecule=molecule,chain_id=chainid)
+        # visualizer.profile_scoring_df=visualizer.parse_profile(
+        #         profile_fp=design_profile,
+        #         profile_format=design_profile_format)
+        self.profile_scoring_df=None
+
         self.min_score = 0.5
         self.max_score = 0.5
 
@@ -41,17 +49,18 @@ class MutantVisualizer:
 
 
     
-    def process_position(self,mutant, score,):
+    def process_position(self,mutant_obj: Mutant):
+        mutant=mutant_obj.get_mutant_id()
+        score=mutant_obj.get_mutant_score()
         temp_dir = tempfile.mkdtemp(prefix='pymol_pssm_')
         temp_session_path = os.path.join(temp_dir, f"position_{mutant}.pse")
         cmd.load(self.input_session)
 
         cmd.hide('surface')
 
-        #color = self.get_color(matplotlib.colormaps[self.cmap], score, self.min_score, self.max_score)
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f" Visualizing {mutant} {score}: {color}")
-        self.create_mutagenesis_objects(mutant, color)
+        self.create_mutagenesis_objects(mutant_obj, color)
         cmd.hide('everything', 'hydrogens and polymer.protein')
         cmd.delete(self.molecule)
         cmd.save(temp_session_path)
@@ -61,17 +70,16 @@ class MutantVisualizer:
     
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description
-    def create_mutagenesis_objects(self, mutant, color):
+    def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
         # mutant: <chain_id><wt><pos><mut>_..._<score>
+        mutant=mutant_obj.get_mutant_id()
         new_obj_name = mutant
         cmd.create(f"{new_obj_name}", self.molecule)
 
         mut_pos=[]
+        score=mutant_obj.get_mutant_score()
 
-        _,mut_obj=extract_mutants(mutant_string=mutant,chain_id=self.chain_id,sequence=self.sequence)
-        score=mut_obj.get_mutant_score()
-
-        for mut_info in mut_obj.get_mutant_info():
+        for mut_info in mutant_obj.get_mutant_info():
             chain_id=mut_info['chain_id']
             position=mut_info['position']
             new_residue=mut_info['mut_res']
@@ -82,7 +90,9 @@ class MutantVisualizer:
             mut_pos.append(f'(c. {chain_id} and i. {str(position)})')
             mutate(new_obj_name, chain_id, position, new_residue_3)
 
-            if score: cmd.alter(f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA)", f'b={score}')
+            if score: 
+                cmd.alter(f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA)", f'b={score}')
+
             cmd.hide('lines', f'{new_obj_name}')
             cmd.show("sticks", f' {new_obj_name} and c. {chain_id} and i. {str(position)} and (sidechain or n. CA)')
 
@@ -97,8 +107,6 @@ class MutantVisualizer:
 
         if self.group_name:
             cmd.group(self.group_name, f'{new_obj_name}', )
-
-        
 
 
     def parse_profile(self, profile_fp,profile_format):
@@ -217,20 +225,29 @@ class MutantVisualizer:
             logging.info(f"Warning: Score column '{self.score_col}' not found in the data. Setting score to 1.")
             mutation_data[self.score_col] = 1
 
-        self.mutation_dict = {}
+        #self.mutation_dict = {}
+        self.mutant_list=[]
         score_list = []
         for _, row in mutation_data.iterrows():
-            variant = row[self.key_col]
-            score = row[self.score_col]
-            self.mutation_dict[variant] = score
+            variant,variant_obj=extract_mutants(mutant_string=row[self.key_col],
+                                                chain_id=self.chain_id,
+                                                sequence=self.sequence)
+            _variant_info = variant_obj.get_mutant_info()
+            if len(_variant_info) == 1 and self.profile_scoring_df is not None and (not self.profile_scoring_df.empty):
+                variant_obj.set_mutant_score(self.profile_scoring_df.loc[_variant_info[0]['mut_res'],str(int(_variant_info[0]['position'])-1)])
+                score=variant_obj.get_mutant_score()
+            else:
+                score = row[self.score_col]
+                variant_obj.set_mutant_score(score)
+            #self.mutation_dict[variant] = score
+
+            self.mutant_list.append(variant_obj)
+
             score_list.append(score)
 
         # Determine the range for color bar
-        min_score = min(score_list)
-        max_score = max(score_list)
-
-        self.min_score = min_score
-        self.max_score = max_score
+        self.min_score = min(score_list)
+        self.max_score = max(score_list)
 
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
@@ -239,12 +256,12 @@ class MutantVisualizer:
         from tools.utils import refresh_window, ParallelExecutor
 
         # Create a multiprocessing pool
-        self.mutagenesis_tasks=[(variant.replace('/', '_'),score) for variant, score in self.mutation_dict.items()]
+        self.mutagenesis_tasks=[[variant] for variant in self.mutant_list]
 
         progress_bar.setRange(0, 0)
 
-        parallel_executor = ParallelExecutor(self.process_position, self.mutagenesis_tasks, n_jobs=self.nproc)
 
+        parallel_executor = ParallelExecutor(self.process_position,args=self.mutagenesis_tasks, n_jobs=self.nproc)
 
         parallel_executor.start()
         
@@ -253,8 +270,8 @@ class MutantVisualizer:
             refresh_window()
             time.sleep(0.001)
 
-        progress_bar.setRange(0, len(self.mutagenesis_tasks))
-        progress_bar.setValue(len(self.mutagenesis_tasks))
+        progress_bar.setRange(0, len(self.mutant_list))
+        progress_bar.setValue(len(self.mutant_list))
 
         self.results=parallel_executor.handle_result()
         cmd.reinitialize()
@@ -276,9 +293,3 @@ class MutantVisualizer:
                        save_path=self.save_session,
                        mode=2)
         
-
-        
-    def handle_calculation_result(self, results):
-        # Handle the results of the calculation as needed
-        self.results = results  # Store the results for further processing
-        logging.info("Calculation results:", self.results)

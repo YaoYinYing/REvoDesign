@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cmap reverser.
 - Best-hit mutant jumping.
 - Supporting ddG-like scoring profile, which should be used reversely.
+- Apply profile scoring to `MutantVisualizer`
 
 ### Changed
 - Don't show hydrogen when selecting mutants.
@@ -23,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In `PssmAnalyzer`, `MutantVisualizer.parse_profile` is called to handle profile parsing so that transposed profile is now supported.
 - Use cutoff[0] <= Score (Sub-WT) <= cutoff[1]
 - Set cutoffs as `float`
+- `extract_mutants`: if chain id is given, override to that that parsed via mutant string.
+- `MutantVisualizer`: deduplicate code of `create_mutagenesis_objects` and `process_position`
 
 ### Fixed
 - Segmentation fault while missing input session/structure file.
@@ -37,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CheckBoxes of saving mutant table checkpoints and overiding. Set both `True` as default.
 - `checkBox_generate_full_pdb` and `checkBox_create_full_pdb`, set `False` as default.
 - Duplicated code that performs mutant group open and close. 
+- `NestedWorkerThread`, `CallBack`, `parallel_run`
+- `handle_calculation_result` from `MutantVisualizer` and `PssmAnalyzer`
 
 ## [1.1.3] - 2023-10-09
 

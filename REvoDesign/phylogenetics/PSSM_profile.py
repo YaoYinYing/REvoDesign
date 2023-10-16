@@ -10,7 +10,7 @@ from pymol import cmd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
-from tools.utils import refresh_window, ParallelExecutor,get_color
+from tools.utils import refresh_window, ParallelExecutor,get_color,extract_mutants
 from common.MutantVisualizer import MutantVisualizer
 from tools.merge_sessions import merge_sessions
 from phylogenetics.pymol_pssm_script import process_pssm_mutations
@@ -231,8 +231,12 @@ class PssmAnalyzer():
                 visualizer=MutantVisualizer(molecule=molecule,chain_id=chain_id)
                 visualizer.group_name=f"mt_{wt_residue}{position}_{str(wt_pssm_score)}"
                 visualizer.full=create_full_pdb
+                
+                _,mutant_obj=extract_mutants(
+                    mutant_string=f'{chain_id}{wt_residue}{position}{new_residue}_{new_residue_score}',
+                    chain_id=chain_id,)
 
-                visualizer.create_mutagenesis_objects(mutant=f'{chain_id}{wt_residue}{position}{new_residue}_{new_residue_score}',color=color)
+                visualizer.create_mutagenesis_objects(mutant_obj=mutant_obj,color=color)
 
                 refresh_window()
                 time.sleep(0.01)
@@ -330,10 +334,4 @@ class PssmAnalyzer():
                        mode=2)
         
 
-        
-    def handle_calculation_result(self, results):
-        # Handle the results of the calculation as needed
-        self.results = results  # Store the results for further processing
-        print("Calculation results:", self.results)
-    
 

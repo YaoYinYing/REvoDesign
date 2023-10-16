@@ -539,6 +539,23 @@ class REvoDesignPlugin:
             self.ui.comboBox_chainid_4
             ))
         
+        self.set_widget_value(self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE_GROUP)
+        self.set_widget_value(self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE)
+
+
+        self.ui.lineEdit_input_csv_2.textChanged.connect(partial(
+            self.determine_profile_format,
+            self.ui.lineEdit_input_csv_2,
+            self.ui.comboBox_profile_type_2
+        ))
+
+        self.ui.pushButton_open_input_csv_2.clicked.connect(partial(
+            self.open_input_filepath,
+            self.ui.lineEdit_input_csv_2,
+            [PSSM_FileExt,AnyFileExt,CompressedFileExt]
+        ))
+        
+
         self.ui.pushButton_open_input_pse_4.clicked.connect(partial(
             self.open_structure_or_session,
             self.ui.lineEdit_input_pse_4,
@@ -1090,7 +1107,6 @@ class REvoDesignPlugin:
                                 create_full_pdb=False,
                                 progress_bar=progressbar,
                                 nproc=nproc,
-                                #progressbarton=progressbarton
                                 )
     
         cmd.reinitialize()
@@ -1540,6 +1556,10 @@ class REvoDesignPlugin:
         nproc=int(self.ui.comboBox_nproc_4.currentText())
         group_name=self.ui.lineEdit_group_name.text()
         cmap=self.ui.comboBox_cmap.currentText()
+
+        design_profile=self.ui.lineEdit_input_csv_2.text()
+        design_profile_format=self.ui.comboBox_profile_type_2.currentText()
+        
         progressBar_visualize_mutants=self.ui.progressBar_visualize_mutants
 
         
@@ -1550,6 +1570,11 @@ class REvoDesignPlugin:
         visualizer.mutfile=input_mut_table_csv
         visualizer.input_session=input_pse
         visualizer.nproc=nproc
+
+        if os.path.exists(design_profile):
+            visualizer.profile_scoring_df=visualizer.parse_profile(
+                profile_fp=design_profile,
+                profile_format=design_profile_format)
 
         if best_leaf:
             visualizer.key_col=best_leaf 

@@ -195,27 +195,8 @@ def run_worker_thread_with_progress(worker_function, progress_bar=None, *args, *
     result = work_thread.handle_result()
     return result[0] if result else None
 
-    
-def parallel_run(func, input_args: list, num_proc: int):
-    p = multiprocessing.Pool(num_proc)
-    return p.map(func, input_args)
 
 
-
-class CallBack(object):
-    completed = defaultdict(int)
-    
-    def __init__(self, time, index, parallel):
-        self.index = index
-        self.parallel = parallel
-
-    def __call__(self, index):
-        CallBack.completed[self.parallel] += 1
-        mycount = CallBack.completed[self.parallel]
-        progress = (mycount / len(self.parallel._original_iterator)) * 100
-        self.parallel.progress_signal.emit(progress)
-        if self.parallel._original_iterator is not None: 
-            self.parallel.dispatch_next()
 
 class ParallelExecutor(QtCore.QThread):
     
@@ -259,7 +240,7 @@ class ParallelExecutor(QtCore.QThread):
     
     
 
-    def __init__(self, func, args, n_jobs, backend='auto',verbose=0):
+    def __init__(self, func, args,n_jobs, backend='auto',verbose=0, ):
         
         super().__init__()
         self.func = func
@@ -280,7 +261,7 @@ class ParallelExecutor(QtCore.QThread):
     def run(self):
         
         from joblib import Parallel, delayed
-        logging.info(f'Workload in this run: {len(self.args)} ')
+        logging.info(f'Workload in this run: {len(self.args)}')
         self.results = Parallel(n_jobs=self.n_jobs,backend=self.backend,verbose=self.verbose)(delayed(self.func)(*arg) for arg in self.args)
         
         self.progress_signal.emit(len(self.args))
@@ -294,34 +275,6 @@ class ParallelExecutor(QtCore.QThread):
     
     
         
-
-
-
-class NestedWorkerThread(QtCore.QThread):
-    progress_signal = QtCore.pyqtSignal(int)
-    result_signal = QtCore.pyqtSignal(list)
-    finished_signal = QtCore.pyqtSignal()
-
-    def __init__(self, func, input_args, num_proc):
-        super().__init__()
-        self.func = func
-        self.input_args = input_args
-        self.num_proc = num_proc
-
-    def run(self):
-        self.results = self.parallel_run(self.func, self.input_args, self.num_proc)
-        self.progress_signal.emit(len(self.input_args))
-        self.result_signal.emit(self.results)
-        self.finished_signal.emit()
-
-    def parallel_run(self, func, input_args, num_proc):
-        from joblib import Parallel, delayed
-        self.results = Parallel(n_jobs=num_proc)(delayed(func)(*arg) for arg in input_args)
-        
-        return self.results
-
-    def handle_result(self):
-        return self.results
     
 
 def extract_archive(archive_file, extract_to):
@@ -515,7 +468,7 @@ def extract_mutants(mutant_string, chain_id=None, sequence=None):
 
             logging.debug(f'full description: {mut}')
             _mut=re.match(r'([A-Z]{1})([A-Z]{1})(\d+)([A-Z]{1})',mut)
-            _chain_id= _mut.group(1)
+            _chain_id= _mut.group(1) if chain_id is None or chain_id == '' else chain_id
             _position=_mut.group(3)
             _wt_res= _mut.group(2)
             _mut_res=_mut.group(4)
