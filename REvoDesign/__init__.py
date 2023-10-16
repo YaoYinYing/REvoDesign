@@ -1148,7 +1148,7 @@ class REvoDesignPlugin:
         # close group object if deactivated
         if self.mutant_tree_pssm.last_branch_id != '' and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
             cmd.disable(self.mutant_tree_pssm.last_branch_id)
-            cmd.group(self.mutant_tree_pssm.current_branch_id,action='close')
+            cmd.group(self.mutant_tree_pssm.last_branch_id,action='close')
             
         # expand group object if activated
         if self.mutant_tree_pssm.current_branch_id and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
@@ -1176,8 +1176,10 @@ class REvoDesignPlugin:
             self.set_widget_value(progressBar_mutant_choosing, progress)
 
             if self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
+                cmd.group(self.mutant_tree_pssm.last_branch_id,action='close')
                 cmd.disable(self.mutant_tree_pssm.last_branch_id)
                 cmd.enable(self.mutant_tree_pssm.current_branch_id)
+                cmd.group(self.mutant_tree_pssm.current_branch_id,action='open')
             
             self.activate_focused(checkBox_show_wt,comboBox_molecule,comboBox_chainid)
             self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
