@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Don't show hydrogen when selecting mutants.
+- Move `convert_PSSM_file_to_csv` in `PssmAnalyzer` to `convert_PSSM_file_to_df` in `MutantVisualizer`
+- In `PssmAnalyzer`, `MutantVisualizer.parse_profile` is called to handle profile parsing so that transposed profile is now supported.
 
 ### Fixed
 - Segmentation fault while missing input session/structure file.
@@ -27,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - CheckBoxes of saving mutant table checkpoints and overiding. Set both `True` as default.
+- `checkBox_generate_full_pdb` and `checkBox_create_full_pdb`, set `False` as default.
+- Duplicated code that performs mutant group open and close. 
 
 ## [1.1.3] - 2023-10-09
 

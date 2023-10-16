@@ -546,6 +546,10 @@ def extract_mutants(mutant_string, chain_id=None, sequence=None):
             continue
         
         mutant_info.append({'chain_id':_chain_id, 'position': _position, 'wt_res': _wt_res, 'mut_res': _mut_res })
+
+    if not mutant_info:
+        # early return if the input string failes to be parsed
+        return None, None
             
 
     # if the mutation has a position of score, we need to extract it.

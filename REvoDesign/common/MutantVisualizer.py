@@ -9,6 +9,7 @@ from Bio.Data import IUPACData
 from pymol import cmd, util
 import matplotlib
 matplotlib.use('Agg')
+from common.magic_numbers import DEFAULT_PROFILE_TYPE,DEFAULT_PROFILE_TYPE_GROUP
 from phylogenetics.pymol_pssm_script import mutate
 from tools.merge_sessions import merge_sessions
 from tools.utils import get_color,extract_mutants,get_molecule_sequence
@@ -28,6 +29,8 @@ class MutantVisualizer:
         self.score_col = "totalscore"
         self.group_name = 'default_group'
         self.sequence=get_molecule_sequence(molecule=self.molecule,chain_id=self.chain_id)
+        self.profile=''
+        self.profile_format=DEFAULT_PROFILE_TYPE
 
 
 
@@ -93,6 +96,103 @@ class MutantVisualizer:
 
         if self.group_name:
             cmd.group(self.group_name, f'{new_obj_name}', )
+
+        
+
+
+    def parse_profile(self, profile_fp,profile_format):
+        if not profile_fp:
+            logging.warning(f'profile not available: {profile_fp}')
+            return None
+        
+        profile_bn=os.path.basename(profile_fp)
+        
+        if profile_format=='PSSM':
+            df_pssm_raw = self.convert_PSSM_file_to_df(input_pssm_file=profile_fp)
+            csv_fp = os.path.join(os.path.dirname(profile_fp), f'{profile_bn}.csv')
+            df_pssm_raw.to_csv(csv_fp)
+            df = pd.read_csv(csv_fp, index_col=0)
+            return df
+        
+        elif profile_format== 'CSV':
+            df = pd.read_csv(profile_fp, index_col=0)
+            df=df.astype(float)
+            logging.debug(df.head())
+
+
+            # try to transpose if the shape is 20 col x N row
+            if len(df.columns) == 20:
+                
+                df=df.T
+                logging.debug(f'Profile data is transposed.')
+                
+
+                column_rename_mapping={pos:str(pos) for pos in df.columns}
+                logging.debug(f'Rename column : {column_rename_mapping}')
+                df.rename(columns=column_rename_mapping,inplace=True)
+
+            if str(df.columns[0]) != "0":
+                logging.debug(f'Profile data does not matche default format.')
+                # Calculate the number of columns (N) in the DataFrame
+                N = len(df.columns)
+
+                logging.debug(f'Column : {df.columns}')
+
+                # Create a dictionary to map old column names to new column names
+                column_rename_mapping = {str(int(i)): str(int(i) - 1) for i in df.columns}
+
+                logging.debug(f'Rename column : {column_rename_mapping}')
+
+                # Rename the columns using the mapping
+                df.rename(columns=column_rename_mapping, inplace=True)
+
+            logging.debug(df.columns)
+
+            if len(df.columns) > 20 and str(df.columns[0])=='0':
+                logging.debug(f'Profile data matches default format.')
+                return df
+            else:
+                logging.debug(f'Failed to process profile data {profile_fp}..')
+                return
+        elif profile_format == 'TSV':
+            df = pd.read_table(profile_fp, names=['mut', 'score'])
+            return df
+        else:
+            logging.error(f'Unknown profile {profile_fp} or format {profile_format}')
+            return None
+
+            
+                
+
+    def convert_PSSM_file_to_df(self,input_pssm_file):
+
+        PSSM_Alphabet = 'ARNDCQEGHILKMFPSTWYV'
+        # Fetch table header of PSSM
+        c = 0
+        for line in open(input_pssm_file):
+            pssm_header = line
+            c += 1
+            if c == 3:
+                break
+
+        logging.info(pssm_header)
+
+        # Define colspecs info for parsing pssm data
+        # Guess index for PSSM file by the widths of pssm_header
+        _idx = [pssm_header.index(ab) for ab in PSSM_Alphabet]
+        logging.info(_idx)
+
+        # Guess colspecs for read_fwf to read the table
+        _width = _idx[1] - _idx[0]
+        colspec = [(_idx[i] - _width + 1, _idx[i] + 1) for i in range(len(_idx))]
+        logging.info(colspec)
+        df = pd.read_fwf(input_pssm_file, skiprows=2, colspecs=colspec)
+
+        # Remove the rest lines
+        df.dropna(axis=0, inplace=True)
+
+        df = df.T
+        return df    
 
     def run_with_progressbar(self,progress_bar):
         # Check the file format and read data accordingly

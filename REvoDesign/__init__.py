@@ -42,7 +42,9 @@ from common.magic_numbers import \
         DEFAULT_CLUSTER_BATCH_SIZE, \
         DEFAULT_CLUSTER_SCORE_MTX, \
         DEFAULT_GREMLIN_TOPN_NUM, \
-        DEFAULT_GREMLIN_SPATIAL_MAX_DIST
+        DEFAULT_GREMLIN_SPATIAL_MAX_DIST, \
+        DEFAULT_PROFILE_TYPE, \
+        DEFAULT_PROFILE_TYPE_GROUP
 
 from tools.utils import \
     determine_chain_id, \
@@ -294,6 +296,7 @@ class REvoDesignPlugin:
             self.ui.comboBox_molecule,
             ))
         
+        
 
         self.ui.checkBox_use_this_session.stateChanged.connect(partial(
             self.reload_molecule_info, 
@@ -328,6 +331,19 @@ class REvoDesignPlugin:
             self.ui.lineEdit_input_csv,
             [PSSM_FileExt,AnyFileExt,CompressedFileExt]
         ))
+
+        
+        self.set_widget_value(self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE_GROUP)
+        self.set_widget_value(self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE)
+
+
+        self.ui.lineEdit_input_csv.textChanged.connect(partial(
+            self.determine_profile_format,
+            self.ui.lineEdit_input_csv,
+            self.ui.comboBox_profile_type
+        ))
+        
+
         self.ui.lineEdit_output_pse.textChanged.connect(partial(
             self.release_run_button_if_lineEdit_fp_is_valid,
             [
@@ -816,7 +832,20 @@ class REvoDesignPlugin:
 
         open(output_mut_txt_fn,'w').write('\n'.join(mutant_list) if mutant_list else '')
 
-
+    def determine_profile_format(self, lineEdit_input_profile, comboBox_profile_format):
+        profile_fp=os.path.abspath(lineEdit_input_profile.text())
+        if not os.path.exists(profile_fp):
+            return None
+        
+        profile_bn=os.path.basename(profile_fp)
+        if profile_bn.endswith('.csv'):
+            profile_format='CSV'
+        elif profile_bn.endswith('.txt'):
+            profile_format='TSV'
+        elif profile_bn.endswith('.pssm') or profile_bn.endswith('ascii_mtx_file'):
+            profile_format='PSSM'
+        
+        self.set_widget_value(comboBox_profile_format,profile_format)
 
     def save_mutant_choices(self, lineEdit_output_mut_txt,mutants_to_save):
         if not mutants_to_save:
@@ -1000,14 +1029,14 @@ class REvoDesignPlugin:
         input_file = self.temperal_session
         molecule=self.ui.comboBox_molecule.currentText()
         chain_id=self.ui.comboBox_chainid_2.currentText()
-        pssm_profile=self.ui.lineEdit_input_csv.text()
+        design_profile=self.ui.lineEdit_input_csv.text()
+        design_profile_format=self.ui.comboBox_profile_type.currentText()
         preffered=self.ui.lineEdit_preffer_substitution.text().upper()
         rejected=self.ui.lineEdit_reject_substitution.text().upper()
         design_case=self.ui.lineEdit_design_case.text()
         custom_indices_fp=self.ui.lineEdit_input_customized_indices.text()
         cutoff=[int(self.ui.lineEdit_score_minima.text()),int(self.ui.lineEdit_score_maxima.text())]
         output_pse=self.ui.lineEdit_output_pse.text()
-        create_full_pdb=self.ui.checkBox_generate_full_pdb.isChecked()
         nproc=int(self.ui.comboBox_nproc_2.currentText())
         cmap=self.ui.comboBox_cmap_2.currentText()
         progressbar=self.ui.progressBar_load_mutants
@@ -1019,7 +1048,10 @@ class REvoDesignPlugin:
         logging.info(f"Sequence of `{molecule}`: \n {sequence}")
         
         
-        design=PssmAnalyzer(pssm_profile)
+        design=PssmAnalyzer(design_profile)
+        design.input_profile_format=design_profile_format
+        design.molecule=molecule
+        design.chain_id=chain_id
         design.pwd=self.PWD
         design.parallel_run=parallel_run
         design.cmap=cmap
@@ -1037,7 +1069,7 @@ class REvoDesignPlugin:
                                 chain_id=chain_id, 
                                 mutant_json=mutation_json_fp,
                                 reject=rejected,
-                                create_full_pdb=create_full_pdb,
+                                create_full_pdb=False,
                                 progress_bar=progressbar,
                                 nproc=nproc,
                                 #progressbarton=progressbarton
@@ -1085,6 +1117,16 @@ class REvoDesignPlugin:
             cmd.hide('mesh', f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)')
             cmd.hide('sticks', f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)')
 
+        # close group object if deactivated
+        if self.mutant_tree_pssm.last_branch_id != '' and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
+            cmd.disable(self.mutant_tree_pssm.last_branch_id)
+            cmd.group(self.mutant_tree_pssm.last_branch_id,action='close')
+            
+        # expand group object if activated
+        if self.mutant_tree_pssm.current_branch_id and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
+            cmd.enable(self.mutant_tree_pssm.current_branch_id)
+            cmd.group(self.mutant_tree_pssm.current_branch_id, action='open')
+
 
     def accept_mutant(self,lcdNumber_selected_mutant):
         if self.is_this_pymol_object_a_mutant(self.mutant_tree_pssm.current_mutant_id):
@@ -1104,7 +1146,6 @@ class REvoDesignPlugin:
 
 
 
-
     def reject_mutant(self,lcdNumber_selected_mutant):
         if self.is_this_pymol_object_a_mutant(self.mutant_tree_pssm.current_mutant_id):
             logging.debug(f'Rejecting mutant {self.mutant_tree_pssm.current_mutant_id}')
@@ -1116,7 +1157,6 @@ class REvoDesignPlugin:
         else:
             logging.warning(f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}')
 
-        
         
         self.set_widget_value(lcdNumber_selected_mutant, len(self.mutant_tree_pssm_selected.all_mutant_ids))
 
@@ -1145,15 +1185,6 @@ class REvoDesignPlugin:
             logging.debug(f"Jump from branch {self.mutant_tree_pssm.last_branch_id} to {self.mutant_tree_pssm.current_branch_id}")
 
 
-        # close group object if deactivated
-        if self.mutant_tree_pssm.last_branch_id != '' and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
-            cmd.disable(self.mutant_tree_pssm.last_branch_id)
-            cmd.group(self.mutant_tree_pssm.last_branch_id,action='close')
-            
-        # expand group object if activated
-        if self.mutant_tree_pssm.current_branch_id and self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
-            cmd.enable(self.mutant_tree_pssm.current_branch_id)
-            cmd.group(self.mutant_tree_pssm.current_branch_id, action='open')
         
         self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
 
@@ -1175,12 +1206,6 @@ class REvoDesignPlugin:
             logging.info(f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}')
             self.set_widget_value(progressBar_mutant_choosing, progress)
 
-            if self.mutant_tree_pssm.current_branch_id != self.mutant_tree_pssm.last_branch_id:
-                cmd.group(self.mutant_tree_pssm.last_branch_id,action='close')
-                cmd.disable(self.mutant_tree_pssm.last_branch_id)
-                cmd.enable(self.mutant_tree_pssm.current_branch_id)
-                cmd.group(self.mutant_tree_pssm.current_branch_id,action='open')
-            
             self.activate_focused(checkBox_show_wt,comboBox_molecule,comboBox_chainid)
             self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
             return
@@ -1286,8 +1311,12 @@ class REvoDesignPlugin:
             logging.warning('Could not initialize mutant tree! This session may not be a REvoDesign session!')
             return
         
-
+        # clean the view
+        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_branch_ids))
+        cmd.hide('sticks',' or '.join(self.mutant_tree_pssm.all_mutant_ids))
+        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_ids))
         
+
         comboBox_molecule.currentIndexChanged.connect(partial(
             self.update_chain_id,
             comboBox_molecule,
@@ -1295,8 +1324,6 @@ class REvoDesignPlugin:
         ))
 
         self.set_widget_value(comboBox_molecule,determine_molecule_objects())
-
-
         
         self.set_widget_value(progressBar_mutant_choosing,[0,len(self.mutant_tree_pssm.all_mutant_ids)])
 
@@ -1306,11 +1333,7 @@ class REvoDesignPlugin:
         self.activate_focused(checkBox_show_wt,comboBox_molecule,comboBox_chainid)
         self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
 
-
-        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_branch_ids))
-        cmd.hide('sticks',' or '.join(self.mutant_tree_pssm.all_mutant_ids))
-        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_ids))
-
+        # show the current branch and mutant
         cmd.enable(self.mutant_tree_pssm.current_mutant_id)
         cmd.enable(self.mutant_tree_pssm.current_branch_id)
 
@@ -1495,7 +1518,6 @@ class REvoDesignPlugin:
         best_leaf=self.ui.comboBox_best_leaf.currentText()
         totalscore=self.ui.comboBox_totalscore.currentText()
         nproc=int(self.ui.comboBox_nproc_4.currentText())
-        create_full_pdb=self.ui.checkBox_create_full_pdb.isChecked()
         group_name=self.ui.lineEdit_group_name.text()
         cmap=self.ui.comboBox_cmap.currentText()
         progressBar_visualize_mutants=self.ui.progressBar_visualize_mutants
@@ -1515,7 +1537,7 @@ class REvoDesignPlugin:
             visualizer.score_col=totalscore
 
         visualizer.save_session=output_pse
-        visualizer.full=create_full_pdb
+        visualizer.full=False
         visualizer.group_name=group_name
         visualizer.cmap=cmap
         
@@ -1820,8 +1842,6 @@ class REvoDesignPlugin:
             self.ui.lineEdit_output_mutant_table,
             self.mutant_tree_coevolved)
         
-        
-
 
     def activate_focused_interaction(self):
         if self.current_gremlin_co_evoving_pair_mutant_id==self.last_gremlin_co_evoving_pair_mutant_id:
@@ -1838,8 +1858,6 @@ class REvoDesignPlugin:
             cmd.hide('sticks', f'{self.last_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA) and not hydrogen')
             cmd.hide('cartoon', f'{self.current_gremlin_co_evoving_pair_mutant_id}')
 
-    
-        
 
     def mutate_with_gridbuttons(self,col,row, molecule, chain_id, matrix, min_score, max_score,wt_info,ignore_wt=False):
         import matplotlib
@@ -1871,7 +1889,6 @@ class REvoDesignPlugin:
 
         if self.current_gremlin_co_evoving_pair_mutant_id:
             self.last_gremlin_co_evoving_pair_mutant_id=self.current_gremlin_co_evoving_pair_mutant_id
-
 
 
         for mut,idx,wt in zip([WT_A,WT_B],[j+1,i+1],[res_I,res_J]):

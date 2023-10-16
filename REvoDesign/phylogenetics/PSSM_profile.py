@@ -17,44 +17,20 @@ from phylogenetics.pymol_pssm_script import process_pssm_mutations
 
 class PssmAnalyzer():
     def __init__(self, input_pssm_file):
-        self.input_pssm_file = input_pssm_file
+        self.input_profile = input_pssm_file
+        self.input_profile_format='PSSM'
+        self.molecule=''
+        self.chain_id='A'
         self.pwd='.'
-        self.PSSM_Alphabet = 'ARNDCQEGHILKMFPSTWYV'
+
+        # use PSSM alphabet as default
+        self.profile_alphabet = 'ARNDCQEGHILKMFPSTWYV' 
         self.cmap = "bwr_r"
 
 
         self.results = []
         self.parallel_run= False
         
-        
-
-    def convert_PSSM_file_to_csv(self):
-        # Fetch table header of PSSM
-        c = 0
-        for line in open(self.input_pssm_file):
-            pssm_header = line
-            c += 1
-            if c == 3:
-                break
-
-        logging.info(pssm_header)
-
-        # Define colspecs info for parsing pssm data
-        # Guess index for PSSM file by the widths of pssm_header
-        _idx = [pssm_header.index(ab) for ab in self.PSSM_Alphabet]
-        logging.info(_idx)
-
-        # Guess colspecs for read_fwf to read the table
-        _width = _idx[1] - _idx[0]
-        colspec = [(_idx[i] - _width + 1, _idx[i] + 1) for i in range(len(_idx))]
-        logging.info(colspec)
-        df = pd.read_fwf(self.input_pssm_file, skiprows=2, colspecs=colspec)
-
-        # Remove the rest lines
-        df.dropna(axis=0, inplace=True)
-
-        df = df.T
-        return df
 
     @staticmethod
     def parse_custom_indices(indices_str):
@@ -98,18 +74,18 @@ class PssmAnalyzer():
         plt.figure(figsize=(0.31 * len(sequence), 5))
         pcm = plt.imshow(df, cmap='bwr_r', vmin=-max_abs_value, vmax=max_abs_value)
 
-        al_a = list(self.PSSM_Alphabet)
+        al_a = list(self.profile_alphabet)
 
         x_ax = custom_indices[1:]
         plt.xticks(range(len(x_ax)), x_ax, rotation=45)
-        plt.yticks(range(20), list(self.PSSM_Alphabet))
+        plt.yticks(range(20), list(self.profile_alphabet))
         plt.grid(False)
 
         plt.colorbar(pcm).minorticks_on()
 
         if annotate:
             for pos in range(0, len(sequence)):
-                for a in range(len(self.PSSM_Alphabet)):
+                for a in range(len(self.profile_alphabet)):
                     if al_a[a] == sequence[pos]:
                         plt.text(pos, a, al_a[a], ha="center", va="center", color="k")
 
@@ -128,10 +104,10 @@ class PssmAnalyzer():
                 (pssm_scores <= pssm_scores.loc[wt_aa] - cutoff[0]) & (
                         pssm_scores.loc[wt_aa] - cutoff[1] <= pssm_scores)]
 
-            logging.debug('=' * 70)
-            logging.debug(
-                f'\t{wt_aa}-{resid} ({pssm_scores.loc[wt_aa]}): {len(substitutions)} subsitutions in PSSM score cutoff {cutoff if type(cutoff) == float else str(cutoff)} ')
-            logging.debug('-' * 70)
+            # logging.debug('=' * 70)
+            # logging.debug(
+            #     f'\t{wt_aa}-{resid} ({pssm_scores.loc[wt_aa]}): {len(substitutions)} subsitutions in PSSM score cutoff {cutoff if type(cutoff) == float else str(cutoff)} ')
+            # logging.debug('-' * 70)
             for mut_aa, pssm_score in substitutions.items():
                 mutation_key = f"{wt_aa}{resid}{mut_aa}"
                 if wt_aa == mut_aa:
@@ -139,15 +115,15 @@ class PssmAnalyzer():
                 if preferred_substitutions:
                     if wt_aa in preferred_substitutions.keys() and mut_aa in preferred_substitutions[wt_aa]:
                         mutation_candidates['mutations'][resid]["candidates"][mut_aa] = pssm_score
-                        logging.info(f"{mutation_key}: {pssm_score}")
+                        #logging.info(f"{mutation_key}: {pssm_score}")
                         mutations.append(mutation_key)
                 else:
                     mutation_candidates['mutations'][resid]["candidates"][mut_aa] = pssm_score
-                    logging.info(f"{mutation_key}: {pssm_score}")
+                    #logging.info(f"{mutation_key}: {pssm_score}")
                     mutations.append(mutation_key)
 
-            logging.debug('=' * 70)
-            logging.debug('\n')
+            # logging.debug('=' * 70)
+            # logging.debug('\n')
 
         os.makedirs(f'{self.pwd}/mutations_pssm', exist_ok=True)
 
@@ -158,6 +134,7 @@ class PssmAnalyzer():
         json.dump(mutation_candidates, open(mutation_json_fp, 'w'), indent=2)
 
         plt.savefig(mutation_png_fp)
+        plt.close()
 
         with open(mutant_table_fp, 'w') as mut_file:
             mut_file.write('\n'.join(mutations))
@@ -166,7 +143,7 @@ class PssmAnalyzer():
 
     
     def validate_preffered_mutation_string(self,preffered_mutation_string, ):
-        pattern = f'^[{"".join(self.PSSM_Alphabet)}]:[{"".join(self.PSSM_Alphabet)}]+$'
+        pattern = f'^[{"".join(self.profile_alphabet)}]:[{"".join(self.profile_alphabet)}]+$'
         preffered_mutation_string = preffered_mutation_string.replace('[', '').replace(']', '')
         if re.match(pattern, preffered_mutation_string):
             return True
@@ -184,14 +161,20 @@ class PssmAnalyzer():
     def design_protein_using_pssm(self, sequence, alias, preffered=[], design_case='default', custom_indices_fp='',
                                   cutoff=[-100, 100]):
 
-        if os.path.basename(self.input_pssm_file).endswith('.csv'):
-            df = pd.read_csv(self.input_pssm_file, index_col=0)
-        else:
-            df_pssm_raw = self.convert_PSSM_file_to_csv()
-            csv_fp = os.path.join(os.path.dirname(self.input_pssm_file),
-                                  f'{os.path.basename(self.input_pssm_file)}.csv')
-            df_pssm_raw.to_csv(csv_fp)
-            df = pd.read_csv(csv_fp, index_col=0)
+        profile_parser=MutantVisualizer(molecule=self.molecule,chain_id=self.chain_id)
+        df=profile_parser.parse_profile(profile_fp=self.input_profile, profile_format=self.input_profile_format)
+
+    
+        
+        if df is None or df.empty:
+            logging.error(f'Error occurs while parsing profile {self.input_profile} with format {self.input_profile_format}')
+            return
+
+        # refresh profile alphabet based on profile reading
+        self.profile_alphabet=''.join(df.T.columns.to_list())
+
+        logging.debug(df.head())
+
 
         col_name = df.columns.tolist()
         col_name.insert(0, 0)
@@ -207,7 +190,6 @@ class PssmAnalyzer():
 
         custom_indices_str = open(custom_indices_fp, 'r').read().strip() if os.path.exists(custom_indices_fp) else ''
 
-        assert len(cutoff) == 2
 
         mutation_json_fp, mutant_table_fp, mutation_png_fp = self.plot_custom_indices_segments(df, sequence,
                                                                                                  pop=True,

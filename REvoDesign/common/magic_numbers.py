@@ -23,3 +23,8 @@ DEFAULT_CLUSTER_SCORE_MTX='PAM30'
 
 DEFAULT_GREMLIN_TOPN_NUM=50
 DEFAULT_GREMLIN_SPATIAL_MAX_DIST=30
+
+DEFAULT_PROFILE_TYPE_GROUP=['PSSM',
+                            'CSV', # default profile type 
+                            'TSV']
+DEFAULT_PROFILE_TYPE='PSSM'
