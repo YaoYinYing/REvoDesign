@@ -1048,7 +1048,7 @@ class REvoDesignPlugin:
         rejected=self.ui.lineEdit_reject_substitution.text().upper()
         design_case=self.ui.lineEdit_design_case.text()
         custom_indices_fp=self.ui.lineEdit_input_customized_indices.text()
-        cutoff=[int(self.ui.lineEdit_score_minima.text()),int(self.ui.lineEdit_score_maxima.text())]
+        cutoff=[float(self.ui.lineEdit_score_minima.text()),float(self.ui.lineEdit_score_maxima.text())]
         reversed_mutant_effect=self.ui.checkBox_reverse_mutant_effect.isChecked()
         output_pse=self.ui.lineEdit_output_pse.text()
         nproc=int(self.ui.comboBox_nproc_2.currentText())
@@ -1130,7 +1130,7 @@ class REvoDesignPlugin:
                 cmd.hide('lines', f'{molecule} and c. {chain_id} and i. {resi} and (sidechain or n. CA) and not hydrogens')
 
 
-        if self.mutant_tree_pssm.last_mutant_id:
+        if self.mutant_tree_pssm.last_mutant_id and self.mutant_tree_pssm.last_mutant_id != self.mutant_tree_pssm.current_mutant_id:
             cmd.disable(self.mutant_tree_pssm.last_mutant_id)
             cmd.hide('mesh', f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)')
             cmd.hide('sticks', f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)')

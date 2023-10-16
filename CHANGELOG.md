@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move `convert_PSSM_file_to_csv` in `PssmAnalyzer` to `convert_PSSM_file_to_df` in `MutantVisualizer`
 - In `PssmAnalyzer`, `MutantVisualizer.parse_profile` is called to handle profile parsing so that transposed profile is now supported.
 - Use cutoff[0] <= Score (Sub-WT) <= cutoff[1]
+- Set cutoffs as `float`
 
 ### Fixed
 - Segmentation fault while missing input session/structure file.
@@ -30,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Closing ploting instance after drawing is done.
 - B-factor altering while score is not available in Mutant Visualizer
 - Closing inactivive mutant group
+- Disabling `self.mutant_tree_pssm.last_mutant_id` if it equals to `self.mutant_tree_pssm.current_mutant_id`
 
 ### Removed
 - CheckBoxes of saving mutant table checkpoints and overiding. Set both `True` as default.
