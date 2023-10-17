@@ -233,6 +233,9 @@ class MutantVisualizer:
                                                 chain_id=self.chain_id,
                                                 sequence=self.sequence)
             _variant_info = variant_obj.get_mutant_info()
+
+            # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
+            # so we have to igore it here.
             if len(_variant_info) == 1 and self.profile_scoring_df is not None and (not self.profile_scoring_df.empty):
                 variant_obj.set_mutant_score(self.profile_scoring_df.loc[_variant_info[0]['mut_res'],str(int(_variant_info[0]['position'])-1)])
                 score=variant_obj.get_mutant_score()

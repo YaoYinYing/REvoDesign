@@ -2671,12 +2671,35 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="checkBox_reverse_mutant_effect_3">
+            <property name="statusTip">
+             <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
+            </property>
+            <property name="text">
+             <string>Reversed</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QPushButton" name="pushButton_run_visualizing">
             <property name="enabled">
              <bool>false</bool>
             </property>
             <property name="text">
              <string>Run !</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_save_this_mutant_table">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="statusTip">
+             <string>Save this mutant table (Mutants that keep enabled in current PyMOL session)</string>
+            </property>
+            <property name="text">
+             <string>Save Mutant</string>
             </property>
            </widget>
           </item>

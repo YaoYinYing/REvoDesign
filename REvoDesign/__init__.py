@@ -105,40 +105,8 @@ class REvoDesignPlugin:
             self.PWD='/Users/yyy/Documents/RosettaWorkshop/2._Working/0._IntergatedProtocol/REvoDesign/tests/test_results'
         else:
             self.PWD='D:\repo\RosettaWorkshop/2._Working/0._IntergatedProtocol/REvoDesign\REvoDesign\tests/test_results'
-        # Tab `Determine`
-        self.set_widget_value(self.ui.checkBox_use_this_session_2,True)
-        self.set_widget_value(self.ui.lineEdit_output_pse_4, f'{self.PWD}/test_surface.pze')
         
-        
-        # Tab `Load Mutants`
-        self.set_widget_value(self.ui.checkBox_use_this_session,True)
-        self.set_widget_value(self.ui.lineEdit_input_csv, f'{self.PWD}/../test_data/test.pssm')
-        self.set_widget_value(self.ui.lineEdit_input_customized_indices, f'{self.PWD}/surface_residue_records/residues_cutoff_15.txt')
-        self.set_widget_value(self.ui.lineEdit_output_pse,f'{self.PWD}/test_surface.pze')
-        self.set_widget_value(self.ui.lineEdit_reject_substitution,'PC')
-        self.set_widget_value(self.ui.lineEdit_preffer_substitution,'E:DATY K:RATY N:ATY Q:EDATY')
-        self.set_widget_value(self.ui.lineEdit_score_maxima,'2')
 
-        # Tab Choose Mutants
-        self.set_widget_value(self.ui.lineEdit_output_mut_table, f'{self.PWD}/surface_entropy.mut.txt')
-        self.set_widget_value(self.ui.checkBox_overide_to_save_mut_table,True)
-        self.set_widget_value(self.ui.lineEdit_input_mut_table, f'{self.PWD}/../test_data/surface_entropy_ce1adb4bb8_mut.txt')
-        
-        # clusters
-        self.set_widget_value(self.ui.comboBox_cluster_batchsize, 100)
-        self.set_widget_value(self.ui.checkBox_use_this_session_5, True)
-        self.set_widget_value(self.ui.checkBox_cluster_override, True)
-        self.set_widget_value(self.ui.comboBox_num_mut_maximum,2)
-
-        # mutant visualizer
-        self.set_widget_value(self.ui.checkBox_use_this_session_3, True)
-        self.set_widget_value(self.ui.lineEdit_input_mut_table_csv, f'{self.PWD}/../test_data/test.best_leaf.csv')
-        self.set_widget_value(self.ui.lineEdit_output_pse_2, f'{self.PWD}/test_mutant_visualizer.pze')
-
-
-        # interact 
-        self.set_widget_value(self.ui.lineEdit_input_gremlin_mtx,f'{self.PWD}/expanded_compressed_files/bbe_PSSM_GREMLIN_results.zip/gremlin_res/bbe.i90c75_aln.GREMLIN.mrf.pkl')
-        
     def run_plugin_gui(self):
 
         if self.window is None:
@@ -173,10 +141,6 @@ class REvoDesignPlugin:
 
         # Set up general arguments 
         # Tab `Determine`
-
-
-        
-
 
         self.ui.checkBox_use_this_session_2.stateChanged.connect(partial(
             self.reload_molecule_info, 
@@ -531,6 +495,22 @@ class REvoDesignPlugin:
             [
                 self.ui.pushButton_run_visualizing, 
             ]
+        ))
+
+        self.ui.lineEdit_input_mut_table_csv.textChanged.connect(partial(
+            self.release_run_button_if_lineEdit_fp_is_valid,
+            [
+                self.ui.lineEdit_input_mut_table_csv,
+            ],
+            [
+                self.ui.pushButton_save_this_mutant_table, 
+            ]
+        ))
+
+        self.ui.pushButton_save_this_mutant_table.clicked.connect(partial(
+            self.save_visualizing_mutant_tree,
+            self.ui.lineEdit_input_mut_table_csv,
+            self.ui.lineEdit_group_name
         ))
 
         self.ui.comboBox_molecule_2.currentIndexChanged.connect(partial(
@@ -1249,22 +1229,22 @@ class REvoDesignPlugin:
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self,mutant):
-        if re.match(r'\w\w\d+\w_[-\d\.]+', mutant):
-            return True
-        else:
-            return False
+        _mutant,_mutant_obj=extract_mutants(mutant_string=mutant)
+        return (_mutant is not None)
 
     # basic function that works for mutant_tree instantiation
-    def fetch_all_mutant_branch_ids(self):
-        self.all_mutant_branch_ids=[group_id for group_id in cmd.get_names(type='group_objects',enabled_only=0) if group_id.startswith('mt_') ]
+    def fetch_all_mutant_branch_ids(self, enabled_only=0):
+        self.all_mutant_branch_ids=[group_id for group_id in cmd.get_names(type='group_objects',enabled_only=enabled_only)]
 
     # basic function that works for mutant_tree instantiation
-    def fetch_all_mutant_in_one_branch(self,group_id):
-
-        design_resi,wild_type_aa,wild_type_score=self.read_design_wt_info_from_group_id(group_id)
+    def fetch_all_mutant_in_one_branch(self,group_id,enabled_only=0):
+        
+        all_nongroup_objects=cmd.get_names('nongroup_objects', enabled_only)
+        
+        # cmd.get_object_list:
+        # https://sourceforge.net/p/pymol/mailman/message/34797180/
         mutants_in_current_group = [mutant 
-            for mutant in cmd.get_names(type='nongroup_objects',enabled_only=0,selection=f'resi {design_resi}') 
-            if self.is_this_pymol_object_a_mutant(mutant)]
+            for mutant in cmd.get_object_list(f'({group_id})') if self.is_this_pymol_object_a_mutant(mutant) and mutant in all_nongroup_objects]
         
         all_mutants_in_current_branch={}
         for mutant_id in mutants_in_current_group:
@@ -1545,6 +1525,31 @@ class REvoDesignPlugin:
                     self.set_widget_value(comboBox_best_leaf,mut_table_cols[0])
                     self.set_widget_value(comboBox_totalscore,mut_table_cols[-1])
 
+    def save_visualizing_mutant_tree(self, lineEdit_mutant_table_fp, lineEdit_group_name):
+        lineEdit_mutant_table_fp=lineEdit_mutant_table_fp
+        group_name=lineEdit_group_name.text()
+
+        mutant_table_fp=lineEdit_mutant_table_fp.text()
+
+        if not os.path.exists(mutant_table_fp):
+            logging.warning(f'Mutant table path is not available. Now we will create one.')
+            
+        all_available_groups=cmd.get_names(type='group_objects',enabled_only=0)
+        if group_name not in all_available_groups:
+            logging.error(f'Group {group_name} is not correct. Available group: {all_available_groups}')
+            return
+
+        logging.info('Instantializing MutantTree for current selection ... ')
+        self.visualizing_mutant_tree=MutantTree(
+            {group_name:self.fetch_all_mutant_in_one_branch(group_id=group_name, enabled_only=1) })
+        
+        logging.info(f'Saving mutant table to {mutant_table_fp} ...')
+
+        self.save_mutant_choices(lineEdit_mutant_table_fp,self.visualizing_mutant_tree.all_mutant_ids)
+        
+        
+
+
     def visualize_mutants(self):
         input_pse=self.temperal_session
         input_mut_table_csv=self.ui.lineEdit_input_mut_table_csv.text()
@@ -1555,7 +1560,11 @@ class REvoDesignPlugin:
         totalscore=self.ui.comboBox_totalscore.currentText()
         nproc=int(self.ui.comboBox_nproc_4.currentText())
         group_name=self.ui.lineEdit_group_name.text()
-        cmap=self.ui.comboBox_cmap.currentText()
+
+        reversed_mutant_effect=self.ui.checkBox_reverse_mutant_effect_3.isChecked()
+        cmap=cmap_reverser(
+            cmap=self.ui.comboBox_cmap.currentText(),
+            reverse=reversed_mutant_effect)
 
         design_profile=self.ui.lineEdit_input_csv_2.text()
         design_profile_format=self.ui.comboBox_profile_type_2.currentText()
