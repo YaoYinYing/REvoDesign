@@ -1,11 +1,9 @@
 import os
-import re
 import time
-import shutil
 import tempfile
-import multiprocessing
 import pandas as pd
 from Bio.Data import IUPACData
+from Bio import SeqIO
 from pymol import cmd, util
 import matplotlib
 matplotlib.use('Agg')
@@ -13,7 +11,7 @@ from common.magic_numbers import DEFAULT_PROFILE_TYPE
 from common.Mutant import Mutant
 from phylogenetics.pymol_pssm_script import mutate
 from tools.merge_sessions import merge_sessions
-from tools.utils import get_color,extract_mutants,get_molecule_sequence
+from tools.utils import get_color,extract_mutants,extract_mutant_info,get_molecule_sequence
 from absl import logging
 
 class MutantVisualizer:
@@ -91,10 +89,10 @@ class MutantVisualizer:
             mutate(new_obj_name, chain_id, position, new_residue_3)
 
             if score: 
-                cmd.alter(f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA)", f'b={score}')
+                cmd.alter(f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA) ", f'b={score}')
 
             cmd.hide('lines', f'{new_obj_name}')
-            cmd.show("sticks", f' {new_obj_name} and c. {chain_id} and i. {str(position)} and (sidechain or n. CA)')
+            cmd.show("sticks", f' {new_obj_name} and c. {chain_id} and i. {str(position)} and (sidechain or n. CA) and (not hydrogen)')
 
         if not self.full:
             #logging.debug(f'Removing:  {new_obj_name} and not ( ({" or ".join(mut_pos)}) and (sidechain or n. CA))')
@@ -159,8 +157,10 @@ class MutantVisualizer:
 
             if len(df.columns) > 20 and str(df.columns[0])=='0':
                 logging.debug(f'Profile data matches default format.')
-                self.min_score_profile=df.min().min()
-                self.max_score_profile=df.max().max()
+
+                score_max_abs=max(abs(df.min().min()),abs(df.max().max()))
+                self.min_score_profile=-score_max_abs
+                self.max_score_profile=score_max_abs
                 return df
             else:
                 logging.debug(f'Failed to process profile data {profile_fp}..')
@@ -213,8 +213,18 @@ class MutantVisualizer:
         elif self.mutfile.lower().endswith('.txt'):
             # Read mutation data from TXT file using pandas and use 'key_col' as the column name
             mutation_data = pd.read_csv(self.mutfile, sep='\t', names=[self.key_col])
+        elif self.mutfile.lower().endswith('.fasta') or self.mutfile.lower().endswith('.fas') or self.mutfile.lower().endswith('.fa'):
+            # Read mutant data from fasta file.
+            _mutation_data=[extract_mutant_info(mutant_sequence=str(mut_record.seq),wt_sequence=self.sequence, chain_id=self.chain_id) 
+                        for mut_record in SeqIO.parse(open(self.mutfile, 'r'),format='fasta')]
+            
+            # Remove None items
+            while None in mutation_data:
+                _mutation_data.pop(None)
+            mutation_data=pd.DataFrame.from_dict({self.key_col:_mutation_data})
+        
         else:
-            raise ValueError("Invalid file format. Only CSV and TXT formats are supported.")
+            raise ValueError("Invalid file format. Only CSV, FASTA and TXT formats are supported.")
 
         # Check if the key_col exists in the dataframe
         if self.key_col not in mutation_data.columns:
@@ -225,15 +235,19 @@ class MutantVisualizer:
             logging.info(f"Warning: Score column '{self.score_col}' not found in the data. Setting score to 1.")
             mutation_data[self.score_col] = 1
 
-        #self.mutation_dict = {}
         self.mutant_list=[]
         score_list = []
         for _, row in mutation_data.iterrows():
             variant,variant_obj=extract_mutants(mutant_string=row[self.key_col],
                                                 chain_id=self.chain_id,
                                                 sequence=self.sequence)
-            _variant_info = variant_obj.get_mutant_info()
+            
+            # skip None variant (failed to be parsed)
+            if not variant: 
+                continue
 
+            _variant_info = variant_obj.get_mutant_info()
+            
             # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
             # so we have to igore it here.
             if len(_variant_info) == 1 and self.profile_scoring_df is not None and (not self.profile_scoring_df.empty):
@@ -249,8 +263,12 @@ class MutantVisualizer:
             score_list.append(score)
 
         # Determine the range for color bar
-        self.min_score = min(score_list)
-        self.max_score = max(score_list)
+        if self.profile_scoring_df is not None and (not self.profile_scoring_df.empty):
+            self.min_score = self.min_score_profile
+            self.max_score = self.max_score_profile
+        else: 
+            self.min_score = min(score_list) 
+            self.max_score = max(score_list)
 
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
@@ -289,10 +307,10 @@ class MutantVisualizer:
         merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'tmp_{os.path.basename(self.save_session)}')}"
         merge_sessions(session_paths=mutagenesis_sessions,
                        save_path=merged_temp_session,
-                       mode=2,
-                       delete=1)
+                       mode=2,quiet=0
+                       )
 
         merge_sessions(session_paths=[self.input_session, merged_temp_session],
                        save_path=self.save_session,
-                       mode=2)
+                       mode=2,quiet=0)
         

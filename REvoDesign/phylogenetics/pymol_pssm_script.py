@@ -21,10 +21,6 @@ def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
     
 cmd.extend("mutate", mutate)
 
-def read_json_file(filename):
-    with open(filename) as file:
-        data = json.load(file)
-    return data
 
 def process_mutations(data):
     positions = data['indices']
@@ -40,6 +36,6 @@ def process_mutations(data):
     return result
 
 def process_pssm_mutations(filename):
-    data = read_json_file(filename)
+    data = json.load(open(filename))
     return process_mutations(data)
 

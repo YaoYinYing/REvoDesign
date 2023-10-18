@@ -1,7 +1,4 @@
-
-from collections import defaultdict
 import contextlib
-import multiprocessing
 import re
 
 from pymol import cmd
@@ -9,7 +6,6 @@ import os
 from pymol.Qt import *
 from pymol.Qt import QtWidgets,QtGui, QtCore
 from absl import logging
-
 
 import time
 
@@ -89,25 +85,6 @@ def get_molecule_sequence(molecule,chain_id):
     logging.debug(f'( {molecule} and c. {chain_id} and n. CA )')
     return ''.join([protein_letters_3to1_upper[atom.resn] for atom in cmd.get_model(f'( {molecule} and c. {chain_id} and n. CA )').atom])
 
-
-def run_command(command_list, excutable='python', ):
-
-    import sys
-    import subprocess
-    
-    if excutable == 'python':
-        python_exe = os.path.realpath(sys.executable)
-        command_list=[python_exe] + command_list
-    # TODO: enable shell executables
-
-    while '' in command_list:
-        command_list.remove('')
-    
-    logging.debug(command_list)
-
-    result = subprocess.run(command_list, stderr=subprocess.PIPE,)
-
-    return result
 
 def refresh_window():
     QtWidgets.QApplication.processEvents()
@@ -197,7 +174,6 @@ def run_worker_thread_with_progress(worker_function, progress_bar=None, *args, *
 
 
 
-
 class ParallelExecutor(QtCore.QThread):
     
     '''
@@ -272,10 +248,7 @@ class ParallelExecutor(QtCore.QThread):
         
         logging.debug(f'Sending results ...')
         return self.results
-    
-    
-        
-    
+
 
 def extract_archive(archive_file, extract_to):
     """
@@ -531,6 +504,19 @@ def extract_mutants(mutant_string, chain_id=None, sequence=None):
 
     # Join the mutants into a single string separated by underscores and instantialized Mutant obj
     return '_'.join(mutants), mutant_obj
+
+def extract_mutant_info(mutant_sequence, wt_sequence,chain_id='A'):
+    if len(mutant_sequence) != len(wt_sequence):
+        logging.error(f'Lengths of WT and mutant are not equal to each other: {len(wt_sequence)}: {len(mutant_sequence)}')
+        return None
+    
+    if mutant_sequence == wt_sequence:
+        logging.warning(f'WT and mutant sequences are identical.')
+        return None
+    
+    mut_info=[f'{chain_id}{res}{i+1}{mutant_sequence[i]}' for i,res in enumerate(wt_sequence) if res != mutant_sequence[i]]
+    return '_'.join(mut_info) 
+
 
 def get_atom_pair_cst(selection='sele'):
     _sele=cmd.get_model(selection=selection).atom

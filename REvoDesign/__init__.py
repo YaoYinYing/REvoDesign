@@ -73,7 +73,6 @@ from phylogenetics.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from common.MutantVisualizer import MutantVisualizer
 
 
-
 class REvoDesignPlugin:
     def __init__(self,):
 
@@ -85,8 +84,6 @@ class REvoDesignPlugin:
         self.PWD=os.getcwd()
 
         self.ui_file = os.path.join(self.RUN_DIR,'UI', 'REvoDesign-PyMOL.ui')
-
-        
 
         self.total_mutant_in_this_session=0
         self.mutant_tree_pssm=None
@@ -613,9 +610,6 @@ class REvoDesignPlugin:
         self.ui.pushButton_interact_reject.clicked.connect(self.reject_coevoled_mutant)
         self.ui.pushButton_interact_accept.clicked.connect(self.accept_coevoled_mutant)
 
-
-        
-
         return main_window
     
 
@@ -941,7 +935,6 @@ class REvoDesignPlugin:
                 chain_id=chain_id, 
                 sequence=sequence)
         
-            
 
 
     def reload_determine_tab_setup(self,
@@ -1030,9 +1023,6 @@ class REvoDesignPlugin:
 
     # Tab `Load Mutants`
 
-
-
-
     def run_mutant_loading_from_profile(self):
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
         
@@ -1117,7 +1107,7 @@ class REvoDesignPlugin:
         
         if self.mutant_tree_pssm.current_mutant_id:
             cmd.enable(self.mutant_tree_pssm.current_mutant_id)
-            cmd.show('mesh', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA) and not hydrogen')
+            cmd.show('mesh', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA)')
             cmd.show('sticks', f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA) and not hydrogen')
             cmd.hide('cartoon',f'{self.mutant_tree_pssm.current_mutant_id}')
             if checkBox_show_wt.isChecked() and resi:
@@ -1570,8 +1560,6 @@ class REvoDesignPlugin:
         design_profile_format=self.ui.comboBox_profile_type_2.currentText()
         
         progressBar_visualize_mutants=self.ui.progressBar_visualize_mutants
-
-        
 
 
         visualizer=MutantVisualizer(molecule=molecule,

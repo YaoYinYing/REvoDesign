@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Saving mutant table using `save_visualizing_mutant_tree` in Mutant visualizing tab
 - `reversed_mutant_effect` in `visualize_mutants`
+- Supporting mutant fasta file in to in `MutantVisualizer`
+- `extract_mutant_info` for future uses.
 
 ### Changed
 - Using `extract_mutants` in `is_this_pymol_object_a_mutant`
@@ -19,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Testing cases, because they are now obsolete.
 - Group Id prefix in `fetch_all_mutant_branch_ids`
+- Minor cleanings.
+- `read_json_file`
 
 
 ## [1.1.4] - 2023-10-17
