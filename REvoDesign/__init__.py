@@ -1,26 +1,20 @@
 import sys,os
 import time
-import tempfile
 import re
 from pymol import cmd
-from pymol.Qt import QtWidgets,QtCore
-from pymol.Qt.utils import loadUi, getSaveFileNameWithExt
+from pymol.Qt import QtWidgets
 
 # using partial module to reduce duplicate code.
 from functools import partial
 import absl.logging as logging
 
-from Bio.Align import substitution_matrices
-import matplotlib
-
-
 logging.set_verbosity(logging.DEBUG)
-logging.info(f'REvoDesign is installed in {os.path.dirname(__file__)}')
+logging.info(f'REvoDesign Core is installed in {os.path.dirname(__file__)}')
 
 sys.path.append(os.path.dirname(__file__))
 
-from common.MutantTree import MutantTree
-from common.file_extensions import \
+from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common.file_extensions import \
     SessionFileExt, \
     PDB_FileExt, \
     PSSM_FileExt, \
@@ -30,23 +24,7 @@ from common.file_extensions import \
     CompressedFileExt, \
     PickleObjectFileExt
 
-from common.magic_numbers import \
-        DEFAULT_SURFACE_PROBE_RADIUS, \
-        DEFAULT_SUBSTRATE_POCKET_RADIUS, \
-        DEFAULT_COFACTOR_POCKET_RADIUS, \
-        DEFAULT_INTERCHAIN_RADIUS, \
-        DEFAULT_CLUSTER_NUM, \
-        DEFAULT_CLUSTER_RANGE, \
-        DEFAULT_CLUSTER_MIN_MUT, \
-        DEFAULT_CLUSTER_MAX_MUT, \
-        DEFAULT_CLUSTER_BATCH_SIZE, \
-        DEFAULT_CLUSTER_SCORE_MTX, \
-        DEFAULT_GREMLIN_TOPN_NUM, \
-        DEFAULT_GREMLIN_SPATIAL_MAX_DIST, \
-        DEFAULT_PROFILE_TYPE, \
-        DEFAULT_PROFILE_TYPE_GROUP
-
-from tools.utils import \
+from REvoDesign.tools.utils import \
     determine_chain_id, \
     determine_exclusion, \
     determine_molecule_objects, \
@@ -67,10 +45,6 @@ from tools.utils import \
     rescale_number, \
     extract_mutants
 
-from phylogenetics.PSSM_profile import PssmAnalyzer
-from phylogenetics.PSSM_GREMLIN_client import PSSMGremlinCalculator
-
-from common.MutantVisualizer import MutantVisualizer
 
 
 class REvoDesignPlugin:
@@ -90,6 +64,8 @@ class REvoDesignPlugin:
         self.mutant_tree_pssm_selected=None
         self.mutant_tree_coevolved=None
         self.gremlin_tool=None
+
+        from REvoDesign.phylogenetics.PSSM_GREMLIN_client import PSSMGremlinCalculator
         self.pssm_gremlin_calculator=PSSMGremlinCalculator()
 
     def set_working_directory(self):
@@ -122,7 +98,22 @@ class REvoDesignPlugin:
     # main function that makes the plugin window
     def make_window(self):
         main_window = QtWidgets.QMainWindow()
+        
+        from pymol.Qt.utils import loadUi
         self.ui = loadUi(self.ui_file, main_window)# Store the UI form for later access
+        
+        from REvoDesign.common.magic_numbers import \
+        DEFAULT_INTERCHAIN_RADIUS, \
+        DEFAULT_CLUSTER_NUM, \
+        DEFAULT_CLUSTER_RANGE, \
+        DEFAULT_CLUSTER_MIN_MUT, \
+        DEFAULT_CLUSTER_MAX_MUT, \
+        DEFAULT_CLUSTER_BATCH_SIZE, \
+        DEFAULT_CLUSTER_SCORE_MTX, \
+        DEFAULT_GREMLIN_TOPN_NUM, \
+        DEFAULT_GREMLIN_SPATIAL_MAX_DIST, \
+        DEFAULT_PROFILE_TYPE, \
+        DEFAULT_PROFILE_TYPE_GROUP
 
 
         #self.setup_nproc(self.ui.comboBox_nproc)
@@ -247,6 +238,7 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_pocket_detection.clicked.connect(self.run_pocket_detection)
 
         # Tab `Load Mutants`
+        import matplotlib
         
         self.set_widget_value(self.ui.comboBox_cmap_2,matplotlib.colormaps())
         self.set_widget_value(self.ui.comboBox_cmap_2,'bwr_r')
@@ -454,6 +446,8 @@ class REvoDesignPlugin:
         self.set_widget_value(self.ui.comboBox_num_cluster,DEFAULT_CLUSTER_NUM)
         self.set_widget_value(self.ui.comboBox_num_mut_minimun,DEFAULT_CLUSTER_MIN_MUT)
         self.set_widget_value(self.ui.comboBox_num_mut_maximum,DEFAULT_CLUSTER_MAX_MUT)
+        
+        from Bio.Align import substitution_matrices
         self.set_widget_value(self.ui.comboBox_cluster_matrix, [mtx for mtx in os.listdir(os.path.join(substitution_matrices.__path__[0],'data'))])
         self.set_widget_value(self.ui.comboBox_cluster_matrix, DEFAULT_CLUSTER_SCORE_MTX)
         
@@ -616,6 +610,7 @@ class REvoDesignPlugin:
     #class public function that can be shared with each tab
     # callback for the "Browse" button
     def browse_filename(self, mode='r', exts=[AnyFileExt]):
+        from pymol.Qt.utils import getSaveFileNameWithExt
         filter_strings = ';;'.join([f'{ext_discrition} ( *.{ext_} )' for ext in exts for ext_, ext_discrition in ext.items()])
         
         if mode == 'w' or mode == 'a':
@@ -719,6 +714,7 @@ class REvoDesignPlugin:
             return input_fn
 
     def reload_molecule_info(self,trigger_checkBox,lineEdit_input_session,output_comboBox):
+        import tempfile
 
         self.temperal_session=tempfile.mktemp(suffix=".pse")
 
@@ -941,6 +937,11 @@ class REvoDesignPlugin:
                                 comboBox_design_molecule,
                                 comboBox_ligand_sel,
                                 comboBox_cofactor_sel):
+        from REvoDesign.common.magic_numbers import \
+        DEFAULT_SURFACE_PROBE_RADIUS, \
+        DEFAULT_SUBSTRATE_POCKET_RADIUS, \
+        DEFAULT_COFACTOR_POCKET_RADIUS
+
         # Setup surface determination arguments
         self.ui.comboBox_surface_cutoff.clear()
         self.ui.comboBox_surface_cutoff.addItems(map(str, range(1, 36)))
@@ -988,7 +989,7 @@ class REvoDesignPlugin:
         cutoff = int(self.ui.comboBox_surface_cutoff.currentText())
         do_show_surf_CA = True
 
-        from structure.Surface.findSurfaceResidues import determine_surface_residue
+        from REvoDesign.structure.Surface.findSurfaceResidues import determine_surface_residue
         determine_surface_residue(
             input_file=input_file,
             output_file=output_file,
@@ -1009,7 +1010,7 @@ class REvoDesignPlugin:
         ligand_radius = int(self.ui.comboBox_ligand_radius.currentText())
         cofactor_radius = int(self.ui.comboBox_cofactor_radius.currentText())
 
-        from structure.pocket.read_enzyme_pockets import read_enzyme_pockets
+        from REvoDesign.structure.pocket.read_enzyme_pockets import read_enzyme_pockets
         read_enzyme_pockets(
             input_file=input_file,
             output_file=output_file,
@@ -1052,7 +1053,7 @@ class REvoDesignPlugin:
 
         logging.info(f"Sequence of `{molecule}`: \n {sequence}")
         
-        
+        from REvoDesign.phylogenetics.PSSM_profile import PssmAnalyzer
         design=PssmAnalyzer(design_profile)
         design.input_profile_format=design_profile_format
         design.molecule=molecule
@@ -1395,8 +1396,8 @@ class REvoDesignPlugin:
     def run_clustering(self):
 
         # lazy module loading to fasten plugin initializing
-        from clusters.combine_positions import Combinations
-        from clusters.cluster_sequence import Clustering
+        from REvoDesign.clusters.combine_positions import Combinations
+        from REvoDesign.clusters.cluster_sequence import Clustering
 
         input_molecule=self.ui.comboBox_molecule_4.currentText()
         input_chain_id=self.ui.comboBox_chainid_3.currentText()
@@ -1561,7 +1562,7 @@ class REvoDesignPlugin:
         
         progressBar_visualize_mutants=self.ui.progressBar_visualize_mutants
 
-
+        from REvoDesign.common.MutantVisualizer import MutantVisualizer
         visualizer=MutantVisualizer(molecule=molecule,
                                     chain_id=chainid,)
         visualizer.mutfile=input_mut_table_csv
@@ -1606,7 +1607,7 @@ class REvoDesignPlugin:
 
     # Tab Interact via GREMLIN
     def load_gremlin_mrf(self,):
-        from phylogenetics.GREMLIN_Tools import GREMLIN_Tools
+        from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
         self.ui.pushButton_reinitialize_interact.setEnabled(False)
 
         try:
@@ -1909,6 +1910,8 @@ class REvoDesignPlugin:
         import matplotlib
         matplotlib.use('Agg')
 
+        from REvoDesign.common.MutantVisualizer import MutantVisualizer
+
         visualizer=MutantVisualizer(molecule, chain_id)
         alphabet=self.gremlin_tool.alphabet
         visualizer.group_name='_vs_'.join([wt.replace('_','') for wt in wt_info[-3:-1]])
@@ -1977,14 +1980,4 @@ class REvoDesignPlugin:
         self.activate_focused_interaction()
 
 
-
-# entrypoint of PyMOL plugin
-def __init_plugin__(app=None):
-    
-    '''
-    Add an entry to the PyMOL "Plugin" menu
-    '''
-    from pymol.plugins import addmenuitemqt
-    plugin = REvoDesignPlugin()
-    addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
 

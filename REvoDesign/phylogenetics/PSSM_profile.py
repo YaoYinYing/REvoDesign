@@ -10,10 +10,10 @@ from pymol import cmd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
-from tools.utils import refresh_window, ParallelExecutor,get_color,extract_mutants
-from common.MutantVisualizer import MutantVisualizer
-from tools.merge_sessions import merge_sessions
-from phylogenetics.pymol_pssm_script import process_pssm_mutations
+from REvoDesign.tools.utils import refresh_window, ParallelExecutor,get_color,extract_mutants
+from REvoDesign.common.MutantVisualizer import MutantVisualizer
+from REvoDesign.tools.merge_sessions import merge_sessions
+from REvoDesign.phylogenetics.pymol_pssm_script import process_pssm_mutations
 
 class PssmAnalyzer():
     def __init__(self, input_pssm_file):
