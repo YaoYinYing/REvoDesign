@@ -1,7 +1,7 @@
 
 import json
 from pymol import cmd
-from tools.utils import suppress_print
+from REvoDesign.tools.utils import suppress_print
 
 # http://www.pymolwiki.org/index.php/rotkit
 @suppress_print

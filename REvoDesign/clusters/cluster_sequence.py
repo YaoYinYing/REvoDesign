@@ -20,8 +20,8 @@ from matplotlib import pyplot as plt
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.neighbors import NearestCentroid
 
-from tools.utils import refresh_window,minibatches_generator
-from tools.utils import ParallelExecutor
+from REvoDesign.tools.utils import refresh_window,minibatches_generator
+from REvoDesign.tools.utils import ParallelExecutor
 
 class Clustering:
     def __init__(self,fastafile):

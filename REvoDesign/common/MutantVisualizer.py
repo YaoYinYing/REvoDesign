@@ -7,11 +7,12 @@ from Bio import SeqIO
 from pymol import cmd, util
 import matplotlib
 matplotlib.use('Agg')
-from common.magic_numbers import DEFAULT_PROFILE_TYPE
-from common.Mutant import Mutant
-from phylogenetics.pymol_pssm_script import mutate
-from tools.merge_sessions import merge_sessions
-from tools.utils import get_color,extract_mutants,extract_mutant_info,get_molecule_sequence
+
+from REvoDesign.common.magic_numbers import DEFAULT_PROFILE_TYPE
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign.phylogenetics.pymol_pssm_script import mutate
+from REvoDesign.tools.merge_sessions import merge_sessions
+from REvoDesign.tools.utils import get_color,extract_mutants,extract_mutant_info,get_molecule_sequence
 from absl import logging
 
 class MutantVisualizer:
@@ -274,7 +275,7 @@ class MutantVisualizer:
 
 
     def run_mutagenesis_tasks(self,progress_bar):
-        from tools.utils import refresh_window, ParallelExecutor
+        from REvoDesign.tools.utils import refresh_window, ParallelExecutor
 
         # Create a multiprocessing pool
         self.mutagenesis_tasks=[[variant] for variant in self.mutant_list]
