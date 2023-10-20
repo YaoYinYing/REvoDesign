@@ -524,4 +524,7 @@ def get_atom_pair_cst(selection='sele'):
         logging.error(f'Atom pair selection {selection} must contain exactly 2 atoms!')
         return
     else:
-        return f'AtomPair {_sele[0].name} {_sele[0].resi}{_sele[0].chain_id} {_sele[1].name} {_sele[1].resi}{_sele[1].chain_id} HARMONIC 3 0.5'
+        cst=f'AtomPair {_sele[0].name} {_sele[0].resi}{_sele[0].chain} {_sele[1].name} {_sele[1].resi}{_sele[1].chain} HARMONIC 3 0.5'
+        return cst
+        
+

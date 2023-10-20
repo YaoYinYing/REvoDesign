@@ -12,17 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `reversed_mutant_effect` in `visualize_mutants`
 - Supporting mutant fasta file in to in `MutantVisualizer`
 - `extract_mutant_info` for future uses.
+- Setting None to `visualizer.profile_scoring_df` if it is not available.
+- `pyproject.toml`
 
 ### Changed
 - Using `extract_mutants` in `is_this_pymol_object_a_mutant`
 - Using `cmd.get_object_list` in `fetch_all_mutant_in_one_branch`
-- 
+- Score overriding of `MutantVisualizer`. `self.profile_scoring_df` >> `row[self.score_col]` >> None score
 
 ### Removed
 - Testing cases, because they are now obsolete.
 - Group Id prefix in `fetch_all_mutant_branch_ids`
 - Minor cleanings.
 - `read_json_file`
+
+
+### Fixed
+- Key error of `get_atom_pair_cst`
 
 
 ## [1.1.4] - 2023-10-17

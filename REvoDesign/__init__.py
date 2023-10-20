@@ -1572,6 +1572,10 @@ class REvoDesignPlugin:
             visualizer.profile_scoring_df=visualizer.parse_profile(
                 profile_fp=design_profile,
                 profile_format=design_profile_format)
+            logging.debug(visualizer.profile_scoring_df.head())
+        else:
+            logging.warning("Profile data is not available. Trying to read scores from the mutant table ...")
+            visualizer.profile_scoring_df=None
 
         if best_leaf:
             visualizer.key_col=best_leaf 

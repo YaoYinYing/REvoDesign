@@ -1,11 +1,6 @@
-# REvoDesign
-
-A self-maintained version of universal enzyme redesign protocol that combines structural and phylogenetic informations, serving as a copilot for human prior knowledge.
-
-
 ## Introduction
 
-Welcome to the initial release of the **PyMOL Enzyme Redesign Toolkit** - a powerful plugin aimed at facilitating enzyme redesign using a combination of structural and phylogenetic information. This toolkit serves as a co-pilot for protein designers, leveraging the wealth of human knowledge in enzyme design.
+Welcome to the repo of the **REvoDesign** - a powerful plugin aimed at facilitating enzyme redesign using a combination of structural and phylogenetic information. This toolkit serves as a co-pilot for protein designers, leveraging the wealth of human knowledge in enzyme design.
 
 ### About the Plugin
 
@@ -19,7 +14,7 @@ In this first release, the plugin provides a set of essential tools to help prot
 
 2. **Mutant Loading**: Load available designable mutants through a PSSM-like table in CSV format, allowing for customizable rejections and preferences.
 
-3. **Human Knowledge Supervision**: Perform human knowledge-supervised mutant selection and decision-making within the PyMOL interface, utilizing structural views.
+3. **Human Knowledge Supervision**: Perform human knowledge-supervised mutant selection within the PyMOL interface, utilizing structural views.
 
 4. **Scale Reduction**: Reduce the scale of your design, making it suitable for low-throughput wet-lab validation by leveraging sequence clustering.
 
@@ -27,9 +22,13 @@ In this first release, the plugin provides a set of essential tools to help prot
 
 6. **Co-Evolution Analysis**: Search for possible inter-residue co-evolved residue pairs for effective mutants using the GREMLIN Markov random field profile.
 
+This toolkit is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, the PyMOL Enzyme Redesign Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
+
+Please refer to the [documentation](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
+
 ## Prerequisites
 
-Before you can start using the **PyMOL Enzyme Redesign Toolkit (REvoDesign)**, it's important to ensure that you have the necessary prerequisite packages installed. You can easily install these packages using the `system` function in the PyMOL console or from the command line prompt. Please follow these steps:
+Before you can start using the PyMOL Enzyme Redesign Toolkit, ensure that you have the necessary prerequisite packages installed. You can easily install these packages using the `system` function in the PyMOL console or from the command line prompt. Please follow these steps:
 
 1. **Open PyMOL**: Launch PyMOL and ensure that you have access to the PyMOL console.
 
@@ -44,7 +43,6 @@ system pip install scikit-learn
 system pip install biopython
 system pip install numpy
 system pip install scipy
-system pip install requests
 ```
 
 3. **Press Enter**: After pasting the above commands, press Enter to execute them.
@@ -53,16 +51,6 @@ system pip install requests
 
 5. **Verification**: To verify that the packages have been successfully installed, you can check for any error messages in the console. If there are no errors, the installation should be complete.
 
-Once you have successfully installed these prerequisite packages, you'll be ready to install and use the PyMOL Enzyme Redesign Toolkit to its full potential. If you encounter any issues during the installation process or while using the toolkit, please refer to the documentation or seek assistance from the toolkit's support resources.
+Once you have successfully installed these prerequisite packages, you'll be ready to use the PyMOL Enzyme Redesign Toolkit to its full potential. If you encounter any issues during the installation process or while using the toolkit, please refer to the documentation or seek assistance from the toolkit's support resources.
 
 Happy enzyme redesigning with REvoDesign!
-
-This toolkit is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, the PyMOL Enzyme Redesign Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
-
-Please refer to the documentation (currently not available) for detailed instructions on how to use the toolkit and make the most of its features.
-
-
-Thank you for choosing the PyMOL Enzyme Redesign Toolkit. We look forward to your valuable feedback and contributions as we continue to enhance and expand its capabilities.
-
-
-

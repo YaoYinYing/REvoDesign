@@ -124,7 +124,6 @@ class MutantVisualizer:
         elif profile_format== 'CSV':
             df = pd.read_csv(profile_fp, index_col=0)
             df=df.astype(float)
-            #logging.debug(df.head())
 
 
             # try to transpose if the shape is 20 col x N row
@@ -251,16 +250,17 @@ class MutantVisualizer:
             # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
             # so we have to igore it here.
             if len(_variant_info) == 1 and self.profile_scoring_df is not None and (not self.profile_scoring_df.empty):
-                variant_obj.set_mutant_score(self.profile_scoring_df.loc[_variant_info[0]['mut_res'],str(int(_variant_info[0]['position'])-1)])
-                score=variant_obj.get_mutant_score()
+                _score=self.profile_scoring_df.loc[_variant_info[0]['mut_res'],str(int(_variant_info[0]['position'])-1)]
+                logging.debug(f'Reading profile score for variant {variant_obj.get_mutant_id()}: {_score}')
             else:
-                score = row[self.score_col]
-                variant_obj.set_mutant_score(score)
-            #self.mutation_dict[variant] = score
+                _score = row[self.score_col]
+                logging.debug(f'Reading mutant table score for variant {variant_obj.get_mutant_id()}: {_score}')
+            
+            variant_obj.set_mutant_score(float(_score))
 
             self.mutant_list.append(variant_obj)
 
-            score_list.append(score)
+            score_list.append(float(_score))
 
         # Determine the range for color bar
         if self.profile_scoring_df is not None and (not self.profile_scoring_df.empty):
@@ -304,7 +304,7 @@ class MutantVisualizer:
         mutagenesis_sessions = [session_path for session_path in self.results if session_path]
         logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
 
-        merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'tmp_{os.path.basename(self.save_session)}')}"
+        merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
         merge_sessions(session_paths=mutagenesis_sessions,
                        save_path=merged_temp_session,
                        mode=2,quiet=0
