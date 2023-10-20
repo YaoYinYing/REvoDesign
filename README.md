@@ -1,6 +1,6 @@
 ## Introduction
 
-Welcome to the repo of the **REvoDesign** - a powerful plugin aimed at facilitating enzyme redesign using a combination of structural and phylogenetic information. This toolkit serves as a co-pilot for protein designers, leveraging the wealth of human knowledge in enzyme design.
+Welcome to the initial release of the **PyMOL Enzyme Redesign Toolkit** - a powerful plugin aimed at facilitating enzyme redesign using a combination of structural and phylogenetic information. This toolkit serves as a co-pilot for protein designers, leveraging the wealth of human knowledge in enzyme design.
 
 ### About the Plugin
 
@@ -26,31 +26,41 @@ This toolkit is your indispensable companion in the intricate journey of enzyme 
 
 Please refer to the [documentation](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
 
-## Prerequisites
+## Installation
 
-Before you can start using the PyMOL Enzyme Redesign Toolkit, ensure that you have the necessary prerequisite packages installed. You can easily install these packages using the `system` function in the PyMOL console or from the command line prompt. Please follow these steps:
+With the recent updates, the installation process for the PyMOL Enzyme Redesign Toolkit has been dramatically changed. Please follow the steps below:
 
-1. **Open PyMOL**: Launch PyMOL and ensure that you have access to the PyMOL console.
+1. **Install the Main Program**:
 
-2. **Run the following commands** in the PyMOL console or your command line prompt:
+   To install the main program, which is upgradable from internet access, you have two options:
 
-```python
-system pip install absl-py
-system pip install joblib
-system pip install matplotlib
-system pip install pandas
-system pip install scikit-learn
-system pip install biopython
-system pip install numpy
-system pip install scipy
-```
+   a. If you have the local repository of the program, run the following command to install it:
 
-3. **Press Enter**: After pasting the above commands, press Enter to execute them.
+   ```python
+   # From a local repo
+   system pip install git+file:///Users/yyy/Documents/protein_design/REvoDesign
+   ```
 
-4. **Wait for Installation**: During the installation process, PyMOL's window may freeze for a while. The duration of this freeze will depend on your bandwidth and connectivity to the PyPI site or its mirrors.
+   b. If you prefer to install from the remote repository, use this command:
 
-5. **Verification**: To verify that the packages have been successfully installed, you can check for any error messages in the console. If there are no errors, the installation should be complete.
+   ```python
+   # From a remote repo
+   system pip install git+https://github.com/YaoYinYing/REvoDesign
+   ```
 
-Once you have successfully installed these prerequisite packages, you'll be ready to use the PyMOL Enzyme Redesign Toolkit to its full potential. If you encounter any issues during the installation process or while using the toolkit, please refer to the documentation or seek assistance from the toolkit's support resources.
+2. **Install the PyMOL Entrypoint**:
 
-Happy enzyme redesigning with REvoDesign!
+   After installing the main program, you can install its entrypoint towards the PyMOL menu like other PyMOL plugins. Follow these steps:
+
+   - Open PyMOL.
+   - Go to the "Plugin Manager" and choose "Install New Plugin."
+   - Select "Install from Local File."
+   - Choose the entrypoint file located at the root directory of the repository:
+
+   ```
+   <repo-url-or-filepath>/REvoDesign.PyMOL.py
+   ```
+
+   This will integrate the PyMOL Enzyme Redesign Toolkit into your PyMOL environment, allowing you to access it from the PyMOL menu.
+
+Happy enzyme redesigning with REvoDesign! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from the toolkit's support resources.
