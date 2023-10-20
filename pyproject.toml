@@ -38,5 +38,3 @@ include = '''
   | REvoDesign
 )/
 '''
-
-exclude = "REvoDesign/UI"
