@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.5] - 2023-10-20
+
 ### Added
 - Saving mutant table using `save_visualizing_mutant_tree` in Mutant visualizing tab
 - `reversed_mutant_effect` in `visualize_mutants`
@@ -14,7 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `extract_mutant_info` for future uses.
 - Setting None to `visualizer.profile_scoring_df` if it is not available.
 - `pyproject.toml`
-
+- Moving **REvoDesign** main program as a pip-installable package. 
+  ```shell
+  # from local repo
+  pip install git+file:///Users/yyy/Documents/protein_design/REvoDesign
+  # from remote repo
+  pip install git+https://github.com/YaoYinYing/REvoDesign@pip-install
+  ```
 ### Changed
 - Using `extract_mutants` in `is_this_pymol_object_a_mutant`
 - Using `cmd.get_object_list` in `fetch_all_mutant_in_one_branch`
