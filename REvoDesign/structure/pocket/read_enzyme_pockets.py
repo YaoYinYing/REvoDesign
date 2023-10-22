@@ -3,7 +3,17 @@ import os
 from pymol import cmd
 from absl import logging
 
-def read_enzyme_pockets(input_file, output_file, molecule, ligand, cofactor, save_dir,ligand_radius=6,cofactor_radius=7):
+
+def read_enzyme_pockets(
+    input_file,
+    output_file,
+    molecule,
+    ligand,
+    cofactor,
+    save_dir,
+    ligand_radius=6,
+    cofactor_radius=7,
+):
     """
     Read an existing structure file, analyze enzyme pockets, and save results.
 
@@ -17,19 +27,28 @@ def read_enzyme_pockets(input_file, output_file, molecule, ligand, cofactor, sav
     """
     cmd.load(input_file)
 
-    cmd.select('pkt_res', f'( {molecule} ) and byres hetatm around {ligand_radius}')
-    cmd.select('pkt_res_lig', f'( {molecule} ) and (byres resn {ligand} around {ligand_radius}) and polymer.protein')
-    cmd.select('design_shell', f'( {molecule} ) and polymer.protein and (pkt_res_lig)')
+    cmd.select(
+        'pkt_res', f'( {molecule} ) and byres hetatm around {ligand_radius}'
+    )
+    cmd.select(
+        'pkt_res_lig',
+        f'( {molecule} ) and (byres resn {ligand} around {ligand_radius}) and polymer.protein',
+    )
+    cmd.select(
+        'design_shell', f'( {molecule} ) and polymer.protein and (pkt_res_lig)'
+    )
 
     selections = ["pkt_res", "pkt_res_lig", "design_shell"]
 
-
     logging.debug(f'cofactor info {cofactor}: {cofactor_radius}')
-    if cofactor is None or  cofactor == '' or cofactor_radius > 0:
+    if cofactor is None or cofactor == '' or cofactor_radius > 0:
         logging.debug('Skip setting cofactor.')
     else:
         logging.debug(f'Setting cofactor {cofactor}')
-        cmd.select('pkt_res_cof', f'( {molecule} ) and (byres resn {cofactor} around {cofactor_radius}) and polymer.protein')
+        cmd.select(
+            'pkt_res_cof',
+            f'( {molecule} ) and (byres resn {cofactor} around {cofactor_radius}) and polymer.protein',
+        )
         cmd.select('design_shell', f'design_shell and not (pkt_res_cof)')
         selections.append("pkt_res_cof")
 
@@ -47,14 +66,43 @@ def read_enzyme_pockets(input_file, output_file, molecule, ligand, cofactor, sav
     # Save the session
     cmd.save(output_file)
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Read existing structure file, analyze enzyme pockets, and save results.")
-    parser.add_argument("-i", "--input", required=True, help="Path to the input structure file (pdb/pse/pze).")
-    parser.add_argument("-o", "--output", required=True, help="Path to the output session file (pze).")
+    parser = argparse.ArgumentParser(
+        description="Read existing structure file, analyze enzyme pockets, and save results."
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        required=True,
+        help="Path to the input structure file (pdb/pse/pze).",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="Path to the output session file (pze).",
+    )
     parser.add_argument("--obj", required=True, help="Object molecule ID.")
-    parser.add_argument("-lig", "--ligand", required=True, help="Ligand molecule ID.")
-    parser.add_argument("-cof", "--cofactor", default=None, help="Cofactor molecule ID.")
-    parser.add_argument("-s", "--save_dir", required=True, help="Save directory path for pocket residue record.")
+    parser.add_argument(
+        "-lig", "--ligand", required=True, help="Ligand molecule ID."
+    )
+    parser.add_argument(
+        "-cof", "--cofactor", default=None, help="Cofactor molecule ID."
+    )
+    parser.add_argument(
+        "-s",
+        "--save_dir",
+        required=True,
+        help="Save directory path for pocket residue record.",
+    )
     args = parser.parse_args()
 
-    read_enzyme_pockets(args.input, args.output, args.obj, args.ligand, args.cofactor, args.save_dir)
+    read_enzyme_pockets(
+        args.input,
+        args.output,
+        args.obj,
+        args.ligand,
+        args.cofactor,
+        args.save_dir,
+    )

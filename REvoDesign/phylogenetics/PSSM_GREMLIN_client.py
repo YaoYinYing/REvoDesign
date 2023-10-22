@@ -3,14 +3,17 @@ import hashlib
 import requests
 from absl import logging
 
+
 class PSSMGremlinCalculator:
     def __init__(self):
         pass
 
     def setup_url(self, lineEdit_url):
-        self.url=str(lineEdit_url.text())
+        self.url = str(lineEdit_url.text())
 
-    def setup_calculator(self,working_directory,molecule,chain_id,sequence):
+    def setup_calculator(
+        self, working_directory, molecule, chain_id, sequence
+    ):
         self.WORKING_DIR = working_directory
         self.DOWNLOAD_DIR = os.path.join(self.WORKING_DIR, 'downloaded')
         os.makedirs(self.DOWNLOAD_DIR, exist_ok=True)
@@ -29,25 +32,21 @@ class PSSMGremlinCalculator:
         logging.info(f'Calculated MD5 sum {self.md5sum}')
 
     def submit_remote_pssm_gremlin_calc(self, opt):
-    
         if opt == 'submit':
             # Submit the file by posting the FASTA file
             response = self.submit_fasta_file(self.temp_file_path)
             logging.info(f"Submitted.\n {response.content}")
             return
-            
 
         elif opt == 'cancel':
             # Cancel the job by posting the cancel URL
             response = self.cancel_job(self.md5sum)
             logging.info(f"Cancelled.\n {response.content}")
             return
-            
 
         elif opt == 'download':
             # Directly attempt to download the results
             self.download_results(self.md5sum)
-
 
         else:
             logging.warning(f"Unknown option: {opt}")
@@ -60,14 +59,22 @@ class PSSMGremlinCalculator:
         return md5sum.hexdigest()
 
     def submit_fasta_file(self, fasta_file_path):
-        files = {'file': (os.path.basename(fasta_file_path), open(fasta_file_path, 'rb'))}
-        response = requests.post(f'{self.url}/PSSM_GREMLIN/api/post', files=files,timeout=10)
+        files = {
+            'file': (
+                os.path.basename(fasta_file_path),
+                open(fasta_file_path, 'rb'),
+            )
+        }
+        response = requests.post(
+            f'{self.url}/PSSM_GREMLIN/api/post', files=files, timeout=10
+        )
         return response
 
     def cancel_job(self, md5sum):
-        response = requests.post(f'{self.url}/PSSM_GREMLIN/api/cancel/{md5sum}',timeout=10)
+        response = requests.post(
+            f'{self.url}/PSSM_GREMLIN/api/cancel/{md5sum}', timeout=10
+        )
         return response
-
 
     def download_results(self, md5sum):
         result_url = f'{self.url}/PSSM_GREMLIN/api/results/{md5sum}'
@@ -91,7 +98,6 @@ class PSSMGremlinCalculator:
                 filename = f'{md5sum}_results.zip'
 
             result_dir = self.DOWNLOAD_DIR
-            
 
             # Save the file with the extracted or default filename
             logging.info('Downloading results...')
@@ -101,11 +107,10 @@ class PSSMGremlinCalculator:
                     if chunk:
                         file.write(chunk)
 
-            logging.info(f'Finished downloading results. \n Stored at {os.path.abspath(file_path)}')
+            logging.info(
+                f'Finished downloading results. \n Stored at {os.path.abspath(file_path)}'
+            )
         else:
-            logging.warning(f"Unexpected response when downloading: {response.status_code}")
-
-
-
-
-
+            logging.warning(
+                f"Unexpected response when downloading: {response.status_code}"
+            )

@@ -32,7 +32,7 @@ class Mutant:
         list of dict: List of dictionaries containing mutant information.
         """
         return self.mutant_info
-    
+
     def get_mutant_id(self):
         """
         Get the mutant identifier.
@@ -40,7 +40,15 @@ class Mutant:
         Returns:
         string: The mutant identifier with score
         """
-        return '_'.join([f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}' for _mutant_info in self.mutant_info]) + f'_{self.mutant_score}'
+        return (
+            '_'.join(
+                [
+                    f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}'
+                    for _mutant_info in self.mutant_info
+                ]
+            )
+            + f'_{self.mutant_score}'
+        )
 
     def get_mutant_score(self):
         """
