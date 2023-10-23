@@ -16,5 +16,5 @@ def __init_plugin__(app=None):
     '''
     from pymol.plugins import addmenuitemqt
     plugin = REvoDesignPlugin()
-    addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
+    addmenuitemqt('REvoDesign-UI', plugin.run_plugin_gui)
 
