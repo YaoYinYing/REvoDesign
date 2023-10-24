@@ -30,27 +30,9 @@ Please refer to the [documentation](link_to_documentation) for detailed instruct
 
 With the recent updates, the installation process for the PyMOL Enzyme Redesign Toolkit has been dramatically changed. Please follow the steps below:
 
-1. **Install the Main Program**:
+1. **Install the PyMOL Entrypoint**:
 
-   To install the main program, which is upgradable from internet access, you have two options:
-
-   a. If you have the local repository of the program, run the following command to install it:
-
-   ```python
-   # From a local repo
-   system pip install git+file:///Users/yyy/Documents/protein_design/REvoDesign
-   ```
-
-   b. If you prefer to install from the remote repository, use this command:
-
-   ```python
-   # From a remote repo
-   system pip install git+https://github.com/YaoYinYing/REvoDesign
-   ```
-
-2. **Install the PyMOL Entrypoint**:
-
-   After installing the main program, you can install its entrypoint towards the PyMOL menu like other PyMOL plugins. Follow these steps:
+   Before installing the main program, you should install its entrypoint towards the PyMOL menu like other PyMOL plugins. Follow these steps:
 
    - Open PyMOL.
    - Go to the "Plugin Manager" and choose "Install New Plugin."
@@ -61,6 +43,35 @@ With the recent updates, the installation process for the PyMOL Enzyme Redesign 
    <repo-url-or-filepath>/REvoDesign.PyMOL.py
    ```
 
-   This will integrate the PyMOL Enzyme Redesign Toolkit into your PyMOL environment, allowing you to access it from the PyMOL menu.
+   This will create an function for installing the core package of REvoDesign. Once the package is installed, the entrypoint will allow you to access it from the PyMOL menu.
+
+   
+
+2. **Install the Main Program**:
+
+   To install the main program from PyMOL commandline prompt, which is upgradable from internet access, you have two sources:
+
+   a. If you prefer to install from the remote repository, use this command:
+
+   ```python
+   # From remote repo
+   install_REvoDesign_via_pip
+   ```
+
+   b. If you have no access to the remote url because of the policy from network provider, you may install it from a cloned local repository or unzipped source code by running the following command:
+
+   ```python
+   # From a local repo
+   install_REvoDesign_via_pip file:///local/path/to/repository/of/REvoDesign
+   ```
+
+   c. To install a specific commit/branch, use source@<commit/branch>:
+   ```python
+   # From remote repo, commit id ffe0219978da929bd1d183ca764c4c5d9da0bf96
+   install_REvoDesign_via_pip https://github.com/YaoYinYing/REvoDesign@ffe0219
+   ```
+
+   Note that during the installation process, the window will freeze for a while.
+
 
 Happy enzyme redesigning with REvoDesign! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from the toolkit's support resources.
