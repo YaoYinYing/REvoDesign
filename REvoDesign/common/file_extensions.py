@@ -14,7 +14,7 @@ MutableFileExt = {
 
 PDB_FileExt = {'pdb': 'PDB File'}
 
-PSSM_FileExt = {'pssm': "Raw PSSM file", 'csv': "CSV file"}
+PSSM_FileExt = {'csv': "CSV file", 'pssm': "Raw PSSM file" }
 
 TXT_FileExt = {'txt': 'TXT'}
 

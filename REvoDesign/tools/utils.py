@@ -10,6 +10,28 @@ from absl import logging
 import time
 
 
+def upgrade_via_pip(source='https://github.com/YaoYinYing/REvoDesign'):
+    import sys, subprocess
+
+    python_exe = os.path.realpath(sys.executable)
+    # upgrade via pip+git
+    result = subprocess.run(
+        [python_exe, '-m', 'pip', 'install', f'git+{source}', '--upgrade'],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result.returncode != 0:
+        logging.warning(f'Installation failed: {source}')
+        logging.info(f'stdout: {result.stdout.decode()}')
+        logging.error(f'stderr: {result.stderr.decode()}')
+    else:
+        logging.info(
+            f'Installation succeeded: {source}',
+        )
+        logging.info(f'stdout: {result.stdout.decode()}')
+
+
 def is_empty_session():
     return len(cmd.get_names(type='objects', enabled_only=0)) == 0
 
