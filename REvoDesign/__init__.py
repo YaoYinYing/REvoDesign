@@ -9,7 +9,7 @@ from functools import partial
 import absl.logging as logging
 
 logging.set_verbosity(logging.DEBUG)
-logging.info(f'REvoDesign Core is installed in {os.path.dirname(__file__)}')
+logging.info(f'REvoDesign is installed in {os.path.dirname(__file__)}')
 
 sys.path.append(os.path.dirname(__file__))
 

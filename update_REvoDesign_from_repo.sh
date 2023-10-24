@@ -1,10 +1,7 @@
 #! /bin/sh
 
-# kill all PyMOL session
-#ps aux |grep '/Applications/PyMOL.app' |awk '{system("kill "$2)}'
 git_repo_dir="$(dirname "$0")"
-# copy the package
-rm -r $HOME/.pymol/startup/REvoDesign
-cp -r $git_repo_dir/REvoDesign $HOME/.pymol/startup
 
-# launch a new session
+python_exe=$(which python)
+
+$python_exe -m pip install $git_repo_dir --upgrade
