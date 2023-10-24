@@ -7,16 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.7] - 2023-10-23
+
 ### Added
 
 - `install_REvoDesign_via_pip` entrypoint at PyMOL commandline prompt
 - `upgrade_via_pip` for future uses.
 
 ### Changed
-
 - CSV as the default of `PSSM_FileExt`
+- Disabling auto installlation by `install_REvoDesign_via_pip` if import error occurs.
 
-## [1.1.6] - 2023-10-20
+
+## [1.1.6] - 2023-10-23
 ### Fixed
 - Dependencies in `pyproject.toml`: The official PyMOL bundle uses Python v 3.7, which is not supported by the latest versions of some packages.
 
