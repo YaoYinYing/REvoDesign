@@ -27,7 +27,7 @@ def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign'):
 
     # Downloaded or cloned source code
     elif source.startswith('files://'):
-        local_source_dir = os.path.abspath(source.replace('files://'))
+        local_source_dir = os.path.abspath(source.replace('files://',''))
 
         # Invalid path
         if not os.path.exists(local_source_dir):
