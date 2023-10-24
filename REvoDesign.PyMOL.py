@@ -13,7 +13,9 @@ import os
 print(f'REvoDesign UI is installed in {os.path.dirname(__file__)}')
 
 
-def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign',*args):
+def install_via_pip(
+    source='https://github.com/YaoYinYing/REvoDesign', upgrade=0
+):
     import sys, subprocess
 
     print(
@@ -21,25 +23,22 @@ def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign',*args):
     )
     python_exe = os.path.realpath(sys.executable)
 
-    _source=''
+    _source = ''
 
     # a HTTP repo URL
     if source.startswith('https://'):
         _source = f'git+{source}'
 
-    elif os.path.exists(source):
-        _source = source
-
     # Downloaded or cloned source code
-    elif source.startswith('file://'):
-        local_source_dir = os.path.abspath(source.replace('file://',''))
+    else:
+        local_source_dir = os.path.abspath(source.replace('file://', ''))
 
         # Invalid path
         if not os.path.exists(local_source_dir):
             print(f'{local_source_dir} does not exist')
             return
 
-        # Path offset
+        # Early return due to path offset.
         elif not os.path.exists(
             os.path.join(local_source_dir, 'pyproject.toml')
         ):
@@ -47,19 +46,30 @@ def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign',*args):
                 f'{local_source_dir}.pyproject.toml does not exist. Please check the source code path.'
             )
             return
-        # An repo clone
-        elif os.path.exists(os.path.join(local_source_dir, '.git')):
-            _source = f'git+{source}'
 
-        # An unzipped copy of source code
+        # An repo clone that contains .git
+        if os.path.exists(os.path.join(local_source_dir, '.git')):
+            _source = f'git+file://{local_source_dir}'
+
+        # An unzipped copy of source code with building file
         else:
-            _source = local_source_dir
+            _source = f'git+{local_source_dir}'
 
     # install via pip+git
-    subprocess.run(python_exe, '-m', 'ensurepip')
+    subprocess.run([python_exe, '-m', 'ensurepip'])
+
+    pip_cmd = [
+        python_exe,
+        '-m',
+        'pip',
+        'install',
+        _source,
+    ]
+    if upgrade:
+        pip_cmd.append('--upgrade')
 
     result = subprocess.run(
-        [python_exe, '-m', 'pip', 'install', _source, *args],
+        pip_cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )

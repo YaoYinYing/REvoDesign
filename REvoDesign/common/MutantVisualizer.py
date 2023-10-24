@@ -181,6 +181,7 @@ class MutantVisualizer:
                 score_max_abs = max(abs(df.min().min()), abs(df.max().max()))
                 self.min_score_profile = -score_max_abs
                 self.max_score_profile = score_max_abs
+                logging.debug(f'Profile data: min {self.min_score_profile} max {self.max_score_profile}')
                 return df
             else:
                 logging.debug(f'Failed to process profile data {profile_fp}..')
