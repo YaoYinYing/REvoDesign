@@ -778,9 +778,9 @@ class REvoDesignPlugin:
                 result = msg.exec_()
 
                 if result == QtWidgets.QMessageBox.Yes:
+
                     # Extract the archive and browse the extracted file
                     extracted_path = self.flatten_compressed_files(filename)
-                    os.chdir(extracted_path)
                     return self.browse_filename(mode, exts=exts)
                 else:
                     # Keep the previously selected filename and return it
@@ -2504,7 +2504,9 @@ class REvoDesignPlugin:
             color = get_color('bwr_r', score, min_score, max_score)
 
             logging.info(f" Visualizing {mutant} {score}: {color}")
-            visualizer.create_mutagenesis_objects(mutant, color)
+
+            _, mutant_obj=extract_mutants(mutant_string=f'{mutant}_{score}',chain_id=chain_id)
+            visualizer.create_mutagenesis_objects(mutant_obj, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)
 

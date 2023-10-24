@@ -13,7 +13,7 @@ import os
 print(f'REvoDesign UI is installed in {os.path.dirname(__file__)}')
 
 
-def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign'):
+def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign',*args):
     import sys, subprocess
 
     print(
@@ -21,25 +21,32 @@ def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign'):
     )
     python_exe = os.path.realpath(sys.executable)
 
+    _source=''
+
     # a HTTP repo URL
     if source.startswith('https://'):
         _source = f'git+{source}'
 
+    elif os.path.exists(source):
+        _source = source
+
     # Downloaded or cloned source code
-    elif source.startswith('files://'):
-        local_source_dir = os.path.abspath(source.replace('files://',''))
+    elif source.startswith('file://'):
+        local_source_dir = os.path.abspath(source.replace('file://',''))
 
         # Invalid path
         if not os.path.exists(local_source_dir):
-            raise FileNotFoundError(f'{local_source_dir} does not exist')
+            print(f'{local_source_dir} does not exist')
+            return
 
         # Path offset
         elif not os.path.exists(
             os.path.join(local_source_dir, 'pyproject.toml')
         ):
-            raise FileNotFoundError(
+            print(
                 f'{local_source_dir}.pyproject.toml does not exist. Please check the source code path.'
             )
+            return
         # An repo clone
         elif os.path.exists(os.path.join(local_source_dir, '.git')):
             _source = f'git+{source}'
@@ -49,9 +56,10 @@ def install_via_pip(source='https://github.com/YaoYinYing/REvoDesign'):
             _source = local_source_dir
 
     # install via pip+git
+    subprocess.run(python_exe, '-m', 'ensurepip')
+
     result = subprocess.run(
-        [python_exe, '-m', 'pip', 'install', _source],
-        check=True,
+        [python_exe, '-m', 'pip', 'install', _source, *args],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )

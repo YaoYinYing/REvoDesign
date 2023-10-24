@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Demo case, PSE, PSSM, ESM-1v, Pythia ddG, but no GREMLIN mrf file.
+
+### Fixed
+-  GREMLIN mutants in Visualizer
+-  PWD jumping after compressed file flattening
+-  PIP installing issue from `file://` source
+
+### Changed
+- UI file layout
+
+### Removed
+- RAR file supports, together with `unrar` dependency. 
+- `upgrade_via_pip`
 
 ## [1.1.7] - 2023-10-24
 

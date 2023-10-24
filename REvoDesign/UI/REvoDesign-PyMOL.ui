@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>642</width>
-    <height>514</height>
+    <width>665</width>
+    <height>509</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -66,17 +66,17 @@
         <x>10</x>
         <y>0</y>
         <width>621</width>
-        <height>161</height>
+        <height>141</height>
        </rect>
       </property>
       <property name="title">
-       <string>File I/O</string>
+       <string/>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_21">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
+         <y>10</y>
          <width>601</width>
          <height>122</height>
         </rect>
@@ -794,17 +794,17 @@
         <x>10</x>
         <y>0</y>
         <width>611</width>
-        <height>241</height>
+        <height>221</height>
        </rect>
       </property>
       <property name="title">
-       <string>File I/O</string>
+       <string/>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_3">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
+         <y>10</y>
          <width>591</width>
          <height>201</height>
         </rect>
@@ -929,7 +929,7 @@
             <item>
              <widget class="QComboBox" name="comboBox_profile_type">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -967,6 +967,12 @@
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_open_customized_indices">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string>...</string>
               </property>
@@ -1433,17 +1439,17 @@
         <x>10</x>
         <y>0</y>
         <width>611</width>
-        <height>161</height>
+        <height>141</height>
        </rect>
       </property>
       <property name="title">
-       <string>File I/O</string>
+       <string/>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
+         <y>10</y>
          <width>593</width>
          <height>122</height>
         </rect>
@@ -1932,17 +1938,17 @@
         <x>10</x>
         <y>0</y>
         <width>611</width>
-        <height>81</height>
+        <height>61</height>
        </rect>
       </property>
       <property name="title">
-       <string>File I/O</string>
+       <string/>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_6">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
+         <y>10</y>
          <width>591</width>
          <height>47</height>
         </rect>
@@ -2458,17 +2464,17 @@
         <x>10</x>
         <y>0</y>
         <width>611</width>
-        <height>281</height>
+        <height>251</height>
        </rect>
       </property>
       <property name="title">
-       <string>File I/O</string>
+       <string/>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_7">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
+         <y>10</y>
          <width>591</width>
          <height>231</height>
         </rect>
@@ -2594,7 +2600,7 @@
             <item>
              <widget class="QComboBox" name="comboBox_profile_type_2">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -3718,7 +3724,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>642</width>
+     <width>665</width>
      <height>37</height>
     </rect>
    </property>

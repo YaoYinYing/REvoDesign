@@ -9,29 +9,6 @@ from absl import logging
 
 import time
 
-
-def upgrade_via_pip(source='https://github.com/YaoYinYing/REvoDesign'):
-    import sys, subprocess
-
-    python_exe = os.path.realpath(sys.executable)
-    # upgrade via pip+git
-    result = subprocess.run(
-        [python_exe, '-m', 'pip', 'install', f'git+{source}', '--upgrade'],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    if result.returncode != 0:
-        logging.warning(f'Installation failed: {source}')
-        logging.info(f'stdout: {result.stdout.decode()}')
-        logging.error(f'stderr: {result.stderr.decode()}')
-    else:
-        logging.info(
-            f'Installation succeeded: {source}',
-        )
-        logging.info(f'stdout: {result.stdout.decode()}')
-
-
 def is_empty_session():
     return len(cmd.get_names(type='objects', enabled_only=0)) == 0
 
@@ -358,11 +335,11 @@ def extract_archive(archive_file, extract_to):
         archive_file (str): Path to the archive file.
         extract_to (str): Directory where the contents will be extracted.
     """
+
     try:
+        import tarfile
         if archive_file.endswith(".zip"):
             import zipfile
-            import tarfile
-
             with zipfile.ZipFile(archive_file, 'r') as zip_ref:
                 zip_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
@@ -377,15 +354,6 @@ def extract_archive(archive_file, extract_to):
         elif archive_file.endswith(".tar.xz"):
             with tarfile.open(archive_file, 'r:xz') as tar_ref:
                 tar_ref.extractall(extract_to)
-            logging.info(f"Extracted {archive_file} to {extract_to}")
-        elif archive_file.endswith(".rar"):
-            try:
-                from unrar import rarfile
-            except:
-                cmd.system('pip install unrar')
-                from unrar import rarfile
-            with rarfile.RarFile(archive_file, 'r') as rar_ref:
-                rar_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
         else:
             logging.warning(f"Unsupported archive format: {archive_file}")

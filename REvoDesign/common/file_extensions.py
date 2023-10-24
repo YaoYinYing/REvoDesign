@@ -28,7 +28,6 @@ CompressedFileExt = {
     'tar.bz2': "Tarball (TAR.BZ2)",
     'tbz': "Tarball (TBZ)",
     'tar.xz': "Tarball (TAR.XZ)",
-    'rar': "RAR archive",
 }
 
 
