@@ -1,3 +1,13 @@
+'''
+Described at GitHub:
+https://github.com/YaoYinYing/REvoDesign
+
+Authors : Yinying Yao
+Program : REvoDesign
+Date    : Sept 2023
+
+REvoDesign -- Makes enzyme redesign tasks easier to all.
+'''
 import os
 
 print(f'REvoDesign UI is installed in {os.path.dirname(__file__)}')
