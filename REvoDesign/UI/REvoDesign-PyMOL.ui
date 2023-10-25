@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>665</width>
-    <height>509</height>
+    <width>662</width>
+    <height>516</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -269,7 +269,7 @@
               <item>
                <widget class="QComboBox" name="comboBox_interface_cutoff">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -314,7 +314,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>280</y>
+        <y>270</y>
         <width>621</width>
         <height>121</height>
        </rect>
@@ -340,7 +340,7 @@
           <item row="0" column="1">
            <widget class="QComboBox" name="comboBox_ligand_sel">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -385,7 +385,7 @@
           <item row="1" column="3">
            <widget class="QComboBox" name="comboBox_cofactor_radius">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -430,7 +430,7 @@
           <item row="0" column="3">
            <widget class="QComboBox" name="comboBox_ligand_radius">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -455,7 +455,7 @@
           <item row="1" column="1">
            <widget class="QComboBox" name="comboBox_cofactor_sel">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -508,7 +508,7 @@
       <property name="geometry">
        <rect>
         <x>310</x>
-        <y>160</y>
+        <y>150</y>
         <width>321</width>
         <height>121</height>
        </rect>
@@ -537,7 +537,7 @@
           <item row="1" column="1">
            <widget class="QComboBox" name="comboBox_surface_exclusion">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -585,7 +585,7 @@
           <item row="0" column="1">
            <widget class="QComboBox" name="comboBox_surface_cutoff">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -673,7 +673,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>160</y>
+        <y>150</y>
         <width>291</width>
         <height>121</height>
        </rect>
@@ -1065,12 +1065,12 @@
              <number>0</number>
             </property>
             <property name="sizeConstraint">
-             <enum>QLayout::SetMinAndMaxSize</enum>
+             <enum>QLayout::SetDefaultConstraint</enum>
             </property>
             <item>
              <widget class="QLabel" name="label_nproc_2">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Maximum">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -1095,7 +1095,7 @@
             <item>
              <widget class="QComboBox" name="comboBox_nproc_2">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Maximum">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -1109,7 +1109,7 @@
               <property name="maximumSize">
                <size>
                 <width>60</width>
-                <height>50</height>
+                <height>16777215</height>
                </size>
               </property>
              </widget>
@@ -1124,7 +1124,7 @@
             <item>
              <widget class="QLabel" name="label_54">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -1139,10 +1139,16 @@
             </item>
             <item>
              <widget class="QComboBox" name="comboBox_cmap_2">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="maximumSize">
                <size>
                 <width>60</width>
-                <height>50</height>
+                <height>16777215</height>
                </size>
               </property>
               <property name="statusTip">
@@ -1174,7 +1180,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>320</y>
+        <y>310</y>
         <width>391</width>
         <height>61</height>
        </rect>
@@ -1200,7 +1206,7 @@
       <property name="geometry">
        <rect>
         <x>410</x>
-        <y>320</y>
+        <y>310</y>
         <width>211</width>
         <height>61</height>
        </rect>
@@ -1226,7 +1232,7 @@
       <property name="geometry">
        <rect>
         <x>410</x>
-        <y>260</y>
+        <y>250</y>
         <width>211</width>
         <height>61</height>
        </rect>
@@ -1268,7 +1274,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>260</y>
+        <y>250</y>
         <width>391</width>
         <height>61</height>
        </rect>
@@ -1350,9 +1356,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>170</y>
+        <y>150</y>
         <width>261</width>
-        <height>211</height>
+        <height>231</height>
        </rect>
       </property>
       <property name="title">
@@ -1364,7 +1370,7 @@
          <x>10</x>
          <y>30</y>
          <width>241</width>
-         <height>171</height>
+         <height>191</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_design_status">
@@ -1641,9 +1647,9 @@
       <property name="geometry">
        <rect>
         <x>280</x>
-        <y>170</y>
+        <y>150</y>
         <width>341</width>
-        <height>211</height>
+        <height>231</height>
        </rect>
       </property>
       <property name="title">
@@ -1655,7 +1661,7 @@
          <x>10</x>
          <y>30</y>
          <width>321</width>
-         <height>171</height>
+         <height>194</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -1884,17 +1890,21 @@
             </property>
            </widget>
           </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_43">
           <item>
            <widget class="QPushButton" name="pushButton_goto_best_hit_in_group">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
             <property name="maximumSize">
              <size>
-              <width>70</width>
+              <width>16777215</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1902,7 +1912,23 @@
              <string>Jump to the best hit in this mutant group.</string>
             </property>
             <property name="text">
-             <string>Best Hit</string>
+             <string>Find the Best Hit</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_choose_lucky_mutant">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Always pick the best hits for you!</string>
+            </property>
+            <property name="text">
+             <string>I'm Lucky!</string>
             </property>
            </widget>
           </item>
@@ -2018,7 +2044,7 @@
       <property name="geometry">
        <rect>
         <x>310</x>
-        <y>100</y>
+        <y>90</y>
         <width>311</width>
         <height>301</height>
        </rect>
@@ -2043,7 +2069,7 @@
        <rect>
         <x>10</x>
         <y>390</y>
-        <width>291</width>
+        <width>611</width>
         <height>23</height>
        </rect>
       </property>
@@ -2055,9 +2081,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>90</y>
+        <y>70</y>
         <width>291</width>
-        <height>301</height>
+        <height>321</height>
        </rect>
       </property>
       <property name="title">
@@ -2069,7 +2095,7 @@
          <x>10</x>
          <y>30</y>
          <width>271</width>
-         <height>261</height>
+         <height>281</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -2485,10 +2511,31 @@
           <property name="verticalSpacing">
            <number>0</number>
           </property>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_44">
+          <item row="1" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_24">
+            <item>
+             <widget class="QLineEdit" name="lineEdit_input_mut_table_csv">
+              <property name="statusTip">
+               <string>Input mutant table file [*.mut.txt / best_leaf.csv]</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_open_mut_table_csv">
+              <property name="text">
+               <string>...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_37">
             <property name="text">
-             <string>Molecule: </string>
+             <string>Input PDB/PSE: </string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2520,37 +2567,6 @@
            <widget class="QLabel" name="label_input_pssm_csv_3">
             <property name="text">
              <string>Profile: </string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <layout class="QHBoxLayout" name="horizontalLayout_24">
-            <item>
-             <widget class="QLineEdit" name="lineEdit_input_mut_table_csv">
-              <property name="statusTip">
-               <string>Input mutant table file [*.mut.txt / best_leaf.csv]</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_open_mut_table_csv">
-              <property name="text">
-               <string>...</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_37">
-            <property name="text">
-             <string>Input PDB/PSE: </string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2624,6 +2640,52 @@
             </item>
            </layout>
           </item>
+          <item row="5" column="1">
+           <widget class="QLineEdit" name="lineEdit_group_name">
+            <property name="statusTip">
+             <string>Group these variant.</string>
+            </property>
+            <property name="text">
+             <string>default</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_42">
+            <property name="text">
+             <string>Output Session: </string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_43">
+            <property name="text">
+             <string>Input mutants: </string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_53">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Group name:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
           <item row="2" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_67">
             <item>
@@ -2670,49 +2732,13 @@
             </item>
            </layout>
           </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_42">
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_44">
             <property name="text">
-             <string>Output Session: </string>
+             <string>Molecule: </string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_43">
-            <property name="text">
-             <string>Input mutants: </string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="label_53">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Group name:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="1">
-           <widget class="QLineEdit" name="lineEdit_group_name">
-            <property name="statusTip">
-             <string>Group these variant.</string>
-            </property>
-            <property name="text">
-             <string>default</string>
             </property>
            </widget>
           </item>
@@ -2785,8 +2811,8 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>280</y>
-        <width>361</width>
+        <y>270</y>
+        <width>311</width>
         <height>111</height>
        </rect>
       </property>
@@ -2798,11 +2824,125 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>341</width>
+         <width>291</width>
          <height>71</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
+        <item row="1" column="2">
+         <widget class="QLabel" name="label_48">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Score:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <widget class="QComboBox" name="comboBox_best_leaf">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>300</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="statusTip">
+           <string>Mutant column in CSV file.</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="3">
+         <widget class="QComboBox" name="comboBox_totalscore">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>300</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="statusTip">
+           <string>Score column in CSV file.</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
+         <widget class="QLabel" name="label_47">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Mutant:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="comboBox_cmap">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QComboBox" name="comboBox_nproc_4">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>60</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_45">
           <property name="sizePolicy">
@@ -2832,120 +2972,6 @@
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="2">
-         <widget class="QLabel" name="label_48">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Score:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QComboBox" name="comboBox_nproc_4">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QComboBox" name="comboBox_cmap">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="3">
-         <widget class="QComboBox" name="comboBox_best_leaf">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>300</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="statusTip">
-           <string>Mutant column in CSV file.</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="2">
-         <widget class="QLabel" name="label_47">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Mutant:</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="3">
-         <widget class="QComboBox" name="comboBox_totalscore">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>300</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="statusTip">
-           <string>Score column in CSV file.</string>
           </property>
          </widget>
         </item>
@@ -3004,9 +3030,9 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
-         <width>201</width>
-         <height>81</height>
+         <y>20</y>
+         <width>211</width>
+         <height>91</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -3015,6 +3041,9 @@
         </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_33">
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
           <item>
            <widget class="QLineEdit" name="lineEdit_input_gremlin_mtx">
             <property name="statusTip">
@@ -3103,15 +3132,15 @@
          <item>
           <widget class="QLabel" name="label_50">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>1</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="text">
@@ -3126,14 +3155,14 @@
           <widget class="QComboBox" name="comboBox_molecule_3">
            <property name="sizePolicy">
             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
+             <horstretch>1</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="statusTip">
@@ -3148,15 +3177,15 @@
          <item>
           <widget class="QLabel" name="label_chainid_5">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>1</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="text">
@@ -3171,7 +3200,7 @@
           <widget class="QComboBox" name="comboBox_chainid_9">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
+             <horstretch>1</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
@@ -3184,7 +3213,7 @@
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="statusTip">
@@ -3196,14 +3225,14 @@
           <widget class="QLabel" name="label_chainid_6">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
+             <horstretch>1</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="text">
@@ -3218,7 +3247,7 @@
           <widget class="QComboBox" name="comboBox_gremlin_topN">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>10</horstretch>
+             <horstretch>1</horstretch>
              <verstretch>1</verstretch>
             </sizepolicy>
            </property>
@@ -3231,7 +3260,7 @@
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="statusTip">
@@ -3250,14 +3279,14 @@
           <widget class="QLabel" name="label_chainid_7">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
+             <horstretch>1</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="text">
@@ -3272,7 +3301,7 @@
           <widget class="QComboBox" name="comboBox_max_interact_dist">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>10</horstretch>
+             <horstretch>1</horstretch>
              <verstretch>1</verstretch>
             </sizepolicy>
            </property>
@@ -3285,7 +3314,7 @@
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>30</height>
+             <height>16777215</height>
             </size>
            </property>
            <property name="statusTip">
@@ -3724,7 +3753,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>665</width>
+     <width>662</width>
      <height>37</height>
     </rect>
    </property>
@@ -3732,9 +3761,6 @@
     <property name="title">
      <string>REvoDesign</string>
     </property>
-    <addaction name="actionSet_Rosetta_Path"/>
-    <addaction name="actionSet_GNU_Parallel"/>
-    <addaction name="separator"/>
     <addaction name="actionLoad_Tests"/>
     <addaction name="actionSet_Working_Directory"/>
    </widget>
