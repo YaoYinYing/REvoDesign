@@ -12,6 +12,12 @@ import os
 
 print(f'REvoDesign UI is installed in {os.path.dirname(__file__)}')
 
+install_msg='''
+You can still use the following in PyMOL command prompt to install REvoDesign manually:\n
+`install_REvoDesign_via_pip` or \n
+`install_REvoDesign_via_pip file:///local/path/to/repository/of/REvoDesign`\n
+After it is done, you should restart PyMOL.
+'''
 
 def install_via_pip(
     source='https://github.com/YaoYinYing/REvoDesign', upgrade=0
@@ -91,14 +97,9 @@ cmd.extend('install_REvoDesign_via_pip', install_via_pip)
 try:
     from REvoDesign import REvoDesignPlugin
 except ImportError:
-    print(
-        'Installation failed. You can still use the following in PyMOL command prompt to install REvoDesign manually.'
-    )
-    print('`install_REvoDesign_via_pip` or ')
-    print(
-        '`install_REvoDesign_via_pip file:///local/path/to/repository/of/REvoDesign`'
-    )
-    print('After it is done, you should restart PyMOL.')
+    print('Installation failed. ')
+    print(install_msg)
+
 
 
 # entrypoint of PyMOL plugin
@@ -107,6 +108,11 @@ def __init_plugin__(app=None):
     Add an entry to the PyMOL "Plugin" menu
     '''
     from pymol.plugins import addmenuitemqt
+    try:
+        from REvoDesign import REvoDesignPlugin
+        plugin = REvoDesignPlugin()
+        addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
+    except ImportError:
+        print('REvoDesign is not available.')
+        print(install_msg)
 
-    plugin = REvoDesignPlugin()
-    addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
