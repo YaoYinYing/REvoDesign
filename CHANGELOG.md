@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Entrance installation from local file. Treat `source=<src_path>` as a normal path, instead of a git repository.
 - `AttributeError` in GREMLIN mrf reloading as a notice.
 - Typo in `GREMLIN_Tools`
+- GREMLIN design focusing.
 
 ### Changed
 - UI file layout

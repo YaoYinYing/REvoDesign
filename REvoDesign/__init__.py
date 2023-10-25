@@ -2520,6 +2520,30 @@ class REvoDesignPlugin:
                 'cartoon', f'{self.current_gremlin_co_evoving_pair_mutant_id}'
             )
 
+        # close group object if deactivated
+        if (
+            self.last_gremlin_co_evoving_pair_group_id != ''
+            and self.current_gremlin_co_evoving_pair_group_id
+            != self.last_gremlin_co_evoving_pair_group_id
+        ):
+            cmd.disable(self.last_gremlin_co_evoving_pair_group_id)
+            cmd.group(
+                self.last_gremlin_co_evoving_pair_group_id, action='close'
+            )
+
+        # expand group object if activated
+        if (
+            self.current_gremlin_co_evoving_pair_group_id
+            and self.last_gremlin_co_evoving_pair_group_id
+            != self.current_gremlin_co_evoving_pair_group_id
+        ):
+            cmd.enable(self.last_gremlin_co_evoving_pair_group_id)
+            cmd.group(
+                self.last_gremlin_co_evoving_pair_group_id, action='open'
+            )
+
+        cmd.center(self.current_gremlin_co_evoving_pair_mutant_id)
+
     def mutate_with_gridbuttons(
         self,
         col,
