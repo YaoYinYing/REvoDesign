@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>662</width>
-    <height>516</height>
+    <width>660</width>
+    <height>515</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -2780,6 +2780,19 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="checkBox_global_score_policy">
+            <property name="statusTip">
+             <string>Color the mutants by considering whether (Unchecked) only existed mutants or (Checked) the entire profile.</string>
+            </property>
+            <property name="text">
+             <string>Global Score</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QPushButton" name="pushButton_run_visualizing">
             <property name="enabled">
              <bool>false</bool>
@@ -3020,7 +3033,7 @@
         <x>410</x>
         <y>0</y>
         <width>221</width>
-        <height>111</height>
+        <height>101</height>
        </rect>
       </property>
       <property name="title">
@@ -3031,8 +3044,8 @@
         <rect>
          <x>10</x>
          <y>20</y>
-         <width>211</width>
-         <height>91</height>
+         <width>201</width>
+         <height>81</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -3115,9 +3128,9 @@
       <property name="geometry">
        <rect>
         <x>410</x>
-        <y>127</y>
-        <width>225</width>
-        <height>261</height>
+        <y>117</y>
+        <width>221</width>
+        <height>291</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_18">
@@ -3377,6 +3390,9 @@
        </item>
        <item>
         <layout class="QGridLayout" name="gridLayout_3">
+         <property name="verticalSpacing">
+          <number>-1</number>
+         </property>
          <item row="0" column="0">
           <widget class="QPushButton" name="pushButton_previous">
            <property name="statusTip">
@@ -3419,29 +3435,161 @@
          </item>
         </layout>
        </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_46">
+         <item>
+          <widget class="QLabel" name="label_chainid_10">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>1</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Pair:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_current_pair">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_chainid_12">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>1</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Score</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_current_pair_score">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>35</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_45">
+         <item>
+          <widget class="QLabel" name="label_chainid_9">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>1</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>WT:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_current_pair_wt_score">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_chainid_8">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <horstretch>1</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Mut:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_current_pair_mut_score">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
       </layout>
-     </widget>
-     <widget class="QLineEdit" name="lineEdit_current_design">
-      <property name="enabled">
-       <bool>true</bool>
-      </property>
-      <property name="geometry">
-       <rect>
-        <x>411</x>
-        <y>387</y>
-        <width>221</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
      </widget>
      <widget class="QProgressBar" name="progressBar_gremlin_visualizing">
       <property name="geometry">
        <rect>
         <x>410</x>
-        <y>110</y>
+        <y>100</y>
         <width>221</width>
         <height>20</height>
        </rect>
@@ -3753,7 +3901,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>662</width>
+     <width>660</width>
      <height>37</height>
     </rect>
    </property>

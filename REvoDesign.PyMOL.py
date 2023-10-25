@@ -12,12 +12,13 @@ import os
 
 print(f'REvoDesign UI is installed in {os.path.dirname(__file__)}')
 
-install_msg='''
+install_msg = '''
 You can still use the following in PyMOL command prompt to install REvoDesign manually:\n
 `install_REvoDesign_via_pip` or \n
 `install_REvoDesign_via_pip file:///local/path/to/repository/of/REvoDesign`\n
 After it is done, you should restart PyMOL.
 '''
+
 
 def install_via_pip(
     source='https://github.com/YaoYinYing/REvoDesign', upgrade=0
@@ -39,7 +40,7 @@ def install_via_pip(
     else:
         local_source_dir = os.path.abspath(source.replace('file://', ''))
 
-        # Invalid path
+        #  Early return due to invalid path
         if not os.path.exists(local_source_dir):
             print(f'{local_source_dir} does not exist')
             return
@@ -49,17 +50,19 @@ def install_via_pip(
             os.path.join(local_source_dir, 'pyproject.toml')
         ):
             print(
-                f'{local_source_dir}.pyproject.toml does not exist. Please check the source code path.'
+                f'{local_source_dir}/pyproject.toml does not exist. Please check the source code path.'
             )
             return
 
-        # An repo clone that contains .git
-        if os.path.exists(os.path.join(local_source_dir, '.git')):
+        # An repo clone that contains .git if source requires
+        if os.path.exists(
+            os.path.join(local_source_dir, '.git')
+        ) and source.startswith('file://'):
             _source = f'git+file://{local_source_dir}'
 
-        # An unzipped copy of source code with building file
+        # An unzipped copy of source code with building file or non `'file://'` source for git
         else:
-            _source = f'git+{local_source_dir}'
+            _source = f'{local_source_dir}'
 
     # install via pip+git
     subprocess.run([python_exe, '-m', 'ensurepip'])
@@ -101,18 +104,18 @@ except ImportError:
     print(install_msg)
 
 
-
 # entrypoint of PyMOL plugin
 def __init_plugin__(app=None):
     '''
     Add an entry to the PyMOL "Plugin" menu
     '''
     from pymol.plugins import addmenuitemqt
+
     try:
         from REvoDesign import REvoDesignPlugin
+
         plugin = REvoDesignPlugin()
         addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
     except ImportError:
         print('REvoDesign is not available.')
         print(install_msg)
-

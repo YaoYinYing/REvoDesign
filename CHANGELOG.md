@@ -6,20 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.1.8] - 2023-10-25
 ### Added
-- Demo case, PSE, PSSM, ESM-1v, Pythia ddG, but no GREMLIN mrf file.
+- `find_all_best_mutants` to find all best mutants in each branch.
+- `MutantTree.empty` as a label of empty mutant tree object.
+- GREMLIN pair score, distance, wt score, mutant score.
+- `use_global_scores` for mutant profile visualizing.
+- Upgrating **REvoDesign** via `install_via_pip`.
 
 ### Fixed
--  GREMLIN mutants in Visualizer
--  PWD jumping after compressed file flattening
--  PIP installing issue from `file://` source
+- GREMLIN mutants in Visualizer
+- PWD jumping after compressed file flattening
+- PIP installing issue from `file://` source
+- Freeze `pushButton_run_visualizing` during running.
+- Entrance installation from local file. Treat `source=<src_path>` as a normal path, instead of a git repository.
 
 ### Changed
 - UI file layout
+- Using `self.topN` as the number of `top_N_pairs` in GREMLIN tool One-vs-All mode, instead of hardcoded 20 pairs.
 
 ### Removed
 - RAR file supports, together with `unrar` dependency. 
 - `upgrade_via_pip`
+- Demo case.
 
 ## [1.1.7] - 2023-10-24
 

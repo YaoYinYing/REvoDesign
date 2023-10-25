@@ -54,6 +54,8 @@ class MutantVisualizer:
         self.min_score_profile = 0
         self.max_score_profile = 0
 
+        self.consider_global_score_from_profile = False
+
     def process_position(self, mutant_obj: Mutant):
         mutant = mutant_obj.get_mutant_id()
         score = mutant_obj.get_mutant_score()
@@ -181,7 +183,9 @@ class MutantVisualizer:
                 score_max_abs = max(abs(df.min().min()), abs(df.max().max()))
                 self.min_score_profile = -score_max_abs
                 self.max_score_profile = score_max_abs
-                logging.debug(f'Profile data: min {self.min_score_profile} max {self.max_score_profile}')
+                logging.debug(
+                    f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
+                )
                 return df
             else:
                 logging.debug(f'Failed to process profile data {profile_fp}..')
@@ -320,11 +324,15 @@ class MutantVisualizer:
             score_list.append(float(_score))
 
         # Determine the range for color bar
-        if self.profile_scoring_df is not None and (
-            not self.profile_scoring_df.empty
+
+        if (
+            self.consider_global_score_from_profile
+            and (self.profile_scoring_df is not None)
+            and (not self.profile_scoring_df.empty)
         ):
             self.min_score = self.min_score_profile
             self.max_score = self.max_score_profile
+
         else:
             self.min_score = min(score_list)
             self.max_score = max(score_list)

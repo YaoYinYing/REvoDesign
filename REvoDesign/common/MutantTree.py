@@ -1,16 +1,27 @@
 class MutantTree:
     def __init__(self, mutant_tree):
-        self.mutant_tree = mutant_tree
-
+        
         self.current_branch_id = ''
         self.current_mutant_id = ''
         self.last_branch_id = ''
         self.last_mutant_id = ''
 
+        self.all_mutant_branch_ids = []
+        self.all_mutants = []
+        self.all_mutant_ids=[]
+        self.empty = True
+
+        self.mutant_tree = mutant_tree
+
         self.refresh_mutants()
 
     def refresh_mutants(self):
         self.all_mutant_branch_ids = list(self.mutant_tree.keys())
+        self.empty = len(self.all_mutant_branch_ids) == 0
+
+        if self.empty:
+            return
+
         if not self.current_branch_id:
             self.initialize_current_branch()
 

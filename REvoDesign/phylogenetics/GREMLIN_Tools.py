@@ -288,17 +288,17 @@ class GREMLIN_Tools:
 
         # logging.debug(coevolving_pairs)
 
-        # Step 4: Select the top 20 items
-        top_20_pairs = coevolving_pairs[:20]
+        # Step 4: Select the top N items
+        top_N_pairs = coevolving_pairs[: self.topN]
 
-        logging.info(f'top 20 items selected: {str(top_20_pairs)}')
+        logging.info(f'top {self.topN} items selected: {str(top_N_pairs)}')
 
-        if not top_20_pairs:
+        if not top_N_pairs:
             return
 
         # Step 5: Calculate and plot for each pair
         plot_w_fps = {}
-        for n, pair in enumerate(top_20_pairs):
+        for n, pair in enumerate(top_N_pairs):
             (i, j, i_aa, j_aa, zscore) = pair
             csv_fp, plot_fp = self.plot_w(i, j, i_aa, j_aa, n)
             if csv_fp and plot_fp:

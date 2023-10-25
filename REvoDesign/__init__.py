@@ -61,10 +61,9 @@ class REvoDesignPlugin:
 
         self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign-PyMOL.ui')
 
-        self.total_mutant_in_this_session = 0
-        self.mutant_tree_pssm = None
-        self.mutant_tree_pssm_selected = None
-        self.mutant_tree_coevolved = None
+        self.mutant_tree_pssm = MutantTree({})
+        self.mutant_tree_pssm_selected = MutantTree({})
+        self.mutant_tree_coevolved = MutantTree({})
         self.gremlin_tool = None
 
         from REvoDesign.phylogenetics.PSSM_GREMLIN_client import (
@@ -465,6 +464,14 @@ class REvoDesignPlugin:
             )
         )
 
+        self.ui.pushButton_choose_lucky_mutant.clicked.connect(
+            partial(
+                self.find_all_best_mutants,
+                self.ui.checkBox_reverse_mutant_effect_2,
+                self.ui.lcdNumber_selected_mutant,
+            )
+        )
+
         # Tab `Cluster`
         self.ui.pushButton_open_input_pse_3.clicked.connect(
             partial(
@@ -778,7 +785,6 @@ class REvoDesignPlugin:
                 result = msg.exec_()
 
                 if result == QtWidgets.QMessageBox.Yes:
-
                     # Extract the archive and browse the extracted file
                     extracted_path = self.flatten_compressed_files(filename)
                     return self.browse_filename(mode, exts=exts)
@@ -1562,6 +1568,53 @@ class REvoDesignPlugin:
         )
         self.set_widget_value(progressBar_mutant_choosing, progress)
 
+    def find_all_best_mutants(
+        self, checkBox_reverse_mutant_effect, lcdNumber_selected_mutant
+    ):
+        if not self.mutant_tree_pssm:
+            logging.error(
+                f'No available mutant tree. Please reinitialize it before picking mutants.'
+            )
+            return
+
+        if not self.mutant_tree_pssm_selected.empty:
+            logging.warning(
+                f'Your current mutant selection will be overrided!'
+            )
+
+            # Ask whether to overide
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Question)
+            msg.setWindowTitle("Override existed mutant table choices?")
+            msg.setText(
+                f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
+                    Are you really sure? "
+            )
+            msg.setStandardButtons(
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            )
+            result = msg.exec_()
+
+            if result == QtWidgets.QMessageBox.No:
+                logging.warning(f'Cancelled.')
+                return
+
+        for branch_id in self.mutant_tree_pssm.all_mutant_branch_ids:
+            self.mutant_tree_pssm.jump_to_the_best_mutant_in_branch(
+                branch_id=branch_id,
+                reversed=checkBox_reverse_mutant_effect.isChecked(),
+            )
+            logging.info(
+                f'Jump to the best hit of {self.mutant_tree_pssm.current_branch_id}: {self.mutant_tree_pssm.current_mutant_id}'
+            )
+
+            self.accept_mutant(
+                lcdNumber_selected_mutant=lcdNumber_selected_mutant
+            )
+            logging.info(
+                f'Best hit of {self.mutant_tree_pssm.current_mutant_id} accepted.'
+            )
+
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self, mutant):
         _mutant, _mutant_obj = extract_mutants(mutant_string=mutant)
@@ -1961,6 +2014,7 @@ class REvoDesignPlugin:
         )
 
     def visualize_mutants(self):
+        triggger_button = self.ui.pushButton_run_visualizing
         input_pse = self.temperal_session
         input_mut_table_csv = self.ui.lineEdit_input_mut_table_csv.text()
         molecule = self.ui.comboBox_molecule_2.currentText()
@@ -1971,66 +2025,85 @@ class REvoDesignPlugin:
         nproc = int(self.ui.comboBox_nproc_4.currentText())
         group_name = self.ui.lineEdit_group_name.text()
 
-        reversed_mutant_effect = (
-            self.ui.checkBox_reverse_mutant_effect_3.isChecked()
-        )
-        cmap = cmap_reverser(
-            cmap=self.ui.comboBox_cmap.currentText(),
-            reverse=reversed_mutant_effect,
-        )
+        use_global_scores = self.ui.checkBox_global_score_policy.isChecked()
 
-        design_profile = self.ui.lineEdit_input_csv_2.text()
-        design_profile_format = self.ui.comboBox_profile_type_2.currentText()
+        triggger_button.setEnabled(False)
 
-        progressBar_visualize_mutants = self.ui.progressBar_visualize_mutants
-
-        from REvoDesign.common.MutantVisualizer import MutantVisualizer
-
-        visualizer = MutantVisualizer(
-            molecule=molecule,
-            chain_id=chainid,
-        )
-        visualizer.mutfile = input_mut_table_csv
-        visualizer.input_session = input_pse
-        visualizer.nproc = nproc
-
-        if os.path.exists(design_profile):
-            visualizer.profile_scoring_df = visualizer.parse_profile(
-                profile_fp=design_profile, profile_format=design_profile_format
+        try:
+            reversed_mutant_effect = (
+                self.ui.checkBox_reverse_mutant_effect_3.isChecked()
             )
-            logging.debug(visualizer.profile_scoring_df.head())
-        else:
-            logging.warning(
-                "Profile data is not available. Trying to read scores from the mutant table ..."
+            cmap = cmap_reverser(
+                cmap=self.ui.comboBox_cmap.currentText(),
+                reverse=reversed_mutant_effect,
             )
-            visualizer.profile_scoring_df = None
 
-        if best_leaf:
-            visualizer.key_col = best_leaf
-        if totalscore:
-            visualizer.score_col = totalscore
+            design_profile = self.ui.lineEdit_input_csv_2.text()
+            design_profile_format = (
+                self.ui.comboBox_profile_type_2.currentText()
+            )
 
-        visualizer.save_session = output_pse
-        visualizer.full = False
-        visualizer.group_name = group_name
-        visualizer.cmap = cmap
+            progressBar_visualize_mutants = (
+                self.ui.progressBar_visualize_mutants
+            )
 
-        visualizer.run_with_progressbar(
-            progress_bar=progressBar_visualize_mutants
-        )
+            from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
-        cmd.reinitialize()
-        cmd.load(output_pse)
-        cmd.center(molecule)
-        cmd.set('surface_color', 'gray70')
-        cmd.set('cartoon_color', 'gray70')
-        cmd.set('surface_cavity_mode', 4)
-        cmd.set('transparency', 0.6)
-        cmd.set(
-            'cartoon_cylindrical_helices',
-        )
-        cmd.set('cartoon_transparency', 0.3)
-        cmd.save(output_pse)
+            visualizer = MutantVisualizer(
+                molecule=molecule,
+                chain_id=chainid,
+            )
+            visualizer.mutfile = input_mut_table_csv
+            visualizer.input_session = input_pse
+            visualizer.nproc = nproc
+
+            visualizer.consider_global_score_from_profile = use_global_scores
+
+            if os.path.exists(design_profile):
+                visualizer.profile_scoring_df = visualizer.parse_profile(
+                    profile_fp=design_profile,
+                    profile_format=design_profile_format,
+                )
+                logging.debug(visualizer.profile_scoring_df.head())
+            else:
+                logging.warning(
+                    "Profile data is not available. Trying to read scores from the mutant table ..."
+                )
+                visualizer.profile_scoring_df = None
+                visualizer.consider_global_score_from_profile = False
+
+            if best_leaf:
+                visualizer.key_col = best_leaf
+            if totalscore:
+                visualizer.score_col = totalscore
+
+            visualizer.save_session = output_pse
+            visualizer.full = False
+            visualizer.group_name = group_name
+            visualizer.cmap = cmap
+
+            visualizer.run_with_progressbar(
+                progress_bar=progressBar_visualize_mutants
+            )
+
+            cmd.reinitialize()
+            cmd.load(output_pse)
+            cmd.center(molecule)
+            cmd.set('surface_color', 'gray70')
+            cmd.set('cartoon_color', 'gray70')
+            cmd.set('surface_cavity_mode', 4)
+            cmd.set('transparency', 0.6)
+            cmd.set(
+                'cartoon_cylindrical_helices',
+            )
+            cmd.set('cartoon_transparency', 0.3)
+            cmd.save(output_pse)
+
+        except Exception as e:
+            logging.error('Error while running the visualization: \n {e}')
+
+        finally:
+            triggger_button.setEnabled(True)
 
     # Tab Interact via GREMLIN
     def load_gremlin_mrf(
@@ -2259,7 +2332,8 @@ class REvoDesignPlugin:
             self.ui.comboBox_max_interact_dist.currentText()
         )
 
-        lineEdit_current_design = self.ui.lineEdit_current_design
+        lineEdit_current_pair = self.ui.lineEdit_current_pair
+        lineEdit_current_pair_score = self.ui.lineEdit_current_pair_score
 
         if not chain_id or not molecule:
             logging.error(f'No available molecule or chain id.')
@@ -2311,7 +2385,7 @@ class REvoDesignPlugin:
 
         button_matrix = QbuttonMatrix(csv_fp)
         button_matrix.sequence = self.gremlin_tool.sequence
-        button_matrix.pos_i, button_matrix.pos_j, _, __, ___ = wt_info
+        button_matrix.pos_i, button_matrix.pos_j, i_aa, j_aa, zscore = wt_info
 
         button_matrix.init_ui()
 
@@ -2336,17 +2410,17 @@ class REvoDesignPlugin:
         )
 
         self.set_widget_value(
-            lineEdit_current_design,
-            ' vs '.join(wt_info[-3:-1]) + f' in dist {spatial_distance:.2f} Å',
+            lineEdit_current_pair,
+            f'{i_aa.replace("_","")}-{j_aa.replace("_","")}, {spatial_distance:.1f} Å',
         )
+
+        self.set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
         if max_interact_dist and spatial_distance > max_interact_dist:
             logging.warning(
                 f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist}'
             )
-            self.set_widget_value(
-                lineEdit_current_design, 'Residues are out of distance.'
-            )
+            self.set_widget_value(lineEdit_current_pair, 'Out of range.')
             # To disable the QbuttonMatrix:
             button_matrix.setEnabled(False)
         else:
@@ -2438,6 +2512,11 @@ class REvoDesignPlugin:
 
         from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
+        lineEdit_current_pair_wt_score = self.ui.lineEdit_current_pair_wt_score
+        lineEdit_current_pair_mut_score = (
+            self.ui.lineEdit_current_pair_mut_score
+        )
+
         visualizer = MutantVisualizer(molecule, chain_id)
         alphabet = self.gremlin_tool.alphabet
         visualizer.group_name = '_vs_'.join(
@@ -2450,18 +2529,20 @@ class REvoDesignPlugin:
 
         self.current_gremlin_co_evoving_pair_group_id = visualizer.group_name
 
-        logging.debug(f'Received col {col} and row {row}')
+        # logging.debug(f'Received col {col} and row {row}')
 
         # aa from clicked button, mutant
-        WT_A = alphabet[col]
-        WT_B = alphabet[row]
+        mut_A = alphabet[col]
+        mut_B = alphabet[row]
 
-        score = matrix[col][row]
+        mut_score = matrix[col][row]
         [i, j, i_aa, j_aa, zscore] = wt_info
 
         # aa from wt
-        res_I = i_aa.split('_')[0]  # in column
-        res_J = j_aa.split('_')[0]  # in row
+        wt_A = i_aa.split('_')[0]  # in column
+        wt_B = j_aa.split('_')[0]  # in row
+
+        wt_score = matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
 
         _mutant = []
 
@@ -2470,7 +2551,7 @@ class REvoDesignPlugin:
                 self.current_gremlin_co_evoving_pair_mutant_id
             )
 
-        for mut, idx, wt in zip([WT_A, WT_B], [j + 1, i + 1], [res_I, res_J]):
+        for mut, idx, wt in zip([mut_A, mut_B], [j + 1, i + 1], [wt_A, wt_B]):
             _ = f'{chain_id}{wt}{idx}{mut}'
             if wt == mut and ignore_wt:
                 logging.debug(f'Ignore WT to WT mutagenese {_}')
@@ -2481,7 +2562,14 @@ class REvoDesignPlugin:
                 logging.debug(f'Adding mutagenesis {_}')
                 _mutant.append(_)
 
-        _mutant.append(f'{score:.3f}')
+        self.set_widget_value(
+            lineEdit_current_pair_wt_score, f'{wt_score:.3f}'
+        )
+        self.set_widget_value(
+            lineEdit_current_pair_mut_score, f'{mut_score:.3f}'
+        )
+
+        _mutant.append(str(mut_score))
 
         mutant = '_'.join(_mutant)
 
@@ -2496,16 +2584,18 @@ class REvoDesignPlugin:
             enabled_only=0,
         ):
             logging.info(
-                f'Picked mutant: {mutant} ( {score} ) already exists. Do nothing.'
+                f'Picked mutant: {mutant} already exists. Do nothing.'
             )
         else:
-            logging.info(f'Picked mutant: {mutant} ( {score} )')
+            logging.info(f'Picked mutant: {mutant} ')
 
-            color = get_color('bwr_r', score, min_score, max_score)
+            color = get_color('bwr_r', mut_score, min_score, max_score)
 
-            logging.info(f" Visualizing {mutant} {score}: {color}")
+            logging.info(f" Visualizing {mutant}: {color}")
 
-            _, mutant_obj=extract_mutants(mutant_string=f'{mutant}_{score}',chain_id=chain_id)
+            _, mutant_obj = extract_mutants(
+                mutant_string=mutant, chain_id=chain_id
+            )
             visualizer.create_mutagenesis_objects(mutant_obj, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)

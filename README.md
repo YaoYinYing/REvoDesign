@@ -63,12 +63,22 @@ With the recent updates, the installation process for the PyMOL Enzyme Redesign 
    ```python
    # From a local repo
    install_REvoDesign_via_pip file:///local/path/to/repository/of/REvoDesign
+   
+   # from an unzipped source code release
+   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign
    ```
+
 
    c. To install a specific commit/branch, use source@<commit/branch>:
    ```python
    # From remote repo, commit id ffe0219978da929bd1d183ca764c4c5d9da0bf96
    install_REvoDesign_via_pip https://github.com/YaoYinYing/REvoDesign@ffe0219
+   ```
+
+   d. To upgrade to the latest version:
+   ```python
+   # Upgrade from a local repo/directory
+   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1
    ```
 
    Note that during the installation process, the window will freeze for a while.
