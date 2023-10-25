@@ -22,10 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PIP installing issue from `file://` source
 - Freeze `pushButton_run_visualizing` during running.
 - Entrance installation from local file. Treat `source=<src_path>` as a normal path, instead of a git repository.
+- `AttributeError` in GREMLIN mrf reloading as a notice.
+- Typo in `GREMLIN_Tools`
 
 ### Changed
 - UI file layout
 - Using `self.topN` as the number of `top_N_pairs` in GREMLIN tool One-vs-All mode, instead of hardcoded 20 pairs.
+- Keeping window size fixed
 
 ### Removed
 - RAR file supports, together with `unrar` dependency. 
@@ -206,11 +209,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Included scale reduction capabilities for low-throughput wet-lab validations via sequence clustering.
 - Enabled the visualization of mutant tables in PyMOL.
 - Introduced co-evolution analysis using GREMLIN Markov random field profiles for effective mutant identification.
-
-
-### Fixed
-
-### Changed
-
-### Removed
-

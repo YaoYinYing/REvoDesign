@@ -41,7 +41,7 @@ class GREMLIN_Tools:
             logging.error(f"Could not find GREMLIN mrf file: {mrf_path}")
             return None
         else:
-            logging.info("GRELIN mrf is loading ...")
+            logging.info("GREMLIN mrf is loading ...")
             self.mrf = self.load_mrf(mrf_path)
             logging.info('Done')
 

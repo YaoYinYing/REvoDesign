@@ -2170,7 +2170,10 @@ class REvoDesignPlugin:
             self.gremlin_tool.get_to_coevolving_pairs()
             plot_mtx_fp = self.gremlin_tool.plot_mtx()
 
-            self.set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
+            try:
+                self.set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
+            except AttributeError:
+                logging.info(f'Work Space is cleaned. Click again to reinitialize.')
 
         finally:
             self.ui.pushButton_reinitialize_interact.setEnabled(True)

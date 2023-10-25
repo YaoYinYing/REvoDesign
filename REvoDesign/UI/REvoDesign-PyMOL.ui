@@ -2,12 +2,15 @@
 <ui version="4.0">
  <class>REvoDesignPyMOL_UI</class>
  <widget class="QMainWindow" name="REvoDesignPyMOL_UI">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>515</height>
+    <height>500</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -16,10 +19,22 @@
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>660</width>
+    <height>500</height>
+   </size>
+  </property>
   <property name="maximumSize">
    <size>
-    <width>16777215</width>
-    <height>16777215</height>
+    <width>660</width>
+    <height>500</height>
+   </size>
+  </property>
+  <property name="sizeIncrement">
+   <size>
+    <width>660</width>
+    <height>500</height>
    </size>
   </property>
   <property name="mouseTracking">
@@ -27,6 +42,12 @@
   </property>
   <property name="windowTitle">
    <string>REvoDesign - PyMOL Interface</string>
+  </property>
+  <property name="tabShape">
+   <enum>QTabWidget::Rounded</enum>
+  </property>
+  <property name="dockOptions">
+   <set>QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks</set>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QTabWidget" name="tabWidget">
@@ -36,7 +57,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>0</y>
+      <y>10</y>
       <width>641</width>
       <height>441</height>
      </rect>
@@ -247,63 +268,59 @@
            </widget>
           </item>
           <item>
-           <layout class="QVBoxLayout" name="verticalLayout_3">
+           <layout class="QHBoxLayout" name="horizontalLayout_27">
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_27">
-              <item>
-               <widget class="QLabel" name="label_surface_cutoff_2">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>Max. Dist.</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="comboBox_interface_cutoff">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="statusTip">
-                 <string>Max distance to inspect any chain-chain interface.</string>
-                </property>
-                <property name="editable">
-                 <bool>true</bool>
-                </property>
-                <property name="minimumContentsLength">
-                 <number>0</number>
-                </property>
-                <property name="iconSize">
-                 <size>
-                  <width>16</width>
-                  <height>16</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_dump_interfaces">
-              <property name="toolTip">
-               <string>Dump chain-chain interface</string>
+             <widget class="QLabel" name="label_surface_cutoff_2">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
               </property>
               <property name="text">
-               <string>Inspect Interfaces</string>
+               <string>Max. Dist.</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBox_interface_cutoff">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="statusTip">
+               <string>Max distance to inspect any chain-chain interface.</string>
+              </property>
+              <property name="editable">
+               <bool>true</bool>
+              </property>
+              <property name="minimumContentsLength">
+               <number>0</number>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>16</width>
+                <height>16</height>
+               </size>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_dump_interfaces">
+            <property name="toolTip">
+             <string>Dump chain-chain interface</string>
+            </property>
+            <property name="text">
+             <string>Inspect Interfaces</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
@@ -549,7 +566,7 @@
              </size>
             </property>
             <property name="statusTip">
-             <string>Excluded selection. Use PyMOL selection syntax</string>
+             <string>Excluded selection. Use PyMOL selection syntax(eg. ((sele_1 and sele_2) or (sele_3 and sele_4)))</string>
             </property>
             <property name="editable">
              <bool>true</bool>
@@ -1078,7 +1095,7 @@
               <property name="maximumSize">
                <size>
                 <width>16777215</width>
-                <height>50</height>
+                <height>16777215</height>
                </size>
               </property>
               <property name="layoutDirection">
@@ -1124,7 +1141,7 @@
             <item>
              <widget class="QLabel" name="label_54">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -1140,7 +1157,7 @@
             <item>
              <widget class="QComboBox" name="comboBox_cmap_2">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -1232,7 +1249,7 @@
       <property name="geometry">
        <rect>
         <x>410</x>
-        <y>250</y>
+        <y>240</y>
         <width>211</width>
         <height>61</height>
        </rect>
@@ -1274,9 +1291,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>250</y>
+        <y>220</y>
         <width>391</width>
-        <height>61</height>
+        <height>91</height>
        </rect>
       </property>
       <property name="title">
@@ -1286,14 +1303,19 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>20</y>
-         <width>221</width>
-         <height>41</height>
+         <y>30</y>
+         <width>371</width>
+         <height>51</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_36">
         <item>
          <widget class="QLineEdit" name="lineEdit_score_minima">
+          <property name="font">
+           <font>
+            <pointsize>24</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>-2</string>
           </property>
@@ -1320,28 +1342,40 @@
         </item>
         <item>
          <widget class="QLineEdit" name="lineEdit_score_maxima">
+          <property name="font">
+           <font>
+            <pointsize>24</pointsize>
+           </font>
+          </property>
           <property name="text">
            <string>10</string>
           </property>
          </widget>
         </item>
+        <item>
+         <spacer name="verticalSpacer">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
+          <property name="statusTip">
+           <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
+          </property>
+          <property name="text">
+           <string>Reversed</string>
+          </property>
+         </widget>
+        </item>
        </layout>
-      </widget>
-      <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
-       <property name="geometry">
-        <rect>
-         <x>250</x>
-         <y>30</y>
-         <width>87</width>
-         <height>20</height>
-        </rect>
-       </property>
-       <property name="statusTip">
-        <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
-       </property>
-       <property name="text">
-        <string>Reversed</string>
-       </property>
       </widget>
      </widget>
     </widget>
@@ -1418,21 +1452,39 @@
         </item>
         <item row="0" column="1">
          <widget class="QLCDNumber" name="lcdNumber_total_mutant">
+          <property name="font">
+           <font>
+            <weight>50</weight>
+            <bold>false</bold>
+           </font>
+          </property>
           <property name="statusTip">
            <string>Total number of design candidates</string>
           </property>
           <property name="digitCount">
-           <number>4</number>
+           <number>3</number>
+          </property>
+          <property name="segmentStyle">
+           <enum>QLCDNumber::Flat</enum>
           </property>
          </widget>
         </item>
         <item row="1" column="1">
          <widget class="QLCDNumber" name="lcdNumber_selected_mutant">
+          <property name="font">
+           <font>
+            <weight>50</weight>
+            <bold>false</bold>
+           </font>
+          </property>
           <property name="statusTip">
            <string>Number of accepted mutants</string>
           </property>
           <property name="digitCount">
-           <number>4</number>
+           <number>3</number>
+          </property>
+          <property name="segmentStyle">
+           <enum>QLCDNumber::Flat</enum>
           </property>
          </widget>
         </item>
@@ -2094,7 +2146,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>271</width>
+         <width>298</width>
          <height>281</height>
         </rect>
        </property>
@@ -3484,7 +3536,7 @@
             </size>
            </property>
            <property name="text">
-            <string>Score</string>
+            <string>Score:</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
