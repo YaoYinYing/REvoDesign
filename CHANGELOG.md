@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GREMLIN pair score, distance, wt score, mutant score.
 - `use_global_scores` for mutant profile visualizing.
 - Upgrating **REvoDesign** via `install_via_pip`.
+- Supporting function as `value` of `set_widget_value`. The function will be called and it's return value will be set as `value`.
 
 ### Fixed
 - GREMLIN mutants in Visualizer

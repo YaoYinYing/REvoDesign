@@ -696,7 +696,7 @@ class REvoDesignPlugin:
             partial(
                 self.set_widget_value,
                 self.ui.comboBox_molecule_3,
-                determine_molecule_objects(),
+                determine_molecule_objects,
             )
         )
 
@@ -795,10 +795,15 @@ class REvoDesignPlugin:
         if filename:
             return filename
 
-    # A universal and fussy function for value setting. ;-)
+    # A universal and versatile function for value setting. ;-)
     def set_widget_value(self, widget, value):
+        
         type_widget = type(widget)
         type_value = type(value)
+
+        if type_value == type(lambda: None):  # Check if value is a function
+            value = value()  # If it's a function, call it to get the value
+            type_value = type(value)
 
         if type_widget == QtWidgets.QComboBox:
             if type_value != list and type_value != tuple:
@@ -867,7 +872,7 @@ class REvoDesignPlugin:
                 f'FIX ME: Widget {widget} is not currently supported. '
             )
 
-    # A universal and fussy function for input file path browsing.
+    # A universal and versatile function for input file path browsing.
     def open_input_filepath(self, lineEdit_input, exts=[AnyFileExt]):
         input_fn = self.browse_filename(mode='r', exts=exts)
         if input_fn:
@@ -913,9 +918,7 @@ class REvoDesignPlugin:
                 )
                 return
 
-        molecule_objects = determine_molecule_objects()
-
-        self.set_widget_value(output_comboBox, molecule_objects)
+        self.set_widget_value(output_comboBox, determine_molecule_objects)
 
     def setup_nproc(self, comboBox_nproc):
         nprocs = determine_nproc()
@@ -1758,7 +1761,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(comboBox_molecule, determine_molecule_objects())
+        self.set_widget_value(comboBox_molecule, determine_molecule_objects)
 
         self.set_widget_value(
             progressBar_mutant_choosing,

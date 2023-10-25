@@ -91,6 +91,7 @@ def install_via_pip(
             f'Installation succeeded: {source}',
         )
         print(f'stdout: {result.stdout.decode()}')
+        print('If this is an upgrade, please restart PyMOL for it to take effect.')
 
 
 from pymol import cmd
