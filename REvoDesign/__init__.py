@@ -797,7 +797,6 @@ class REvoDesignPlugin:
 
     # A universal and versatile function for value setting. ;-)
     def set_widget_value(self, widget, value):
-        
         type_widget = type(widget)
         type_value = type(value)
 
@@ -2124,8 +2123,27 @@ class REvoDesignPlugin:
             )
             molecule = self.ui.comboBox_molecule_3.currentText()
             chain_id = self.ui.comboBox_chainid_9.currentText()
+
             pushButton_run_interact_scan = self.ui.pushButton_run_interact_scan
             gridLayout_interact_pairs = self.ui.gridLayout_interact_pairs
+
+            # reset design info
+            lineEdit_current_pair_wt_score = (
+                self.ui.lineEdit_current_pair_wt_score
+            )
+            lineEdit_current_pair_mut_score = (
+                self.ui.lineEdit_current_pair_mut_score
+            )
+            lineEdit_current_pair = self.ui.lineEdit_current_pair
+            lineEdit_current_pair_score = self.ui.lineEdit_current_pair_score
+
+            for lineEdit in [
+                lineEdit_current_pair,
+                lineEdit_current_pair_score,
+                lineEdit_current_pair_wt_score,
+                lineEdit_current_pair_mut_score,
+            ]:
+                self.set_widget_value(lineEdit, '')
 
             progress_bar = self.ui.progressBar_gremlin_visualizing
 
@@ -2173,7 +2191,9 @@ class REvoDesignPlugin:
             try:
                 self.set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
             except AttributeError:
-                logging.info(f'Work Space is cleaned. Click again to reinitialize.')
+                logging.info(
+                    f'Work Space is cleaned. Click again to reinitialize. '
+                )
 
         finally:
             self.ui.pushButton_reinitialize_interact.setEnabled(True)

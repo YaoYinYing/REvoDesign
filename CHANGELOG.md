@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `use_global_scores` for mutant profile visualizing.
 - Upgrating **REvoDesign** via `install_via_pip`.
 - Supporting function as `value` of `set_widget_value`. The function will be called and it's return value will be set as `value`.
+- Design info reset when reinitializing co-evolution work space.
 
 ### Fixed
 - GREMLIN mutants in Visualizer
