@@ -375,7 +375,13 @@
              </size>
             </property>
             <property name="statusTip">
-             <string>Substrate/Product molecule</string>
+             <string>Substrate/Product molecule. Use PyMOL selection syntax(eg. (LIG or PRD))</string>
+            </property>
+            <property name="whatsThis">
+             <string/>
+            </property>
+            <property name="editable">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -422,6 +428,9 @@
             <property name="statusTip">
              <string>Max distance from cofactor to pocket residue.</string>
             </property>
+            <property name="editable">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item row="1" column="0">
@@ -467,6 +476,9 @@
             <property name="statusTip">
              <string>Max distance from ligand to pocket residue.</string>
             </property>
+            <property name="editable">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item row="1" column="1">
@@ -490,7 +502,10 @@
              </size>
             </property>
             <property name="statusTip">
-             <string>Co-factor or co-enzyme, HEM/FAD/NAD, etc.</string>
+             <string>Co-factor or co-enzyme, HEM/FAD/NAD, etc. Use PyMOL selection syntax (eg. (HEM or FAD))</string>
+            </property>
+            <property name="editable">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -650,6 +665,9 @@
               <width>115</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="statusTip">
+             <string>Refresh PyMOL selection list in REvoDesign</string>
             </property>
             <property name="whatsThis">
              <string comment="Refresh to fetch PyMOL selections"/>
@@ -3516,6 +3534,9 @@
            <property name="enabled">
             <bool>true</bool>
            </property>
+           <property name="statusTip">
+            <string>Pair id</string>
+           </property>
            <property name="readOnly">
             <bool>true</bool>
            </property>
@@ -3560,6 +3581,9 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="statusTip">
+            <string>Pair score</string>
+           </property>
            <property name="readOnly">
             <bool>true</bool>
            </property>
@@ -3596,6 +3620,9 @@
            <property name="enabled">
             <bool>true</bool>
            </property>
+           <property name="statusTip">
+            <string>WT GREMLIN score</string>
+           </property>
            <property name="readOnly">
             <bool>true</bool>
            </property>
@@ -3627,6 +3654,9 @@
           <widget class="QLineEdit" name="lineEdit_current_pair_mut_score">
            <property name="enabled">
             <bool>true</bool>
+           </property>
+           <property name="statusTip">
+            <string>Mutant GREMLIN score</string>
            </property>
            <property name="readOnly">
             <bool>true</bool>

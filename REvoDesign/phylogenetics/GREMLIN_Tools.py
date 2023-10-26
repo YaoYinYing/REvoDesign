@@ -171,9 +171,14 @@ class GREMLIN_Tools:
         return plot_mrf_fp
 
     def plot_w(self, i, j, i_aa, j_aa, idx=0):
+
+        transposed=False
         if i > j:
+            logging.debug(f"i ({i}) > j ({j})")
             j, i = i, j
             i_aa, j_aa = j_aa, i_aa
+            transposed=True
+
 
         matching_indices = np.where(
             (self.mrf["w_idx"][:, 0] == i) & (self.mrf["w_idx"][:, 1] == j)
@@ -196,18 +201,21 @@ class GREMLIN_Tools:
 
         csv_fp = f"{self.pwd}/Top.{idx:02}.W_for_positions_{str(i_aa)}_{str(j_aa)}.csv"
 
-        with open(csv_fp, 'w') as f:
-            f.write(",")
-            for k in self.alphabet:
-                f.write(k + ",")
-            f.write("\n")
-            dummy = 0
-            for pos1 in w:
-                f.write(self.alphabet[dummy] + ",")
-                for pos2 in pos1:
-                    f.write(str(round(pos2, 2)) + ",")
-                f.write("\n")
-                dummy += 1
+
+        # Create a dictionary where keys are from self.alphabet and values are from w
+        data = {k: w[i] for i, k in enumerate(self.alphabet)}
+
+        # Create a DataFrame from the data dictionary
+        df = pd.DataFrame(data, index=list(self.alphabet), columns=list(self.alphabet))
+
+        if transposed:
+            logging.debug("Transposed.")
+            df=df.T
+
+
+        # Write the DataFrame to a CSV file
+        df.to_csv(csv_fp)       
+        
         mx = np.max((w.max(), np.abs(w.min())))
         plt.figure(figsize=(self.states / 4, self.states / 4))
         plt.imshow(-w, cmap='bwr', vmin=-mx, vmax=mx)
@@ -256,6 +264,7 @@ class GREMLIN_Tools:
             zscore = self.top.iloc[n]["zscore"]
 
             csv_fp, plot_fp = self.plot_w(i, j, i_aa, j_aa, n)
+            
             plot_w_fps[n] = ([i, j, i_aa, j_aa, zscore], csv_fp, plot_fp)
         return plot_w_fps
 
@@ -275,7 +284,7 @@ class GREMLIN_Tools:
             if self.pd_mtx['j'][idx] - self.pd_mtx['i'][idx] > 5:
                 coevolving_pairs.append(
                     (
-                        i,
+                        i ,
                         j,
                         self.pd_mtx['i_aa'][idx],
                         self.pd_mtx['j_aa'][idx],
@@ -300,8 +309,12 @@ class GREMLIN_Tools:
         plot_w_fps = {}
         for n, pair in enumerate(top_N_pairs):
             (i, j, i_aa, j_aa, zscore) = pair
+
             csv_fp, plot_fp = self.plot_w(i, j, i_aa, j_aa, n)
             if csv_fp and plot_fp:
+                if i > j:
+                    j, i = i, j
+
                 plot_w_fps[n] = ([i, j, i_aa, j_aa, zscore], csv_fp, plot_fp)
 
         return plot_w_fps

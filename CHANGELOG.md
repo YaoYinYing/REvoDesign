@@ -7,8 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [1.1.9] - 2023-10-26
+
 ### Fixed
 - Failure on mutant id switching after `fetch_all_mutant_branch_ids`
+- Dataframe transposing in GREMLIN tools if i > j.
+- Distance restraint reloading while scanning in GREMLIN tools
+
+### Changed
+- `read_enzyme_pockets.py`  --> `PocketSearcher.py`
+- `findSurfaceResidues.py`  --> `SurfaceFinder.py`
+- Refactored dataframe creating and saving in GRELIN tools.
+
 
 ## [1.1.8] - 2023-10-25
 ### Added

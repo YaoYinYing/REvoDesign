@@ -1234,43 +1234,48 @@ class REvoDesignPlugin:
         cutoff = int(self.ui.comboBox_surface_cutoff.currentText())
         do_show_surf_CA = True
 
-        from REvoDesign.structure.Surface.findSurfaceResidues import (
-            determine_surface_residue,
-        )
+        from REvoDesign.structure.SurfaceFinder import SurfaceFinder
 
-        determine_surface_residue(
+        surfacefinder = SurfaceFinder(
             input_file=input_file,
             output_file=output_file,
             molecule=molecule,
             chain_id=chain_id,
-            exclude_residue_selection=exclusion,
-            cutoff=cutoff,
-            do_show_surf_CA=do_show_surf_CA,
         )
+
+        surfacefinder.cutoff = cutoff
+        surfacefinder.exclude_residue_selection = exclusion
+        surfacefinder.do_show_surf_CA = do_show_surf_CA
+
+        surfacefinder.process_surface_residues()
 
     def run_pocket_detection(self):
         input_file = self.temperal_session
         output_file = self.ui.lineEdit_output_pse_4.text()
         molecule = self.ui.comboBox_design_molecule.currentText()
+        chain_id = self.ui.comboBox_chainid.currentText()
         ligand = self.ui.comboBox_ligand_sel.currentText()
         cofactor = self.ui.comboBox_cofactor_sel.currentText()
         ligand_radius = int(self.ui.comboBox_ligand_radius.currentText())
         cofactor_radius = int(self.ui.comboBox_cofactor_radius.currentText())
 
-        from REvoDesign.structure.pocket.read_enzyme_pockets import (
-            read_enzyme_pockets,
-        )
+        from REvoDesign.structure.PocketSearcher import PocketSearcher
 
-        read_enzyme_pockets(
+        pocketsearcher = PocketSearcher(
             input_file=input_file,
             output_file=output_file,
             molecule=molecule,
             ligand=ligand,
-            cofactor=cofactor,
-            save_dir=f'{self.PWD}/pockets/',
-            ligand_radius=ligand_radius,
-            cofactor_radius=cofactor_radius,
         )
+
+        pocketsearcher.chain_id = chain_id
+
+        pocketsearcher.ligand_radius = ligand_radius
+        pocketsearcher.cofactor = cofactor
+        pocketsearcher.cofactor_radius = cofactor_radius
+
+        pocketsearcher.save_dir = f'{self.PWD}/pockets/'
+        pocketsearcher.search_pockets()
 
     # Tab `Load Mutants`
 
@@ -2282,6 +2287,7 @@ class REvoDesignPlugin:
         cmd.hide('surface', ce_object_name)
         for i, pair_resi in self.plot_w_fps.items():
             logging.debug(pair_resi)
+            
             spatial_distance = cmd.get_distance(
                 atom1=f'{molecule} and c. {chain_id} and i. {pair_resi[0][0]+1} and n. CA',
                 atom2=f'{molecule} and c. {chain_id} and i. {pair_resi[0][1]+1} and n. CA',
@@ -2359,10 +2365,8 @@ class REvoDesignPlugin:
     ):
         molecule = self.ui.comboBox_molecule_3.currentText()
         chain_id = self.ui.comboBox_chainid_9.currentText()
-        ignore_wt = self.ui.checkBox_interact_ignore_wt.isChecked()
-        max_interact_dist = int(
-            self.ui.comboBox_max_interact_dist.currentText()
-        )
+        checkBox_ignore_wt = self.ui.checkBox_interact_ignore_wt
+        comboBox_max_interact_dist = self.ui.comboBox_max_interact_dist
 
         lineEdit_current_pair = self.ui.lineEdit_current_pair
         lineEdit_current_pair_score = self.ui.lineEdit_current_pair_score
@@ -2431,7 +2435,7 @@ class REvoDesignPlugin:
                 button_matrix.min_value,
                 button_matrix.max_value,
                 wt_info,
-                ignore_wt,
+                checkBox_ignore_wt.isChecked(),
             )
         )
         self.ui.gridLayout_interact_pairs.addWidget(button_matrix)
@@ -2448,9 +2452,9 @@ class REvoDesignPlugin:
 
         self.set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
-        if max_interact_dist and spatial_distance > max_interact_dist:
+        if comboBox_max_interact_dist.currentText() and spatial_distance > float(comboBox_max_interact_dist.currentText()):
             logging.warning(
-                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist}'
+                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {float(comboBox_max_interact_dist.currentText())}'
             )
             self.set_widget_value(lineEdit_current_pair, 'Out of range.')
             # To disable the QbuttonMatrix:
@@ -2543,9 +2547,9 @@ class REvoDesignPlugin:
             and self.last_gremlin_co_evoving_pair_group_id
             != self.current_gremlin_co_evoving_pair_group_id
         ):
-            cmd.enable(self.last_gremlin_co_evoving_pair_group_id)
+            cmd.enable(self.current_gremlin_co_evoving_pair_group_id)
             cmd.group(
-                self.last_gremlin_co_evoving_pair_group_id, action='open'
+                self.current_gremlin_co_evoving_pair_group_id, action='open'
             )
 
         cmd.center(self.current_gremlin_co_evoving_pair_mutant_id)
@@ -2607,7 +2611,7 @@ class REvoDesignPlugin:
                 self.current_gremlin_co_evoving_pair_mutant_id
             )
 
-        for mut, idx, wt in zip([mut_A, mut_B], [j + 1, i + 1], [wt_A, wt_B]):
+        for mut, idx, wt in zip([mut_A, mut_B], [i + 1, j + 1], [wt_A, wt_B]):
             _ = f'{chain_id}{wt}{idx}{mut}'
             if wt == mut and ignore_wt:
                 logging.debug(f'Ignore WT to WT mutagenese {_}')
