@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Failure on mutant id switching after `fetch_all_mutant_branch_ids`
+
 ## [1.1.8] - 2023-10-25
 ### Added
 - `find_all_best_mutants` to find all best mutants in each branch.

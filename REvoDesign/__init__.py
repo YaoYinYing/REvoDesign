@@ -1601,7 +1601,12 @@ class REvoDesignPlugin:
                 logging.warning(f'Cancelled.')
                 return
 
+        self.mutant_tree_pssm_selected = MutantTree({})
+
         for branch_id in self.mutant_tree_pssm.all_mutant_branch_ids:
+            logging.info(f'Jump to {branch_id} as required.')
+            self.mutant_tree_pssm.jump_to_branch(branch_id=branch_id)
+
             self.mutant_tree_pssm.jump_to_the_best_mutant_in_branch(
                 branch_id=branch_id,
                 reversed=checkBox_reverse_mutant_effect.isChecked(),
@@ -1616,6 +1621,7 @@ class REvoDesignPlugin:
             logging.info(
                 f'Best hit of {self.mutant_tree_pssm.current_mutant_id} accepted.'
             )
+        self.mutant_tree_pssm.initialize_current_branch()
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self, mutant):
