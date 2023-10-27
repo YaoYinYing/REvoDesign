@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Coloring of bond for `ce_pair` objects. `marine` for near while `salmon` for far away.
   
+### Changed
+- `merge_sessions` --> `PyMOLSessionMerger`. Segmentation fault is still there. :-(
 
 ### Fixed
 - Dataframe transposing in GREMLIN tools if i > j.
 
+
+### Removed
+- `plot_mtx(key='apc')` in `GREMLIN_Tools`
 
 ## [1.1.9] - 2023-10-26
 

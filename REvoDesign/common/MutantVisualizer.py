@@ -12,7 +12,7 @@ matplotlib.use('Agg')
 from REvoDesign.common.magic_numbers import DEFAULT_PROFILE_TYPE
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.phylogenetics.pymol_pssm_script import mutate
-from REvoDesign.tools.merge_sessions import merge_sessions
+from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
 from REvoDesign.tools.utils import (
     get_color,
     extract_mutants,
@@ -376,16 +376,26 @@ class MutantVisualizer:
         logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
 
         merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
-        merge_sessions(
+        
+        # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
+        tmp_session_merger=PyMOLSessionMerger(
             session_paths=mutagenesis_sessions,
             save_path=merged_temp_session,
-            mode=2,
-            quiet=0,
-        )
+            )
+        
+        tmp_session_merger.delete=True
+        tmp_session_merger.quiet=0
+        tmp_session_merger.mode=2
+        tmp_session_merger.merge_sesion_thread(progressbar=progress_bar)
 
-        merge_sessions(
+        # final session.
+        session_merger=PyMOLSessionMerger(
             session_paths=[self.input_session, merged_temp_session],
             save_path=self.save_session,
-            mode=2,
-            quiet=0,
-        )
+            )
+        
+        session_merger.delete=False
+        session_merger.quiet=0
+        session_merger.mode=2
+        session_merger.merge_sesion_thread(progressbar=progress_bar)
+

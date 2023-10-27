@@ -116,7 +116,6 @@ class GREMLIN_Tools:
 
     def get_to_coevolving_pairs(self):
         self.mtx = self.get_mtx()
-        self.plot_mtx(key='apc')
 
         # ## Look at top co-evolving residue pairs
 
