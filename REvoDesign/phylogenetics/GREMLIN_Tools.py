@@ -172,12 +172,12 @@ class GREMLIN_Tools:
 
     def plot_w(self, i, j, i_aa, j_aa, idx=0):
 
-        transposed=False
+        transposed=True
         if i > j:
             logging.debug(f"i ({i}) > j ({j})")
             j, i = i, j
             i_aa, j_aa = j_aa, i_aa
-            transposed=True
+            transposed=False
 
 
         matching_indices = np.where(
@@ -209,7 +209,6 @@ class GREMLIN_Tools:
         df = pd.DataFrame(data, index=list(self.alphabet), columns=list(self.alphabet))
 
         if transposed:
-            logging.debug("Transposed.")
             df=df.T
 
 
