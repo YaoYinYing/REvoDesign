@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Coloring of bond for `ce_pair` objects. `marine` for near while `salmon` for far away.
+  
+
+### Fixed
+- Dataframe transposing in GREMLIN tools if i > j.
 
 
 ## [1.1.9] - 2023-10-26
