@@ -2285,6 +2285,7 @@ class REvoDesignPlugin:
         cmd.create(ce_object_name, f'{molecule} and c. {chain_id} and n. CA')
         cmd.hide('cartoon', ce_object_name)
         cmd.hide('surface', ce_object_name)
+        i_out_of_range=[]
         for i, pair_resi in self.plot_w_fps.items():
             logging.debug(pair_resi)
             
@@ -2292,11 +2293,6 @@ class REvoDesignPlugin:
                 atom1=f'{molecule} and c. {chain_id} and i. {pair_resi[0][0]+1} and n. CA',
                 atom2=f'{molecule} and c. {chain_id} and i. {pair_resi[0][1]+1} and n. CA',
             )
-            if spatial_distance > max_interact_dist:
-                logging.info(
-                    f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}'
-                )
-
             cmd.bond(
                 f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][0]+1} and n. CA',
                 f'{ce_object_name} and c. {chain_id} and resi {pair_resi[0][1]+1} and n. CA',
@@ -2310,11 +2306,29 @@ class REvoDesignPlugin:
                 ),
                 f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
             )
+            if spatial_distance > max_interact_dist:
+                logging.info(
+                    f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}'
+                )
+                i_out_of_range.append(i)
+                cmd.set('stick_color', 'salmon', f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)')
+            else:
+                cmd.set('stick_color', 'marine', f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)')
+                
+
 
         cmd.show('sticks', ce_object_name)
         cmd.set('stick_use_shader', 0)
         cmd.set('stick_round_nub', 0)
         cmd.set('stick_color', 'gray70', ce_object_name)
+
+        # remove pairs that distal
+        for i in i_out_of_range:
+            logging.info(f'Pair {self.plot_w_fps[i][0][2]}-{self.plot_w_fps[i][0][3]} will be removed:  out of range.')
+            self.plot_w_fps.pop(i)
+        
+        if i_out_of_range:
+            self.renumber_plot_w_fps()
 
         try:
             self.ui.pushButton_previous.clicked.disconnect()
