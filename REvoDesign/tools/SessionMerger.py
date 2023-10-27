@@ -2,7 +2,6 @@ import os
 
 from shutil import rmtree
 import pymol2
-from REvoDesign.tools.utils import run_worker_thread_with_progress
 
 class PyMOLSessionMerger:
     def __init__(self, session_paths, save_path):
@@ -26,8 +25,7 @@ class PyMOLSessionMerger:
                     rmtree(os.path.dirname(session_path))
 
             print(f"Saving merged session: {self.save_path}")
+            #pymol.cmd.do(f'save {self.save_path}')
+            pymol.cmd.refresh()
             pymol.cmd.save(self.save_path, quiet=self.quiet)
             print('Done.')
-
-    def merge_sesion_thread(self,progressbar=None):
-        run_worker_thread_with_progress(worker_function=self.merge_sessions, progress_bar=progressbar)

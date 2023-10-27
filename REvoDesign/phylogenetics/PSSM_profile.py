@@ -16,6 +16,7 @@ from REvoDesign.tools.utils import (
     ParallelExecutor,
     get_color,
     extract_mutants,
+    run_worker_thread_with_progress
 )
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
@@ -419,13 +420,10 @@ class PssmAnalyzer:
 
             progress_bar.setValue(len(mutagenesis_tasks))
 
-        self.merging_sessions(progress_bar)
+        run_worker_thread_with_progress(worker_function=self.merging_sessions,progress_bar=progress_bar )
 
-    def merging_sessions(
-        self,
-        progress_bar
-    ):
-        cmd.reinitialize()
+
+    def merging_sessions(self):
 
         logging.info("Merging all sessions .... This may take a while ...")
 
@@ -436,7 +434,7 @@ class PssmAnalyzer:
         ]
         logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
 
-        merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'tmp_{os.path.basename(self.output_pse)}')}"
+        merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'.tmp_{os.path.basename(self.output_pse)}')}"
 
         # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
         tmp_session_merger=PyMOLSessionMerger(
@@ -447,7 +445,7 @@ class PssmAnalyzer:
         tmp_session_merger.delete=True
         tmp_session_merger.quiet=0
         tmp_session_merger.mode=2
-        tmp_session_merger.merge_sesion_thread(progressbar=progress_bar)
+        tmp_session_merger.merge_sessions()
 
         # final session.
         session_merger=PyMOLSessionMerger(
@@ -458,5 +456,7 @@ class PssmAnalyzer:
         session_merger.delete=False
         session_merger.quiet=0
         session_merger.mode=2
-        session_merger.merge_sesion_thread(progressbar=progress_bar)
+        session_merger.merge_sessions()
+
+
 

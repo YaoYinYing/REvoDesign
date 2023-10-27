@@ -18,6 +18,7 @@ from REvoDesign.tools.utils import (
     extract_mutants,
     extract_mutant_info,
     get_molecule_sequence,
+    run_worker_thread_with_progress
 )
 from absl import logging
 
@@ -364,29 +365,35 @@ class MutantVisualizer:
         progress_bar.setValue(len(self.mutant_list))
 
         self.results = parallel_executor.handle_result()
-        cmd.reinitialize()
+
 
         logging.info("Merging all sessions .... This may take a while ...")
 
         cmd.hide('surface')
 
-        mutagenesis_sessions = [
+        self.mutagenesis_sessions = [
             session_path for session_path in self.results if session_path
         ]
-        logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
+
+        run_worker_thread_with_progress(worker_function=self.merging_sessions,progress_bar=progress_bar )
+
+
+    def merging_sessions(self):
+        logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
 
         merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
         
         # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
         tmp_session_merger=PyMOLSessionMerger(
-            session_paths=mutagenesis_sessions,
+            session_paths=self.mutagenesis_sessions,
             save_path=merged_temp_session,
             )
         
         tmp_session_merger.delete=True
         tmp_session_merger.quiet=0
         tmp_session_merger.mode=2
-        tmp_session_merger.merge_sesion_thread(progressbar=progress_bar)
+        tmp_session_merger.merge_sessions()
+
 
         # final session.
         session_merger=PyMOLSessionMerger(
@@ -397,5 +404,7 @@ class MutantVisualizer:
         session_merger.delete=False
         session_merger.quiet=0
         session_merger.mode=2
-        session_merger.merge_sesion_thread(progressbar=progress_bar)
+        session_merger.merge_sessions()
+
+
 
