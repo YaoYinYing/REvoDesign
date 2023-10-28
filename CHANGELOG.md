@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.1.10] - 2023-10-28
 ### Added
 - Coloring of bond for `ce_pair` objects. `marine` for near while `salmon` for far away.
 - `comboBox_mutant_ids`, together with `jum_to_a_mutant`
