@@ -16,7 +16,7 @@ class MutantTree:
 
     def refresh_mutants(self):
         self.all_mutant_branch_ids = list(self.mutant_tree.keys())
-        self.empty = bool(len(self.all_mutant_branch_ids))
+        self.empty = bool(len(self.all_mutant_branch_ids)==0)
 
         if not self.current_branch_id:
             self.initialize_current_branch()

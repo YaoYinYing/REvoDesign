@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Coloring of bond for `ce_pair` objects. `marine` for near while `salmon` for far away.
+- `comboBox_mutant_ids`, together with `jum_to_a_mutant`
+- 
   
 ### Changed
 - `merge_sessions` --> `PyMOLSessionMerger`. Segmentation fault is still there. :-(
+- `comboBox_group_ids.currentTextChanged` to monitor branch jumping
 
 ### Fixed
 - Dataframe transposing in GREMLIN tools if i > j.
@@ -18,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - `plot_mtx(key='apc')` in `GREMLIN_Tools`
+- `pushButton_goto_group`. 
 
 ## [1.1.9] - 2023-10-26
 

@@ -453,14 +453,27 @@ class REvoDesignPlugin:
             self.save_sessionfile
         )
 
-        self.ui.pushButton_goto_group.clicked.connect(
+        self.ui.comboBox_group_ids.currentTextChanged.connect(
             partial(
                 self.jump_to_branch,
                 self.ui.comboBox_group_ids,
+                self.ui.comboBox_mutant_ids,
                 self.ui.checkBox_show_wt,
                 self.ui.comboBox_molecule_7,
                 self.ui.comboBox_chainid_7,
                 self.ui.progressBar_mutant_choosing,
+            )
+        )
+
+        self.ui.comboBox_mutant_ids.currentTextChanged.connect(
+            partial(
+            self.jum_to_a_mutant,
+            self.ui.comboBox_group_ids,
+            self.ui.comboBox_mutant_ids,
+            self.ui.checkBox_show_wt,
+            self.ui.comboBox_molecule_7,
+            self.ui.comboBox_chainid_7,
+            self.ui.progressBar_mutant_choosing,
             )
         )
 
@@ -1500,6 +1513,10 @@ class REvoDesignPlugin:
         comboBox_molecule,
         comboBox_chainid,
     ):
+        
+        comboBox_group_ids=self.ui.comboBox_group_ids
+        comboBox_mutant_ids=self.ui.comboBox_mutant_ids
+
         self.mutant_tree_pssm.walk_the_mutants(walk_to_next_one=walk_to_next)
 
         self.set_widget_value(
@@ -1508,6 +1525,13 @@ class REvoDesignPlugin:
                 self.mutant_tree_pssm.current_mutant_id
             ),
         )
+
+        # feedback on two comboboxes
+        self.set_widget_value(comboBox_group_ids, self.mutant_tree_pssm.current_branch_id)
+        self.set_widget_value(comboBox_mutant_ids, list(self.mutant_tree_pssm.get_a_branch(
+            branch_id=self.mutant_tree_pssm.current_branch_id).keys()))
+        self.set_widget_value(comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id)
+
 
         self.activate_focused(
             checkBox_show_wt, comboBox_molecule, comboBox_chainid
@@ -1519,6 +1543,7 @@ class REvoDesignPlugin:
     def jump_to_branch(
         self,
         comboBox_group_ids,
+        comboBox_mutant_ids,
         checkBox_show_wt,
         comboBox_molecule,
         comboBox_chainid,
@@ -1542,11 +1567,63 @@ class REvoDesignPlugin:
                 f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
             )
             self.set_widget_value(progressBar_mutant_choosing, progress)
+            
+            # Setting mutant ids to candidates box
+            self.set_widget_value(comboBox_mutant_ids, list(self.mutant_tree_pssm.get_a_branch(branch_id=branch).keys()))
+            self.set_widget_value(comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id)
 
             self.activate_focused(
                 checkBox_show_wt, comboBox_molecule, comboBox_chainid
             )
             return
+        
+    def jum_to_a_mutant(self,
+                        comboBox_group_ids,
+        comboBox_mutant_ids,
+        checkBox_show_wt, 
+        comboBox_molecule, 
+        comboBox_chainid,
+        progressBar_mutant_choosing):
+
+        branch_id=comboBox_group_ids.currentText()
+        mutant_id=comboBox_mutant_ids.currentText()
+
+        if self.mutant_tree_pssm.empty:
+            logging.error(f'Mutant Tree is empty.')
+            return 
+        if (not branch_id) or (not mutant_id):
+            logging.error(f'Mutant Group ID {branch_id} or Mutant ID {mutant_id} is not valid.')
+            return 
+        
+        if branch_id not in self.mutant_tree_pssm.all_mutant_branch_ids:
+            logging.error(f'Mutant Group ID {branch_id} is unseen.')
+            return 
+        
+        if branch_id != self.mutant_tree_pssm.current_branch_id:
+            self.mutant_tree_pssm.last_branch_id=self.mutant_tree_pssm.current_branch_id
+            self.mutant_tree_pssm.current_branch_id=branch_id
+        
+        if mutant_id not in self.mutant_tree_pssm.get_a_branch(branch_id=self.mutant_tree_pssm.current_branch_id):
+            logging.error(f'Mutant ID {branch_id} is not belong to this branch {self.mutant_tree_pssm.current_branch_id}.')
+            return
+        
+        else:
+            self.mutant_tree_pssm.last_mutant_id=self.mutant_tree_pssm.current_mutant_id
+            self.mutant_tree_pssm.current_mutant_id=mutant_id
+
+            progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
+                self.mutant_tree_pssm.current_mutant_id
+            )
+            logging.info(
+                f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
+            )
+            self.set_widget_value(progressBar_mutant_choosing, progress)
+
+
+
+        self.activate_focused(checkBox_show_wt, comboBox_molecule, comboBox_chainid)
+        
+
 
     def jump_to_the_best_mutant(
         self,
