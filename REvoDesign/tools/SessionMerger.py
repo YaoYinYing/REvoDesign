@@ -1,7 +1,7 @@
 import os
 
 from shutil import rmtree
-import pymol2
+from pymol import cmd
 
 
 class PyMOLSessionMerger:
@@ -16,19 +16,18 @@ class PyMOLSessionMerger:
         self.session_paths.append(session_path)
 
     def merge_sessions(self):
-        with pymol2.PyMOL() as pymol:
-            pymol.cmd.reinitialize()
-            for session_path in self.session_paths:
-                print(f"Loading session: {session_path}")
-                pymol.cmd.load(
-                    session_path, partial=self.mode, quiet=self.quiet
-                )
+        cmd.reinitialize()
+        for session_path in self.session_paths:
+            print(f"Loading session: {session_path}")
+            cmd.load(
+                session_path, partial=self.mode, quiet=self.quiet
+            )
 
-                if self.delete:
-                    rmtree(os.path.dirname(session_path))
+            if self.delete:
+                rmtree(os.path.dirname(session_path))
 
-            print(f"Saving merged session: {self.save_path}")
-            # pymol.cmd.do(f'save {self.save_path}')
-            pymol.cmd.refresh()
-            pymol.cmd.save(self.save_path, quiet=self.quiet)
-            print('Done.')
+        print(f"Saving merged session: {self.save_path}")
+        # pymol.cmd.do(f'save {self.save_path}')
+        cmd.refresh()
+        cmd.save(self.save_path, quiet=self.quiet)
+        print('Done.')

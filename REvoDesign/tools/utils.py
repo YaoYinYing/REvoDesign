@@ -9,6 +9,7 @@ from absl import logging
 
 import time
 
+
 def is_empty_session():
     return len(cmd.get_names(type='objects', enabled_only=0)) == 0
 
@@ -71,12 +72,20 @@ def determine_nproc():
 
 
 def determine_exclusion():
-    return [""] + [
+    return [""] + [sel for sel in determine_selections()]
+
+
+def determine_selections():
+    selections = [
         sel
-        for sel in cmd.get_names(
-            type='selections', enabled_only=0, selection='(all)'
-        )
+        for sel in cmd.get_names(type='selections')
+        if sel != 'sele' and (not sel.startswith('_align'))
     ]
+
+    for sel in selections:
+        _resi = sorted(list(set([at.resi for at in cmd.get_model(sel).atom])))
+        logging.info(f'{sel}: i. {shorter_range([int(x) for x in _resi])}')
+    return selections
 
 
 def determine_system():
@@ -338,8 +347,10 @@ def extract_archive(archive_file, extract_to):
 
     try:
         import tarfile
+
         if archive_file.endswith(".zip"):
             import zipfile
+
             with zipfile.ZipFile(archive_file, 'r') as zip_ref:
                 zip_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
@@ -647,3 +658,83 @@ def get_atom_pair_cst(selection='sele'):
     else:
         cst = f'AtomPair {_sele[0].name} {_sele[0].resi}{_sele[0].chain} {_sele[1].name} {_sele[1].resi}{_sele[1].chain} HARMONIC 3 0.5'
         return cst
+
+
+def shorter_range(input_list):
+    """
+    Shorten a list of integers by representing consecutive ranges with hyphens,
+    and non-consecutive integers with plus signs.
+
+    Parameters:
+    input_list (list): A list of integers to be shortened.
+
+    Returns:
+    str: A string expression representing the shortened integer list.
+
+    Example:
+    >>> input_list = [395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409]
+    >>> result = shorter_range(input_list)
+    >>> print(result)
+    "395-409"
+
+    >>> input_list = [395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
+    >>> result = shorter_range(input_list)
+    >>> print(result)
+    "395-401+403-409"
+    """
+
+    # Filter out non-integer items and sort the list
+    input_list = sorted([item for item in input_list if isinstance(item, int)])
+
+    if not input_list:
+        return "No valid integers in the list"
+
+    range_pairs = []
+    start, end = input_list[0], input_list[0]
+
+    for item in input_list[1:]:
+        if item == end + 1:
+            end = item
+        else:
+            if start == end:
+                range_pairs.append(str(start))
+            else:
+                range_pairs.append(f"{start}-{end}")
+            start, end = item, item
+
+    # Handle the last range or single number
+    if start == end:
+        range_pairs.append(str(start))
+    else:
+        range_pairs.append(f"{start}-{end}")
+
+    return '+'.join(range_pairs)
+
+
+def expand_range(shortened_str):
+    """
+    Expand a shortened string expression representing a list of integers to the original list.
+
+    Parameters:
+    shortened_str (str): A shortened string expression representing a list of integers.
+
+    Returns:
+    list: A list of integers corresponding to the original input.
+
+    Example:
+    >>> shortened_str = "395-401+403-409"
+    >>> result = expand_range(shortened_str)
+    >>> print(result)
+    [395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
+    """
+    expanded_list = []
+    ranges = shortened_str.split('+')
+
+    for rng in ranges:
+        if '-' in rng:
+            start, end = map(int, rng.split('-'))
+            expanded_list.extend(range(start, end + 1))
+        else:
+            expanded_list.append(int(rng))
+
+    return expanded_list
