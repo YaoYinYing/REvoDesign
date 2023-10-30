@@ -16,7 +16,7 @@ from REvoDesign.tools.utils import (
     ParallelExecutor,
     get_color,
     extract_mutants,
-    run_worker_thread_with_progress
+    run_worker_thread_with_progress,
 )
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
@@ -420,11 +420,11 @@ class PssmAnalyzer:
 
             progress_bar.setValue(len(mutagenesis_tasks))
 
-        run_worker_thread_with_progress(worker_function=self.merging_sessions,progress_bar=progress_bar )
-
+        run_worker_thread_with_progress(
+            worker_function=self.merging_sessions, progress_bar=progress_bar
+        )
 
     def merging_sessions(self):
-
         logging.info("Merging all sessions .... This may take a while ...")
 
         cmd.hide('surface')
@@ -437,26 +437,23 @@ class PssmAnalyzer:
         merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'.tmp_{os.path.basename(self.output_pse)}')}"
 
         # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
-        tmp_session_merger=PyMOLSessionMerger(
+        tmp_session_merger = PyMOLSessionMerger(
             session_paths=mutagenesis_sessions,
             save_path=merged_temp_session,
-            )
-        
-        tmp_session_merger.delete=True
-        tmp_session_merger.quiet=0
-        tmp_session_merger.mode=2
+        )
+
+        tmp_session_merger.delete = True
+        tmp_session_merger.quiet = 0
+        tmp_session_merger.mode = 2
         tmp_session_merger.merge_sessions()
 
         # final session.
-        session_merger=PyMOLSessionMerger(
+        session_merger = PyMOLSessionMerger(
             session_paths=[self.input_pse, merged_temp_session],
             save_path=self.output_pse,
-            )
-        
-        session_merger.delete=False
-        session_merger.quiet=0
-        session_merger.mode=2
+        )
+
+        session_merger.delete = False
+        session_merger.quiet = 0
+        session_merger.mode = 2
         session_merger.merge_sessions()
-
-
-

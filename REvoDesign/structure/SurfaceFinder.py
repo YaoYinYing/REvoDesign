@@ -3,6 +3,10 @@ from pymol import cmd
 import os
 from absl import logging
 
+'''
+This is a slightly modified version of the code on: 
+http://pymolwiki.org/index.php/FindSurfaceResidues
+'''
 
 def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
     """

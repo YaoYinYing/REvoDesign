@@ -1526,11 +1526,11 @@ class REvoDesignPlugin:
             ),
         )
 
-        # feedback on two comboboxes
-        self.set_widget_value(comboBox_group_ids, self.mutant_tree_pssm.current_branch_id)
-        self.set_widget_value(comboBox_mutant_ids, list(self.mutant_tree_pssm.get_a_branch(
-            branch_id=self.mutant_tree_pssm.current_branch_id).keys()))
-        self.set_widget_value(comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id)
+        # # feedback on two comboboxes
+        # self.set_widget_value(comboBox_group_ids, self.mutant_tree_pssm.current_branch_id)
+        # self.set_widget_value(comboBox_mutant_ids, list(self.mutant_tree_pssm.get_a_branch(
+        #     branch_id=self.mutant_tree_pssm.current_branch_id).keys()))
+        # self.set_widget_value(comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id)
 
 
         self.activate_focused(
