@@ -87,11 +87,24 @@ def determine_selections():
         logging.info(f'{sel}: i. {shorter_range([int(x) for x in _resi])}')
     return selections
 
+def is_a_REvoDesign_session():
+    return bool(cmd.get_names(type='public_group_objects'))
+
 
 def determine_system():
-    import platform
+    import platform,os
 
-    return platform.system()
+    os_name=platform.system()
+
+    if os_name == 'Darwin':
+        is_arm_macos = (os.system('uname -a |grep ARM') ==0)
+        is_recognized_as_x86= (os.system('uname -m |grep x86_64')==0)
+
+        if is_arm_macos and is_recognized_as_x86:
+            logging.warning('Oops! You are in Rosetta-translated PyMOL bundle from official channel. '\
+                            'This might limit the performance of joblib, causing MutantVisualizer slower.')
+            os_name+='_Rosetta'
+    return os_name
 
 
 def renumber_chain_ids(target_protein):
@@ -306,11 +319,13 @@ class ParallelExecutor(QtCore.QThread):
         self.func = func
         self.args = args
         self.n_jobs = n_jobs
+
+        os_type=determine_system()
         # guessing backend according to OS
         if not backend == 'auto':
             self.backend = backend
         else:
-            if determine_system() == 'Windows':
+            if os_type == 'Windows' or os_type == 'Darwin_Rosetta':
                 self.backend = 'multiprocessing'
             else:
                 self.backend = 'loky'

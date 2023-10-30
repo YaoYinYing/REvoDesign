@@ -46,6 +46,7 @@ from REvoDesign.tools.utils import (
     cmap_reverser,
     rescale_number,
     extract_mutants,
+    is_a_REvoDesign_session,
 )
 
 
@@ -76,12 +77,6 @@ class REvoDesignPlugin:
         self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
 
-    def load_test_data(self):
-        # menu actions
-        if determine_system() == 'Darwin':
-            self.PWD = '/Users/yyy/Documents/RosettaWorkshop/2._Working/0._IntergatedProtocol/REvoDesign/tests/test_results'
-        else:
-            self.PWD = 'D:\repo\RosettaWorkshop/2._Working/0._IntergatedProtocol/REvoDesign\REvoDesign\tests/test_results'
 
     def run_plugin_gui(self):
         if self.window is None:
@@ -119,7 +114,6 @@ class REvoDesignPlugin:
         self.setup_nproc(self.ui.comboBox_nproc_4)
 
         # Set up Menu
-        self.ui.actionLoad_Tests.triggered.connect(self.load_test_data)
         self.ui.actionSet_Working_Directory.triggered.connect(
             self.set_working_directory
         )
@@ -467,13 +461,13 @@ class REvoDesignPlugin:
 
         self.ui.comboBox_mutant_ids.currentTextChanged.connect(
             partial(
-            self.jum_to_a_mutant,
-            self.ui.comboBox_group_ids,
-            self.ui.comboBox_mutant_ids,
-            self.ui.checkBox_show_wt,
-            self.ui.comboBox_molecule_7,
-            self.ui.comboBox_chainid_7,
-            self.ui.progressBar_mutant_choosing,
+                self.jum_to_a_mutant,
+                self.ui.comboBox_group_ids,
+                self.ui.comboBox_mutant_ids,
+                self.ui.checkBox_show_wt,
+                self.ui.comboBox_molecule_7,
+                self.ui.comboBox_chainid_7,
+                self.ui.progressBar_mutant_choosing,
             )
         )
 
@@ -1323,7 +1317,23 @@ class REvoDesignPlugin:
         sequence = get_molecule_sequence(molecule, chain_id)
         parallel_run = self.ui.checkBox_parallel.isChecked()
 
-        # progressbarton=self.ui.pushButton_run_PSSM_to_pse
+        if is_a_REvoDesign_session():
+            logging.warning(
+                'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
+                'In order to keep the session\'s feature, you should always create seperate sessions according to '
+                'your dataset and merge them manually in PyMOL window.'
+            )
+
+            import tempfile
+
+            input_file = tempfile.mktemp(suffix=".pse")
+            cmd.save(input_file, f'{molecule}', -1)
+            cmd.reinitialize()
+            cmd.load(input_file)
+            logging.warning(
+                'To avoid this error, a temperal session is created based on your molecule selection: \n'
+                f'{molecule} --> {input_file}'
+            )
 
         logging.info(f"Sequence of `{molecule}`: \n {sequence}")
 
@@ -1513,9 +1523,8 @@ class REvoDesignPlugin:
         comboBox_molecule,
         comboBox_chainid,
     ):
-        
-        comboBox_group_ids=self.ui.comboBox_group_ids
-        comboBox_mutant_ids=self.ui.comboBox_mutant_ids
+        comboBox_group_ids = self.ui.comboBox_group_ids
+        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
 
         self.mutant_tree_pssm.walk_the_mutants(walk_to_next_one=walk_to_next)
 
@@ -1531,7 +1540,6 @@ class REvoDesignPlugin:
         # self.set_widget_value(comboBox_mutant_ids, list(self.mutant_tree_pssm.get_a_branch(
         #     branch_id=self.mutant_tree_pssm.current_branch_id).keys()))
         # self.set_widget_value(comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id)
-
 
         self.activate_focused(
             checkBox_show_wt, comboBox_molecule, comboBox_chainid
@@ -1567,49 +1575,67 @@ class REvoDesignPlugin:
                 f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
             )
             self.set_widget_value(progressBar_mutant_choosing, progress)
-            
+
             # Setting mutant ids to candidates box
-            self.set_widget_value(comboBox_mutant_ids, list(self.mutant_tree_pssm.get_a_branch(branch_id=branch).keys()))
-            self.set_widget_value(comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id)
+            self.set_widget_value(
+                comboBox_mutant_ids,
+                list(
+                    self.mutant_tree_pssm.get_a_branch(branch_id=branch).keys()
+                ),
+            )
+            self.set_widget_value(
+                comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id
+            )
 
             self.activate_focused(
                 checkBox_show_wt, comboBox_molecule, comboBox_chainid
             )
             return
-        
-    def jum_to_a_mutant(self,
-                        comboBox_group_ids,
-        comboBox_mutant_ids,
-        checkBox_show_wt, 
-        comboBox_molecule, 
-        comboBox_chainid,
-        progressBar_mutant_choosing):
 
-        branch_id=comboBox_group_ids.currentText()
-        mutant_id=comboBox_mutant_ids.currentText()
+    def jum_to_a_mutant(
+        self,
+        comboBox_group_ids,
+        comboBox_mutant_ids,
+        checkBox_show_wt,
+        comboBox_molecule,
+        comboBox_chainid,
+        progressBar_mutant_choosing,
+    ):
+        branch_id = comboBox_group_ids.currentText()
+        mutant_id = comboBox_mutant_ids.currentText()
 
         if self.mutant_tree_pssm.empty:
             logging.error(f'Mutant Tree is empty.')
-            return 
+            return
         if (not branch_id) or (not mutant_id):
-            logging.error(f'Mutant Group ID {branch_id} or Mutant ID {mutant_id} is not valid.')
-            return 
-        
+            logging.error(
+                f'Mutant Group ID {branch_id} or Mutant ID {mutant_id} is not valid.'
+            )
+            return
+
         if branch_id not in self.mutant_tree_pssm.all_mutant_branch_ids:
             logging.error(f'Mutant Group ID {branch_id} is unseen.')
-            return 
-        
-        if branch_id != self.mutant_tree_pssm.current_branch_id:
-            self.mutant_tree_pssm.last_branch_id=self.mutant_tree_pssm.current_branch_id
-            self.mutant_tree_pssm.current_branch_id=branch_id
-        
-        if mutant_id not in self.mutant_tree_pssm.get_a_branch(branch_id=self.mutant_tree_pssm.current_branch_id):
-            logging.error(f'Mutant ID {branch_id} is not belong to this branch {self.mutant_tree_pssm.current_branch_id}.')
             return
-        
+
+        if branch_id != self.mutant_tree_pssm.current_branch_id:
+            self.mutant_tree_pssm.last_branch_id = (
+                self.mutant_tree_pssm.current_branch_id
+            )
+            self.mutant_tree_pssm.current_branch_id = branch_id
+
+        if mutant_id not in self.mutant_tree_pssm.get_a_branch(
+            branch_id=self.mutant_tree_pssm.current_branch_id
+        ):
+            logging.error(
+                f'Mutant ID {branch_id} is not belong to this branch {self.mutant_tree_pssm.current_branch_id}.'
+            )
+            return
+
         else:
-            self.mutant_tree_pssm.last_mutant_id=self.mutant_tree_pssm.current_mutant_id
-            self.mutant_tree_pssm.current_mutant_id=mutant_id
+            self.mutant_tree_pssm.last_mutant_id = (
+                self.mutant_tree_pssm.current_mutant_id
+            )
+            self.mutant_tree_pssm.current_mutant_id = mutant_id
 
             progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
                 self.mutant_tree_pssm.current_mutant_id
@@ -1619,11 +1645,9 @@ class REvoDesignPlugin:
             )
             self.set_widget_value(progressBar_mutant_choosing, progress)
 
-
-
-        self.activate_focused(checkBox_show_wt, comboBox_molecule, comboBox_chainid)
-        
-
+        self.activate_focused(
+            checkBox_show_wt, comboBox_molecule, comboBox_chainid
+        )
 
     def jump_to_the_best_mutant(
         self,
@@ -2362,10 +2386,10 @@ class REvoDesignPlugin:
         cmd.create(ce_object_name, f'{molecule} and c. {chain_id} and n. CA')
         cmd.hide('cartoon', ce_object_name)
         cmd.hide('surface', ce_object_name)
-        i_out_of_range=[]
+        i_out_of_range = []
         for i, pair_resi in self.plot_w_fps.items():
             logging.debug(pair_resi)
-            
+
             spatial_distance = cmd.get_distance(
                 atom1=f'{molecule} and c. {chain_id} and i. {pair_resi[0][0]+1} and n. CA',
                 atom2=f'{molecule} and c. {chain_id} and i. {pair_resi[0][1]+1} and n. CA',
@@ -2388,11 +2412,17 @@ class REvoDesignPlugin:
                     f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}'
                 )
                 i_out_of_range.append(i)
-                cmd.set('stick_color', 'salmon', f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)')
+                cmd.set(
+                    'stick_color',
+                    'salmon',
+                    f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                )
             else:
-                cmd.set('stick_color', 'marine', f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)')
-                
-
+                cmd.set(
+                    'stick_color',
+                    'marine',
+                    f'({ce_object_name}  and c. {chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                )
 
         cmd.show('sticks', ce_object_name)
         cmd.set('stick_use_shader', 0)
@@ -2401,9 +2431,11 @@ class REvoDesignPlugin:
 
         # remove pairs that distal
         for i in i_out_of_range:
-            logging.info(f'Pair {self.plot_w_fps[i][0][2]}-{self.plot_w_fps[i][0][3]} will be removed:  out of range.')
+            logging.info(
+                f'Pair {self.plot_w_fps[i][0][2]}-{self.plot_w_fps[i][0][3]} will be removed:  out of range.'
+            )
             self.plot_w_fps.pop(i)
-        
+
         if i_out_of_range:
             self.renumber_plot_w_fps()
 
@@ -2543,7 +2575,11 @@ class REvoDesignPlugin:
 
         self.set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
-        if comboBox_max_interact_dist.currentText() and spatial_distance > float(comboBox_max_interact_dist.currentText()):
+        if (
+            comboBox_max_interact_dist.currentText()
+            and spatial_distance
+            > float(comboBox_max_interact_dist.currentText())
+        ):
             logging.warning(
                 f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {float(comboBox_max_interact_dist.currentText())}'
             )
