@@ -2,8 +2,6 @@ class MutantTree:
     def __init__(self, mutant_tree):
         self.current_branch_id = ''
         self.current_mutant_id = ''
-        self.last_branch_id = ''
-        self.last_mutant_id = ''
 
         self.all_mutant_branch_ids = []
         self.all_mutants = []
@@ -19,6 +17,7 @@ class MutantTree:
         self.empty = bool(len(self.all_mutant_branch_ids) == 0)
 
         if self.empty:
+            print('Empty MutantTree.')
             return
 
         if not self.current_branch_id:
@@ -129,9 +128,9 @@ class MutantTree:
         return new_tree_instance
 
     def jump_to_the_best_mutant_in_branch(self, branch_id, reversed=False):
-
-        self.last_mutant_id = self.current_mutant_id
-        self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(branch_id, reversed)
+        self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(
+            branch_id, reversed
+        )
 
     # internal function that returns instead of changes the current stored values
     def _jump_to_the_best_mutant_in_branch(self, branch_id, reversed=False):
@@ -143,7 +142,6 @@ class MutantTree:
             mutants_scores.items(), key=lambda x: x[1], reverse=not reversed
         )
 
-
         return sorted_mutants_scores[0][0]
 
     # Completed mutant_tree walking function
@@ -152,15 +150,9 @@ class MutantTree:
             self.initialize_current_branch()
             return
 
-        # store the last one
-        self.last_branch_id = self.current_branch_id
-        self.last_mutant_id = self.current_mutant_id
-
         (
             self.current_branch_id,
             self.current_mutant_id,
-            self.last_branch_id,
-            self.last_mutant_id,
         ) = self._walk_the_mutants(walk_to_next_one=walk_to_next_one)
 
     # internal function that returns instead of changes the current stored values
@@ -223,8 +215,6 @@ class MutantTree:
         return (
             current_branch_id,
             current_mutant_id,
-            last_branch_id,
-            last_mutant_id,
         )
 
     def jump_to_branch(self, branch_id):
@@ -235,8 +225,6 @@ class MutantTree:
             print(f'Branch {branch_id} is empty')
             return
         else:
-            self.last_branch_id = self.current_branch_id
-            self.last_mutant_id = self.current_mutant_id
             self.current_branch_id = branch_id
             self.current_mutant_id = list(
                 self.mutant_tree[self.current_branch_id].keys()

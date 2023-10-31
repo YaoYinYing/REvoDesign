@@ -76,11 +76,9 @@ class REvoDesignPlugin:
     def __del__(self):
         print('REvoDesign session closed.')
 
-
     def set_working_directory(self):
         self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
-
 
     def run_plugin_gui(self):
         if self.window is None:
@@ -123,26 +121,16 @@ class REvoDesignPlugin:
         )
 
         self.ui.actionDebug.triggered.connect(
-            partial(
-            logging.set_verbosity,
-            logging.DEBUG
-            )
+            partial(logging.set_verbosity, logging.DEBUG)
         )
 
         self.ui.actionWarning.triggered.connect(
-            partial(
-            logging.set_verbosity,
-            logging.WARNING
-            )
+            partial(logging.set_verbosity, logging.WARNING)
         )
 
         self.ui.actionInfo.triggered.connect(
-            partial(
-            logging.set_verbosity,
-            logging.INFO
-            )
+            partial(logging.set_verbosity, logging.INFO)
         )
-
 
         # Set up general arguments
         # Tab `Determine`
@@ -456,10 +444,6 @@ class REvoDesignPlugin:
                 self.jump_to_the_best_mutant,
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
-                self.ui.checkBox_show_wt,
-                self.ui.comboBox_molecule_7,
-                self.ui.comboBox_chainid_7,
-                self.ui.progressBar_mutant_choosing,
                 self.ui.checkBox_reverse_mutant_effect_2,
             )
         )
@@ -480,16 +464,13 @@ class REvoDesignPlugin:
                 self.jump_to_branch,
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
-                self.ui.checkBox_show_wt,
-                self.ui.comboBox_molecule_7,
-                self.ui.comboBox_chainid_7,
                 self.ui.progressBar_mutant_choosing,
             )
         )
 
         self.ui.comboBox_mutant_ids.currentTextChanged.connect(
             partial(
-                self.jum_to_a_mutant,
+                self.jump_to_a_mutant,
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
                 self.ui.checkBox_show_wt,
@@ -502,9 +483,8 @@ class REvoDesignPlugin:
         self.ui.pushButton_choose_lucky_mutant.clicked.connect(
             partial(
                 self.find_all_best_mutants,
-                self.ui.checkBox_show_wt,
-                self.ui.comboBox_molecule_7,
-                self.ui.comboBox_chainid_7,
+                self.ui.comboBox_group_ids,
+                self.ui.comboBox_mutant_ids,
                 self.ui.checkBox_reverse_mutant_effect_2,
                 self.ui.lcdNumber_selected_mutant,
             )
@@ -1138,7 +1118,7 @@ class REvoDesignPlugin:
         )
 
     def set_pymol_session_rock(self, checkBox_rock_pymol):
-        #rocked_view=(cmd.get('rock')=='on')
+        # rocked_view=(cmd.get('rock')=='on')
         cmd.set('rock', checkBox_rock_pymol.isChecked())
 
     def center_design_area(self, mutant_id):
@@ -1427,9 +1407,9 @@ class REvoDesignPlugin:
         molecule = comboBox_molecule.currentText()
         chain_id = comboBox_chainid.currentText()
 
-
-        logging.debug(f'Last Mutant ID: {self.mutant_tree_pssm.last_mutant_id}')
-        logging.debug(f'Current Mutant ID: {self.mutant_tree_pssm.current_mutant_id}')
+        logging.debug(
+            f'Current Mutant ID: {self.mutant_tree_pssm.current_mutant_id}'
+        )
 
         if molecule and chain_id:
             _, mut_obj = extract_mutants(
@@ -1454,42 +1434,33 @@ class REvoDesignPlugin:
                     'lines',
                     f'{molecule} and c. {chain_id} and i. {resi} and (sidechain or n. CA) and not hydrogens',
                 )
-            elif resi:
-                cmd.hide(
-                    'lines',
-                    f'{molecule} and c. {chain_id} and i. {resi} and (sidechain or n. CA) and not hydrogens',
-                )
 
-        if (
-            self.mutant_tree_pssm.last_mutant_id
-            and self.mutant_tree_pssm.last_mutant_id
-            != self.mutant_tree_pssm.current_mutant_id
-        ):
-            cmd.disable(self.mutant_tree_pssm.last_mutant_id)
-            cmd.hide(
-                'mesh',
-                f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)',
-            )
-            cmd.hide(
-                'sticks',
-                f'{self.mutant_tree_pssm.last_mutant_id} and (sidechain or n. CA)',
-            )
+        all_enabled_mutant_ids = cmd.get_names('nongroup_objects', 1)
 
-        # close group object if deactivated
-        if (
-            self.mutant_tree_pssm.last_branch_id != ''
-            and self.mutant_tree_pssm.current_branch_id
-            != self.mutant_tree_pssm.last_branch_id
-        ):
-            cmd.disable(self.mutant_tree_pssm.last_branch_id)
-            cmd.group(self.mutant_tree_pssm.last_branch_id, action='close')
+        all_enabled_mutants_in_current_group = [
+            mutant
+            for mutant in cmd.get_object_list(
+                f'({self.mutant_tree_pssm.current_branch_id})'
+            )
+            if mutant != self.mutant_tree_pssm.current_mutant_id
+            and mutant in all_enabled_mutant_ids
+        ]
+
+        for mutant in all_enabled_mutants_in_current_group:
+            cmd.disable(mutant)
+
+        other_opened_group = [
+            group
+            for group in cmd.get_names('group_objects', 1)
+            if group != self.mutant_tree_pssm.current_branch_id
+        ]
+
+        for group_id in other_opened_group:
+            cmd.disable(group_id)
+            cmd.group(group_id, action='close')
 
         # expand group object if activated
-        if (
-            self.mutant_tree_pssm.current_branch_id
-            and self.mutant_tree_pssm.current_branch_id
-            != self.mutant_tree_pssm.last_branch_id
-        ):
+        if self.mutant_tree_pssm.current_branch_id:
             cmd.enable(self.mutant_tree_pssm.current_branch_id)
             cmd.group(self.mutant_tree_pssm.current_branch_id, action='open')
 
@@ -1562,14 +1533,14 @@ class REvoDesignPlugin:
         comboBox_group_ids = self.ui.comboBox_group_ids
         comboBox_mutant_ids = self.ui.comboBox_mutant_ids
 
-        #self.mutant_tree_pssm.walk_the_mutants(walk_to_next_one=walk_to_next)
-        
+        # self.mutant_tree_pssm.walk_the_mutants(walk_to_next_one=walk_to_next)
+
         (
             current_branch_id,
             current_mutant_id,
-            last_branch_id,
-            last_mutant_id,
-        ) = self.mutant_tree_pssm._walk_the_mutants(walk_to_next_one=walk_to_next)
+        ) = self.mutant_tree_pssm._walk_the_mutants(
+            walk_to_next_one=walk_to_next
+        )
 
         self.set_widget_value(
             progressBar_mutant_choosing,
@@ -1581,9 +1552,15 @@ class REvoDesignPlugin:
         # feedback on two comboboxes
         if comboBox_group_ids.currentText() != current_branch_id:
             self.set_widget_value(comboBox_group_ids, current_branch_id)
-            self.set_widget_value(comboBox_mutant_ids, list(self.mutant_tree_pssm.get_a_branch(
-                branch_id=self.mutant_tree_pssm.current_branch_id).keys()))
-        
+            self.set_widget_value(
+                comboBox_mutant_ids,
+                list(
+                    self.mutant_tree_pssm.get_a_branch(
+                        branch_id=self.mutant_tree_pssm.current_branch_id
+                    ).keys()
+                ),
+            )
+
         if comboBox_mutant_ids.currentText() != current_mutant_id:
             self.set_widget_value(comboBox_mutant_ids, current_mutant_id)
 
@@ -1598,9 +1575,6 @@ class REvoDesignPlugin:
         self,
         comboBox_group_ids,
         comboBox_mutant_ids,
-        checkBox_show_wt,
-        comboBox_molecule,
-        comboBox_chainid,
         progressBar_mutant_choosing,
     ):
         branch = comboBox_group_ids.currentText()
@@ -1632,13 +1606,10 @@ class REvoDesignPlugin:
             self.set_widget_value(
                 comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id
             )
-
-            self.activate_focused(
-                checkBox_show_wt, comboBox_molecule, comboBox_chainid
-            )
             return
 
-    def jum_to_a_mutant(
+    # end of mutant switching machanism. This step will do focusing, centering, progress bar updating.
+    def jump_to_a_mutant(
         self,
         comboBox_group_ids,
         comboBox_mutant_ids,
@@ -1651,92 +1622,70 @@ class REvoDesignPlugin:
         mutant_id = comboBox_mutant_ids.currentText()
 
         if self.mutant_tree_pssm.empty:
-            logging.error(f'Mutant Tree is empty.')
             return
+
         if (not branch_id) or (not mutant_id):
-            logging.warning(
-                f'Mutant Group ID {branch_id} or Mutant ID {mutant_id} is not valid.'
-            )
             return
 
         if branch_id not in self.mutant_tree_pssm.all_mutant_branch_ids:
-            logging.error(f'Mutant Group ID {branch_id} is unseen.')
             return
 
-        if branch_id != self.mutant_tree_pssm.current_branch_id:
-            self.mutant_tree_pssm.last_branch_id = (
-                self.mutant_tree_pssm.current_branch_id
-            )
-            self.mutant_tree_pssm.current_branch_id = branch_id
-
         if mutant_id not in self.mutant_tree_pssm.get_a_branch(
-            branch_id=self.mutant_tree_pssm.current_branch_id
+            branch_id=branch_id
         ):
             logging.error(
                 f'Mutant ID {branch_id} is not belong to this branch {self.mutant_tree_pssm.current_branch_id}.'
             )
             return
 
-        else:
-            logging.info(f'Jump to {mutant_id} as required.')
-            self.mutant_tree_pssm.last_mutant_id = (
-                self.mutant_tree_pssm.current_mutant_id
-            )
-            self.mutant_tree_pssm.current_mutant_id = mutant_id
+        if branch_id != self.mutant_tree_pssm.current_branch_id:
+            self.mutant_tree_pssm.current_branch_id = branch_id
 
-            progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
-                self.mutant_tree_pssm.current_mutant_id
-            )
-            logging.info(
-                f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
-            )
-            self.set_widget_value(progressBar_mutant_choosing, progress)
+        logging.info(f'Jump to {mutant_id} as required.')
+        self.mutant_tree_pssm.current_mutant_id = mutant_id
 
         self.activate_focused(
             checkBox_show_wt, comboBox_molecule, comboBox_chainid
         )
+
+        # update progress bar
+        progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
+            self.mutant_tree_pssm.current_mutant_id
+        )
+        logging.info(
+            f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
+        )
+        self.set_widget_value(progressBar_mutant_choosing, progress)
 
     def jump_to_the_best_mutant(
         self,
         comboBox_group_ids,
         comboBox_mutant_ids,
-        checkBox_show_wt,
-        comboBox_molecule,
-        comboBox_chainid,
-        progressBar_mutant_choosing,
         checkBox_reverse_mutant_effect,
     ):
-        
+        if self.mutant_tree_pssm.empty:
+            return
+
         branch_id = comboBox_group_ids.currentText()
 
-        best_mutant_id=self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
-            branch_id=branch_id,
-            reversed=checkBox_reverse_mutant_effect.isChecked(),
+        best_mutant_id = (
+            self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
+                branch_id=branch_id,
+                reversed=checkBox_reverse_mutant_effect.isChecked(),
+            )
         )
-        logging.info(
-            f'Jump to the best hit of {branch_id}: {best_mutant_id}'
-        )
-        self.activate_focused(
-            checkBox_show_wt, comboBox_molecule, comboBox_chainid
-        )
+        logging.info(f'Jump to the best hit of {branch_id}: {best_mutant_id}')
 
-        progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
-            best_mutant_id
-        )
-        logging.info(
-            f'Progressbar set to {progress}: {best_mutant_id}'
-        )
-        self.set_widget_value(progressBar_mutant_choosing, progress)
-        self.set_widget_value(comboBox_mutant_ids,best_mutant_id)
+        self.set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
     def find_all_best_mutants(
-        self, 
-        checkBox_show_wt,
-        comboBox_molecule,
-        comboBox_chainid,
-        checkBox_reverse_mutant_effect, lcdNumber_selected_mutant
+        self,
+        comboBox_group_ids,
+        comboBox_mutant_ids,
+        checkBox_reverse_mutant_effect,
+        lcdNumber_selected_mutant,
     ):
-        if not self.mutant_tree_pssm:
+        if self.mutant_tree_pssm.empty:
             logging.error(
                 f'No available mutant tree. Please reinitialize it before picking mutants.'
             )
@@ -1764,21 +1713,26 @@ class REvoDesignPlugin:
                 logging.warning(f'Cancelled.')
                 return
 
+        original_branch_id = comboBox_group_ids.currentText()
+        original_mutant_id = comboBox_mutant_ids.currentText()
+
         self.mutant_tree_pssm_selected = MutantTree({})
 
         for branch_id in self.mutant_tree_pssm.all_mutant_branch_ids:
             logging.info(f'Jump to {branch_id} as required.')
-            self.mutant_tree_pssm.jump_to_branch(branch_id=branch_id)
 
-            self.mutant_tree_pssm.jump_to_the_best_mutant_in_branch(
-                branch_id=branch_id,
-                reversed=checkBox_reverse_mutant_effect.isChecked(),
+            self.set_widget_value(comboBox_group_ids, branch_id)
+
+            best_mutant_id = (
+                self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
+                    branch_id=branch_id,
+                    reversed=checkBox_reverse_mutant_effect.isChecked(),
+                )
             )
             logging.info(
-                f'Jump to the best hit of {self.mutant_tree_pssm.current_branch_id}: {self.mutant_tree_pssm.current_mutant_id}'
+                f'Jump to the best hit of {branch_id}: {best_mutant_id}'
             )
-
-            self.activate_focused(checkBox_show_wt, comboBox_molecule, comboBox_chainid)
+            self.set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
             self.accept_mutant(
                 lcdNumber_selected_mutant=lcdNumber_selected_mutant
@@ -1786,7 +1740,11 @@ class REvoDesignPlugin:
             logging.info(
                 f'Best hit of {self.mutant_tree_pssm.current_mutant_id} accepted.'
             )
-        self.mutant_tree_pssm.initialize_current_branch()
+        # set back orignal values befor clicking this button
+        self.set_widget_value(comboBox_group_ids, original_branch_id)
+        self.set_widget_value(comboBox_mutant_ids, original_mutant_id)
+
+        logging.info('Done.')
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self, mutant):
@@ -1853,20 +1811,19 @@ class REvoDesignPlugin:
         mutant_choice_checkpoint_fn = self.browse_filename(
             mode='r', exts=[MutableFileExt, AnyFileExt]
         )
-    
+
         if not mutant_choice_checkpoint_fn:
             logging.warning("Cancelled.")
             return
 
         if not os.path.exists(mutant_choice_checkpoint_fn):
-            logging.warning(f"Invalid checkpoint file: {mutant_choice_checkpoint_fn}.")
+            logging.warning(
+                f"Invalid checkpoint file: {mutant_choice_checkpoint_fn}."
+            )
             return
-        
+
         mutants_from_checkpoint = (
-            open(mutant_choice_checkpoint_fn, 'r')
-            .read()
-            .strip()
-            .split('\n')
+            open(mutant_choice_checkpoint_fn, 'r').read().strip().split('\n')
         )
 
         self.mutant_tree_pssm_selected = (
@@ -1908,7 +1865,7 @@ class REvoDesignPlugin:
 
         # if mutant tree is available, disable the input box for saving.
 
-        lineEdit_output_mut_txt.setEnabled(not ((self.mutant_tree_pssm)))
+        lineEdit_output_mut_txt.setEnabled(not self.mutant_tree_pssm.empty)
 
         if not self.mutant_tree_pssm:
             logging.warning(
@@ -1972,7 +1929,7 @@ class REvoDesignPlugin:
                 pushButton.clicked.disconnect()
             except:
                 pass
-            pushButton.setEnabled(bool(self.mutant_tree_pssm))
+            pushButton.setEnabled(bool(not self.mutant_tree_pssm.empty))
 
         pushButton_accept_this_mutant.clicked.connect(
             partial(self.accept_mutant, lcdNumber_selected_mutant)

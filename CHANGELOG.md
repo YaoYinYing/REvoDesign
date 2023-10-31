@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Fixed
+- Typo of `jum_to_a_mutant`: `jump_to_a_mutant`
+  
+### Changed
+- `activate_focused` 
+- Close other Mutant Group if it is not the current one.
+- Disable other mutant if it is not the current one in the current group.
+  
+### Removed
+- `MutantTree.last_branch_id` and `MutantTree.last_mutant_id`
+
 ## [1.1.11] - 2023-10-31
 
 ### Added
