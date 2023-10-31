@@ -18,6 +18,9 @@ class MutantTree:
         self.all_mutant_branch_ids = list(self.mutant_tree.keys())
         self.empty = bool(len(self.all_mutant_branch_ids) == 0)
 
+        if self.empty:
+            return
+
         if not self.current_branch_id:
             self.initialize_current_branch()
 
@@ -94,7 +97,6 @@ class MutantTree:
     def remove_mutant_from_branch(self, branch, mutant):
         if mutant in self.mutant_tree[branch].keys():
             self.mutant_tree[branch].pop(mutant)
-            self.refresh_mutants()
         else:
             print(
                 f'Mutant {mutant} does not exist in this branch and there\'s no need to remove it.'
@@ -103,6 +105,8 @@ class MutantTree:
         if self.is_this_branch_empty(branch):
             self.mutant_tree.pop(branch)
             print(f'Branch {branch} is empty and has been removed.')
+
+        self.refresh_mutants()
 
     def create_mutant_tree_from_list(self, mutant_id_list):
         new_mutant_tree = {}
@@ -125,6 +129,12 @@ class MutantTree:
         return new_tree_instance
 
     def jump_to_the_best_mutant_in_branch(self, branch_id, reversed=False):
+
+        self.last_mutant_id = self.current_mutant_id
+        self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(branch_id, reversed)
+
+    # internal function that returns instead of changes the current stored values
+    def _jump_to_the_best_mutant_in_branch(self, branch_id, reversed=False):
         mutants_scores = {
             mutant_id: mutant_obj.get_mutant_score()
             for mutant_id, mutant_obj in self.mutant_tree[branch_id].items()
@@ -133,8 +143,8 @@ class MutantTree:
             mutants_scores.items(), key=lambda x: x[1], reverse=not reversed
         )
 
-        self.last_mutant_id = self.current_mutant_id
-        self.current_mutant_id = sorted_mutants_scores[0][0]
+
+        return sorted_mutants_scores[0][0]
 
     # Completed mutant_tree walking function
     def walk_the_mutants(self, walk_to_next_one=True):
@@ -146,55 +156,76 @@ class MutantTree:
         self.last_branch_id = self.current_branch_id
         self.last_mutant_id = self.current_mutant_id
 
-        branch_index = self.get_branch_index(self.current_branch_id)
+        (
+            self.current_branch_id,
+            self.current_mutant_id,
+            self.last_branch_id,
+            self.last_mutant_id,
+        ) = self._walk_the_mutants(walk_to_next_one=walk_to_next_one)
+
+    # internal function that returns instead of changes the current stored values
+    def _walk_the_mutants(self, walk_to_next_one=True):
+        # store the last one
+        last_branch_id = self.current_branch_id
+        last_mutant_id = self.current_mutant_id
+
+        branch_index = self.get_branch_index(last_branch_id)
         mutant_index = self.get_mutant_index_in_branch(
-            self.current_branch_id, self.current_mutant_id
+            last_branch_id, last_mutant_id
         )
 
         if walk_to_next_one:
             if not self.is_the_mutant_the_last_in_branch(
-                self.current_branch_id, self.current_mutant_id
+                last_branch_id, last_mutant_id
             ):
                 # Walk to the next mutant in the current branch
-                self.current_mutant_id = list(
-                    self.mutant_tree[self.current_branch_id].keys()
+                current_branch_id = last_branch_id
+                current_mutant_id = list(
+                    self.mutant_tree[last_branch_id].keys()
                 )[mutant_index + 1]
             else:
                 if branch_index < len(self.all_mutant_branch_ids) - 1:
                     # Move to the next branch
-                    self.current_branch_id = self.all_mutant_branch_ids[
+                    current_branch_id = self.all_mutant_branch_ids[
                         branch_index + 1
                     ]
-                    self.current_mutant_id = list(
-                        self.mutant_tree[self.current_branch_id].keys()
+                    current_mutant_id = list(
+                        self.mutant_tree[last_branch_id].keys()
                     )[0]
                 else:
                     # Reached the end of the tree, wrap around to the beginning
-                    self.current_branch_id = self.all_mutant_branch_ids[0]
-                    self.current_mutant_id = list(
-                        self.mutant_tree[self.current_branch_id].keys()
+                    current_branch_id = self.all_mutant_branch_ids[0]
+                    current_mutant_id = list(
+                        self.mutant_tree[current_branch_id].keys()
                     )[0]
         else:
             if mutant_index > 0:
                 # Walk to the previous mutant in the current branch
-                self.current_mutant_id = list(
-                    self.mutant_tree[self.current_branch_id].keys()
+                current_branch_id = last_branch_id
+                current_mutant_id = list(
+                    self.mutant_tree[last_branch_id].keys()
                 )[mutant_index - 1]
             else:
                 if branch_index > 0:
                     # Move to the previous branch
-                    self.current_branch_id = self.all_mutant_branch_ids[
+                    current_branch_id = self.all_mutant_branch_ids[
                         branch_index - 1
                     ]
-                    self.current_mutant_id = list(
-                        self.mutant_tree[self.current_branch_id].keys()
+                    current_mutant_id = list(
+                        self.mutant_tree[current_branch_id].keys()
                     )[-1]
                 else:
                     # Reached the beginning of the tree, wrap around to the end
-                    self.current_branch_id = self.all_mutant_branch_ids[-1]
-                    self.current_mutant_id = list(
-                        self.mutant_tree[self.current_branch_id].keys()
+                    current_branch_id = self.all_mutant_branch_ids[-1]
+                    current_mutant_id = list(
+                        self.mutant_tree[current_branch_id].keys()
                     )[-1]
+        return (
+            current_branch_id,
+            current_mutant_id,
+            last_branch_id,
+            last_mutant_id,
+        )
 
     def jump_to_branch(self, branch_id):
         if branch_id not in self.all_mutant_branch_ids:

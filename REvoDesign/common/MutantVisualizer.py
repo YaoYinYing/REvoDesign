@@ -374,8 +374,9 @@ class MutantVisualizer:
         self.mutagenesis_sessions = [
             session_path for session_path in self.results if session_path
         ]
-
-        run_worker_thread_with_progress(worker_function=self.merging_sessions,progress_bar=progress_bar )
+        progress_bar.setRange(0,0)
+        self.merging_sessions()
+        progress_bar.setRange(0,1)
 
 
     def merging_sessions(self):

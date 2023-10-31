@@ -420,9 +420,9 @@ class PssmAnalyzer:
 
             progress_bar.setValue(len(mutagenesis_tasks))
 
-        run_worker_thread_with_progress(
-            worker_function=self.merging_sessions, progress_bar=progress_bar
-        )
+        progress_bar.setRange(0,0)
+        self.merging_sessions()
+        progress_bar.setRange(0,1)
 
     def merging_sessions(self):
         logging.info("Merging all sessions .... This may take a while ...")

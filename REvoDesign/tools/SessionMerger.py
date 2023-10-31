@@ -27,7 +27,5 @@ class PyMOLSessionMerger:
                 rmtree(os.path.dirname(session_path))
 
         print(f"Saving merged session: {self.save_path}")
-        # pymol.cmd.do(f'save {self.save_path}')
-        cmd.refresh()
         cmd.save(self.save_path, quiet=self.quiet)
         print('Done.')

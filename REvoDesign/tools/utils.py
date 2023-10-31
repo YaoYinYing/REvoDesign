@@ -100,6 +100,9 @@ def determine_system():
         is_arm_macos = (os.system('uname -a |grep ARM') ==0)
         is_recognized_as_x86= (os.system('uname -m |grep x86_64')==0)
 
+        logging.warning(f'Does it ARMed? {is_arm_macos}')
+        logging.warning(f'Does it Rosetta-ed? {is_recognized_as_x86}')
+
         if is_arm_macos and is_recognized_as_x86:
             logging.warning('Oops! You are in Rosetta-translated PyMOL bundle from official channel. '\
                             'This might limit the performance of joblib, causing MutantVisualizer slower.')

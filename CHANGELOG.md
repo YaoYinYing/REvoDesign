@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.1.11] - 2023-10-31
+
+### Added
+- Flexible mutant jumping
+- `determine_selections` in order to print pymol selection objects and its residue indexes.
+- `is_a_REvoDesign_session` to indicate if the current session is a designed session.
+- `shorter_range` and `expand_range` for future uses.
+- Logging Level controlling from menu.
+- `MutantTree._walk_the_mutants` as an return-only function for mutant tree walking, which is used by `MutantTree.walk_the_mutants`,
+- `MutantTree._jump_to_the_best_mutant_in_branch` as an return-only function for mutant tree walking, which is used by `MutantTree.jump_to_the_best_mutant_in_branch`,
+
+### Fixed
+- `PyMOLSessionMerger`: use `pymol` instead of `pymol2`
+- using `cmd.set('rock', checkBox_rock_pymol.isChecked())` in `set_pymol_session_rock`
+
+### Changed
+- Warning if `is_a_REvoDesign_session` but do nothing else.
+- `determine_system` to check if the current PyMOL is a Rosetta2-translated X86_64 build (eg. PyMOL official bundle, Rosetta-tranlated conda installed PyMOL, etc.)
+- `Darwin_Rosetta`: `multiprocessing` backend in `joblib` 
+
+
+### Removed
+- Testing cases and testing input trigger.
+
 
 ## [1.1.10] - 2023-10-28
 ### Added
