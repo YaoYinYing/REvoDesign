@@ -2558,6 +2558,14 @@ class REvoDesignPlugin:
 
         button_matrix = QbuttonMatrix(csv_fp)
         button_matrix.sequence = self.gremlin_tool.sequence
+
+        [i,j,i_aa,j_aa,zscore]=wt_info
+
+        if i<j:
+            button_matrix.pos_i, button_matrix.pos_j=i,j
+        else:
+            button_matrix.pos_i, button_matrix.pos_j=j,i
+
         button_matrix.pos_i, button_matrix.pos_j, i_aa, j_aa, zscore = wt_info
 
         button_matrix.init_ui()
@@ -2730,20 +2738,30 @@ class REvoDesignPlugin:
 
         self.current_gremlin_co_evoving_pair_group_id = visualizer.group_name
 
-        # logging.debug(f'Received col {col} and row {row}')
-
-        # aa from clicked button, mutant
-        mut_A = alphabet[col]
-        mut_B = alphabet[row]
-
-        mut_score = matrix[col][row]
         [i, j, i_aa, j_aa, zscore] = wt_info
 
         # aa from wt
         wt_A = i_aa.split('_')[0]  # in column
         wt_B = j_aa.split('_')[0]  # in row
 
+
+        
         wt_score = matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
+
+
+        if i > j:
+            j,i=i,j
+            j_aa,i_aa=i_aa,j_aa
+            col,row=row,col
+
+
+        # aa from clicked button, mutant
+        mut_A = alphabet[col]
+        mut_B = alphabet[row]
+
+        mut_score = matrix[col][row]
+
+        
 
         _mutant = []
 

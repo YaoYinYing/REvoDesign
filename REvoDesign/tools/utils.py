@@ -628,9 +628,9 @@ def extract_mutants(mutant_string, chain_id=None, sequence=None):
         return None, None
 
     # if the mutation has a position of score, we need to extract it.
-    if re.match(r'[\d+\w]+_[-\d\.]+', mutant_string):
+    if re.match(r'[\d+\w]+_[-\d\.e]+', mutant_string):
         matched_mutant_id = re.match(
-            r'[\w\d\-]+_(\-?\d+\.?\d*)$', mutant_string
+            r'[\w\d\-]+_(\-?\d+\.?\d*e?\-?\d*)$', mutant_string
         )
         mutant_score = matched_mutant_id.group(1)
         mutant_score = float(mutant_score)
