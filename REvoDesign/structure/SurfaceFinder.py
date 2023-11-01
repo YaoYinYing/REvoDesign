@@ -131,7 +131,7 @@ class SurfaceFinder:
 
         molecule_selection = f'{self.molecule} and c. {self.chain_id}'
 
-        cmd.scene('test_initial', 'store')
+        cmd.scene('initial_scene', 'store')
 
         os.makedirs('surface_residue_records', exist_ok=True)  # Create a directory for residue records
 
