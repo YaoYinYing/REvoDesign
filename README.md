@@ -1,14 +1,14 @@
 ## Introduction
 
-Welcome to the initial release of the **PyMOL Enzyme Redesign Toolkit** - a powerful plugin aimed at facilitating enzyme redesign using a combination of structural and phylogenetic information. This toolkit serves as a co-pilot for protein designers, leveraging the wealth of human knowledge in enzyme design.
+Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
 
 ### About the Plugin
 
-Enzyme redesign is a complex task that requires a deep understanding of protein structures, substrate binding sites, and evolutionary relationships. The PyMOL Enzyme Redesign Toolkit is designed to streamline this process by offering a range of tools and functionalities to assist protein designers in their endeavors.
+Enzyme redesign is a complex task that requires a deep understanding of protein structures, substrate binding sites, and evolutionary relationships. **REvoDesign** Toolkit is designed to streamline this process by offering a range of tools and functionalities to assist protein designers in their endeavors.
 
 ### Key Features
 
-In this first release, the plugin provides a set of essential tools to help protein designers with the following tasks:
+In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to help protein designers with the following tasks:
 
 1. **Surface Residue Analysis**: Identify surface residues exposed as solvent-accessible surface area (SASA) and design pocket identification based on substrates and/or cofactors, with customizable cutoffs.
 
@@ -22,13 +22,13 @@ In this first release, the plugin provides a set of essential tools to help prot
 
 6. **Co-Evolution Analysis**: Search for possible inter-residue co-evolved residue pairs for effective mutants using the GREMLIN Markov random field profile.
 
-This toolkit is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, the PyMOL Enzyme Redesign Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
+**REvoDesign** is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, **REvoDesign** Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
 
 Please refer to the [documentation](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
 
 ## Installation
 
-With the recent updates, the installation process for the PyMOL Enzyme Redesign Toolkit has been dramatically changed. Please follow the steps below:
+With the recent updates, the installation process for **REvoDesign** Toolkit has been dramatically changed. Please follow the steps below:
 
 1. **Install the PyMOL Entrypoint**:
 
@@ -43,7 +43,7 @@ With the recent updates, the installation process for the PyMOL Enzyme Redesign 
    <repo-url-or-filepath>/REvoDesign.PyMOL.py
    ```
 
-   This will create an function for installing the core package of REvoDesign. Once the package is installed, the entrypoint will allow you to access it from the PyMOL menu.
+   This will create an function for installing the core package of **REvoDesign**. Once the package is installed, the entrypoint will allow you to access it from the PyMOL menu.
 
    
 
@@ -84,4 +84,4 @@ With the recent updates, the installation process for the PyMOL Enzyme Redesign 
    Note that during the installation process, the window will freeze for a while.
 
 
-Happy enzyme redesigning with REvoDesign! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from the toolkit's support resources.
+Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from **REvoDesign** toolkit's support resources.
