@@ -2341,6 +2341,10 @@ class REvoDesignPlugin:
             resi = int(cmd.get_model('sele and n. CA').atom[0].resi)
             logging.info(f'{resi} is selected.')
 
+            self.gremlin_workpath=os.path.join(self.PWD, 'gremlin_co_evolved_pairs',f'resi_{resi}')
+            os.makedirs(self.gremlin_workpath,exist_ok=True)
+            self.gremlin_tool.pwd=self.gremlin_workpath
+
             self.plot_w_fps = run_worker_thread_with_progress(
                 self.gremlin_tool.analyze_coevolving_pairs_for_i,
                 progress_bar=progress_bar,
@@ -2365,6 +2369,11 @@ class REvoDesignPlugin:
                 f'No selection `sele` is picked, use All vs All mode.'
             )
             self.gremlin_tool_a2a_mode = True
+            
+            self.gremlin_workpath=os.path.join(self.PWD, 'gremlin_co_evolved_pairs','all_vs_all')
+            os.makedirs(self.gremlin_workpath,exist_ok=True)
+            self.gremlin_tool.pwd=self.gremlin_workpath
+
             self.plot_w_fps = run_worker_thread_with_progress(
                 self.gremlin_tool.plot_w_in_batch, progress_bar=progress_bar
             )

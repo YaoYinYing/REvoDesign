@@ -7,13 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `self.gremlin_workpath` to handle co-evolved pair results saving.
+
 ### Fixed
 - Typo of `jum_to_a_mutant`: `jump_to_a_mutant`
+- Initial scene id from `SurfaceFinder`
+- Indexes swapping issue of `GREMLIN_Tools`, vialidated by a group of conserved catalytic residue pairs.
   
 ### Changed
 - `activate_focused` 
 - Close other Mutant Group if it is not the current one.
 - Disable other mutant if it is not the current one in the current group.
+- README updated.
   
 ### Removed
 - `MutantTree.last_branch_id` and `MutantTree.last_mutant_id`
