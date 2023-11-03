@@ -109,13 +109,12 @@ class REvoDesignPlugin:
             DEFAULT_PROFILE_TYPE_GROUP,
         )
 
-        # self.setup_nproc(self.ui.comboBox_nproc)
 
-        self.setup_nproc(self.ui.comboBox_nproc_2)
-        self.setup_nproc(self.ui.comboBox_nproc_3)
-        self.setup_nproc(self.ui.comboBox_nproc_4)
+        
+
 
         # Set up Menu
+
         self.ui.actionSet_Working_Directory.triggered.connect(
             self.set_working_directory
         )
@@ -132,60 +131,43 @@ class REvoDesignPlugin:
             partial(logging.set_verbosity, logging.INFO)
         )
 
-        # Set up general arguments
-        # Tab `Determine`
+        # Set up general input
+        
 
-        self.ui.checkBox_use_this_session_2.stateChanged.connect(
+        # read session from PyMOL. If it is empty, load one.
+        self.ui.actionCheck_PyMOL_session.triggered.connect(
             partial(
                 self.reload_molecule_info,
-                self.ui.checkBox_use_this_session_2,
-                self.ui.lineEdit_input_pse,
                 self.ui.comboBox_design_molecule,
+                self.ui.comboBox_chain_id,
             )
         )
 
-        self.ui.lineEdit_input_pse.textChanged.connect(
-            partial(
-                self.reload_molecule_info,
-                self.ui.checkBox_use_this_session_2,
-                self.ui.lineEdit_input_pse,
-                self.ui.comboBox_design_molecule,
-            )
-        )
-
-        self.ui.pushButton_open_input_pse.clicked.connect(
-            partial(
-                self.open_structure_or_session, self.ui.lineEdit_input_pse, 'r'
-            )
-        )
-        self.ui.pushButton_open_output_pse.clicked.connect(
-            partial(
-                self.open_structure_or_session,
-                self.ui.lineEdit_output_pse_4,
-                'w',
-            )
-        )
+        # Update chain id
         self.ui.comboBox_design_molecule.currentIndexChanged.connect(
             partial(
                 self.update_chain_id,
                 self.ui.comboBox_design_molecule,
-                self.ui.comboBox_chainid,
+                self.ui.comboBox_chain_id,
             )
         )
 
-        self.ui.comboBox_design_molecule.currentIndexChanged.connect(
-            partial(
-                self.setup_pssm_gremlin_calculator,
-                self.ui.comboBox_design_molecule,
-                self.ui.comboBox_chainid,
-            )
-        )
+        # set up nproc
+        self.set_widget_value(self.ui.comboBox_nproc, determine_nproc)
 
-        self.ui.comboBox_chainid.currentIndexChanged.connect(
+
+        # color map
+        import matplotlib
+        self.set_widget_value(self.ui.comboBox_cmap, matplotlib.colormaps())
+        self.set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
+
+
+        # Tab Calc
+        self.ui.comboBox_chain_id.currentIndexChanged.connect(
             partial(
                 self.setup_pssm_gremlin_calculator,
                 self.ui.comboBox_design_molecule,
-                self.ui.comboBox_chainid,
+                self.ui.comboBox_chain_id,
             )
         )
 
@@ -205,7 +187,7 @@ class REvoDesignPlugin:
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
                 opt='submit',
-                progress_bar=self.ui.progressBar_download,
+                progress_bar=self.ui.progressBar,
             )
         )
 
@@ -214,7 +196,7 @@ class REvoDesignPlugin:
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
                 opt='cancel',
-                progress_bar=self.ui.progressBar_download,
+                progress_bar=self.ui.progressBar,
             )
         )
 
@@ -223,7 +205,23 @@ class REvoDesignPlugin:
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
                 opt='download',
-                progress_bar=self.ui.progressBar_download,
+                progress_bar=self.ui.progressBar,
+            )
+        )
+
+        # Set up general arguments
+        # Tab `Determine`
+        self.ui.pushButton_open_output_pse_pocket.clicked.connect(
+            partial(
+                self.save_as_a_session,
+                self.ui.lineEdit_output_pse_pocket,
+            )
+        )
+
+        self.ui.pushButton_open_output_pse_surface.clicked.connect(
+            partial(
+                self.save_as_a_session,
+                self.ui.lineEdit_output_pse_surface,
             )
         )
 
@@ -231,21 +229,29 @@ class REvoDesignPlugin:
             self.update_surface_exclusion
         )
 
-        self.ui.lineEdit_output_pse_4.textChanged.connect(
+        self.ui.lineEdit_output_pse_surface.textChanged.connect(
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
-                [self.ui.lineEdit_output_pse_4],
                 [
+                    self.ui.lineEdit_output_pse_surface
+                ],
+                [
+                    
                     self.ui.pushButton_run_surface_detection,
-                    self.ui.pushButton_run_pocket_detection,
                 ],
             )
         )
-        self.ui.comboBox_design_molecule.currentIndexChanged.connect(
+
+        self.ui.lineEdit_output_pse_pocket.textChanged.connect(
             partial(
-                self.update_chain_id,
-                self.ui.comboBox_design_molecule,
-                self.ui.comboBox_chainid,
+                self.release_run_button_if_lineEdit_fp_is_valid,
+                [
+                    self.ui.lineEdit_output_pse_pocket
+                ],
+                [
+                    
+                    self.ui.pushButton_run_pocket_detection,
+                ],
             )
         )
 
@@ -274,44 +280,13 @@ class REvoDesignPlugin:
         )
 
         # Tab `Load Mutants`
-        import matplotlib
-
-        self.set_widget_value(self.ui.comboBox_cmap_2, matplotlib.colormaps())
-        self.set_widget_value(self.ui.comboBox_cmap_2, 'bwr_r')
-
-        self.ui.lineEdit_input_pse_2.textChanged.connect(
+        self.ui.pushButton_open_output_pse_mutate.clicked.connect(
             partial(
-                self.reload_molecule_info,
-                self.ui.checkBox_use_this_session,
-                self.ui.lineEdit_input_pse_2,
-                self.ui.comboBox_molecule,
+                self.save_as_a_session,
+                self.ui.lineEdit_output_pse_mutate,
             )
         )
 
-        self.ui.checkBox_use_this_session.stateChanged.connect(
-            partial(
-                self.reload_molecule_info,
-                self.ui.checkBox_use_this_session,
-                self.ui.lineEdit_input_pse_2,
-                self.ui.comboBox_molecule,
-            )
-        )
-
-        self.ui.pushButton_open_input_pse_2.clicked.connect(
-            partial(
-                self.open_structure_or_session,
-                self.ui.lineEdit_input_pse_2,
-                'r',
-            )
-        )
-
-        self.ui.pushButton_open_output_pse_2.clicked.connect(
-            partial(
-                self.open_structure_or_session,
-                self.ui.lineEdit_output_pse,
-                'w',
-            )
-        )
         self.ui.pushButton_open_customized_indices.clicked.connect(
             partial(
                 self.open_input_filepath,
@@ -319,13 +294,7 @@ class REvoDesignPlugin:
                 [TXT_FileExt, AnyFileExt],
             )
         )
-        self.ui.comboBox_molecule.currentIndexChanged.connect(
-            partial(
-                self.update_chain_id,
-                self.ui.comboBox_molecule,
-                self.ui.comboBox_chainid_2,
-            )
-        )
+        
         self.ui.pushButton_open_input_csv.clicked.connect(
             partial(
                 self.open_input_filepath,
@@ -349,11 +318,11 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_output_pse.textChanged.connect(
+        self.ui.lineEdit_output_pse_mutate.textChanged.connect(
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
                 [
-                    self.ui.lineEdit_output_pse,
+                    self.ui.lineEdit_output_pse_mutate,
                     self.ui.lineEdit_input_csv,
                     self.ui.lineEdit_input_customized_indices,
                 ],
@@ -367,7 +336,7 @@ class REvoDesignPlugin:
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
                 [
-                    self.ui.lineEdit_output_pse,
+                    self.ui.lineEdit_output_pse_mutate,
                     self.ui.lineEdit_input_csv,
                     self.ui.lineEdit_input_customized_indices,
                 ],
@@ -381,7 +350,7 @@ class REvoDesignPlugin:
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
                 [
-                    self.ui.lineEdit_output_pse,
+                    self.ui.lineEdit_output_pse_mutate,
                     self.ui.lineEdit_input_csv,
                     self.ui.lineEdit_input_customized_indices,
                 ],
@@ -424,8 +393,8 @@ class REvoDesignPlugin:
         self.ui.pushButton_reinitialize_mutant_choosing.clicked.connect(
             partial(
                 self.initialize_design_candidates,
-                self.ui.comboBox_molecule_7,
-                self.ui.comboBox_chainid_7,
+                self.ui.comboBox_design_molecule,
+                self.ui.comboBox_chain_id,
                 self.ui.pushButton_previous_mutant,
                 self.ui.pushButton_next_mutant,
                 self.ui.pushButton_reject_this_mutant,
@@ -433,7 +402,7 @@ class REvoDesignPlugin:
                 self.ui.lcdNumber_total_mutant,
                 self.ui.lcdNumber_selected_mutant,
                 self.ui.lineEdit_output_mut_table,
-                self.ui.progressBar_mutant_choosing,
+                self.ui.progressBar,
                 self.ui.comboBox_group_ids,
                 self.ui.checkBox_show_wt,
             )
@@ -455,16 +424,13 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_save_this_session.clicked.connect(
-            self.save_sessionfile
-        )
 
         self.ui.comboBox_group_ids.currentTextChanged.connect(
             partial(
                 self.jump_to_branch,
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
-                self.ui.progressBar_mutant_choosing,
+                self.ui.progressBar,
             )
         )
 
@@ -474,9 +440,9 @@ class REvoDesignPlugin:
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
                 self.ui.checkBox_show_wt,
-                self.ui.comboBox_molecule_7,
-                self.ui.comboBox_chainid_7,
-                self.ui.progressBar_mutant_choosing,
+                self.ui.comboBox_design_molecule,
+                self.ui.comboBox_chain_id,
+                self.ui.progressBar,
             )
         )
 
@@ -491,43 +457,10 @@ class REvoDesignPlugin:
         )
 
         # Tab `Cluster`
-        self.ui.pushButton_open_input_pse_3.clicked.connect(
-            partial(
-                self.open_structure_or_session,
-                self.ui.lineEdit_input_pse_3,
-                'r',
-            )
-        )
 
         self.ui.pushButton_open_mut_table_2.clicked.connect(
             partial(
                 self.open_mutant_table, self.ui.lineEdit_input_mut_table, 'r'
-            )
-        )
-
-        self.ui.checkBox_use_this_session_5.stateChanged.connect(
-            partial(
-                self.reload_molecule_info,
-                self.ui.checkBox_use_this_session_5,
-                self.ui.lineEdit_input_pse_3,
-                self.ui.comboBox_molecule_4,
-            )
-        )
-
-        self.ui.lineEdit_input_pse_3.textChanged.connect(
-            partial(
-                self.reload_molecule_info,
-                self.ui.checkBox_use_this_session_5,
-                self.ui.lineEdit_input_pse_3,
-                self.ui.comboBox_molecule_4,
-            )
-        )
-
-        self.ui.comboBox_molecule_4.currentIndexChanged.connect(
-            partial(
-                self.update_chain_id,
-                self.ui.comboBox_molecule_4,
-                self.ui.comboBox_chainid_3,
             )
         )
 
@@ -576,30 +509,14 @@ class REvoDesignPlugin:
 
         self.ui.pushButton_run_cluster.clicked.connect(self.run_clustering)
 
+
+
         # Tab Visualize
-        self.ui.checkBox_use_this_session_3.stateChanged.connect(
-            partial(
-                self.reload_molecule_info,
-                self.ui.checkBox_use_this_session_3,
-                self.ui.lineEdit_input_pse_4,
-                self.ui.comboBox_molecule_2,
-            )
-        )
-
-        self.ui.lineEdit_input_pse_4.textChanged.connect(
-            partial(
-                self.reload_molecule_info,
-                self.ui.checkBox_use_this_session_3,
-                self.ui.lineEdit_input_pse_4,
-                self.ui.comboBox_molecule_2,
-            )
-        )
-
-        self.ui.lineEdit_output_pse_2.textChanged.connect(
+        self.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
                 [
-                    self.ui.lineEdit_output_pse_2,
+                    self.ui.lineEdit_output_pse_visualize,
                 ],
                 [
                     self.ui.pushButton_run_visualizing,
@@ -627,14 +544,6 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.comboBox_molecule_2.currentIndexChanged.connect(
-            partial(
-                self.update_chain_id,
-                self.ui.comboBox_molecule_2,
-                self.ui.comboBox_chainid_4,
-            )
-        )
-
         self.set_widget_value(
             self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE_GROUP
         )
@@ -658,14 +567,6 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_open_input_pse_4.clicked.connect(
-            partial(
-                self.open_structure_or_session,
-                self.ui.lineEdit_input_pse_4,
-                'r',
-            )
-        )
-
         self.ui.pushButton_open_mut_table_csv.clicked.connect(
             partial(
                 self.open_mutant_table,
@@ -683,19 +584,17 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_open_output_pse_3.clicked.connect(
+        self.ui.pushButton_open_output_pse_visualize.clicked.connect(
             partial(
-                self.open_structure_or_session,
-                self.ui.lineEdit_output_pse_2,
-                'w',
+                self.save_as_a_session,
+                self.ui.lineEdit_output_pse_visualize,
             )
         )
 
         self.set_widget_value(self.ui.comboBox_best_leaf, 'best_leaf')
         self.set_widget_value(self.ui.comboBox_totalscore, 'totalscore')
 
-        self.set_widget_value(self.ui.comboBox_cmap, matplotlib.colormaps())
-        self.set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
+        
 
         self.ui.pushButton_run_visualizing.clicked.connect(
             self.visualize_mutants
@@ -710,21 +609,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.checkBox_use_this_session_4.stateChanged.connect(
-            partial(
-                self.set_widget_value,
-                self.ui.comboBox_molecule_3,
-                determine_molecule_objects,
-            )
-        )
-
-        self.ui.comboBox_molecule_3.currentIndexChanged.connect(
-            partial(
-                self.update_chain_id,
-                self.ui.comboBox_molecule_3,
-                self.ui.comboBox_chainid_9,
-            )
-        )
+        
 
         self.set_widget_value(
             self.ui.comboBox_gremlin_topN, DEFAULT_GREMLIN_TOPN_NUM
@@ -896,88 +781,57 @@ class REvoDesignPlugin:
             self.set_widget_value(lineEdit_input, input_fn)
             return input_fn
 
-    def reload_molecule_info(
-        self, trigger_checkBox, lineEdit_input_session, output_comboBox
-    ):
+
+    def reload_molecule_info(self, comboBox_molecule, comboBox_chain_id):
         import tempfile
 
         self.temperal_session = tempfile.mktemp(suffix=".pse")
 
-        self.new_session = (
-            str(lineEdit_input_session.text()).strip().replace(' ', '')
+        if not is_empty_session():
+            
+            cmd.save(self.temperal_session)
+            cmd.reinitialize()
+            cmd.load(self.temperal_session)
+        else:
+            logging.warning(
+                f'Current session is empty! \n \
+                            Please load one PDB/PSE/PZE!'
+            )
+            new_session_file=self.browse_filename(mode='r', exts=[SessionFileExt,PDB_FileExt, AnyFileExt])
+            if not new_session_file:
+                logging.error(
+                    f'Abored recognizing sessions from input {new_session_file}.'
+                )
+                return
+            elif not os.path.exists(new_session_file):
+                logging.error(
+                    f'File not exist: {new_session_file}.'
+                )
+                return
+            else:
+                cmd.reinitialize()
+                cmd.load(new_session_file)
+                cmd.save(self.temperal_session)
+
+        self.set_widget_value(comboBox_molecule, determine_molecule_objects)
+        self.set_widget_value(comboBox_chain_id, determine_chain_id)
+
+    def save_as_a_session(self, lineEdit_structure_session):
+ 
+        output_pse_fn = self.browse_filename(
+            mode='w', exts=[SessionFileExt, AnyFileExt]
         )
 
-        if trigger_checkBox.isChecked():
-            if not is_empty_session():
-                logging.info(
-                    f"Using current session: {trigger_checkBox.isChecked()}!"
-                )
-                cmd.save(self.temperal_session)
-                cmd.reinitialize()
-                cmd.load(self.temperal_session)
-            else:
-                logging.warning(
-                    f'Current session is empty! \n \
-                                Please load one PDB/PSE/PZE, otherwise uncheck `use_this_session`!'
-                )
-                return
-        else:
-            if self.new_session and os.path.exists(
-                os.path.abspath(self.new_session)
-            ):
-                logging.info(f'Loading {self.new_session} ...')
-                cmd.reinitialize()
-                cmd.load(self.new_session)
-                cmd.save(self.temperal_session)
-            else:
-                logging.warning(
-                    f'Abored recognizing sessions from input: {self.new_session} .'
-                )
-                return
-
-        self.set_widget_value(output_comboBox, determine_molecule_objects)
-
-    def setup_nproc(self, comboBox_nproc):
-        nprocs = determine_nproc()
-        self.set_widget_value(comboBox_nproc, nprocs)
-        self.set_widget_value(comboBox_nproc, max(nprocs))
-
-    def open_structure_or_session(self, lineEdit_structure_session, mode='r'):
-        if mode == 'r':
-            input_pse_fn = self.open_input_filepath(
-                lineEdit_structure_session,
-                [SessionFileExt, PDB_FileExt, AnyFileExt],
+        if output_pse_fn and os.path.exists(
+            os.path.dirname(output_pse_fn)
+        ):
+            logging.info(f"Output file is set as {output_pse_fn}")
+            self.set_widget_value(
+                lineEdit_structure_session, output_pse_fn
             )
-            if input_pse_fn:
-                self.set_widget_value(lineEdit_structure_session, input_pse_fn)
-            else:
-                logging.warning(
-                    f'Could not open file for reading: {input_pse_fn}'
-                )
-        elif mode == 'w':
-            output_pse_fn = self.browse_filename(
-                mode=mode, exts=[SessionFileExt, AnyFileExt]
-            )
-            if output_pse_fn and os.path.exists(
-                os.path.dirname(output_pse_fn)
-            ):
-                logging.info(f"Output file is set as {output_pse_fn}")
-                self.set_widget_value(
-                    lineEdit_structure_session, output_pse_fn
-                )
-            else:
-                logging.warning(f"Invalid output path: {output_pse_fn}.")
         else:
-            logging.warning(f'Unknown mode {mode} ! Aborded.')
+            logging.warning(f"Invalid output path: {output_pse_fn}.")
 
-    def save_sessionfile(self, sessionfile):
-        if not sessionfile:
-            sessionfile = self.find_session_path()
-
-        if sessionfile.endswith('.pze') or sessionfile.endswith('.pse'):
-            cmd.save(sessionfile)
-        else:
-            logging.warning(f"Session file is not set properly: {sessionfile}")
 
     def release_run_button_if_lineEdit_fp_is_valid(
         self, lineEdits_fp, buttons_to_release
@@ -1014,7 +868,7 @@ class REvoDesignPlugin:
         chain_ids = determine_chain_id(molecule)
         self.set_widget_value(comboBox_chainid, chain_ids)
         self.set_widget_value(
-            comboBox_chainid, chain_ids[0] if chain_ids else 0
+            comboBox_chainid, chain_ids[0] if chain_ids else ''
         )
 
     def open_mutant_table(self, lineEdit_mutant_table, mode='r'):
@@ -1161,6 +1015,10 @@ class REvoDesignPlugin:
     ):
         molecule = str(comboBox_design_molecule.currentText())
         chain_id = str(comboBox_chainid.currentText())
+
+        if (not molecule) or (not chain_id):
+            return
+        
         sequence = get_molecule_sequence(molecule=molecule, chain_id=chain_id)
 
         logging.debug(
@@ -1246,9 +1104,9 @@ class REvoDesignPlugin:
 
     def run_surface_detection(self):
         input_file = self.temperal_session
-        output_file = self.ui.lineEdit_output_pse_4.text()
+        output_file = self.ui.lineEdit_output_pse_surface.text()
         molecule = self.ui.comboBox_design_molecule.currentText()
-        chain_id = self.ui.comboBox_chainid.currentText()
+        chain_id = self.ui.comboBox_chain_id.currentText()
         exclusion = self.ui.comboBox_surface_exclusion.currentText()
         cutoff = int(self.ui.comboBox_surface_cutoff.currentText())
         do_show_surf_CA = True
@@ -1270,9 +1128,9 @@ class REvoDesignPlugin:
 
     def run_pocket_detection(self):
         input_file = self.temperal_session
-        output_file = self.ui.lineEdit_output_pse_4.text()
+        output_file = self.ui.lineEdit_output_pse_pocket.text()
         molecule = self.ui.comboBox_design_molecule.currentText()
-        chain_id = self.ui.comboBox_chainid.currentText()
+        chain_id = self.ui.comboBox_chain_id.currentText()
         ligand = self.ui.comboBox_ligand_sel.currentText()
         cofactor = self.ui.comboBox_cofactor_sel.currentText()
         ligand_radius = int(self.ui.comboBox_ligand_radius.currentText())
@@ -1302,8 +1160,8 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
 
         input_file = self.temperal_session
-        molecule = self.ui.comboBox_molecule.currentText()
-        chain_id = self.ui.comboBox_chainid_2.currentText()
+        molecule = self.ui.comboBox_design_molecule.currentText()
+        chain_id = self.ui.comboBox_chain_id.currentText()
         design_profile = self.ui.lineEdit_input_csv.text()
         design_profile_format = self.ui.comboBox_profile_type.currentText()
         preffered = self.ui.lineEdit_preffer_substitution.text().upper()
@@ -1317,17 +1175,17 @@ class REvoDesignPlugin:
         reversed_mutant_effect = (
             self.ui.checkBox_reverse_mutant_effect.isChecked()
         )
-        output_pse = self.ui.lineEdit_output_pse.text()
-        nproc = int(self.ui.comboBox_nproc_2.currentText())
+        output_pse = self.ui.lineEdit_output_pse_mutate.text()
+        nproc = int(self.ui.comboBox_nproc.currentText())
 
         cmap = cmap_reverser(
-            cmap=self.ui.comboBox_cmap_2.currentText(),
+            cmap=self.ui.comboBox_cmap.currentText(),
             reverse=reversed_mutant_effect,
         )
 
-        progressbar = self.ui.progressBar_load_mutants
+        progressbar = self.ui.progressBar
         sequence = get_molecule_sequence(molecule, chain_id)
-        parallel_run = self.ui.checkBox_parallel.isChecked()
+        parallel_run = (nproc > 1)
 
         if is_a_REvoDesign_session():
             logging.warning(
@@ -1962,12 +1820,15 @@ class REvoDesignPlugin:
 
     # combination and clustering
     def run_clustering(self):
+
+        trigger_button=self.ui.pushButton_run_cluster
+
         # lazy module loading to fasten plugin initializing
         from REvoDesign.clusters.combine_positions import Combinations
         from REvoDesign.clusters.cluster_sequence import Clustering
 
-        input_molecule = self.ui.comboBox_molecule_4.currentText()
-        input_chain_id = self.ui.comboBox_chainid_3.currentText()
+        input_molecule = self.ui.comboBox_design_molecule.currentText()
+        input_chain_id = self.ui.comboBox_chain_id.currentText()
         input_mutant_table = self.ui.lineEdit_input_mut_table.text()
 
         cluster_batch_size = int(
@@ -1982,11 +1843,11 @@ class REvoDesignPlugin:
 
         shuffle_variant = self.ui.checkBox_shuffle_clustering.isChecked()
 
-        nproc = int(self.ui.comboBox_nproc_3.currentText())
+        nproc = int(self.ui.comboBox_nproc.currentText())
 
         # output space
         plot_space = self.ui.stackedWidget
-        progressbar = self.ui.progressBar_clustering
+        progressbar = self.ui.progressBar
 
         input_sequence = get_molecule_sequence(
             molecule=input_molecule, chain_id=input_chain_id
@@ -2004,42 +1865,48 @@ class REvoDesignPlugin:
 
         # output files
         cluster_outputs = {}
+        trigger_button.setEnabled(False)
 
-        for num_mut in range(min_mut_num, max_mut_num + 1):
-            # combination
-            combinations = Combinations()
-            combinations.fastasequence = input_sequence
-            combinations.chain_id = input_chain_id
-            combinations.fastafile = input_fasta_file
-            combinations.inputfile = input_mutant_table
-            combinations.combi = num_mut
-            combinations.path = self.PWD
-            combinations.processors = nproc
+        try:
 
-            # expected design combination file
+            for num_mut in range(min_mut_num, max_mut_num + 1):
+                # combination
+                combinations = Combinations()
+                combinations.fastasequence = input_sequence
+                combinations.chain_id = input_chain_id
+                combinations.fastafile = input_fasta_file
+                combinations.inputfile = input_mutant_table
+                combinations.combi = num_mut
+                combinations.path = self.PWD
+                combinations.processors = nproc
 
-            combinations.run_combinations()
-            expected_design_combinations = combinations.expected_output_fasta
+                # expected design combination file
 
-            # clustering
+                combinations.run_combinations()
+                expected_design_combinations = combinations.expected_output_fasta
 
-            clustering = Clustering(fastafile=expected_design_combinations)
-            clustering.batch_size = cluster_batch_size
-            clustering.num_proc = nproc
-            clustering.num_clusters = cluster_number
-            clustering.shuffle_variant = shuffle_variant
-            clustering.substitution_matrix = cluster_substitution_matrix
-            clustering._save_dir = self.PWD
+                # clustering
 
-            clustering.initialize_aligner()
+                clustering = Clustering(fastafile=expected_design_combinations)
+                clustering.batch_size = cluster_batch_size
+                clustering.num_proc = nproc
+                clustering.num_clusters = cluster_number
+                clustering.shuffle_variant = shuffle_variant
+                clustering.substitution_matrix = cluster_substitution_matrix
+                clustering._save_dir = self.PWD
 
-            clustering.run_clustering(progressbar=progressbar)
-            cluster_outputs.update({num_mut: clustering.cluster_output_fp})
+                clustering.initialize_aligner()
 
-        cluster_imgs = [
-            _cluster['score'] for _, _cluster in cluster_outputs.items()
-        ]
-        self.set_widget_value(plot_space, cluster_imgs)
+                clustering.run_clustering(progressbar=progressbar)
+                cluster_outputs.update({num_mut: clustering.cluster_output_fp})
+
+            cluster_imgs = [
+                _cluster['score'] for _, _cluster in cluster_outputs.items()
+            ]
+            self.set_widget_value(plot_space, cluster_imgs)
+
+        finally:
+            trigger_button.setEnabled(True)
 
     # Tab Visualize
 
@@ -2142,20 +2009,20 @@ class REvoDesignPlugin:
         )
 
     def visualize_mutants(self):
-        triggger_button = self.ui.pushButton_run_visualizing
+        trigger_button = self.ui.pushButton_run_visualizing
         input_pse = self.temperal_session
         input_mut_table_csv = self.ui.lineEdit_input_mut_table_csv.text()
-        molecule = self.ui.comboBox_molecule_2.currentText()
-        chainid = self.ui.comboBox_chainid_4.currentText()
-        output_pse = self.ui.lineEdit_output_pse_2.text()
+        molecule = self.ui.comboBox_design_molecule.currentText()
+        chainid = self.ui.comboBox_chain_id.currentText()
+        output_pse = self.ui.lineEdit_output_pse_visualize.text()
         best_leaf = self.ui.comboBox_best_leaf.currentText()
         totalscore = self.ui.comboBox_totalscore.currentText()
-        nproc = int(self.ui.comboBox_nproc_4.currentText())
+        nproc = int(self.ui.comboBox_nproc.currentText())
         group_name = self.ui.lineEdit_group_name.text()
 
         use_global_scores = self.ui.checkBox_global_score_policy.isChecked()
 
-        triggger_button.setEnabled(False)
+        trigger_button.setEnabled(False)
 
         try:
             reversed_mutant_effect = (
@@ -2172,7 +2039,7 @@ class REvoDesignPlugin:
             )
 
             progressBar_visualize_mutants = (
-                self.ui.progressBar_visualize_mutants
+                self.ui.progressBar
             )
 
             from REvoDesign.common.MutantVisualizer import MutantVisualizer
@@ -2231,15 +2098,17 @@ class REvoDesignPlugin:
             logging.error('Error while running the visualization: \n {e}')
 
         finally:
-            triggger_button.setEnabled(True)
+            trigger_button.setEnabled(True)
 
     # Tab Interact via GREMLIN
     def load_gremlin_mrf(
         self,
     ):
+        trigger_button=self.ui.pushButton_reinitialize_interact
         from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
 
-        self.ui.pushButton_reinitialize_interact.setEnabled(False)
+
+        trigger_button.setEnabled(False)
 
         try:
             gremlin_mrf_fp = self.ui.lineEdit_input_gremlin_mtx.text()
@@ -2247,8 +2116,18 @@ class REvoDesignPlugin:
             topN_gremlin_candidates = int(
                 self.ui.comboBox_gremlin_topN.currentText()
             )
-            molecule = self.ui.comboBox_molecule_3.currentText()
-            chain_id = self.ui.comboBox_chainid_9.currentText()
+            molecule = self.ui.comboBox_design_molecule.currentText()
+            chain_id = self.ui.comboBox_chain_id.currentText()
+
+            if (not molecule) or (not chain_id):
+                logging.error(f'Molecule Info not complete. \n\tmolecule: {molecule}\n\tchain: {chain_id}.')
+                return
+            
+            if ( not os.path.exists(gremlin_mrf_fp)):
+                logging.error(
+                    "Could not run GREMLIN tools. Please check your configuration"
+                )
+                return
 
             pushButton_run_interact_scan = self.ui.pushButton_run_interact_scan
             gridLayout_interact_pairs = self.ui.gridLayout_interact_pairs
@@ -2271,27 +2150,17 @@ class REvoDesignPlugin:
             ]:
                 self.set_widget_value(lineEdit, '')
 
-            progress_bar = self.ui.progressBar_gremlin_visualizing
+            progress_bar = self.ui.progressBar
 
             # Reinitialize Gremlin mutant tree
             self.mutant_tree_coevolved = MutantTree({})
 
             self.gremlin_tool = GREMLIN_Tools(molecule=molecule)
 
-            if self.ui.checkBox_use_this_session_4.isChecked():
-                self.gremlin_tool.sequence = get_molecule_sequence(
-                    molecule=molecule, chain_id=chain_id
-                )
 
-            if (
-                not molecule
-                or not chain_id
-                or not os.path.exists(gremlin_mrf_fp)
-            ):
-                logging.error(
-                    "Could not run GREMLIN tools. Please check your configuration"
-                )
-                return
+            self.gremlin_tool.sequence = get_molecule_sequence(
+                molecule=molecule, chain_id=chain_id
+            )
 
             run_worker_thread_with_progress(
                 self.gremlin_tool.load_msa_and_mrf,
@@ -2318,17 +2187,17 @@ class REvoDesignPlugin:
                 self.set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
             except AttributeError:
                 logging.info(
-                    f'Work Space is cleaned. Click again to reinitialize. '
+                    f'Work Space is cleaned. Click once again to reinitialize. '
                 )
 
         finally:
-            self.ui.pushButton_reinitialize_interact.setEnabled(True)
+            trigger_button.setEnabled(True)
 
     def run_gremlin_tool(self):
-        molecule = self.ui.comboBox_molecule_3.currentText()
-        chain_id = self.ui.comboBox_chainid_9.currentText()
+        molecule = self.ui.comboBox_design_molecule.currentText()
+        chain_id = self.ui.comboBox_chain_id.currentText()
 
-        progress_bar = self.ui.progressBar_gremlin_visualizing
+        progress_bar = self.ui.progressBar
         max_interact_dist = int(
             self.ui.comboBox_max_interact_dist.currentText()
         )
@@ -2369,7 +2238,7 @@ class REvoDesignPlugin:
                 f'No selection `sele` is picked, use All vs All mode.'
             )
             self.gremlin_tool_a2a_mode = True
-            
+
             self.gremlin_workpath=os.path.join(self.PWD, 'gremlin_co_evolved_pairs','all_vs_all')
             os.makedirs(self.gremlin_workpath,exist_ok=True)
             self.gremlin_tool.pwd=self.gremlin_workpath
@@ -2509,8 +2378,8 @@ class REvoDesignPlugin:
         progress_bar,
         walk_to_next=True,
     ):
-        molecule = self.ui.comboBox_molecule_3.currentText()
-        chain_id = self.ui.comboBox_chainid_9.currentText()
+        molecule = self.ui.comboBox_design_molecule.currentText()
+        chain_id = self.ui.comboBox_chain_id.currentText()
         checkBox_ignore_wt = self.ui.checkBox_interact_ignore_wt
         comboBox_max_interact_dist = self.ui.comboBox_max_interact_dist
 
@@ -2817,7 +2686,7 @@ class REvoDesignPlugin:
         else:
             logging.info(f'Picked mutant: {mutant} ')
 
-            color = get_color('bwr_r', mut_score, min_score, max_score)
+            color = get_color(self.ui.comboBox_cmap.currentText(), mut_score, min_score, max_score)
 
             logging.info(f" Visualizing {mutant}: {color}")
 
