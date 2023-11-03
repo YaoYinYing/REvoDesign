@@ -2051,6 +2051,7 @@ class REvoDesignPlugin:
             visualizer.mutfile = input_mut_table_csv
             visualizer.input_session = input_pse
             visualizer.nproc = nproc
+            visualizer.parallel_run=(nproc>1)
 
             visualizer.consider_global_score_from_profile = use_global_scores
 
@@ -2095,7 +2096,7 @@ class REvoDesignPlugin:
             cmd.save(output_pse)
 
         except Exception as e:
-            logging.error('Error while running the visualization: \n {e}')
+            logging.error(f'Error while running the visualization: \n {e}')
 
         finally:
             trigger_button.setEnabled(True)

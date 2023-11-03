@@ -17,8 +17,7 @@ from REvoDesign.tools.utils import (
     get_color,
     extract_mutants,
     extract_mutant_info,
-    get_molecule_sequence,
-    run_worker_thread_with_progress
+    get_molecule_sequence
 )
 from absl import logging
 
@@ -31,6 +30,7 @@ class MutantVisualizer:
         self.input_session = None
         self.save_session = None
         self.nproc = os.cpu_count()
+        self.parallel_run=False
         self.full = False
         self.cmap = "bwr_r"
         self.key_col = "best_leaf"
@@ -348,32 +348,47 @@ class MutantVisualizer:
 
         progress_bar.setRange(0, 0)
 
-        parallel_executor = ParallelExecutor(
-            self.process_position,
-            args=self.mutagenesis_tasks,
-            n_jobs=self.nproc,
-        )
+        if self.parallel_run:
 
-        parallel_executor.start()
+            parallel_executor = ParallelExecutor(
+                self.process_position,
+                args=self.mutagenesis_tasks,
+                n_jobs=self.nproc,
+            )
 
-        while not parallel_executor.isFinished():
-            # logging.info(f'Running ....')
-            refresh_window()
-            time.sleep(0.001)
+            parallel_executor.start()
 
-        progress_bar.setRange(0, len(self.mutant_list))
-        progress_bar.setValue(len(self.mutant_list))
+            while not parallel_executor.isFinished():
+                # logging.info(f'Running ....')
+                refresh_window()
+                time.sleep(0.001)
 
-        self.results = parallel_executor.handle_result()
+            progress_bar.setRange(0, len(self.mutant_list))
+            progress_bar.setValue(len(self.mutant_list))
+
+            self.results = parallel_executor.handle_result()
 
 
-        logging.info("Merging all sessions .... This may take a while ...")
+            logging.info("Merging all sessions .... This may take a while ...")
 
-        cmd.hide('surface')
+            cmd.hide('surface')
 
-        self.mutagenesis_sessions = [
-            session_path for session_path in self.results if session_path
-        ]
+            self.mutagenesis_sessions = [
+                session_path for session_path in self.results if session_path
+            ]
+        else:
+            progress_bar.setRange(0, len(self.mutagenesis_tasks))
+            self.mutagenesis_sessions=[]
+            for mutagenesis_task in self.mutagenesis_tasks:
+                self.mutagenesis_sessions.append(self.process_position(*mutagenesis_task))
+
+                # https://www.jianshu.com/p/38562df9e65d
+                # refresh UI if calculation is not done.
+                refresh_window()
+                progress_bar.setValue(progress_bar.value() + 1)
+
+            progress_bar.setValue(len(self.mutagenesis_tasks))
+
         progress_bar.setRange(0,0)
         self.merging_sessions()
         progress_bar.setRange(0,1)
