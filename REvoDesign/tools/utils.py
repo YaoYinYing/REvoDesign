@@ -68,7 +68,7 @@ def determine_chain_id(sele='(all)'):
 
 
 def determine_nproc():
-    return [x for x in range(1, os.cpu_count() + 1)]
+    return sorted([x for x in range(1, os.cpu_count() + 1)],reverse=True)
 
 
 def determine_exclusion():
@@ -705,7 +705,7 @@ def shorter_range(input_list):
     input_list = sorted([item for item in input_list if isinstance(item, int)])
 
     if not input_list:
-        return "No valid integers in the list"
+        return
 
     range_pairs = []
     start, end = input_list[0], input_list[0]
