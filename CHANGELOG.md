@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2023-11-03
 ### Added
 - `self.gremlin_workpath` to handle co-evolved pair results saving.
+- `MutantVisualizer. parallel_run`
+- Parallel checkboxs, are removed. Instead, parallelism can be toggled by `parallel_run=bool(nproc>1)`.
 
 ### Fixed
-- Typo of `jum_to_a_mutant`: `jump_to_a_mutant`
+- Typo of `jum_to_a_mutant`: `jump_to_a_mutant` 
 - Initial scene id from `SurfaceFinder`
 - Indexes swapping issue of `GREMLIN_Tools`, vialidated by a group of conserved catalytic residue pairs.
   
@@ -20,9 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Close other Mutant Group if it is not the current one.
 - Disable other mutant if it is not the current one in the current group.
 - README updated.
+- Breaking changes on UI. 
+  - reverse the list returned by `determine_nproc` since the first item will be set as the default value.
+  - Repetative elements, like `comboBox_design_molecule`, `comboBox_chain_id`, `comboBox_nproc`, `comboBox_cmap` and etc., are re-arranged to the top on tabs and will be shared cross the tabs.
+  - `Progressbar` is moved to the bottom of tabs and shared cross these tabs.
+
   
 ### Removed
 - `MutantTree.last_branch_id` and `MutantTree.last_mutant_id`
+- `save_sessionfile` 
 
 ## [1.1.11] - 2023-10-31
 
