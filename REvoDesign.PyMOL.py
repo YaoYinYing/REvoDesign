@@ -21,7 +21,7 @@ After it is done, you should restart PyMOL.
 
 
 def install_via_pip(
-    source='https://github.com/YaoYinYing/REvoDesign', upgrade=0
+    source='https://github.com/YaoYinYing/REvoDesign', upgrade=0,quiet=0
 ):
     import sys, subprocess
 
@@ -84,13 +84,15 @@ def install_via_pip(
     )
     if result.returncode != 0:
         print(f'Installation failed: {source}')
-        print(f'stdout: {result.stdout.decode()}')
-        print(f'stderr: {result.stderr.decode()}')
+        if not quiet: 
+            print(f'stdout: {result.stdout.decode()}')
+            print(f'stderr: {result.stderr.decode()}')
     else:
         print(
             f'Installation succeeded: {source}',
         )
-        print(f'stdout: {result.stdout.decode()}')
+        if not quiet: 
+            print(f'stdout: {result.stdout.decode()}')
         print('If this is an upgrade, please restart PyMOL for it to take effect.')
 
 

@@ -1,6 +1,7 @@
 import sys, os
 import time
 import re
+import random
 from pymol import cmd
 from pymol.Qt import QtWidgets
 
@@ -49,6 +50,8 @@ from REvoDesign.tools.utils import (
     is_a_REvoDesign_session,
 )
 
+from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+
 
 class REvoDesignPlugin:
     def __init__(
@@ -65,6 +68,7 @@ class REvoDesignPlugin:
         self.mutant_tree_pssm = MutantTree({})
         self.mutant_tree_pssm_selected = MutantTree({})
         self.mutant_tree_coevolved = MutantTree({})
+
         self.gremlin_tool = None
 
         from REvoDesign.phylogenetics.PSSM_GREMLIN_client import (
@@ -72,6 +76,8 @@ class REvoDesignPlugin:
         )
 
         self.pssm_gremlin_calculator = PSSMGremlinCalculator()
+
+        self.multi_mutagenesis_designer = None
 
     def __del__(self):
         print('REvoDesign session closed.')
@@ -109,10 +115,6 @@ class REvoDesignPlugin:
             DEFAULT_PROFILE_TYPE_GROUP,
         )
 
-
-        
-
-
         # Set up Menu
 
         self.ui.actionSet_Working_Directory.triggered.connect(
@@ -132,7 +134,6 @@ class REvoDesignPlugin:
         )
 
         # Set up general input
-        
 
         # read session from PyMOL. If it is empty, load one.
         self.ui.actionCheck_PyMOL_session.triggered.connect(
@@ -155,12 +156,11 @@ class REvoDesignPlugin:
         # set up nproc
         self.set_widget_value(self.ui.comboBox_nproc, determine_nproc)
 
-
         # color map
         import matplotlib
+
         self.set_widget_value(self.ui.comboBox_cmap, matplotlib.colormaps())
         self.set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
-
 
         # Tab Calc
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
@@ -232,11 +232,8 @@ class REvoDesignPlugin:
         self.ui.lineEdit_output_pse_surface.textChanged.connect(
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
+                [self.ui.lineEdit_output_pse_surface],
                 [
-                    self.ui.lineEdit_output_pse_surface
-                ],
-                [
-                    
                     self.ui.pushButton_run_surface_detection,
                 ],
             )
@@ -245,11 +242,8 @@ class REvoDesignPlugin:
         self.ui.lineEdit_output_pse_pocket.textChanged.connect(
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
+                [self.ui.lineEdit_output_pse_pocket],
                 [
-                    self.ui.lineEdit_output_pse_pocket
-                ],
-                [
-                    
                     self.ui.pushButton_run_pocket_detection,
                 ],
             )
@@ -294,7 +288,7 @@ class REvoDesignPlugin:
                 [TXT_FileExt, AnyFileExt],
             )
         )
-        
+
         self.ui.pushButton_open_input_csv.clicked.connect(
             partial(
                 self.open_input_filepath,
@@ -424,7 +418,6 @@ class REvoDesignPlugin:
             )
         )
 
-
         self.ui.comboBox_group_ids.currentTextChanged.connect(
             partial(
                 self.jump_to_branch,
@@ -509,8 +502,6 @@ class REvoDesignPlugin:
 
         self.ui.pushButton_run_cluster.clicked.connect(self.run_clustering)
 
-
-
         # Tab Visualize
         self.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
@@ -594,10 +585,80 @@ class REvoDesignPlugin:
         self.set_widget_value(self.ui.comboBox_best_leaf, 'best_leaf')
         self.set_widget_value(self.ui.comboBox_totalscore, 'totalscore')
 
-        
-
         self.ui.pushButton_run_visualizing.clicked.connect(
             self.visualize_mutants
+        )
+
+        from REvoDesign.common.magic_numbers import (
+            DEFAULT_MULTI_DESIGN_MUT_NUM,
+            DEFAULT_MULTI_DESIGN_MUT_DISTAL,
+            DEFAULT_MULTI_DESIGN_VALRIANT_NUM,
+        )
+
+        self.set_widget_value(
+            self.ui.comboBox_maximal_mutant_num, DEFAULT_MULTI_DESIGN_MUT_NUM
+        )
+        self.set_widget_value(
+            self.ui.comboBox_maximal_multi_design_variant_num,
+            DEFAULT_MULTI_DESIGN_VALRIANT_NUM,
+        )
+        self.set_widget_value(
+            self.ui.comboBox_minmal_mutant_distance,
+            DEFAULT_MULTI_DESIGN_MUT_DISTAL,
+        )
+
+        # Multi-Design
+        self.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
+            partial(
+                self.release_run_button_if_lineEdit_fp_is_valid,
+                [
+                    self.ui.lineEdit_multi_design_mutant_table,
+                ],
+                [
+                    self.ui.pushButton_multi_design_export_mutants_from_table,
+                    self.ui.pushButton_run_multi_design,
+                ],
+            )
+        )
+
+        self.ui.pushButton_open_mut_table_csv_2.clicked.connect(
+            partial(
+                self.open_mutant_table,
+                self.ui.lineEdit_multi_design_mutant_table,
+                'w',
+            )
+        )
+
+        self.ui.pushButton_multi_design_initialize.clicked.connect(
+            self.multi_mutagenesis_design_initialize
+        )
+
+        self.ui.pushButton_multi_design_start_new_design.clicked.connect(
+            self.multi_mutagenesis_design_start
+        )
+
+        self.ui.pushButton_multi_design_left.clicked.connect(
+            self.multi_mutagenesis_design_undo_picking
+        )
+
+        self.ui.pushButton_multi_design_right.clicked.connect(
+            self.multi_mutagenesis_design_pick_next_mut
+        )
+
+        self.ui.pushButton_multi_design_end_this_design.clicked.connect(
+            self.multi_mutagenesis_design_stop_design
+        )
+
+        self.ui.pushButton_multi_design_export_mutants_from_table.clicked.connect(
+            self.multi_mutagenesis_design_save_design
+        )
+
+        self.ui.pushButton_run_multi_design.clicked.connect(
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_auto,
+                progress_bar=self.ui.progressBar,
+            )
         )
 
         # Tab Interact
@@ -608,8 +669,6 @@ class REvoDesignPlugin:
                 [PickleObjectFileExt, AnyFileExt],
             )
         )
-
-        
 
         self.set_widget_value(
             self.ui.comboBox_gremlin_topN, DEFAULT_GREMLIN_TOPN_NUM
@@ -781,14 +840,12 @@ class REvoDesignPlugin:
             self.set_widget_value(lineEdit_input, input_fn)
             return input_fn
 
-
     def reload_molecule_info(self, comboBox_molecule, comboBox_chain_id):
         import tempfile
 
         self.temperal_session = tempfile.mktemp(suffix=".pse")
 
         if not is_empty_session():
-            
             cmd.save(self.temperal_session)
             cmd.reinitialize()
             cmd.load(self.temperal_session)
@@ -797,16 +854,16 @@ class REvoDesignPlugin:
                 f'Current session is empty! \n \
                             Please load one PDB/PSE/PZE!'
             )
-            new_session_file=self.browse_filename(mode='r', exts=[SessionFileExt,PDB_FileExt, AnyFileExt])
+            new_session_file = self.browse_filename(
+                mode='r', exts=[SessionFileExt, PDB_FileExt, AnyFileExt]
+            )
             if not new_session_file:
                 logging.error(
                     f'Abored recognizing sessions from input {new_session_file}.'
                 )
                 return
             elif not os.path.exists(new_session_file):
-                logging.error(
-                    f'File not exist: {new_session_file}.'
-                )
+                logging.error(f'File not exist: {new_session_file}.')
                 return
             else:
                 cmd.reinitialize()
@@ -817,21 +874,15 @@ class REvoDesignPlugin:
         self.set_widget_value(comboBox_chain_id, determine_chain_id)
 
     def save_as_a_session(self, lineEdit_structure_session):
- 
         output_pse_fn = self.browse_filename(
             mode='w', exts=[SessionFileExt, AnyFileExt]
         )
 
-        if output_pse_fn and os.path.exists(
-            os.path.dirname(output_pse_fn)
-        ):
+        if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
             logging.info(f"Output file is set as {output_pse_fn}")
-            self.set_widget_value(
-                lineEdit_structure_session, output_pse_fn
-            )
+            self.set_widget_value(lineEdit_structure_session, output_pse_fn)
         else:
             logging.warning(f"Invalid output path: {output_pse_fn}.")
-
 
     def release_run_button_if_lineEdit_fp_is_valid(
         self, lineEdits_fp, buttons_to_release
@@ -1018,7 +1069,7 @@ class REvoDesignPlugin:
 
         if (not molecule) or (not chain_id):
             return
-        
+
         sequence = get_molecule_sequence(molecule=molecule, chain_id=chain_id)
 
         logging.debug(
@@ -1185,7 +1236,7 @@ class REvoDesignPlugin:
 
         progressbar = self.ui.progressBar
         sequence = get_molecule_sequence(molecule, chain_id)
-        parallel_run = (nproc > 1)
+        parallel_run = nproc > 1
 
         if is_a_REvoDesign_session():
             logging.warning(
@@ -1820,8 +1871,7 @@ class REvoDesignPlugin:
 
     # combination and clustering
     def run_clustering(self):
-
-        trigger_button=self.ui.pushButton_run_cluster
+        trigger_button = self.ui.pushButton_run_cluster
 
         # lazy module loading to fasten plugin initializing
         from REvoDesign.clusters.combine_positions import Combinations
@@ -1868,7 +1918,6 @@ class REvoDesignPlugin:
         trigger_button.setEnabled(False)
 
         try:
-
             for num_mut in range(min_mut_num, max_mut_num + 1):
                 # combination
                 combinations = Combinations()
@@ -1883,7 +1932,9 @@ class REvoDesignPlugin:
                 # expected design combination file
 
                 combinations.run_combinations()
-                expected_design_combinations = combinations.expected_output_fasta
+                expected_design_combinations = (
+                    combinations.expected_output_fasta
+                )
 
                 # clustering
 
@@ -2038,9 +2089,7 @@ class REvoDesignPlugin:
                 self.ui.comboBox_profile_type_2.currentText()
             )
 
-            progressBar_visualize_mutants = (
-                self.ui.progressBar
-            )
+            progressBar_visualize_mutants = self.ui.progressBar
 
             from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
@@ -2051,7 +2100,7 @@ class REvoDesignPlugin:
             visualizer.mutfile = input_mut_table_csv
             visualizer.input_session = input_pse
             visualizer.nproc = nproc
-            visualizer.parallel_run=(nproc>1)
+            visualizer.parallel_run = nproc > 1
 
             visualizer.consider_global_score_from_profile = use_global_scores
 
@@ -2101,13 +2150,128 @@ class REvoDesignPlugin:
         finally:
             trigger_button.setEnabled(True)
 
+    def multi_mutagenesis_design_initialize(self):
+        molecule = self.ui.comboBox_design_molecule.currentText()
+        chain_id = self.ui.comboBox_chain_id.currentText()
+        self.multi_mutagenesis_designer = MultiMutantDesigner(
+            molecule=molecule, chain_id=chain_id
+        )
+
+    def multi_mutagenesis_design_start(self):
+        if not self.multi_mutagenesis_designer:
+            logging.error('Multi design is not initialized.')
+            return
+
+        if self.multi_mutagenesis_designer.in_design_multi_design_case:
+            logging.warning(
+                f'Your current mutant multi-mutagenesis will be discarded!'
+            )
+
+            # Ask whether to overide
+            msg = QtWidgets.QMessageBox()
+            msg.setIcon(QtWidgets.QMessageBox.Question)
+            msg.setWindowTitle("Discard in-design mutant choice?")
+            msg.setText(
+                f"You currently have uncompleted mutant choice, which shall be discarded. \n \
+                    Are you really sure? "
+            )
+            msg.setStandardButtons(
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            )
+            result = msg.exec_()
+
+            if result == QtWidgets.QMessageBox.No:
+                logging.warning(f'Cancelled.')
+                return
+        self.multi_mutagenesis_designer.start_new_design()
+
+    def multi_mutagenesis_design_pick_next_mut(self):
+        if not self.multi_mutagenesis_designer:
+            logging.error('Multi design is not initialized.')
+            return
+
+        comboBox_maximal_mutant_num = self.ui.comboBox_maximal_mutant_num
+        comboBox_minmal_mutant_distance = (
+            self.ui.comboBox_minmal_mutant_distance
+        )
+
+        checkBox_multi_design_bond_CA = self.ui.checkBox_multi_design_bond_CA
+        checkBox_multi_design_check_sidechain_orientations = (
+            self.ui.checkBox_multi_design_check_sidechain_orientations
+        )
+
+        self.multi_mutagenesis_designer.pick_next_mutant(
+            maximal_mutant_num=int(comboBox_maximal_mutant_num.currentText()),
+            minimal_distance=int(
+                comboBox_minmal_mutant_distance.currentText()
+            ),
+            bond_CA=checkBox_multi_design_bond_CA.isChecked(),
+            use_sidechain_angle=checkBox_multi_design_check_sidechain_orientations.isChecked(),
+        )
+
+    def multi_mutagenesis_design_undo_picking(self):
+        if not self.multi_mutagenesis_designer:
+            logging.error('Multi design is not initialized.')
+            return
+
+        checkBox_multi_design_bond_CA = self.ui.checkBox_multi_design_bond_CA
+        self.multi_mutagenesis_designer.undo_previous_mutant(
+            bond_CA=checkBox_multi_design_bond_CA.isChecked()
+        )
+
+    def multi_mutagenesis_design_stop_design(self):
+        if not self.multi_mutagenesis_designer:
+            logging.error('Multi design is not initialized.')
+            return
+        if self.multi_mutagenesis_designer.in_design_multi_design_case:
+            self.multi_mutagenesis_designer.stop_current_design()
+
+    def multi_mutagenesis_design_save_design(self):
+        if not self.multi_mutagenesis_designer:
+            logging.error('Multi design is not initialized.')
+            return
+
+        mut_table_csv = self.ui.lineEdit_multi_design_mutant_table.text()
+        self.multi_mutagenesis_designer.export_designed_variant(
+            save_mutant_table=mut_table_csv
+        )
+
+    def multi_mutagenesis_design_auto(self):
+        trigger_button = self.ui.pushButton_run_multi_design
+
+        maximal_multi_design_variant_num = int(
+            self.ui.comboBox_maximal_multi_design_variant_num.currentText()
+        )
+        maximal_mutant_num = int(
+            self.ui.comboBox_maximal_mutant_num.currentText()
+        )
+
+        # initialize
+        self.multi_mutagenesis_design_initialize()
+        if not self.multi_mutagenesis_designer:
+            logging.error('Multi design failed in initializing.')
+            return
+
+        trigger_button.setEnabled(False)
+        try:
+            for i in range(maximal_multi_design_variant_num):
+                self.multi_mutagenesis_design_start()
+                # pick mutant until it reaches the required number
+                for j in range(maximal_mutant_num):
+                    self.multi_mutagenesis_design_pick_next_mut()
+                self.multi_mutagenesis_design_stop_design()
+            self.multi_mutagenesis_design_save_design()
+        except Exception as e:
+            logging.error("e")
+        finally:
+            trigger_button.setEnabled(True)
+
     # Tab Interact via GREMLIN
     def load_gremlin_mrf(
         self,
     ):
-        trigger_button=self.ui.pushButton_reinitialize_interact
+        trigger_button = self.ui.pushButton_reinitialize_interact
         from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
-
 
         trigger_button.setEnabled(False)
 
@@ -2121,10 +2285,12 @@ class REvoDesignPlugin:
             chain_id = self.ui.comboBox_chain_id.currentText()
 
             if (not molecule) or (not chain_id):
-                logging.error(f'Molecule Info not complete. \n\tmolecule: {molecule}\n\tchain: {chain_id}.')
+                logging.error(
+                    f'Molecule Info not complete. \n\tmolecule: {molecule}\n\tchain: {chain_id}.'
+                )
                 return
-            
-            if ( not os.path.exists(gremlin_mrf_fp)):
+
+            if not os.path.exists(gremlin_mrf_fp):
                 logging.error(
                     "Could not run GREMLIN tools. Please check your configuration"
                 )
@@ -2157,7 +2323,6 @@ class REvoDesignPlugin:
             self.mutant_tree_coevolved = MutantTree({})
 
             self.gremlin_tool = GREMLIN_Tools(molecule=molecule)
-
 
             self.gremlin_tool.sequence = get_molecule_sequence(
                 molecule=molecule, chain_id=chain_id
@@ -2211,9 +2376,11 @@ class REvoDesignPlugin:
             resi = int(cmd.get_model('sele and n. CA').atom[0].resi)
             logging.info(f'{resi} is selected.')
 
-            self.gremlin_workpath=os.path.join(self.PWD, 'gremlin_co_evolved_pairs',f'resi_{resi}')
-            os.makedirs(self.gremlin_workpath,exist_ok=True)
-            self.gremlin_tool.pwd=self.gremlin_workpath
+            self.gremlin_workpath = os.path.join(
+                self.PWD, 'gremlin_co_evolved_pairs', f'resi_{resi}'
+            )
+            os.makedirs(self.gremlin_workpath, exist_ok=True)
+            self.gremlin_tool.pwd = self.gremlin_workpath
 
             self.plot_w_fps = run_worker_thread_with_progress(
                 self.gremlin_tool.analyze_coevolving_pairs_for_i,
@@ -2240,9 +2407,11 @@ class REvoDesignPlugin:
             )
             self.gremlin_tool_a2a_mode = True
 
-            self.gremlin_workpath=os.path.join(self.PWD, 'gremlin_co_evolved_pairs','all_vs_all')
-            os.makedirs(self.gremlin_workpath,exist_ok=True)
-            self.gremlin_tool.pwd=self.gremlin_workpath
+            self.gremlin_workpath = os.path.join(
+                self.PWD, 'gremlin_co_evolved_pairs', 'all_vs_all'
+            )
+            os.makedirs(self.gremlin_workpath, exist_ok=True)
+            self.gremlin_tool.pwd = self.gremlin_workpath
 
             self.plot_w_fps = run_worker_thread_with_progress(
                 self.gremlin_tool.plot_w_in_batch, progress_bar=progress_bar
@@ -2438,12 +2607,12 @@ class REvoDesignPlugin:
         button_matrix = QbuttonMatrix(csv_fp)
         button_matrix.sequence = self.gremlin_tool.sequence
 
-        [i,j,i_aa,j_aa,zscore]=wt_info
+        [i, j, i_aa, j_aa, zscore] = wt_info
 
-        if i<j:
-            button_matrix.pos_i, button_matrix.pos_j=i,j
+        if i < j:
+            button_matrix.pos_i, button_matrix.pos_j = i, j
         else:
-            button_matrix.pos_i, button_matrix.pos_j=j,i
+            button_matrix.pos_i, button_matrix.pos_j = j, i
 
         button_matrix.pos_i, button_matrix.pos_j, i_aa, j_aa, zscore = wt_info
 
@@ -2623,24 +2792,18 @@ class REvoDesignPlugin:
         wt_A = i_aa.split('_')[0]  # in column
         wt_B = j_aa.split('_')[0]  # in row
 
-
-        
         wt_score = matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
 
-
         if i > j:
-            j,i=i,j
-            j_aa,i_aa=i_aa,j_aa
-            col,row=row,col
-
+            j, i = i, j
+            j_aa, i_aa = i_aa, j_aa
+            col, row = row, col
 
         # aa from clicked button, mutant
         mut_A = alphabet[col]
         mut_B = alphabet[row]
 
         mut_score = matrix[col][row]
-
-        
 
         _mutant = []
 
@@ -2687,7 +2850,12 @@ class REvoDesignPlugin:
         else:
             logging.info(f'Picked mutant: {mutant} ')
 
-            color = get_color(self.ui.comboBox_cmap.currentText(), mut_score, min_score, max_score)
+            color = get_color(
+                self.ui.comboBox_cmap.currentText(),
+                mut_score,
+                min_score,
+                max_score,
+            )
 
             logging.info(f" Visualizing {mutant}: {color}")
 

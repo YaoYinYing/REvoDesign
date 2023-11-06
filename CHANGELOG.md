@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Multiple mutagenesis design via REvoDesign session-grouped mutants
+- `MutantTree.__copy__` and `MutantTree.__deepcopy__` methods.
+
+
+### Fixed
+- `is_distal_residue_pair`
+
 ## [1.2.0] - 2023-11-03
 ### Added
 - `self.gremlin_workpath` to handle co-evolved pair results saving.

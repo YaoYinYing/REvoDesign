@@ -67,8 +67,100 @@ def determine_chain_id(sele='(all)'):
     ]
 
 
+def is_distal_residue_pair(
+    molecule,
+    chain_id,
+    resi_1,
+    resi_2,
+    minimal_distance=20,
+    use_sidechain_angle=False,
+):
+    """
+    Check if a pair of amino acid residues are distal based on certain conditions.
+
+    Parameters:
+    - molecule (str): The name of the molecule.
+    - chain_id (str): The chain identifier.
+    - resi_1 (int): The residue number of the first amino acid.
+    - resi_2 (int): The residue number of the second amino acid.
+    - minimal_distance (float, optional): The minimum distance threshold for residues to be considered distal. Default is 20.
+    - use_sidechain_angle (bool, optional): Whether to consider the orientation of side chains. Default is False.
+
+    Returns:
+    - distal (bool): True if the residues are distal, False otherwise.
+    """
+
+    # Step 1: Get the sequence of the molecule and chain
+    sequence = get_molecule_sequence(molecule=molecule, chain_id=chain_id)
+
+    # Convert residue numbers to integers
+    resi_1 = int(resi_1)
+    resi_2 = int(resi_2)
+
+    # Retrieve one-letter amino acid codes for the two residues
+    resn_1 = sequence[resi_1 - 1]
+    resn_2 = sequence[resi_2 - 1]
+
+    # Construct strings representing CA atoms of the two residues
+    Ca_atom_1 = f'{molecule} and c. {chain_id} and i. {resi_1} and n. CA'
+    Ca_atom_2 = f'{molecule} and c. {chain_id} and i. {resi_2} and n. CA'
+
+    # Calculate the distance between the CA atoms
+    Ca_distance = cmd.get_distance(atom1=Ca_atom_1, atom2=Ca_atom_2)
+
+    # Check if either of the residues is glycine or not using sidechain angle
+    if any([resn == 'G' for resn in [resn_1, resn_2]]) or (
+        not use_sidechain_angle
+    ):
+        return Ca_distance > minimal_distance
+    else:
+        import numpy as np
+
+        # Construct strings representing sidechain atoms of the two residues
+        SC_atoms_1 = f'{molecule} and c. {chain_id} and i. {resi_1} and sidechain and not hydrogen'
+        SC_atoms_2 = f'{molecule} and c. {chain_id} and i. {resi_2} and sidechain and not hydrogen'
+
+        # Get coordinates of CA and Sidechain  atoms
+        Ca_atom_1_coord = np.array(cmd.get_coords(Ca_atom_1)[0])
+        Ca_atom_2_coord = np.array(cmd.get_coords(Ca_atom_2)[0])
+        SC_COM_1 = np.array(cmd.centerofmass(SC_atoms_1))
+        SC_COM_2 = np.array(cmd.centerofmass(SC_atoms_2))
+
+        # Calculate the orientation of the side chains
+        sidechain_orient = np.dot(
+            SC_COM_1 - Ca_atom_1_coord, SC_COM_2 - Ca_atom_2_coord
+        )
+        sidechain_com_dist = abs(np.linalg.norm(SC_COM_1 - SC_COM_2))
+
+        # Check if the side chains are oriented in opposite directions
+        if sidechain_orient < 0:
+            logging.warning(
+                f'Sidechains of {resi_1}{resn_1} and {resi_2}{resn_2} are oriented in opposite directions. Considered as a distal pair.'
+            )
+
+            if sidechain_com_dist >= Ca_distance:
+                # /-------------\
+                # *---Ca   Ca---*
+                return True
+            else:
+                #       /--\
+                # Ca---*    *---Ca
+                return sidechain_com_dist > minimal_distance
+        else:
+            logging.warning(
+                f'Sidechains of {resi_1}{resn_1} and {resi_2}{resn_2} are oriented in same directions.'
+            )
+            # Ca---*
+            #        \
+            #         \
+            #          \
+            #      Ca---*
+            # Check if sidechain distance is greater than the minimal distance
+            return sidechain_com_dist > minimal_distance
+
+
 def determine_nproc():
-    return sorted([x for x in range(1, os.cpu_count() + 1)],reverse=True)
+    return sorted([x for x in range(1, os.cpu_count() + 1)], reverse=True)
 
 
 def determine_exclusion():
@@ -87,26 +179,29 @@ def determine_selections():
         logging.info(f'{sel}: i. {shorter_range([int(x) for x in _resi])}')
     return selections
 
+
 def is_a_REvoDesign_session():
     return bool(cmd.get_names(type='public_group_objects'))
 
 
 def determine_system():
-    import platform,os
+    import platform, os
 
-    os_name=platform.system()
+    os_name = platform.system()
 
     if os_name == 'Darwin':
-        is_arm_macos = (os.system('uname -a |grep ARM') ==0)
-        is_recognized_as_x86= (os.system('uname -m |grep x86_64')==0)
+        is_arm_macos = os.system('uname -a |grep ARM') == 0
+        is_recognized_as_x86 = os.system('uname -m |grep x86_64') == 0
 
         logging.warning(f'Does it ARMed? {is_arm_macos}')
         logging.warning(f'Does it Rosetta-ed? {is_recognized_as_x86}')
 
         if is_arm_macos and is_recognized_as_x86:
-            logging.warning('Oops! You are in Rosetta-translated PyMOL bundle from official channel. '\
-                            'This might limit the performance of joblib, causing MutantVisualizer slower.')
-            os_name+='_Rosetta'
+            logging.warning(
+                'Oops! You are in Rosetta-translated PyMOL bundle from official channel. '
+                'This might limit the performance of joblib, causing MutantVisualizer slower.'
+            )
+            os_name += '_Rosetta'
     return os_name
 
 
@@ -166,7 +261,6 @@ def get_molecule_sequence(molecule, chain_id):
         key.upper(): val.upper()
         for key, val in IUPACData.protein_letters_3to1.items()
     }
-    logging.debug(f'( {molecule} and c. {chain_id} and n. CA )')
     return ''.join(
         [
             protein_letters_3to1_upper[atom.resn]
@@ -323,7 +417,7 @@ class ParallelExecutor(QtCore.QThread):
         self.args = args
         self.n_jobs = n_jobs
 
-        os_type=determine_system()
+        os_type = determine_system()
         # guessing backend according to OS
         if not backend == 'auto':
             self.backend = backend

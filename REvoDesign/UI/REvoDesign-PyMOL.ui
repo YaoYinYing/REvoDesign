@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>661</width>
-    <height>559</height>
+    <width>660</width>
+    <height>556</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -691,7 +691,7 @@
               </property>
               <property name="maximumSize">
                <size>
-                <width>16777215</width>
+                <width>70</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -1549,7 +1549,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>259</width>
+         <width>251</width>
          <height>311</height>
         </rect>
        </property>
@@ -1686,7 +1686,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>60</width>
+              <width>120</width>
               <height>16777215</height>
              </size>
             </property>
@@ -1698,6 +1698,10 @@
             </property>
            </widget>
           </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_38">
           <item>
            <widget class="QLabel" name="label_30">
             <property name="sizePolicy">
@@ -1727,12 +1731,57 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>75</width>
+              <width>120</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="statusTip">
              <string>Sequence alignment matrix</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_42">
+          <item>
+           <widget class="QLabel" name="label_40">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
+            <property name="text">
+             <string>Batch:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox_cluster_batchsize">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>100</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="statusTip">
+             <string>Batch number used in clustering.</string>
+            </property>
+            <property name="editable">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -1763,54 +1812,15 @@
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_40">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
+           <widget class="QPushButton" name="pushButton_run_cluster">
+            <property name="enabled">
+             <bool>false</bool>
             </property>
-            <property name="layoutDirection">
-             <enum>Qt::LeftToRight</enum>
-            </property>
-            <property name="text">
-             <string>Batch:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="comboBox_cluster_batchsize">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>65</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="statusTip">
-             <string>Batch number used in clustering.</string>
-            </property>
-            <property name="editable">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_42">
-          <item>
-           <widget class="QPushButton" name="pushButton_run_cluster">
-            <property name="enabled">
-             <bool>false</bool>
             </property>
             <property name="text">
              <string>Run !</string>
@@ -1836,7 +1846,7 @@
         <x>10</x>
         <y>0</y>
         <width>611</width>
-        <height>191</height>
+        <height>161</height>
        </rect>
       </property>
       <property name="title">
@@ -1848,7 +1858,7 @@
          <x>10</x>
          <y>10</y>
          <width>591</width>
-         <height>171</height>
+         <height>141</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_12">
@@ -1902,7 +1912,7 @@
               </property>
               <property name="maximumSize">
                <size>
-                <width>16777215</width>
+                <width>70</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -1912,22 +1922,6 @@
              </widget>
             </item>
            </layout>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_53">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Group ID:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
           </item>
           <item row="0" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_24">
@@ -1978,16 +1972,6 @@
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QLineEdit" name="lineEdit_group_name">
-            <property name="statusTip">
-             <string>Group these variant.</string>
-            </property>
-            <property name="text">
-             <string>default</string>
             </property>
            </widget>
           </item>
@@ -2047,7 +2031,7 @@
              <string>Save this mutant table (Mutants that keep enabled in current PyMOL session)</string>
             </property>
             <property name="text">
-             <string>Save Mutant</string>
+             <string>Save Mutants</string>
             </property>
            </widget>
           </item>
@@ -2060,63 +2044,25 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>220</y>
-        <width>161</width>
-        <height>111</height>
+        <y>180</y>
+        <width>171</width>
+        <height>141</height>
        </rect>
       </property>
       <property name="title">
-       <string>Calculating options</string>
+       <string>Visualizing options</string>
       </property>
       <widget class="QWidget" name="gridLayoutWidget_2">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>141</width>
-         <height>71</height>
+         <width>151</width>
+         <height>98</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
-        <item row="0" column="1">
-         <widget class="QComboBox" name="comboBox_best_leaf">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>300</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="statusTip">
-           <string>Mutant column in CSV file.</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QComboBox" name="comboBox_totalscore">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>300</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="statusTip">
-           <string>Score column in CSV file.</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
+        <item row="1" column="0">
          <widget class="QLabel" name="label_47">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -2125,14 +2071,52 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Mutant:</string>
+           <string>Mut:</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
+        <item row="2" column="1">
+         <widget class="QComboBox" name="comboBox_totalscore">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="statusTip">
+           <string>Score column in CSV file.</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QComboBox" name="comboBox_best_leaf">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="statusTip">
+           <string>Mutant column in CSV file.</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
          <widget class="QLabel" name="label_48">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -2148,21 +2132,539 @@
           </property>
          </widget>
         </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_53">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Group:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="lineEdit_group_name">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>90</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="statusTip">
+           <string>Group these variant.</string>
+          </property>
+          <property name="text">
+           <string>default</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </widget>
      <widget class="QGroupBox" name="groupBox_10">
       <property name="geometry">
        <rect>
-        <x>180</x>
-        <y>200</y>
-        <width>441</width>
-        <height>151</height>
+        <x>190</x>
+        <y>170</y>
+        <width>431</width>
+        <height>171</height>
        </rect>
       </property>
       <property name="title">
        <string>Multi-mutation Design</string>
       </property>
+      <widget class="QWidget" name="verticalLayoutWidget_12">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>411</width>
+         <height>131</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_15">
+        <property name="spacing">
+         <number>-1</number>
+        </property>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_30">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_13">
+            <property name="spacing">
+             <number>-1</number>
+            </property>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_11">
+              <item>
+               <widget class="QLabel" name="label_44">
+                <property name="text">
+                 <string>Mutants:</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_multi_design_mutant_table">
+                <property name="statusTip">
+                 <string>Input/Output mutant table file [*.mut.txt / best_leaf.csv]</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_open_mut_table_csv_2">
+                <property name="text">
+                 <string>...</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_28">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_17">
+                <item>
+                 <widget class="QLabel" name="label_ligand_radius_2">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>#Mut:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="comboBox_maximal_mutant_num">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="statusTip">
+                   <string>Maximum number of mutations for each variant.</string>
+                  </property>
+                  <property name="editable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_32">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="label_chainid_14">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                    <horstretch>1</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>#Val:</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="comboBox_maximal_multi_design_variant_num">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                    <horstretch>1</horstretch>
+                    <verstretch>1</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="statusTip">
+                   <string>Minimal distance to accept a combined mutant</string>
+                  </property>
+                  <property name="editable">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_14">
+            <property name="spacing">
+             <number>-1</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="checkBox_multi_design_bond_CA">
+              <property name="statusTip">
+               <string>Visualize designs by bonding C-alpha</string>
+              </property>
+              <property name="text">
+               <string>Bond CA</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="checkBox_multi_design_check_sidechain_orientations">
+              <property name="statusTip">
+               <string>Use sidechain orientations from WT. Consider its center of mass.</string>
+              </property>
+              <property name="text">
+               <string>SC Orientations</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_21">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="label_chainid_11">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Dist(Å): </string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="comboBox_minmal_mutant_distance">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>53</width>
+                  <height>30</height>
+                 </size>
+                </property>
+                <property name="statusTip">
+                 <string>Minimal distance to accept a combined mutant</string>
+                </property>
+                <property name="editable">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_23">
+          <item>
+           <widget class="QPushButton" name="pushButton_multi_design_initialize">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="statusTip">
+             <string>Reinitialize</string>
+            </property>
+            <property name="text">
+             <string>⏏️</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_multi_design_start_new_design">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="statusTip">
+             <string>Start new design</string>
+            </property>
+            <property name="text">
+             <string>⏯️</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_multi_design_left">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="statusTip">
+             <string>Disconnect the last pair.</string>
+            </property>
+            <property name="text">
+             <string>⏪️</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_multi_design_right">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="statusTip">
+             <string>Connect to the next pair.</string>
+            </property>
+            <property name="text">
+             <string>⏩️</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_multi_design_end_this_design">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <italic>false</italic>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="statusTip">
+             <string>Stop current design</string>
+            </property>
+            <property name="text">
+             <string>⏹️</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_multi_design_export_mutants_from_table">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>45</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="statusTip">
+             <string>Save designs to mutant table</string>
+            </property>
+            <property name="text">
+             <string>💾</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Preferred</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_run_multi_design">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>100</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="statusTip">
+             <string>Perform automatic design.</string>
+            </property>
+            <property name="text">
+             <string>Run</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_6">
@@ -3038,7 +3540,7 @@
        <x>10</x>
        <y>30</y>
        <width>351</width>
-       <height>31</height>
+       <height>32</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_37">
@@ -3139,7 +3641,7 @@
        <x>10</x>
        <y>30</y>
        <width>121</width>
-       <height>31</height>
+       <height>32</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
@@ -3253,7 +3755,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>661</width>
+     <width>660</width>
      <height>37</height>
     </rect>
    </property>
