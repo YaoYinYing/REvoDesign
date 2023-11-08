@@ -71,7 +71,7 @@ class REvoDesignPlugin:
 
         self.gremlin_tool = None
 
-        from REvoDesign.phylogenetics.PSSM_GREMLIN_client import (
+        from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
         )
 
@@ -81,6 +81,7 @@ class REvoDesignPlugin:
 
     def __del__(self):
         print('REvoDesign session closed.')
+        self.__del__()
 
     def set_working_directory(self):
         self.PWD = getExistingDirectory()
@@ -162,7 +163,7 @@ class REvoDesignPlugin:
         self.set_widget_value(self.ui.comboBox_cmap, matplotlib.colormaps())
         self.set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
 
-        # Tab Calc
+        # Tab Client
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
             partial(
                 self.setup_pssm_gremlin_calculator,
@@ -208,6 +209,8 @@ class REvoDesignPlugin:
                 progress_bar=self.ui.progressBar,
             )
         )
+
+
 
         # Set up general arguments
         # Tab `Determine`
@@ -1059,8 +1062,8 @@ class REvoDesignPlugin:
     '''
     Private functions used only in a specific tab.
     '''
-    # Tab `Determine`
 
+    # Tab Client
     def setup_pssm_gremlin_calculator(
         self, comboBox_design_molecule, comboBox_chainid
     ):
@@ -1084,6 +1087,8 @@ class REvoDesignPlugin:
                 sequence=sequence,
             )
 
+    # Tab `Determine`
+
     def reload_determine_tab_setup(
         self,
         comboBox_design_molecule,
@@ -1097,49 +1102,35 @@ class REvoDesignPlugin:
         )
 
         # Setup surface determination arguments
-        self.ui.comboBox_surface_cutoff.clear()
-        self.ui.comboBox_surface_cutoff.addItems(map(str, range(1, 36)))
-        self.ui.comboBox_surface_cutoff.setCurrentIndex(
-            self.ui.comboBox_surface_cutoff.findText(
-                str(DEFAULT_SURFACE_PROBE_RADIUS)
-            )
-        )
+        self.set_widget_value(self.ui.comboBox_surface_cutoff, (1, 36))
+        self.set_widget_value(DEFAULT_SURFACE_PROBE_RADIUS)
 
         # Setup pocket determination arguments
         small_molecules = determine_small_molecule(
             comboBox_design_molecule.currentText()
         )
-        comboBox_ligand_sel.clear()
-        comboBox_ligand_sel.addItems(small_molecules)
+
+        self.set_widget_value(comboBox_ligand_sel,small_molecules)
         comboBox_ligand_sel.setCurrentIndex(len(small_molecules))
 
-        comboBox_cofactor_sel.clear()
-        comboBox_cofactor_sel.addItems(small_molecules)
+        self.set_widget_value(comboBox_cofactor_sel,small_molecules)
+
+
         if len(small_molecules) >= 2:
             comboBox_cofactor_sel.setCurrentIndex(len(small_molecules) - 1)
         else:
             comboBox_cofactor_sel.setCurrentIndex(0)
 
-        self.ui.comboBox_ligand_radius.clear()
-        self.ui.comboBox_ligand_radius.addItems(map(str, range(1, 11)))
-        self.ui.comboBox_ligand_radius.setCurrentIndex(
-            self.ui.comboBox_ligand_radius.findText(
-                str(DEFAULT_SUBSTRATE_POCKET_RADIUS)
-            )
-        )
+        self.set_widget_value(self.ui.comboBox_ligand_radius, (1, 11))
+        self.set_widget_value(self.ui.comboBox_ligand_radius, (1, DEFAULT_SUBSTRATE_POCKET_RADIUS))
 
-        self.ui.comboBox_cofactor_radius.clear()
-        self.ui.comboBox_cofactor_radius.addItems(map(str, range(0, 11)))
-        self.ui.comboBox_cofactor_radius.setCurrentIndex(
-            self.ui.comboBox_cofactor_radius.findText(
-                str(DEFAULT_COFACTOR_POCKET_RADIUS)
-            )
-        )
+        self.set_widget_value(self.ui.comboBox_cofactor_radius, (0, 11))
+        self.set_widget_value(self.ui.comboBox_ligand_radius, DEFAULT_COFACTOR_POCKET_RADIUS)
 
     def update_surface_exclusion(self):
         exclusion_list = determine_exclusion()
-        self.ui.comboBox_surface_exclusion.clear()
-        self.ui.comboBox_surface_exclusion.addItems(exclusion_list)
+
+        self.set_widget_value(self.ui.comboBox_surface_exclusion, exclusion_list)
         self.ui.comboBox_surface_exclusion.setCurrentIndex(
             0
         ) if exclusion_list else 0

@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>556</height>
+    <height>555</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -27,7 +27,7 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>16777215</width>
+    <width>660</width>
     <height>16777215</height>
    </size>
   </property>
@@ -864,7 +864,7 @@
       <property name="geometry">
        <rect>
         <x>410</x>
-        <y>190</y>
+        <y>200</y>
         <width>211</width>
         <height>61</height>
        </rect>
@@ -2701,94 +2701,118 @@
       <property name="title">
        <string>GREMLIN profile:</string>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_10">
+      <widget class="QWidget" name="">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>20</y>
-         <width>251</width>
+         <width>261</width>
          <height>81</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_10">
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_6">
-          <property name="spacing">
-           <number>-1</number>
+         <layout class="QHBoxLayout" name="horizontalLayout_33">
+          <property name="bottomMargin">
+           <number>0</number>
           </property>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_33">
-            <property name="bottomMargin">
-             <number>0</number>
+           <widget class="QLineEdit" name="lineEdit_input_gremlin_mtx">
+            <property name="statusTip">
+             <string>GREMLIN MRF profiles in pkl</string>
             </property>
-            <item>
-             <widget class="QLineEdit" name="lineEdit_input_gremlin_mtx">
-              <property name="statusTip">
-               <string>GREMLIN MRF profiles in pkl</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_open_gremlin_mtx">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>...</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_29">
-            <item>
-             <widget class="QLineEdit" name="lineEdit_output_mutant_table">
-              <property name="statusTip">
-               <string>Mutant Table to save.</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_open_save_mutant_table">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>...</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           <widget class="QPushButton" name="pushButton_open_gremlin_mtx">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_9">
+         <layout class="QHBoxLayout" name="horizontalLayout_29">
+          <item>
+           <widget class="QLineEdit" name="lineEdit_output_mutant_table">
+            <property name="statusTip">
+             <string>Mutant Table to save.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_open_save_mutant_table">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_9">
+      <property name="geometry">
+       <rect>
+        <x>350</x>
+        <y>100</y>
+        <width>271</width>
+        <height>251</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Co-evolved Pairs</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_6">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>251</width>
+         <height>211</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_18">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_14">
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_5">
             <property name="spacing">
@@ -2832,7 +2856,7 @@
               </property>
               <property name="maximumSize">
                <size>
-                <width>55</width>
+                <width>70</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -2866,7 +2890,7 @@
                </size>
               </property>
               <property name="text">
-               <string>Dist: </string>
+               <string>Dist(Å): </string>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -2889,7 +2913,7 @@
               </property>
               <property name="maximumSize">
                <size>
-                <width>55</width>
+                <width>70</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -2905,43 +2929,19 @@
           </item>
          </layout>
         </item>
-       </layout>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_9">
-      <property name="geometry">
-       <rect>
-        <x>350</x>
-        <y>100</y>
-        <width>271</width>
-        <height>251</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Co-evolved Pairs</string>
-      </property>
-      <widget class="QWidget" name="verticalLayoutWidget_6">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>251</width>
-         <height>211</height>
-        </rect>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_18">
-        <property name="spacing">
-         <number>0</number>
-        </property>
         <item>
-         <widget class="QCheckBox" name="checkBox_interact_ignore_wt">
-          <property name="statusTip">
-           <string>Ignore WT-to-WT mutagenesis</string>
-          </property>
-          <property name="text">
-           <string>Ignore WT</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_44">
+          <item>
+           <widget class="QCheckBox" name="checkBox_interact_ignore_wt">
+            <property name="statusTip">
+             <string>Ignore WT-to-WT mutagenesis</string>
+            </property>
+            <property name="text">
+             <string>Ignore WT</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_6">
@@ -3183,7 +3183,7 @@
     </widget>
     <widget class="QWidget" name="tab">
      <attribute name="title">
-      <string>Calc</string>
+      <string>Client</string>
      </attribute>
      <widget class="QGroupBox" name="groupBox_5">
       <property name="geometry">

@@ -5,3 +5,5 @@ REvoDesign/UI/REvoDesign-PyMOL_ui.py
 demo/data/CHS_CM4.diffdock.unrelaxed_B_PSSM_GREMLIN_results.zip.zip
 demo/results/*
 TODO
+*.pyc
+iprscan5-*
