@@ -211,7 +211,6 @@ class REvoDesignPlugin:
         )
 
 
-
         # Set up general arguments
         # Tab `Determine`
         self.ui.pushButton_open_output_pse_pocket.clicked.connect(
@@ -1103,7 +1102,7 @@ class REvoDesignPlugin:
 
         # Setup surface determination arguments
         self.set_widget_value(self.ui.comboBox_surface_cutoff, (1, 36))
-        self.set_widget_value(DEFAULT_SURFACE_PROBE_RADIUS)
+        self.set_widget_value(self.ui.comboBox_surface_cutoff, DEFAULT_SURFACE_PROBE_RADIUS)
 
         # Setup pocket determination arguments
         small_molecules = determine_small_molecule(

@@ -34,6 +34,8 @@ def determine_polymer_protein(sele='(all)'):
 
 
 def determine_small_molecule(sele='(all)'):
+    if not sele:
+        sele='(all)'
     # return a list of small molecules
     return [''] + list(
         set(
