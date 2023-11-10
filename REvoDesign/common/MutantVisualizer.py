@@ -12,12 +12,14 @@ matplotlib.use('Agg')
 from REvoDesign.common.magic_numbers import DEFAULT_PROFILE_TYPE
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.phylogenetics.pymol_pssm_script import mutate
-from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
+
 from REvoDesign.tools.utils import (
     get_color,
     extract_mutants,
     extract_mutant_info,
-    get_molecule_sequence
+    get_molecule_sequence, 
+    run_command,
+    make_temperal_input_pdb
 )
 from absl import logging
 
@@ -27,7 +29,7 @@ class MutantVisualizer:
         self.molecule = molecule
         self.chain_id = chain_id
         self.mutfile = ''
-        self.input_session = None
+        self.input_session = ''
         self.save_session = None
         self.nproc = os.cpu_count()
         self.parallel_run=False
@@ -390,37 +392,73 @@ class MutantVisualizer:
             progress_bar.setValue(len(self.mutagenesis_tasks))
 
         progress_bar.setRange(0,0)
-        self.merging_sessions()
+        self.merge_sessions_via_commandline()
         progress_bar.setRange(0,1)
 
 
-    def merging_sessions(self):
+    # def merging_sessions(self):
+    #     from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
+    #     logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
+
+    #     merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
+        
+    #     # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
+    #     tmp_session_merger=PyMOLSessionMerger(
+    #         session_paths=self.mutagenesis_sessions,
+    #         save_path=merged_temp_session,
+    #         )
+        
+    #     tmp_session_merger.delete=True
+    #     tmp_session_merger.quiet=0
+    #     tmp_session_merger.mode=2
+    #     tmp_session_merger.merge_sessions()
+
+
+    #     # final session.
+    #     session_merger=PyMOLSessionMerger(
+    #         session_paths=[self.input_session, merged_temp_session],
+    #         save_path=self.save_session,
+    #         )
+        
+    #     session_merger.delete=False
+    #     session_merger.quiet=0
+    #     session_merger.mode=2
+    #     session_merger.merge_sessions()
+
+    def merge_sessions_via_commandline(self):
+        from REvoDesign.tools import SessionMerger
         logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
-
         merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
+
+        tmp_merge_command=[
+            SessionMerger.__file__,
+            '--save_path', merged_temp_session,
+            '--mode', str(2),
+            '--delete',
+            '--quiet',
+            ] + self.mutagenesis_sessions
         
-        # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
-        tmp_session_merger=PyMOLSessionMerger(
-            session_paths=self.mutagenesis_sessions,
-            save_path=merged_temp_session,
-            )
+        merge_results=run_command(excutable='python',command_list=tmp_merge_command)
+        logging.debug(merge_results.stderr)
+        if merge_results.returncode == 0:
+            logging.info(f'Temperal merged result is successfully created at {merged_temp_session}')
+        else:
+            logging.warning(f'Temperal merged result is failed to create. Try again with a clean PyMOL session.')
+            return
         
-        tmp_session_merger.delete=True
-        tmp_session_merger.quiet=0
-        tmp_session_merger.mode=2
-        tmp_session_merger.merge_sessions()
-
-
-        # final session.
-        session_merger=PyMOLSessionMerger(
-            session_paths=[self.input_session, merged_temp_session],
-            save_path=self.save_session,
-            )
+        final_merge_command=[
+            SessionMerger.__file__,
+            '--save_path', self.save_session,
+            '--mode', str(2),
+            '--quiet',
+            ] + [self.input_session, merged_temp_session]
         
-        session_merger.delete=False
-        session_merger.quiet=0
-        session_merger.mode=2
-        session_merger.merge_sessions()
-
-
+        final_merge_results=run_command(excutable='python',command_list=final_merge_command)
+        logging.debug(final_merge_results.stderr)
+        if final_merge_results.returncode == 0:
+            logging.info(f'Final merged result is successfully created at {self.save_session}')
+        else:
+            logging.warning(f'Final merged result is failed to create.')
+            return
+        
 

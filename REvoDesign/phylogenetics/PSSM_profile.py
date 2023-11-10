@@ -16,7 +16,9 @@ from REvoDesign.tools.utils import (
     ParallelExecutor,
     get_color,
     extract_mutants,
+    run_command,
     run_worker_thread_with_progress,
+    make_temperal_input_pdb
 )
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
@@ -349,7 +351,7 @@ class PssmAnalyzer:
         progress_bar,
         nproc,
     ):
-        self.input_pse = input_pse
+        self.input_pse = make_temperal_input_pdb(molecule=molecule,wd=os.path.join(self.pwd,'temperal_pdb'))
         self.output_pse = output_pse
         self.molecule = molecule
 
@@ -421,10 +423,46 @@ class PssmAnalyzer:
             progress_bar.setValue(len(mutagenesis_tasks))
 
         progress_bar.setRange(0,0)
-        self.merging_sessions()
+        self.merge_sessions_via_commandline()
         progress_bar.setRange(0,1)
 
-    def merging_sessions(self):
+    # def merging_sessions(self):
+    #     logging.info("Merging all sessions .... This may take a while ...")
+
+    #     cmd.hide('surface')
+
+    #     mutagenesis_sessions = [
+    #         session_path for session_path in self.results if session_path
+    #     ]
+    #     logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
+
+    #     merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'.tmp_{os.path.basename(self.output_pse)}')}"
+
+    #     # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
+    #     tmp_session_merger = PyMOLSessionMerger(
+    #         session_paths=mutagenesis_sessions,
+    #         save_path=merged_temp_session,
+    #     )
+
+    #     tmp_session_merger.delete = True
+    #     tmp_session_merger.quiet = 0
+    #     tmp_session_merger.mode = 2
+    #     tmp_session_merger.merge_sessions()
+
+    #     # final session.
+    #     session_merger = PyMOLSessionMerger(
+    #         session_paths=[self.input_pse, merged_temp_session],
+    #         save_path=self.output_pse,
+    #     )
+
+    #     session_merger.delete = False
+    #     session_merger.quiet = 0
+    #     session_merger.mode = 2
+    #     session_merger.merge_sessions()
+
+    def merge_sessions_via_commandline(self):
+        from REvoDesign.tools import SessionMerger
+
         logging.info("Merging all sessions .... This may take a while ...")
 
         cmd.hide('surface')
@@ -432,28 +470,36 @@ class PssmAnalyzer:
         mutagenesis_sessions = [
             session_path for session_path in self.results if session_path
         ]
-        logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
 
+        logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
         merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'.tmp_{os.path.basename(self.output_pse)}')}"
 
-        # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
-        tmp_session_merger = PyMOLSessionMerger(
-            session_paths=mutagenesis_sessions,
-            save_path=merged_temp_session,
-        )
+        tmp_merge_command=[
+            SessionMerger.__file__,
+            '--save_path', merged_temp_session,
+            '--mode', str(2),
+            '--delete',
+            '--quiet',
+            ] + mutagenesis_sessions
+        
+        merge_results=run_command(excutable='python',command_list=tmp_merge_command)
+        if merge_results.returncode == 0:
+            logging.info(f'Temperal merged result is successfully created at {merged_temp_session}')
+        else:
+            logging.warning(f'Temperal merged result is failed to create.  Try again with a clean PyMOL session.')
+            return
+        
+        final_merge_command=[
+            SessionMerger.__file__,
+            '--save_path', self.output_pse,
+            '--mode', str(2),
+            '--quiet',
+            ] + [self.input_pse, merged_temp_session]
+        
+        final_merge_results=run_command(excutable='python',command_list=final_merge_command)
 
-        tmp_session_merger.delete = True
-        tmp_session_merger.quiet = 0
-        tmp_session_merger.mode = 2
-        tmp_session_merger.merge_sessions()
-
-        # final session.
-        session_merger = PyMOLSessionMerger(
-            session_paths=[self.input_pse, merged_temp_session],
-            save_path=self.output_pse,
-        )
-
-        session_merger.delete = False
-        session_merger.quiet = 0
-        session_merger.mode = 2
-        session_merger.merge_sessions()
+        if final_merge_results.returncode:
+            logging.info(f'Final merged result is successfully created at {self.output_pse}')
+        else:
+            logging.warning(f'Final merged result is failed to create.')
+            return

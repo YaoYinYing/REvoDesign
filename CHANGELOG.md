@@ -12,11 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MutantTree.__copy__` and `MutantTree.__deepcopy__` methods.
 - `set_window_font` according to OS type. MacOS use apple system default font.
 - `reduce_current_session` reduce disabled (discarded) mutant object while saving Mutant Visualizing session.
-
+- `make_temperal_input_pdb` to create a temporary file as input of mutagenesis experiments, instead of the current session.
+- `PYMOL_VERSION` for future uses.
+- `run_command`
+- type `range` and `generator` supports of `set_widget_value`
 ### Changed
 - `set_widget_value` to `tools.utils`
 - temperal session path checking in `find_session_path`
-
+- `merging_sessions` --> `merge_sessions_via_commandline` to avoid segmentation fault. This works!
+- fuzzy renames: 
+  - `determine_polymer_protein` --> `is_polymer_protein`
+  - `determine_small_molecule` --> `find_small_molecules_in_protein`
+  - `determine_molecule_objects` --> `find_design_molecules`
+  - `determine_chain_id` --> `find_all_protein_chain_ids_in_protein`
+  - `determine_nproc` --> `num_processors`
+  - `determine_exclusion` --> `fetch_exclusion_expressions`
+  - `determine_selections` --> `refresh_all_selections`
+  - `check_dirname_exists` --> `does_dirname_exist`
+- using `platform.uname()` in `determine_system` to avoid `os.system` command executions.
+  
+  
 ### Fixed
 - `is_distal_residue_pair`
 - `determine_chain_id` if sele is not specified.

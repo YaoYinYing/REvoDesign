@@ -14,34 +14,35 @@ def is_empty_session():
     return len(cmd.get_names(type='objects', enabled_only=0)) == 0
 
 
-def determine_polymer_protein(sele='(all)'):
-    # return a list of protein that contain at least 10 residues
+def is_polymer_protein(sele=''):
+    if not sele:
+        return None
+
+    # return a bool of protein that contain at least 10 residues
     return (
         len(
-            list(
-                set(
-                    [
-                        atom.resi
-                        for atom in cmd.get_model(
-                            f'( {sele}) and polymer.protein'
-                        ).atom
-                    ]
-                )
+            set(
+                [
+                    at.resi
+                    for at in cmd.get_model(
+                        f'({sele}) and polymer.protein'
+                    ).atom
+                ]
             )
         )
         > 10
     )
 
 
-def determine_small_molecule(sele='(all)'):
+def find_small_molecules_in_protein(sele):
     if not sele:
-        sele='(all)'
+        return
     # return a list of small molecules
     return [''] + list(
         set(
             [
-                atom.resn
-                for atom in cmd.get_model(
+                at.resn
+                for at in cmd.get_model(
                     f'( {sele} ) and (not polymer.protein)'
                 ).atom
             ]
@@ -49,25 +50,25 @@ def determine_small_molecule(sele='(all)'):
     )
 
 
-def determine_molecule_objects():
+def find_design_molecules():
     objects = [
         object
         for object in cmd.get_names(
             'public_nongroup_objects', enabled_only=1, selection='all'
         )
-        if determine_polymer_protein(object)
+        if is_polymer_protein(object)
     ]
     return objects
 
 
-def determine_chain_id(sele='(all)'):
+def find_all_protein_chain_ids_in_protein(sele):
     if not sele:
-        sele='(all)'
+        return
     # return a list of chain IDs that assigned to a protein molecule
     return [
         chain_id
         for chain_id in cmd.get_chains(sele)
-        if determine_polymer_protein(f'( {sele} and c. {chain_id} )')
+        if is_polymer_protein(f'( {sele} and c. {chain_id} )')
     ]
 
 
@@ -163,15 +164,15 @@ def is_distal_residue_pair(
             return sidechain_com_dist > minimal_distance
 
 
-def determine_nproc():
+def num_processors():
     return sorted([x for x in range(1, os.cpu_count() + 1)], reverse=True)
 
 
-def determine_exclusion():
-    return [""] + [sel for sel in determine_selections()]
+def fetch_exclusion_expressions():
+    return [""] + [sel for sel in refresh_all_selections()]
 
 
-def determine_selections():
+def refresh_all_selections():
     selections = [
         sel
         for sel in cmd.get_names(type='selections')
@@ -187,15 +188,29 @@ def determine_selections():
 def is_a_REvoDesign_session():
     return bool(cmd.get_names(type='public_group_objects'))
 
+def make_temperal_input_pdb(molecule,format='pdb',wd=os.getcwd()):
+    os.makedirs(wd, exist_ok=True)
+
+    input_file = os.path.join(wd, f'{molecule}.{format}')
+    cmd.save(input_file, f'{molecule}', -1)
+    cmd.reinitialize()
+    cmd.load(input_file)
+    logging.warning(
+        'To avoid error, a temperal session is created based on your molecule selection: \n'
+        f'{molecule} --> {input_file}'
+    )
+    return input_file
+
 
 def determine_system():
-    import platform, os
+    import platform
 
-    os_name = platform.system()
+    os_info = platform.uname()
+    os_name = os_info.system
 
     if os_name == 'Darwin':
-        is_arm_macos = os.system('uname -a |grep ARM') == 0
-        is_recognized_as_x86 = os.system('uname -m |grep x86_64') == 0
+        is_arm_macos = "ARM64" in os_info.version
+        is_recognized_as_x86 = os_info.machine == 'x86_64'
 
         logging.warning(f'Does it ARMed? {is_arm_macos}')
         logging.warning(f'Does it Rosetta-ed? {is_recognized_as_x86}')
@@ -206,38 +221,78 @@ def determine_system():
                 'This might limit the performance of joblib, causing MutantVisualizer slower.'
             )
             os_name += '_Rosetta'
-    return os_name
+    return os_name, os_info
 
-OS_TYPE=determine_system()
+
+OS_TYPE, OS_INFO = determine_system()
+
+PYMOL_VERSION = cmd.get_version()[0]
 
 
 def set_window_font(main_window):
-    font_families=QtGui.QFontDatabase().families()
+    font_families = QtGui.QFontDatabase().families()
 
-    OS_TYPE_FONT_TABLE={
+    OS_TYPE_FONT_TABLE = {
         'Windows': ['Microsoft YaHei', 'Century Gothic'],
         'Linux': ['Nimbus Sans', 'DejaVu Sans'],
         #'Darwin': ['Chalkboard']
-        }
-    
-    _OS_TYPE=OS_TYPE.split('_')[0]
+    }
+
+    _OS_TYPE = OS_INFO.system
     if _OS_TYPE not in OS_TYPE_FONT_TABLE:
         return
-    
+
     for font_str in OS_TYPE_FONT_TABLE[_OS_TYPE]:
         if font_str in font_families:
-            font=QtGui.QFont()
+            font = QtGui.QFont()
             font.setFamily(font_str)
             main_window.setFont(font)
-            return 
+            return
+
+
+def run_command(excutable='python', command_list=[]):
+    import sys
+    import subprocess
+    from absl import logging
+
+    if excutable == 'python':
+        python_exe = os.path.realpath(sys.executable)
+        command_list = [python_exe] + command_list
+
+    while '' in command_list:
+        command_list.remove('')
+
+    if not command_list:
+        return
+
+    logging.debug(command_list)
+
+    result = subprocess.run(
+        command_list,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+    )
+
+    return result
+
 
 # A universal and versatile function for value setting. ;-)
 def set_widget_value(widget, value):
     type_widget = type(widget)
     type_value = type(value)
 
+    # preprocess values according to types
     if type_value == type(lambda: None):  # Check if value is a function
         value = value()  # If it's a function, call it to get the value
+        type_value = type(value)
+
+    #
+    if type_value == range or type_value == type(
+        (x for x in range(0, 1))
+    ):  # Check if value is a range or generator
+        value = [
+            x for x in value
+        ]  # If it's a range or generator, expand it as a list
         type_value = type(value)
 
     if type_widget == QtWidgets.QComboBox:
@@ -250,9 +305,11 @@ def set_widget_value(widget, value):
             logging.warning(
                 f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
             )
+        return
 
     elif type_widget == QtWidgets.QLineEdit:
         widget.setText(str(value))
+        return
 
     elif type_widget == QtWidgets.QProgressBar:
         if type_value == list or type_value == tuple:
@@ -263,12 +320,16 @@ def set_widget_value(widget, value):
             logging.warning(
                 f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
             )
+        return
 
     elif type_widget == QtWidgets.QLCDNumber:
         widget.display(str(value))
+        return
 
     elif type_widget == QtWidgets.QCheckBox:
         widget.setChecked(bool(value))
+        return
+
     elif type_widget == QtWidgets.QStackedWidget:
         # Check if the value is a list of image paths
         if type_value == list:
@@ -288,6 +349,8 @@ def set_widget_value(widget, value):
             logging.warning(
                 f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
             )
+        return
+
     elif type_widget == QtWidgets.QGridLayout:
         if type_value == str and os.path.exists(value):
             # Clear the existing widgets from gridLayout_interact_pairs
@@ -301,11 +364,14 @@ def set_widget_value(widget, value):
             logging.warning(
                 f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
             )
+        return
 
     else:
         logging.warning(
             f'FIX ME: Widget {widget} is not currently supported. '
         )
+        return
+
 
 def renumber_chain_ids(target_protein):
     chain_ids = cmd.get_chains(target_protein)
@@ -338,7 +404,6 @@ def getOpenFileNameWithExt(*args, **kwargs):
     return fname
 
 
-
 def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(
         None,
@@ -349,7 +414,7 @@ def getExistingDirectory():
     )
 
 
-def check_dirname_exists(fp):
+def does_dirname_exist(fp):
     return os.path.exists(os.path.dirname(fp))
 
 

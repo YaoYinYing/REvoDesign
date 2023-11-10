@@ -28,13 +28,13 @@ from REvoDesign.common.file_extensions import (
 
 from REvoDesign.tools.utils import (
     is_empty_session,
-    determine_chain_id,
-    determine_exclusion,
-    determine_molecule_objects,
-    determine_nproc,
-    determine_small_molecule,
+    find_all_protein_chain_ids_in_protein,
+    fetch_exclusion_expressions,
+    find_design_molecules,
+    num_processors,
+    find_small_molecules_in_protein,
     getOpenFileNameWithExt,
-    check_dirname_exists,
+    does_dirname_exist,
     check_file_exists,
     get_molecule_sequence,
     getExistingDirectory,
@@ -47,6 +47,8 @@ from REvoDesign.tools.utils import (
     rescale_number,
     extract_mutants,
     is_a_REvoDesign_session,
+    make_temperal_input_pdb,
+    PYMOL_VERSION
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
@@ -144,7 +146,6 @@ class REvoDesignPlugin:
             partial(
                 self.reload_molecule_info,
                 self.ui.comboBox_design_molecule,
-                self.ui.comboBox_chain_id,
             )
         )
 
@@ -158,7 +159,7 @@ class REvoDesignPlugin:
         )
 
         # set up nproc
-        set_widget_value(self.ui.comboBox_nproc, determine_nproc)
+        set_widget_value(self.ui.comboBox_nproc, num_processors)
 
         # color map
         import matplotlib
@@ -779,7 +780,7 @@ class REvoDesignPlugin:
             set_widget_value(lineEdit_input, input_fn)
             return input_fn
 
-    def reload_molecule_info(self, comboBox_molecule, comboBox_chain_id):
+    def reload_molecule_info(self, comboBox_molecule):
         import tempfile
 
         self.temperal_session = tempfile.mktemp(suffix=".pse")
@@ -809,8 +810,7 @@ class REvoDesignPlugin:
                 cmd.load(new_session_file)
                 cmd.save(self.temperal_session)
 
-        set_widget_value(comboBox_molecule, determine_molecule_objects)
-        set_widget_value(comboBox_chain_id, determine_chain_id)
+        set_widget_value(comboBox_molecule, find_design_molecules)
 
     def save_as_a_session(self, lineEdit_structure_session):
         output_pse_fn = self.browse_filename(
@@ -831,7 +831,7 @@ class REvoDesignPlugin:
         for fp in lineEdits_fp:
             _fp = fp.text()
             logging.info(f'Checking file path: {_fp}')
-            if not check_dirname_exists(_fp):
+            if not does_dirname_exist(_fp):
                 logging.warning(
                     f'The parent dirname of `{_fp}` is not valid. Keep design buttoms locked!'
                 )
@@ -855,11 +855,12 @@ class REvoDesignPlugin:
         if not molecule:
             logging.warning(f'No available designable molecule!')
             return
-        chain_ids = determine_chain_id(molecule)
-        set_widget_value(comboBox_chainid, chain_ids)
-        set_widget_value(
-            comboBox_chainid, chain_ids[0] if chain_ids else ''
-        )
+        chain_ids = find_all_protein_chain_ids_in_protein(molecule)
+        if chain_ids:
+            set_widget_value(comboBox_chainid, chain_ids)
+            set_widget_value(
+                comboBox_chainid, chain_ids[0]
+            )
 
     def open_mutant_table(self, lineEdit_mutant_table, mode='r'):
         if mode == 'r':
@@ -1050,39 +1051,40 @@ class REvoDesignPlugin:
         )
 
         # Setup surface determination arguments
-        set_widget_value(self.ui.comboBox_surface_cutoff, (1, 36))
+        set_widget_value(self.ui.comboBox_surface_cutoff, range(1, 36))
         set_widget_value(
             self.ui.comboBox_surface_cutoff, DEFAULT_SURFACE_PROBE_RADIUS
         )
 
         # Setup pocket determination arguments
-        small_molecules = determine_small_molecule(
+        small_molecules = find_small_molecules_in_protein(
             comboBox_design_molecule.currentText()
         )
+        if small_molecules:
 
-        set_widget_value(comboBox_ligand_sel, small_molecules)
-        comboBox_ligand_sel.setCurrentIndex(len(small_molecules))
+            set_widget_value(comboBox_ligand_sel, small_molecules)
+            comboBox_ligand_sel.setCurrentIndex(len(small_molecules))
 
-        set_widget_value(comboBox_cofactor_sel, small_molecules)
+            set_widget_value(comboBox_cofactor_sel, small_molecules)
 
-        if len(small_molecules) >= 2:
-            comboBox_cofactor_sel.setCurrentIndex(len(small_molecules) - 1)
-        else:
-            comboBox_cofactor_sel.setCurrentIndex(0)
+            if len(small_molecules) >= 2:
+                comboBox_cofactor_sel.setCurrentIndex(len(small_molecules) - 1)
+            else:
+                comboBox_cofactor_sel.setCurrentIndex(0)
 
-        set_widget_value(self.ui.comboBox_ligand_radius, (1, 11))
+        set_widget_value(self.ui.comboBox_ligand_radius, range(1, 11))
         set_widget_value(
             self.ui.comboBox_ligand_radius,
-            (1, DEFAULT_SUBSTRATE_POCKET_RADIUS),
+            range(1, DEFAULT_SUBSTRATE_POCKET_RADIUS),
         )
 
-        set_widget_value(self.ui.comboBox_cofactor_radius, (0, 11))
+        set_widget_value(self.ui.comboBox_cofactor_radius, range(0, 11))
         set_widget_value(
             self.ui.comboBox_ligand_radius, DEFAULT_COFACTOR_POCKET_RADIUS
         )
 
     def update_surface_exclusion(self):
-        exclusion_list = determine_exclusion()
+        exclusion_list = fetch_exclusion_expressions()
 
         set_widget_value(
             self.ui.comboBox_surface_exclusion, exclusion_list
@@ -1094,7 +1096,11 @@ class REvoDesignPlugin:
     def run_chain_interface_detection(self):
         molecule = self.ui.comboBox_design_molecule.currentText()
         radius = int(self.ui.comboBox_interface_cutoff.currentText())
-        for chain_id in determine_chain_id():
+        chain_ids=find_all_protein_chain_ids_in_protein()
+        if not chain_ids or len(chain_ids) <= 1:
+            return
+        
+        for chain_id in chain_ids:
             cmd.select(
                 f'if_{chain_id}',
                 f'({molecule} and c. {chain_id} ) and byres ({molecule} and polymer.protein and (not c. {chain_id})) around {radius} and polymer.protein',
@@ -1157,7 +1163,6 @@ class REvoDesignPlugin:
     def run_mutant_loading_from_profile(self):
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
 
-        input_file = self.temperal_session
         molecule = self.ui.comboBox_design_molecule.currentText()
         chain_id = self.ui.comboBox_chain_id.currentText()
         design_profile = self.ui.lineEdit_input_csv.text()
@@ -1191,17 +1196,14 @@ class REvoDesignPlugin:
                 'In order to keep the session\'s feature, you should always create seperate sessions according to '
                 'your dataset and merge them manually in PyMOL window.'
             )
+        
 
-            # import tempfile
+        input_file = make_temperal_input_pdb(
+            molecule=molecule,
+            format='pdb',
+            wd=os.join(self.PWD, 'temperal_pdb')
+            )
 
-            # input_file = tempfile.mktemp(suffix=".pse")
-            # cmd.save(input_file, f'{molecule}', -1)
-            # cmd.reinitialize()
-            # cmd.load(input_file)
-            # logging.warning(
-            #     'To avoid this error, a temperal session is created based on your molecule selection: \n'
-            #     f'{molecule} --> {input_file}'
-            # )
 
         logging.info(f"Sequence of `{molecule}`: \n {sequence}")
 
@@ -1241,7 +1243,8 @@ class REvoDesignPlugin:
         )
 
         cmd.reinitialize()
-        cmd.load(output_pse)
+        cmd.load(self.temperal_session)
+        cmd.load(output_pse,partial=1)
 
         cmd.center(molecule)
         cmd.set('surface_color', 'gray70')
@@ -1742,7 +1745,7 @@ class REvoDesignPlugin:
             )
         )
 
-        set_widget_value(comboBox_molecule, determine_molecule_objects)
+        set_widget_value(comboBox_molecule, find_design_molecules)
 
         set_widget_value(
             progressBar_mutant_choosing,
@@ -2008,7 +2011,6 @@ class REvoDesignPlugin:
 
     def visualize_mutants(self):
         trigger_button = self.ui.pushButton_run_visualizing
-        input_pse = self.temperal_session
         input_mut_table_csv = self.ui.lineEdit_input_mut_table_csv.text()
         molecule = self.ui.comboBox_design_molecule.currentText()
         chainid = self.ui.comboBox_chain_id.currentText()
@@ -2045,7 +2047,9 @@ class REvoDesignPlugin:
                 chain_id=chainid,
             )
             visualizer.mutfile = input_mut_table_csv
-            visualizer.input_session = input_pse
+            visualizer.input_session=make_temperal_input_pdb(
+                molecule=molecule,
+                wd=os.path.join(os.path.dirname(output_pse),'temperal_pdb'))
             visualizer.nproc = nproc
             visualizer.parallel_run = nproc > 1
 
@@ -2079,7 +2083,8 @@ class REvoDesignPlugin:
             )
 
             cmd.reinitialize()
-            cmd.load(output_pse)
+            cmd.load(self.temperal_session)
+            cmd.load(output_pse,partial=1)
             cmd.center(molecule)
             cmd.set('surface_color', 'gray70')
             cmd.set('cartoon_color', 'gray70')
