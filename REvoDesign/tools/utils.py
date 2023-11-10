@@ -1018,3 +1018,18 @@ def expand_range(shortened_str):
             expanded_list.append(int(rng))
 
     return expanded_list
+
+
+def confirmMsgBox_to_proceed(title='', description='' ):
+    # A confirmation message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setWindowTitle(title)
+    msg.setText(
+        description )
+    msg.setStandardButtons(
+        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+    )
+    result = msg.exec_()
+
+    return result == QtWidgets.QMessageBox.Yes

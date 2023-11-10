@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PYMOL_VERSION` for future uses.
 - `run_command`
 - type `range` and `generator` supports of `set_widget_value`
+- `refresh_design_color` to  `MultiMutantDesigner`. 
+- coloring `MultiMutantDesigner.design_case_variant` in `greencyan` to show the current design case.
+- `confirmMsgBox_to_proceed`.
+
 ### Changed
 - `set_widget_value` to `tools.utils`
 - temperal session path checking in `find_session_path`
@@ -35,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `is_distal_residue_pair`
 - `determine_chain_id` if sele is not specified.
+- Reversible Multi-design.
 
 ### Removed
 - `update_REvoDesign_from_repo.sh`

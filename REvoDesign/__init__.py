@@ -3,7 +3,7 @@ import time
 import re
 import random
 from pymol import cmd
-from pymol.Qt import QtWidgets,QtGui
+from pymol.Qt import QtWidgets, QtGui
 
 # using partial module to reduce duplicate code.
 from functools import partial
@@ -48,7 +48,8 @@ from REvoDesign.tools.utils import (
     extract_mutants,
     is_a_REvoDesign_session,
     make_temperal_input_pdb,
-    PYMOL_VERSION
+    PYMOL_VERSION,
+    confirmMsgBox_to_proceed,
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
@@ -103,8 +104,8 @@ class REvoDesignPlugin:
             self.ui_file, main_window
         )  # Store the UI form for later access
 
-        
         from REvoDesign.tools.utils import set_window_font
+
         set_window_font(main_window)
 
         from REvoDesign.common.magic_numbers import (
@@ -305,9 +306,7 @@ class REvoDesignPlugin:
         set_widget_value(
             self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE_GROUP
         )
-        set_widget_value(
-            self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE
-        )
+        set_widget_value(self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE)
 
         self.ui.lineEdit_input_csv.textChanged.connect(
             partial(
@@ -465,12 +464,8 @@ class REvoDesignPlugin:
         set_widget_value(
             self.ui.comboBox_cluster_batchsize, DEFAULT_CLUSTER_BATCH_SIZE
         )
-        set_widget_value(
-            self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_RANGE
-        )
-        set_widget_value(
-            self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_NUM
-        )
+        set_widget_value(self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_RANGE)
+        set_widget_value(self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_NUM)
         set_widget_value(
             self.ui.comboBox_num_mut_minimun, DEFAULT_CLUSTER_MIN_MUT
         )
@@ -544,9 +539,7 @@ class REvoDesignPlugin:
         set_widget_value(
             self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE_GROUP
         )
-        set_widget_value(
-            self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE
-        )
+        set_widget_value(self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE)
 
         self.ui.lineEdit_input_csv_2.textChanged.connect(
             partial(
@@ -749,19 +742,13 @@ class REvoDesignPlugin:
                 if filename.endswith(ext_)
             ]
             if any(is_compressed):
-                # Ask whether to extract the file
-                msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Question)
-                msg.setWindowTitle("Extract Archive")
-                msg.setText(
-                    f"The selected file '{os.path.basename(filename)}' is a compressed archive. Do you want to extract it?"
+                # Ask whether to overide
+                confirmed = confirmMsgBox_to_proceed(
+                    title="Extract Archive",
+                    description=f"The selected file '{os.path.basename(filename)}' is a compressed archive. Do you want to extract it?",
                 )
-                msg.setStandardButtons(
-                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-                )
-                result = msg.exec_()
 
-                if result == QtWidgets.QMessageBox.Yes:
+                if confirmed:
                     # Extract the archive and browse the extracted file
                     extracted_path = self.flatten_compressed_files(filename)
                     return self.browse_filename(mode, exts=exts)
@@ -771,7 +758,6 @@ class REvoDesignPlugin:
 
         if filename:
             return filename
-
 
     # A universal and versatile function for input file path browsing.
     def open_input_filepath(self, lineEdit_input, exts=[AnyFileExt]):
@@ -858,9 +844,7 @@ class REvoDesignPlugin:
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         if chain_ids:
             set_widget_value(comboBox_chainid, chain_ids)
-            set_widget_value(
-                comboBox_chainid, chain_ids[0]
-            )
+            set_widget_value(comboBox_chainid, chain_ids[0])
 
     def open_mutant_table(self, lineEdit_mutant_table, mode='r'):
         if mode == 'r':
@@ -1061,7 +1045,6 @@ class REvoDesignPlugin:
             comboBox_design_molecule.currentText()
         )
         if small_molecules:
-
             set_widget_value(comboBox_ligand_sel, small_molecules)
             comboBox_ligand_sel.setCurrentIndex(len(small_molecules))
 
@@ -1086,9 +1069,7 @@ class REvoDesignPlugin:
     def update_surface_exclusion(self):
         exclusion_list = fetch_exclusion_expressions()
 
-        set_widget_value(
-            self.ui.comboBox_surface_exclusion, exclusion_list
-        )
+        set_widget_value(self.ui.comboBox_surface_exclusion, exclusion_list)
         self.ui.comboBox_surface_exclusion.setCurrentIndex(
             0
         ) if exclusion_list else 0
@@ -1096,10 +1077,10 @@ class REvoDesignPlugin:
     def run_chain_interface_detection(self):
         molecule = self.ui.comboBox_design_molecule.currentText()
         radius = int(self.ui.comboBox_interface_cutoff.currentText())
-        chain_ids=find_all_protein_chain_ids_in_protein()
+        chain_ids = find_all_protein_chain_ids_in_protein()
         if not chain_ids or len(chain_ids) <= 1:
             return
-        
+
         for chain_id in chain_ids:
             cmd.select(
                 f'if_{chain_id}',
@@ -1196,14 +1177,12 @@ class REvoDesignPlugin:
                 'In order to keep the session\'s feature, you should always create seperate sessions according to '
                 'your dataset and merge them manually in PyMOL window.'
             )
-        
 
         input_file = make_temperal_input_pdb(
             molecule=molecule,
             format='pdb',
-            wd=os.join(self.PWD, 'temperal_pdb')
-            )
-
+            wd=os.join(self.PWD, 'temperal_pdb'),
+        )
 
         logging.info(f"Sequence of `{molecule}`: \n {sequence}")
 
@@ -1244,7 +1223,7 @@ class REvoDesignPlugin:
 
         cmd.reinitialize()
         cmd.load(self.temperal_session)
-        cmd.load(output_pse,partial=1)
+        cmd.load(output_pse, partial=1)
 
         cmd.center(molecule)
         cmd.set('surface_color', 'gray70')
@@ -1556,19 +1535,13 @@ class REvoDesignPlugin:
             )
 
             # Ask whether to overide
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Question)
-            msg.setWindowTitle("Override existed mutant table choices?")
-            msg.setText(
-                f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
-                    Are you really sure? "
+            confirmed = confirmMsgBox_to_proceed(
+                title="Override existed mutant table choices?",
+                description=f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
+                    Are you really sure? ",
             )
-            msg.setStandardButtons(
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-            )
-            result = msg.exec_()
 
-            if result == QtWidgets.QMessageBox.No:
+            if not confirmed:
                 logging.warning(f'Cancelled.')
                 return
 
@@ -1964,12 +1937,8 @@ class REvoDesignPlugin:
 
                 # set default col value
                 if len(mut_table_cols) > 1:
-                    set_widget_value(
-                        comboBox_best_leaf, mut_table_cols[0]
-                    )
-                    set_widget_value(
-                        comboBox_totalscore, mut_table_cols[-1]
-                    )
+                    set_widget_value(comboBox_best_leaf, mut_table_cols[0])
+                    set_widget_value(comboBox_totalscore, mut_table_cols[-1])
 
     def save_visualizing_mutant_tree(
         self, lineEdit_mutant_table_fp, lineEdit_group_name
@@ -2047,9 +2016,10 @@ class REvoDesignPlugin:
                 chain_id=chainid,
             )
             visualizer.mutfile = input_mut_table_csv
-            visualizer.input_session=make_temperal_input_pdb(
+            visualizer.input_session = make_temperal_input_pdb(
                 molecule=molecule,
-                wd=os.path.join(os.path.dirname(output_pse),'temperal_pdb'))
+                wd=os.path.join(os.path.dirname(output_pse), 'temperal_pdb'),
+            )
             visualizer.nproc = nproc
             visualizer.parallel_run = nproc > 1
 
@@ -2084,7 +2054,7 @@ class REvoDesignPlugin:
 
             cmd.reinitialize()
             cmd.load(self.temperal_session)
-            cmd.load(output_pse,partial=1)
+            cmd.load(output_pse, partial=1)
             cmd.center(molecule)
             cmd.set('surface_color', 'gray70')
             cmd.set('cartoon_color', 'gray70')
@@ -2122,19 +2092,13 @@ class REvoDesignPlugin:
         if os.path.exists(session):
             if not overwrite:
                 # Ask whether to overide
-                msg = QtWidgets.QMessageBox()
-                msg.setIcon(QtWidgets.QMessageBox.Question)
-                msg.setWindowTitle("Override current session?")
-                msg.setText(
-                    f"Your current session will be overriden. \n \
-                        Are you really sure? "
+                confirmed = confirmMsgBox_to_proceed(
+                    title="Override current session?",
+                    description=f"Your current session will be overriden. \n \
+                        Are you really sure? ",
                 )
-                msg.setStandardButtons(
-                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-                )
-                result = msg.exec_()
 
-                if result == QtWidgets.QMessageBox.No:
+                if not confirmed:
                     session = self.browse_filename(
                         mode='w', exts=[SessionFileExt]
                     )
@@ -2162,19 +2126,13 @@ class REvoDesignPlugin:
             )
 
             # Ask whether to overide
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Question)
-            msg.setWindowTitle("Discard in-design mutant choice?")
-            msg.setText(
-                f"You currently have uncompleted mutant choice, which shall be discarded. \n \
-                    Are you really sure? "
+            confirmed = confirmMsgBox_to_proceed(
+                title="Discard in-design mutant choice?",
+                description=f"You currently have uncompleted mutant choice, which shall be discarded. \n \
+                    Are you really sure? ",
             )
-            msg.setStandardButtons(
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-            )
-            result = msg.exec_()
 
-            if result == QtWidgets.QMessageBox.No:
+            if not confirmed:
                 logging.warning(f'Cancelled.')
                 return
         self.multi_mutagenesis_designer.start_new_design()
@@ -2218,7 +2176,7 @@ class REvoDesignPlugin:
             logging.error('Multi design is not initialized.')
             return
         if self.multi_mutagenesis_designer.in_design_multi_design_case:
-            self.multi_mutagenesis_designer.stop_current_design()
+            self.multi_mutagenesis_designer.new_design(continue_design=False)
 
     def multi_mutagenesis_design_save_design(self):
         if not self.multi_mutagenesis_designer:
@@ -2817,12 +2775,8 @@ class REvoDesignPlugin:
                 logging.debug(f'Adding mutagenesis {_}')
                 _mutant.append(_)
 
-        set_widget_value(
-            lineEdit_current_pair_wt_score, f'{wt_score:.3f}'
-        )
-        set_widget_value(
-            lineEdit_current_pair_mut_score, f'{mut_score:.3f}'
-        )
+        set_widget_value(lineEdit_current_pair_wt_score, f'{wt_score:.3f}')
+        set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.3f}')
 
         _mutant.append(str(mut_score))
 

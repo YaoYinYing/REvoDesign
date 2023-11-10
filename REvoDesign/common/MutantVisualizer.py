@@ -17,9 +17,9 @@ from REvoDesign.tools.utils import (
     get_color,
     extract_mutants,
     extract_mutant_info,
-    get_molecule_sequence, 
+    get_molecule_sequence,
     run_command,
-    make_temperal_input_pdb
+    make_temperal_input_pdb,
 )
 from absl import logging
 
@@ -32,7 +32,7 @@ class MutantVisualizer:
         self.input_session = ''
         self.save_session = None
         self.nproc = os.cpu_count()
-        self.parallel_run=False
+        self.parallel_run = False
         self.full = False
         self.cmap = "bwr_r"
         self.key_col = "best_leaf"
@@ -351,7 +351,6 @@ class MutantVisualizer:
         progress_bar.setRange(0, 0)
 
         if self.parallel_run:
-
             parallel_executor = ParallelExecutor(
                 self.process_position,
                 args=self.mutagenesis_tasks,
@@ -370,7 +369,6 @@ class MutantVisualizer:
 
             self.results = parallel_executor.handle_result()
 
-
             logging.info("Merging all sessions .... This may take a while ...")
 
             cmd.hide('surface')
@@ -380,9 +378,11 @@ class MutantVisualizer:
             ]
         else:
             progress_bar.setRange(0, len(self.mutagenesis_tasks))
-            self.mutagenesis_sessions=[]
+            self.mutagenesis_sessions = []
             for mutagenesis_task in self.mutagenesis_tasks:
-                self.mutagenesis_sessions.append(self.process_position(*mutagenesis_task))
+                self.mutagenesis_sessions.append(
+                    self.process_position(*mutagenesis_task)
+                )
 
                 # https://www.jianshu.com/p/38562df9e65d
                 # refresh UI if calculation is not done.
@@ -391,35 +391,33 @@ class MutantVisualizer:
 
             progress_bar.setValue(len(self.mutagenesis_tasks))
 
-        progress_bar.setRange(0,0)
+        progress_bar.setRange(0, 0)
         self.merge_sessions_via_commandline()
-        progress_bar.setRange(0,1)
-
+        progress_bar.setRange(0, 1)
 
     # def merging_sessions(self):
     #     from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
     #     logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
 
     #     merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
-        
+
     #     # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
     #     tmp_session_merger=PyMOLSessionMerger(
     #         session_paths=self.mutagenesis_sessions,
     #         save_path=merged_temp_session,
     #         )
-        
+
     #     tmp_session_merger.delete=True
     #     tmp_session_merger.quiet=0
     #     tmp_session_merger.mode=2
     #     tmp_session_merger.merge_sessions()
-
 
     #     # final session.
     #     session_merger=PyMOLSessionMerger(
     #         session_paths=[self.input_session, merged_temp_session],
     #         save_path=self.save_session,
     #         )
-        
+
     #     session_merger.delete=False
     #     session_merger.quiet=0
     #     session_merger.mode=2
@@ -427,38 +425,51 @@ class MutantVisualizer:
 
     def merge_sessions_via_commandline(self):
         from REvoDesign.tools import SessionMerger
+
         logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
         merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
 
-        tmp_merge_command=[
+        tmp_merge_command = [
             SessionMerger.__file__,
-            '--save_path', merged_temp_session,
-            '--mode', str(2),
+            '--save_path',
+            merged_temp_session,
+            '--mode',
+            str(2),
             '--delete',
             '--quiet',
-            ] + self.mutagenesis_sessions
-        
-        merge_results=run_command(excutable='python',command_list=tmp_merge_command)
+        ] + self.mutagenesis_sessions
+
+        merge_results = run_command(
+            excutable='python', command_list=tmp_merge_command
+        )
         logging.debug(merge_results.stderr)
         if merge_results.returncode == 0:
-            logging.info(f'Temperal merged result is successfully created at {merged_temp_session}')
+            logging.info(
+                f'Temperal merged result is successfully created at {merged_temp_session}'
+            )
         else:
-            logging.warning(f'Temperal merged result is failed to create. Try again with a clean PyMOL session.')
+            logging.warning(
+                f'Temperal merged result is failed to create. Try again with a clean PyMOL session.'
+            )
             return
-        
-        final_merge_command=[
+
+        final_merge_command = [
             SessionMerger.__file__,
-            '--save_path', self.save_session,
-            '--mode', str(2),
+            '--save_path',
+            self.save_session,
+            '--mode',
+            str(2),
             '--quiet',
-            ] + [self.input_session, merged_temp_session]
-        
-        final_merge_results=run_command(excutable='python',command_list=final_merge_command)
+        ] + [self.input_session, merged_temp_session]
+
+        final_merge_results = run_command(
+            excutable='python', command_list=final_merge_command
+        )
         logging.debug(final_merge_results.stderr)
         if final_merge_results.returncode == 0:
-            logging.info(f'Final merged result is successfully created at {self.save_session}')
+            logging.info(
+                f'Final merged result is successfully created at {self.save_session}'
+            )
         else:
             logging.warning(f'Final merged result is failed to create.')
             return
-        
-

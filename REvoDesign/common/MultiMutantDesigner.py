@@ -2,17 +2,23 @@ import random
 import os
 from absl import logging
 import itertools
-from pymol import cmd
+from pymol import cmd, util
 
 from REvoDesign.common.MutantTree import MutantTree
 
-from REvoDesign.tools.utils import extract_mutants, is_distal_residue_pair
+from REvoDesign.tools.utils import (
+    extract_mutants,
+    is_distal_residue_pair,
+    get_color,
+)
 
 
 class MultiMutantDesigner:
     def __init__(self, molecule, chain_id):
         self.molecule = molecule
         self.chain_id = chain_id
+        self.cmap = 'bwr_r'
+        self.total_design_cases = 20
 
         self.all_design_multi_design_cases = []
         self.in_design_multi_design_case = []
@@ -43,12 +49,31 @@ class MultiMutantDesigner:
             f'Mutant Tree for multi-design is initialized. {len(self.mutant_tree_multi_design.all_mutant_branch_ids)} groups with {len(self.mutant_tree_multi_design.all_mutant_ids)} mutants.'
         )
 
+    def refresh_design_color(self):
+        _total_num_design_cases = max(
+            self.total_design_cases, len(self.design_case_variant_objects)
+        )
+
+        for i, item in enumerate(self.design_case_variant_objects):
+            color = get_color(
+                cmap=self.cmap,
+                data=i + 1,
+                min_value=0,
+                max_value=_total_num_design_cases,
+            )
+            cmd.set_color(f'color_{i}', color)
+            cmd.color(
+                f'color_{i}',
+                f'{item}',
+            )
+            util.cnc(f'{item}', _self=cmd)
+
     def start_new_design(self):
         if self.mutant_tree_multi_design.empty:
             logging.error('Mutant Tree for multi-design is empty!')
             return
         if self.in_design_multi_design_case:
-            self.stop_current_design()
+            self.new_design()
 
         self.in_design_multi_design_case = []
         self.mutant_tree_multi_design_copy = (
@@ -59,6 +84,7 @@ class MultiMutantDesigner:
             self.design_case_variant,
             f'{self.molecule} and c. {self.chain_id} and polymer.protein and n. CA',
         )
+        cmd.color('greencyan', self.design_case_variant)
         cmd.hide('everything', self.design_case_variant)
         cmd.show('sticks', self.design_case_variant)
         cmd.group(self.design_case, self.design_case_variant)
@@ -101,8 +127,15 @@ class MultiMutantDesigner:
         bond_CA=True,
         use_sidechain_angle=True,
     ):
-        if self.mutant_tree_multi_design.empty:
+        if not self.mutant_tree_multi_design:
             logging.error(f'Mutant Tree is not found.')
+            return
+        if self.mutant_tree_multi_design.empty:
+            logging.error('Mutant Tree for multi-design is empty!')
+            return
+
+        if not self.mutant_tree_multi_design_copy:
+            self.start_new_design()
             return
 
         if self.mutant_tree_multi_design_copy.empty:
@@ -110,7 +143,7 @@ class MultiMutantDesigner:
                 logging.warning(
                     'Temperal mutant tree for multi-design is empty after designing! This design is ended.'
                 )
-                self.stop_current_design()
+                self.new_design()
                 return
             else:
                 logging.error('Mutant Tree for multi-design is empty!')
@@ -179,7 +212,7 @@ class MultiMutantDesigner:
             logging.info(
                 f'Reaching {maximal_mutant_num} mutations. Stop current design.'
             )
-            self.stop_current_design()
+            self.new_design()
 
     def undo_previous_mutant(self, bond_CA=True):
         if (
@@ -196,7 +229,10 @@ class MultiMutantDesigner:
             self.in_design_multi_design_case = (
                 self.all_design_multi_design_cases.pop()
             )
-            self.design_case_variant = self.design_case_variant_objects[-1]
+            self.design_case_variant = self.design_case_variant_objects.pop()
+            cmd.color('greencyan', self.design_case_variant)
+            self.refresh_design_color()
+
             logging.warning('Undoing the last design.')
 
         (
@@ -205,10 +241,9 @@ class MultiMutantDesigner:
             undo_mutant_obj,
         ) = self.in_design_multi_design_case.pop()
 
-        self.mutant_tree_multi_design_copy.add_mutant_to_branch(
-            branch=undo_branch,
-            mutant=undo_mutant_id,
-            mutant_info=undo_mutant_obj,
+        # recover the whole mutant tree, as the deleted branch might be used in the future.
+        self.mutant_tree_multi_design_copy = (
+            self.mutant_tree_multi_design.__deepcopy__()
         )
         resi_undo_mutant = undo_mutant_obj.get_mutant_info()[0]['position']
 
@@ -249,10 +284,11 @@ class MultiMutantDesigner:
 
             logging.info(f'Undo: {undo_mutant_id} ')
 
+        # remove the object if it is already empty
         if not self.in_design_multi_design_case:
             cmd.delete(self.design_case_variant)
 
-    def stop_current_design(self):
+    def new_design(self, continue_design=True):
         if not self.in_design_multi_design_case:
             logging.error("Design case is empty.")
             return
@@ -262,6 +298,9 @@ class MultiMutantDesigner:
             self.in_design_multi_design_case
         )
         self.in_design_multi_design_case = []
+        self.refresh_design_color()
+        if continue_design:
+            self.start_new_design()
 
     def export_designed_variant(self, save_mutant_table=''):
         if not self.all_design_multi_design_cases:
