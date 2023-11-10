@@ -49,7 +49,7 @@ from REvoDesign.tools.utils import (
     is_a_REvoDesign_session,
     make_temperal_input_pdb,
     PYMOL_VERSION,
-    confirmMsgBox_to_proceed,
+    proceed_with_comfirm_msg_box,
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
@@ -743,7 +743,7 @@ class REvoDesignPlugin:
             ]
             if any(is_compressed):
                 # Ask whether to overide
-                confirmed = confirmMsgBox_to_proceed(
+                confirmed = proceed_with_comfirm_msg_box(
                     title="Extract Archive",
                     description=f"The selected file '{os.path.basename(filename)}' is a compressed archive. Do you want to extract it?",
                 )
@@ -1535,7 +1535,7 @@ class REvoDesignPlugin:
             )
 
             # Ask whether to overide
-            confirmed = confirmMsgBox_to_proceed(
+            confirmed = proceed_with_comfirm_msg_box(
                 title="Override existed mutant table choices?",
                 description=f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
                     Are you really sure? ",
@@ -2054,7 +2054,7 @@ class REvoDesignPlugin:
 
             cmd.reinitialize()
             cmd.load(self.temperal_session)
-            cmd.load(output_pse, partial=1)
+            cmd.load(visualizer.save_session, partial=2)
             cmd.center(molecule)
             cmd.set('surface_color', 'gray70')
             cmd.set('cartoon_color', 'gray70')
@@ -2092,7 +2092,7 @@ class REvoDesignPlugin:
         if os.path.exists(session):
             if not overwrite:
                 # Ask whether to overide
-                confirmed = confirmMsgBox_to_proceed(
+                confirmed = proceed_with_comfirm_msg_box(
                     title="Override current session?",
                     description=f"Your current session will be overriden. \n \
                         Are you really sure? ",
@@ -2126,7 +2126,7 @@ class REvoDesignPlugin:
             )
 
             # Ask whether to overide
-            confirmed = confirmMsgBox_to_proceed(
+            confirmed = proceed_with_comfirm_msg_box(
                 title="Discard in-design mutant choice?",
                 description=f"You currently have uncompleted mutant choice, which shall be discarded. \n \
                     Are you really sure? ",

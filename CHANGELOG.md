@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - type `range` and `generator` supports of `set_widget_value`
 - `refresh_design_color` to  `MultiMutantDesigner`. 
 - coloring `MultiMutantDesigner.design_case_variant` in `greencyan` to show the current design case.
-- `confirmMsgBox_to_proceed`.
+- `proceed_with_comfirm_msg_box`.
 
 ### Changed
 - `set_widget_value` to `tools.utils`
@@ -34,12 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `determine_selections` --> `refresh_all_selections`
   - `check_dirname_exists` --> `does_dirname_exist`
 - using `platform.uname()` in `determine_system` to avoid `os.system` command executions.
+- `MutantVisualizer.merge_sessions_via_commandline`: Merge only the temperal session (mutageneses). 
   
   
 ### Fixed
 - `is_distal_residue_pair`
 - `determine_chain_id` if sele is not specified.
 - Reversible Multi-design.
+- `MutantVisualizer.min_score_profile` and `MutantVisualizer.max_score_profile` in PSSM profile.
 
 ### Removed
 - `update_REvoDesign_from_repo.sh`

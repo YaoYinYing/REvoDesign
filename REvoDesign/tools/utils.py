@@ -1020,7 +1020,7 @@ def expand_range(shortened_str):
     return expanded_list
 
 
-def confirmMsgBox_to_proceed(title='', description='' ):
+def proceed_with_comfirm_msg_box(title='', description='' ):
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Question)

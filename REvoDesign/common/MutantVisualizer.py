@@ -146,6 +146,14 @@ class MutantVisualizer:
             )
             df_pssm_raw.to_csv(csv_fp)
             df = pd.read_csv(csv_fp, index_col=0)
+
+            score_max_abs = max(abs(df.min().min()), abs(df.max().max()))
+            self.min_score_profile = -score_max_abs
+            self.max_score_profile = score_max_abs
+            logging.debug(
+                    f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
+                )
+
             return df
 
         elif profile_format == 'CSV':
@@ -280,13 +288,12 @@ class MutantVisualizer:
 
         # Check if the score_col exists in the dataframe, if not, add it with a default value of 1
         if self.score_col not in mutation_data.columns:
-            logging.info(
-                f"Warning: Score column '{self.score_col}' not found in the data. Setting score to 1."
+            logging.warning(
+                f"Score column '{self.score_col}' not found in the data. Setting score to 1."
             )
             mutation_data[self.score_col] = 1
 
         self.mutant_list = []
-        score_list = []
         for _, row in mutation_data.iterrows():
             variant, variant_obj = extract_mutants(
                 mutant_string=row[self.key_col],
@@ -324,9 +331,10 @@ class MutantVisualizer:
 
             self.mutant_list.append(variant_obj)
 
-            score_list.append(float(_score))
 
         # Determine the range for color bar
+        score_list=[variant_obj.get_mutant_score() for variant_obj in self.mutant_list]
+        logging.debug(f'Scores: {score_list}')
 
         if (
             self.consider_global_score_from_profile
@@ -336,9 +344,13 @@ class MutantVisualizer:
             self.min_score = self.min_score_profile
             self.max_score = self.max_score_profile
 
+            
+
         else:
             self.min_score = min(score_list)
             self.max_score = max(score_list)
+
+
 
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
@@ -447,29 +459,30 @@ class MutantVisualizer:
             logging.info(
                 f'Temperal merged result is successfully created at {merged_temp_session}'
             )
+            self.save_session=merged_temp_session
         else:
             logging.warning(
                 f'Temperal merged result is failed to create. Try again with a clean PyMOL session.'
             )
             return
 
-        final_merge_command = [
-            SessionMerger.__file__,
-            '--save_path',
-            self.save_session,
-            '--mode',
-            str(2),
-            '--quiet',
-        ] + [self.input_session, merged_temp_session]
+        # final_merge_command = [
+        #     SessionMerger.__file__,
+        #     '--save_path',
+        #     self.save_session,
+        #     '--mode',
+        #     str(2),
+        #     '--quiet',
+        # ] + [self.input_session, merged_temp_session]
 
-        final_merge_results = run_command(
-            excutable='python', command_list=final_merge_command
-        )
-        logging.debug(final_merge_results.stderr)
-        if final_merge_results.returncode == 0:
-            logging.info(
-                f'Final merged result is successfully created at {self.save_session}'
-            )
-        else:
-            logging.warning(f'Final merged result is failed to create.')
-            return
+        # final_merge_results = run_command(
+        #     excutable='python', command_list=final_merge_command
+        # )
+        # logging.debug(final_merge_results.stderr)
+        # if final_merge_results.returncode == 0:
+        #     logging.info(
+        #         f'Final merged result is successfully created at {self.save_session}'
+        #     )
+        # else:
+        #     logging.warning(f'Final merged result is failed to create.')
+        #     return
