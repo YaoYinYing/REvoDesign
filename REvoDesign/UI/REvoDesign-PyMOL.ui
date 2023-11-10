@@ -99,7 +99,7 @@
          <x>10</x>
          <y>30</y>
          <width>591</width>
-         <height>117</height>
+         <height>118</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -369,7 +369,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>591</width>
+         <width>598</width>
          <height>122</height>
         </rect>
        </property>
@@ -926,7 +926,7 @@
         <item>
          <widget class="QLabel" name="label_output_pse_3">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -1593,10 +1593,16 @@
           <item>
            <widget class="QComboBox" name="comboBox_num_mut_minimun">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="maximumSize">
              <size>
@@ -1615,7 +1621,7 @@
           <item>
            <widget class="QLabel" name="label_28">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -1634,10 +1640,16 @@
           <item>
            <widget class="QComboBox" name="comboBox_num_mut_maximum">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>0</height>
+             </size>
             </property>
             <property name="maximumSize">
              <size>
@@ -1933,6 +1945,9 @@
               <property name="text">
                <string/>
               </property>
+              <property name="dragEnabled">
+               <bool>true</bool>
+              </property>
              </widget>
             </item>
             <item>
@@ -2047,7 +2062,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>151</width>
+         <width>164</width>
          <height>146</height>
         </rect>
        </property>
@@ -2207,7 +2222,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>411</width>
+         <width>415</width>
          <height>151</height>
         </rect>
        </property>
@@ -3229,7 +3244,7 @@
         <rect>
          <x>330</x>
          <y>30</y>
-         <width>275</width>
+         <width>280</width>
          <height>83</height>
         </rect>
        </property>
@@ -3478,7 +3493,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>275</width>
+         <width>280</width>
          <height>83</height>
         </rect>
        </property>

@@ -3,7 +3,7 @@ import time
 import re
 import random
 from pymol import cmd
-from pymol.Qt import QtWidgets
+from pymol.Qt import QtWidgets,QtGui
 
 # using partial module to reduce duplicate code.
 from functools import partial
@@ -39,8 +39,7 @@ from REvoDesign.tools.utils import (
     get_molecule_sequence,
     getExistingDirectory,
     extract_archive,
-    determine_system,
-    ImageWidget,
+    set_widget_value,
     QbuttonMatrix,
     run_worker_thread_with_progress,
     get_color,
@@ -102,6 +101,10 @@ class REvoDesignPlugin:
             self.ui_file, main_window
         )  # Store the UI form for later access
 
+        
+        from REvoDesign.tools.utils import set_window_font
+        set_window_font(main_window)
+
         from REvoDesign.common.magic_numbers import (
             DEFAULT_INTERCHAIN_RADIUS,
             DEFAULT_CLUSTER_NUM,
@@ -155,13 +158,13 @@ class REvoDesignPlugin:
         )
 
         # set up nproc
-        self.set_widget_value(self.ui.comboBox_nproc, determine_nproc)
+        set_widget_value(self.ui.comboBox_nproc, determine_nproc)
 
         # color map
         import matplotlib
 
-        self.set_widget_value(self.ui.comboBox_cmap, matplotlib.colormaps())
-        self.set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
+        set_widget_value(self.ui.comboBox_cmap, matplotlib.colormaps())
+        set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
 
         # Tab Client
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
@@ -209,7 +212,6 @@ class REvoDesignPlugin:
                 progress_bar=self.ui.progressBar,
             )
         )
-
 
         # Set up general arguments
         # Tab `Determine`
@@ -260,7 +262,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_interface_cutoff, DEFAULT_INTERCHAIN_RADIUS
         )
 
@@ -299,10 +301,10 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE_GROUP
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE
         )
 
@@ -459,25 +461,25 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_cluster_batchsize, DEFAULT_CLUSTER_BATCH_SIZE
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_RANGE
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_NUM
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_num_mut_minimun, DEFAULT_CLUSTER_MIN_MUT
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_num_mut_maximum, DEFAULT_CLUSTER_MAX_MUT
         )
 
         from Bio.Align import substitution_matrices
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_cluster_matrix,
             [
                 mtx
@@ -486,7 +488,7 @@ class REvoDesignPlugin:
                 )
             ],
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_cluster_matrix, DEFAULT_CLUSTER_SCORE_MTX
         )
 
@@ -525,6 +527,7 @@ class REvoDesignPlugin:
                 ],
                 [
                     self.ui.pushButton_save_this_mutant_table,
+                    self.ui.pushButton_reduce_this_session,
                 ],
             )
         )
@@ -537,10 +540,10 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE_GROUP
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE
         )
 
@@ -584,11 +587,20 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(self.ui.comboBox_best_leaf, 'best_leaf')
-        self.set_widget_value(self.ui.comboBox_totalscore, 'totalscore')
+        set_widget_value(self.ui.comboBox_best_leaf, 'best_leaf')
+        set_widget_value(self.ui.comboBox_totalscore, 'totalscore')
 
         self.ui.pushButton_run_visualizing.clicked.connect(
             self.visualize_mutants
+        )
+
+        self.ui.pushButton_reduce_this_session.clicked.connect(
+            partial(
+                self.reduce_current_session,
+                session=None,
+                reduce_disabled=True,
+                overwrite=False,
+            )
         )
 
         from REvoDesign.common.magic_numbers import (
@@ -597,14 +609,14 @@ class REvoDesignPlugin:
             DEFAULT_MULTI_DESIGN_VALRIANT_NUM,
         )
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_maximal_mutant_num, DEFAULT_MULTI_DESIGN_MUT_NUM
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_maximal_multi_design_variant_num,
             DEFAULT_MULTI_DESIGN_VALRIANT_NUM,
         )
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_minmal_mutant_distance,
             DEFAULT_MULTI_DESIGN_MUT_DISTAL,
         )
@@ -672,7 +684,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_gremlin_topN, DEFAULT_GREMLIN_TOPN_NUM
         )
 
@@ -683,7 +695,7 @@ class REvoDesignPlugin:
             self.run_gremlin_tool
         )
 
-        self.set_widget_value(
+        set_widget_value(
             self.ui.comboBox_max_interact_dist,
             DEFAULT_GREMLIN_SPATIAL_MAX_DIST,
         )
@@ -759,87 +771,12 @@ class REvoDesignPlugin:
         if filename:
             return filename
 
-    # A universal and versatile function for value setting. ;-)
-    def set_widget_value(self, widget, value):
-        type_widget = type(widget)
-        type_value = type(value)
-
-        if type_value == type(lambda: None):  # Check if value is a function
-            value = value()  # If it's a function, call it to get the value
-            type_value = type(value)
-
-        if type_widget == QtWidgets.QComboBox:
-            if type_value != list and type_value != tuple:
-                widget.setCurrentText(str(value))
-            elif type_value == list or type_value == tuple:
-                widget.clear()
-                widget.addItems(map(str, value))
-            else:
-                logging.warning(
-                    f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-                )
-
-        elif type_widget == QtWidgets.QLineEdit:
-            widget.setText(str(value))
-
-        elif type_widget == QtWidgets.QProgressBar:
-            if type_value == list or type_value == tuple:
-                widget.setRange(int(value[0]), int(value[1]))
-            elif type_value == int:
-                widget.setValue(int(value))
-            else:
-                logging.warning(
-                    f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-                )
-
-        elif type_widget == QtWidgets.QLCDNumber:
-            widget.display(str(value))
-
-        elif type_widget == QtWidgets.QCheckBox:
-            widget.setChecked(bool(value))
-        elif type_widget == QtWidgets.QStackedWidget:
-            # Check if the value is a list of image paths
-            if type_value == list:
-                # Remove all existing widgets from the stacked widget
-                while widget.count() > 0:
-                    widget.removeWidget(widget.widget(0))
-
-                # Add image widgets to the stacked widget
-                for image_path in value:
-                    image_widget = ImageWidget(image_path)
-                    widget.addWidget(image_widget)
-
-                # Show the first image by default
-                if len(value) > 0:
-                    widget.setCurrentIndex(0)
-            else:
-                logging.warning(
-                    f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-                )
-        elif type_widget == QtWidgets.QGridLayout:
-            if type_value == str and os.path.exists(value):
-                # Clear the existing widgets from gridLayout_interact_pairs
-                for i in reversed(range(widget.count())):
-                    widget = widget.itemAt(i).widget()
-                    if widget is not None:
-                        widget.deleteLater()
-                image_widget = ImageWidget(value)
-                widget.addWidget(image_widget)
-            else:
-                logging.warning(
-                    f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-                )
-
-        else:
-            logging.warning(
-                f'FIX ME: Widget {widget} is not currently supported. '
-            )
 
     # A universal and versatile function for input file path browsing.
     def open_input_filepath(self, lineEdit_input, exts=[AnyFileExt]):
         input_fn = self.browse_filename(mode='r', exts=exts)
         if input_fn:
-            self.set_widget_value(lineEdit_input, input_fn)
+            set_widget_value(lineEdit_input, input_fn)
             return input_fn
 
     def reload_molecule_info(self, comboBox_molecule, comboBox_chain_id):
@@ -872,8 +809,8 @@ class REvoDesignPlugin:
                 cmd.load(new_session_file)
                 cmd.save(self.temperal_session)
 
-        self.set_widget_value(comboBox_molecule, determine_molecule_objects)
-        self.set_widget_value(comboBox_chain_id, determine_chain_id)
+        set_widget_value(comboBox_molecule, determine_molecule_objects)
+        set_widget_value(comboBox_chain_id, determine_chain_id)
 
     def save_as_a_session(self, lineEdit_structure_session):
         output_pse_fn = self.browse_filename(
@@ -882,7 +819,7 @@ class REvoDesignPlugin:
 
         if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
             logging.info(f"Output file is set as {output_pse_fn}")
-            self.set_widget_value(lineEdit_structure_session, output_pse_fn)
+            set_widget_value(lineEdit_structure_session, output_pse_fn)
         else:
             logging.warning(f"Invalid output path: {output_pse_fn}.")
 
@@ -919,8 +856,8 @@ class REvoDesignPlugin:
             logging.warning(f'No available designable molecule!')
             return
         chain_ids = determine_chain_id(molecule)
-        self.set_widget_value(comboBox_chainid, chain_ids)
-        self.set_widget_value(
+        set_widget_value(comboBox_chainid, chain_ids)
+        set_widget_value(
             comboBox_chainid, chain_ids[0] if chain_ids else ''
         )
 
@@ -931,7 +868,7 @@ class REvoDesignPlugin:
                 [MutableFileExt, AnyFileExt, CompressedFileExt],
             )
             if input_mut_txt_fn:
-                self.set_widget_value(lineEdit_mutant_table, input_mut_txt_fn)
+                set_widget_value(lineEdit_mutant_table, input_mut_txt_fn)
             else:
                 logging.warning(
                     f'Could not open file for reading: {input_mut_txt_fn}'
@@ -944,7 +881,7 @@ class REvoDesignPlugin:
                 os.path.dirname(output_mut_txt_fn)
             ):
                 logging.info(f"Output file is set as {output_mut_txt_fn}")
-                self.set_widget_value(lineEdit_mutant_table, output_mut_txt_fn)
+                set_widget_value(lineEdit_mutant_table, output_mut_txt_fn)
             else:
                 logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
         else:
@@ -972,7 +909,7 @@ class REvoDesignPlugin:
         ):
             profile_format = 'PSSM'
 
-        self.set_widget_value(comboBox_profile_format, profile_format)
+        set_widget_value(comboBox_profile_format, profile_format)
 
     def save_mutant_choices(self, lineEdit_output_mut_txt, mutants_to_save):
         if not mutants_to_save:
@@ -1037,16 +974,28 @@ class REvoDesignPlugin:
 
     def find_session_path(self):
         session_path = cmd.get('session_file')
-        if session_path and (
-            session_path.endswith('.pze') or session_path.endswith('.pse')
-        ):
-            logging.info(f'Found session path: {session_path}')
-            return session_path
-        else:
-            logging.info(
+
+        if not session_path:
+            logging.warning(
                 'Session not found, please use a new session path to save.'
             )
             return self.browse_filename(mode='w', exts=[SessionFileExt])
+
+        if not os.path.exists(session_path):
+            logging.warning(
+                'Invalid session file path, please use a new session path to save.'
+            )
+            return self.browse_filename(mode='w', exts=[SessionFileExt])
+
+        if os.path.basename(session_path).startswith(
+            'tmp'
+        ) and session_path.endswith('.pse'):
+            logging.warning(
+                f'Found temperal session path: {session_path}, please use a new session path to save.'
+            )
+            return self.browse_filename(mode='w', exts=[SessionFileExt])
+
+        return session_path
 
     def flatten_compressed_files(self, compressed_file):
         flatten_path = os.path.join(
@@ -1101,35 +1050,43 @@ class REvoDesignPlugin:
         )
 
         # Setup surface determination arguments
-        self.set_widget_value(self.ui.comboBox_surface_cutoff, (1, 36))
-        self.set_widget_value(self.ui.comboBox_surface_cutoff, DEFAULT_SURFACE_PROBE_RADIUS)
+        set_widget_value(self.ui.comboBox_surface_cutoff, (1, 36))
+        set_widget_value(
+            self.ui.comboBox_surface_cutoff, DEFAULT_SURFACE_PROBE_RADIUS
+        )
 
         # Setup pocket determination arguments
         small_molecules = determine_small_molecule(
             comboBox_design_molecule.currentText()
         )
 
-        self.set_widget_value(comboBox_ligand_sel,small_molecules)
+        set_widget_value(comboBox_ligand_sel, small_molecules)
         comboBox_ligand_sel.setCurrentIndex(len(small_molecules))
 
-        self.set_widget_value(comboBox_cofactor_sel,small_molecules)
-
+        set_widget_value(comboBox_cofactor_sel, small_molecules)
 
         if len(small_molecules) >= 2:
             comboBox_cofactor_sel.setCurrentIndex(len(small_molecules) - 1)
         else:
             comboBox_cofactor_sel.setCurrentIndex(0)
 
-        self.set_widget_value(self.ui.comboBox_ligand_radius, (1, 11))
-        self.set_widget_value(self.ui.comboBox_ligand_radius, (1, DEFAULT_SUBSTRATE_POCKET_RADIUS))
+        set_widget_value(self.ui.comboBox_ligand_radius, (1, 11))
+        set_widget_value(
+            self.ui.comboBox_ligand_radius,
+            (1, DEFAULT_SUBSTRATE_POCKET_RADIUS),
+        )
 
-        self.set_widget_value(self.ui.comboBox_cofactor_radius, (0, 11))
-        self.set_widget_value(self.ui.comboBox_ligand_radius, DEFAULT_COFACTOR_POCKET_RADIUS)
+        set_widget_value(self.ui.comboBox_cofactor_radius, (0, 11))
+        set_widget_value(
+            self.ui.comboBox_ligand_radius, DEFAULT_COFACTOR_POCKET_RADIUS
+        )
 
     def update_surface_exclusion(self):
         exclusion_list = determine_exclusion()
 
-        self.set_widget_value(self.ui.comboBox_surface_exclusion, exclusion_list)
+        set_widget_value(
+            self.ui.comboBox_surface_exclusion, exclusion_list
+        )
         self.ui.comboBox_surface_exclusion.setCurrentIndex(
             0
         ) if exclusion_list else 0
@@ -1384,7 +1341,7 @@ class REvoDesignPlugin:
                 f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}'
             )
 
-        self.set_widget_value(
+        set_widget_value(
             lcdNumber_selected_mutant,
             len(self.mutant_tree_pssm_selected.all_mutant_ids),
         )
@@ -1411,7 +1368,7 @@ class REvoDesignPlugin:
                 f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}'
             )
 
-        self.set_widget_value(
+        set_widget_value(
             lcdNumber_selected_mutant,
             len(self.mutant_tree_pssm_selected.all_mutant_ids),
         )
@@ -1441,7 +1398,7 @@ class REvoDesignPlugin:
             walk_to_next_one=walk_to_next
         )
 
-        self.set_widget_value(
+        set_widget_value(
             progressBar_mutant_choosing,
             self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
                 current_mutant_id
@@ -1450,8 +1407,8 @@ class REvoDesignPlugin:
 
         # feedback on two comboboxes
         if comboBox_group_ids.currentText() != current_branch_id:
-            self.set_widget_value(comboBox_group_ids, current_branch_id)
-            self.set_widget_value(
+            set_widget_value(comboBox_group_ids, current_branch_id)
+            set_widget_value(
                 comboBox_mutant_ids,
                 list(
                     self.mutant_tree_pssm.get_a_branch(
@@ -1461,7 +1418,7 @@ class REvoDesignPlugin:
             )
 
         if comboBox_mutant_ids.currentText() != current_mutant_id:
-            self.set_widget_value(comboBox_mutant_ids, current_mutant_id)
+            set_widget_value(comboBox_mutant_ids, current_mutant_id)
 
         self.activate_focused(
             checkBox_show_wt, comboBox_molecule, comboBox_chainid
@@ -1493,16 +1450,16 @@ class REvoDesignPlugin:
             logging.info(
                 f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
             )
-            self.set_widget_value(progressBar_mutant_choosing, progress)
+            set_widget_value(progressBar_mutant_choosing, progress)
 
             # Setting mutant ids to candidates box
-            self.set_widget_value(
+            set_widget_value(
                 comboBox_mutant_ids,
                 list(
                     self.mutant_tree_pssm.get_a_branch(branch_id=branch).keys()
                 ),
             )
-            self.set_widget_value(
+            set_widget_value(
                 comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id
             )
             return
@@ -1554,7 +1511,7 @@ class REvoDesignPlugin:
         logging.info(
             f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
         )
-        self.set_widget_value(progressBar_mutant_choosing, progress)
+        set_widget_value(progressBar_mutant_choosing, progress)
 
     def jump_to_the_best_mutant(
         self,
@@ -1575,7 +1532,7 @@ class REvoDesignPlugin:
         )
         logging.info(f'Jump to the best hit of {branch_id}: {best_mutant_id}')
 
-        self.set_widget_value(comboBox_mutant_ids, best_mutant_id)
+        set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
     def find_all_best_mutants(
         self,
@@ -1620,7 +1577,7 @@ class REvoDesignPlugin:
         for branch_id in self.mutant_tree_pssm.all_mutant_branch_ids:
             logging.info(f'Jump to {branch_id} as required.')
 
-            self.set_widget_value(comboBox_group_ids, branch_id)
+            set_widget_value(comboBox_group_ids, branch_id)
 
             best_mutant_id = (
                 self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
@@ -1631,7 +1588,7 @@ class REvoDesignPlugin:
             logging.info(
                 f'Jump to the best hit of {branch_id}: {best_mutant_id}'
             )
-            self.set_widget_value(comboBox_mutant_ids, best_mutant_id)
+            set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
             self.accept_mutant(
                 lcdNumber_selected_mutant=lcdNumber_selected_mutant
@@ -1640,8 +1597,8 @@ class REvoDesignPlugin:
                 f'Best hit of {self.mutant_tree_pssm.current_mutant_id} accepted.'
             )
         # set back orignal values befor clicking this button
-        self.set_widget_value(comboBox_group_ids, original_branch_id)
-        self.set_widget_value(comboBox_mutant_ids, original_mutant_id)
+        set_widget_value(comboBox_group_ids, original_branch_id)
+        set_widget_value(comboBox_mutant_ids, original_mutant_id)
 
         logging.info('Done.')
 
@@ -1735,7 +1692,7 @@ class REvoDesignPlugin:
         )
         logging.info(mutants_from_checkpoint)
 
-        self.set_widget_value(
+        set_widget_value(
             lcdNumber_selected_mutant,
             len(self.mutant_tree_pssm_selected.all_mutant_ids),
         )
@@ -1785,17 +1742,17 @@ class REvoDesignPlugin:
             )
         )
 
-        self.set_widget_value(comboBox_molecule, determine_molecule_objects)
+        set_widget_value(comboBox_molecule, determine_molecule_objects)
 
-        self.set_widget_value(
+        set_widget_value(
             progressBar_mutant_choosing,
             [0, len(self.mutant_tree_pssm.all_mutant_ids)],
         )
 
-        self.set_widget_value(
+        set_widget_value(
             comboBox_group_ids, self.mutant_tree_pssm.all_mutant_branch_ids
         )
-        self.set_widget_value(
+        set_widget_value(
             comboBox_group_ids, self.mutant_tree_pssm.all_mutant_branch_ids[0]
         )
 
@@ -1807,10 +1764,10 @@ class REvoDesignPlugin:
         cmd.enable(self.mutant_tree_pssm.current_mutant_id)
         cmd.enable(self.mutant_tree_pssm.current_branch_id)
 
-        self.set_widget_value(
+        set_widget_value(
             lcdNumber_total_mutant, len(self.mutant_tree_pssm.all_mutant_ids)
         )
-        self.set_widget_value(
+        set_widget_value(
             lcdNumber_selected_mutant,
             len(self.mutant_tree_pssm_selected.all_mutant_ids),
         )
@@ -1944,7 +1901,7 @@ class REvoDesignPlugin:
             cluster_imgs = [
                 _cluster['score'] for _, _cluster in cluster_outputs.items()
             ]
-            self.set_widget_value(plot_space, cluster_imgs)
+            set_widget_value(plot_space, cluster_imgs)
 
         finally:
             trigger_button.setEnabled(True)
@@ -2000,14 +1957,14 @@ class REvoDesignPlugin:
             else:
                 # set cols to combo boxes
                 for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
-                    self.set_widget_value(comboBox, mut_table_cols)
+                    set_widget_value(comboBox, mut_table_cols)
 
                 # set default col value
                 if len(mut_table_cols) > 1:
-                    self.set_widget_value(
+                    set_widget_value(
                         comboBox_best_leaf, mut_table_cols[0]
                     )
-                    self.set_widget_value(
+                    set_widget_value(
                         comboBox_totalscore, mut_table_cols[-1]
                     )
 
@@ -2139,6 +2096,48 @@ class REvoDesignPlugin:
 
         finally:
             trigger_button.setEnabled(True)
+
+    def reduce_current_session(
+        self, session=None, reduce_disabled=False, overwrite=False
+    ):
+        if not session:
+            session = self.find_session_path()
+
+        if reduce_disabled:
+            enabled_items = cmd.get_names('nongroup_objects', enabled_only=1)
+            all_items = cmd.get_names('nongroup_objects', enabled_only=0)
+            for item in all_items:
+                if item not in enabled_items:
+                    logging.warning(
+                        f'Reducing item {item} from current session ...'
+                    )
+                    cmd.delete(item)
+                    cmd.refresh()
+
+        if os.path.exists(session):
+            if not overwrite:
+                # Ask whether to overide
+                msg = QtWidgets.QMessageBox()
+                msg.setIcon(QtWidgets.QMessageBox.Question)
+                msg.setWindowTitle("Override current session?")
+                msg.setText(
+                    f"Your current session will be overriden. \n \
+                        Are you really sure? "
+                )
+                msg.setStandardButtons(
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+                )
+                result = msg.exec_()
+
+                if result == QtWidgets.QMessageBox.No:
+                    session = self.browse_filename(
+                        mode='w', exts=[SessionFileExt]
+                    )
+
+                if not session:
+                    return
+
+        cmd.save(filename=session)
 
     def multi_mutagenesis_design_initialize(self):
         molecule = self.ui.comboBox_design_molecule.currentText()
@@ -2305,7 +2304,7 @@ class REvoDesignPlugin:
                 lineEdit_current_pair_wt_score,
                 lineEdit_current_pair_mut_score,
             ]:
-                self.set_widget_value(lineEdit, '')
+                set_widget_value(lineEdit, '')
 
             progress_bar = self.ui.progressBar
 
@@ -2340,7 +2339,7 @@ class REvoDesignPlugin:
             plot_mtx_fp = self.gremlin_tool.plot_mtx()
 
             try:
-                self.set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
+                set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
             except AttributeError:
                 logging.info(
                     f'Work Space is cleaned. Click once again to reinitialize. '
@@ -2506,7 +2505,7 @@ class REvoDesignPlugin:
         )
 
         # intitialize
-        self.set_widget_value(progress_bar, [0, len(self.plot_w_fps.keys())])
+        set_widget_value(progress_bar, [0, len(self.plot_w_fps.keys())])
         self.current_gremlin_co_evoving_pair_index = -1
 
         self.current_gremlin_co_evoving_pair_mutant_id = ''
@@ -2580,7 +2579,7 @@ class REvoDesignPlugin:
             else:
                 self.current_gremlin_co_evoving_pair_index -= 1
 
-        self.set_widget_value(
+        set_widget_value(
             progress_bar, self.current_gremlin_co_evoving_pair_index
         )
 
@@ -2628,12 +2627,12 @@ class REvoDesignPlugin:
             atom2=f'{molecule} and c. {chain_id} and i. {button_matrix.pos_j+1} and n. CA',
         )
 
-        self.set_widget_value(
+        set_widget_value(
             lineEdit_current_pair,
             f'{i_aa.replace("_","")}-{j_aa.replace("_","")}, {spatial_distance:.1f} Å',
         )
 
-        self.set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
+        set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
         if (
             comboBox_max_interact_dist.currentText()
@@ -2643,7 +2642,7 @@ class REvoDesignPlugin:
             logging.warning(
                 f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {float(comboBox_max_interact_dist.currentText())}'
             )
-            self.set_widget_value(lineEdit_current_pair, 'Out of range.')
+            set_widget_value(lineEdit_current_pair, 'Out of range.')
             # To disable the QbuttonMatrix:
             button_matrix.setEnabled(False)
         else:
@@ -2813,10 +2812,10 @@ class REvoDesignPlugin:
                 logging.debug(f'Adding mutagenesis {_}')
                 _mutant.append(_)
 
-        self.set_widget_value(
+        set_widget_value(
             lineEdit_current_pair_wt_score, f'{wt_score:.3f}'
         )
-        self.set_widget_value(
+        set_widget_value(
             lineEdit_current_pair_mut_score, f'{mut_score:.3f}'
         )
 

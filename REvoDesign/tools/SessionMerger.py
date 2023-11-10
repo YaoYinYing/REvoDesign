@@ -2,6 +2,7 @@ import os
 
 from shutil import rmtree
 from pymol import cmd
+import argparse
 
 
 class PyMOLSessionMerger:
@@ -29,3 +30,20 @@ class PyMOLSessionMerger:
         print(f"Saving merged session: {self.save_path}")
         cmd.save(self.save_path, quiet=self.quiet)
         print('Done.')
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Merge PyMOL sessions.')
+    parser.add_argument('session_paths', nargs='+', help='Paths to PyMOL sessions to be merged.')
+    parser.add_argument('--save_path', required=True, help='Path to save the merged session.')
+    parser.add_argument('--mode', type=int, default=1, help='Loading mode (default: 1).')
+    parser.add_argument('--delete', action='store_true', help='Delete session files after loading.')
+    parser.add_argument('--quiet', action='store_true', help='Run in quiet mode.')
+
+    args = parser.parse_args()
+
+    merger = PyMOLSessionMerger(args.session_paths, args.save_path)
+    merger.mode = args.mode
+    merger.delete = args.delete
+    merger.quiet = args.quiet
+
+    merger.merge_sessions()

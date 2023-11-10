@@ -61,6 +61,8 @@ def determine_molecule_objects():
 
 
 def determine_chain_id(sele='(all)'):
+    if not sele:
+        sele='(all)'
     # return a list of chain IDs that assigned to a protein molecule
     return [
         chain_id
@@ -206,6 +208,104 @@ def determine_system():
             os_name += '_Rosetta'
     return os_name
 
+OS_TYPE=determine_system()
+
+
+def set_window_font(main_window):
+    font_families=QtGui.QFontDatabase().families()
+
+    OS_TYPE_FONT_TABLE={
+        'Windows': ['Microsoft YaHei', 'Century Gothic'],
+        'Linux': ['Nimbus Sans', 'DejaVu Sans'],
+        #'Darwin': ['Chalkboard']
+        }
+    
+    _OS_TYPE=OS_TYPE.split('_')[0]
+    if _OS_TYPE not in OS_TYPE_FONT_TABLE:
+        return
+    
+    for font_str in OS_TYPE_FONT_TABLE[_OS_TYPE]:
+        if font_str in font_families:
+            font=QtGui.QFont()
+            font.setFamily(font_str)
+            main_window.setFont(font)
+            return 
+
+# A universal and versatile function for value setting. ;-)
+def set_widget_value(widget, value):
+    type_widget = type(widget)
+    type_value = type(value)
+
+    if type_value == type(lambda: None):  # Check if value is a function
+        value = value()  # If it's a function, call it to get the value
+        type_value = type(value)
+
+    if type_widget == QtWidgets.QComboBox:
+        if type_value != list and type_value != tuple:
+            widget.setCurrentText(str(value))
+        elif type_value == list or type_value == tuple:
+            widget.clear()
+            widget.addItems(map(str, value))
+        else:
+            logging.warning(
+                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
+            )
+
+    elif type_widget == QtWidgets.QLineEdit:
+        widget.setText(str(value))
+
+    elif type_widget == QtWidgets.QProgressBar:
+        if type_value == list or type_value == tuple:
+            widget.setRange(int(value[0]), int(value[1]))
+        elif type_value == int:
+            widget.setValue(int(value))
+        else:
+            logging.warning(
+                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
+            )
+
+    elif type_widget == QtWidgets.QLCDNumber:
+        widget.display(str(value))
+
+    elif type_widget == QtWidgets.QCheckBox:
+        widget.setChecked(bool(value))
+    elif type_widget == QtWidgets.QStackedWidget:
+        # Check if the value is a list of image paths
+        if type_value == list:
+            # Remove all existing widgets from the stacked widget
+            while widget.count() > 0:
+                widget.removeWidget(widget.widget(0))
+
+            # Add image widgets to the stacked widget
+            for image_path in value:
+                image_widget = ImageWidget(image_path)
+                widget.addWidget(image_widget)
+
+            # Show the first image by default
+            if len(value) > 0:
+                widget.setCurrentIndex(0)
+        else:
+            logging.warning(
+                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
+            )
+    elif type_widget == QtWidgets.QGridLayout:
+        if type_value == str and os.path.exists(value):
+            # Clear the existing widgets from gridLayout_interact_pairs
+            for i in reversed(range(widget.count())):
+                widget = widget.itemAt(i).widget()
+                if widget is not None:
+                    widget.deleteLater()
+            image_widget = ImageWidget(value)
+            widget.addWidget(image_widget)
+        else:
+            logging.warning(
+                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
+            )
+
+    else:
+        logging.warning(
+            f'FIX ME: Widget {widget} is not currently supported. '
+        )
 
 def renumber_chain_ids(target_protein):
     chain_ids = cmd.get_chains(target_protein)
@@ -236,6 +336,7 @@ def getOpenFileNameWithExt(*args, **kwargs):
             fname += m.group(1)
 
     return fname
+
 
 
 def getExistingDirectory():
@@ -419,7 +520,7 @@ class ParallelExecutor(QtCore.QThread):
         self.args = args
         self.n_jobs = n_jobs
 
-        os_type = determine_system()
+        os_type = OS_TYPE
         # guessing backend according to OS
         if not backend == 'auto':
             self.backend = backend

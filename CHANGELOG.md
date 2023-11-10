@@ -10,10 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Multiple mutagenesis design via REvoDesign session-grouped mutants
 - `MutantTree.__copy__` and `MutantTree.__deepcopy__` methods.
+- `set_window_font` according to OS type. MacOS use apple system default font.
+- `reduce_current_session` reduce disabled (discarded) mutant object while saving Mutant Visualizing session.
 
+### Changed
+- `set_widget_value` to `tools.utils`
+- temperal session path checking in `find_session_path`
 
 ### Fixed
 - `is_distal_residue_pair`
+- `determine_chain_id` if sele is not specified.
+
+### Removed
+- `update_REvoDesign_from_repo.sh`
+- 
 
 ## [1.2.0] - 2023-11-03
 ### Added
