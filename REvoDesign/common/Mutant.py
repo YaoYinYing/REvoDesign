@@ -17,6 +17,7 @@ class Mutant:
         """
         self.mutant_info = mutant_info
         self.mutant_score = mutant_score
+        self.mutant_description=''
 
     def __str__(self):
         """
@@ -67,3 +68,21 @@ class Mutant:
         new_score (float): The new mutant score.
         """
         self.mutant_score = new_score
+
+    def set_mutant_description(self, new_description):
+        """
+        Set the mutant description to a new value.
+
+        Args:
+        new_description (str): The new mutant description.
+        """
+        self.mutant_description = new_description
+
+    def get_mutant_description(self):
+        """
+        Get the mutant description.
+
+        Returns:
+        str: The mutant description.
+        """
+        return self.mutant_description

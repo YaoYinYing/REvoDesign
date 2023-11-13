@@ -439,7 +439,7 @@ class MutantVisualizer:
         from REvoDesign.tools import SessionMerger
 
         logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
-        merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'.tmp_{os.path.basename(self.save_session)}')}"
+        merged_temp_session = f"{os.path.join(os.path.dirname(self.save_session), f'mutate_only.{os.path.basename(self.save_session)}')}"
 
         tmp_merge_command = [
             SessionMerger.__file__,
@@ -454,7 +454,6 @@ class MutantVisualizer:
         merge_results = run_command(
             excutable='python', command_list=tmp_merge_command
         )
-        logging.debug(merge_results.stderr)
         if merge_results.returncode == 0:
             logging.info(
                 f'Temperal merged result is successfully created at {merged_temp_session}'

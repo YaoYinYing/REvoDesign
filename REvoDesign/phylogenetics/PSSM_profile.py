@@ -472,7 +472,7 @@ class PssmAnalyzer:
         ]
 
         logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
-        merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'.tmp_{os.path.basename(self.output_pse)}')}"
+        merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'mutate_only.{os.path.basename(self.output_pse)}')}"
 
         tmp_merge_command=[
             SessionMerger.__file__,
@@ -485,21 +485,22 @@ class PssmAnalyzer:
         merge_results=run_command(excutable='python',command_list=tmp_merge_command)
         if merge_results.returncode == 0:
             logging.info(f'Temperal merged result is successfully created at {merged_temp_session}')
+            self.output_pse=merged_temp_session
         else:
             logging.warning(f'Temperal merged result is failed to create.  Try again with a clean PyMOL session.')
             return
         
-        final_merge_command=[
-            SessionMerger.__file__,
-            '--save_path', self.output_pse,
-            '--mode', str(2),
-            '--quiet',
-            ] + [self.input_pse, merged_temp_session]
+        # final_merge_command=[
+        #     SessionMerger.__file__,
+        #     '--save_path', self.output_pse,
+        #     '--mode', str(2),
+        #     '--quiet',
+        #     ] + [self.input_pse, merged_temp_session]
         
-        final_merge_results=run_command(excutable='python',command_list=final_merge_command)
+        # final_merge_results=run_command(excutable='python',command_list=final_merge_command)
 
-        if final_merge_results.returncode:
-            logging.info(f'Final merged result is successfully created at {self.output_pse}')
-        else:
-            logging.warning(f'Final merged result is failed to create.')
-            return
+        # if final_merge_results.returncode:
+        #     logging.info(f'Final merged result is successfully created at {self.output_pse}')
+        # else:
+        #     logging.warning(f'Final merged result is failed to create.')
+        #     return

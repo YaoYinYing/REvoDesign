@@ -279,7 +279,7 @@ class REvoDesignPlugin:
             self.run_pocket_detection
         )
 
-        # Tab `Load Mutants`
+        # Tab `Mutate`
         self.ui.pushButton_open_output_pse_mutate.clicked.connect(
             partial(
                 self.save_as_a_session,
@@ -362,7 +362,7 @@ class REvoDesignPlugin:
             self.run_mutant_loading_from_profile
         )
 
-        # Tab `Choose Mutants`
+        # Tab `Evaluate`
         self.ui.pushButton_open_mut_table.clicked.connect(
             partial(
                 self.open_mutant_table, self.ui.lineEdit_output_mut_table, 'w'
@@ -1077,7 +1077,7 @@ class REvoDesignPlugin:
     def run_chain_interface_detection(self):
         molecule = self.ui.comboBox_design_molecule.currentText()
         radius = int(self.ui.comboBox_interface_cutoff.currentText())
-        chain_ids = find_all_protein_chain_ids_in_protein()
+        chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         if not chain_ids or len(chain_ids) <= 1:
             return
 
@@ -1139,7 +1139,7 @@ class REvoDesignPlugin:
         pocketsearcher.save_dir = f'{self.PWD}/pockets/'
         pocketsearcher.search_pockets()
 
-    # Tab `Load Mutants`
+    # Tab `Mutate`
 
     def run_mutant_loading_from_profile(self):
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
@@ -1221,9 +1221,9 @@ class REvoDesignPlugin:
             nproc=nproc,
         )
 
-        cmd.reinitialize()
-        cmd.load(self.temperal_session)
-        cmd.load(output_pse, partial=1)
+        # cmd.reinitialize()
+        # cmd.load(self.temperal_session)
+        cmd.load(design.output_pse, partial=2)
 
         cmd.center(molecule)
         cmd.set('surface_color', 'gray70')
@@ -1238,7 +1238,7 @@ class REvoDesignPlugin:
 
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
 
-    # Tab `Choose Mutants`
+    # Tab `Evaluate`
     def activate_focused(
         self, checkBox_show_wt, comboBox_molecule, comboBox_chainid
     ):
@@ -2052,8 +2052,8 @@ class REvoDesignPlugin:
                 progress_bar=progressBar_visualize_mutants
             )
 
-            cmd.reinitialize()
-            cmd.load(self.temperal_session)
+            # cmd.reinitialize()
+            # cmd.load(self.temperal_session)
             cmd.load(visualizer.save_session, partial=2)
             cmd.center(molecule)
             cmd.set('surface_color', 'gray70')
