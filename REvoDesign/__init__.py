@@ -2025,18 +2025,13 @@ class REvoDesignPlugin:
 
             visualizer.consider_global_score_from_profile = use_global_scores
 
-            if os.path.exists(design_profile):
-                visualizer.profile_scoring_df = visualizer.parse_profile(
-                    profile_fp=design_profile,
-                    profile_format=design_profile_format,
-                )
-                logging.debug(visualizer.profile_scoring_df.head())
-            else:
-                logging.warning(
-                    "Profile data is not available. Trying to read scores from the mutant table ..."
-                )
-                visualizer.profile_scoring_df = None
-                visualizer.consider_global_score_from_profile = False
+            visualizer.profile_scoring_df = None
+            visualizer.consider_global_score_from_profile = False
+
+            visualizer.profile_scoring_df = visualizer.parse_profile(
+                profile_fp=design_profile,
+                profile_format=design_profile_format,
+            )
 
             if best_leaf:
                 visualizer.key_col = best_leaf

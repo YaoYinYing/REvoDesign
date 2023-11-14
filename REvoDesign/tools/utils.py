@@ -188,15 +188,17 @@ def refresh_all_selections():
 def is_a_REvoDesign_session():
     return bool(cmd.get_names(type='public_group_objects'))
 
-def make_temperal_input_pdb(molecule,format='pdb',wd=os.getcwd()):
+
+def make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd()):
     os.makedirs(wd, exist_ok=True)
 
     input_file = os.path.join(wd, f'{molecule}.{format}')
-    cmd.save(input_file, f'{molecule}', -1)
+    if not os.path.exists(input_file):
+        cmd.save(input_file, f'{molecule}', -1)
     cmd.reinitialize()
     cmd.load(input_file)
     logging.warning(
-        'To avoid error, a temperal session is created based on your molecule selection: \n'
+        'A temperal session is created based on your molecule selection: \n'
         f'{molecule} --> {input_file}'
     )
     return input_file
@@ -1020,16 +1022,38 @@ def expand_range(shortened_str):
     return expanded_list
 
 
-def proceed_with_comfirm_msg_box(title='', description='' ):
+def proceed_with_comfirm_msg_box(title='', description=''):
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
-    msg.setText(
-        description )
+    msg.setText(description)
     msg.setStandardButtons(
         QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
     )
     result = msg.exec_()
 
     return result == QtWidgets.QMessageBox.Yes
+
+
+def autogrid_flexible_residue(molecule, chain_id, selection):
+    if not molecule or not chain_id or not selection:
+        logging.warning(
+            f'Invalid parameters: \nmolecule - {molecule}\n chain_id - {chain_id} \n selection - {selection}'
+        )
+        return None
+    residues = '_'.join(
+        list(
+            set(
+                [
+                    f'{at.resn.upper()}{at.resi}'
+                    for at in cmd.get_model(f'{selection} and n. CA').atom
+                ]
+            )
+        )
+    )
+    autodock_flexible_residues = f'{molecule}:{chain_id}:{residues}'
+    logging.info(
+        f'Flexible residues for AutoGrid: {autodock_flexible_residues}'
+    )
+    return autodock_flexible_residues

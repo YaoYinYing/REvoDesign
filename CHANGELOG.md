@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `refresh_design_color` to  `MultiMutantDesigner`. 
 - coloring `MultiMutantDesigner.design_case_variant` in `greencyan` to show the current design case.
 - `proceed_with_comfirm_msg_box`.
+- `Mutant.get_mutant_sequence` for reading mutant sequence.
+- A wrapper function of `ColabDesign` Framework. `ColabDesigner_MPNN` for ProteinMPNN scoring
+- `autogrid_flexible_residue` for future uses.
 
 ### Changed
 - `set_widget_value` to `tools.utils`
@@ -35,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `check_dirname_exists` --> `does_dirname_exist`
 - using `platform.uname()` in `determine_system` to avoid `os.system` command executions.
 - `MutantVisualizer.merge_sessions_via_commandline`: Merge only the temperal session (mutageneses). 
+- Skip repetative file creating of `make_temperal_input_pdb` if pdb file already exists. 
+- `MutantVisualizer.parse_profile`: if any of external scorer is enabled, use it with highest priority.
   
   
 ### Fixed

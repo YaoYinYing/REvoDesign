@@ -17,7 +17,8 @@ class Mutant:
         """
         self.mutant_info = mutant_info
         self.mutant_score = mutant_score
-        self.mutant_description=''
+        self.mutant_description = ''
+        self.wt_sequence = ''
 
     def __str__(self):
         """
@@ -86,3 +87,29 @@ class Mutant:
         str: The mutant description.
         """
         return self.mutant_description
+
+    def get_mutant_sequence(self):
+        if not self.mutant_info:
+            raise ValueError("No available mutant!")
+        if not self.wt_sequence:
+            raise ValueError('WT sequence is empty!')
+
+        _sequence = list(self.wt_sequence)
+
+        for _mut in self.mutant_info:
+            _pos = int(_mut['position'])
+            if _pos > len(_sequence):
+                raise ValueError(
+                    f"Mutant sequence is too short! {_pos} >{len(_sequence)}"
+                )
+
+            _wt_res_mut = _mut['wt_res']
+            _wt_res_seq = _sequence[_pos - 1]
+
+            if _wt_res_mut != _wt_res_seq:
+                raise ValueError(
+                    f'Mutant WT residue {_wt_res_mut} does not match sequence {_wt_res_seq}!'
+                )
+            _sequence[_pos - 1] = _mut['mut_res']
+
+        return ''.join(_sequence)

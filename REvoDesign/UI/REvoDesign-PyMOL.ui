@@ -1176,6 +1176,25 @@
            </widget>
           </item>
           <item>
+           <widget class="QPushButton" name="pushButton_choose_lucky_mutant">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Always pick the best hits for you!</string>
+            </property>
+            <property name="text">
+             <string>I'm Lucky!</string>
+            </property>
+            <property name="shortcut">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QCheckBox" name="checkBox_rock_pymol">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1243,13 +1262,43 @@
          <x>10</x>
          <y>30</y>
          <width>321</width>
-         <height>194</height>
+         <height>191</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_11">
         <property name="spacing">
          <number>-1</number>
         </property>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_34">
+          <item>
+           <widget class="QComboBox" name="comboBox_group_ids">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Jump to a specific mutant group.</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox_mutant_ids">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Jump to a specific mutant.</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
         <item>
          <layout class="QGridLayout" name="gridLayout">
           <item row="1" column="0">
@@ -1420,36 +1469,6 @@
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_34">
-          <item>
-           <widget class="QComboBox" name="comboBox_group_ids">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="statusTip">
-             <string>Jump to a specific mutant group.</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="comboBox_mutant_ids">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="statusTip">
-             <string>Jump to a specific mutant.</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_43">
           <item>
            <widget class="QPushButton" name="pushButton_goto_best_hit_in_group">
@@ -1477,21 +1496,27 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_choose_lucky_mutant">
+           <widget class="QPushButton" name="pushButton_comment_this_mutant">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="statusTip">
-             <string>Always pick the best hits for you!</string>
+             <string>Write some comment for this mutant. Shortcut: Shift+Opt+Enter</string>
             </property>
             <property name="text">
-             <string>I'm Lucky!</string>
+             <string>Comment</string>
             </property>
             <property name="shortcut">
-             <string/>
+             <string>Alt+Shift+Return</string>
             </property>
            </widget>
           </item>
@@ -2743,7 +2768,7 @@
       <property name="title">
        <string>GREMLIN profile:</string>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -3752,7 +3777,7 @@
        <x>10</x>
        <y>30</y>
        <width>91</width>
-       <height>31</height>
+       <height>32</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -3798,7 +3823,7 @@
      <x>0</x>
      <y>0</y>
      <width>660</width>
-     <height>37</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuREvoDesign">

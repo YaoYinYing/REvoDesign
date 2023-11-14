@@ -17,11 +17,9 @@ from REvoDesign.tools.utils import (
     get_color,
     extract_mutants,
     run_command,
-    run_worker_thread_with_progress,
     make_temperal_input_pdb
 )
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.tools.SessionMerger import PyMOLSessionMerger
 from REvoDesign.phylogenetics.pymol_pssm_script import process_pssm_mutations
 
 

@@ -19,7 +19,6 @@ from REvoDesign.tools.utils import (
     extract_mutant_info,
     get_molecule_sequence,
     run_command,
-    make_temperal_input_pdb,
 )
 from absl import logging
 
@@ -43,6 +42,7 @@ class MutantVisualizer:
         )
         self.profile = ''
         self.profile_format = DEFAULT_PROFILE_TYPE
+        self.scorer = None
 
         # this should be set via the following:
         # visualizer=MutantVisualizer(molecule=molecule,chain_id=chainid)
@@ -131,6 +131,14 @@ class MutantVisualizer:
             )
 
     def parse_profile(self, profile_fp, profile_format):
+        if profile_format == 'ProteinMPNN':
+            logging.debug(f'Will use ProteinMPNN as sequence scoring method.')
+            from REvoDesign.structure.ColabDesigner import ColabDesigner_MPNN
+
+            if not self.scorer:
+                self.scorer = ColabDesigner_MPNN(molecule=self.molecule)
+                return None
+
         if not profile_fp:
             logging.warning(f'profile not available: {profile_fp}')
             return None
@@ -151,8 +159,8 @@ class MutantVisualizer:
             self.min_score_profile = -score_max_abs
             self.max_score_profile = score_max_abs
             logging.debug(
-                    f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
-                )
+                f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
+            )
 
             return df
 
@@ -204,6 +212,7 @@ class MutantVisualizer:
         elif profile_format == 'TSV':
             df = pd.read_table(profile_fp, names=['mut', 'score'])
             return df
+
         else:
             logging.error(
                 f'Unknown profile {profile_fp} or format {profile_format}'
@@ -307,9 +316,20 @@ class MutantVisualizer:
 
             _variant_info = variant_obj.get_mutant_info()
 
+            variant_obj.wt_sequence=self.sequence
+
+            # external scorer stays highest priority.
+            if self.scorer:
+
+                _sequence = variant_obj.get_mutant_sequence()
+                _score = self.scorer.scorer(sequence=_sequence)
+                logging.debug(
+                    f'Reading profile score for scorcer {type(self.scorer)}: {_score}'
+                )
+
             # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
             # so we have to igore it here.
-            if (
+            elif (
                 len(_variant_info) == 1
                 and self.profile_scoring_df is not None
                 and (not self.profile_scoring_df.empty)
@@ -321,6 +341,7 @@ class MutantVisualizer:
                 logging.debug(
                     f'Reading profile score for variant {variant_obj.get_mutant_id()}: {_score}'
                 )
+
             else:
                 _score = row[self.score_col]
                 logging.debug(
@@ -331,26 +352,24 @@ class MutantVisualizer:
 
             self.mutant_list.append(variant_obj)
 
-
         # Determine the range for color bar
-        score_list=[variant_obj.get_mutant_score() for variant_obj in self.mutant_list]
+        score_list = [
+            variant_obj.get_mutant_score() for variant_obj in self.mutant_list
+        ]
         logging.debug(f'Scores: {score_list}')
 
         if (
-            self.consider_global_score_from_profile
-            and (self.profile_scoring_df is not None)
-            and (not self.profile_scoring_df.empty)
+            self.consider_global_score_from_profile  # Toggle the global score flag
+            and (self.profile_scoring_df is not None)  # profile df is not None
+            and (not self.profile_scoring_df.empty)  # profile df is not empty
+            and (not self.scorer)  # no external scorer enabled
         ):
             self.min_score = self.min_score_profile
             self.max_score = self.max_score_profile
 
-            
-
         else:
             self.min_score = min(score_list)
             self.max_score = max(score_list)
-
-
 
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
@@ -458,7 +477,7 @@ class MutantVisualizer:
             logging.info(
                 f'Temperal merged result is successfully created at {merged_temp_session}'
             )
-            self.save_session=merged_temp_session
+            self.save_session = merged_temp_session
         else:
             logging.warning(
                 f'Temperal merged result is failed to create. Try again with a clean PyMOL session.'
