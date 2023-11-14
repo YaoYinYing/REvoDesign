@@ -222,8 +222,8 @@ def extract_mutant_from_pymol_object(pymol_object, sequence=''):
     mutant_info=[
         {
                 'chain_id': at.chain,
-                'position': at.resi,
-                'wt_res': sequence[at.resi-1] if sequence else 'X',
+                'position': int(at.resi),
+                'wt_res': sequence[int(at.resi)-1] if sequence else 'X',
                 'mut_res': protein_letters_3to1[at.resn],
             }
 

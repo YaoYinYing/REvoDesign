@@ -21,7 +21,6 @@ from REvoDesign.tools.customized_widgets import (
 
 from REvoDesign.tools.pymol_utils import (
     get_molecule_sequence,
-    make_temperal_input_pdb,
     find_all_protein_chain_ids_in_protein,
 )
 
@@ -37,8 +36,8 @@ from REvoDesign.phylogenetics.pymol_pssm_script import process_pssm_mutations
 
 class PssmAnalyzer:
     def __init__(self, input_pssm_file):
-        self.input_pse=''
-        self.output_pse=''
+        self.input_pse = ''
+        self.output_pse = ''
 
         self.input_profile = input_pssm_file
         self.input_profile_format = 'PSSM'
@@ -51,6 +50,7 @@ class PssmAnalyzer:
         self.molecule = ''
         self.chain_id = 'A'
         self.pwd = '.'
+        self.sequence = ''
 
         self.design_case = 'default'
 
@@ -60,11 +60,10 @@ class PssmAnalyzer:
         # use PSSM alphabet as default
         self.profile_alphabet = 'ARNDCQEGHILKMFPSTWYV'
         self.cmap = "bwr_r"
-        
 
         self.results = []
         self.parallel_run = False
-        self.nproc=1
+        self.nproc = 1
 
     @staticmethod
     def parse_custom_indices(indices_str):
@@ -239,7 +238,6 @@ class PssmAnalyzer:
             )
             return
 
-        self.sequence = get_molecule_sequence(self.molecule, self.chain_id)
 
         custom_indices = self.parse_custom_indices(custom_indices_str)
         if (
@@ -267,6 +265,10 @@ class PssmAnalyzer:
                         )
                         == self.sequence
                     ]
+                    if len(design_chain_id) < 2:
+                        logging.warning(f'No homooligomer found for chain {self.chain_id}, ignore `homooligomeric` setting')
+                        self.homooligomeric=False
+
 
                 custom_indices = shorter_range(custom_indices, connector='-')
                 self.external_designer = ColabDesigner_MPNN(
@@ -283,7 +285,9 @@ class PssmAnalyzer:
                     homooligomeric=self.homooligomeric,
                 )
 
-    def design_protein_using_external_designer(self, custom_indices_fp, progress_bar):
+    def design_protein_using_external_designer(
+        self, custom_indices_fp, progress_bar
+    ):
         custom_indices_str = (
             open(custom_indices_fp, 'r').read().strip()
             if os.path.exists(custom_indices_fp)
@@ -307,7 +311,7 @@ class PssmAnalyzer:
         )
 
         mutant_objs = []
-        score_list=[]
+        score_list = []
 
         for seq, score in zip(designs['seq'], designs['score']):
             mutant_obj = extract_mutant_from_sequences(
@@ -316,34 +320,32 @@ class PssmAnalyzer:
             mutant_obj.set_mutant_score(score)
             score_list.append(score)
             mutant_objs.append(mutant_obj)
-        
-            
-        visualizer=MutantVisualizer(
-            molecule=self.molecule,
-            chain_id=self.chain_id
-            )
-        
-        visualizer.save_session=self.output_pse
-        visualizer.input_session=self.input_pse
 
-        visualizer.parallel_run=self.parallel_run
-        visualizer.nproc=self.nproc
+        visualizer = MutantVisualizer(
+            molecule=self.molecule, chain_id=self.chain_id
+        )
+        visualizer.sequence = self.sequence
 
-        visualizer.group_name=self.design_case
+        visualizer.save_session = self.output_pse
+        visualizer.input_session = self.input_pse
 
-        visualizer.cmap=self.cmap
+        visualizer.parallel_run = self.parallel_run
+        visualizer.nproc = self.nproc
+
+        visualizer.group_name = self.design_case
+
+        visualizer.cmap = self.cmap
         visualizer.min_score = min(score_list)
         visualizer.max_score = max(score_list)
-        visualizer.mutant_list=mutant_objs
+        visualizer.mutant_list = mutant_objs
         visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
-        self.output_pse=visualizer.save_session
+        self.output_pse = visualizer.save_session
 
     def design_protein_using_pssm(
         self,
         custom_indices_fp='',
         cutoff=[-100, 100],
     ):
-        self.sequence = get_molecule_sequence(self.molecule, self.chain_id)
 
         custom_indices_str = (
             open(custom_indices_fp, 'r').read().strip()
@@ -475,8 +477,6 @@ class PssmAnalyzer:
         create_full_pdb,
         progress_bar,
     ):
-        
-
         mutations = process_pssm_mutations(mutant_json)
 
         new_residue_scores = []

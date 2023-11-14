@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A wrapper function of `ColabDesign` Framework. `ColabDesigner_MPNN` for ProteinMPNN scoring
 - `autogrid_flexible_residue` for future uses.
 - **ProteinMPNN design**
+- design molecule, chain_id and sequence as class variables
+- `Mutant.get_short_mutant_id` for reading short mutant id.
+- `set_design_sequence`
 
 ### Changed
 - `set_widget_value` to `tools.utils`

@@ -22,11 +22,6 @@ from REvoDesign.tools.utils import (
 from REvoDesign.tools.mutant_tools import (
     extract_mutants_from_mutant_id,
     extract_mutant_from_sequences,
-    
-)
-
-from REvoDesign.tools.pymol_utils import (
-    get_molecule_sequence,
 )
 
 
@@ -44,9 +39,7 @@ class MutantVisualizer:
         self.key_col = "best_leaf"
         self.score_col = "totalscore"
         self.group_name = 'default_group'
-        self.sequence = get_molecule_sequence(
-            molecule=self.molecule, chain_id=self.chain_id
-        )
+        self.sequence = ''
         self.profile = ''
         self.profile_format = DEFAULT_PROFILE_TYPE
         self.scorer = None
@@ -287,7 +280,12 @@ class MutantVisualizer:
             while None in mutation_data:
                 _mutation_objs.pop(None)
             mutation_data = pd.DataFrame.from_dict(
-                {self.key_col: [mut_obj.get_short_mutant_id() for mut_obj in _mutation_objs]}
+                {
+                    self.key_col: [
+                        mut_obj.get_short_mutant_id()
+                        for mut_obj in _mutation_objs
+                    ]
+                }
             )
 
         else:
@@ -322,11 +320,10 @@ class MutantVisualizer:
 
             _variant_info = variant_obj.get_mutant_info()
 
-            variant_obj.wt_sequence=self.sequence
+            variant_obj.wt_sequence = self.sequence
 
             # external scorer stays highest priority.
             if self.scorer:
-
                 _sequence = variant_obj.get_mutant_sequence()
                 _score = self.scorer.scorer(sequence=_sequence)
                 logging.debug(
@@ -380,7 +377,10 @@ class MutantVisualizer:
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
     def run_mutagenesis_tasks(self, progress_bar):
-        from REvoDesign.tools.customized_widgets import refresh_window, ParallelExecutor
+        from REvoDesign.tools.customized_widgets import (
+            refresh_window,
+            ParallelExecutor,
+        )
 
         # Create a multiprocessing pool
         self.mutagenesis_tasks = [[variant] for variant in self.mutant_list]

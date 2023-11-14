@@ -54,6 +54,12 @@ class Mutant:
         return f'{self.mutant_id}_{self.mutant_score}'
     
     def get_short_mutant_id(self):
+        """
+        Get the short mutant identifier.
+
+        Returns:
+        string: The short mutant identifier with score
+        """
         self.mutant_id = '_'.join(
             [
                 f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}'
@@ -110,6 +116,12 @@ class Mutant:
         return self.mutant_description
 
     def get_mutant_sequence(self):
+        """
+        Get the mutant sequence.
+
+        Returns:
+        string: The mutant sequence
+        """
         if not self.mutant_info:
             raise ValueError("No available mutant!")
         if not self.wt_sequence:
