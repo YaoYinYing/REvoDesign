@@ -61,6 +61,7 @@ from REvoDesign.tools.pymol_utils import (
 
 from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_pymol_object,
+    extract_mutants_from_mutant_id
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
@@ -2788,8 +2789,10 @@ class REvoDesignPlugin:
 
             logging.info(f" Visualizing {mutant}: {color}")
 
-            mutant_obj = extract_mutant_from_pymol_object(
-                pymol_object=mutant, sequence=self.design_sequence
+            _, mutant_obj = extract_mutants_from_mutant_id(
+                mutant_string=mutant, 
+                chain_id=self.design_chain_id,
+                sequence=self.design_sequence
             )
             visualizer.create_mutagenesis_objects(mutant_obj, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')
