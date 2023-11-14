@@ -1258,8 +1258,7 @@ class REvoDesignPlugin:
         )
 
         if molecule and chain_id:
-            mut_obj = extract_mutant_from_pymol_object(pymol_object=self.mutant_tree_pssm.current_mutant_id).get_mutant_id()
-            
+            mut_obj = extract_mutant_from_pymol_object(pymol_object=self.mutant_tree_pssm.current_mutant_id)
             resi = mut_obj.get_mutant_info()[0]['position']
 
         if self.mutant_tree_pssm.current_mutant_id:

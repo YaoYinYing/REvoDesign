@@ -216,14 +216,14 @@ def expand_range(shortened_str, connector='-', seperator='+'):
     return expanded_list
 
 
-def extract_mutant_from_pymol_object(pymol_object, sequence):
+def extract_mutant_from_pymol_object(pymol_object, sequence=''):
     from pymol import cmd
 
     mutant_info=[
         {
                 'chain_id': at.chain,
                 'position': at.resi,
-                'wt_res': sequence[at.resi-1],
+                'wt_res': sequence[at.resi-1] if sequence else 'X',
                 'mut_res': protein_letters_3to1[at.resn],
             }
 
