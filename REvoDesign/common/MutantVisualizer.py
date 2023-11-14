@@ -6,6 +6,7 @@ from Bio.Data import IUPACData
 from Bio import SeqIO
 from pymol import cmd, util
 import matplotlib
+from absl import logging
 
 matplotlib.use('Agg')
 
@@ -15,12 +16,18 @@ from REvoDesign.phylogenetics.pymol_pssm_script import mutate
 
 from REvoDesign.tools.utils import (
     get_color,
-    extract_mutants,
-    extract_mutant_info,
-    get_molecule_sequence,
     run_command,
 )
-from absl import logging
+
+from REvoDesign.tools.mutant_tools import (
+    extract_mutants_from_mutant_id,
+    extract_mutant_from_sequences,
+    
+)
+
+from REvoDesign.tools.pymol_utils import (
+    get_molecule_sequence,
+)
 
 
 class MutantVisualizer:
@@ -60,7 +67,7 @@ class MutantVisualizer:
         self.consider_global_score_from_profile = False
 
     def process_position(self, mutant_obj: Mutant):
-        mutant = mutant_obj.get_mutant_id()
+        mutant = mutant_obj.get_short_mutant_id()
         score = mutant_obj.get_mutant_score()
         temp_dir = tempfile.mkdtemp(prefix='pymol_pssm_')
         temp_session_path = os.path.join(temp_dir, f"position_{mutant}.pse")
@@ -80,8 +87,7 @@ class MutantVisualizer:
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description
     def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
         # mutant: <chain_id><wt><pos><mut>_..._<score>
-        mutant = mutant_obj.get_mutant_id()
-        new_obj_name = mutant
+        new_obj_name = mutant_obj.get_short_mutant_id()
         cmd.create(f"{new_obj_name}", self.molecule)
 
         mut_pos = []
@@ -266,8 +272,8 @@ class MutantVisualizer:
             or self.mutfile.lower().endswith('.fa')
         ):
             # Read mutant data from fasta file.
-            _mutation_data = [
-                extract_mutant_info(
+            _mutation_objs = [
+                extract_mutant_from_sequences(
                     mutant_sequence=str(mut_record.seq),
                     wt_sequence=self.sequence,
                     chain_id=self.chain_id,
@@ -279,9 +285,9 @@ class MutantVisualizer:
 
             # Remove None items
             while None in mutation_data:
-                _mutation_data.pop(None)
+                _mutation_objs.pop(None)
             mutation_data = pd.DataFrame.from_dict(
-                {self.key_col: _mutation_data}
+                {self.key_col: [mut_obj.get_short_mutant_id() for mut_obj in _mutation_objs]}
             )
 
         else:
@@ -304,7 +310,7 @@ class MutantVisualizer:
 
         self.mutant_list = []
         for _, row in mutation_data.iterrows():
-            variant, variant_obj = extract_mutants(
+            variant, variant_obj = extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
                 chain_id=self.chain_id,
                 sequence=self.sequence,
@@ -339,13 +345,13 @@ class MutantVisualizer:
                     str(int(_variant_info[0]['position']) - 1),
                 ]
                 logging.debug(
-                    f'Reading profile score for variant {variant_obj.get_mutant_id()}: {_score}'
+                    f'Reading profile score for variant {variant_obj.get_short_mutant_id()}: {_score}'
                 )
 
             else:
                 _score = row[self.score_col]
                 logging.debug(
-                    f'Reading mutant table score for variant {variant_obj.get_mutant_id()}: {_score}'
+                    f'Reading mutant table score for variant {variant_obj.get_short_mutant_id()}: {_score}'
                 )
 
             variant_obj.set_mutant_score(float(_score))
@@ -374,7 +380,7 @@ class MutantVisualizer:
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
     def run_mutagenesis_tasks(self, progress_bar):
-        from REvoDesign.tools.utils import refresh_window, ParallelExecutor
+        from REvoDesign.tools.customized_widgets import refresh_window, ParallelExecutor
 
         # Create a multiprocessing pool
         self.mutagenesis_tasks = [[variant] for variant in self.mutant_list]

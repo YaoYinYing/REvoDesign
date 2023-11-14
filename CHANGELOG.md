@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Mutant.get_mutant_sequence` for reading mutant sequence.
 - A wrapper function of `ColabDesign` Framework. `ColabDesigner_MPNN` for ProteinMPNN scoring
 - `autogrid_flexible_residue` for future uses.
+- **ProteinMPNN design**
 
 ### Changed
 - `set_widget_value` to `tools.utils`
@@ -40,13 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MutantVisualizer.merge_sessions_via_commandline`: Merge only the temperal session (mutageneses). 
 - Skip repetative file creating of `make_temperal_input_pdb` if pdb file already exists. 
 - `MutantVisualizer.parse_profile`: if any of external scorer is enabled, use it with highest priority.
-  
+- `extract_mutants_from_mutant_id` --> `extract_mutant_from_pymol_object`: read `Mutant` object from the PyMOL object content, instead of the object name.
+- Massive refactors of `tools.utils` into several tool functions sorted by their functions and dependencies.
+- 
   
 ### Fixed
 - `is_distal_residue_pair`
 - `determine_chain_id` if sele is not specified.
 - Reversible Multi-design.
 - `MutantVisualizer.min_score_profile` and `MutantVisualizer.max_score_profile` in PSSM profile.
+- `colabdesign` as extra option of **REvoDesign**
 
 ### Removed
 - `update_REvoDesign_from_repo.sh`

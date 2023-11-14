@@ -49,6 +49,11 @@ scipy = [
     {version = "^1.11.2", python = ">=3.9"}
 ]
 
+colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1.1" , optional = true }
+
+[tool.poetry.extras]
+colabdesign = ["colabdesign"]
+
 [tool.black]
 line-length = 79
 target-version = ['py38']

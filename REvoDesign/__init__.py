@@ -1,9 +1,7 @@
 import sys, os
 import time
-import re
-import random
 from pymol import cmd
-from pymol.Qt import QtWidgets, QtGui
+from pymol.Qt import QtWidgets
 
 # using partial module to reduce duplicate code.
 from functools import partial
@@ -26,30 +24,44 @@ from REvoDesign.common.file_extensions import (
     PickleObjectFileExt,
 )
 
+
 from REvoDesign.tools.utils import (
-    is_empty_session,
-    find_all_protein_chain_ids_in_protein,
-    fetch_exclusion_expressions,
-    find_design_molecules,
-    num_processors,
-    find_small_molecules_in_protein,
-    getOpenFileNameWithExt,
     does_dirname_exist,
     check_file_exists,
-    get_molecule_sequence,
-    getExistingDirectory,
     extract_archive,
-    set_widget_value,
-    QbuttonMatrix,
     run_worker_thread_with_progress,
     get_color,
     cmap_reverser,
     rescale_number,
-    extract_mutants,
-    is_a_REvoDesign_session,
-    make_temperal_input_pdb,
-    PYMOL_VERSION,
+)
+
+from REvoDesign.tools.customized_widgets import (
+    getExistingDirectory,
+    set_widget_value,
+    QbuttonMatrix,
     proceed_with_comfirm_msg_box,
+    getOpenFileNameWithExt,
+)
+
+from REvoDesign.tools.system_tools import (
+    num_processors,
+)
+
+from REvoDesign.tools.pymol_utils import (
+    fetch_exclusion_expressions,
+    is_empty_session,
+    find_all_protein_chain_ids_in_protein,
+    find_design_molecules,
+    find_small_molecules_in_protein,
+    get_molecule_sequence,
+    make_temperal_input_pdb,
+    is_a_REvoDesign_session,
+    PYMOL_VERSION,
+)
+
+from REvoDesign.tools.mutant_tools import (
+    extract_mutants_from_mutant_id,
+    extract_mutant_from_pymol_object
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
@@ -104,7 +116,7 @@ class REvoDesignPlugin:
             self.ui_file, main_window
         )  # Store the UI form for later access
 
-        from REvoDesign.tools.utils import set_window_font
+        from REvoDesign.tools.customized_widgets import set_window_font
 
         set_window_font(main_window)
 
@@ -321,7 +333,6 @@ class REvoDesignPlugin:
                 self.release_run_button_if_lineEdit_fp_is_valid,
                 [
                     self.ui.lineEdit_output_pse_mutate,
-                    self.ui.lineEdit_input_csv,
                     self.ui.lineEdit_input_customized_indices,
                 ],
                 [
@@ -330,26 +341,12 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_input_csv.textChanged.connect(
-            partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_output_pse_mutate,
-                    self.ui.lineEdit_input_csv,
-                    self.ui.lineEdit_input_customized_indices,
-                ],
-                [
-                    self.ui.pushButton_run_PSSM_to_pse,
-                ],
-            )
-        )
 
         self.ui.lineEdit_input_customized_indices.textChanged.connect(
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
                 [
                     self.ui.lineEdit_output_pse_mutate,
-                    self.ui.lineEdit_input_csv,
                     self.ui.lineEdit_input_customized_indices,
                 ],
                 [
@@ -921,14 +918,14 @@ class REvoDesignPlugin:
             )
             self.write_input_mutant_table(
                 output_mut_txt_fn,
-                [extract_mutants(mt)[0] for mt in mutants_to_save],
+                [extract_mutant_from_pymol_object(pymol_object=mt).get_mutant_id() for mt in mutants_to_save],
             )
 
         else:
             logging.info(f'Mutant table is created at {output_mut_txt_fn}')
             self.write_input_mutant_table(
                 output_mut_txt_fn,
-                [extract_mutants(mt)[0] for mt in mutants_to_save],
+                [extract_mutant_from_pymol_object(pymol_object=mt).get_mutant_id() for mt in mutants_to_save],
             )
 
         output_mut_txt_dir_ckp = os.path.join(
@@ -1150,6 +1147,11 @@ class REvoDesignPlugin:
         design_profile_format = self.ui.comboBox_profile_type.currentText()
         preffered = self.ui.lineEdit_preffer_substitution.text().upper()
         rejected = self.ui.lineEdit_reject_substitution.text().upper()
+
+        temperature=float(self.ui.lineEdit_designer_temperature.text())
+        num_designs=int(self.ui.lineEdit_designer_num_samples.text())
+        homooligomeric=self.ui.checkBox_designer_homooligomeric.isChecked()
+
         design_case = self.ui.lineEdit_design_case.text()
         custom_indices_fp = self.ui.lineEdit_input_customized_indices.text()
         cutoff = [
@@ -1168,7 +1170,7 @@ class REvoDesignPlugin:
         )
 
         progressbar = self.ui.progressBar
-        sequence = get_molecule_sequence(molecule, chain_id)
+        
         parallel_run = nproc > 1
 
         if is_a_REvoDesign_session():
@@ -1181,48 +1183,54 @@ class REvoDesignPlugin:
         input_file = make_temperal_input_pdb(
             molecule=molecule,
             format='pdb',
-            wd=os.join(self.PWD, 'temperal_pdb'),
+            wd=os.path.join(self.PWD, 'temperal_pdb'),
         )
 
-        logging.info(f"Sequence of `{molecule}`: \n {sequence}")
 
         from REvoDesign.phylogenetics.PSSM_profile import PssmAnalyzer
 
         design = PssmAnalyzer(design_profile)
+        design.input_pse=input_file
+        design.output_pse=output_pse
         design.input_profile_format = design_profile_format
+
         design.molecule = molecule
         design.chain_id = chain_id
         design.pwd = self.PWD
+        design.design_case=design_case
+
+        design.external_designer_temperature=temperature
+        design.external_designer_num_samples=num_designs
+        design.homooligomeric=homooligomeric
+
+        design.preffered_substitutions=preffered
+        design.reject_aa=rejected
         design.parallel_run = parallel_run
+        design.nproc=nproc
         design.cmap = cmap
 
-        (
-            mutation_json_fp,
-            mutant_table_fp,
-            mutation_png_fp,
-        ) = design.design_protein_using_pssm(
-            sequence,
-            alias=molecule,
-            preffered=preffered,
-            design_case=design_case,
-            custom_indices_fp=custom_indices_fp,
-            cutoff=cutoff,
-        )
+        if design_profile_format == 'ProteinMPNN':
+            design.design_protein_using_external_designer(
+                custom_indices_fp=custom_indices_fp,
+                progress_bar=progressbar
+                )
+        else:
+            (
+                mutation_json_fp,
+                mutant_table_fp,
+                mutation_png_fp,
+            ) = design.design_protein_using_pssm(
+                custom_indices_fp=custom_indices_fp,
+                cutoff=cutoff,
+            )
 
-        design.load_mutants_to_pymol_session(
-            input_pse=input_file,
-            output_pse=output_pse,
-            molecule=molecule,
-            chain_id=chain_id,
-            mutant_json=mutation_json_fp,
-            reject=rejected,
-            create_full_pdb=False,
-            progress_bar=progressbar,
-            nproc=nproc,
-        )
+            design.load_mutants_to_pymol_session(
+                mutant_json=mutation_json_fp,
+                create_full_pdb=False,
+                progress_bar=progressbar,
+                
+            )
 
-        # cmd.reinitialize()
-        # cmd.load(self.temperal_session)
         cmd.load(design.output_pse, partial=2)
 
         cmd.center(molecule)
@@ -1250,10 +1258,8 @@ class REvoDesignPlugin:
         )
 
         if molecule and chain_id:
-            _, mut_obj = extract_mutants(
-                mutant_string=self.mutant_tree_pssm.current_mutant_id,
-                chain_id=chain_id,
-            )
+            mut_obj = extract_mutant_from_pymol_object(pymol_object=self.mutant_tree_pssm.current_mutant_id).get_mutant_id()
+            
             resi = mut_obj.get_mutant_info()[0]['position']
 
         if self.mutant_tree_pssm.current_mutant_id:
@@ -1314,9 +1320,8 @@ class REvoDesignPlugin:
             self.mutant_tree_pssm_selected.add_mutant_to_branch(
                 branch=self.mutant_tree_pssm.current_branch_id,
                 mutant=self.mutant_tree_pssm.current_mutant_id,
-                mutant_info=extract_mutants(
-                    self.mutant_tree_pssm.current_mutant_id
-                )[1],
+                mutant_info=extract_mutant_from_pymol_object(
+                    pymol_object=self.mutant_tree_pssm.current_mutant_id)
             )
         else:
             logging.warning(
@@ -1580,8 +1585,8 @@ class REvoDesignPlugin:
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self, mutant):
-        _mutant, _mutant_obj = extract_mutants(mutant_string=mutant)
-        return _mutant is not None
+        _mutant_obj = extract_mutant_from_pymol_object(pymol_object=mutant)
+        return _mutant_obj is not None
 
     # basic function that works for mutant_tree instantiation
     def fetch_all_mutant_branch_ids(self, enabled_only=0):
@@ -1607,7 +1612,7 @@ class REvoDesignPlugin:
 
         all_mutants_in_current_branch = {}
         for mutant_id in mutants_in_current_group:
-            mutant_, mutant_obj = extract_mutants(mutant_id)
+            mutant_obj = extract_mutant_from_pymol_object(pymol_object=mutant_id,)
             all_mutants_in_current_branch.update({mutant_id: mutant_obj})
 
         return all_mutants_in_current_branch
@@ -2616,9 +2621,7 @@ class REvoDesignPlugin:
         self.mutant_tree_coevolved.add_mutant_to_branch(
             self.current_gremlin_co_evoving_pair_group_id,
             self.current_gremlin_co_evoving_pair_mutant_id,
-            extract_mutants(
-                mutant_string=self.current_gremlin_co_evoving_pair_mutant_id
-            )[1],
+            extract_mutant_from_pymol_object(pymol_object=self.current_gremlin_co_evoving_pair_mutant_id)
         )
 
         self.save_mutant_choices(
@@ -2802,9 +2805,7 @@ class REvoDesignPlugin:
 
             logging.info(f" Visualizing {mutant}: {color}")
 
-            _, mutant_obj = extract_mutants(
-                mutant_string=mutant, chain_id=chain_id
-            )
+            mutant_obj = extract_mutant_from_pymol_object(pymol_object=mutant)
             visualizer.create_mutagenesis_objects(mutant_obj, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)

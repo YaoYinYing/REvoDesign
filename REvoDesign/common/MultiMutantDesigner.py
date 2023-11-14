@@ -7,9 +7,15 @@ from pymol import cmd, util
 from REvoDesign.common.MutantTree import MutantTree
 
 from REvoDesign.tools.utils import (
-    extract_mutants,
-    is_distal_residue_pair,
     get_color,
+)
+
+from REvoDesign.tools.pymol_utils import (
+    is_distal_residue_pair,
+)
+
+from REvoDesign.tools.mutant_tools import (
+    extract_mutants_from_mutant_id,
 )
 
 
@@ -28,7 +34,7 @@ class MultiMutantDesigner:
         # Initialize mutant tree for design
         _mutant_tree = {
             group_id: {
-                mutant_id: extract_mutants(mutant_string=mutant_id)[1]
+                mutant_id: extract_mutants_from_mutant_id(mutant_string=mutant_id)[1]
                 for mutant_id in cmd.get_object_list(f'({group_id})')
             }
             for group_id in cmd.get_names(type='group_objects', enabled_only=1)

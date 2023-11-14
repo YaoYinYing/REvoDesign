@@ -18,6 +18,7 @@ class Mutant:
         self.mutant_info = mutant_info
         self.mutant_score = mutant_score
         self.mutant_description = ''
+        self.mutant_id=''
         self.wt_sequence = ''
 
     def __str__(self):
@@ -42,15 +43,35 @@ class Mutant:
         Returns:
         string: The mutant identifier with score
         """
-        return (
-            '_'.join(
-                [
-                    f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}'
-                    for _mutant_info in self.mutant_info
-                ]
-            )
-            + f'_{self.mutant_score}'
+
+        self.mutant_id = '_'.join(
+            [
+                f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}'
+                for _mutant_info in self.mutant_info
+            ]
         )
+
+        return f'{self.mutant_id}_{self.mutant_score}'
+    
+    def get_short_mutant_id(self):
+        self.mutant_id = '_'.join(
+            [
+                f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}'
+                for _mutant_info in self.mutant_info
+            ]
+        )
+        
+        if len(self.mutant_id) > 15:
+            import hashlib
+            hashed_mutant_id = hashlib.sha256(
+                bytes(self.mutant_id.encode())
+            ).hexdigest()
+            mutant_id = hashed_mutant_id[:15]
+        else:
+            mutant_id = self.mutant_id
+        
+        return f'{mutant_id}_{self.mutant_score}'
+
 
     def get_mutant_score(self):
         """

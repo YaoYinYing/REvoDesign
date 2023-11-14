@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>558</height>
+    <height>556</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -811,9 +811,9 @@
      <widget class="QGroupBox" name="groupBox_preffer_substitution">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>270</y>
-        <width>391</width>
+        <x>360</x>
+        <y>280</y>
+        <width>261</width>
         <height>61</height>
        </rect>
       </property>
@@ -825,7 +825,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>371</width>
+         <width>241</width>
          <height>21</height>
         </rect>
        </property>
@@ -834,68 +834,13 @@
        </property>
       </widget>
      </widget>
-     <widget class="QGroupBox" name="groupBox_reject_substitution">
-      <property name="geometry">
-       <rect>
-        <x>410</x>
-        <y>270</y>
-        <width>211</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Substitutions to Reject</string>
-      </property>
-      <widget class="QLineEdit" name="lineEdit_reject_substitution">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>191</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="statusTip">
-        <string>Substitutions to reject. eg. `PC` to reject proline and cysteine.</string>
-       </property>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox">
-      <property name="geometry">
-       <rect>
-        <x>410</x>
-        <y>200</y>
-        <width>211</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Design Case</string>
-      </property>
-      <widget class="QLineEdit" name="lineEdit_design_case">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>191</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="statusTip">
-        <string>You should name this design case with a proper label.</string>
-       </property>
-       <property name="text">
-        <string>default</string>
-       </property>
-      </widget>
-     </widget>
      <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>170</y>
-        <width>391</width>
-        <height>91</height>
+        <y>160</y>
+        <width>351</width>
+        <height>111</height>
        </rect>
       </property>
       <property name="title">
@@ -906,8 +851,8 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>371</width>
-         <height>51</height>
+         <width>331</width>
+         <height>71</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_36">
@@ -954,28 +899,138 @@
           </property>
          </widget>
         </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_reject_substitution">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>280</y>
+        <width>171</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Substitutions to Reject</string>
+      </property>
+      <widget class="QLineEdit" name="lineEdit_reject_substitution">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>151</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="statusTip">
+        <string>Substitutions to reject. eg. `PC` to reject proline and cysteine.</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>280</y>
+        <width>161</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Design Case</string>
+      </property>
+      <widget class="QLineEdit" name="lineEdit_design_case">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>141</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="statusTip">
+        <string>You should name this design case with a proper label.</string>
+       </property>
+       <property name="text">
+        <string>default</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_11">
+      <property name="geometry">
+       <rect>
+        <x>370</x>
+        <y>160</y>
+        <width>251</width>
+        <height>111</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Designer Options</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_4">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>231</width>
+         <height>71</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_16">
         <item>
-         <spacer name="verticalSpacer">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
+         <layout class="QHBoxLayout" name="horizontalLayout_10">
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Temp:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_designer_temperature">
+            <property name="text">
+             <string>0.1</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>Sample:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_designer_num_samples">
+            <property name="text">
+             <string>20</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
-         <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
-          <property name="statusTip">
-           <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
-          </property>
-          <property name="text">
-           <string>Reversed</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_31">
+          <item>
+           <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
+            <property name="statusTip">
+             <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
+            </property>
+            <property name="text">
+             <string>Reversed</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox_designer_homooligomeric">
+            <property name="text">
+             <string>Homooligomeric</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -3823,7 +3878,7 @@
      <x>0</x>
      <y>0</y>
      <width>660</width>
-     <height>24</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuREvoDesign">
