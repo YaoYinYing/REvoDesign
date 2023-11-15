@@ -281,6 +281,7 @@ class PssmAnalyzer:
         magician = EXTERNAL_DESIGNERS[self.input_profile_format]
 
         # setup MPNN designer
+        logging.info(f'Starting {self.input_profile_format}, this may take a while.')
         if self.input_profile_format == 'ProteinMPNN':
             self.external_designer = magician(
                 molecule=self.molecule,
@@ -315,15 +316,18 @@ class PssmAnalyzer:
             self.output_pse = ''
             return
 
+        logging.info(f'Setting preffered substitutions {self.preffered_substitutions}.')
         self.external_designer.preffer_substitutions(
             aa=self.preffered_substitutions
         )
 
+        logging.info(f'Starting design with {self.input_profile_format}, this may take a long time, depending on batch and design number you required.')
         designs = self.external_designer.designer(
             num=self.external_designer_num_samples,
             batch=self.batch,
             temperature=self.external_designer_temperature,
         )
+        logging.info('Design is done. Parsing the results...')
 
         mutant_objs = []
         score_list = []
@@ -355,6 +359,7 @@ class PssmAnalyzer:
         visualizer.mutant_list = mutant_objs
         visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
         self.output_pse = visualizer.save_session
+        logging.info("Done.")
 
     def design_protein_using_pssm(
         self,

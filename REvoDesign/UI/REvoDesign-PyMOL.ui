@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>563</height>
+    <height>558</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -696,7 +696,7 @@
                </size>
               </property>
               <property name="statusTip">
-               <string>Format of profile, automatically determined.</string>
+               <string>Format of profile, automatically determined. Profile will be ignored if choosing external designer.</string>
               </property>
              </widget>
             </item>
@@ -830,7 +830,7 @@
         </rect>
        </property>
        <property name="statusTip">
-        <string>Preferred substitutions. eg. `E:DATY K:RATY N:ATY Q:EDATY` </string>
+        <string>Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY N:ATY Q:EDATY`. For external designers: `DNEQKRH`. </string>
        </property>
       </widget>
      </widget>
@@ -1004,6 +1004,9 @@
           </item>
           <item>
            <widget class="QLineEdit" name="lineEdit_designer_temperature">
+            <property name="statusTip">
+             <string>Temperature of external designer</string>
+            </property>
             <property name="text">
              <string>0.1</string>
             </property>
@@ -1018,6 +1021,9 @@
           </item>
           <item>
            <widget class="QLineEdit" name="lineEdit_designer_num_samples">
+            <property name="statusTip">
+             <string>Number of sequence to sample.</string>
+            </property>
             <property name="text">
              <string>20</string>
             </property>
@@ -1036,6 +1042,9 @@
           </item>
           <item>
            <widget class="QLineEdit" name="lineEdit_designer_batch">
+            <property name="statusTip">
+             <string>Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`</string>
+            </property>
             <property name="text">
              <string>1</string>
             </property>
@@ -1043,6 +1052,9 @@
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_designer_homooligomeric">
+            <property name="statusTip">
+             <string>Homo-oligomeric binding of design chain_id</string>
+            </property>
             <property name="text">
              <string>Homooligomeric</string>
             </property>
@@ -2027,7 +2039,7 @@
                </size>
               </property>
               <property name="statusTip">
-               <string>Format of profile, automatically determined.</string>
+               <string>Format of profile, automatically determined. Ignore profile if choosing external scorers.</string>
               </property>
              </widget>
             </item>
@@ -2944,7 +2956,7 @@
          <x>10</x>
          <y>30</y>
          <width>251</width>
-         <height>211</height>
+         <height>213</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_18">
@@ -3078,6 +3090,53 @@
             </property>
             <property name="text">
              <string>Ignore WT</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_chainid_13">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Scorer:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBox_external_scorer">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>100</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="statusTip">
+             <string>Format of profile, automatically determined. Profile will be ignored if choosing external designer.</string>
             </property>
            </widget>
           </item>
