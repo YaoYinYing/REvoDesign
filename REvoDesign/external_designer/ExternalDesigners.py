@@ -1,7 +1,7 @@
 import os
 
 
-# Designer API to ColabDesign MPNN
+# Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN:
     def __init__(self, molecule, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
@@ -16,14 +16,16 @@ class ColabDesigner_MPNN:
 
     def preffer_substitutions(self, aa=''):
         from colabdesign.mpnn.model import aa_order
+
         for k in aa:
-            self.mpnn_model._inputs["bias"][:,aa_order[k]] += 2
+            self.mpnn_model._inputs["bias"][:, aa_order[k]] += 2
 
     def scorer(self, sequence):
+        # scorer must return a float score value given a mutant sequence.
         # lower score is better.
         # https://github.com/dauparas/ProteinMPNN/issues/44#issuecomment-1475522598
         return self.mpnn_model.score(seq=sequence)['score']
 
     def designer(self, *args, **kwargs):
+        # designer must return a dict containing `'seq'` and `'score'` iterables.
         return self.mpnn_model.sample(*args, **kwargs)
-    

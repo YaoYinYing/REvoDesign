@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- set `batch` for external designers
+- Unit test script: `tests/launch_REvoDesign.pymol.pml`
+- Add help msg for `MutantVisualizer.merge_sessions_via_commandline` to enable a more generic session merge interface.
+- Add help msg for mutant tools.
+
+### Changed
+- Refactor external designers (ProteinMPNN, etc.) to a separate area to allow users to add their own designers in an easier way.
+
+
+### Fixed
+- use `int` as the type of `position` in `extract_mutants_from_mutant_id`
+
 ## [1.2.1] - 2023-11-15
 
 ### Added
@@ -48,7 +61,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MutantVisualizer.parse_profile`: if any of external scorer is enabled, use it with highest priority.
 - `extract_mutants_from_mutant_id` --> `extract_mutant_from_pymol_object`: read `Mutant` object from the PyMOL object content, instead of the object name.
 - Massive refactors of `tools.utils` into several tool functions sorted by their functions and dependencies.
-- 
   
 ### Fixed
 - `is_distal_residue_pair`
@@ -59,7 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - `update_REvoDesign_from_repo.sh`
-- 
 
 ## [1.2.0] - 2023-11-03
 ### Added

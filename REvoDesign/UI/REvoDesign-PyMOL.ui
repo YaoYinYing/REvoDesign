@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>556</height>
+    <height>563</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -846,56 +846,70 @@
       <property name="title">
        <string>Score cutoff</string>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_11">
+      <widget class="QWidget" name="verticalLayoutWidget_9">
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>30</y>
-         <width>331</width>
-         <height>71</height>
+         <y>20</y>
+         <width>341</width>
+         <height>81</height>
         </rect>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_36">
+       <layout class="QVBoxLayout" name="verticalLayout_17">
         <item>
-         <widget class="QLineEdit" name="lineEdit_score_minima">
-          <property name="font">
-           <font>
-            <pointsize>24</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>-2</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_36">
+          <item>
+           <widget class="QLineEdit" name="lineEdit_score_minima">
+            <property name="font">
+             <font>
+              <pointsize>24</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>-2</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_output_pse_3">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Scoring criteria.</string>
+            </property>
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ &lt;/span&gt;&lt;span style=&quot; font-size:18pt; font-style:italic;&quot;&gt;Δ&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Score &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;Sub-WT &lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_score_maxima">
+            <property name="font">
+             <font>
+              <pointsize>24</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>10</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
-         <widget class="QLabel" name="label_output_pse_3">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
+         <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
           <property name="statusTip">
-           <string>Scoring criteria.</string>
+           <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
           </property>
           <property name="text">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤ &lt;/span&gt;&lt;span style=&quot; font-size:18pt; font-style:italic;&quot;&gt;Δ&lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Score &lt;/span&gt;&lt;span style=&quot; font-size:18pt; vertical-align:sub;&quot;&gt;Sub-WT &lt;/span&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;≤&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEdit_score_maxima">
-          <property name="font">
-           <font>
-            <pointsize>24</pointsize>
-           </font>
-          </property>
-          <property name="text">
-           <string>10</string>
+           <string>Reversed</string>
           </property>
          </widget>
         </item>
@@ -1014,12 +1028,16 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_31">
           <item>
-           <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
-            <property name="statusTip">
-             <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
-            </property>
+           <widget class="QLabel" name="label_4">
             <property name="text">
-             <string>Reversed</string>
+             <string>Batch:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_designer_batch">
+            <property name="text">
+             <string>1</string>
             </property>
            </widget>
           </item>

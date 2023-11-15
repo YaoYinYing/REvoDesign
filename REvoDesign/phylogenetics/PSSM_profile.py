@@ -33,6 +33,8 @@ from REvoDesign.tools.mutant_tools import (
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.phylogenetics.pymol_pssm_script import process_pssm_mutations
 
+from REvoDesign.common.magic_numbers import DEFAULT_PROFILE_TYPE_GROUP
+
 
 class PssmAnalyzer:
     def __init__(self, input_pssm_file):
@@ -45,6 +47,7 @@ class PssmAnalyzer:
         self.external_designer = None
         self.external_designer_temperature = 0.1
         self.external_designer_num_samples = 1
+        self.batch = 1
         self.homooligomeric = False
 
         self.molecule = ''
@@ -65,18 +68,6 @@ class PssmAnalyzer:
         self.parallel_run = False
         self.nproc = 1
 
-    @staticmethod
-    def parse_custom_indices(indices_str):
-        custom_indices = []
-        ranges = indices_str.split(',')
-        for r in ranges:
-            if '-' in r:
-                start, end = r.split('-')
-                custom_indices.extend(list(range(int(start), int(end) + 1)))
-            else:
-                custom_indices.append(int(r))
-        return custom_indices
-
     def plot_custom_indices_segments(
         self,
         df_ori,
@@ -91,7 +82,9 @@ class PssmAnalyzer:
         if custom_indices_str == '':
             custom_indices_str = f'1-{len(self.sequence)}'
 
-        custom_indices = self.parse_custom_indices(custom_indices_str)
+        custom_indices = expand_range(
+            shortened_str=custom_indices_str, seperator=',', connector='-'
+        )
         logging.info(custom_indices)
 
         if custom_indices == []:
@@ -227,63 +220,84 @@ class PssmAnalyzer:
 
         return preffered_dict
 
+    def setup_parameters_for_external_designer(self):
+        all_chains = find_all_protein_chain_ids_in_protein(sele=self.molecule)
+
+        if len(all_chains) == 1 or (not self.homooligomeric):
+            design_chain_id = [self.chain_id]
+        else:
+            design_chain_id = [self.chain_id] + [
+                chain_id
+                for chain_id in all_chains
+                if chain_id != self.chain_id
+                and get_molecule_sequence(
+                    molecule=self.molecule, chain_id=chain_id
+                )
+                == self.sequence
+            ]
+            if len(design_chain_id) < 2:
+                logging.warning(
+                    f'No homooligomer found for chain {self.chain_id}, ignore `homooligomeric` setting'
+                )
+                self.homooligomeric = False
+        self.design_chain_id = design_chain_id
+
     def setup_external_designer(
         self,
         custom_indices_str='',
     ):
-        if not WITH_COLABDESIGN:
+        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+
+        if not self.input_profile_format in EXTERNAL_DESIGNERS.keys():
             logging.error(
-                'ColabDesign is not available. Please install it manually then restart pymol for taking effort.'
-                '`system pip -q install git+https://github.com/sokrypton/ColabDesign.git@v1.1.1`'
+                f'External design {self.input_profile_format} is not registed in `ExternalDesigners.py`'
             )
             return
 
+        # help msg if MPNN is called yet not installed.
+        if self.input_profile_format == 'ProteinMPNN':
+            if not WITH_COLABDESIGN:
+                logging.error(
+                    'ColabDesign is not available. Please install it manually then restart pymol for taking effort.'
+                    '`system pip -q install git+https://github.com/sokrypton/ColabDesign.git@v1.1.1`'
+                )
+                return
 
-        custom_indices = self.parse_custom_indices(custom_indices_str)
-        if (
+        # expand design residue index
+        expanded_custom_indices = expand_range(
+            shortened_str=custom_indices_str, connector='-', seperator=','
+        )
+
+        # setup parameters for external designer
+        self.setup_parameters_for_external_designer()
+
+        if not (
             self.external_designer_temperature
             and self.external_designer_num_samples
         ):
-            if self.input_profile_format == 'ProteinMPNN':
-                from REvoDesign.structure.ColabDesigner import (
-                    ColabDesigner_MPNN,
-                )
+            logging.error(f'Missing input for external designer')
+            return
 
-                all_chains = find_all_protein_chain_ids_in_protein(
-                    sele=self.molecule
-                )
+        magician = EXTERNAL_DESIGNERS[self.input_profile_format]
 
-                if len(all_chains) == 1 or (not self.homooligomeric):
-                    design_chain_id = [self.chain_id]
-                else:
-                    design_chain_id = [self.chain_id] + [
-                        chain_id
-                        for chain_id in all_chains
-                        if chain_id != self.chain_id
-                        and get_molecule_sequence(
-                            molecule=self.molecule, chain_id=chain_id
-                        )
-                        == self.sequence
+        # setup MPNN designer
+        if self.input_profile_format == 'ProteinMPNN':
+            self.external_designer = magician(
+                molecule=self.molecule,
+                fix_pos=','.join(
+                    [
+                        f"{self.chain_id}{indice}"
+                        for indice in shorter_range(
+                            expanded_custom_indices, connector='-'
+                        ).split('+')
                     ]
-                    if len(design_chain_id) < 2:
-                        logging.warning(f'No homooligomer found for chain {self.chain_id}, ignore `homooligomeric` setting')
-                        self.homooligomeric=False
-
-
-                custom_indices = shorter_range(custom_indices, connector='-')
-                self.external_designer = ColabDesigner_MPNN(
-                    molecule=self.molecule,
-                    fix_pos=','.join(
-                        [
-                            f"{self.chain_id}{indice}"
-                            for indice in custom_indices.split('+')
-                        ]
-                    ),
-                    inverse=True,
-                    rm_aa=','.join(list(self.reject_aa)),
-                    chain=','.join(design_chain_id),
-                    homooligomeric=self.homooligomeric,
-                )
+                ),
+                inverse=True,
+                rm_aa=','.join(list(self.reject_aa)),
+                chain=','.join(self.design_chain_id),
+                homooligomeric=self.homooligomeric,
+            )
+            return
 
     def design_protein_using_external_designer(
         self, custom_indices_fp, progress_bar
@@ -298,6 +312,7 @@ class PssmAnalyzer:
             logging.error(
                 f'Failed to initialize external designer {self.input_profile_format}'
             )
+            self.output_pse = ''
             return
 
         self.external_designer.preffer_substitutions(
@@ -306,7 +321,7 @@ class PssmAnalyzer:
 
         designs = self.external_designer.designer(
             num=self.external_designer_num_samples,
-            batch=10,
+            batch=self.batch,
             temperature=self.external_designer_temperature,
         )
 
@@ -346,7 +361,6 @@ class PssmAnalyzer:
         custom_indices_fp='',
         cutoff=[-100, 100],
     ):
-
         custom_indices_str = (
             open(custom_indices_fp, 'r').read().strip()
             if os.path.exists(custom_indices_fp)
@@ -545,92 +559,12 @@ class PssmAnalyzer:
             progress_bar.setValue(len(mutagenesis_tasks))
 
         progress_bar.setRange(0, 0)
-        self.merge_sessions_via_commandline()
+
+        # call MutantVisualizer for merge sessions
+        session_merger = MutantVisualizer(molecule='', chain_id='')
+        session_merger.input_session = self.input_pse
+        session_merger.save_session = self.output_pse
+        session_merger.mutagenesis_sessions = self.results
+        session_merger.merge_sessions_via_commandline()
+        self.output_pse = session_merger.save_session
         progress_bar.setRange(0, 1)
-
-    # def merging_sessions(self):
-    #     logging.info("Merging all sessions .... This may take a while ...")
-
-    #     cmd.hide('surface')
-
-    #     mutagenesis_sessions = [
-    #         session_path for session_path in self.results if session_path
-    #     ]
-    #     logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
-
-    #     merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'.tmp_{os.path.basename(self.output_pse)}')}"
-
-    #     # a temperal sesion that contains only mutants, all sub-sessions will be removed after merged
-    #     tmp_session_merger = PyMOLSessionMerger(
-    #         session_paths=mutagenesis_sessions,
-    #         save_path=merged_temp_session,
-    #     )
-
-    #     tmp_session_merger.delete = True
-    #     tmp_session_merger.quiet = 0
-    #     tmp_session_merger.mode = 2
-    #     tmp_session_merger.merge_sessions()
-
-    #     # final session.
-    #     session_merger = PyMOLSessionMerger(
-    #         session_paths=[self.input_pse, merged_temp_session],
-    #         save_path=self.output_pse,
-    #     )
-
-    #     session_merger.delete = False
-    #     session_merger.quiet = 0
-    #     session_merger.mode = 2
-    #     session_merger.merge_sessions()
-
-    def merge_sessions_via_commandline(self):
-        from REvoDesign.tools import SessionMerger
-
-        logging.info("Merging all sessions .... This may take a while ...")
-
-        cmd.hide('surface')
-
-        mutagenesis_sessions = [
-            session_path for session_path in self.results if session_path
-        ]
-
-        logging.debug(f'mutangesis_sessions: {mutagenesis_sessions}')
-        merged_temp_session = f"{os.path.join(os.path.dirname(self.output_pse), f'mutate_only.{os.path.basename(self.output_pse)}')}"
-
-        tmp_merge_command = [
-            SessionMerger.__file__,
-            '--save_path',
-            merged_temp_session,
-            '--mode',
-            str(2),
-            '--delete',
-            '--quiet',
-        ] + mutagenesis_sessions
-
-        merge_results = run_command(
-            excutable='python', command_list=tmp_merge_command
-        )
-        if merge_results.returncode == 0:
-            logging.info(
-                f'Temperal merged result is successfully created at {merged_temp_session}'
-            )
-            self.output_pse = merged_temp_session
-        else:
-            logging.warning(
-                f'Temperal merged result is failed to create.  Try again with a clean PyMOL session.'
-            )
-            return
-
-        # final_merge_command=[
-        #     SessionMerger.__file__,
-        #     '--save_path', self.output_pse,
-        #     '--mode', str(2),
-        #     '--quiet',
-        #     ] + [self.input_pse, merged_temp_session]
-
-        # final_merge_results=run_command(excutable='python',command_list=final_merge_command)
-
-        # if final_merge_results.returncode:
-        #     logging.info(f'Final merged result is successfully created at {self.output_pse}')
-        # else:
-        #     logging.warning(f'Final merged result is failed to create.')
-        #     return

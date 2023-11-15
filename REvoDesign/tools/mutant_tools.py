@@ -7,9 +7,21 @@ protein_letters_3to1={v.upper():k.upper() for k,v in IUPACData.protein_letters_1
 
 
 def extract_mutants_from_mutant_id(mutant_string, chain_id=None, sequence=None):
-    logging.debug(f'Parsing {mutant_string}')
+    '''
+    Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
 
-    
+    Parameters:
+    mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
+                        <chain_id><wt_res><resi><mut_res>_...._<score>
+    chain_id (str): design chain id.
+    sequence (str): Wild-type sequence of design molecule and chain
+
+    Returns:
+    tuple: 
+        [0] - Parsed mutant string (no score)
+        [1] - Mutant : Mutant object.
+    '''
+    logging.debug(f'Parsing {mutant_string}')
 
     # Use regular expression to find all mutants in the string
     mutants = re.findall(r'([A-Z]{0,2}\d+[A-Z]{1})', mutant_string)
@@ -73,7 +85,7 @@ def extract_mutants_from_mutant_id(mutant_string, chain_id=None, sequence=None):
         mutant_info.append(
             {
                 'chain_id': _chain_id,
-                'position': _position,
+                'position': int(_position),
                 'wt_res': _wt_res,
                 'mut_res': _mut_res,
             }
@@ -95,6 +107,16 @@ def extract_mutants_from_mutant_id(mutant_string, chain_id=None, sequence=None):
     return '_'.join(mutants), mutant_obj
 
 def extract_mutant_score_from_string(mutant_string):
+    '''
+    Extract mutant score from an mutant string
+
+    Parameters:
+    mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
+                        <chain_id><wt_res><resi><mut_res>_...._<score>
+
+    Returns:
+    float: Mutant score.
+    '''
     if re.match(r'[\d+\w]+_[-\d\.e]+', mutant_string):
         matched_mutant_id = re.match(
             r'[\w\d\-]+_(\-?\d+\.?\d*e?\-?\d*)$', mutant_string
@@ -106,6 +128,17 @@ def extract_mutant_score_from_string(mutant_string):
 
 
 def extract_mutant_from_sequences(mutant_sequence, wt_sequence, chain_id='A') -> Mutant: 
+    '''
+    Extract mutant from mutant sequence.
+
+    Parameters:
+    mutant_sequence (str): Mutant sequence.
+    wt_sequence (str): Wild-type sequence.
+    chain_id (str): Chain id
+
+    Returns:
+    Mutant: Mutant object
+    '''
     if len(mutant_sequence) != len(wt_sequence):
         logging.error(
             f'Lengths of WT and mutant are not equal to each other: {len(wt_sequence)}: {len(mutant_sequence)}'
@@ -191,12 +224,12 @@ def expand_range(shortened_str, connector='-', seperator='+'):
 
     Parameters:
     shortened_str (str): A shortened string expression representing a list of integers.
-
-    Returns:
-    list: A list of integers corresponding to the original input.
     connector (str): A string for connecting consecutive ranges
     seperator (str): A string for separating non-consecutive ranges
 
+    Returns:
+    list: A list of integers corresponding to the original input.
+    
     Example:
     >>> shortened_str = "395-401+403-409"
     >>> result = expand_range(shortened_str)
@@ -217,6 +250,16 @@ def expand_range(shortened_str, connector='-', seperator='+'):
 
 
 def extract_mutant_from_pymol_object(pymol_object, sequence=''):
+    '''
+    Extract mutant info from an existing pymol object.
+
+    Parameters:
+    pymol_object (str): object to extract from.
+    sequence (str): Wild-type sequence of design molecule and chain
+
+    Returns:
+    Mutant : Mutant object.
+    '''
     from pymol import cmd
 
     mutant_info=[

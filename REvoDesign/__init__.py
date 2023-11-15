@@ -7,6 +7,7 @@ from pymol.Qt import QtWidgets
 from functools import partial
 import absl.logging as logging
 
+
 logging.set_verbosity(logging.DEBUG)
 logging.info(f'REvoDesign is installed in {os.path.dirname(__file__)}')
 
@@ -61,7 +62,7 @@ from REvoDesign.tools.pymol_utils import (
 
 from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_pymol_object,
-    extract_mutants_from_mutant_id
+    extract_mutants_from_mutant_id,
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
@@ -136,6 +137,8 @@ class REvoDesignPlugin:
             DEFAULT_PROFILE_TYPE,
             DEFAULT_PROFILE_TYPE_GROUP,
         )
+
+        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
         # Set up Menu
 
@@ -323,7 +326,8 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE_GROUP
+            self.ui.comboBox_profile_type,
+            DEFAULT_PROFILE_TYPE_GROUP + list(EXTERNAL_DESIGNERS.keys()),
         )
         set_widget_value(self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE)
 
@@ -536,7 +540,8 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE_GROUP
+            self.ui.comboBox_profile_type_2,
+            DEFAULT_PROFILE_TYPE_GROUP + list(EXTERNAL_DESIGNERS.keys()),
         )
         set_widget_value(self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE)
 
@@ -1166,6 +1171,7 @@ class REvoDesignPlugin:
 
         temperature = float(self.ui.lineEdit_designer_temperature.text())
         num_designs = int(self.ui.lineEdit_designer_num_samples.text())
+        batch = int(self.ui.lineEdit_designer_batch.text())
         homooligomeric = self.ui.checkBox_designer_homooligomeric.isChecked()
 
         design_case = self.ui.lineEdit_design_case.text()
@@ -1217,6 +1223,7 @@ class REvoDesignPlugin:
 
         design.external_designer_temperature = temperature
         design.external_designer_num_samples = num_designs
+        design.batch = batch
         design.homooligomeric = homooligomeric
 
         design.preffered_substitutions = preffered
@@ -1225,7 +1232,9 @@ class REvoDesignPlugin:
         design.nproc = nproc
         design.cmap = cmap
 
-        if design_profile_format == 'ProteinMPNN':
+        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+
+        if design_profile_format in EXTERNAL_DESIGNERS.keys():
             design.design_protein_using_external_designer(
                 custom_indices_fp=custom_indices_fp, progress_bar=progressbar
             )
@@ -1244,6 +1253,11 @@ class REvoDesignPlugin:
                 create_full_pdb=False,
                 progress_bar=progressbar,
             )
+
+        if not design.output_pse:
+            logging.error(f'No output PyMOL session is created.')
+            self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
+            return
 
         cmd.load(design.output_pse, partial=2)
 
@@ -2790,9 +2804,9 @@ class REvoDesignPlugin:
             logging.info(f" Visualizing {mutant}: {color}")
 
             _, mutant_obj = extract_mutants_from_mutant_id(
-                mutant_string=mutant, 
+                mutant_string=mutant,
                 chain_id=self.design_chain_id,
-                sequence=self.design_sequence
+                sequence=self.design_sequence,
             )
             visualizer.create_mutagenesis_objects(mutant_obj, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')
