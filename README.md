@@ -80,6 +80,20 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    # Upgrade from a local repo/directory
    install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1
    ```
+   e. To install REvoDesign with **[ColabDesign](https://github.com/sokrypton/ColabDesig)**:
+   ```python
+   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1,0, colabdesign
+   ```
+   **WARNING: ColabDesign uses Jax, which requires Python >= 3.9**
+   
+   Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+
+   ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
+   Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
+
+   **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
+   
+   **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
 
    Note that during the installation process, the window will freeze for a while.
 

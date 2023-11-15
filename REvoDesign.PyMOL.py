@@ -21,9 +21,11 @@ After it is done, you should restart PyMOL.
 
 
 def install_via_pip(
-    source='https://github.com/YaoYinYing/REvoDesign', upgrade=0,quiet=0
+    source='https://github.com/YaoYinYing/REvoDesign', upgrade=0,quiet=0, extras=''
 ):
     import sys, subprocess
+    upgrade=int(upgrade)
+    quiet=int(quiet)
 
     print(
         'Installation is started. This may take a while and the window will freeze until it is done.'
@@ -31,10 +33,11 @@ def install_via_pip(
     python_exe = os.path.realpath(sys.executable)
 
     _source = ''
+    _extras = f'[{extras}]' if extras in ['colabdesign'] else ''
 
     # a HTTP repo URL
     if source.startswith('https://'):
-        _source = f'git+{source}'
+        _source = f'git+{source}{_extras}'
 
     # Downloaded or cloned source code
     else:
@@ -58,11 +61,11 @@ def install_via_pip(
         if os.path.exists(
             os.path.join(local_source_dir, '.git')
         ) and source.startswith('file://'):
-            _source = f'git+file://{local_source_dir}'
+            _source = f'git+file://{local_source_dir}{_extras}'
 
         # An unzipped copy of source code with building file or non `'file://'` source for git
         else:
-            _source = f'{local_source_dir}'
+            _source = f'{local_source_dir}{_extras}'
 
     # install via pip+git
     subprocess.run([python_exe, '-m', 'ensurepip'])
@@ -74,6 +77,7 @@ def install_via_pip(
         'install',
         _source,
     ]
+
     if upgrade:
         pip_cmd.append('--upgrade')
 
