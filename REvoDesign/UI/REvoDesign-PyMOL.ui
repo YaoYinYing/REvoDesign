@@ -1029,6 +1029,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="statusTip">
+             <string>Number of sequence to sample.</string>
+            </property>
             <property name="text">
              <string>Num:</string>
             </property>
@@ -1044,6 +1047,9 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Number of sequence to sample.</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1071,6 +1077,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="statusTip">
+             <string>Temperature of external designer. Higher values will lead to more diversity.</string>
+            </property>
             <property name="text">
              <string>Temp:</string>
             </property>
@@ -1086,6 +1095,9 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Temperature of external designer. Higher values will lead to more diversity.</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -1129,6 +1141,9 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
+            <property name="statusTip">
+             <string>Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`</string>
+            </property>
             <property name="text">
              <string>Batch:</string>
             </property>
@@ -1144,6 +1159,9 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -3971,6 +3989,9 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="statusTip">
+         <string>Number of processors used. Parallelism is enabled if CPU is set greater than 1</string>
+        </property>
         <property name="text">
          <string>CPUs:</string>
         </property>
@@ -3986,6 +4007,9 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="statusTip">
+         <string>Number of processors used. Parallelism is enabled if CPU is set greater than 1</string>
         </property>
        </widget>
       </item>
