@@ -74,12 +74,12 @@
     <property name="currentIndex">
      <number>0</number>
     </property>
-    <widget class="QWidget" name="tab_determine">
+    <widget class="QWidget" name="tab_prepare">
      <property name="statusTip">
       <string>Determine surfaces, pockets, interfaces and evolutionary profile.</string>
      </property>
      <attribute name="title">
-      <string>Determine</string>
+      <string>Prepare</string>
      </attribute>
      <widget class="QGroupBox" name="groupBox_functional">
       <property name="geometry">
@@ -622,7 +622,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_load_PSSM">
+    <widget class="QWidget" name="tab_mutate">
      <property name="statusTip">
       <string>Load Mutants from PSSM with biases.</string>
      </property>
@@ -641,7 +641,7 @@
       <property name="title">
        <string/>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -859,9 +859,9 @@
       <widget class="QWidget" name="horizontalLayoutWidget_11">
        <property name="geometry">
         <rect>
-         <x>0</x>
+         <x>10</x>
          <y>30</y>
-         <width>301</width>
+         <width>291</width>
          <height>99</height>
         </rect>
        </property>
@@ -896,7 +896,7 @@
         <item>
          <widget class="QLabel" name="label_output_pse_3">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
@@ -1200,7 +1200,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_mutant_choices">
+    <widget class="QWidget" name="tab_evaluate">
      <property name="statusTip">
       <string>Choose mutant from structural insights</string>
      </property>
@@ -2089,7 +2089,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_visualize_mutants">
+    <widget class="QWidget" name="tab_visualize">
      <property name="statusTip">
       <string>Visualize mutants in structure model.</string>
      </property>
@@ -2953,7 +2953,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_6">
+    <widget class="QWidget" name="tab_interact">
      <property name="statusTip">
       <string>Inspect co-evolved pairs</string>
      </property>
@@ -3514,7 +3514,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab">
+    <widget class="QWidget" name="tab_client">
      <attribute name="title">
       <string>Client</string>
      </attribute>
@@ -4080,7 +4080,7 @@
      <x>0</x>
      <y>0</y>
      <width>660</width>
-     <height>37</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuREvoDesign">

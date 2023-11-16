@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `lineEdit_designer_num_samples` -> `spinBox_designer_num_samples`
   - `lineEdit_designer_batch` -> `spinBox_designer_batch`
 - `set_widget_value`: Moving error to intenal function `set_value_error`
+- Sending external designer setup and run processes to a worker thread
 
 ### Fixed
 - use `int` as the type of `position` in `extract_mutants_from_mutant_id`

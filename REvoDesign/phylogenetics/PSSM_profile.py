@@ -382,7 +382,7 @@ class PssmAnalyzer:
             seqs, scores = random_deduplicate(
                 seq=designs['seq'], score=designs['score']
             )
-            logging.warning(f'Removed designs: {counter_1.total()-len(seqs)}')
+            logging.warning(f'Removed designs: {len(designs["seq"])-len(seqs)}')
         else:
             seqs, scores = designs['seq'], designs['score']
 
