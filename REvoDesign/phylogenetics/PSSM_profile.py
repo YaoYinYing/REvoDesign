@@ -26,6 +26,7 @@ from REvoDesign.tools.pymol_utils import (
 
 from REvoDesign.tools.mutant_tools import (
     expand_range,
+    read_customized_indice,
     shorter_range,
     extract_mutants_from_mutant_id,
     extract_mutant_from_sequences,
@@ -79,8 +80,11 @@ class PssmAnalyzer:
     ):
         df = df_ori.copy()
 
+        logging.debug(custom_indices_str)
+
         if custom_indices_str == '':
             custom_indices_str = f'1-{len(self.sequence)}'
+            logging.debug(f' --> {custom_indices_str}')
 
         custom_indices = expand_range(
             shortened_str=custom_indices_str, seperator=',', connector='-'
@@ -294,7 +298,7 @@ class PssmAnalyzer:
                     ]
                 ),
                 inverse=True,
-                rm_aa=','.join(list(self.reject_aa)),
+                rm_aa=','.join(list(self.reject_aa)) if self.reject_aa else None,
                 chain=','.join(self.design_chain_id),
                 homooligomeric=self.homooligomeric,
             )
@@ -303,11 +307,7 @@ class PssmAnalyzer:
     def design_protein_using_external_designer(
         self, custom_indices_fp, progress_bar
     ):
-        custom_indices_str = (
-            open(custom_indices_fp, 'r').read().strip()
-            if os.path.exists(custom_indices_fp)
-            else ''
-        )
+        custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_fp)
         self.setup_external_designer(custom_indices_str=custom_indices_str)
         if not self.external_designer:
             logging.error(
@@ -361,16 +361,13 @@ class PssmAnalyzer:
         self.output_pse = visualizer.save_session
         logging.info("Done.")
 
+
     def design_protein_using_pssm(
         self,
         custom_indices_fp='',
         cutoff=[-100, 100],
     ):
-        custom_indices_str = (
-            open(custom_indices_fp, 'r').read().strip()
-            if os.path.exists(custom_indices_fp)
-            else ''
-        )
+        custom_indices_str=read_customized_indice(custom_indices_from_input=custom_indices_fp)
 
         profile_parser = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id

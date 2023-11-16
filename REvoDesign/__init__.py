@@ -27,8 +27,8 @@ from REvoDesign.common.file_extensions import (
 
 
 from REvoDesign.tools.utils import (
-    does_dirname_exist,
-    check_file_exists,
+    dirname_does_exist,
+    filepath_does_exists,
     extract_archive,
     run_worker_thread_with_progress,
     get_color,
@@ -344,7 +344,6 @@ class REvoDesignPlugin:
                 self.release_run_button_if_lineEdit_fp_is_valid,
                 [
                     self.ui.lineEdit_output_pse_mutate,
-                    self.ui.lineEdit_input_customized_indices,
                 ],
                 [
                     self.ui.pushButton_run_PSSM_to_pse,
@@ -352,18 +351,6 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_input_customized_indices.textChanged.connect(
-            partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_output_pse_mutate,
-                    self.ui.lineEdit_input_customized_indices,
-                ],
-                [
-                    self.ui.pushButton_run_PSSM_to_pse,
-                ],
-            )
-        )
 
         self.ui.pushButton_run_PSSM_to_pse.clicked.connect(
             self.run_mutant_loading_from_profile
@@ -836,14 +823,14 @@ class REvoDesignPlugin:
         for fp in lineEdits_fp:
             _fp = fp.text()
             logging.info(f'Checking file path: {_fp}')
-            if not does_dirname_exist(_fp):
+            if not dirname_does_exist(_fp):
                 logging.warning(
                     f'The parent dirname of `{_fp}` is not valid. Keep design buttoms locked!'
                 )
                 button_unlocked = False
                 return
             else:
-                if not check_file_exists(_fp):
+                if not filepath_does_exists(_fp):
                     logging.warning(f'The file `{_fp}` is not valid.')
                 else:
                     logging.info(f'The file `{_fp}` is valid.')

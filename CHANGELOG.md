@@ -12,13 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit test script: `tests/launch_REvoDesign.pymol.pml`
 - Add help msg for `MutantVisualizer.merge_sessions_via_commandline` to enable a more generic session merge interface.
 - Add help msg for mutant tools.
+- `read_customized_indice` for parsing direct input of customized residue index
+- Helper function `count_and_sort_characters`
 
 ### Changed
 - Refactor external designers (ProteinMPNN, etc.) to a separate area to allow users to add their own designers in an easier way.
-
+- `does_dirname_exist` -> `dirname_does_exist`
+- `check_file_exists` -> `filepath_does_exists`
 
 ### Fixed
 - use `int` as the type of `position` in `extract_mutants_from_mutant_id`
+- `rm_aa` as `None` if not given for ProteinMPNN
+- Typo in README
+
+### Removed
+- Button lock of `lineEdit_input_customized_indices`
 
 ## [1.2.1] - 2023-11-15
 

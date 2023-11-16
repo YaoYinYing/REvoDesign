@@ -80,7 +80,7 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    # Upgrade from a local repo/directory
    install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1
    ```
-   e. To install REvoDesign with **[ColabDesign](https://github.com/sokrypton/ColabDesig)**:
+   e. To install REvoDesign with **[ColabDesign](https://github.com/sokrypton/ColabDesign)**:
    ```python
    install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1,0, colabdesign
    ```

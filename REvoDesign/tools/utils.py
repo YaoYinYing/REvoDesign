@@ -39,11 +39,11 @@ def run_command(excutable='python', command_list=[]):
     return result
 
 
-def does_dirname_exist(fp):
+def dirname_does_exist(fp):
     return os.path.exists(os.path.dirname(fp))
 
 
-def check_file_exists(fp):
+def filepath_does_exists(fp):
     return os.path.exists(fp)
 
 
@@ -172,3 +172,11 @@ def rescale_number(number, min_value, max_value):
 
     # Ensure the result is within the [0, 1] range.
     return max(0, min(1, rescaled_value))
+
+
+def count_and_sort_characters(input_string, characters):
+    char_count = {char: input_string.lower().count(char) for char in characters}
+    
+    sorted_count = dict(sorted(char_count.items(), key=lambda item: item[1], reverse=True))
+    sorted_count = {key: value for key, value in sorted_count.items() if value != 0}
+    return sorted_count

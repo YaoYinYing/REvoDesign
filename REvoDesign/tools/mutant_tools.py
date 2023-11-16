@@ -1,12 +1,19 @@
+from typing import Iterable
 from absl import logging
 import re
 from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
 
-protein_letters_3to1={v.upper():k.upper() for k,v in IUPACData.protein_letters_1to3.items()}
+from REvoDesign.tools.utils import filepath_does_exists
+
+protein_letters_3to1 = {
+    v.upper(): k.upper() for k, v in IUPACData.protein_letters_1to3.items()
+}
 
 
-def extract_mutants_from_mutant_id(mutant_string, chain_id=None, sequence=None):
+def extract_mutants_from_mutant_id(
+    mutant_string, chain_id=None, sequence=None
+):
     '''
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
 
@@ -17,7 +24,7 @@ def extract_mutants_from_mutant_id(mutant_string, chain_id=None, sequence=None):
     sequence (str): Wild-type sequence of design molecule and chain
 
     Returns:
-    tuple: 
+    tuple:
         [0] - Parsed mutant string (no score)
         [1] - Mutant : Mutant object.
     '''
@@ -96,7 +103,9 @@ def extract_mutants_from_mutant_id(mutant_string, chain_id=None, sequence=None):
         return None, None
 
     # if the mutation has a position of score, we need to extract it.
-    mutant_score=extract_mutant_score_from_string(mutant_string=mutant_string)
+    mutant_score = extract_mutant_score_from_string(
+        mutant_string=mutant_string
+    )
 
     # Instantializing a Mutant obj
     mutant_obj = Mutant(mutant_info, mutant_score)
@@ -105,6 +114,7 @@ def extract_mutants_from_mutant_id(mutant_string, chain_id=None, sequence=None):
 
     # Join the mutants into a single string separated by underscores and instantialized Mutant obj
     return '_'.join(mutants), mutant_obj
+
 
 def extract_mutant_score_from_string(mutant_string):
     '''
@@ -127,7 +137,9 @@ def extract_mutant_score_from_string(mutant_string):
     return None
 
 
-def extract_mutant_from_sequences(mutant_sequence, wt_sequence, chain_id='A') -> Mutant: 
+def extract_mutant_from_sequences(
+    mutant_sequence, wt_sequence, chain_id='A'
+) -> Mutant:
     '''
     Extract mutant from mutant sequence.
 
@@ -149,18 +161,19 @@ def extract_mutant_from_sequences(mutant_sequence, wt_sequence, chain_id='A') ->
         logging.warning(f'WT and mutant sequences are identical.')
         return None
 
-    mut_info = [ {
-                'chain_id': chain_id,
-                'position': i+1,
-                'wt_res': res,
-                'mut_res': mutant_sequence[i],
-            }
+    mut_info = [
+        {
+            'chain_id': chain_id,
+            'position': i + 1,
+            'wt_res': res,
+            'mut_res': mutant_sequence[i],
+        }
         for i, res in enumerate(wt_sequence)
         if res != mutant_sequence[i]
     ]
     logging.debug(mut_info)
 
-    mutant_obj=Mutant(mutant_info=mut_info, mutant_score=0)
+    mutant_obj = Mutant(mutant_info=mut_info, mutant_score=0)
 
     return mutant_obj
 
@@ -229,7 +242,7 @@ def expand_range(shortened_str, connector='-', seperator='+'):
 
     Returns:
     list: A list of integers corresponding to the original input.
-    
+
     Example:
     >>> shortened_str = "395-401+403-409"
     >>> result = expand_range(shortened_str)
@@ -237,6 +250,10 @@ def expand_range(shortened_str, connector='-', seperator='+'):
     [395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
     """
     expanded_list = []
+
+    if shortened_str.isdigit():
+        return [int(shortened_str)]
+    
     ranges = shortened_str.split(seperator)
 
     for rng in ranges:
@@ -262,19 +279,64 @@ def extract_mutant_from_pymol_object(pymol_object, sequence=''):
     '''
     from pymol import cmd
 
-    mutant_info=[
+    mutant_info = [
         {
-                'chain_id': at.chain,
-                'position': int(at.resi),
-                'wt_res': sequence[int(at.resi)-1] if sequence else 'X',
-                'mut_res': protein_letters_3to1[at.resn],
-            }
-
+            'chain_id': at.chain,
+            'position': int(at.resi),
+            'wt_res': sequence[int(at.resi) - 1] if sequence else 'X',
+            'mut_res': protein_letters_3to1[at.resn],
+        }
         for at in cmd.get_model(f'{pymol_object} and n. CA').atom
-
     ]
-    mutant_obj=Mutant(
-        mutant_info=mutant_info, 
-        mutant_score=extract_mutant_score_from_string(pymol_object))
-    
+    mutant_obj = Mutant(
+        mutant_info=mutant_info,
+        mutant_score=extract_mutant_score_from_string(pymol_object),
+    )
+
     return mutant_obj
+
+
+def read_customized_indice(custom_indices_from_input='') -> str: 
+    if not custom_indices_from_input:
+        return ''
+        
+
+    if filepath_does_exists(custom_indices_from_input):
+        custom_indices_str = (
+            open(custom_indices_from_input, 'r').read().strip()
+        )
+        return custom_indices_str
+    
+    # treat input as a digit
+    if custom_indices_from_input.isdigit():
+        return custom_indices_from_input
+
+
+    # direct input of customized indices: 1-20;78-99
+    if any([custom_indices_from_input.count(x) >= 1 for x in '-:,;+ ']):
+        from REvoDesign.tools.utils import count_and_sort_characters
+
+        _guessed_connector = count_and_sort_characters(
+            input_string=custom_indices_from_input, characters='-:'
+        )
+
+        _guessed_seperator = count_and_sort_characters(
+            input_string=custom_indices_from_input, characters=',;+ '
+        )
+
+        guessed_connector = list(_guessed_connector.keys())[0] if _guessed_connector else '-'
+        guessed_seperator = list(_guessed_seperator.keys())[0] if _guessed_seperator else ','
+
+        custom_indices_str = expand_range(
+            shortened_str=custom_indices_from_input,
+            connector=guessed_connector,
+            seperator=guessed_seperator,
+        )
+
+        return ','.join([str(x) for x in custom_indices_str])
+    
+    else:
+        logging.error(
+            f'Failed in parsing customized indice file/string: {custom_indices_from_input}'
+        )
+        return ''
