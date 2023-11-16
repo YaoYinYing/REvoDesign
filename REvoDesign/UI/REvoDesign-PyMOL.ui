@@ -659,7 +659,7 @@
           <item>
            <widget class="QLineEdit" name="lineEdit_input_csv">
             <property name="statusTip">
-             <string>Input protein profile. eg. PSSM/DMS/CSV</string>
+             <string>Input protein profile. eg. PSSM/DMS/CSV. Ignored if external designer is used.</string>
             </property>
             <property name="text">
              <string/>
@@ -783,7 +783,7 @@
           <item>
            <widget class="QLineEdit" name="lineEdit_input_customized_indices">
             <property name="statusTip">
-             <string>Input Custom indices txt file path</string>
+             <string>Design residue indices, text file or string like `16-78,99,103,192-199`</string>
             </property>
             <property name="text">
              <string/>
