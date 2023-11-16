@@ -18,7 +18,7 @@ class Mutant:
         self.mutant_info = mutant_info
         self.mutant_score = mutant_score
         self.mutant_description = ''
-        self.mutant_id=''
+        self.mutant_id = ''
         self.wt_sequence = ''
 
     def __str__(self):
@@ -52,7 +52,7 @@ class Mutant:
         )
 
         return f'{self.mutant_id}_{self.mutant_score}'
-    
+
     def get_short_mutant_id(self):
         """
         Get the short mutant identifier.
@@ -66,18 +66,18 @@ class Mutant:
                 for _mutant_info in self.mutant_info
             ]
         )
-        
+
         if len(self.mutant_id) > 15:
             import hashlib
+
             hashed_mutant_id = hashlib.sha256(
                 bytes(self.mutant_id.encode())
             ).hexdigest()
             mutant_id = hashed_mutant_id[:15]
         else:
             mutant_id = self.mutant_id
-        
-        return f'{mutant_id}_{self.mutant_score}'
 
+        return f'{mutant_id}_{self.mutant_score}'
 
     def get_mutant_score(self):
         """
@@ -146,3 +146,21 @@ class Mutant:
             _sequence[_pos - 1] = _mut['mut_res']
 
         return ''.join(_sequence)
+
+    def equals_to(self, other_mutant):
+        assert isinstance(
+            other_mutant, Mutant
+        ), 'Input mutant must be a Mutant object.'
+
+        return (
+            (self.mutant_info == other_mutant.mutant_info)
+            and all(
+                [
+                    self_item == others_item
+                    for self_item, others_item in zip(
+                        sorted(self.mutant_info),
+                        sorted(other_mutant.mutant_info),
+                    )
+                ]
+            )
+        )

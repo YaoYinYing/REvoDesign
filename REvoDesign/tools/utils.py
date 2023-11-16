@@ -180,3 +180,10 @@ def count_and_sort_characters(input_string, characters):
     sorted_count = dict(sorted(char_count.items(), key=lambda item: item[1], reverse=True))
     sorted_count = {key: value for key, value in sorted_count.items() if value != 0}
     return sorted_count
+
+
+def random_deduplicate(seq, score):
+    import numpy as np
+    unique_items = np.unique(seq)
+    unique_scores = [np.random.choice(score[seq == item]) for item in unique_items]
+    return np.array(unique_items), np.array(unique_scores)

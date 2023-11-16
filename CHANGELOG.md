@@ -14,11 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add help msg for mutant tools.
 - `read_customized_indice` for parsing direct input of customized residue index
 - Helper function `count_and_sort_characters`
+- `Mutant.equals_to` for future uses.
+- `random_deduplicate` for deduplicate designs from ProteinMPNN
+- `set_widget_value`: suport `QSpinBox` and `QDoubleSpinBox`
 
 ### Changed
 - Refactor external designers (ProteinMPNN, etc.) to a separate area to allow users to add their own designers in an easier way.
 - `does_dirname_exist` -> `dirname_does_exist`
 - `check_file_exists` -> `filepath_does_exists`
+- UI element changes for trial:
+  - `comboBox_nproc` -> `spinBox_nproc`
+  - `lineEdit_designer_temperature` -> `doubleSpinBox_designer_temperature`
+  - `lineEdit_designer_num_samples` -> `spinBox_designer_num_samples`
+  - `lineEdit_designer_batch` -> `spinBox_designer_batch`
+- `set_widget_value`: Moving error to intenal function `set_value_error`
 
 ### Fixed
 - use `int` as the type of `position` in `extract_mutants_from_mutant_id`
@@ -27,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Button lock of `lineEdit_input_customized_indices`
+- `num_processors`
 
 ## [1.2.1] - 2023-11-15
 

@@ -2,16 +2,21 @@ import os
 import json
 import hashlib
 import time
-import pandas as pd
 import re
 import tempfile
 from absl import logging
 from pymol import cmd
 import matplotlib
+import collections
 
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
-from REvoDesign.tools.utils import get_color, run_command, WITH_COLABDESIGN
+from REvoDesign.tools.utils import (
+    get_color,
+    WITH_COLABDESIGN,
+    random_deduplicate,
+    run_worker_thread_with_progress,
+)
 
 
 from REvoDesign.tools.customized_widgets import (
@@ -50,6 +55,7 @@ class PssmAnalyzer:
         self.external_designer_num_samples = 1
         self.batch = 1
         self.homooligomeric = False
+        self.deduplicate_designs = False
 
         self.molecule = ''
         self.chain_id = 'A'
@@ -285,7 +291,9 @@ class PssmAnalyzer:
         magician = EXTERNAL_DESIGNERS[self.input_profile_format]
 
         # setup MPNN designer
-        logging.info(f'Starting {self.input_profile_format}, this may take a while.')
+        logging.info(
+            f'Starting {self.input_profile_format}, this may take a while.'
+        )
         if self.input_profile_format == 'ProteinMPNN':
             self.external_designer = magician(
                 molecule=self.molecule,
@@ -296,9 +304,13 @@ class PssmAnalyzer:
                             expanded_custom_indices, connector='-'
                         ).split('+')
                     ]
+                    if expanded_custom_indices
+                    else None
                 ),
                 inverse=True,
-                rm_aa=','.join(list(self.reject_aa)) if self.reject_aa else None,
+                rm_aa=','.join(list(self.reject_aa))
+                if self.reject_aa
+                else None,
                 chain=','.join(self.design_chain_id),
                 homooligomeric=self.homooligomeric,
             )
@@ -307,8 +319,17 @@ class PssmAnalyzer:
     def design_protein_using_external_designer(
         self, custom_indices_fp, progress_bar
     ):
-        custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_fp)
-        self.setup_external_designer(custom_indices_str=custom_indices_str)
+        custom_indices_str = read_customized_indice(
+            custom_indices_from_input=custom_indices_fp
+        )
+
+        run_worker_thread_with_progress(
+            worker_function=self.setup_external_designer,
+            custom_indices_str=custom_indices_str,
+            progress_bar=progress_bar,
+        )
+
+        # self.setup_external_designer(custom_indices_str=custom_indices_str)
         if not self.external_designer:
             logging.error(
                 f'Failed to initialize external designer {self.input_profile_format}'
@@ -316,26 +337,68 @@ class PssmAnalyzer:
             self.output_pse = ''
             return
 
-        logging.info(f'Setting preffered substitutions {self.preffered_substitutions}.')
+        logging.info(
+            f'Setting preffered substitutions {self.preffered_substitutions}.'
+        )
         self.external_designer.preffer_substitutions(
             aa=self.preffered_substitutions
         )
 
-        logging.info(f'Starting design with {self.input_profile_format}, this may take a long time, depending on batch and design number you required.')
-        designs = self.external_designer.designer(
+        logging.info(
+            f'Starting design with {self.input_profile_format}, this may take a while,'
+            'depending on your molecule size, sampling batch and design number that you required.'
+        )
+
+        designs = run_worker_thread_with_progress(
+            worker_function=self.external_designer.designer,
             num=self.external_designer_num_samples,
             batch=self.batch,
             temperature=self.external_designer_temperature,
+            progress_bar=progress_bar,
         )
+
+        # designs = self.external_designer.designer(
+        #     num=self.external_designer_num_samples,
+        #     batch=self.batch,
+        #     temperature=self.external_designer_temperature,
+        # )
+
         logging.info('Design is done. Parsing the results...')
 
         mutant_objs = []
         score_list = []
 
-        for seq, score in zip(designs['seq'], designs['score']):
+        counter_1 = collections.Counter(designs['seq'])
+
+        if any([counter_1.get(seq) > 1 for seq in designs['seq']]):
+            logging.warning(
+                f'Designs from {self.input_profile_format} contains duplicated items.'
+            )
+
+        if self.deduplicate_designs:
+            logging.warning(
+                f'Deduplicating designs from {self.input_profile_format} ...'
+            )
+            seqs, scores = random_deduplicate(
+                seq=designs['seq'], score=designs['score']
+            )
+            logging.warning(f'Removed designs: {counter_1.total()-len(seqs)}')
+        else:
+            seqs, scores = designs['seq'], designs['score']
+
+        counter_2 = collections.Counter(seqs)
+
+        for seq, score in zip(seqs, scores):
             mutant_obj = extract_mutant_from_sequences(
                 mutant_sequence=seq, wt_sequence=self.sequence
             )
+            if counter_2.get(seq) > 1:
+                logging.warning(
+                    f'Design {mutant_obj.get_mutant_id()} has multiple scores!\n'
+                    'See: https://github.com/dauparas/ProteinMPNN/issues/19#issuecomment-1283072787\n'
+                    'Check `De-duplicated` for picking a random unique one.'
+                )
+
             mutant_obj.set_mutant_score(score)
             score_list.append(score)
             mutant_objs.append(mutant_obj)
@@ -361,13 +424,14 @@ class PssmAnalyzer:
         self.output_pse = visualizer.save_session
         logging.info("Done.")
 
-
     def design_protein_using_pssm(
         self,
         custom_indices_fp='',
         cutoff=[-100, 100],
     ):
-        custom_indices_str=read_customized_indice(custom_indices_from_input=custom_indices_fp)
+        custom_indices_str = read_customized_indice(
+            custom_indices_from_input=custom_indices_fp
+        )
 
         profile_parser = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id

@@ -18,7 +18,7 @@ class ColabDesigner_MPNN:
         from colabdesign.mpnn.model import aa_order
 
         for k in aa:
-            self.mpnn_model._inputs["bias"][:, aa_order[k]] += 2
+            self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5
 
     def scorer(self, sequence):
         # scorer must return a float score value given a mutant sequence.
@@ -28,4 +28,5 @@ class ColabDesigner_MPNN:
 
     def designer(self, *args, **kwargs):
         # designer must return a dict containing `'seq'` and `'score'` iterables.
-        return self.mpnn_model.sample(*args, **kwargs)
+        design_results=self.mpnn_model.sample(*args, **kwargs)
+        return design_results

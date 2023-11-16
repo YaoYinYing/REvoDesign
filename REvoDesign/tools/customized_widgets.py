@@ -176,13 +176,21 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
 # A universal and versatile function for value setting. ;-)
 def set_widget_value(widget, value):
+
+    def set_value_error(value,widget,type_value,type_widget):
+        logging.warning(
+                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
+            )
+
+
     type_widget = type(widget)
     type_value = type(value)
+
     # preprocess values according to types
     if type_value == type(lambda: None):  # Check if value is a function
         value = value()  # If it's a function, call it to get the value
         type_value = type(value)
-    #
+    
     if type_value == range or type_value == type(
         (x for x in range(0, 1))
     ):  # Check if value is a range or generator
@@ -190,6 +198,22 @@ def set_widget_value(widget, value):
             x for x in value
         ]  # If it's a range or generator, expand it as a list
         type_value = type(value)
+
+    # Setting values    
+    if type_widget == QtWidgets.QDoubleSpinBox:
+        if type_value == int or type_value==float:
+            widget.setValue(float(value))
+        elif (type_value == list or type_value == tuple) and len(value) >1 :
+            widget.setRange(float(value[0]), float(value[1]))
+        return
+    
+    if type_widget == QtWidgets.QSpinBox:
+        if type_value == int or type_value==float:
+            widget.setValue(int(value))
+        elif (type_value == list or type_value == tuple) and len(value) >1:
+            widget.setRange(int(value[0]), int(value[1]))
+        return
+
     if type_widget == QtWidgets.QComboBox:
         if type_value != list and type_value != tuple:
             widget.setCurrentText(str(value))
@@ -197,30 +221,31 @@ def set_widget_value(widget, value):
             widget.clear()
             widget.addItems(map(str, value))
         else:
-            logging.warning(
-                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-            )
+            set_value_error(value,widget,type_value,type_widget)
         return
-    elif type_widget == QtWidgets.QLineEdit:
+    
+    if type_widget == QtWidgets.QLineEdit:
         widget.setText(str(value))
         return
-    elif type_widget == QtWidgets.QProgressBar:
+    
+    if type_widget == QtWidgets.QProgressBar:
         if type_value == list or type_value == tuple:
             widget.setRange(int(value[0]), int(value[1]))
         elif type_value == int:
             widget.setValue(int(value))
         else:
-            logging.warning(
-                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-            )
+            set_value_error(value,widget,type_value,type_widget)
         return
-    elif type_widget == QtWidgets.QLCDNumber:
+    
+    if type_widget == QtWidgets.QLCDNumber:
         widget.display(str(value))
         return
-    elif type_widget == QtWidgets.QCheckBox:
+    
+    if type_widget == QtWidgets.QCheckBox:
         widget.setChecked(bool(value))
         return
-    elif type_widget == QtWidgets.QStackedWidget:
+    
+    if type_widget == QtWidgets.QStackedWidget:
         # Check if the value is a list of image paths
         if type_value == list:
             # Remove all existing widgets from the stacked widget
@@ -234,11 +259,10 @@ def set_widget_value(widget, value):
             if len(value) > 0:
                 widget.setCurrentIndex(0)
         else:
-            logging.warning(
-                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-            )
+            set_value_error(value,widget,type_value,type_widget)
         return
-    elif type_widget == QtWidgets.QGridLayout:
+    
+    if type_widget == QtWidgets.QGridLayout:
         if type_value == str and os.path.exists(value):
             # Clear the existing widgets from gridLayout_interact_pairs
             for i in reversed(range(widget.count())):
@@ -248,15 +272,16 @@ def set_widget_value(widget, value):
             image_widget = ImageWidget(value)
             widget.addWidget(image_widget)
         else:
-            logging.warning(
-                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-            )
+            set_value_error(value,widget,type_value,type_widget)
         return
-    else:
-        logging.warning(
-            f'FIX ME: Widget {widget} is not currently supported. '
-        )
-        return
+    
+
+
+
+    logging.warning(
+        f'FIX ME: Widget {widget} is not currently supported. '
+    )
+    return
 
 
 class ParallelExecutor(QtCore.QThread):

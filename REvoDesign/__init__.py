@@ -44,9 +44,6 @@ from REvoDesign.tools.customized_widgets import (
     getOpenFileNameWithExt,
 )
 
-from REvoDesign.tools.system_tools import (
-    num_processors,
-)
 
 from REvoDesign.tools.pymol_utils import (
     fetch_exclusion_expressions,
@@ -185,7 +182,9 @@ class REvoDesignPlugin:
         )
 
         # set up nproc
-        set_widget_value(self.ui.comboBox_nproc, num_processors)
+        set_widget_value(self.ui.spinBox_nproc, (1, os.cpu_count()))
+        set_widget_value(self.ui.spinBox_nproc, os.cpu_count())
+        
 
         # color map
         import matplotlib
@@ -1151,115 +1150,120 @@ class REvoDesignPlugin:
     def run_mutant_loading_from_profile(self):
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
 
-        design_profile = self.ui.lineEdit_input_csv.text()
-        design_profile_format = self.ui.comboBox_profile_type.currentText()
-        preffered = self.ui.lineEdit_preffer_substitution.text().upper()
-        rejected = self.ui.lineEdit_reject_substitution.text().upper()
+        try:
 
-        temperature = float(self.ui.lineEdit_designer_temperature.text())
-        num_designs = int(self.ui.lineEdit_designer_num_samples.text())
-        batch = int(self.ui.lineEdit_designer_batch.text())
-        homooligomeric = self.ui.checkBox_designer_homooligomeric.isChecked()
+            design_profile = self.ui.lineEdit_input_csv.text()
+            design_profile_format = self.ui.comboBox_profile_type.currentText()
+            preffered = self.ui.lineEdit_preffer_substitution.text().upper()
+            rejected = self.ui.lineEdit_reject_substitution.text().upper()
 
-        design_case = self.ui.lineEdit_design_case.text()
-        custom_indices_fp = self.ui.lineEdit_input_customized_indices.text()
-        cutoff = [
-            float(self.ui.lineEdit_score_minima.text()),
-            float(self.ui.lineEdit_score_maxima.text()),
-        ]
-        reversed_mutant_effect = (
-            self.ui.checkBox_reverse_mutant_effect.isChecked()
-        )
-        output_pse = self.ui.lineEdit_output_pse_mutate.text()
-        nproc = int(self.ui.comboBox_nproc.currentText())
+            temperature= self.ui.doubleSpinBox_designer_temperature.value()
+            num_designs = self.ui.spinBox_designer_num_samples.value()
+            batch = self.ui.spinBox_designer_batch.value()
+            homooligomeric = self.ui.checkBox_designer_homooligomeric.isChecked()
+            deduplicate_designs=self.ui.checkBox_deduplicate_designs.isChecked()
 
-        cmap = cmap_reverser(
-            cmap=self.ui.comboBox_cmap.currentText(),
-            reverse=reversed_mutant_effect,
-        )
+            design_case = self.ui.lineEdit_design_case.text()
+            custom_indices_fp = self.ui.lineEdit_input_customized_indices.text()
+            cutoff = [
+                float(self.ui.lineEdit_score_minima.text()),
+                float(self.ui.lineEdit_score_maxima.text()),
+            ]
+            reversed_mutant_effect = (
+                self.ui.checkBox_reverse_mutant_effect.isChecked()
+            )
+            output_pse = self.ui.lineEdit_output_pse_mutate.text()
+            nproc = self.ui.spinBox_nproc.value()
 
-        progressbar = self.ui.progressBar
-
-        parallel_run = nproc > 1
-
-        if is_a_REvoDesign_session():
-            logging.warning(
-                'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
-                'In order to keep the session\'s feature, you should always create seperate sessions according to '
-                'your dataset and merge them manually in PyMOL window.'
+            cmap = cmap_reverser(
+                cmap=self.ui.comboBox_cmap.currentText(),
+                reverse=reversed_mutant_effect,
             )
 
-        input_file = make_temperal_input_pdb(
-            molecule=self.design_molecule,
-            format='pdb',
-            wd=os.path.join(self.PWD, 'temperal_pdb'),
-        )
+            progressbar = self.ui.progressBar
 
-        from REvoDesign.phylogenetics.PSSM_profile import PssmAnalyzer
+            parallel_run = nproc > 1
 
-        design = PssmAnalyzer(design_profile)
-        design.input_pse = input_file
-        design.output_pse = output_pse
-        design.input_profile_format = design_profile_format
+            if is_a_REvoDesign_session():
+                logging.warning(
+                    'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
+                    'In order to keep the session\'s feature, you should always create seperate sessions according to '
+                    'your dataset and merge them manually in PyMOL window.'
+                )
 
-        design.molecule = self.design_molecule
-        design.chain_id = self.design_chain_id
-        design.sequence = self.design_sequence
-        design.pwd = self.PWD
-        design.design_case = design_case
-
-        design.external_designer_temperature = temperature
-        design.external_designer_num_samples = num_designs
-        design.batch = batch
-        design.homooligomeric = homooligomeric
-
-        design.preffered_substitutions = preffered
-        design.reject_aa = rejected
-        design.parallel_run = parallel_run
-        design.nproc = nproc
-        design.cmap = cmap
-
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-        if design_profile_format in EXTERNAL_DESIGNERS.keys():
-            design.design_protein_using_external_designer(
-                custom_indices_fp=custom_indices_fp, progress_bar=progressbar
-            )
-        else:
-            (
-                mutation_json_fp,
-                mutant_table_fp,
-                mutation_png_fp,
-            ) = design.design_protein_using_pssm(
-                custom_indices_fp=custom_indices_fp,
-                cutoff=cutoff,
+            input_file = make_temperal_input_pdb(
+                molecule=self.design_molecule,
+                format='pdb',
+                wd=os.path.join(self.PWD, 'temperal_pdb'),
             )
 
-            design.load_mutants_to_pymol_session(
-                mutant_json=mutation_json_fp,
-                create_full_pdb=False,
-                progress_bar=progressbar,
-            )
+            from REvoDesign.phylogenetics.PSSM_profile import PssmAnalyzer
 
-        if not design.output_pse:
-            logging.error(f'No output PyMOL session is created.')
+            design = PssmAnalyzer(design_profile)
+            design.input_pse = input_file
+            design.output_pse = output_pse
+            design.input_profile_format = design_profile_format
+
+            design.molecule = self.design_molecule
+            design.chain_id = self.design_chain_id
+            design.sequence = self.design_sequence
+            design.pwd = self.PWD
+            design.design_case = design_case
+
+            design.external_designer_temperature = temperature
+            design.external_designer_num_samples = num_designs
+            design.batch = batch
+            design.homooligomeric = homooligomeric
+            design.deduplicate_designs = deduplicate_designs
+
+            design.preffered_substitutions = preffered
+            design.reject_aa = rejected
+            design.parallel_run = parallel_run
+            design.nproc = nproc
+            design.cmap = cmap
+
+            from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+
+            if design_profile_format in EXTERNAL_DESIGNERS.keys():
+                design.design_protein_using_external_designer(
+                    custom_indices_fp=custom_indices_fp, progress_bar=progressbar
+                )
+            else:
+                (
+                    mutation_json_fp,
+                    mutant_table_fp,
+                    mutation_png_fp,
+                ) = design.design_protein_using_pssm(
+                    custom_indices_fp=custom_indices_fp,
+                    cutoff=cutoff,
+                )
+
+                design.load_mutants_to_pymol_session(
+                    mutant_json=mutation_json_fp,
+                    create_full_pdb=False,
+                    progress_bar=progressbar,
+                )
+
+
+            assert design.output_pse and dirname_does_exist(design.output_pse), f'No output PyMOL session is created.'
+
+            cmd.load(design.output_pse, partial=2)
+
+            cmd.center(self.design_molecule)
+            cmd.set('surface_color', 'gray70')
+            cmd.set('cartoon_color', 'gray70')
+            cmd.set('surface_cavity_mode', 4)
+            cmd.set('transparency', 0.6)
+            cmd.set(
+                'cartoon_cylindrical_helices',
+            )
+            cmd.set('cartoon_transparency', 0.3)
+            cmd.save(output_pse)
+            
+        except Exception as e:
+            logging.error(e)
+        finally:
             self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
-            return
-
-        cmd.load(design.output_pse, partial=2)
-
-        cmd.center(self.design_molecule)
-        cmd.set('surface_color', 'gray70')
-        cmd.set('cartoon_color', 'gray70')
-        cmd.set('surface_cavity_mode', 4)
-        cmd.set('transparency', 0.6)
-        cmd.set(
-            'cartoon_cylindrical_helices',
-        )
-        cmd.set('cartoon_transparency', 0.3)
-        cmd.save(output_pse)
-
-        self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
 
     # Tab `Evaluate`
     def activate_focused(self, checkBox_show_wt):
@@ -1814,7 +1818,7 @@ class REvoDesignPlugin:
 
         shuffle_variant = self.ui.checkBox_shuffle_clustering.isChecked()
 
-        nproc = int(self.ui.comboBox_nproc.currentText())
+        nproc = self.ui.spinBox_nproc.value()
 
         # output space
         plot_space = self.ui.stackedWidget
@@ -1977,7 +1981,7 @@ class REvoDesignPlugin:
         output_pse = self.ui.lineEdit_output_pse_visualize.text()
         best_leaf = self.ui.comboBox_best_leaf.currentText()
         totalscore = self.ui.comboBox_totalscore.currentText()
-        nproc = int(self.ui.comboBox_nproc.currentText())
+        nproc = self.ui.spinBox_nproc.value()
         group_name = self.ui.lineEdit_group_name.text()
 
         use_global_scores = self.ui.checkBox_global_score_policy.isChecked()

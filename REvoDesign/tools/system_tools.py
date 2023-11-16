@@ -3,10 +3,6 @@ from absl import logging
 import importlib
 
 
-def num_processors():
-    return sorted([x for x in range(1, os.cpu_count() + 1)], reverse=True)
-
-
 def determine_system():
     import platform
 
