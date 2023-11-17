@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2023-11-17
+
 ### Added
 - set `batch` for external designers
 - Unit test script: `tests/launch_REvoDesign.pymol.pml`
