@@ -12,12 +12,13 @@ matplotlib.use('Agg')
 
 from REvoDesign.common.magic_numbers import DEFAULT_PROFILE_TYPE
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.phylogenetics.pymol_pssm_script import mutate
 
 from REvoDesign.tools.utils import (
     get_color,
     run_command,
 )
+
+from REvoDesign.tools.pymol_utils import mutate
 
 from REvoDesign.tools.mutant_tools import (
     extract_mutants_from_mutant_id,
@@ -62,7 +63,7 @@ class MutantVisualizer:
     def process_position(self, mutant_obj: Mutant):
         mutant = mutant_obj.get_short_mutant_id()
         score = mutant_obj.get_mutant_score()
-        temp_dir = tempfile.mkdtemp(prefix='pymol_pssm_')
+        temp_dir = tempfile.mkdtemp(prefix='RD_design_')
         temp_session_path = os.path.join(temp_dir, f"position_{mutant}.pse")
         cmd.load(self.input_session)
 
@@ -77,7 +78,7 @@ class MutantVisualizer:
         cmd.reinitialize()
         return temp_session_path
 
-    # provide a full function of PyMOL mutate that requires explicit mutagenesis description
+    # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
     def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
         # mutant: <chain_id><wt><pos><mut>_..._<score>
         new_obj_name = mutant_obj.get_short_mutant_id()

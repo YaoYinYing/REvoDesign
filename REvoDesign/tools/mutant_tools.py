@@ -1,6 +1,7 @@
 from typing import Iterable
 from absl import logging
 import re
+import json
 from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
 
@@ -340,3 +341,21 @@ def read_customized_indice(custom_indices_from_input='') -> str:
             f'Failed in parsing customized indice file/string: {custom_indices_from_input}'
         )
         return ''
+
+def process_mutations(data):
+    positions = data['indices']
+    mutations = data['mutations']
+    result = []
+    for position in positions:
+        if str(position) in mutations:
+            mutation = mutations[str(position)]
+            wt_residue = mutation['wt']
+            wt_profile_score = mutation['wt_profile_score']
+            candidates = mutation['candidates']
+            result.append((position, wt_residue, wt_profile_score, candidates))
+    return result
+
+
+def read_profile_design_mutations(filename):
+    data = json.load(open(filename))
+    return process_mutations(data)

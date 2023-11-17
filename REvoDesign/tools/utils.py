@@ -1,9 +1,6 @@
 import contextlib
 import os
-
 from absl import logging
-
-
 import time
 
 from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window

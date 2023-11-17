@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Mutant.equals_to` for future uses.
 - `random_deduplicate` for deduplicate designs from ProteinMPNN
 - `set_widget_value`: suport `QSpinBox` and `QDoubleSpinBox`
+- `Mutant.wt_score`, `Mutant.get_wt_score` and `Mutant.set_wt_score` 
+- `traceback.print_exc()` for try-except debugging
 
 ### Changed
 - Refactor external designers (ProteinMPNN, etc.) to a separate area to allow users to add their own designers in an easier way.
@@ -29,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `lineEdit_designer_batch` -> `spinBox_designer_batch`
 - `set_widget_value`: Moving error to intenal function `set_value_error`
 - Sending external designer setup and run processes to a worker thread
+- the number of designs from external designers will not use `Counter.total()`, because it is a Python 3.10 feature. Using `len(designs["seq"]` is okay.
+- Moving `mutate` to `pymol_utils.py`
+- `PSSM_profile.py` -> `REvoDesigner.py`
+- Moving `read_profile_design_mutations` and `process_mutations` to `mutant_tools.py`
+- `PssmAnalyzer` -> `REvoDesigner`
+- `REvoDesigner`: 
+  - `design_protein_using_pssm` -> `setup_profile_design`
+  - Refactoring of `REvoDesigner.process_position` (static function) and -> `REvoDesigner.run_profile_mutagenesis` (class function)
+  - `mutagenesis_tasks`: a list of `Mutant` object
 
 ### Fixed
 - use `int` as the type of `position` in `extract_mutants_from_mutant_id`
@@ -38,6 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Button lock of `lineEdit_input_customized_indices`
 - `num_processors`
+- `pymol_pssm_script.py`
+- `mutant_table_fp` for `REvoDesigner`
+- arguments used in `REvoDesigner.plot_custom_indices_segments`:
+  - `pop=False` 
+  - `annotate=False`
+
 
 ## [1.2.1] - 2023-11-15
 

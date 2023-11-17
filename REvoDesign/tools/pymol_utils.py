@@ -3,6 +3,7 @@ from absl import logging
 import os
 
 from REvoDesign.tools.mutant_tools import shorter_range
+from REvoDesign.tools.utils import suppress_print
 
 PYMOL_VERSION = cmd.get_version()[0]
 
@@ -257,3 +258,22 @@ def make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd()):
         f'{molecule} --> {input_file}'
     )
     return input_file
+
+
+# http://www.pymolwiki.org/index.php/rotkit
+@suppress_print
+def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
+    target = target.upper()
+    cmd.wizard("mutagenesis")
+    # cmd.do("refresh_wizard")
+    cmd.refresh_wizard()
+    cmd.get_wizard().set_mode("%s" % target)
+    selection = "/%s//%s/%s" % (molecule, chain, resi)
+    cmd.get_wizard().do_select(selection)
+    cmd.frame(str(mutframe))
+    cmd.get_wizard().apply()
+    # cmd.set_wizard("done")
+    cmd.set_wizard()
+    # cmd.refresh()
+
+cmd.extend("mutate", mutate)

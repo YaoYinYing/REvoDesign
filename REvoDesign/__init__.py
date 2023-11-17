@@ -6,6 +6,7 @@ from pymol.Qt import QtWidgets
 # using partial module to reduce duplicate code.
 from functools import partial
 import absl.logging as logging
+import traceback
 
 
 logging.set_verbosity(logging.DEBUG)
@@ -1182,7 +1183,6 @@ class REvoDesignPlugin:
 
             progressbar = self.ui.progressBar
 
-            parallel_run = nproc > 1
 
             if is_a_REvoDesign_session():
                 logging.warning(
@@ -1197,9 +1197,9 @@ class REvoDesignPlugin:
                 wd=os.path.join(self.PWD, 'temperal_pdb'),
             )
 
-            from REvoDesign.phylogenetics.PSSM_profile import PssmAnalyzer
+            from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 
-            design = PssmAnalyzer(design_profile)
+            design = REvoDesigner(design_profile)
             design.input_pse = input_file
             design.output_pse = output_pse
             design.input_profile_format = design_profile_format
@@ -1218,9 +1218,9 @@ class REvoDesignPlugin:
 
             design.preffered_substitutions = preffered
             design.reject_aa = rejected
-            design.parallel_run = parallel_run
             design.nproc = nproc
             design.cmap = cmap
+            design.create_full_pdb=False
 
             from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
@@ -1231,16 +1231,14 @@ class REvoDesignPlugin:
             else:
                 (
                     mutation_json_fp,
-                    mutant_table_fp,
                     mutation_png_fp,
-                ) = design.design_protein_using_pssm(
+                ) = design.setup_profile_design(
                     custom_indices_fp=custom_indices_fp,
                     cutoff=cutoff,
                 )
 
                 design.load_mutants_to_pymol_session(
                     mutant_json=mutation_json_fp,
-                    create_full_pdb=False,
                     progress_bar=progressbar,
                 )
 
@@ -1260,8 +1258,8 @@ class REvoDesignPlugin:
             cmd.set('cartoon_transparency', 0.3)
             cmd.save(output_pse)
             
-        except Exception as e:
-            logging.error(e)
+        except Exception:
+            traceback.print_exc()
         finally:
             self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
 
@@ -1768,7 +1766,7 @@ class REvoDesignPlugin:
             try:
                 pushButton.clicked.disconnect()
             except:
-                pass
+                traceback.print_exc()
             pushButton.setEnabled(bool(not self.mutant_tree_pssm.empty))
 
         pushButton_accept_this_mutant.clicked.connect(
@@ -2057,8 +2055,9 @@ class REvoDesignPlugin:
             cmd.set('cartoon_transparency', 0.3)
             cmd.save(output_pse)
 
-        except Exception as e:
-            logging.error(f'Error while running the visualization: \n {e}')
+        except Exception:
+            logging.error('Error while running the visualization: ')
+            traceback.print_exc()
 
         finally:
             trigger_button.setEnabled(True)
@@ -2204,8 +2203,8 @@ class REvoDesignPlugin:
                     self.multi_mutagenesis_design_pick_next_mut()
                 self.multi_mutagenesis_design_stop_design()
             self.multi_mutagenesis_design_save_design()
-        except Exception as e:
-            logging.error("e")
+        except Exception :
+            traceback.print_exc()
         finally:
             trigger_button.setEnabled(True)
 
@@ -2446,7 +2445,7 @@ class REvoDesignPlugin:
             self.ui.pushButton_previous.clicked.disconnect()
             self.ui.pushButton_next.clicked.disconnect()
         except:
-            pass
+            traceback.print_exc()
 
         self.ui.pushButton_previous.clicked.connect(
             partial(self.load_co_evolving_pairs, progress_bar, False)

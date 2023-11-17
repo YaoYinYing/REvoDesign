@@ -9,6 +9,8 @@ from pymol import cmd
 import matplotlib
 import collections
 
+from REvoDesign.common.Mutant import Mutant
+
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
 from REvoDesign.tools.utils import (
@@ -17,7 +19,6 @@ from REvoDesign.tools.utils import (
     random_deduplicate,
     run_worker_thread_with_progress,
 )
-
 
 from REvoDesign.tools.customized_widgets import (
     refresh_window,
@@ -33,21 +34,17 @@ from REvoDesign.tools.mutant_tools import (
     expand_range,
     read_customized_indice,
     shorter_range,
-    extract_mutants_from_mutant_id,
     extract_mutant_from_sequences,
+    read_profile_design_mutations,
 )
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.phylogenetics.pymol_pssm_script import process_pssm_mutations
 
-from REvoDesign.common.magic_numbers import DEFAULT_PROFILE_TYPE_GROUP
-
-
-class PssmAnalyzer:
-    def __init__(self, input_pssm_file):
+class REvoDesigner:
+    def __init__(self, input_profile):
         self.input_pse = ''
         self.output_pse = ''
 
-        self.input_profile = input_pssm_file
+        self.input_profile = input_profile
         self.input_profile_format = 'PSSM'
 
         self.external_designer = None
@@ -65,21 +62,20 @@ class PssmAnalyzer:
         self.design_case = 'default'
 
         self.preffered_substitutions = ''
-        self.reject_aa = 'PC'
+        self.reject_aa = ''
 
         # use PSSM alphabet as default
         self.profile_alphabet = 'ARNDCQEGHILKMFPSTWYV'
         self.cmap = "bwr_r"
 
         self.results = []
-        self.parallel_run = False
         self.nproc = 1
+        self.max_abs_profile = 0
+        self.create_full_pdb = False
 
     def plot_custom_indices_segments(
         self,
         df_ori,
-        pop=False,
-        annotate=False,
         custom_indices_str='',
         cutoff=[-100, 100],
         preferred_substitutions=None,
@@ -110,8 +106,7 @@ class PssmAnalyzer:
         sequence = [sequence[i - 1] for i in custom_indices[1:] if i >= 1]
         sequence = ''.join(sequence)
 
-        if pop:
-            df.pop(0)
+        df.pop(0)
 
         max_abs_value = df.abs().max().max()
 
@@ -129,18 +124,18 @@ class PssmAnalyzer:
 
         plt.colorbar(pcm).minorticks_on()
 
-        if annotate:
-            for pos in range(0, len(sequence)):
-                for a in range(len(self.profile_alphabet)):
-                    if al_a[a] == sequence[pos]:
-                        plt.text(
-                            pos,
-                            a,
-                            al_a[a],
-                            ha="center",
-                            va="center",
-                            color="k",
-                        )
+
+        for pos in range(0, len(sequence)):
+            for a in range(len(self.profile_alphabet)):
+                if al_a[a] == sequence[pos]:
+                    plt.text(
+                        pos,
+                        a,
+                        al_a[a],
+                        ha="center",
+                        va="center",
+                        color="k",
+                    )
 
         mutation_candidates = {
             "indices": custom_indices[1:],
@@ -150,23 +145,19 @@ class PssmAnalyzer:
         mutations = []
         for _, resid in enumerate(custom_indices[1:]):
             wt_aa = sequence[_]
-            pssm_scores = df_ori.iloc[:, resid]
+            profile_scores = df_ori.iloc[:, resid]
             mutation_candidates['mutations'][resid] = {
                 "wt": wt_aa,
-                "wt_pssm": pssm_scores.loc[wt_aa],
+                "wt_profile_score": profile_scores.loc[wt_aa],
                 "candidates": {},
             }
 
-            substitutions = pssm_scores[
-                (cutoff[0] <= pssm_scores - pssm_scores.loc[wt_aa])
-                & (pssm_scores - pssm_scores.loc[wt_aa] <= cutoff[1])
+            substitutions = profile_scores[
+                (cutoff[0] <= profile_scores - profile_scores.loc[wt_aa])
+                & (profile_scores - profile_scores.loc[wt_aa] <= cutoff[1])
             ]
 
-            # logging.debug('=' * 70)
-            # logging.debug(
-            #     f'\t{wt_aa}-{resid} ({pssm_scores.loc[wt_aa]}): {len(substitutions)} subsitutions in PSSM score cutoff {cutoff if type(cutoff) == float else str(cutoff)} ')
-            # logging.debug('-' * 70)
-            for mut_aa, pssm_score in substitutions.items():
+            for mut_aa, profile_score in substitutions.items():
                 mutation_key = f"{wt_aa}{resid}{mut_aa}"
                 if wt_aa == mut_aa:
                     continue
@@ -177,36 +168,31 @@ class PssmAnalyzer:
                     ):
                         mutation_candidates['mutations'][resid]["candidates"][
                             mut_aa
-                        ] = pssm_score
-                        # logging.info(f"{mutation_key}: {pssm_score}")
+                        ] = profile_score
                         mutations.append(mutation_key)
                 else:
                     mutation_candidates['mutations'][resid]["candidates"][
                         mut_aa
-                    ] = pssm_score
-                    # logging.info(f"{mutation_key}: {pssm_score}")
+                    ] = profile_score
                     mutations.append(mutation_key)
 
-            # logging.debug('=' * 70)
-            # logging.debug('\n')
 
-        os.makedirs(f'{self.pwd}/mutations_pssm', exist_ok=True)
+        os.makedirs(f'{self.pwd}/mutations_design_profile', exist_ok=True)
 
         indices_hash = hashlib.sha256(
             bytes(custom_indices_str.encode())
         ).hexdigest()
-        mutation_json_fp = f'{self.pwd}/mutations_pssm/{time.strftime("%Y%m%d", time.localtime())}_{self.molecule}_{self.design_case}_{indices_hash[:10]}.json'
-        mutation_png_fp = f'{self.pwd}/{self.molecule}_{self.design_case}_custom_indices_plot_{indices_hash}.png'
-        mutant_table_fp = f'{self.pwd}/mutations_pssm/{time.strftime("%Y%m%d", time.localtime())}_{self.molecule}_{self.design_case}_{indices_hash[:10]}_mut.txt'
+
+        file_name=f'{time.strftime("%Y%m%d", time.localtime())}_{self.molecule}_{self.design_case}_{indices_hash[:10]}'
+        mutation_json_fp = f'{self.pwd}/mutations_design_profile/{file_name}.json'
+        mutation_png_fp = f'{self.pwd}/mutations_design_profile/{file_name}.png'
+
         json.dump(mutation_candidates, open(mutation_json_fp, 'w'), indent=2)
 
         plt.savefig(mutation_png_fp)
         plt.close()
 
-        with open(mutant_table_fp, 'w') as mut_file:
-            mut_file.write('\n'.join(mutations))
-
-        return mutation_json_fp, mutant_table_fp, mutation_png_fp
+        return mutation_json_fp, mutation_png_fp
 
     def validate_preffered_mutation_string(
         self,
@@ -329,7 +315,6 @@ class PssmAnalyzer:
             progress_bar=progress_bar,
         )
 
-        # self.setup_external_designer(custom_indices_str=custom_indices_str)
         if not self.external_designer:
             logging.error(
                 f'Failed to initialize external designer {self.input_profile_format}'
@@ -357,12 +342,6 @@ class PssmAnalyzer:
             progress_bar=progress_bar,
         )
 
-        # designs = self.external_designer.designer(
-        #     num=self.external_designer_num_samples,
-        #     batch=self.batch,
-        #     temperature=self.external_designer_temperature,
-        # )
-
         logging.info('Design is done. Parsing the results...')
 
         mutant_objs = []
@@ -382,7 +361,9 @@ class PssmAnalyzer:
             seqs, scores = random_deduplicate(
                 seq=designs['seq'], score=designs['score']
             )
-            logging.warning(f'Removed designs: {len(designs["seq"])-len(seqs)}')
+            logging.warning(
+                f'Removed designs: {len(designs["seq"])-len(seqs)}'
+            )
         else:
             seqs, scores = designs['seq'], designs['score']
 
@@ -411,7 +392,7 @@ class PssmAnalyzer:
         visualizer.save_session = self.output_pse
         visualizer.input_session = self.input_pse
 
-        visualizer.parallel_run = self.parallel_run
+        visualizer.parallel_run = self.nproc > 1
         visualizer.nproc = self.nproc
 
         visualizer.group_name = self.design_case
@@ -424,7 +405,7 @@ class PssmAnalyzer:
         self.output_pse = visualizer.save_session
         logging.info("Done.")
 
-    def design_protein_using_pssm(
+    def setup_profile_design(
         self,
         custom_indices_fp='',
         cutoff=[-100, 100],
@@ -468,85 +449,67 @@ class PssmAnalyzer:
 
         (
             mutation_json_fp,
-            mutant_table_fp,
             mutation_png_fp,
         ) = self.plot_custom_indices_segments(
             df,
-            pop=True,
             custom_indices_str=custom_indices_str,
-            annotate=True,
             cutoff=cutoff,
             preferred_substitutions=preffered_dict,
         )
 
-        return mutation_json_fp, mutant_table_fp, mutation_png_fp
+        return mutation_json_fp, mutation_png_fp
 
-    @staticmethod
-    def process_position(
-        position,
-        wt_residue,
-        wt_pssm_score,
-        candidates,
-        input_pse,
-        molecule,
-        chain_id,
-        reject,
-        create_full_pdb,
-        max_abs_pssm,
-        cmap,
-    ):
+    def run_profile_mutagenesis(self, mutant_obj: Mutant):
+        mutant_info = mutant_obj.get_mutant_info()[0]
+
+        position = mutant_info['position']
+        wt_residue = mutant_info['wt_res']
+        new_residue = mutant_info['mut_res']
+        new_residue_score = mutant_obj.get_mutant_score()
+        wt_profile_score = mutant_obj.get_wt_score()
+
         logging.info(
             f'Runing mutagenesis test for position {position}{wt_residue}...'
         )
-        logging.info(f"Candidates for design: {candidates}")
-        temp_dir = tempfile.mkdtemp(prefix='pymol_pssm_')
+        logging.info(f"Candidates for design: {mutant_info}")
+        temp_dir = tempfile.mkdtemp(prefix='RD_')
         temp_session_path = os.path.join(temp_dir, f"position_{position}.pse")
 
         cmd.reinitialize()
-        cmd.load(input_pse)
+        cmd.load(self.input_pse)
         cmd.hide('surface')
-        cmd.center(molecule)
+
+        cmd.center(self.molecule)
         refresh_window()
 
-        for new_residue, new_residue_score in candidates.items():
-            if reject and (new_residue in reject or wt_residue in reject):
-                logging.info(
-                    f"Skipping rejected mutation: {position}{wt_residue} to {new_residue}"
-                )
-                refresh_window()
-                continue
-            else:
-                refresh_window()
-                color = get_color(
-                    cmap, new_residue_score, -max_abs_pssm, max_abs_pssm
-                )
+        color = get_color(
+            self.cmap,
+            new_residue_score,
+            -self.max_abs_profile,
+            self.max_abs_profile,
+        )
 
-                logging.info(
-                    f"Mutating {position}{wt_residue}( {wt_pssm_score} ) to {new_residue}( {new_residue_score} ): {color}"
-                )
-                visualizer = MutantVisualizer(
-                    molecule=molecule, chain_id=chain_id
-                )
-                visualizer.group_name = (
-                    f"mt_{wt_residue}{position}_{str(wt_pssm_score)}"
-                )
-                visualizer.full = create_full_pdb
+        logging.info(
+            f"Mutating {position}{wt_residue}({wt_profile_score} ) to {new_residue}( {new_residue_score} ): {color}"
+        )
+        visualizer = MutantVisualizer(
+            molecule=self.molecule, chain_id=self.chain_id
+        )
+        visualizer.group_name = (
+            f"mt_{wt_residue}{position}_{str(wt_profile_score)}"
+        )
+        visualizer.full = self.create_full_pdb
 
-                _, mutant_obj = extract_mutants_from_mutant_id(
-                    mutant_string=f'{chain_id}{wt_residue}{position}{new_residue}_{new_residue_score}',
-                    chain_id=chain_id,
-                )
+        visualizer.create_mutagenesis_objects(
+            mutant_obj=mutant_obj, color=color
+        )
 
-                visualizer.create_mutagenesis_objects(
-                    mutant_obj=mutant_obj, color=color
-                )
-
-                refresh_window()
-                time.sleep(0.01)
+        refresh_window()
+        time.sleep(0.01)
 
         refresh_window()
         cmd.hide('everything', 'hydrogens and polymer.protein')
-        cmd.delete(molecule)
+        cmd.delete(self.molecule)
         cmd.save(temp_session_path)
 
         return temp_session_path
@@ -554,51 +517,55 @@ class PssmAnalyzer:
     def load_mutants_to_pymol_session(
         self,
         mutant_json,
-        create_full_pdb,
         progress_bar,
     ):
-        mutations = process_pssm_mutations(mutant_json)
+        mutations = read_profile_design_mutations(mutant_json)
 
-        new_residue_scores = []
-        for position, wt_residue, wt_pssm_score, candidates in mutations:
-            for new_residue, new_residue_score in candidates.items():
-                new_residue_scores.append(new_residue_score)
+        mutagenesis_tasks = []
+        new_residue_scores=[]
+        for position, wt_res, wt_score, candidates in mutations:
+            if not candidates:
+                continue
+
+            # reject wt if required.
+            if self.reject_aa and wt_res in self.reject_aa:
+                continue
+
+            candidates={k:v for k, v in candidates.items() if k not in self.reject_aa}
+            
+            for mut_res, mut_score in candidates.items():
+                mutant_obj = Mutant(
+                    mutant_info=[
+                        {
+                            'chain_id': self.chain_id,
+                            'position': int(position),
+                            'wt_res': wt_res,
+                            'mut_res': mut_res,
+                        }
+                    ],
+                    mutant_score=float(mut_score),
+                )
+
+                mutant_obj.set_wt_score(float(wt_score))
+                mutagenesis_tasks.append([mutant_obj])
+                new_residue_scores.append(mutant_obj.get_mutant_score())
+
+
+        self.max_abs_profile = max(
+            abs(min(new_residue_scores)), abs(max(new_residue_scores))
+        )
 
         if not new_residue_scores:
             logging.warning(f'No available designs!')
             return
 
-        max_abs_pssm = max(
-            abs(min(new_residue_scores)), abs(max(new_residue_scores))
-        )
-
-        mutagenesis_tasks = [
-            (
-                position,
-                wt_residue,
-                wt_pssm_score,
-                candidates,
-                self.input_pse,
-                self.molecule,
-                self.chain_id,
-                self.reject_aa,
-                create_full_pdb,
-                max_abs_pssm,
-                self.cmap,
-            )
-            for position, wt_residue, wt_pssm_score, candidates in mutations
-            if candidates
-        ]
-
-        logging.info(
-            f'Filter out empty tasks: {len(mutations) - len(mutagenesis_tasks)}'
-        )
-
         progress_bar.setRange(0, 0)
 
-        if self.parallel_run:
+        if self.nproc>1:
             parallel_executor = ParallelExecutor(
-                self.process_position, mutagenesis_tasks, n_jobs=self.nproc
+                self.run_profile_mutagenesis,
+                mutagenesis_tasks,
+                n_jobs=self.nproc,
             )
 
             parallel_executor.start()
@@ -615,7 +582,9 @@ class PssmAnalyzer:
             progress_bar.setRange(0, len(mutagenesis_tasks))
 
             for mutagenesis_task in mutagenesis_tasks:
-                self.results.append(self.process_position(*mutagenesis_task))
+                self.results.append(
+                    self.run_profile_mutagenesis(*mutagenesis_task)
+                )
 
                 # https://www.jianshu.com/p/38562df9e65d
                 # refresh UI if calculation is not done.

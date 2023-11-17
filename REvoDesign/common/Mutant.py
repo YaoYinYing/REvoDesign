@@ -20,6 +20,7 @@ class Mutant:
         self.mutant_description = ''
         self.mutant_id = ''
         self.wt_sequence = ''
+        self.wt_score=0
 
     def __str__(self):
         """
@@ -164,3 +165,21 @@ class Mutant:
                 ]
             )
         )
+    
+    def get_wt_score(self):
+        """
+        Get the wt score.
+
+        Returns:
+        float: The wt score.
+        """
+        return self.wt_score
+
+    def set_wt_score(self, new_score):
+        """
+        Set the wt score to a new value.
+
+        Args:
+        new_score (float): The new wt score.
+        """
+        self.wt_score = new_score
