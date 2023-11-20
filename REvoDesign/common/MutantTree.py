@@ -16,9 +16,6 @@ class MutantTree:
         self.all_mutant_branch_ids = list(self.mutant_tree.keys())
         self.empty = bool(len(self.all_mutant_branch_ids) == 0)
 
-        if self.empty:
-            return
-
         if not self.current_branch_id:
             self.initialize_current_branch()
 
@@ -37,12 +34,13 @@ class MutantTree:
                 tree_str += f"  Mutant: {mutant_id}\n"
                 tree_str += f"    {str(mutant_obj)}\n"
         return tree_str
-    
+
     def __copy__(self):
         return MutantTree(self.mutant_tree.copy())
-    
+
     def __deepcopy__(self):
         import copy
+
         return MutantTree(copy.deepcopy(self.mutant_tree))
 
     def get_branch_index(self, branch_id):

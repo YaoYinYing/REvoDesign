@@ -185,7 +185,6 @@ class REvoDesignPlugin:
         # set up nproc
         set_widget_value(self.ui.spinBox_nproc, (1, os.cpu_count()))
         set_widget_value(self.ui.spinBox_nproc, os.cpu_count())
-        
 
         # color map
         import matplotlib
@@ -287,7 +286,7 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.comboBox_interface_cutoff, DEFAULT_INTERCHAIN_RADIUS
+            self.ui.doubleSpinBox_interface_cutoff, DEFAULT_INTERCHAIN_RADIUS
         )
 
         # Connect run buttons
@@ -350,7 +349,6 @@ class REvoDesignPlugin:
                 ],
             )
         )
-
 
         self.ui.pushButton_run_PSSM_to_pse.clicked.connect(
             self.run_mutant_loading_from_profile
@@ -452,15 +450,15 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.comboBox_cluster_batchsize, DEFAULT_CLUSTER_BATCH_SIZE
+            self.ui.spinBox_cluster_batchsize, DEFAULT_CLUSTER_BATCH_SIZE
         )
-        set_widget_value(self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_RANGE)
-        set_widget_value(self.ui.comboBox_num_cluster, DEFAULT_CLUSTER_NUM)
+        set_widget_value(self.ui.spinBox_num_cluster, DEFAULT_CLUSTER_RANGE)
+        set_widget_value(self.ui.spinBox_num_cluster, DEFAULT_CLUSTER_NUM)
         set_widget_value(
-            self.ui.comboBox_num_mut_minimun, DEFAULT_CLUSTER_MIN_MUT
+            self.ui.spinBox_num_mut_minimun, DEFAULT_CLUSTER_MIN_MUT
         )
         set_widget_value(
-            self.ui.comboBox_num_mut_maximum, DEFAULT_CLUSTER_MAX_MUT
+            self.ui.spinBox_num_mut_maximum, DEFAULT_CLUSTER_MAX_MUT
         )
 
         from Bio.Align import substitution_matrices
@@ -595,14 +593,14 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.comboBox_maximal_mutant_num, DEFAULT_MULTI_DESIGN_MUT_NUM
+            self.ui.spinBox_maximal_mutant_num, DEFAULT_MULTI_DESIGN_MUT_NUM
         )
         set_widget_value(
-            self.ui.comboBox_maximal_multi_design_variant_num,
+            self.ui.spinBox_maximal_multi_design_variant_num,
             DEFAULT_MULTI_DESIGN_VALRIANT_NUM,
         )
         set_widget_value(
-            self.ui.comboBox_minmal_mutant_distance,
+            self.ui.doubleSpinBox_minmal_mutant_distance,
             DEFAULT_MULTI_DESIGN_MUT_DISTAL,
         )
 
@@ -670,7 +668,7 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.comboBox_gremlin_topN, DEFAULT_GREMLIN_TOPN_NUM
+            self.ui.spinBox_gremlin_topN, DEFAULT_GREMLIN_TOPN_NUM
         )
 
         self.ui.pushButton_reinitialize_interact.clicked.connect(
@@ -681,7 +679,7 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.comboBox_max_interact_dist,
+            self.ui.doubleSpinBox_max_interact_dist,
             DEFAULT_GREMLIN_SPATIAL_MAX_DIST,
         )
 
@@ -1047,9 +1045,8 @@ class REvoDesignPlugin:
         )
 
         # Setup surface determination arguments
-        set_widget_value(self.ui.comboBox_surface_cutoff, range(1, 36))
         set_widget_value(
-            self.ui.comboBox_surface_cutoff, DEFAULT_SURFACE_PROBE_RADIUS
+            self.ui.doubleSpinBox_surface_cutoff, DEFAULT_SURFACE_PROBE_RADIUS
         )
 
         # Setup pocket determination arguments
@@ -1065,15 +1062,13 @@ class REvoDesignPlugin:
             else:
                 comboBox_cofactor_sel.setCurrentIndex(0)
 
-        set_widget_value(self.ui.comboBox_ligand_radius, range(1, 11))
         set_widget_value(
-            self.ui.comboBox_ligand_radius,
-            range(1, DEFAULT_SUBSTRATE_POCKET_RADIUS),
+            self.ui.doubleSpinBox_ligand_radius,
+            DEFAULT_SUBSTRATE_POCKET_RADIUS,
         )
 
-        set_widget_value(self.ui.comboBox_cofactor_radius, range(0, 11))
         set_widget_value(
-            self.ui.comboBox_ligand_radius, DEFAULT_COFACTOR_POCKET_RADIUS
+            self.ui.doubleSpinBox_cofactor_radius, DEFAULT_COFACTOR_POCKET_RADIUS
         )
 
     def update_surface_exclusion(self):
@@ -1086,7 +1081,7 @@ class REvoDesignPlugin:
 
     def run_chain_interface_detection(self):
         molecule = self.design_molecule
-        radius = int(self.ui.comboBox_interface_cutoff.currentText())
+        radius = self.ui.doubleSpinBox_interface_cutoff.value()
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         if not chain_ids or len(chain_ids) <= 1:
             return
@@ -1102,7 +1097,7 @@ class REvoDesignPlugin:
         output_file = self.ui.lineEdit_output_pse_surface.text()
 
         exclusion = self.ui.comboBox_surface_exclusion.currentText()
-        cutoff = int(self.ui.comboBox_surface_cutoff.currentText())
+        cutoff = float(self.ui.doubleSpinBox_surface_cutoff.value())
         do_show_surf_CA = True
 
         from REvoDesign.structure.SurfaceFinder import SurfaceFinder
@@ -1125,8 +1120,8 @@ class REvoDesignPlugin:
         output_file = self.ui.lineEdit_output_pse_pocket.text()
         ligand = self.ui.comboBox_ligand_sel.currentText()
         cofactor = self.ui.comboBox_cofactor_sel.currentText()
-        ligand_radius = int(self.ui.comboBox_ligand_radius.currentText())
-        cofactor_radius = int(self.ui.comboBox_cofactor_radius.currentText())
+        ligand_radius = self.ui.doubleSpinBox_ligand_radius.value()
+        cofactor_radius = self.ui.doubleSpinBox_cofactor_radius.value()
 
         from REvoDesign.structure.PocketSearcher import PocketSearcher
 
@@ -1152,20 +1147,25 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
 
         try:
-
             design_profile = self.ui.lineEdit_input_csv.text()
             design_profile_format = self.ui.comboBox_profile_type.currentText()
             preffered = self.ui.lineEdit_preffer_substitution.text().upper()
             rejected = self.ui.lineEdit_reject_substitution.text().upper()
 
-            temperature= self.ui.doubleSpinBox_designer_temperature.value()
+            temperature = self.ui.doubleSpinBox_designer_temperature.value()
             num_designs = self.ui.spinBox_designer_num_samples.value()
             batch = self.ui.spinBox_designer_batch.value()
-            homooligomeric = self.ui.checkBox_designer_homooligomeric.isChecked()
-            deduplicate_designs=self.ui.checkBox_deduplicate_designs.isChecked()
+            homooligomeric = (
+                self.ui.checkBox_designer_homooligomeric.isChecked()
+            )
+            deduplicate_designs = (
+                self.ui.checkBox_deduplicate_designs.isChecked()
+            )
 
             design_case = self.ui.lineEdit_design_case.text()
-            custom_indices_fp = self.ui.lineEdit_input_customized_indices.text()
+            custom_indices_fp = (
+                self.ui.lineEdit_input_customized_indices.text()
+            )
             cutoff = [
                 float(self.ui.lineEdit_score_minima.text()),
                 float(self.ui.lineEdit_score_maxima.text()),
@@ -1182,7 +1182,6 @@ class REvoDesignPlugin:
             )
 
             progressbar = self.ui.progressBar
-
 
             if is_a_REvoDesign_session():
                 logging.warning(
@@ -1220,13 +1219,14 @@ class REvoDesignPlugin:
             design.reject_aa = rejected
             design.nproc = nproc
             design.cmap = cmap
-            design.create_full_pdb=False
+            design.create_full_pdb = False
 
             from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
             if design_profile_format in EXTERNAL_DESIGNERS.keys():
                 design.design_protein_using_external_designer(
-                    custom_indices_fp=custom_indices_fp, progress_bar=progressbar
+                    custom_indices_fp=custom_indices_fp,
+                    progress_bar=progressbar,
                 )
             else:
                 (
@@ -1242,8 +1242,9 @@ class REvoDesignPlugin:
                     progress_bar=progressbar,
                 )
 
-
-            assert design.output_pse and dirname_does_exist(design.output_pse), f'No output PyMOL session is created.'
+            assert design.output_pse and dirname_does_exist(
+                design.output_pse
+            ), f'No output PyMOL session is created.'
 
             cmd.load(design.output_pse, partial=2)
 
@@ -1257,7 +1258,7 @@ class REvoDesignPlugin:
             )
             cmd.set('cartoon_transparency', 0.3)
             cmd.save(output_pse)
-            
+
         except Exception:
             traceback.print_exc()
         finally:
@@ -1327,24 +1328,42 @@ class REvoDesignPlugin:
 
         self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
 
-    def accept_mutant(self, lcdNumber_selected_mutant):
-        if self.is_this_pymol_object_a_mutant(
+    def mutant_decision(self, decision_to_accept: bool):
+        lcdNumber_selected_mutant = self.ui.lcdNumber_selected_mutant
+        if not self.is_this_pymol_object_a_mutant(
             self.mutant_tree_pssm.current_mutant_id
         ):
-            logging.debug(
-                f'Accepting mutant {self.mutant_tree_pssm.current_mutant_id}'
+            logging.warning(
+                f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}'
             )
+            return
+
+        logging.debug(
+            f'{"Accepting" if decision_to_accept else "Rejecting"} mutant {self.mutant_tree_pssm.current_mutant_id}'
+        )
+
+        if decision_to_accept:
             self.mutant_tree_pssm_selected.add_mutant_to_branch(
                 branch=self.mutant_tree_pssm.current_branch_id,
                 mutant=self.mutant_tree_pssm.current_mutant_id,
-                mutant_info=extract_mutant_from_pymol_object(
-                    pymol_object=self.mutant_tree_pssm.current_mutant_id,
-                    sequence=self.design_sequence,
-                ),
+                mutant_info=self.mutant_tree_pssm.mutant_tree[
+                    self.mutant_tree_pssm.current_branch_id
+                ][self.mutant_tree_pssm.current_mutant_id],
             )
+
         else:
-            logging.warning(
-                f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}'
+            if (
+                self.mutant_tree_pssm.current_branch_id
+                not in self.mutant_tree_pssm_selected.all_mutant_branch_ids
+            ):
+                logging.warning(
+                    f'{self.mutant_tree_pssm.current_branch_id} does not exist. skipped'
+                )
+                return
+
+            self.mutant_tree_pssm_selected.remove_mutant_from_branch(
+                branch=self.mutant_tree_pssm.current_branch_id,
+                mutant=self.mutant_tree_pssm.current_mutant_id,
             )
 
         set_widget_value(
@@ -1354,34 +1373,6 @@ class REvoDesignPlugin:
 
         self.save_mutant_choices(
             self.ui.lineEdit_output_mut_table, self.mutant_tree_pssm_selected
-        )
-
-    def reject_mutant(self, lcdNumber_selected_mutant):
-        if self.is_this_pymol_object_a_mutant(
-            self.mutant_tree_pssm.current_mutant_id
-        ):
-            logging.debug(
-                f'Rejecting mutant {self.mutant_tree_pssm.current_mutant_id}'
-            )
-
-            self.mutant_tree_pssm_selected.remove_mutant_from_branch(
-                branch=self.mutant_tree_pssm.current_branch_id,
-                mutant=self.mutant_tree_pssm.current_mutant_id,
-            )
-
-        else:
-            logging.warning(
-                f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}'
-            )
-
-        set_widget_value(
-            lcdNumber_selected_mutant,
-            len(self.mutant_tree_pssm_selected.all_mutant_ids),
-        )
-
-        self.save_mutant_choices(
-            self.ui.lineEdit_output_mut_table,
-            self.mutant_tree_pssm_selected,
         )
 
     def walk_mutant_groups(
@@ -1582,9 +1573,7 @@ class REvoDesignPlugin:
             )
             set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
-            self.accept_mutant(
-                lcdNumber_selected_mutant=lcdNumber_selected_mutant
-            )
+            self.mutant_decision(decision_to_accept=True)
             logging.info(
                 f'Best hit of {self.mutant_tree_pssm.current_mutant_id} accepted.'
             )
@@ -1766,14 +1755,14 @@ class REvoDesignPlugin:
             try:
                 pushButton.clicked.disconnect()
             except:
-                traceback.print_exc()
+                pass
             pushButton.setEnabled(bool(not self.mutant_tree_pssm.empty))
 
         pushButton_accept_this_mutant.clicked.connect(
-            partial(self.accept_mutant, lcdNumber_selected_mutant)
+            partial(self.mutant_decision, True)
         )
         pushButton_reject_this_mutant.clicked.connect(
-            partial(self.reject_mutant, lcdNumber_selected_mutant)
+            partial(self.mutant_decision, False)
         )
 
         pushButton_next_mutant.clicked.connect(
@@ -1804,12 +1793,10 @@ class REvoDesignPlugin:
 
         input_mutant_table = self.ui.lineEdit_input_mut_table.text()
 
-        cluster_batch_size = int(
-            self.ui.comboBox_cluster_batchsize.currentText()
-        )
-        cluster_number = int(self.ui.comboBox_num_cluster.currentText())
-        min_mut_num = int(self.ui.comboBox_num_mut_minimun.currentText())
-        max_mut_num = int(self.ui.comboBox_num_mut_maximum.currentText())
+        cluster_batch_size = self.ui.spinBox_cluster_batchsize.value()
+        cluster_number = self.ui.spinBox_num_cluster.value()
+        min_mut_num = self.ui.spinBox_num_mut_minimun.value()
+        max_mut_num = self.ui.spinBox_num_mut_maximum.value()
         cluster_substitution_matrix = (
             self.ui.comboBox_cluster_matrix.currentText()
         )
@@ -2132,9 +2119,9 @@ class REvoDesignPlugin:
             logging.error('Multi design is not initialized.')
             return
 
-        comboBox_maximal_mutant_num = self.ui.comboBox_maximal_mutant_num
-        comboBox_minmal_mutant_distance = (
-            self.ui.comboBox_minmal_mutant_distance
+        spinBox_maximal_mutant_num = self.ui.spinBox_maximal_mutant_num
+        doubleSpinBox_minmal_mutant_distance = (
+            self.ui.doubleSpinBox_minmal_mutant_distance
         )
 
         checkBox_multi_design_bond_CA = self.ui.checkBox_multi_design_bond_CA
@@ -2143,10 +2130,8 @@ class REvoDesignPlugin:
         )
 
         self.multi_mutagenesis_designer.pick_next_mutant(
-            maximal_mutant_num=int(comboBox_maximal_mutant_num.currentText()),
-            minimal_distance=int(
-                comboBox_minmal_mutant_distance.currentText()
-            ),
+            maximal_mutant_num=spinBox_maximal_mutant_num.value(),
+            minimal_distance=doubleSpinBox_minmal_mutant_distance.value(),
             bond_CA=checkBox_multi_design_bond_CA.isChecked(),
             use_sidechain_angle=checkBox_multi_design_check_sidechain_orientations.isChecked(),
         )
@@ -2181,12 +2166,8 @@ class REvoDesignPlugin:
     def multi_mutagenesis_design_auto(self):
         trigger_button = self.ui.pushButton_run_multi_design
 
-        maximal_multi_design_variant_num = int(
-            self.ui.comboBox_maximal_multi_design_variant_num.currentText()
-        )
-        maximal_mutant_num = int(
-            self.ui.comboBox_maximal_mutant_num.currentText()
-        )
+        maximal_multi_design_variant_num = self.ui.spinBox_maximal_multi_design_variant_num.value()
+        maximal_mutant_num = self.ui.spinBox_maximal_mutant_num.value()
 
         # initialize
         self.multi_mutagenesis_design_initialize()
@@ -2203,7 +2184,7 @@ class REvoDesignPlugin:
                     self.multi_mutagenesis_design_pick_next_mut()
                 self.multi_mutagenesis_design_stop_design()
             self.multi_mutagenesis_design_save_design()
-        except Exception :
+        except Exception:
             traceback.print_exc()
         finally:
             trigger_button.setEnabled(True)
@@ -2220,9 +2201,7 @@ class REvoDesignPlugin:
         try:
             gremlin_mrf_fp = self.ui.lineEdit_input_gremlin_mtx.text()
 
-            topN_gremlin_candidates = int(
-                self.ui.comboBox_gremlin_topN.currentText()
-            )
+            topN_gremlin_candidates = self.ui.spinBox_gremlin_topN.value()
 
             if (not self.design_molecule) or (not self.design_chain_id):
                 logging.error(
@@ -2299,9 +2278,7 @@ class REvoDesignPlugin:
 
     def run_gremlin_tool(self):
         progress_bar = self.ui.progressBar
-        max_interact_dist = int(
-            self.ui.comboBox_max_interact_dist.currentText()
-        )
+        max_interact_dist = self.ui.doubleSpinBox_max_interact_dist.value()
 
         self.plot_w_fps = {}
 
@@ -2445,7 +2422,7 @@ class REvoDesignPlugin:
             self.ui.pushButton_previous.clicked.disconnect()
             self.ui.pushButton_next.clicked.disconnect()
         except:
-            traceback.print_exc()
+            pass
 
         self.ui.pushButton_previous.clicked.connect(
             partial(self.load_co_evolving_pairs, progress_bar, False)
@@ -2489,7 +2466,7 @@ class REvoDesignPlugin:
         walk_to_next=True,
     ):
         checkBox_ignore_wt = self.ui.checkBox_interact_ignore_wt
-        comboBox_max_interact_dist = self.ui.comboBox_max_interact_dist
+        doubleSpinBox_max_interact_dist = self.ui.doubleSpinBox_max_interact_dist
 
         lineEdit_current_pair = self.ui.lineEdit_current_pair
         lineEdit_current_pair_score = self.ui.lineEdit_current_pair_score
@@ -2582,12 +2559,12 @@ class REvoDesignPlugin:
         set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
         if (
-            comboBox_max_interact_dist.currentText()
+            doubleSpinBox_max_interact_dist.value()
             and spatial_distance
-            > float(comboBox_max_interact_dist.currentText())
+            > doubleSpinBox_max_interact_dist.value()
         ):
             logging.warning(
-                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {float(comboBox_max_interact_dist.currentText())}'
+                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {doubleSpinBox_max_interact_dist.value()}'
             )
             set_widget_value(lineEdit_current_pair, 'Out of range.')
             # To disable the QbuttonMatrix:

@@ -386,6 +386,10 @@ class REvoDesigner:
             mutant_obj.set_mutant_score(score)
             score_list.append(score)
             mutant_objs.append(mutant_obj)
+        
+        if not mutant_objs:
+            logging.warning('No available designs is founded.')
+            return
 
         visualizer = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id
