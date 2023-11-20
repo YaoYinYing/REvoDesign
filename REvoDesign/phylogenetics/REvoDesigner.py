@@ -373,6 +373,9 @@ class REvoDesigner:
             mutant_obj = extract_mutant_from_sequences(
                 mutant_sequence=seq, wt_sequence=self.sequence
             )
+            if not mutant_obj:
+                logging.warning('Skipped.')
+                continue
             if counter_2.get(seq) > 1:
                 logging.warning(
                     f'Design {mutant_obj.get_mutant_id()} has multiple scores!\n'

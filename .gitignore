@@ -9,3 +9,5 @@ TODO
 iprscan5-*
 REvoDesign/UI/REvoDesign-CommentMutant_ui.py
 REvoDesign/library/*
+server/*
+draws/server_dashboard.tldr
