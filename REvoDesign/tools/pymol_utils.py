@@ -155,7 +155,7 @@ def is_distal_residue_pair(
                 logging.warning(
                 f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
                 )
-                return 
+                return sidechain_com_dist > minimal_distance
         else:
             logging.warning(
                 f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
