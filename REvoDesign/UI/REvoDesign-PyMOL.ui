@@ -2732,7 +2732,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_multi_design_use_external_scorer">
               <property name="statusTip">
-               <string>Use sidechain orientations from WT. Consider its center of mass.</string>
+               <string>Use external designers as scorer for multi-mutant design. eg.: ProteinMPNN</string>
               </property>
               <property name="text">
                <string>External Scorer</string>
@@ -2745,7 +2745,7 @@
             <item>
              <widget class="QCheckBox" name="checkBox_multi_design_color_by_scores">
               <property name="statusTip">
-               <string>Use sidechain orientations from WT. Consider its center of mass.</string>
+               <string>Color multi-design with scores from external scorer.</string>
               </property>
               <property name="text">
                <string>Color by scores</string>
