@@ -98,6 +98,10 @@ class MultiMutantDesigner:
                 )
                 util.cnc(f'{item}', _self=cmd)
         else:
+            for mut_obj in self.all_design_multi_design_mutant_object:
+                if not mut_obj.get_mutant_score():
+                    mut_obj.set_mutant_score(new_score=self.external_scorer.scorer(sequence=mut_obj.get_mutant_sequence())) 
+            
             all_scores = [
                 mut_obj.get_mutant_score()
                 for mut_obj in self.all_design_multi_design_mutant_object

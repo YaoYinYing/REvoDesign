@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicated rejection of mutants.
 - In-used progressbar is status-restorable in `run_worker_thread_with_progress`. If progress bar has a range and value, they will be stored before used.
 - Minor typo.
+- Rescoring multi-designs if no score is available.
 
 ## [1.2.2] - 2023-11-17
 
