@@ -1,0 +1,1 @@
+pgrep gunicorn | awk '{system("kill -HUP " $1)}'

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="10">
+
+    <title>REvoDesign Task Submission Panel</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>REvoDesign: PSSM_GREMLIN Task Submission Panel</h1>
+    <div id="task-summary">
+        <p>Total Tasks: {{ task_summary.total_tasks }}</p>
+        <p>Finished Tasks: {{ task_summary.finished_tasks }}</p>
+        <p>Tasks in Processing: {{ task_summary.processing_tasks }}</p>
+        <p>Tasks in Pending: {{ task_summary.pending_tasks }}</p>
+        <p>Failed Tasks: {{ task_summary.failed_tasks }}</p>
+        <p>Cancelled Tasks: {{ task_summary.cancelled_tasks }}</p>
+    </div>
+    <div id="task-list">
+        <table>
+            <tr>
+                <th>FASTA</th>
+                <th>MD5sum</th>
+                <th>Submitted At</th>
+                <th>Finished At</th>
+                <th>Wall time</th>
+                <th>Status</th>
+                <th>Download</th> <!-- Add this column for the download link -->
+            </tr>
+            {% for md5sum, task_info in task_statuses.items() %}
+            <tr>
+                <td>{{ task_info.fasta_fn }}</td>
+                <td>{{ md5sum }}</td>
+                <td>{{ task_info.submitted_time }}</td>
+                <td>{{ task_info.finished_time }}</td>
+                <td>{{ task_info.walltime }}</td>
+                <td>{{ task_info.status }}</td>
+                <td>
+                    {% if task_info.status == 'finished' %}
+                        <a href="/PSSM_GREMLIN/api/results/{{ md5sum }}">Download</a>
+                    {% else %}
+                        Not Available
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+</body>
+</html>
