@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- External Designer's scorer as GREMLIN design scorer option.
+- `randomized_sample` and `randomized_sample_num` for external designers to randomly pick a given number of position in customized indices.
+
+### Changed
+- UI element changes:
+  - SpinBoxes for integers
+  - DoubleSpinBoxes for floats
+  - **`lineEdit_score_minima` and `lineEdit_score_maxima` stays unchanged.**
+- `accept_coevoled_mutant` and `reject_coevoled_mutant` -> `coevoled_mutant_decision`
+- Capatibility change: `random.shuffle(iterable)` -> `iterable=random.sample(iterable,len(iterable))`. `random.shuffle` is deprecated. See [here](https://docs.python.org/zh-cn/3/library/random.html#random.shuffle)
+- `magician.initialize` to transfer time comsuming initializing task to `run_worker_thread_with_progress` so that UI won't be frozen.
+- `make_temperal_input_pdb`: reload pdb option `reload` to fix pdb reload while external designer is used to score GREMLIN's design.
+
+### Fixed
+- `MutantTree.emtpy` if there is one mutant left.
+- Early return if External Designer returns with no designs.
+- Duplicated rejection of mutants.
+- In-used progressbar is status-restorable in `run_worker_thread_with_progress`. If progress bar has a range and value, they will be stored before used.
+
 ## [1.2.2] - 2023-11-17
 
 ### Added

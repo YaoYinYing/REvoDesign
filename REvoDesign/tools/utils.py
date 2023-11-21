@@ -85,6 +85,11 @@ def run_worker_thread_with_progress(
     worker_function, progress_bar=None, *args, **kwargs
 ):
     if progress_bar:
+        # store the progress bar state
+        _min=progress_bar.minimum()
+        _max=progress_bar.maximum()
+        _val=progress_bar.value()
+
         progress_bar.setRange(0, 0)
 
     work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
@@ -95,9 +100,12 @@ def run_worker_thread_with_progress(
         time.sleep(0.001)
 
     if progress_bar:
-        progress_bar.setRange(0, 1)
+        # restore the progressbar state
+        progress_bar.setRange(_min, _max)
+        progress_bar.setValue(_val)
 
     result = work_thread.handle_result()
+
     return result[0] if result else None
 
 

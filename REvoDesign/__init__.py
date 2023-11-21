@@ -86,6 +86,7 @@ class REvoDesignPlugin:
         self.mutant_tree_coevolved = MutantTree({})
 
         self.gremlin_tool = None
+        self.gremlin_external_scorer = None
 
         from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
@@ -692,11 +693,16 @@ class REvoDesignPlugin:
         )
 
         self.ui.pushButton_interact_reject.clicked.connect(
-            self.reject_coevoled_mutant
+            self.coevoled_mutant_decision,
+            False
         )
         self.ui.pushButton_interact_accept.clicked.connect(
-            self.accept_coevoled_mutant
+            self.coevoled_mutant_decision,
+            True
         )
+        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+
+        set_widget_value(self.ui.comboBox_external_scorer, [''] + list(EXTERNAL_DESIGNERS.keys()))
 
         return main_window
 
@@ -1068,7 +1074,8 @@ class REvoDesignPlugin:
         )
 
         set_widget_value(
-            self.ui.doubleSpinBox_cofactor_radius, DEFAULT_COFACTOR_POCKET_RADIUS
+            self.ui.doubleSpinBox_cofactor_radius,
+            DEFAULT_COFACTOR_POCKET_RADIUS,
         )
 
     def update_surface_exclusion(self):
@@ -1161,6 +1168,10 @@ class REvoDesignPlugin:
             deduplicate_designs = (
                 self.ui.checkBox_deduplicate_designs.isChecked()
             )
+            randomized_sample = (
+                self.ui.checkBox_randomized_sampling.isChecked()
+            )
+            randomized_sample_num = self.ui.spinBox_randomized_sampling.value()
 
             design_case = self.ui.lineEdit_design_case.text()
             custom_indices_fp = (
@@ -1214,6 +1225,8 @@ class REvoDesignPlugin:
             design.batch = batch
             design.homooligomeric = homooligomeric
             design.deduplicate_designs = deduplicate_designs
+            design.randomized_sample = randomized_sample
+            design.randomized_sample_num = randomized_sample_num
 
             design.preffered_substitutions = preffered
             design.reject_aa = rejected
@@ -2166,7 +2179,9 @@ class REvoDesignPlugin:
     def multi_mutagenesis_design_auto(self):
         trigger_button = self.ui.pushButton_run_multi_design
 
-        maximal_multi_design_variant_num = self.ui.spinBox_maximal_multi_design_variant_num.value()
+        maximal_multi_design_variant_num = (
+            self.ui.spinBox_maximal_multi_design_variant_num.value()
+        )
         maximal_mutant_num = self.ui.spinBox_maximal_mutant_num.value()
 
         # initialize
@@ -2466,7 +2481,9 @@ class REvoDesignPlugin:
         walk_to_next=True,
     ):
         checkBox_ignore_wt = self.ui.checkBox_interact_ignore_wt
-        doubleSpinBox_max_interact_dist = self.ui.doubleSpinBox_max_interact_dist
+        doubleSpinBox_max_interact_dist = (
+            self.ui.doubleSpinBox_max_interact_dist
+        )
 
         lineEdit_current_pair = self.ui.lineEdit_current_pair
         lineEdit_current_pair_score = self.ui.lineEdit_current_pair_score
@@ -2560,8 +2577,7 @@ class REvoDesignPlugin:
 
         if (
             doubleSpinBox_max_interact_dist.value()
-            and spatial_distance
-            > doubleSpinBox_max_interact_dist.value()
+            and spatial_distance > doubleSpinBox_max_interact_dist.value()
         ):
             logging.warning(
                 f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {doubleSpinBox_max_interact_dist.value()}'
@@ -2573,39 +2589,38 @@ class REvoDesignPlugin:
             # To enable the QbuttonMatrix:
             button_matrix.setEnabled(True)
 
-    def accept_coevoled_mutant(self):
+    def coevoled_mutant_decision(self, decision_to_accept):
         logging.debug(
-            f'Accepting co-evolved mutant {self.current_gremlin_co_evoving_pair_mutant_id}'
+            f'{"Accepting" if decision_to_accept else "Rejecting"}  co-evolved mutant {self.current_gremlin_co_evoving_pair_mutant_id}'
         )
-        cmd.enable(self.current_gremlin_co_evoving_pair_mutant_id)
 
-        self.mutant_tree_coevolved.add_mutant_to_branch(
-            self.current_gremlin_co_evoving_pair_group_id,
-            self.current_gremlin_co_evoving_pair_mutant_id,
-            extract_mutant_from_pymol_object(
-                pymol_object=self.current_gremlin_co_evoving_pair_mutant_id,
-                sequence=self.design_sequence,
-            ),
-        )
+        if decision_to_accept:
+            cmd.enable(self.current_gremlin_co_evoving_pair_mutant_id)
+
+            self.mutant_tree_coevolved.add_mutant_to_branch(
+                self.current_gremlin_co_evoving_pair_group_id,
+                self.current_gremlin_co_evoving_pair_mutant_id,
+                extract_mutant_from_pymol_object(
+                    pymol_object=self.current_gremlin_co_evoving_pair_mutant_id,
+                    sequence=self.design_sequence,
+                ),
+            )
+        else:
+            cmd.disable(self.current_gremlin_co_evoving_pair_mutant_id)
+            if self.current_gremlin_co_evoving_pair_mutant_id not in self.mutant_tree_coevolved.all_mutant_ids:
+                logging.warning(f'{self.current_gremlin_co_evoving_pair_mutant_id} has not been accepted yet. Skipped.')
+                return
+            else:
+                self.mutant_tree_coevolved.remove_mutant_from_branch(
+                    self.current_gremlin_co_evoving_pair_group_id,
+                    self.current_gremlin_co_evoving_pair_mutant_id,
+                )
 
         self.save_mutant_choices(
             self.ui.lineEdit_output_mutant_table,
             self.mutant_tree_coevolved,
         )
 
-    def reject_coevoled_mutant(self):
-        logging.debug(
-            f'Rejecting co-evolved mutant {self.current_gremlin_co_evoving_pair_mutant_id}'
-        )
-        cmd.disable(self.current_gremlin_co_evoving_pair_mutant_id)
-        self.mutant_tree_coevolved.remove_mutant_from_branch(
-            self.current_gremlin_co_evoving_pair_group_id,
-            self.current_gremlin_co_evoving_pair_mutant_id,
-        )
-
-        self.save_mutant_choices(
-            self.ui.lineEdit_output_mutant_table, self.mutant_tree_coevolved
-        )
 
     def activate_focused_interaction(self):
         if (
@@ -2686,11 +2701,30 @@ class REvoDesignPlugin:
             self.ui.lineEdit_current_pair_mut_score
         )
 
+        comboBox_external_scorer = self.ui.comboBox_external_scorer
+        external_scorer = comboBox_external_scorer.currentText()
+        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+
+        if external_scorer and external_scorer in EXTERNAL_DESIGNERS:
+            magician = EXTERNAL_DESIGNERS[external_scorer]
+            if not self.gremlin_external_scorer:
+                logging.info(f'Pre-heating {external_scorer} ... This could take a while...')
+                self.gremlin_external_scorer=magician(molecule=self.design_molecule)
+                run_worker_thread_with_progress(
+                    worker_function=self.gremlin_external_scorer.initialize,
+                    progress_bar=self.ui.progressBar)
+                
+        else:
+            if self.gremlin_external_scorer:
+                logging.info(f'Cooling down {self.gremlin_external_scorer.__class__.__name__} ...')
+            self.gremlin_external_scorer = None
+
         visualizer = MutantVisualizer(
             molecule=self.design_molecule, chain_id=self.design_chain_id
         )
         visualizer.sequence = self.design_sequence
         alphabet = self.gremlin_tool.alphabet
+
         visualizer.group_name = '_vs_'.join(
             [wt.replace('_', '') for wt in wt_info[-3:-1]]
         )
@@ -2707,7 +2741,13 @@ class REvoDesignPlugin:
         wt_A = i_aa.split('_')[0]  # in column
         wt_B = j_aa.split('_')[0]  # in row
 
-        wt_score = matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
+        wt_score = (
+            matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
+            if not self.gremlin_external_scorer
+            else self.gremlin_external_scorer.scorer(
+                sequence=self.design_sequence
+            )
+        )
 
         if i > j:
             j, i = i, j
@@ -2717,8 +2757,6 @@ class REvoDesignPlugin:
         # aa from clicked button, mutant
         mut_A = alphabet[col]
         mut_B = alphabet[row]
-
-        mut_score = matrix[col][row]
 
         _mutant = []
 
@@ -2738,20 +2776,39 @@ class REvoDesignPlugin:
                 logging.debug(f'Adding mutagenesis {_}')
                 _mutant.append(_)
 
-        set_widget_value(lineEdit_current_pair_wt_score, f'{wt_score:.3f}')
-        set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.3f}')
-
-        _mutant.append(str(mut_score))
-
-        mutant = '_'.join(_mutant)
-
+        
         if not _mutant:
             logging.info(
                 'No mutagenesis will be performed since the picked pair is a wt-wt pair'
             )
             return
 
-        elif mutant in cmd.get_names(
+        mutant = '_'.join(_mutant)
+
+        _, mutant_obj = extract_mutants_from_mutant_id(
+            mutant_string=mutant,
+            chain_id=self.design_chain_id,
+            sequence=self.design_sequence,
+        )
+
+        mutant_obj.wt_sequence = self.design_sequence
+
+        mut_score = (
+            matrix[col][row]
+            if not self.gremlin_external_scorer
+            else self.gremlin_external_scorer.scorer(
+                sequence=mutant_obj.get_mutant_sequence()
+            )
+        )
+        mutant_obj.set_mutant_score(mut_score)
+
+        set_widget_value(lineEdit_current_pair_wt_score, f'{wt_score:.3f}')
+        set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.3f}')
+
+        # update mutant id from Mutant object.
+        mutant=mutant_obj.get_short_mutant_id()
+
+        if mutant in cmd.get_names(
             type='nongroup_objects',
             enabled_only=0,
         ):
@@ -2770,11 +2827,6 @@ class REvoDesignPlugin:
 
             logging.info(f" Visualizing {mutant}: {color}")
 
-            _, mutant_obj = extract_mutants_from_mutant_id(
-                mutant_string=mutant,
-                chain_id=self.design_chain_id,
-                sequence=self.design_sequence,
-            )
             visualizer.create_mutagenesis_objects(mutant_obj, color)
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)

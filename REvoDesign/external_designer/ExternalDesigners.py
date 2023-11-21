@@ -3,16 +3,23 @@ import os
 
 # Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN:
-    def __init__(self, molecule, *args, **kwargs):
+    def __init__(self, molecule):
+        self.pdb_filename = None
+        self.mpnn_model = None
+        self.initialized = False
+        self.molecule = molecule
+        self.reload = False
+
+    # initializing take time so it should be sent to run_worker_thread_with_progress so UI will not be freezed.
+    def initialize(self, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
         from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
-        self.pdb_filename = make_temperal_input_pdb(molecule=molecule)
+        self.pdb_filename = make_temperal_input_pdb(molecule=self.molecule,reload=self.reload)
         self.mpnn_model = mk_mpnn_model()
         assert os.path.exists(self.pdb_filename)
-        self.mpnn_model.prep_inputs(
-            pdb_filename=self.pdb_filename, *args, **kwargs
-        )
+        self.mpnn_model.prep_inputs(pdb_filename=self.pdb_filename, *args, **kwargs)
+        self.initialized = True
 
     def preffer_substitutions(self, aa=''):
         from colabdesign.mpnn.model import aa_order

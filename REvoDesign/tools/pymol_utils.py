@@ -245,14 +245,15 @@ def is_a_REvoDesign_session():
     return bool(cmd.get_names(type='public_group_objects'))
 
 
-def make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd()):
+def make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd(), reload=True):
     os.makedirs(wd, exist_ok=True)
 
     input_file = os.path.join(wd, f'{molecule}.{format}')
     if not os.path.exists(input_file):
         cmd.save(input_file, f'{molecule}', -1)
-    cmd.reinitialize()
-    cmd.load(input_file)
+    if reload:
+        cmd.reinitialize()
+        cmd.load(input_file)
     logging.warning(
         'A temperal session is created based on your molecule selection: \n'
         f'{molecule} --> {input_file}'

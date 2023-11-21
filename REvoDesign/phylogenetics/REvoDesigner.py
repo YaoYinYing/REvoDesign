@@ -8,6 +8,7 @@ from absl import logging
 from pymol import cmd
 import matplotlib
 import collections
+import random
 
 from REvoDesign.common.Mutant import Mutant
 
@@ -53,6 +54,8 @@ class REvoDesigner:
         self.batch = 1
         self.homooligomeric = False
         self.deduplicate_designs = False
+        self.randomized_sample=False
+        self.randomized_sample_num=10
 
         self.molecule = ''
         self.chain_id = 'A'
@@ -72,6 +75,7 @@ class REvoDesigner:
         self.nproc = 1
         self.max_abs_profile = 0
         self.create_full_pdb = False
+        
 
     def plot_custom_indices_segments(
         self,
@@ -264,6 +268,10 @@ class REvoDesigner:
             shortened_str=custom_indices_str, connector='-', seperator=','
         )
 
+        if self.randomized_sample and self.randomized_sample_num>0:
+            expanded_custom_indices=random.sample(expanded_custom_indices,self.randomized_sample_num)
+            logging.info(f'Generated random sample indices: {expanded_custom_indices}')
+
         # setup parameters for external designer
         self.setup_parameters_for_external_designer()
 
@@ -277,13 +285,12 @@ class REvoDesigner:
         magician = EXTERNAL_DESIGNERS[self.input_profile_format]
 
         # setup MPNN designer
-        logging.info(
-            f'Starting {self.input_profile_format}, this may take a while.'
-        )
+        
         if self.input_profile_format == 'ProteinMPNN':
             self.external_designer = magician(
                 molecule=self.molecule,
-                fix_pos=','.join(
+            )
+            self.external_designer.initialize(fix_pos=','.join(
                     [
                         f"{self.chain_id}{indice}"
                         for indice in shorter_range(
@@ -298,8 +305,7 @@ class REvoDesigner:
                 if self.reject_aa
                 else None,
                 chain=','.join(self.design_chain_id),
-                homooligomeric=self.homooligomeric,
-            )
+                homooligomeric=self.homooligomeric,)
             return
 
     def design_protein_using_external_designer(
@@ -307,6 +313,9 @@ class REvoDesigner:
     ):
         custom_indices_str = read_customized_indice(
             custom_indices_from_input=custom_indices_fp
+        )
+        logging.info(
+            f'Starting {self.input_profile_format}, this may take a while.'
         )
 
         run_worker_thread_with_progress(

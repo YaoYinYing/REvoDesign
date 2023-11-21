@@ -117,7 +117,9 @@ class Clustering:
         handle = open(self.fastafile, "r")
         self.records = list(SeqIO.parse(handle, "fasta"))
         if self.shuffle_variant:
-            random.shuffle(self.records)
+            #random.shuffle(self.records)
+            #https://docs.python.org/zh-cn/3/library/random.html#random.shuffle
+            self.records=random.sample(self.records,len(self.records))
 
         # lookup = {}
         # for i in self.records:

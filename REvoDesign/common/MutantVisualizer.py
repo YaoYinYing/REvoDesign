@@ -80,6 +80,7 @@ class MutantVisualizer:
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
     def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
+        from pymol import cmd, util
         # mutant: <chain_id><wt><pos><mut>_..._<score>
         new_obj_name = mutant_obj.get_short_mutant_id()
         cmd.create(f"{new_obj_name}", self.molecule)
@@ -142,9 +143,10 @@ class MutantVisualizer:
             magician = EXTERNAL_DESIGNERS[profile_format]
 
             self.scorer = magician(molecule=self.molecule)
+            self.scorer.initialize()
             if not self.scorer:
                 logging.error(
-                    f'Failed to initialize designer from `{profile_format}`: {magician.__class__.__name__}'
+                    f'Failed to initialize designer from `{profile_format}`: {self.scorer.__class__.__name__}'
                 )
                 return
             return

@@ -232,7 +232,7 @@ def shorter_range(input_list, connector='-', seperator='+'):
     return seperator.join(range_pairs)
 
 
-def expand_range(shortened_str, connector='-', seperator='+'):
+def expand_range(shortened_str, connector='-', seperator='+') -> list[int]:
     """
     Expand a shortened string expression representing a list of integers to the original list.
 
