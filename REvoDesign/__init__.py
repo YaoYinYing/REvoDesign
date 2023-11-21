@@ -693,16 +693,17 @@ class REvoDesignPlugin:
         )
 
         self.ui.pushButton_interact_reject.clicked.connect(
-            self.coevoled_mutant_decision,
-            False
+            self.coevoled_mutant_decision, False
         )
         self.ui.pushButton_interact_accept.clicked.connect(
-            self.coevoled_mutant_decision,
-            True
+            self.coevoled_mutant_decision, True
         )
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
-        set_widget_value(self.ui.comboBox_external_scorer, [''] + list(EXTERNAL_DESIGNERS.keys()))
+        set_widget_value(
+            self.ui.comboBox_external_scorer,
+            [''] + list(EXTERNAL_DESIGNERS.keys()),
+        )
 
         return main_window
 
@@ -2104,6 +2105,61 @@ class REvoDesignPlugin:
             chain_id=self.design_chain_id,
             sequence=self.design_sequence,
         )
+        self.refresh_multi_mutagenesis_designer_parameters()
+
+    def refresh_multi_mutagenesis_designer_parameters(self):
+        if not self.multi_mutagenesis_designer:
+            return
+        spinBox_maximal_mutant_num = self.ui.spinBox_maximal_mutant_num
+        doubleSpinBox_minmal_mutant_distance = (
+            self.ui.doubleSpinBox_minmal_mutant_distance
+        )
+        checkBox_multi_design_bond_CA = self.ui.checkBox_multi_design_bond_CA
+        checkBox_multi_design_check_sidechain_orientations = (
+            self.ui.checkBox_multi_design_check_sidechain_orientations
+        )
+        comboBox_profile_type_2 = self.ui.comboBox_profile_type_2
+        spinBox_maximal_multi_design_variant_num = (
+            self.ui.spinBox_maximal_multi_design_variant_num
+        )
+        checkBox_multi_design_use_external_scorer = (
+            self.ui.checkBox_multi_design_use_external_scorer
+        )
+        checkBox_multi_design_color_by_scores = (
+            self.ui.checkBox_multi_design_color_by_scores
+        )
+        checkBox_reverse_mutant_effect_3 = (
+            self.ui.checkBox_reverse_mutant_effect_3
+        )
+
+        self.multi_mutagenesis_designer.scorer = (
+            comboBox_profile_type_2.currentText()
+        )
+        self.multi_mutagenesis_designer.total_design_cases = (
+            spinBox_maximal_multi_design_variant_num.value()
+        )
+
+        self.multi_mutagenesis_designer.maximal_mutant_num = (
+            spinBox_maximal_mutant_num.value()
+        )
+        self.multi_mutagenesis_designer.minimal_distance = (
+            doubleSpinBox_minmal_mutant_distance.value()
+        )
+        self.multi_mutagenesis_designer.bond_CA = (
+            checkBox_multi_design_bond_CA.isChecked()
+        )
+        self.multi_mutagenesis_designer.use_sidechain_angle = (
+            checkBox_multi_design_check_sidechain_orientations.isChecked()
+        )
+        self.multi_mutagenesis_designer.use_external_scorer = (
+            checkBox_multi_design_use_external_scorer.isChecked()
+        )
+        self.multi_mutagenesis_designer.color_by_scores = (
+            checkBox_multi_design_color_by_scores.isChecked()
+        )
+        self.multi_mutagenesis_designer.external_scorer_reversed_score = (
+            checkBox_reverse_mutant_effect_3.isChecked()
+        )
 
     def multi_mutagenesis_design_start(self):
         if not self.multi_mutagenesis_designer:
@@ -2125,44 +2181,29 @@ class REvoDesignPlugin:
             if not confirmed:
                 logging.warning(f'Cancelled.')
                 return
+        self.refresh_multi_mutagenesis_designer_parameters()
         self.multi_mutagenesis_designer.start_new_design()
 
     def multi_mutagenesis_design_pick_next_mut(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
-
-        spinBox_maximal_mutant_num = self.ui.spinBox_maximal_mutant_num
-        doubleSpinBox_minmal_mutant_distance = (
-            self.ui.doubleSpinBox_minmal_mutant_distance
-        )
-
-        checkBox_multi_design_bond_CA = self.ui.checkBox_multi_design_bond_CA
-        checkBox_multi_design_check_sidechain_orientations = (
-            self.ui.checkBox_multi_design_check_sidechain_orientations
-        )
-
-        self.multi_mutagenesis_designer.pick_next_mutant(
-            maximal_mutant_num=spinBox_maximal_mutant_num.value(),
-            minimal_distance=doubleSpinBox_minmal_mutant_distance.value(),
-            bond_CA=checkBox_multi_design_bond_CA.isChecked(),
-            use_sidechain_angle=checkBox_multi_design_check_sidechain_orientations.isChecked(),
-        )
+        self.refresh_multi_mutagenesis_designer_parameters()
+        self.multi_mutagenesis_designer.pick_next_mutant()
 
     def multi_mutagenesis_design_undo_picking(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
 
-        checkBox_multi_design_bond_CA = self.ui.checkBox_multi_design_bond_CA
-        self.multi_mutagenesis_designer.undo_previous_mutant(
-            bond_CA=checkBox_multi_design_bond_CA.isChecked()
-        )
+        self.refresh_multi_mutagenesis_designer_parameters()
+        self.multi_mutagenesis_designer.undo_previous_mutant()
 
     def multi_mutagenesis_design_stop_design(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
+        self.refresh_multi_mutagenesis_designer_parameters()
         if self.multi_mutagenesis_designer.in_design_multi_design_case:
             self.multi_mutagenesis_designer.new_design(continue_design=False)
 
@@ -2170,6 +2211,7 @@ class REvoDesignPlugin:
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
+        self.refresh_multi_mutagenesis_designer_parameters()
 
         mut_table_csv = self.ui.lineEdit_multi_design_mutant_table.text()
         self.multi_mutagenesis_designer.export_designed_variant(
@@ -2178,11 +2220,12 @@ class REvoDesignPlugin:
 
     def multi_mutagenesis_design_auto(self):
         trigger_button = self.ui.pushButton_run_multi_design
+        self.refresh_multi_mutagenesis_designer_parameters()
 
         maximal_multi_design_variant_num = (
-            self.ui.spinBox_maximal_multi_design_variant_num.value()
+            self.multi_mutagenesis_designer.total_design_cases
         )
-        maximal_mutant_num = self.ui.spinBox_maximal_mutant_num.value()
+        maximal_mutant_num = self.multi_mutagenesis_designer.maximal_mutant_num
 
         # initialize
         self.multi_mutagenesis_design_initialize()
@@ -2607,8 +2650,13 @@ class REvoDesignPlugin:
             )
         else:
             cmd.disable(self.current_gremlin_co_evoving_pair_mutant_id)
-            if self.current_gremlin_co_evoving_pair_mutant_id not in self.mutant_tree_coevolved.all_mutant_ids:
-                logging.warning(f'{self.current_gremlin_co_evoving_pair_mutant_id} has not been accepted yet. Skipped.')
+            if (
+                self.current_gremlin_co_evoving_pair_mutant_id
+                not in self.mutant_tree_coevolved.all_mutant_ids
+            ):
+                logging.warning(
+                    f'{self.current_gremlin_co_evoving_pair_mutant_id} has not been accepted yet. Skipped.'
+                )
                 return
             else:
                 self.mutant_tree_coevolved.remove_mutant_from_branch(
@@ -2620,7 +2668,6 @@ class REvoDesignPlugin:
             self.ui.lineEdit_output_mutant_table,
             self.mutant_tree_coevolved,
         )
-
 
     def activate_focused_interaction(self):
         if (
@@ -2707,16 +2754,27 @@ class REvoDesignPlugin:
 
         if external_scorer and external_scorer in EXTERNAL_DESIGNERS:
             magician = EXTERNAL_DESIGNERS[external_scorer]
-            if not self.gremlin_external_scorer:
-                logging.info(f'Pre-heating {external_scorer} ... This could take a while...')
-                self.gremlin_external_scorer=magician(molecule=self.design_molecule)
+            if (
+                not self.gremlin_external_scorer  # non-scorer is set
+                or magician.__name__  # scorer is switched to another
+                != self.gremlin_external_scorer.__class__.__name__
+            ):
+                logging.info(
+                    f'Pre-heating {external_scorer} ... This could take a while ...'
+                )
+                self.gremlin_external_scorer = magician(
+                    molecule=self.design_molecule
+                )
                 run_worker_thread_with_progress(
                     worker_function=self.gremlin_external_scorer.initialize,
-                    progress_bar=self.ui.progressBar)
-                
+                    progress_bar=self.ui.progressBar,
+                )
+
         else:
             if self.gremlin_external_scorer:
-                logging.info(f'Cooling down {self.gremlin_external_scorer.__class__.__name__} ...')
+                logging.info(
+                    f'Cooling down {self.gremlin_external_scorer.__class__.__name__} ...'
+                )
             self.gremlin_external_scorer = None
 
         visualizer = MutantVisualizer(
@@ -2776,7 +2834,6 @@ class REvoDesignPlugin:
                 logging.debug(f'Adding mutagenesis {_}')
                 _mutant.append(_)
 
-        
         if not _mutant:
             logging.info(
                 'No mutagenesis will be performed since the picked pair is a wt-wt pair'
@@ -2806,7 +2863,7 @@ class REvoDesignPlugin:
         set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.3f}')
 
         # update mutant id from Mutant object.
-        mutant=mutant_obj.get_short_mutant_id()
+        mutant = mutant_obj.get_short_mutant_id()
 
         if mutant in cmd.get_names(
             type='nongroup_objects',

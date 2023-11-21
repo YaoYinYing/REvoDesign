@@ -2221,7 +2221,7 @@
               </property>
               <property name="maximumSize">
                <size>
-                <width>70</width>
+                <width>120</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -2723,6 +2723,32 @@
               </property>
               <property name="text">
                <string>SC Orientations</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="checkBox_multi_design_use_external_scorer">
+              <property name="statusTip">
+               <string>Use sidechain orientations from WT. Consider its center of mass.</string>
+              </property>
+              <property name="text">
+               <string>External Scorer</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="checkBox_multi_design_color_by_scores">
+              <property name="statusTip">
+               <string>Use sidechain orientations from WT. Consider its center of mass.</string>
+              </property>
+              <property name="text">
+               <string>Color by scores</string>
               </property>
               <property name="checked">
                <bool>true</bool>
@@ -4071,7 +4097,7 @@
      <x>0</x>
      <y>0</y>
      <width>660</width>
-     <height>37</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuREvoDesign">

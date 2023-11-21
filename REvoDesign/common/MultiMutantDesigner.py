@@ -5,16 +5,22 @@ import itertools
 from pymol import cmd, util
 
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common.Mutant import Mutant
 
 from REvoDesign.tools.utils import (
     get_color,
+    cmap_reverser,
+    run_worker_thread_with_progress,
 )
+
 
 from REvoDesign.tools.pymol_utils import (
     is_distal_residue_pair,
 )
 
 from REvoDesign.tools.mutant_tools import extract_mutant_from_pymol_object
+
+from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
 
 class MultiMutantDesigner:
@@ -25,10 +31,23 @@ class MultiMutantDesigner:
         self.cmap = 'bwr_r'
         self.total_design_cases = 20
 
-        self.all_design_multi_design_cases = []
-        self.in_design_multi_design_case = []
-        self.design_case_variant_objects = []
+        self.all_design_multi_design_cases: list[list] = []
+        self.all_design_multi_design_mutant_object: list[Mutant] = []
+        self.in_design_multi_design_case: list[tuple] = []
+        self.design_case_variant_objects: list[str] = []
         self.mutant_tree_multi_design_copy = None
+
+        self.scorer = ''
+        self.use_external_scorer = False
+        self.external_scorer = None
+        self.external_scorer_reversed_score = False
+
+        self.color_by_scores = False
+        self.minimal_distance = 10
+        self.maximal_mutant_num = 10
+
+        self.use_sidechain_angle = True
+        self.bond_CA = True
 
         # Initialize mutant tree for design
         _mutant_tree = {
@@ -61,19 +80,114 @@ class MultiMutantDesigner:
             self.total_design_cases, len(self.design_case_variant_objects)
         )
 
-        for i, item in enumerate(self.design_case_variant_objects):
-            color = get_color(
-                cmap=self.cmap,
-                data=i + 1,
-                min_value=0,
-                max_value=_total_num_design_cases,
+        if not self.color_by_scores or not self.external_scorer:
+            for i, item in enumerate(self.design_case_variant_objects):
+                color = get_color(
+                    cmap=cmap_reverser(
+                        cmap=self.cmap,
+                        reverse=self.external_scorer_reversed_score,
+                    ),
+                    data=i + 1,
+                    min_value=0,
+                    max_value=_total_num_design_cases,
+                )
+                cmd.set_color(f'color_{i}', color)
+                cmd.color(
+                    f'color_{i}',
+                    f'{item}',
+                )
+                util.cnc(f'{item}', _self=cmd)
+        else:
+            all_scores = [
+                mut_obj.get_mutant_score()
+                for mut_obj in self.all_design_multi_design_mutant_object
+                if mut_obj.get_mutant_score()
+            ]
+
+            logging.debug('All design with score: \n')
+            logging.debug('-' * 60)
+            logging.debug(
+                '\n\n'
+                + '\n'.join(
+                    [
+                        _.get_mutant_id()
+                        for _ in self.all_design_multi_design_mutant_object
+                    ]
+                )
+                + '\n\n'
             )
-            cmd.set_color(f'color_{i}', color)
-            cmd.color(
-                f'color_{i}',
-                f'{item}',
+            logging.debug('-' * 60)
+
+            for (i_obj, obj), (j_des, des) in zip(
+                enumerate(self.design_case_variant_objects),
+                enumerate(self.all_design_multi_design_mutant_object),
+            ):
+                color = get_color(
+                    cmap=cmap_reverser(
+                        cmap=self.cmap,
+                        reverse=self.external_scorer_reversed_score,
+                    ),
+                    data=des.get_mutant_score(),
+                    min_value=min(all_scores),
+                    max_value=max(all_scores),
+                )
+
+                cmd.set_color(f'color_{i_obj}', color)
+                cmd.color(
+                    f'color_{i_obj}',
+                    f'{obj}',
+                )
+                util.cnc(f'{obj}', _self=cmd)
+
+    def evaluate_design(self, design: list[Mutant]) -> Mutant:
+        tmp_mutant_obj = Mutant(
+            mutant_info=[
+                _mut_info
+                for _mut_obj in design
+                for _mut_info in _mut_obj.mutant_info
+            ],
+            mutant_score=None,
+        )
+
+        tmp_mutant_obj.wt_sequence = self.sequence
+
+        if not self.external_scorer:
+            logging.warning(
+                f'Abord design evaluation because no external scorer is defined.'
             )
-            util.cnc(f'{item}', _self=cmd)
+            return tmp_mutant_obj
+
+        tmp_mutant_obj.set_mutant_score(
+            self.external_scorer.scorer(
+                sequence=tmp_mutant_obj.get_mutant_sequence()
+            )
+        )
+        return tmp_mutant_obj
+
+    def initialize_scorer(self):
+        # early return for non-scorer
+        if self.scorer not in EXTERNAL_DESIGNERS:
+            if self.external_scorer:
+                logging.info(
+                    f'Cooling down {self.external_scorer.__class__.__name__} ...'
+                )
+            self.external_scorer = None
+            return
+
+        magician = EXTERNAL_DESIGNERS[self.scorer]
+        if (
+            not self.external_scorer
+            or magician.__name__ != self.external_scorer.__class__.__name__
+        ):
+            logging.info(
+                f'Pre-heating {self.scorer} ... This could take a while...'
+            )
+            self.external_scorer = magician(molecule=self.molecule)
+            run_worker_thread_with_progress(
+                worker_function=self.external_scorer.initialize
+            )
+
+        return
 
     def start_new_design(self):
         if self.mutant_tree_multi_design.empty:
@@ -97,9 +211,7 @@ class MultiMutantDesigner:
         cmd.group(self.design_case, self.design_case_variant)
         logging.info(f'Starting design with {self.design_case_variant}')
 
-    def _auto_pick_tryout(
-        self, minimal_distance, use_sidechain_angle=True, tryout=30
-    ):
+    def _auto_pick_tryout(self, tryout=30):
         for i in range(tryout):
             try:
                 branch, (mutant_id, mutant_obj) = self._select_random_mutant()
@@ -108,8 +220,8 @@ class MultiMutantDesigner:
 
             if not self._is_compatible_mutant(
                 (mutant_id, mutant_obj),
-                minimal_distance=minimal_distance,
-                use_sidechain_angle=use_sidechain_angle,
+                minimal_distance=self.minimal_distance,
+                use_sidechain_angle=self.use_sidechain_angle,
             ):
                 logging.warning(f'Skip {branch}: {mutant_id}.')
                 # label this mutant deleted in this design.
@@ -127,13 +239,7 @@ class MultiMutantDesigner:
             # a successful picking and return.
             return
 
-    def pick_next_mutant(
-        self,
-        maximal_mutant_num,
-        minimal_distance,
-        bond_CA=True,
-        use_sidechain_angle=True,
-    ):
+    def pick_next_mutant(self):
         if not self.mutant_tree_multi_design:
             logging.error(f'Mutant Tree is not found.')
             return
@@ -157,10 +263,7 @@ class MultiMutantDesigner:
                 return
 
         len_in_design_multi_design_case = len(self.in_design_multi_design_case)
-        self._auto_pick_tryout(
-            minimal_distance=minimal_distance,
-            use_sidechain_angle=use_sidechain_angle,
-        )
+        self._auto_pick_tryout()
         if len_in_design_multi_design_case == len(
             self.in_design_multi_design_case
         ):
@@ -181,7 +284,7 @@ class MultiMutantDesigner:
             f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
         )
 
-        if bond_CA:
+        if self.bond_CA:
             # bond to the last previous design
             if len(self.in_design_multi_design_case) >= 2:
                 second_mutant_to_the_last = self.in_design_multi_design_case[
@@ -215,13 +318,13 @@ class MultiMutantDesigner:
 
         logging.info(f'{mutant_id} is added to {self.design_case_variant}')
 
-        if len(self.in_design_multi_design_case) >= maximal_mutant_num:
+        if len(self.in_design_multi_design_case) >= self.maximal_mutant_num:
             logging.info(
-                f'Reaching {maximal_mutant_num} mutations. Stop current design.'
+                f'Reaching {self.maximal_mutant_num} mutations. Stop current design.'
             )
             self.new_design()
 
-    def undo_previous_mutant(self, bond_CA=True):
+    def undo_previous_mutant(self):
         if (
             not self.in_design_multi_design_case
             and not self.all_design_multi_design_cases
@@ -233,6 +336,8 @@ class MultiMutantDesigner:
             not self.in_design_multi_design_case
             and self.all_design_multi_design_cases
         ):
+            # discard the last design mutant object
+            self.all_design_multi_design_mutant_object.pop()
             self.in_design_multi_design_case = (
                 self.all_design_multi_design_cases.pop()
             )
@@ -259,7 +364,7 @@ class MultiMutantDesigner:
             f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_undo_mutant} and n. CA',
         )
 
-        if bond_CA:
+        if self.bond_CA:
             # unbond to the last previous design
             if len(self.in_design_multi_design_case) >= 1:
                 last_mutant = self.in_design_multi_design_case[-1]
@@ -304,6 +409,21 @@ class MultiMutantDesigner:
         self.all_design_multi_design_cases.append(
             self.in_design_multi_design_case
         )
+
+        # initialize scorer
+        if self.color_by_scores and self.scorer and self.use_external_scorer:
+            self.initialize_scorer()
+
+        # evaluate mutant design after design case is closed.
+        self.all_design_multi_design_mutant_object.append(
+            self.evaluate_design(
+                design=[
+                    mut_obj
+                    for _, __, mut_obj in self.in_design_multi_design_case
+                ]
+            )
+        )
+
         self.in_design_multi_design_case = []
         self.refresh_design_color()
         if continue_design:

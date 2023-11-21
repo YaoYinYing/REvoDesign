@@ -1,5 +1,7 @@
+from typing import Union
+
 class Mutant:
-    def __init__(self, mutant_info, mutant_score):
+    def __init__(self, mutant_info: list[dict], mutant_score: Union[float, None]):
         """
         Initialize a Mutant object with mutant information and score.
 
@@ -80,7 +82,7 @@ class Mutant:
 
         return f'{mutant_id}_{self.mutant_score}'
 
-    def get_mutant_score(self):
+    def get_mutant_score(self) -> float:
         """
         Get the mutant score.
 
@@ -89,7 +91,7 @@ class Mutant:
         """
         return self.mutant_score
 
-    def set_mutant_score(self, new_score):
+    def set_mutant_score(self, new_score:float):
         """
         Set the mutant score to a new value.
 
@@ -98,7 +100,7 @@ class Mutant:
         """
         self.mutant_score = new_score
 
-    def set_mutant_description(self, new_description):
+    def set_mutant_description(self, new_description: str):
         """
         Set the mutant description to a new value.
 
@@ -107,7 +109,7 @@ class Mutant:
         """
         self.mutant_description = new_description
 
-    def get_mutant_description(self):
+    def get_mutant_description(self) ->str:
         """
         Get the mutant description.
 
@@ -116,7 +118,7 @@ class Mutant:
         """
         return self.mutant_description
 
-    def get_mutant_sequence(self):
+    def get_mutant_sequence(self) -> str:
         """
         Get the mutant sequence.
 
@@ -148,7 +150,7 @@ class Mutant:
 
         return ''.join(_sequence)
 
-    def equals_to(self, other_mutant):
+    def equals_to(self, other_mutant) -> bool:
         assert isinstance(
             other_mutant, Mutant
         ), 'Input mutant must be a Mutant object.'
@@ -166,7 +168,7 @@ class Mutant:
             )
         )
     
-    def get_wt_score(self):
+    def get_wt_score(self) -> float:
         """
         Get the wt score.
 
@@ -175,7 +177,7 @@ class Mutant:
         """
         return self.wt_score
 
-    def set_wt_score(self, new_score):
+    def set_wt_score(self, new_score: str):
         """
         Set the wt score to a new value.
 

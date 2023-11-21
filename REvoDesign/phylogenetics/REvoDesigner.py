@@ -40,6 +40,7 @@ from REvoDesign.tools.mutant_tools import (
 )
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
+
 class REvoDesigner:
     def __init__(self, input_profile):
         self.input_pse = ''
@@ -54,8 +55,8 @@ class REvoDesigner:
         self.batch = 1
         self.homooligomeric = False
         self.deduplicate_designs = False
-        self.randomized_sample=False
-        self.randomized_sample_num=10
+        self.randomized_sample = False
+        self.randomized_sample_num = 10
 
         self.molecule = ''
         self.chain_id = 'A'
@@ -75,7 +76,6 @@ class REvoDesigner:
         self.nproc = 1
         self.max_abs_profile = 0
         self.create_full_pdb = False
-        
 
     def plot_custom_indices_segments(
         self,
@@ -128,7 +128,6 @@ class REvoDesigner:
 
         plt.colorbar(pcm).minorticks_on()
 
-
         for pos in range(0, len(sequence)):
             for a in range(len(self.profile_alphabet)):
                 if al_a[a] == sequence[pos]:
@@ -180,16 +179,19 @@ class REvoDesigner:
                     ] = profile_score
                     mutations.append(mutation_key)
 
-
         os.makedirs(f'{self.pwd}/mutations_design_profile', exist_ok=True)
 
         indices_hash = hashlib.sha256(
             bytes(custom_indices_str.encode())
         ).hexdigest()
 
-        file_name=f'{time.strftime("%Y%m%d", time.localtime())}_{self.molecule}_{self.design_case}_{indices_hash[:10]}'
-        mutation_json_fp = f'{self.pwd}/mutations_design_profile/{file_name}.json'
-        mutation_png_fp = f'{self.pwd}/mutations_design_profile/{file_name}.png'
+        file_name = f'{time.strftime("%Y%m%d", time.localtime())}_{self.molecule}_{self.design_case}_{indices_hash[:10]}'
+        mutation_json_fp = (
+            f'{self.pwd}/mutations_design_profile/{file_name}.json'
+        )
+        mutation_png_fp = (
+            f'{self.pwd}/mutations_design_profile/{file_name}.png'
+        )
 
         json.dump(mutation_candidates, open(mutation_json_fp, 'w'), indent=2)
 
@@ -268,9 +270,13 @@ class REvoDesigner:
             shortened_str=custom_indices_str, connector='-', seperator=','
         )
 
-        if self.randomized_sample and self.randomized_sample_num>0:
-            expanded_custom_indices=random.sample(expanded_custom_indices,self.randomized_sample_num)
-            logging.info(f'Generated random sample indices: {expanded_custom_indices}')
+        if self.randomized_sample and self.randomized_sample_num > 0:
+            expanded_custom_indices = random.sample(
+                expanded_custom_indices, self.randomized_sample_num
+            )
+            logging.info(
+                f'Generated random sample indices: {expanded_custom_indices}'
+            )
 
         # setup parameters for external designer
         self.setup_parameters_for_external_designer()
@@ -285,27 +291,38 @@ class REvoDesigner:
         magician = EXTERNAL_DESIGNERS[self.input_profile_format]
 
         # setup MPNN designer
-        
-        if self.input_profile_format == 'ProteinMPNN':
-            self.external_designer = magician(
-                molecule=self.molecule,
-            )
-            self.external_designer.initialize(fix_pos=','.join(
-                    [
-                        f"{self.chain_id}{indice}"
-                        for indice in shorter_range(
-                            expanded_custom_indices, connector='-'
-                        ).split('+')
-                    ]
-                    if expanded_custom_indices
-                    else None
-                ),
-                inverse=True,
-                rm_aa=','.join(list(self.reject_aa))
-                if self.reject_aa
-                else None,
-                chain=','.join(self.design_chain_id),
-                homooligomeric=self.homooligomeric,)
+
+        if (
+            not self.external_designer  # non-designer is set
+            or magician.__name__
+            != self.external_designer.__class__.__name__  # designer is switched to another
+        ):
+            # Magician ProteinMPNN
+            if self.input_profile_format == 'ProteinMPNN':
+                self.external_designer = magician(
+                    molecule=self.molecule,
+                )
+                self.external_designer.initialize(
+                    fix_pos=','.join(
+                        [
+                            f"{self.chain_id}{indice}"
+                            for indice in shorter_range(
+                                expanded_custom_indices, connector='-'
+                            ).split('+')
+                        ]
+                        if expanded_custom_indices
+                        else None
+                    ),
+                    inverse=True,
+                    rm_aa=','.join(list(self.reject_aa))
+                    if self.reject_aa
+                    else None,
+                    chain=','.join(self.design_chain_id),
+                    homooligomeric=self.homooligomeric,
+                )
+
+            # register more Magician at here.
+            # elif .....
             return
 
     def design_protein_using_external_designer(
@@ -395,7 +412,7 @@ class REvoDesigner:
             mutant_obj.set_mutant_score(score)
             score_list.append(score)
             mutant_objs.append(mutant_obj)
-        
+
         if not mutant_objs:
             logging.warning('No available designs is founded.')
             return
@@ -538,7 +555,7 @@ class REvoDesigner:
         mutations = read_profile_design_mutations(mutant_json)
 
         mutagenesis_tasks = []
-        new_residue_scores=[]
+        new_residue_scores = []
         for position, wt_res, wt_score, candidates in mutations:
             if not candidates:
                 continue
@@ -547,8 +564,10 @@ class REvoDesigner:
             if self.reject_aa and wt_res in self.reject_aa:
                 continue
 
-            candidates={k:v for k, v in candidates.items() if k not in self.reject_aa}
-            
+            candidates = {
+                k: v for k, v in candidates.items() if k not in self.reject_aa
+            }
+
             for mut_res, mut_score in candidates.items():
                 mutant_obj = Mutant(
                     mutant_info=[
@@ -566,7 +585,6 @@ class REvoDesigner:
                 mutagenesis_tasks.append([mutant_obj])
                 new_residue_scores.append(mutant_obj.get_mutant_score())
 
-
         self.max_abs_profile = max(
             abs(min(new_residue_scores)), abs(max(new_residue_scores))
         )
@@ -577,7 +595,7 @@ class REvoDesigner:
 
         progress_bar.setRange(0, 0)
 
-        if self.nproc>1:
+        if self.nproc > 1:
             parallel_executor = ParallelExecutor(
                 self.run_profile_mutagenesis,
                 mutagenesis_tasks,
