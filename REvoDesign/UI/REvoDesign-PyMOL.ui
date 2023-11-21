@@ -2317,7 +2317,7 @@
              <bool>false</bool>
             </property>
             <property name="statusTip">
-             <string>Save this mutant table (Mutants that keep enabled in current PyMOL session)</string>
+             <string>Save this mutant table (Mutants that are kept enabled in current PyMOL session)</string>
             </property>
             <property name="text">
              <string>Save Mutants</string>

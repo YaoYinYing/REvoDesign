@@ -2138,6 +2138,8 @@ class REvoDesignPlugin:
         self.multi_mutagenesis_designer.total_design_cases = (
             spinBox_maximal_multi_design_variant_num.value()
         )
+        
+        self.multi_mutagenesis_designer.cmap=self.ui.comboBox_cmap.currentText()
 
         self.multi_mutagenesis_designer.maximal_mutant_num = (
             spinBox_maximal_mutant_num.value()

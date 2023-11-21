@@ -10,7 +10,7 @@ class ColabDesigner_MPNN:
         self.molecule = molecule
         self.reload = False
 
-    # initializing take time so it should be sent to run_worker_thread_with_progress so UI will not be frozen.
+    # initializing takes time so it should be sent to run_worker_thread_with_progress so UI will not be frozen.
     def initialize(self, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
         from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
