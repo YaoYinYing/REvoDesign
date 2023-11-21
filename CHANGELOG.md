@@ -17,14 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - UI element changes:
-  - SpinBoxes for integers
-  - DoubleSpinBoxes for floats
+  - `SpinBoxes` for `integers`
+  - `DoubleSpinBoxes` for `floats`
   - **`lineEdit_score_minima` and `lineEdit_score_maxima` stay unchanged.**
 - `accept_coevoled_mutant` and `reject_coevoled_mutant` -> `coevoled_mutant_decision`
 - Capatibility change: `random.shuffle(iterable)` -> `iterable=random.sample(iterable,len(iterable))`. `random.shuffle` is deprecated. See [here](https://docs.python.org/zh-cn/3/library/random.html#random.shuffle)
 - `magician.initialize` to transfer time comsuming initializing task to `run_worker_thread_with_progress` so that UI won't be frozen.
 - `make_temperal_input_pdb`: reload pdb option `reload` to fix pdb reload while external designer is used to score GREMLIN's design.
-
+- if `group_id.startswith('multi_design')`, don't use this group as mutant tree branch.
+- simplified logging message of `is_distal_residue_pair`.
 
 ### Fixed
 - `MutantTree.emtpy` if there is one mutant left.
@@ -33,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In-used progressbar is status-restorable in `run_worker_thread_with_progress`. If progress bar has a range and value, they will be stored before used.
 - Minor typo.
 - Rescoring multi-designs if no score is available.
+
+### Removed
+- `run_worker_thread_with_progress` in `MultiMutantDesigner.external_scorer.initialize()` so UI can freeze to fobbid unexpected button clicking events. 
 
 ## [1.2.2] - 2023-11-17
 

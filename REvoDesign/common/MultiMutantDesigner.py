@@ -9,8 +9,7 @@ from REvoDesign.common.Mutant import Mutant
 
 from REvoDesign.tools.utils import (
     get_color,
-    cmap_reverser,
-    run_worker_thread_with_progress,
+    cmap_reverser
 )
 
 
@@ -108,19 +107,6 @@ class MultiMutantDesigner:
                 if mut_obj.get_mutant_score()
             ]
 
-            logging.debug('All design with score: \n')
-            logging.debug('-' * 60)
-            logging.debug(
-                '\n\n'
-                + '\n'.join(
-                    [
-                        _.get_mutant_id()
-                        for _ in self.all_design_multi_design_mutant_object
-                    ]
-                )
-                + '\n\n'
-            )
-            logging.debug('-' * 60)
 
             for (i_obj, obj), (j_des, des) in zip(
                 enumerate(self.design_case_variant_objects),
@@ -142,6 +128,20 @@ class MultiMutantDesigner:
                     f'{obj}',
                 )
                 util.cnc(f'{obj}', _self=cmd)
+            
+        logging.debug('All design with score: \n')
+        logging.debug('-' * 60)
+        logging.debug(
+            '\n\n'
+            + '\n'.join(
+                [
+                    _.get_mutant_id()
+                    for _ in self.all_design_multi_design_mutant_object
+                ]
+            )
+            + '\n\n'
+        )
+        logging.debug('-' * 60)
 
     def evaluate_design(self, design: list[Mutant]) -> Mutant:
         tmp_mutant_obj = Mutant(
@@ -187,9 +187,7 @@ class MultiMutantDesigner:
                 f'Pre-heating {self.scorer} ... This could take a while...'
             )
             self.external_scorer = magician(molecule=self.molecule)
-            run_worker_thread_with_progress(
-                worker_function=self.external_scorer.initialize
-            )
+            self.external_scorer.initialize()
 
         return
 

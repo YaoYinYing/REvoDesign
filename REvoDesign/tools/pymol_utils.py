@@ -141,21 +141,24 @@ def is_distal_residue_pair(
 
         # Check if the side chains are oriented in opposite directions
         if sidechain_orient < 0:
-            logging.warning(
-                f'Sidechains of {resi_1}{resn_1} and {resi_2}{resn_2} are oriented in opposite directions. Considered as a distal pair.'
-            )
-
+            
             if sidechain_com_dist >= Ca_distance:
                 # /-------------\
                 # *---Ca   Ca---*
+                logging.warning(
+                f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal.'
+                )   
                 return True
             else:
                 #       /--\
                 # Ca---*    *---Ca
-                return sidechain_com_dist > minimal_distance
+                logging.warning(
+                f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
+                )
+                return 
         else:
             logging.warning(
-                f'Sidechains of {resi_1}{resn_1} and {resi_2}{resn_2} are oriented in same directions.'
+                f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
             )
             # Ca---*
             #        \
