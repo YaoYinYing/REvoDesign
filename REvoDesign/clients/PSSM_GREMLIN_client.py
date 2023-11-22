@@ -2,14 +2,23 @@ import os
 import hashlib
 import requests
 from absl import logging
+from REvoDesign.tools.client_tools import check_response_code
 
 
 class PSSMGremlinCalculator:
     def __init__(self):
         pass
 
-    def setup_url(self, lineEdit_url):
+    def setup_url(self, lineEdit_url, lineEdit_user, lineEdit_password):
         self.url = str(lineEdit_url.text())
+        self.user = str(lineEdit_user.text())
+        self.password = str(lineEdit_password.text())
+        if self.user and self.password:
+            from requests.auth import HTTPBasicAuth
+
+            self.auth = HTTPBasicAuth(self.user, self.password)
+        else:
+            self.auth = None
 
     def setup_calculator(
         self, working_directory, molecule, chain_id, sequence
@@ -32,16 +41,18 @@ class PSSMGremlinCalculator:
         logging.info(f'Calculated MD5 sum {self.md5sum}')
 
     def submit_remote_pssm_gremlin_calc(self, opt):
+
         if opt == 'submit':
             # Submit the file by posting the FASTA file
             response = self.submit_fasta_file(self.temp_file_path)
-            logging.info(f"Submitted.\n {response.content}")
+            check_response_code(response,successfull_opt='Submitted')
             return
+            
 
         elif opt == 'cancel':
             # Cancel the job by posting the cancel URL
             response = self.cancel_job(self.md5sum)
-            logging.info(f"Cancelled.\n {response.content}")
+            check_response_code(response=response,successfull_opt='Cancelled')
             return
 
         elif opt == 'download':
@@ -66,29 +77,43 @@ class PSSMGremlinCalculator:
             )
         }
         response = requests.post(
-            f'{self.url}/PSSM_GREMLIN/api/post', files=files, timeout=10
+            f'{self.url}/PSSM_GREMLIN/api/post',
+            files=files,
+            timeout=10,
+            auth=self.auth,
         )
         return response
 
     def cancel_job(self, md5sum):
         response = requests.post(
-            f'{self.url}/PSSM_GREMLIN/api/cancel/{md5sum}', timeout=10
+            f'{self.url}/PSSM_GREMLIN/api/cancel/{md5sum}',
+            timeout=10,
+            auth=self.auth,
         )
         return response
 
     def download_results(self, md5sum):
         result_url = f'{self.url}/PSSM_GREMLIN/api/results/{md5sum}'
-        response = requests.get(result_url, stream=True, allow_redirects=False)
+        response = requests.get(
+            result_url,
+            stream=True,
+            allow_redirects=False,
+            auth=self.auth,
+        )
 
         if response.status_code == 302:  # Redirection status code
             redirected_url = response.headers['Location']
             logging.info(f"Redirected to download page: {redirected_url}")
             self.download_from_redirected_url(redirected_url, md5sum)
         else:
-            logging.warning(f"Unexpected response: {response.status_code}")
+            check_response_code(response=response,successfull_opt="")
 
     def download_from_redirected_url(self, redirected_url, md5sum):
-        response = requests.get(f'{self.url}/{redirected_url}', stream=True)
+        response = requests.get(
+            f'{self.url}/{redirected_url}',
+            stream=True,
+            auth=self.auth,
+        )
 
         if response.status_code == 200:
             content_disposition = response.headers.get('content-disposition')
@@ -114,3 +139,4 @@ class PSSMGremlinCalculator:
             logging.warning(
                 f"Unexpected response when downloading: {response.status_code}"
             )
+            check_response_code(response=response,successfull_opt="")

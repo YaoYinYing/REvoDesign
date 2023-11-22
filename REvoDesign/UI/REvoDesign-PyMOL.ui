@@ -1064,13 +1064,16 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>271</width>
+         <width>231</width>
          <height>101</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_6">
         <item row="1" column="0">
          <layout class="QHBoxLayout" name="horizontalLayout_49">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
            <widget class="QLabel" name="label_3">
             <property name="sizePolicy">
@@ -1122,6 +1125,9 @@
         </item>
         <item row="0" column="0">
          <layout class="QHBoxLayout" name="horizontalLayout_47">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
            <widget class="QLabel" name="label">
             <property name="sizePolicy">
@@ -1186,6 +1192,9 @@
         </item>
         <item row="2" column="0">
          <layout class="QHBoxLayout" name="horizontalLayout_50">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
            <widget class="QLabel" name="label_4">
             <property name="sizePolicy">
@@ -3789,79 +3798,154 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>291</width>
+        <width>591</width>
         <height>121</height>
        </rect>
       </property>
       <property name="title">
        <string>GREMLIN-PSSM-Calculator</string>
       </property>
-      <widget class="QWidget" name="verticalLayoutWidget_10">
+      <widget class="QWidget" name="horizontalLayoutWidget">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>280</width>
-         <height>83</height>
+         <width>571</width>
+         <height>80</height>
         </rect>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_21">
-        <property name="spacing">
-         <number>0</number>
-        </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_21">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_66">
+         <layout class="QVBoxLayout" name="verticalLayout_21">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QLabel" name="label_molecule_7">
+           <layout class="QHBoxLayout" name="horizontalLayout_66">
+            <item>
+             <widget class="QLabel" name="label_molecule_7">
+              <property name="text">
+               <string>Sever:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_pssm_gremlin_url">
+              <property name="statusTip">
+               <string>Server URL for PSSM GREMLIN calculation.</string>
+              </property>
+              <property name="text">
+               <string>https://revodesign.yaoyy.moe/</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_65">
+            <item>
+             <widget class="QPushButton" name="pushButton_submit_pssm_gremlin_job">
+              <property name="statusTip">
+               <string>Submit the selected molecule and chain.</string>
+              </property>
+              <property name="text">
+               <string>Submit</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_cancel_pssm_gremlin_job">
+              <property name="statusTip">
+               <string>Cancel running/queuing task.</string>
+              </property>
+              <property name="text">
+               <string>Cancel</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_download_pssm_gremlin_job">
+              <property name="statusTip">
+               <string>Download completed results.</string>
+              </property>
+              <property name="text">
+               <string>Download</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QGridLayout" name="gridLayout_7">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_molecule_9">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="text">
-             <string>Sever:</string>
+             <string>User: </string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
             </property>
            </widget>
           </item>
-          <item>
-           <widget class="QLineEdit" name="lineEdit_pssm_gremlin_url">
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lineEdit_pssm_gremlin_user">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="statusTip">
-             <string>Server URL for PSSM GREMLIN calculation.</string>
+             <string>Server username for PSSM GREMLIN calculation.</string>
             </property>
             <property name="text">
-             <string>http://ts.a100.yaoyy.moe:8080/</string>
+             <string>revodesign_users</string>
             </property>
            </widget>
           </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_65">
-          <item>
-           <widget class="QPushButton" name="pushButton_submit_pssm_gremlin_job">
-            <property name="statusTip">
-             <string>Submit the selected molecule and chain.</string>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_molecule_10">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
             </property>
             <property name="text">
-             <string>Submit</string>
+             <string>Passwd:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
             </property>
            </widget>
           </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_cancel_pssm_gremlin_job">
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="lineEdit_pssm_gremlin_passwd">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="statusTip">
-             <string>Cancel running/queuing task.</string>
+             <string>Server password for PSSM GREMLIN calculation.</string>
             </property>
             <property name="text">
-             <string>Cancel</string>
+             <string>password</string>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_download_pssm_gremlin_job">
-            <property name="statusTip">
-             <string>Download completed results.</string>
-            </property>
-            <property name="text">
-             <string>Download</string>
+            <property name="maxLength">
+             <number>32767</number>
             </property>
            </widget>
           </item>

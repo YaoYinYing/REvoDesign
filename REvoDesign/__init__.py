@@ -201,13 +201,34 @@ class REvoDesignPlugin:
         )
 
         self.pssm_gremlin_calculator.setup_url(
-            self.ui.lineEdit_pssm_gremlin_url
+            self.ui.lineEdit_pssm_gremlin_url,
+            self.ui.lineEdit_pssm_gremlin_user,
+            self.ui.lineEdit_pssm_gremlin_passwd
         )
 
         self.ui.lineEdit_pssm_gremlin_url.textChanged.connect(
             partial(
                 self.pssm_gremlin_calculator.setup_url,
                 self.ui.lineEdit_pssm_gremlin_url,
+                self.ui.lineEdit_pssm_gremlin_user,
+                self.ui.lineEdit_pssm_gremlin_passwd
+            )
+        )
+        self.ui.lineEdit_pssm_gremlin_user.textChanged.connect(
+            partial(
+                self.pssm_gremlin_calculator.setup_url,
+                self.ui.lineEdit_pssm_gremlin_url,
+                self.ui.lineEdit_pssm_gremlin_user,
+                self.ui.lineEdit_pssm_gremlin_passwd
+            )
+        )
+
+        self.ui.lineEdit_pssm_gremlin_passwd.textChanged.connect(
+            partial(
+                self.pssm_gremlin_calculator.setup_url,
+                self.ui.lineEdit_pssm_gremlin_url,
+                self.ui.lineEdit_pssm_gremlin_user,
+                self.ui.lineEdit_pssm_gremlin_passwd
             )
         )
 
