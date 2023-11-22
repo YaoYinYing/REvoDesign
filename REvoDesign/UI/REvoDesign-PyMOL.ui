@@ -3942,7 +3942,7 @@
              <string>Server password for PSSM GREMLIN calculation.</string>
             </property>
             <property name="text">
-             <string>password</string>
+             <string/>
             </property>
             <property name="maxLength">
              <number>32767</number>

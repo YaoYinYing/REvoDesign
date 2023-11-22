@@ -1,0 +1,15 @@
+name: REvoDesign
+dependencies:
+  - biopython=1.81
+  - numpy=1.25.2
+  - pip=23.2.1
+  - python=3.10.12
+  - requests=2.31.0
+  - pip:
+      - celery==5.3.4
+      - click==8.1.7
+      - flask==2.3.3
+      - gunicorn==21.2.0
+      - matplotlib==3.7.2
+      - pandas==2.0.3
+      - redis==4.6.0

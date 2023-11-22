@@ -23,7 +23,8 @@ celery = Celery(
 )
 
 # Directory for server to save uploaded input and processed results.
-SERVER_DIR = '/mnt/data/yinying/server'
+SERVER_DIR = '/path/to/PSSM_GREMLIN/run/dir/'
+PORT=8080
 
 
 
@@ -429,4 +430,4 @@ def task_dashboard():
     )
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=PORT)
