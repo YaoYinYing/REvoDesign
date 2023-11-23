@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - External designer/scorer hot switching.
 - `refresh_multi_mutagenesis_designer_parameters` for multi-mutagenesis instant controll
 - typing notes to `Mutant` class and `MultiMutantDesigner` class.
+- Server deployment user guide.
 
 ### Changed
 - UI element changes:
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - `run_worker_thread_with_progress` in `MultiMutantDesigner.external_scorer.initialize()` so UI can freeze to fobbid unexpected button clicking events. 
+- Magic numbers.
 
 ## [1.2.2] - 2023-11-17
 

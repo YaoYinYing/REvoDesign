@@ -124,15 +124,8 @@ class REvoDesignPlugin:
         set_window_font(main_window)
 
         from REvoDesign.common.magic_numbers import (
-            DEFAULT_INTERCHAIN_RADIUS,
-            DEFAULT_CLUSTER_NUM,
-            DEFAULT_CLUSTER_RANGE,
-            DEFAULT_CLUSTER_MIN_MUT,
-            DEFAULT_CLUSTER_MAX_MUT,
-            DEFAULT_CLUSTER_BATCH_SIZE,
+
             DEFAULT_CLUSTER_SCORE_MTX,
-            DEFAULT_GREMLIN_TOPN_NUM,
-            DEFAULT_GREMLIN_SPATIAL_MAX_DIST,
             DEFAULT_PROFILE_TYPE,
             DEFAULT_PROFILE_TYPE_GROUP,
         )
@@ -307,10 +300,6 @@ class REvoDesignPlugin:
             )
         )
 
-        set_widget_value(
-            self.ui.doubleSpinBox_interface_cutoff, DEFAULT_INTERCHAIN_RADIUS
-        )
-
         # Connect run buttons
         self.ui.pushButton_dump_interfaces.clicked.connect(
             self.run_chain_interface_detection
@@ -471,17 +460,6 @@ class REvoDesignPlugin:
             )
         )
 
-        set_widget_value(
-            self.ui.spinBox_cluster_batchsize, DEFAULT_CLUSTER_BATCH_SIZE
-        )
-        set_widget_value(self.ui.spinBox_num_cluster, DEFAULT_CLUSTER_RANGE)
-        set_widget_value(self.ui.spinBox_num_cluster, DEFAULT_CLUSTER_NUM)
-        set_widget_value(
-            self.ui.spinBox_num_mut_minimun, DEFAULT_CLUSTER_MIN_MUT
-        )
-        set_widget_value(
-            self.ui.spinBox_num_mut_maximum, DEFAULT_CLUSTER_MAX_MUT
-        )
 
         from Bio.Align import substitution_matrices
 
@@ -608,24 +586,6 @@ class REvoDesignPlugin:
             )
         )
 
-        from REvoDesign.common.magic_numbers import (
-            DEFAULT_MULTI_DESIGN_MUT_NUM,
-            DEFAULT_MULTI_DESIGN_MUT_DISTAL,
-            DEFAULT_MULTI_DESIGN_VALRIANT_NUM,
-        )
-
-        set_widget_value(
-            self.ui.spinBox_maximal_mutant_num, DEFAULT_MULTI_DESIGN_MUT_NUM
-        )
-        set_widget_value(
-            self.ui.spinBox_maximal_multi_design_variant_num,
-            DEFAULT_MULTI_DESIGN_VALRIANT_NUM,
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_minmal_mutant_distance,
-            DEFAULT_MULTI_DESIGN_MUT_DISTAL,
-        )
-
         # Multi-Design
         self.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
             partial(
@@ -689,20 +649,11 @@ class REvoDesignPlugin:
             )
         )
 
-        set_widget_value(
-            self.ui.spinBox_gremlin_topN, DEFAULT_GREMLIN_TOPN_NUM
-        )
-
         self.ui.pushButton_reinitialize_interact.clicked.connect(
             self.load_gremlin_mrf
         )
         self.ui.pushButton_run_interact_scan.clicked.connect(
             self.run_gremlin_tool
-        )
-
-        set_widget_value(
-            self.ui.doubleSpinBox_max_interact_dist,
-            DEFAULT_GREMLIN_SPATIAL_MAX_DIST,
         )
 
         self.ui.pushButton_open_save_mutant_table.clicked.connect(
@@ -1066,16 +1017,7 @@ class REvoDesignPlugin:
         comboBox_ligand_sel,
         comboBox_cofactor_sel,
     ):
-        from REvoDesign.common.magic_numbers import (
-            DEFAULT_SURFACE_PROBE_RADIUS,
-            DEFAULT_SUBSTRATE_POCKET_RADIUS,
-            DEFAULT_COFACTOR_POCKET_RADIUS,
-        )
 
-        # Setup surface determination arguments
-        set_widget_value(
-            self.ui.doubleSpinBox_surface_cutoff, DEFAULT_SURFACE_PROBE_RADIUS
-        )
 
         # Setup pocket determination arguments
         small_molecules = find_small_molecules_in_protein(self.design_molecule)
@@ -1090,15 +1032,6 @@ class REvoDesignPlugin:
             else:
                 comboBox_cofactor_sel.setCurrentIndex(0)
 
-        set_widget_value(
-            self.ui.doubleSpinBox_ligand_radius,
-            DEFAULT_SUBSTRATE_POCKET_RADIUS,
-        )
-
-        set_widget_value(
-            self.ui.doubleSpinBox_cofactor_radius,
-            DEFAULT_COFACTOR_POCKET_RADIUS,
-        )
 
     def update_surface_exclusion(self):
         exclusion_list = fetch_exclusion_expressions()
