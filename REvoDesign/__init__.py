@@ -1,7 +1,7 @@
 import sys, os
 import time
 from pymol import cmd
-from pymol.Qt import QtWidgets
+from pymol.Qt import QtWidgets,QtGui
 
 # using partial module to reduce duplicate code.
 from functools import partial
@@ -43,6 +43,7 @@ from REvoDesign.tools.customized_widgets import (
     QbuttonMatrix,
     proceed_with_comfirm_msg_box,
     getOpenFileNameWithExt,
+    create_cmap_icon
 )
 
 
@@ -183,7 +184,7 @@ class REvoDesignPlugin:
         # color map
         import matplotlib
 
-        set_widget_value(self.ui.comboBox_cmap, matplotlib.colormaps())
+        set_widget_value(self.ui.comboBox_cmap, {_cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap)) for _cmap in matplotlib.colormaps()})
         set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
 
         # Tab Client

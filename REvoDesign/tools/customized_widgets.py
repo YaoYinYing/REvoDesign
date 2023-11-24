@@ -1,4 +1,5 @@
 import os
+from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
 from absl import logging
 
@@ -215,11 +216,15 @@ def set_widget_value(widget, value):
         return
 
     if type_widget == QtWidgets.QComboBox:
-        if type_value != list and type_value != tuple:
+        if type_value != list and type_value != tuple and type_value != dict:
             widget.setCurrentText(str(value))
         elif type_value == list or type_value == tuple:
             widget.clear()
             widget.addItems(map(str, value))
+        elif type_value == dict:
+            widget.clear()
+            for k,v in value.items():
+                widget.addItem(v,k)
         else:
             set_value_error(value,widget,type_value,type_widget)
         return
@@ -425,3 +430,25 @@ def set_window_font(main_window):
             font.setFamily(font_str)
             main_window.setFont(font)
             return
+
+
+def create_cmap_icon(cmap: str):
+    import matplotlib
+    from pymol.Qt import QtGui
+
+    # Create a pixmap representing the color pattern of the colormap
+    color_map = matplotlib.colormaps[cmap]
+    pixmap = QtGui.QPixmap(100, 100)  # Changed to create a square pixmap
+    pixmap.fill(QtGui.QColor(0, 0, 0, 0))  # Fill with transparent background
+
+    # Draw color gradient representing the colormap
+    painter = QtGui.QPainter(pixmap)
+    gradient = QtGui.QLinearGradient(0, 0, 100, 100)  # Changed to create a square gradient
+    for i in range(100):
+        color = QtGui.QColor.fromRgbF(*color_map(i / 100)[:3])
+        gradient.setColorAt(i / 100, color)
+    painter.setBrush(QtGui.QBrush(gradient))
+    painter.drawRect(0, 0, 100, 100)  # Changed to draw a square
+    painter.end()
+
+    return pixmap

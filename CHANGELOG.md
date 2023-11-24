@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `refresh_multi_mutagenesis_designer_parameters` for multi-mutagenesis instant controll
 - typing notes to `Mutant` class and `MultiMutantDesigner` class.
 - Server deployment user guide.
+- Color icons for color map.
 
 ### Changed
 - UI element changes:
