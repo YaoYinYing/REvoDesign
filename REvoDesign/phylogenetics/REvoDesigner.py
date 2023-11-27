@@ -9,6 +9,7 @@ from pymol import cmd
 import matplotlib
 import collections
 import random
+from REvoDesign.common.MutantTree import MutantTree
 
 from REvoDesign.common.Mutant import Mutant
 
@@ -76,6 +77,10 @@ class REvoDesigner:
         self.nproc = 1
         self.max_abs_profile = 0
         self.create_full_pdb = False
+        self.mutant_tree=None
+
+
+        self.mutagenesis_tasks = []
 
     def plot_custom_indices_segments(
         self,
@@ -436,6 +441,8 @@ class REvoDesigner:
         visualizer.mutant_list = mutant_objs
         visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
         self.output_pse = visualizer.save_session
+        mutant_tree={self.design_case: {mut_obj.get_short_mutant_id(): mut_obj for mut_obj in mutant_objs}}
+        self.mutant_tree=MutantTree(mutant_tree=mutant_tree)
         logging.info("Done.")
 
     def setup_profile_design(
@@ -554,8 +561,9 @@ class REvoDesigner:
     ):
         mutations = read_profile_design_mutations(mutant_json)
 
-        mutagenesis_tasks = []
+        self.mutagenesis_tasks = []
         new_residue_scores = []
+        self.mutant_tree = MutantTree({})
         for position, wt_res, wt_score, candidates in mutations:
             if not candidates:
                 continue
@@ -582,7 +590,12 @@ class REvoDesigner:
                 )
 
                 mutant_obj.set_wt_score(float(wt_score))
-                mutagenesis_tasks.append([mutant_obj])
+                self.mutagenesis_tasks.append([mutant_obj])
+                self.mutant_tree.add_mutant_to_branch(
+                    branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.get_wt_score())}", 
+                    mutant=mutant_obj.get_short_mutant_id(), 
+                    mutant_info=mutant_obj)
+
                 new_residue_scores.append(mutant_obj.get_mutant_score())
 
         self.max_abs_profile = max(
@@ -595,10 +608,12 @@ class REvoDesigner:
 
         progress_bar.setRange(0, 0)
 
+        
+
         if self.nproc > 1:
             parallel_executor = ParallelExecutor(
                 self.run_profile_mutagenesis,
-                mutagenesis_tasks,
+                self.mutagenesis_tasks,
                 n_jobs=self.nproc,
             )
 
@@ -608,14 +623,14 @@ class REvoDesigner:
                 refresh_window()
                 time.sleep(0.001)
 
-            progress_bar.setRange(0, len(mutagenesis_tasks))
-            progress_bar.setValue(len(mutagenesis_tasks))
+            progress_bar.setRange(0, len(self.mutagenesis_tasks))
+            progress_bar.setValue(len(self.mutagenesis_tasks))
 
             self.results = parallel_executor.handle_result()
         else:
-            progress_bar.setRange(0, len(mutagenesis_tasks))
+            progress_bar.setRange(0, len(self.mutagenesis_tasks))
 
-            for mutagenesis_task in mutagenesis_tasks:
+            for mutagenesis_task in self.mutagenesis_tasks:
                 self.results.append(
                     self.run_profile_mutagenesis(*mutagenesis_task)
                 )
@@ -625,7 +640,7 @@ class REvoDesigner:
                 refresh_window()
                 progress_bar.setValue(progress_bar.value() + 1)
 
-            progress_bar.setValue(len(mutagenesis_tasks))
+            progress_bar.setValue(len(self.mutagenesis_tasks))
 
         progress_bar.setRange(0, 0)
 

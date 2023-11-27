@@ -7,8 +7,11 @@ from Bio.Data import IUPACData
 
 from REvoDesign.tools.utils import filepath_does_exists
 
+# Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
+# It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.
 protein_letters_3to1 = {
-    v.upper(): k.upper() for k, v in IUPACData.protein_letters_1to3.items()
+    v.upper(): k.upper()  # Mapping the 3-letter code (value) to its corresponding 1-letter code (key)
+    for k, v in IUPACData.protein_letters_1to3.items()  # Looping through the items in the 1-to-3-letter amino acid dictionary
 }
 
 
@@ -298,6 +301,16 @@ def extract_mutant_from_pymol_object(pymol_object, sequence=''):
 
 
 def read_customized_indice(custom_indices_from_input='') -> str: 
+    """
+    Reads and processes customized indices based on the provided input.
+
+    Args:
+    - custom_indices_from_input (str): String containing customized indices.
+
+    Returns:
+    - str: Processed customized indices string.
+    """
+
     if not custom_indices_from_input:
         return ''
         
@@ -343,6 +356,22 @@ def read_customized_indice(custom_indices_from_input='') -> str:
         return ''
 
 def process_mutations(data):
+    """
+    Process mutations based on provided data.
+
+    Args:
+    - data (dict): Dictionary containing 'indices' and 'mutations' keys.
+                   'indices': List of positions.
+                   'mutations': Dictionary of mutations with positions as keys.
+
+    Returns:
+    - list: List containing tuples of processed mutation data.
+            Each tuple contains:
+                - Position
+                - Wild-type residue
+                - Wild-type profile score
+                - Candidates
+    """
     positions = data['indices']
     mutations = data['mutations']
     result = []

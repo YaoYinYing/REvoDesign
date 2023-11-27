@@ -19,10 +19,37 @@ class ImageWidget(QtWidgets.QWidget):
 
 
 class QbuttonMatrix(QtWidgets.QWidget):
+    """
+    QbuttonMatrix - Custom widget for displaying a matrix of buttons.
+
+    Usage:
+        qbm = QbuttonMatrix(csv_file, parent=None, button_size=12)
+        qbm.init_ui()  # Initialize the user interface
+
+    Attributes:
+        report_axes_signal (QtCore.pyqtSignal): Signal for reporting axes.
+        alphabet (str): String containing amino acid symbols.
+        button_size (int): Size of the buttons.
+        _alphabet (list): List containing amino acid symbols as individual characters.
+        matrix (list): 2D list representing the matrix loaded from the CSV file.
+        min_value (float): Minimum value in the loaded matrix.
+        max_value (float): Maximum value in the loaded matrix.
+        sequence (str): String representing a sequence of amino acids.
+        pos_i (int): Position index for sequence.
+        pos_j (int): Position index for sequence.
+    """
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
 
     def __init__(self, csv_file, parent=None, button_size=12):
+        """
+        Initialize QbuttonMatrix.
+
+        Args:
+            csv_file (str): Path to the CSV file.
+            parent (QWidget): Parent widget. Defaults to None.
+            button_size (int): Size of the buttons. Defaults to 12.
+        """
         super().__init__(parent)
         self.button_size = button_size
         self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
@@ -39,6 +66,15 @@ class QbuttonMatrix(QtWidgets.QWidget):
         self.pos_j = 0
 
     def load_matrix_from_csv(self, csv_file):
+        """
+        Load matrix data from a CSV file.
+
+        Args:
+            csv_file (str): Path to the CSV file.
+
+        Returns:
+            tuple: Tuple containing matrix (2D list), min_value (float), max_value (float).
+        """
         import numpy as np
 
         try:
@@ -64,6 +100,15 @@ class QbuttonMatrix(QtWidgets.QWidget):
             return [], 0, 1  # Default to 0-1 range if there's an error
 
     def map_value_to_color(self, value):
+        """
+        Map a value to a QColor based on a colormap.
+
+        Args:
+            value (float): Value to be mapped.
+
+        Returns:
+            QColor: Color based on the mapped value.
+        """
         import matplotlib.pyplot as plt
 
         # Map a value to a color using the 'bwr' colormap with reversed colors
@@ -78,6 +123,9 @@ class QbuttonMatrix(QtWidgets.QWidget):
         return color
 
     def init_ui(self):
+        """
+        Initialize the user interface by creating buttons and labels based on the matrix and sequence.
+        """
         layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
         font.setPointSize(self.button_size)
@@ -140,6 +188,13 @@ class QbuttonMatrix(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def report_axises(self, row, col):
+        """
+        Report the axes when a button is clicked.
+
+        Args:
+            row (int): Row index of the clicked button.
+            col (int): Column index of the clicked button.
+        """
         logging.debug(f"Button at ({row}, {col}) clicked.")
         self.report_axes_signal.emit(row, col)
 
@@ -177,6 +232,45 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
 # A universal and versatile function for value setting. ;-)
 def set_widget_value(widget, value):
+    """
+    Sets the value of a PyQt5 widget based on the provided value.
+
+    Args:
+    - widget: The PyQt5 widget whose value needs to be set.
+    - value: The value to be set on the widget.
+
+    Supported Widgets and Value Types:
+    - QDoubleSpinBox: Supports int, float, list or tuple (for setting range).
+    - QSpinBox: Supports int, float, list or tuple (for setting range).
+    - QComboBox: Supports str, list, tuple, dict.
+    - QLineEdit: Supports str.
+    - QProgressBar: Supports int, list or tuple (for setting range).
+    - QLCDNumber: Supports any value (converted to string for display).
+    - QCheckBox: Supports bool.
+    - QStackedWidget: Supports list of image paths (adds ImageWidget widgets).
+    - QGridLayout: Supports a string (image path) to add an ImageWidget widget.
+
+    Example Usage:
+    ```python
+    # Set value for QDoubleSpinBox
+    set_widget_value(double_spinbox, 25.5)
+
+    # Set value for QComboBox using list
+    set_widget_value(combo_box, ['Option 1', 'Option 2', 'Option 3'])
+
+    # Set value for QProgressBar with range
+    set_widget_value(progress_bar, [0, 100])
+
+    # Set value for QCheckBox
+    set_widget_value(checkbox, True)
+
+    # Set value for QStackedWidget with a list of image paths
+    set_widget_value(stacked_widget, ['path/to/image1.png', 'path/to/image2.png'])
+
+    # Set value for QGridLayout with an image path
+    set_widget_value(grid_layout, 'path/to/image.png')
+    ```
+    """
 
     def set_value_error(value,widget,type_value,type_widget):
         logging.warning(
@@ -378,6 +472,29 @@ def refresh_window():
 
 
 class WorkerThread(QtCore.QThread):
+    """
+    Custom worker thread for executing a function in a separate thread.
+
+    Attributes:
+    - result_signal (QtCore.pyqtSignal): Signal emitted when the result is available.
+    - finished_signal (QtCore.pyqtSignal): Signal emitted when the thread finishes its execution.
+
+    Methods:
+    - __init__: Initializes the WorkerThread object.
+    - run: Executes the specified function with arguments and emits the result through signals.
+    - handle_result: Returns the result obtained after the thread execution.
+
+    Example Usage:
+    ```python
+    def some_function(x, y):
+        return x + y
+
+    worker = WorkerThread(func=some_function, args=(10, 20))
+    worker.result_signal.connect(handle_result_function)
+    worker.finished_signal.connect(handle_finished_function)
+    worker.start()
+    ```
+    """
     result_signal = QtCore.pyqtSignal(list)
     finished_signal = QtCore.pyqtSignal()
 
@@ -433,6 +550,32 @@ def set_window_font(main_window):
 
 
 def create_cmap_icon(cmap: str):
+    """
+    Creates a square pixmap representing the color pattern of a specified colormap.
+
+    Args:
+    - cmap (str): Name of the colormap.
+
+    Returns:
+    - QtGui.QPixmap: Pixmap representing the color gradient of the colormap.
+
+    Note:
+    This function uses Matplotlib's colormap to generate a color gradient and creates a square pixmap
+    with the color gradient to represent the colormap visually.
+
+    Example Usage:
+    ```python
+    from pymol.Qt import QtWidgets
+    import matplotlib.pyplot as plt
+
+    # Assuming 'my_colormap' is a valid colormap name
+    icon = create_cmap_icon('my_colormap')
+    label = QtWidgets.QLabel()
+    label.setPixmap(icon)
+    label.show()
+    plt.show()
+    ```
+    """
     import matplotlib
     from pymol.Qt import QtGui
 

@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>560</height>
+    <height>557</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -929,6 +929,9 @@
             <property name="statusTip">
              <string/>
             </property>
+            <property name="inputMethodHints">
+             <set>Qt::ImhDigitsOnly</set>
+            </property>
             <property name="text">
              <string>-2</string>
             </property>
@@ -974,6 +977,9 @@
             </property>
             <property name="statusTip">
              <string>Scoring criteria for profile designer.</string>
+            </property>
+            <property name="inputMethodHints">
+             <set>Qt::ImhDigitsOnly</set>
             </property>
             <property name="text">
              <string>10</string>
@@ -3028,7 +3034,7 @@
         <x>350</x>
         <y>0</y>
         <width>271</width>
-        <height>101</height>
+        <height>91</height>
        </rect>
       </property>
       <property name="title">
@@ -3040,7 +3046,7 @@
          <x>10</x>
          <y>20</y>
          <width>261</width>
-         <height>81</height>
+         <height>71</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -3123,9 +3129,9 @@
       <property name="geometry">
        <rect>
         <x>350</x>
-        <y>100</y>
+        <y>90</y>
         <width>271</width>
-        <height>251</height>
+        <height>261</height>
        </rect>
       </property>
       <property name="title">
@@ -3136,8 +3142,8 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>251</width>
-         <height>213</height>
+         <width>261</width>
+         <height>221</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_18">
@@ -3175,6 +3181,12 @@
             </item>
             <item>
              <widget class="QSpinBox" name="spinBox_gremlin_topN">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="statusTip">
                <string>Select top N interact pairs</string>
               </property>
@@ -3220,6 +3232,12 @@
             </item>
             <item>
              <widget class="QDoubleSpinBox" name="doubleSpinBox_max_interact_dist">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="statusTip">
                <string>Max distance to accept a co-evolved pair.</string>
               </property>
@@ -3552,7 +3570,7 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>591</width>
+        <width>611</width>
         <height>121</height>
        </rect>
       </property>
@@ -3564,7 +3582,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>571</width>
+         <width>591</width>
          <height>80</height>
         </rect>
        </property>
@@ -3695,6 +3713,9 @@
             <property name="statusTip">
              <string>Server password for PSSM GREMLIN calculation.</string>
             </property>
+            <property name="inputMethodHints">
+             <set>Qt::ImhHiddenText</set>
+            </property>
             <property name="text">
              <string/>
             </property>
@@ -3706,6 +3727,320 @@
          </layout>
         </item>
        </layout>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_socket">
+     <attribute name="title">
+      <string>Socket</string>
+     </attribute>
+     <widget class="QGroupBox" name="groupBox_12">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>381</width>
+        <height>171</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Host</string>
+      </property>
+      <widget class="QWidget" name="horizontalLayoutWidget_10">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>120</y>
+         <width>241</width>
+         <height>41</height>
+        </rect>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_54">
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_broadcast_view">
+          <property name="text">
+           <string>Broadcast view per</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval"/>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_molecule_14">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>sec</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="verticalLayoutWidget_2">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>351</width>
+         <height>80</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_8">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_52">
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_server_mode">
+            <property name="text">
+             <string>Server Mode</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_duplex_mode">
+            <property name="text">
+             <string>Duplex</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_molecule_13">
+            <property name="text">
+             <string>Port:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_ws_server_port">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="statusTip">
+             <string>Server URL for PSSM GREMLIN calculation.</string>
+            </property>
+            <property name="inputMethodHints">
+             <set>Qt::ImhDigitsOnly</set>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_53">
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_server_use_key">
+            <property name="text">
+             <string>Key:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_ws_server_key">
+            <property name="statusTip">
+             <string>Server URL for PSSM GREMLIN calculation.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_ws_generate_randomized_key">
+            <property name="text">
+             <string>Generate</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_ws_client_settings">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>180</y>
+        <width>381</width>
+        <height>171</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Client</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_9">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>361</width>
+         <height>131</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_16">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_48">
+          <item>
+           <widget class="QLabel" name="label_molecule_8">
+            <property name="text">
+             <string>Sever:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_ws_server_url_to_connect">
+            <property name="statusTip">
+             <string>Server URL for PSSM GREMLIN calculation.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_molecule_11">
+            <property name="text">
+             <string>Port:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_ws_server_port_to_connect">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="statusTip">
+             <string>Server URL for PSSM GREMLIN calculation.</string>
+            </property>
+            <property name="inputMethodHints">
+             <set>Qt::ImhDigitsOnly</set>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_51">
+          <item>
+           <widget class="QLabel" name="label_molecule_12">
+            <property name="text">
+             <string>Key:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_ws_server_key_to_connect">
+            <property name="statusTip">
+             <string>Server URL for PSSM GREMLIN calculation.</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_ws_connect_to_server">
+            <property name="statusTip">
+             <string>Submit the selected molecule and chain.</string>
+            </property>
+            <property name="text">
+             <string>Connect</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_55">
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_recieve_mutagenesis_broadcast">
+            <property name="text">
+             <string>Receive mutations</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+            <property name="tristate">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_recieve_view_broadcast">
+            <property name="text">
+             <string>Receive view broadcast</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_5">
+      <property name="geometry">
+       <rect>
+        <x>400</x>
+        <y>0</y>
+        <width>231</width>
+        <height>351</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Clients list</string>
+      </property>
+      <widget class="QTableWidget" name="tableWidget_ws_clients">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>211</width>
+         <height>311</height>
+        </rect>
+       </property>
       </widget>
      </widget>
     </widget>
@@ -3816,7 +4151,7 @@
      <rect>
       <x>390</x>
       <y>0</y>
-      <width>121</width>
+      <width>111</width>
       <height>71</height>
      </rect>
     </property>
@@ -3828,7 +4163,7 @@
       <rect>
        <x>10</x>
        <y>30</y>
-       <width>101</width>
+       <width>91</width>
        <height>32</height>
       </rect>
      </property>
@@ -3877,9 +4212,9 @@
    <widget class="QGroupBox" name="groupBox_8">
     <property name="geometry">
      <rect>
-      <x>520</x>
+      <x>510</x>
       <y>0</y>
-      <width>131</width>
+      <width>141</width>
       <height>71</height>
      </rect>
     </property>
@@ -3891,7 +4226,7 @@
       <rect>
        <x>10</x>
        <y>30</y>
-       <width>111</width>
+       <width>121</width>
        <height>32</height>
       </rect>
      </property>
@@ -4053,6 +4388,22 @@
     <hint type="destinationlabel">
      <x>592</x>
      <y>396</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_ws_server_mode</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>groupBox_ws_client_settings</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>85</x>
+     <y>190</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>213</x>
+     <y>408</y>
     </hint>
    </hints>
   </connection>

@@ -17,42 +17,66 @@ def fetch_exclusion_expressions():
 
 
 def is_polymer_protein(sele=''):
-    if not sele:
-        return None
+    """
+    Check if the selection represents a protein polymer with at least 10 residues.
 
-    # return a bool of protein that contain at least 10 residues
-    return (
-        len(
-            set(
-                [
-                    at.resi
-                    for at in cmd.get_model(
-                        f'({sele}) and polymer.protein'
-                    ).atom
-                ]
-            )
-        )
-        > 10
-    )
+    Args:
+        sele (str): Selection string. Defaults to an empty string.
+
+    Returns:
+        bool or None: Returns True if the selection represents a protein polymer with at least 10 residues,
+                      otherwise returns False. Returns None if the selection is empty.
+    """
+    if not sele:
+        return None  # Return None if the selection is empty
+
+    # Retrieve the atoms that belong to a protein polymer within the selection and count unique residues
+    resi_list = [
+        at.resi
+        for at in cmd.get_model(f'({sele}) and polymer.protein').atom
+    ]
+    unique_residues = set(resi_list)
+
+    # Check if the count of unique residues is greater than 10 to determine if it's a protein with at least 10 residues
+    return len(unique_residues) > 10
+
 
 
 def find_small_molecules_in_protein(sele):
+    """
+    Find small molecules within a protein selection.
+
+    Args:
+        sele (str): Selection string.
+
+    Returns:
+        list or None: Returns a list of unique small molecule names found within the selection.
+                      Returns an empty list if no small molecules are found or if the selection is empty.
+                      Returns None if the selection is not provided.
+    """
     if not sele:
-        return
-    # return a list of small molecules
-    return [''] + list(
-        set(
-            [
-                at.resn
-                for at in cmd.get_model(
-                    f'( {sele} ) and (not polymer.protein)'
-                ).atom
-            ]
-        )
-    )
+        return None  # Return None if the selection is not provided
+
+    # Retrieve the atoms that belong to small molecules within the selection and extract unique small molecule names
+    small_molecules = [
+        at.resn
+        for at in cmd.get_model(f'( {sele} ) and (not polymer.protein)').atom
+    ]
+    unique_small_molecules = list(set(small_molecules))
+
+    # Return a list of unique small molecule names found within the selection
+    return [''] + unique_small_molecules if unique_small_molecules else []
+
 
 
 def find_design_molecules():
+    """
+    Find design molecules that are polymer proteins.
+
+    Returns:
+        list: Returns a list of design molecules that are identified as polymer proteins.
+    """
+    # Retrieve all public non-group objects and filter for those identified as polymer proteins
     objects = [
         object
         for object in cmd.get_names(
