@@ -1,7 +1,8 @@
+import asyncio
 import sys, os
 import time
 from pymol import cmd
-from pymol.Qt import QtWidgets,QtGui
+from pymol.Qt import QtWidgets, QtGui
 
 # using partial module to reduce duplicate code.
 from functools import partial
@@ -43,7 +44,7 @@ from REvoDesign.tools.customized_widgets import (
     QbuttonMatrix,
     proceed_with_comfirm_msg_box,
     getOpenFileNameWithExt,
-    create_cmap_icon
+    create_cmap_icon,
 )
 
 
@@ -97,6 +98,23 @@ class REvoDesignPlugin:
 
         self.multi_mutagenesis_designer = None
 
+        try:
+            # if websocket is available, teamwork is activated.
+            import websockets
+            from REvoDesign.clients.SocketConnector import (
+                REvoDesignWebSocketServer,
+                REvoDesignWebSocketClient,
+            )
+
+            self.ws_server = REvoDesignWebSocketServer()
+            self.ws_client = REvoDesignWebSocketClient()
+        except ImportError:
+            self.ws_server = None
+            self.ws_client = None
+            logging.warning(
+                f'Teamwork is disabled. Please install the related requirements.'
+            )
+
     def __del__(self):
         print('REvoDesign session closed.')
         self.__del__()
@@ -125,7 +143,6 @@ class REvoDesignPlugin:
         set_window_font(main_window)
 
         from REvoDesign.common.magic_numbers import (
-
             DEFAULT_CLUSTER_SCORE_MTX,
             DEFAULT_PROFILE_TYPE,
             DEFAULT_PROFILE_TYPE_GROUP,
@@ -184,7 +201,13 @@ class REvoDesignPlugin:
         # color map
         import matplotlib
 
-        set_widget_value(self.ui.comboBox_cmap, {_cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap)) for _cmap in matplotlib.colormaps()})
+        set_widget_value(
+            self.ui.comboBox_cmap,
+            {
+                _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
+                for _cmap in matplotlib.colormaps()
+            },
+        )
         set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
 
         # Tab Client
@@ -197,7 +220,7 @@ class REvoDesignPlugin:
         self.pssm_gremlin_calculator.setup_url(
             self.ui.lineEdit_pssm_gremlin_url,
             self.ui.lineEdit_pssm_gremlin_user,
-            self.ui.lineEdit_pssm_gremlin_passwd
+            self.ui.lineEdit_pssm_gremlin_passwd,
         )
 
         self.ui.lineEdit_pssm_gremlin_url.textChanged.connect(
@@ -205,7 +228,7 @@ class REvoDesignPlugin:
                 self.pssm_gremlin_calculator.setup_url,
                 self.ui.lineEdit_pssm_gremlin_url,
                 self.ui.lineEdit_pssm_gremlin_user,
-                self.ui.lineEdit_pssm_gremlin_passwd
+                self.ui.lineEdit_pssm_gremlin_passwd,
             )
         )
         self.ui.lineEdit_pssm_gremlin_user.textChanged.connect(
@@ -213,7 +236,7 @@ class REvoDesignPlugin:
                 self.pssm_gremlin_calculator.setup_url,
                 self.ui.lineEdit_pssm_gremlin_url,
                 self.ui.lineEdit_pssm_gremlin_user,
-                self.ui.lineEdit_pssm_gremlin_passwd
+                self.ui.lineEdit_pssm_gremlin_passwd,
             )
         )
 
@@ -222,7 +245,7 @@ class REvoDesignPlugin:
                 self.pssm_gremlin_calculator.setup_url,
                 self.ui.lineEdit_pssm_gremlin_url,
                 self.ui.lineEdit_pssm_gremlin_user,
-                self.ui.lineEdit_pssm_gremlin_passwd
+                self.ui.lineEdit_pssm_gremlin_passwd,
             )
         )
 
@@ -460,7 +483,6 @@ class REvoDesignPlugin:
                 self.open_mutant_table, self.ui.lineEdit_input_mut_table, 'r'
             )
         )
-
 
         from Bio.Align import substitution_matrices
 
@@ -1018,8 +1040,6 @@ class REvoDesignPlugin:
         comboBox_ligand_sel,
         comboBox_cofactor_sel,
     ):
-
-
         # Setup pocket determination arguments
         small_molecules = find_small_molecules_in_protein(self.design_molecule)
         if small_molecules:
@@ -1032,7 +1052,6 @@ class REvoDesignPlugin:
                 comboBox_cofactor_sel.setCurrentIndex(len(small_molecules) - 1)
             else:
                 comboBox_cofactor_sel.setCurrentIndex(0)
-
 
     def update_surface_exclusion(self):
         exclusion_list = fetch_exclusion_expressions()
@@ -1232,6 +1251,19 @@ class REvoDesignPlugin:
             traceback.print_exc()
         finally:
             self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
+        
+        if (
+            self.ws_server
+            and self.ws_server.is_running
+            and design.mutant_tree 
+            and not design.mutant_tree.empty
+        ):
+            asyncio.run(
+                self.ws_broadcast_from_server(
+                    data=design.mutant_tree,
+                    data_type='MutantTree',
+                )
+            )
 
     # Tab `Evaluate`
     def activate_focused(self, checkBox_show_wt):
@@ -1565,7 +1597,8 @@ class REvoDesignPlugin:
             group_id
             for group_id in cmd.get_names(
                 type='group_objects', enabled_only=enabled_only
-            ) if not group_id.startswith('multi_design')
+            )
+            if not group_id.startswith('multi_design')
         ]
 
     # basic function that works for mutant_tree instantiation
@@ -2018,6 +2051,25 @@ class REvoDesignPlugin:
         finally:
             trigger_button.setEnabled(True)
 
+        if (
+            self.ws_server
+            and self.ws_server.is_running
+            and visualizer.mutant_list
+        ):
+            mutant_tree = {
+                group_name: {
+                    mut_obj.get_short_mutant_id(): mut_obj
+                    for mut_obj in visualizer.mutant_list
+                }
+            }
+
+            asyncio.run(
+                self.ws_broadcast_from_server(
+                    data=MutantTree(mutant_tree=mutant_tree),
+                    data_type='MutantTree',
+                )
+            )
+
     def reduce_current_session(
         self, session=None, reduce_disabled=False, overwrite=False
     ):
@@ -2093,8 +2145,10 @@ class REvoDesignPlugin:
         self.multi_mutagenesis_designer.total_design_cases = (
             spinBox_maximal_multi_design_variant_num.value()
         )
-        
-        self.multi_mutagenesis_designer.cmap=self.ui.comboBox_cmap.currentText()
+
+        self.multi_mutagenesis_designer.cmap = (
+            self.ui.comboBox_cmap.currentText()
+        )
 
         self.multi_mutagenesis_designer.maximal_mutant_num = (
             spinBox_maximal_mutant_num.value()
@@ -2847,3 +2901,59 @@ class REvoDesignPlugin:
 
         self.current_gremlin_co_evoving_pair_mutant_id = mutant
         self.activate_focused_interaction()
+        
+        if (
+            self.ws_server
+            and self.ws_server.is_running
+            and mutant_obj
+        ):
+            mutant_tree = {
+                visualizer.group_name: {
+                    mutant_obj.get_short_mutant_id(): mutant_obj
+                    
+                }
+            }
+
+            asyncio.run(
+                self.ws_broadcast_from_server(
+                    data=MutantTree(mutant_tree=mutant_tree),
+                    data_type='MutantTree',
+                )
+            )
+
+    def setup_ws_server(self):
+        if not self.ws_server:
+            return
+
+        self.ws_server.setup_ws_server(
+            checkBox_ws_broadcast_view=self.ui.checkBox_ws_broadcast_view,
+            checkBox_ws_duplex_mode=self.ui.checkBox_ws_duplex_mode,
+            checkBox_ws_server_use_key=self.ui.checkBox_ws_server_use_key,
+            lineEdit_ws_server_key=self.ui.lineEdit_ws_server_key,
+            lineEdit_ws_server_port=self.ui.lineEdit_ws_server_port,
+            doubleSpinBox_ws_view_broadcast_interval=self.ui.doubleSpinBox_ws_view_broadcast_interval,
+        )
+
+    async def start_ws_server(self):
+        if not self.ws_server:
+            return
+        # Start the WebSocket server in an asynchronous event loop
+        asyncio.get_event_loop().run_until_complete(
+            self.ws_server.start_server()
+        )
+
+    async def stop_ws_server(self):
+        if not self.ws_server:
+            return
+        await self.ws_server.stop_server()  # Gracefully stop the server
+
+    def handle_client_double_click(self, item):
+        row = item.row()  # Get the selected row index
+        # Call the server's method to handle client double-click
+        asyncio.ensure_future(self.ws_server.handle_client_double_click(row))
+
+    async def ws_broadcast_from_server(self, data, data_type: str):
+        # Perform some action where you want to broadcast an object
+
+        # Call the broadcast_object method to send the object to connected clients
+        await self.ws_server.broadcast_object(data, data_type)

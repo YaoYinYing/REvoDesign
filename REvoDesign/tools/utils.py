@@ -55,6 +55,28 @@ def suppress_print(func):
 
 
 def minibatches(inputs_data, batch_size):
+    """
+    Generates minibatches from input data with a specified batch size.
+
+    Args:
+    - inputs_data (list or iterable): Input data to be divided into minibatches.
+    - batch_size (int): Size of each minibatch.
+
+    Yields:
+    - list: Minibatches of data based on the specified batch size.
+
+    Note:
+    If the length of the inputs_data is not perfectly divisible by the batch_size,
+    the last batch may have fewer elements.
+
+    Example Usage:
+    ```python
+    data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    batch_size = 3
+    for batch in minibatches(data, batch_size):
+        print(batch)
+    ```
+    """
     for start_idx in range(0, len(inputs_data), batch_size):
         if len(inputs_data[start_idx:]) > batch_size:
             excerpt = slice(start_idx, start_idx + batch_size)
@@ -68,6 +90,31 @@ def minibatches(inputs_data, batch_size):
 
 
 def minibatches_generator(inputs_data_generator, batch_size):
+    """
+    Generates minibatches from a generator of input data with a specified batch size.
+
+    Args:
+    - inputs_data_generator (generator): Generator yielding input data.
+    - batch_size (int): Size of each minibatch.
+
+    Yields:
+    - list: Minibatches of data based on the specified batch size.
+
+    Note:
+    If the length of the inputs_data is not perfectly divisible by the batch_size,
+    the last batch may have fewer elements.
+
+    Example Usage:
+    ```python
+    def data_generator():
+        for i in range(10):
+            yield i
+
+    batch_size = 3
+    for batch in minibatches_generator(data_generator(), batch_size):
+        print(batch)
+    ```
+    """
     current_batch = []
     for data_point in inputs_data_generator:
         # print(f"Send data {data_point}")
@@ -84,6 +131,27 @@ def minibatches_generator(inputs_data_generator, batch_size):
 def run_worker_thread_with_progress(
     worker_function, progress_bar=None, *args, **kwargs
 ):
+    """
+    Runs a worker function in a separate thread with an optional progress bar.
+
+    Args:
+    - worker_function (function): The function to be executed in a worker thread.
+    - progress_bar (QProgressBar or None): Optional progress bar to display progress (default is None).
+    - *args: Positional arguments to be passed to the worker function.
+    - **kwargs: Keyword arguments to be passed to the worker function.
+
+    Returns:
+    - Any: Result returned by the worker function.
+
+    Note:
+    If a progress_bar is provided, it temporarily sets the progress bar to indeterminate mode (busy state) during the execution of the worker function.
+
+    Example Usage:
+    ```python
+    # Assuming `my_worker_function` is defined
+    result = run_worker_thread_with_progress(my_worker_function, my_progress_bar, arg1, arg2, kwarg1=value1)
+    ```
+    """
     if progress_bar:
         # store the progress bar state
         _min=progress_bar.minimum()
@@ -158,6 +226,16 @@ def get_color(cmap, data, min_value, max_value):
 
 
 def cmap_reverser(cmap, reverse=False):
+    """
+    Reverses a colormap name if the 'reverse' flag is set to True.
+
+    Args:
+    - cmap (str): Name of the colormap.
+    - reverse (bool): Flag indicating whether to reverse the colormap (default is False).
+
+    Returns:
+    - str: Reversed colormap name if 'reverse' is True, otherwise returns the original colormap name.
+    """
     if reverse:
         if cmap.endswith('_r'):
             cmap = cmap.replace('_r', '')
@@ -168,6 +246,20 @@ def cmap_reverser(cmap, reverse=False):
 
 
 def rescale_number(number, min_value, max_value):
+    """
+    Rescales a number within a specified range to a value between 0 and 1.
+
+    Args:
+    - number (float): The number to be rescaled.
+    - min_value (float): The minimum value of the range.
+    - max_value (float): The maximum value of the range.
+
+    Returns:
+    - float: The rescaled value between 0 and 1.
+    
+    Raises:
+    - ValueError: If min_value is greater than or equal to max_value.
+    """
     # Ensure that min_value and max_value are valid.
     if min_value >= max_value:
         raise ValueError("min_value must be less than max_value")
@@ -180,6 +272,16 @@ def rescale_number(number, min_value, max_value):
 
 
 def count_and_sort_characters(input_string, characters):
+    """
+    Counts occurrences of specified characters in a string and sorts them based on counts.
+
+    Args:
+    - input_string (str): The input string to count characters from.
+    - characters (list): List of characters to count in the input string.
+
+    Returns:
+    - dict: Dictionary containing character counts sorted in descending order.
+    """
     char_count = {char: input_string.lower().count(char) for char in characters}
     
     sorted_count = dict(sorted(char_count.items(), key=lambda item: item[1], reverse=True))
@@ -188,6 +290,17 @@ def count_and_sort_characters(input_string, characters):
 
 
 def random_deduplicate(seq, score):
+    """
+    Deduplicates a sequence while preserving random scores for unique items.
+
+    Args:
+    - seq (numpy.array): Sequence array to deduplicate.
+    - score (numpy.array): Array of scores corresponding to items in seq.
+
+    Returns:
+    - numpy.array: Unique items from seq.
+    - numpy.array: Randomly chosen scores corresponding to unique items.
+    """
     import numpy as np
     unique_items = np.unique(seq)
     unique_scores = [np.random.choice(score[seq == item]) for item in unique_items]
