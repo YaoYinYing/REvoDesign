@@ -4,9 +4,10 @@ import tempfile
 import pandas as pd
 from Bio.Data import IUPACData
 from Bio import SeqIO
-from pymol import cmd, util
+from pymol import cmd
 import matplotlib
 from absl import logging
+from REvoDesign.common.MutantTree import MutantTree
 
 matplotlib.use('Agg')
 
@@ -18,7 +19,6 @@ from REvoDesign.tools.utils import (
     run_command,
 )
 
-from REvoDesign.tools.pymol_utils import mutate
 
 from REvoDesign.tools.mutant_tools import (
     extract_mutants_from_mutant_id,
@@ -57,6 +57,7 @@ class MutantVisualizer:
 
         self.min_score_profile = 0
         self.max_score_profile = 0
+        self.mutant_tree=MutantTree({})
 
         self.consider_global_score_from_profile = False
 
@@ -81,6 +82,7 @@ class MutantVisualizer:
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
     def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
         from pymol import cmd, util
+        from REvoDesign.tools.pymol_utils import mutate
         # mutant: <chain_id><wt><pos><mut>_..._<score>
         new_obj_name = mutant_obj.get_short_mutant_id()
         cmd.create(f"{new_obj_name}", self.molecule)
@@ -319,7 +321,6 @@ class MutantVisualizer:
             )
             mutation_data[self.score_col] = 1
 
-        self.mutant_list = []
         for _, row in mutation_data.iterrows():
             variant, variant_obj = extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
@@ -365,12 +366,15 @@ class MutantVisualizer:
                 )
 
             variant_obj.set_mutant_score(float(_score))
+            self.mutant_tree.add_mutant_to_branch(
+                branch=self.group_name,
+                mutant=variant_obj.get_short_mutant_id(), 
+                mutant_info=variant_obj)
 
-            self.mutant_list.append(variant_obj)
 
         # Determine the range for color bar
         score_list = [
-            variant_obj.get_mutant_score() for variant_obj in self.mutant_list
+            variant_obj.get_mutant_score() for _, variant_obj in self.mutant_tree.all_mutants
         ]
         logging.debug(f'Scores: {score_list}')
 
@@ -390,13 +394,33 @@ class MutantVisualizer:
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
     def run_mutagenesis_tasks(self, progress_bar):
+        """
+        Runs mutagenesis tasks based on the MutantTree and updates progress using the provided progress bar.
+
+        Args:
+        - self: Instance of the class containing the method.
+        - progress_bar: Progress bar widget to display the progress of mutagenesis tasks.
+
+        Notes:
+        - This method initiates and manages the execution of mutagenesis tasks using parallel processing if self.parallel_run is True.
+        - It updates the provided progress_bar to display the progress of mutagenesis tasks.
+        - The method uses multiprocessing for parallel execution of tasks.
+        - If parallel_run is True:
+            - It initializes a ParallelExecutor with specified parameters and starts the execution.
+            - Continuously refreshes the window to show progress until execution is finished.
+            - Handles the results obtained from parallel execution.
+        - If parallel_run is False:
+            - Executes mutagenesis tasks sequentially without parallel processing.
+            - Updates the progress bar and executes the tasks one by one.
+        - After executing mutagenesis tasks, it performs merging sessions via command line.
+        """
         from REvoDesign.tools.customized_widgets import (
             refresh_window,
             ParallelExecutor,
         )
 
         # Create a multiprocessing pool
-        self.mutagenesis_tasks = [[variant] for variant in self.mutant_list]
+        self.mutagenesis_tasks = [[variant] for _, variant in self.mutant_tree.all_mutants]
 
         progress_bar.setRange(0, 0)
 
@@ -414,8 +438,8 @@ class MutantVisualizer:
                 refresh_window()
                 time.sleep(0.001)
 
-            progress_bar.setRange(0, len(self.mutant_list))
-            progress_bar.setValue(len(self.mutant_list))
+            progress_bar.setRange(0, len(self.mutant_tree.all_mutant_ids))
+            progress_bar.setValue(len(self.mutant_tree.all_mutant_ids))
 
             self.results = parallel_executor.handle_result()
 

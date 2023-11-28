@@ -1,5 +1,8 @@
+from REvoDesign.common.Mutant import Mutant
+
+
 class MutantTree:
-    def __init__(self, mutant_tree: dict):
+    def __init__(self, mutant_tree: dict[dict]):
         """
         Initialize MutantTree object with a mutant tree dictionary.
 
@@ -194,7 +197,7 @@ class MutantTree:
 
         self.refresh_mutants()
 
-    def add_mutant_to_branch(self, branch, mutant, mutant_info):
+    def add_mutant_to_branch(self, branch, mutant, mutant_info: Mutant):
         """
         Adds a mutant to a specific branch in the MutantTree object.
 
@@ -305,6 +308,7 @@ class MutantTree:
         Usage:
         tree.walk_the_mutants()
         """
+
     def walk_the_mutants(self, walk_to_next_one=True):
         if not self.current_branch_id:
             self.initialize_current_branch()
@@ -398,3 +402,61 @@ class MutantTree:
             self.current_mutant_id = list(
                 self.mutant_tree[self.current_branch_id].keys()
             )[0]
+
+    def list_mutants(self) -> list[dict]:
+        if self.empty:
+            return None
+
+        return [
+            {
+                'branch': branch_id,
+                'mutant_id': mutant_id,
+                'mutant_obj': mutant_obj,
+            }
+            for branch_id in self.all_mutant_branch_ids
+            for mutant_id, mutant_obj in self.get_a_branch(
+                branch_id=branch_id
+            ).items()
+        ]
+    
+    def diff_tree_from(self, other_tree):
+        """
+        Compares two MutantTree objects and returns the differences as a new MutantTree.
+
+        Args:
+        - other_tree (MutantTree): The MutantTree object to compare with.
+
+        Returns:
+        - MutantTree or None: A MutantTree object containing the differences between self and other_tree,
+        or None if there are no differences.
+        
+        Raises:
+        - ValueError: If the input other_tree is not a MutantTree object.
+        """
+        if not isinstance(other_tree, MutantTree):
+            raise ValueError("Input must be a MutantTree object.")
+
+        diff_tree = MutantTree({})
+
+        # Compare branches in self with other_tree
+        for branch_id in self.all_mutant_branch_ids:
+            if branch_id not in other_tree.all_mutant_branch_ids:
+                # Branch exists in self but not in other_tree
+                diff_tree.extend_tree_with_new_branches({branch_id: self.get_a_branch(branch_id)})
+            else:
+                # Branch exists in both trees, compare branch contents
+                self_branch = self.get_a_branch(branch_id)
+                other_branch = other_tree.get_a_branch(branch_id)
+                
+                diff_branch_contents = {
+                    k: v for k, v in self_branch.items() if k not in other_branch
+                }
+
+                if diff_branch_contents:
+                    diff_tree.extend_tree_with_new_branches({branch_id: diff_branch_contents})
+
+        return diff_tree if not diff_tree.empty else None
+                        
+
+
+        

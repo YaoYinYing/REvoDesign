@@ -1,5 +1,7 @@
 import contextlib
 import os
+import random
+import string
 from absl import logging
 import time
 
@@ -305,3 +307,16 @@ def random_deduplicate(seq, score):
     unique_items = np.unique(seq)
     unique_scores = [np.random.choice(score[seq == item]) for item in unique_items]
     return np.array(unique_items), np.array(unique_scores)
+
+
+def generate_strong_password(length=16):
+    if length < 16 or length > 64:
+        raise ValueError("Password length should be between 16 and 64 characters.")
+
+    # Define the characters to use for generating the password
+    password_characters = string.ascii_letters + string.digits + string.punctuation
+
+    # Generate the password using random characters from the defined set
+    generated_password = ''.join(random.choice(password_characters) for _ in range(length))
+    
+    return generated_password

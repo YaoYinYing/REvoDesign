@@ -32,6 +32,7 @@ from REvoDesign.tools.utils import (
     dirname_does_exist,
     filepath_does_exists,
     extract_archive,
+    generate_strong_password,
     run_worker_thread_with_progress,
     get_color,
     cmap_reverser,
@@ -100,7 +101,6 @@ class REvoDesignPlugin:
 
         try:
             # if websocket is available, teamwork is activated.
-            import websockets
             from REvoDesign.clients.SocketConnector import (
                 REvoDesignWebSocketServer,
                 REvoDesignWebSocketClient,
@@ -115,9 +115,6 @@ class REvoDesignPlugin:
                 f'Teamwork is disabled. Please install the related requirements.'
             )
 
-    def __del__(self):
-        print('REvoDesign session closed.')
-        self.__del__()
 
     def set_working_directory(self):
         self.PWD = getExistingDirectory()
@@ -699,6 +696,25 @@ class REvoDesignPlugin:
             self.ui.comboBox_external_scorer,
             [''] + list(EXTERNAL_DESIGNERS.keys()),
         )
+
+        self.generate_ws_server_key(self.ui.lineEdit_ws_server_key)
+
+        self.ui.pushButton_ws_generate_randomized_key.clicked.connect(
+            partial(
+            self.generate_ws_server_key,
+            self.ui.lineEdit_ws_server_key
+            )
+        )
+
+        self.ui.checkBox_ws_server_mode.stateChanged.connect(
+            self.toggle_ws_server_mode
+        )
+
+        self.ui.pushButton_ws_connect_to_server.clicked.connect(
+            self.connect_to_server
+        )
+
+
 
         return main_window
 
@@ -2054,18 +2070,14 @@ class REvoDesignPlugin:
         if (
             self.ws_server
             and self.ws_server.is_running
-            and visualizer.mutant_list
+            and visualizer.mutant_tree
+            and not visualizer.mutant_tree.empty
         ):
-            mutant_tree = {
-                group_name: {
-                    mut_obj.get_short_mutant_id(): mut_obj
-                    for mut_obj in visualizer.mutant_list
-                }
-            }
+            
 
             asyncio.run(
                 self.ws_broadcast_from_server(
-                    data=MutantTree(mutant_tree=mutant_tree),
+                    data=visualizer.mutant_tree,
                     data_type='MutantTree',
                 )
             )
@@ -2921,6 +2933,11 @@ class REvoDesignPlugin:
                 )
             )
 
+    def generate_ws_server_key(self, lineEdit_ws_server_key):
+        key=generate_strong_password(length=32)
+        if key:
+            set_widget_value(lineEdit_ws_server_key, key)
+
     def setup_ws_server(self):
         if not self.ws_server:
             return
@@ -2936,8 +2953,10 @@ class REvoDesignPlugin:
 
     async def start_ws_server(self):
         if not self.ws_server:
+            logging.error(f'WS server is invalid and will not be started.')
             return
         # Start the WebSocket server in an asynchronous event loop
+        logging.info(f'WS server is starting...')
         asyncio.get_event_loop().run_until_complete(
             self.ws_server.start_server()
         )
@@ -2946,6 +2965,19 @@ class REvoDesignPlugin:
         if not self.ws_server:
             return
         await self.ws_server.stop_server()  # Gracefully stop the server
+
+    # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
+    def toggle_ws_server_mode(self):
+        if self.ui.checkBox_ws_server_mode.isChecked():
+            # Start the WebSocket server when checked
+            self.setup_ws_server()
+            asyncio.ensure_future(self.start_ws_server())
+            logging.info("WebSocket server is open.")
+        else:
+            # Stop the WebSocket server when unchecked
+            asyncio.run(self.stop_ws_server())
+            logging.info("WebSocket server is closed.")
+
 
     def handle_client_double_click(self, item):
         row = item.row()  # Get the selected row index
@@ -2957,3 +2989,30 @@ class REvoDesignPlugin:
 
         # Call the broadcast_object method to send the object to connected clients
         await self.ws_server.broadcast_object(data, data_type)
+
+    def setup_ws_client(self):
+        if not self.ws_client:
+            return
+        self.ws_client.setup_ws_client(
+            comboBox_design_molecule=self.ui.comboBox_design_molecule,
+            comboBox_chain_id=self.ui.comboBox_chain_id,
+            comboBox_cmap=self.ui.comboBox_cmap,
+            spinBox_nproc=self.ui.spinBox_nproc,
+            lineEdit_ws_server_url_to_connect=self.ui.lineEdit_ws_server_url_to_connect,
+            lineEdit_ws_server_port_to_connect=self.ui.lineEdit_ws_server_port_to_connect,
+            lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key_to_connect,
+            checkBox_ws_receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast,
+            checkBox_ws_receive_mutagenesis_broadcast=self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
+            progress_bar=self.ui.progressBar)
+    
+    async def ws_client_connect_to_server(self):
+        if not self.ws_client:
+            return
+        asyncio.get_event_loop().run_until_complete(
+            self.ws_client.connect_to_server()
+        )
+
+    # Assuming connect_to_server gets triggered on pushButton_ws_connect_to_server click
+    def connect_to_server(self):
+        self.setup_ws_client()
+        asyncio.ensure_future(self.ws_client_connect_to_server())
