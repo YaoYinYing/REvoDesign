@@ -101,6 +101,7 @@ def install_via_pip(
 
 
 from pymol import cmd
+import traceback
 
 cmd.extend('install_REvoDesign_via_pip', install_via_pip)
 
@@ -109,6 +110,7 @@ try:
 except ImportError:
     print('Installation failed. ')
     print(install_msg)
+    
 
 
 # entrypoint of PyMOL plugin
@@ -124,5 +126,6 @@ def __init_plugin__(app=None):
         plugin = REvoDesignPlugin()
         addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
     except ImportError:
+        traceback.print_exc()
         print('REvoDesign is not available.')
         print(install_msg)

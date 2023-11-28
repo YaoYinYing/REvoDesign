@@ -3841,7 +3841,7 @@
              <set>Qt::ImhDigitsOnly</set>
             </property>
             <property name="text">
-             <string/>
+             <string>18965</string>
             </property>
            </widget>
           </item>
@@ -3853,6 +3853,9 @@
            <widget class="QCheckBox" name="checkBox_ws_server_use_key">
             <property name="text">
              <string>Key:</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>

@@ -3,29 +3,23 @@ import json
 import hashlib
 import time
 import re
-import tempfile
 from absl import logging
-from pymol import cmd
 import matplotlib
 import collections
 import random
 from REvoDesign.common.MutantTree import MutantTree
 
 from REvoDesign.common.Mutant import Mutant
+from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
 from REvoDesign.tools.utils import (
-    get_color,
     WITH_COLABDESIGN,
     random_deduplicate,
     run_worker_thread_with_progress,
 )
 
-from REvoDesign.tools.customized_widgets import (
-    refresh_window,
-    ParallelExecutor,
-)
 
 from REvoDesign.tools.pymol_utils import (
     get_molecule_sequence,
@@ -77,8 +71,7 @@ class REvoDesigner:
         self.nproc = 1
         self.max_abs_profile = 0
         self.create_full_pdb = False
-        self.mutant_tree=None
-
+        self.mutant_tree = None
 
         self.mutagenesis_tasks = []
 
@@ -421,28 +414,17 @@ class REvoDesigner:
         if not mutant_objs:
             logging.warning('No available designs is founded.')
             return
+        
+        mutant_tree = {
+            self.design_case: {
+                mut_obj.get_short_mutant_id(): mut_obj
+                for mut_obj in mutant_objs
+            }
+        }
+        self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
+        
+        self.output_pse=self.run_mutagenesis_via_mutant_visualizer(group_id=self.design_case,progress_bar=progress_bar)
 
-        visualizer = MutantVisualizer(
-            molecule=self.molecule, chain_id=self.chain_id
-        )
-        visualizer.sequence = self.sequence
-
-        visualizer.save_session = self.output_pse
-        visualizer.input_session = self.input_pse
-
-        visualizer.parallel_run = self.nproc > 1
-        visualizer.nproc = self.nproc
-
-        visualizer.group_name = self.design_case
-
-        visualizer.cmap = self.cmap
-        visualizer.min_score = min(score_list)
-        visualizer.max_score = max(score_list)
-        visualizer.mutant_list = mutant_objs
-        visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
-        self.output_pse = visualizer.save_session
-        mutant_tree={self.design_case: {mut_obj.get_short_mutant_id(): mut_obj for mut_obj in mutant_objs}}
-        self.mutant_tree=MutantTree(mutant_tree=mutant_tree)
         logging.info("Done.")
 
     def setup_profile_design(
@@ -499,60 +481,57 @@ class REvoDesigner:
 
         return mutation_json_fp, mutation_png_fp
 
-    def run_profile_mutagenesis(self, mutant_obj: Mutant):
-        mutant_info = mutant_obj.get_mutant_info()[0]
+    def run_mutagenesis_via_mutant_visualizer(
+        self, group_id, progress_bar
+    ):
+        """
+        Runs mutagenesis using MutantVisualizer based on specified parameters.
 
-        position = mutant_info['position']
-        wt_residue = mutant_info['wt_res']
-        new_residue = mutant_info['mut_res']
-        new_residue_score = mutant_obj.get_mutant_score()
-        wt_profile_score = mutant_obj.get_wt_score()
+        Args:
+        - self: Instance of the class containing the method.
+        - group_id: Identifier for the group of mutations.
+        - progress_bar: Progress bar widget to display the progress.
 
-        logging.info(
-            f'Runing mutagenesis test for position {position}{wt_residue}...'
-        )
-        logging.info(f"Candidates for design: {mutant_info}")
-        temp_dir = tempfile.mkdtemp(prefix='RD_')
-        temp_session_path = os.path.join(temp_dir, f"position_{position}.pse")
+        Returns:
+        - str: File path of the saved session after mutagenesis.
 
-        cmd.reinitialize()
-        cmd.load(self.input_pse)
-        cmd.hide('surface')
-
-        cmd.center(self.molecule)
-        refresh_window()
-
-        color = get_color(
-            self.cmap,
-            new_residue_score,
-            -self.max_abs_profile,
-            self.max_abs_profile,
-        )
-
-        logging.info(
-            f"Mutating {position}{wt_residue}({wt_profile_score} ) to {new_residue}( {new_residue_score} ): {color}"
-        )
+        Notes:
+        - This method utilizes MutantVisualizer to perform mutagenesis based on the provided parameters.
+        - Initializes MutantVisualizer with specific molecule, chain_id, sequence, group_name, and other properties.
+        - Sets visualization parameters like cmap, min_score, max_score based on self parameters.
+        - Determines mutagenesis parameters based on external_designer and mutant_tree's branch_id.
+        - Sets nproc and parallel_run based on the number of processors available.
+        - Saves the resulting session file and returns the file path.
+        """
         visualizer = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id
         )
-        visualizer.group_name = (
-            f"mt_{wt_residue}{position}_{str(wt_profile_score)}"
-        )
+        visualizer.sequence=self.sequence
+        visualizer.group_name = group_id
         visualizer.full = self.create_full_pdb
+        visualizer.cmap = self.cmap
 
-        visualizer.create_mutagenesis_objects(
-            mutant_obj=mutant_obj, color=color
+        if not self.external_designer or not self.external_designer in  EXTERNAL_DESIGNERS:
+            visualizer.min_score = -self.max_abs_profile
+            visualizer.max_score = self.max_abs_profile
+        else:
+            score_list=[mut_obj.get_mutant_score() for _, mut_obj in self.mutant_tree.get_a_branch(branch_id=group_id)]
+            visualizer.min_score=min(score_list)
+            visualizer.max_score=max(score_list)
+
+        visualizer.nproc = self.nproc
+        visualizer.parallel_run = self.nproc > 1
+        visualizer.input_session = self.input_pse
+        visualizer.save_session = os.path.join(
+            os.path.dirname(self.output_pse),
+            f'group.{group_id}.{os.path.basename(self.output_pse)}',
         )
 
-        refresh_window()
-        time.sleep(0.01)
-
-        refresh_window()
-        cmd.hide('everything', 'hydrogens and polymer.protein')
-        cmd.delete(self.molecule)
-        cmd.save(temp_session_path)
-
-        return temp_session_path
+        visualizer.mutant_tree = MutantTree(
+            {group_id: self.mutant_tree.get_a_branch(branch_id=group_id)}
+        )
+        visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
+        return visualizer.save_session
 
     def load_mutants_to_pymol_session(
         self,
@@ -592,9 +571,10 @@ class REvoDesigner:
                 mutant_obj.set_wt_score(float(wt_score))
                 self.mutagenesis_tasks.append([mutant_obj])
                 self.mutant_tree.add_mutant_to_branch(
-                    branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.get_wt_score())}", 
-                    mutant=mutant_obj.get_short_mutant_id(), 
-                    mutant_info=mutant_obj)
+                    branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.get_wt_score())}",
+                    mutant=mutant_obj.get_short_mutant_id(),
+                    mutant_info=mutant_obj,
+                )
 
                 new_residue_scores.append(mutant_obj.get_mutant_score())
 
@@ -602,53 +582,25 @@ class REvoDesigner:
             abs(min(new_residue_scores)), abs(max(new_residue_scores))
         )
 
-        if not new_residue_scores:
+        if not self.mutant_tree.empty:
             logging.warning(f'No available designs!')
             return
 
-        progress_bar.setRange(0, 0)
+        self.results = []
 
-        
-
-        if self.nproc > 1:
-            parallel_executor = ParallelExecutor(
-                self.run_profile_mutagenesis,
-                self.mutagenesis_tasks,
-                n_jobs=self.nproc,
-            )
-
-            parallel_executor.start()
-
-            while not parallel_executor.isFinished():
-                refresh_window()
-                time.sleep(0.001)
-
-            progress_bar.setRange(0, len(self.mutagenesis_tasks))
-            progress_bar.setValue(len(self.mutagenesis_tasks))
-
-            self.results = parallel_executor.handle_result()
-        else:
-            progress_bar.setRange(0, len(self.mutagenesis_tasks))
-
-            for mutagenesis_task in self.mutagenesis_tasks:
-                self.results.append(
-                    self.run_profile_mutagenesis(*mutagenesis_task)
+        for branch_id in self.mutant_tree.all_mutant_branch_ids:
+            logging.info(f'Creating mutagenesis for {branch_id}')
+            result_session = (
+                self.run_mutagenesis_via_mutant_visualizer(
+                    group_id=branch_id, progress_bar=progress_bar
                 )
-
-                # https://www.jianshu.com/p/38562df9e65d
-                # refresh UI if calculation is not done.
-                refresh_window()
-                progress_bar.setValue(progress_bar.value() + 1)
-
-            progress_bar.setValue(len(self.mutagenesis_tasks))
-
-        progress_bar.setRange(0, 0)
+            )
+            self.results.append(result_session)
 
         # call MutantVisualizer for merge sessions
         session_merger = MutantVisualizer(molecule='', chain_id='')
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
         session_merger.mutagenesis_sessions = self.results
-        session_merger.merge_sessions_via_commandline()
+        run_worker_thread_with_progress(session_merger.merge_sessions_via_commandline,progress_bar=progress_bar)
         self.output_pse = session_merger.save_session
-        progress_bar.setRange(0, 1)

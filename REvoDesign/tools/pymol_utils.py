@@ -2,7 +2,6 @@ from pymol import cmd
 from absl import logging
 import os
 
-from REvoDesign.tools.mutant_tools import shorter_range
 from REvoDesign.tools.utils import suppress_print
 
 PYMOL_VERSION = cmd.get_version()[0]
@@ -256,6 +255,7 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
 
 
 def refresh_all_selections():
+    from REvoDesign.tools.mutant_tools import shorter_range
     selections = [
         sel
         for sel in cmd.get_names(type='selections')
@@ -291,6 +291,7 @@ def make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd(), reload=True)
 # http://www.pymolwiki.org/index.php/rotkit
 @suppress_print
 def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
+    from pymol import cmd
     target = target.upper()
     cmd.wizard("mutagenesis")
     # cmd.do("refresh_wizard")
