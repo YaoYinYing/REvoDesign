@@ -11,7 +11,6 @@ from absl import logging
 from REvoDesign.common.MutantTree import MutantTree
 
 
-
 class REvoDesignWebSocketServer:
     def __init__(self, port=7890):
         self.port = port
@@ -21,7 +20,7 @@ class REvoDesignWebSocketServer:
         self.clients = set()
         self.is_running = False  # Flag to indicate server status
         self.server = None
-        
+
         # Other initialization
 
     def is_port_available(self, port):
@@ -53,12 +52,12 @@ class REvoDesignWebSocketServer:
         doubleSpinBox_ws_view_broadcast_interval,
     ):
         self.deplex_mode = checkBox_ws_duplex_mode.isChecked()
-        
+
         self.use_authentication = checkBox_ws_server_use_key.isChecked()
         self.authentication_key = lineEdit_ws_server_key.text()
         if self.use_authentication and not self.authentication_key:
             raise ValueError(f'Key for authentication is empty!')
-        
+
         requested_port = spinBox_ws_server_port.value()
 
         if not requested_port:
@@ -74,22 +73,28 @@ class REvoDesignWebSocketServer:
         self.view_broadcast_interval = (
             doubleSpinBox_ws_view_broadcast_interval.value()
         )
-        logging.info(f'Server is reconfigured! Key: {self.authentication_key}')
+        logging.info(
+            f'Server is reconfigured! \n ' f'Key: {self.authentication_key}\n'
+        )
 
-    async def start_server(self):
+    async def start_server(self, signal=0):
         from REvoDesign.tools.client_tools import generate_ssl_context
+
         self.is_running = True  # Set flag when server starts
-        ssl_context = generate_ssl_context(role='server')  # Generate SSL context
+        ssl_context = generate_ssl_context(
+            role='server'
+        )  # Generate SSL context
         logging.info('Server starting....')
-        self.server = websockets.serve(self.handler, "localhost", self.port, ssl=ssl_context)
-        
+
         # Keep the server running indefinitely using the event loop's run_forever() method
         try:
-            await self.server  # Await server initialization
+            self.server = await websockets.serve(
+                self.handler, "localhost", self.port, ssl=ssl_context
+            )
         except:
             traceback.print_exc()
-            logging.error('Server initialization failed. Closing...')
-            await self.server.ws_server.close()
+            logging.error('Server initialization failed.')
+
             # Perform any cleanup or shutdown operations here
 
     async def stop_server(self):
@@ -101,8 +106,9 @@ class REvoDesignWebSocketServer:
 
         try:
             assert self.server is not None
-            await self.server.ws_server.close()
-            
+
+            self.server.close()
+
             logging.warning('Server closed.')
         except:
             traceback.print_exc()
@@ -137,15 +143,13 @@ class REvoDesignWebSocketServer:
     async def process_message(self, websocket, message):
         data = json.loads(message)
         if 'auth_key' in data:
-            authenticated = await self.authenticate_client(
-                data['auth_key']
-            )
+            authenticated = await self.authenticate_client(data['auth_key'])
             if not authenticated:
                 self.clients.remove(websocket)
-                logging.info(f'Client {websocket} is removed due to  unauthenticated identification.')
+                logging.info(
+                    f'Client {websocket} is removed due to  unauthenticated identification.'
+                )
                 return  # Unauthorized client
-
-
 
     async def authenticate_client(self, key):
         if self.use_authentication and key != self.authentication_key:
@@ -159,12 +163,14 @@ class REvoDesignWebSocketServer:
 
         serialized_obj = self.serialize_object(obj, data_type)
         serialized_json = json.dumps(serialized_obj)
-        await asyncio.wait([client.send(serialized_json.encode()) for client in self.clients])
+        websockets.broadcast(self.clients, serialized_json.encode())
+
+        # await asyncio.wait([client.send(serialized_json.encode()) for client in self.clients])
 
     def serialize_object(self, obj, data_type):
         serialized_data = {
             'data_type': data_type,
-            'data': self.encode_object(obj)
+            'data': self.encode_object(obj),
         }
         return serialized_data
 
@@ -183,72 +189,97 @@ class REvoDesignWebSocketClient:
         self.receive_view_broadcast = False
         # Other initialization
 
-        self.receive_mutagenesis_broadcast=True
+        self.receive_mutagenesis_broadcast = True
 
-        self.design_molecule=''
-        self.design_chain_id='A'
-        self.design_sequence=''
+        self.design_molecule = ''
+        self.design_chain_id = 'A'
+        self.design_sequence = ''
 
-        self.cmap='bwr_r'
-        self.nproc=1
-        self.progress_bar=None
+        self.cmap = 'bwr_r'
+        self.nproc = 1
+        self.progress_bar = None
 
+        self.connected = False
+        self.client = None
 
-    def setup_ws_client(self,
-                        comboBox_design_molecule,
-                        comboBox_chain_id,
-                        comboBox_cmap,
-                        spinBox_nproc,
+    def setup_ws_client(
+        self,
+        comboBox_design_molecule,
+        comboBox_chain_id,
+        comboBox_cmap,
+        spinBox_nproc,
+        lineEdit_ws_server_url_to_connect,
+        spinBox_ws_server_port_to_connect,
+        lineEdit_ws_server_key_to_connect,
+        checkBox_ws_receive_mutagenesis_broadcast,
+        checkBox_ws_receive_view_broadcast,
+        progress_bar,
+    ):
+        self.design_molecule = comboBox_design_molecule.currentText()
+        self.design_chain_id = comboBox_chain_id.currentText()
+        self.cmap = comboBox_cmap.currentText()
+        self.nproc = spinBox_nproc.value()
 
-                        lineEdit_ws_server_url_to_connect,
-                        spinBox_ws_server_port_to_connect,
-                        lineEdit_ws_server_key_to_connect,
+        self.progress_bar = progress_bar
 
-                        checkBox_ws_receive_mutagenesis_broadcast,
-                        checkBox_ws_receive_view_broadcast,
-                        
-                        progress_bar):
-        
-        self.design_molecule=comboBox_design_molecule.currentText()
-        self.design_chain_id=comboBox_chain_id.currentText()
-        self.cmap=comboBox_cmap.currentText()
-        self.nproc=spinBox_nproc.value()
-
-        self.progress_bar=progress_bar
-        
-        
         if not self.design_molecule or not self.design_chain_id:
             raise ValueError(f'Invalid design moleculre/chain id!')
 
-        self.server_url=lineEdit_ws_server_url_to_connect.text()
-        
-        server_port=spinBox_ws_server_port_to_connect.value()
+        self.server_url = lineEdit_ws_server_url_to_connect.text()
+
+        server_port = spinBox_ws_server_port_to_connect.value()
         if not server_port:
             raise ValueError(f'Invalid server port {server_port}')
-        self.server_port=server_port
+        self.server_port = server_port
 
         if not self.server_url or not self.server_port:
             raise ValueError(f'Invalid server configurations!')
-        
-        self.authentication_key=lineEdit_ws_server_key_to_connect.text()
-        self.receive_mutagenesis_broadcast=checkBox_ws_receive_mutagenesis_broadcast.isChecked()
-        self.receive_view_broadcast=checkBox_ws_receive_view_broadcast.isChecked()
 
+        self.authentication_key = lineEdit_ws_server_key_to_connect.text()
+        self.receive_mutagenesis_broadcast = (
+            checkBox_ws_receive_mutagenesis_broadcast.isChecked()
+        )
+        self.receive_view_broadcast = (
+            checkBox_ws_receive_view_broadcast.isChecked()
+        )
+
+        logging.info(
+            'Setting up of client is done. Get prepared to connect to server.'
+        )
 
     async def connect_to_server(self):
         from REvoDesign.tools.client_tools import generate_ssl_context
+
         logging.info('Connecting to server ....')
         ssl_context = generate_ssl_context(role='client')
+        self.connected = True
         try:
-            async with websockets.connect(
-                f"wss://{self.server_url}:{self.server_port}", ssl=ssl_context,
-            ) as websocket:
-                if self.authentication_key:
-                    await self.authenticate_client(websocket)
-                async for message in websocket:
-                    await self.process_message(message)
+            self.client = await websockets.connect(
+                f"wss://{self.server_url}:{self.server_port}",
+                ssl=ssl_context,
+            )
+
+            if self.authentication_key:
+                await self.authenticate_client(self.client)
+            async for message in self.client:
+                await self.process_message(message)
         except websockets.exceptions.ConnectionClosedError as e:
             logging.error(f"Connection Closed: {e}")
+            self.connected = False
+
+    async def disconnect_from_server(self):
+        if not self.connected:
+            logging.warning(
+                'Client is not connected to any server. Do nothing.'
+            )
+            return
+
+        try:
+            self.client.close_connection()
+            self.client.close()
+        except:
+            traceback.print_exc()
+            logging.error(f'Client disconnecting failed.')
 
     async def authenticate_client(self, websocket):
         if self.authentication_key:
@@ -262,15 +293,23 @@ class REvoDesignWebSocketClient:
             # Use the received 'obj' and 'data_type' as needed
             if data['data_type'] == 'MutantTree' and obj and not obj.empty:
                 from REvoDesign.tools.mutant_tools import existed_mutant_tree
-                received_mutant_tree =obj.__deepcopy__()
-                diff_mutant_tree=received_mutant_tree.diff_tree_from(existed_mutant_tree())
+
+                received_mutant_tree = obj.__deepcopy__()
+                diff_mutant_tree = received_mutant_tree.diff_tree_from(
+                    existed_mutant_tree()
+                )
                 if self.receive_mutagenesis_broadcast:
-                    logging.info('Building Mutagenesis from differential mutant tree: \n '\
-                                f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants')
-                    self.mutagenesis_from_mutant_tree(mutant_tree=diff_mutant_tree)
+                    logging.info(
+                        'Building Mutagenesis from differential mutant tree: \n '
+                        f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants'
+                    )
+                    self.mutagenesis_from_mutant_tree(
+                        mutant_tree=diff_mutant_tree
+                    )
 
-
-    def deserialize_object(self, serialized_data, data_type) -> Union[MutantTree, tuple, None]:
+    def deserialize_object(
+        self, serialized_data, data_type
+    ) -> Union[MutantTree, tuple, None]:
         if data_type == 'MutantTree':
             logging.info('Deserializing object is a MutantTree.')
             decoded_data = base64.b64decode(serialized_data)
@@ -280,18 +319,19 @@ class REvoDesignWebSocketClient:
         else:
             # Handle unrecognized data types or return None
             return None
-    
-    
-    def mutagenesis_from_mutant_tree(self,mutant_tree: MutantTree):
+
+    def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
         if not mutant_tree or not mutant_tree.empty:
             return
-        
+
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
-        
+
         quick_mutagenesis(
             mutant_tree=mutant_tree,
             molecule=self.design_molecule,
             chain_id=self.design_chain_id,
             sequence=self.design_sequence,
             cmap=self.cmap,
-            nproc=self.nproc,progress_bar=self.progress_bar)
+            nproc=self.nproc,
+            progress_bar=self.progress_bar,
+        )

@@ -3978,7 +3978,17 @@
              <string>Submit the selected molecule and chain.</string>
             </property>
             <property name="text">
-             <string>Connect</string>
+             <string>Join</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_ws_disconnect_from_server">
+            <property name="statusTip">
+             <string>Submit the selected molecule and chain.</string>
+            </property>
+            <property name="text">
+             <string>Leave</string>
             </property>
            </widget>
           </item>

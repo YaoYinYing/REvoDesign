@@ -1,3 +1,4 @@
+import datetime
 from absl import logging
 import os
 import ssl
@@ -64,31 +65,62 @@ def generate_ssl_context(role='server'):
     return context
 
 
+
 def create_certificate(crt_path, key_path):
-    if not os.path.exists(os.path.dirname(crt_path)):
-        os.makedirs(os.path.dirname(crt_path))
+    # Check if the existing certificate exists
+    if not os.path.exists(crt_path):
+        logging.info("Certificate does not exist. Generating a new certificate.")
+        create_new_certificate(crt_path, key_path)
+        return
 
-    role=os.path.basename(crt_path).replace('.crt','')
+    with open(crt_path, 'rb') as f:
+        existing_cert_data = f.read()
+        existing_cert = crypto.load_certificate(crypto.FILETYPE_PEM, existing_cert_data)
+
+        # Get the expiration date of the existing certificate
+        expiration_date = datetime.datetime.strptime(existing_cert.get_notAfter().decode('utf-8'), '%Y%m%d%H%M%SZ')
+        
+    # Check if the certificate has expired
+    if expiration_date < datetime.datetime.now():
+        logging.warning("Certificate has expired. Generating a new certificate.")
+        create_new_certificate(crt_path, key_path)
+    else:
+        logging.info("Certificate is still valid.")
+
+
+def create_new_certificate(crt_path, key_path):
+    # Extract role from the certificate path
+    role = os.path.basename(crt_path).replace('.crt', '')
+
+    # Get node information from OS or set to 'Unknown' if not available
     from REvoDesign.tools.system_tools import OS_INFO
-    node=OS_INFO.node if OS_INFO.node else 'Unknown'
+    node = OS_INFO.node if OS_INFO.node else 'Unknown'
 
+    # Generate RSA key
     k = crypto.PKey()
     k.generate_key(crypto.TYPE_RSA, 2048)
+
+    # Create an X.509 certificate
     cert = crypto.X509()
+    # Set subject information
     cert.get_subject().C = "CN"
     cert.get_subject().ST = "Yunnan"
     cert.get_subject().L = "Kunming"
     cert.get_subject().O = "JAPS"
     cert.get_subject().OU = "Yunnan Abnormal University"
     cert.get_subject().CN = f"{node}.{role}.REvoDesign"
+
+    # Set serial number, validity period, issuer, public key, and sign the certificate
     cert.set_serial_number(1000)
     cert.gmtime_adj_notBefore(0)
-    cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)
+    cert.gmtime_adj_notAfter(7 * 24 * 60 * 60)
     cert.set_issuer(cert.get_subject())
     cert.set_pubkey(k)
     cert.sign(k, 'sha256')
 
+    # Write the certificate and private key to files in PEM format
     with open(crt_path, 'wb') as f:
         f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
     with open(key_path, 'wb') as f:
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
+
