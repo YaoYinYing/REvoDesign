@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>557</height>
+    <height>556</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -3821,27 +3821,21 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_ws_server_port">
+           <widget class="QSpinBox" name="spinBox_ws_server_port">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="maximumSize">
-             <size>
-              <width>60</width>
-              <height>16777215</height>
-             </size>
+            <property name="minimum">
+             <number>3000</number>
             </property>
-            <property name="statusTip">
-             <string>Server URL for PSSM GREMLIN calculation.</string>
+            <property name="maximum">
+             <number>65534</number>
             </property>
-            <property name="inputMethodHints">
-             <set>Qt::ImhDigitsOnly</set>
-            </property>
-            <property name="text">
-             <string>18965</string>
+            <property name="value">
+             <number>63189</number>
             </property>
            </widget>
           </item>
@@ -3936,27 +3930,21 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_ws_server_port_to_connect">
+           <widget class="QSpinBox" name="spinBox_ws_server_port_to_connect">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="maximumSize">
-             <size>
-              <width>60</width>
-              <height>16777215</height>
-             </size>
+            <property name="minimum">
+             <number>3000</number>
             </property>
-            <property name="statusTip">
-             <string>Server URL for PSSM GREMLIN calculation.</string>
+            <property name="maximum">
+             <number>65534</number>
             </property>
-            <property name="inputMethodHints">
-             <set>Qt::ImhDigitsOnly</set>
-            </property>
-            <property name="text">
-             <string/>
+            <property name="value">
+             <number>63189</number>
             </property>
            </widget>
           </item>

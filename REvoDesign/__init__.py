@@ -101,6 +101,7 @@ class REvoDesignPlugin:
 
         try:
             # if websocket is available, teamwork is activated.
+            import websockets
             from REvoDesign.clients.SocketConnector import (
                 REvoDesignWebSocketServer,
                 REvoDesignWebSocketClient,
@@ -108,13 +109,13 @@ class REvoDesignPlugin:
 
             self.ws_server = REvoDesignWebSocketServer()
             self.ws_client = REvoDesignWebSocketClient()
+
         except ImportError:
             self.ws_server = None
             self.ws_client = None
             logging.warning(
                 f'Teamwork is disabled. Please install the related requirements.'
             )
-
 
     def set_working_directory(self):
         self.PWD = getExistingDirectory()
@@ -701,11 +702,16 @@ class REvoDesignPlugin:
 
         self.ui.pushButton_ws_generate_randomized_key.clicked.connect(
             partial(
-            self.generate_ws_server_key,
-            self.ui.lineEdit_ws_server_key
+                self.generate_ws_server_key, self.ui.lineEdit_ws_server_key
             )
         )
 
+        # Create a partial function
+        # partial_toggle_ws_server_mode = partial(
+        #     asyncio.run, self.toggle_ws_server_mode()
+        # )
+
+        # Connect the partial function to the stateChanged signal
         self.ui.checkBox_ws_server_mode.stateChanged.connect(
             self.toggle_ws_server_mode
         )
@@ -713,8 +719,6 @@ class REvoDesignPlugin:
         self.ui.pushButton_ws_connect_to_server.clicked.connect(
             self.connect_to_server
         )
-
-
 
         return main_window
 
@@ -1267,11 +1271,11 @@ class REvoDesignPlugin:
             traceback.print_exc()
         finally:
             self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
-        
+
         if (
             self.ws_server
             and self.ws_server.is_running
-            and design.mutant_tree 
+            and design.mutant_tree
             and not design.mutant_tree.empty
         ):
             asyncio.run(
@@ -2073,8 +2077,6 @@ class REvoDesignPlugin:
             and visualizer.mutant_tree
             and not visualizer.mutant_tree.empty
         ):
-            
-
             asyncio.run(
                 self.ws_broadcast_from_server(
                     data=visualizer.mutant_tree,
@@ -2913,16 +2915,11 @@ class REvoDesignPlugin:
 
         self.current_gremlin_co_evoving_pair_mutant_id = mutant
         self.activate_focused_interaction()
-        
-        if (
-            self.ws_server
-            and self.ws_server.is_running
-            and mutant_obj
-        ):
+
+        if self.ws_server and self.ws_server.is_running and mutant_obj:
             mutant_tree = {
                 visualizer.group_name: {
                     mutant_obj.get_short_mutant_id(): mutant_obj
-                    
                 }
             }
 
@@ -2934,50 +2931,46 @@ class REvoDesignPlugin:
             )
 
     def generate_ws_server_key(self, lineEdit_ws_server_key):
-        key=generate_strong_password(length=32)
+        key = generate_strong_password(length=32)
         if key:
             set_widget_value(lineEdit_ws_server_key, key)
 
     def setup_ws_server(self):
         if not self.ws_server:
-            return
+            from REvoDesign.clients.SocketConnector import (
+                REvoDesignWebSocketServer,
+            )
+
+            self.ws_server = REvoDesignWebSocketServer()
 
         self.ws_server.setup_ws_server(
             checkBox_ws_broadcast_view=self.ui.checkBox_ws_broadcast_view,
             checkBox_ws_duplex_mode=self.ui.checkBox_ws_duplex_mode,
             checkBox_ws_server_use_key=self.ui.checkBox_ws_server_use_key,
             lineEdit_ws_server_key=self.ui.lineEdit_ws_server_key,
-            lineEdit_ws_server_port=self.ui.lineEdit_ws_server_port,
+            spinBox_ws_server_port=self.ui.spinBox_ws_server_port,
             doubleSpinBox_ws_view_broadcast_interval=self.ui.doubleSpinBox_ws_view_broadcast_interval,
         )
 
-    async def start_ws_server(self):
-        if not self.ws_server:
-            logging.error(f'WS server is invalid and will not be started.')
-            return
-        # Start the WebSocket server in an asynchronous event loop
-        logging.info(f'WS server is starting...')
-        asyncio.get_event_loop().run_until_complete(
-            self.ws_server.start_server()
-        )
-
-    async def stop_ws_server(self):
-        if not self.ws_server:
-            return
-        await self.ws_server.stop_server()  # Gracefully stop the server
-
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):
-        if self.ui.checkBox_ws_server_mode.isChecked():
+        if (
+            self.ui.checkBox_ws_server_mode.isChecked()
+            #or not self.ws_server.is_running
+        ):
             # Start the WebSocket server when checked
             self.setup_ws_server()
-            asyncio.ensure_future(self.start_ws_server())
+            asyncio.get_event_loop().run_until_complete(
+                    self.ws_server.start_server()
+            )
             logging.info("WebSocket server is open.")
         else:
-            # Stop the WebSocket server when unchecked
-            asyncio.run(self.stop_ws_server())
+            try:
+                # Stop the WebSocket server when unchecked
+                asyncio.run(self.ws_server.stop_server())
+            except:
+                traceback.print_exc()
             logging.info("WebSocket server is closed.")
-
 
     def handle_client_double_click(self, item):
         row = item.row()  # Get the selected row index
@@ -2992,19 +2985,25 @@ class REvoDesignPlugin:
 
     def setup_ws_client(self):
         if not self.ws_client:
-            return
+            from REvoDesign.clients.SocketConnector import (
+                REvoDesignWebSocketClient,
+            )
+
+            self.ws_client = REvoDesignWebSocketClient()
+
         self.ws_client.setup_ws_client(
             comboBox_design_molecule=self.ui.comboBox_design_molecule,
             comboBox_chain_id=self.ui.comboBox_chain_id,
             comboBox_cmap=self.ui.comboBox_cmap,
             spinBox_nproc=self.ui.spinBox_nproc,
             lineEdit_ws_server_url_to_connect=self.ui.lineEdit_ws_server_url_to_connect,
-            lineEdit_ws_server_port_to_connect=self.ui.lineEdit_ws_server_port_to_connect,
+            spinBox_ws_server_port_to_connect=self.ui.spinBox_ws_server_port_to_connect,
             lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key_to_connect,
             checkBox_ws_receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast,
             checkBox_ws_receive_mutagenesis_broadcast=self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
-            progress_bar=self.ui.progressBar)
-    
+            progress_bar=self.ui.progressBar,
+        )
+
     async def ws_client_connect_to_server(self):
         if not self.ws_client:
             return
