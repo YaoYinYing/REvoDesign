@@ -43,12 +43,12 @@ def generate_ssl_context(role='server'):
     ValueError: If an unknown role is provided.
     FileNotFoundError: If client certificate is not found.
     """
+    
     # Generate SSL context and certificate if needed
     crt_dir = os.path.expanduser('~/.REvoDesign/crts/')
     os.makedirs(crt_dir, exist_ok=True)
     crt_path = os.path.join(crt_dir, f'{role}.crt')
     key_path = os.path.join(crt_dir, f'{role}.key')
-
     if not os.path.exists(crt_path) or not os.path.exists(key_path):
         create_certificate(crt_path, key_path)
 
@@ -68,6 +68,10 @@ def create_certificate(crt_path, key_path):
     if not os.path.exists(os.path.dirname(crt_path)):
         os.makedirs(os.path.dirname(crt_path))
 
+    role=os.path.basename(crt_path).replace('.crt','')
+    from REvoDesign.tools.system_tools import OS_INFO
+    node=OS_INFO.node if OS_INFO.node else 'Unknown'
+
     k = crypto.PKey()
     k.generate_key(crypto.TYPE_RSA, 2048)
     cert = crypto.X509()
@@ -75,8 +79,8 @@ def create_certificate(crt_path, key_path):
     cert.get_subject().ST = "Yunnan"
     cert.get_subject().L = "Kunming"
     cert.get_subject().O = "JAPS"
-    cert.get_subject().OU = "Organizational Unit"
-    cert.get_subject().CN = "REvoDesign"
+    cert.get_subject().OU = "Yunnan Abnormal University"
+    cert.get_subject().CN = f"{node}.{role}.REvoDesign"
     cert.set_serial_number(1000)
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(10 * 365 * 24 * 60 * 60)

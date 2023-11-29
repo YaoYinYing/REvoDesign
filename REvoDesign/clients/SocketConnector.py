@@ -5,6 +5,7 @@ import socket
 import json
 import base64
 import pickle
+import traceback
 from absl import logging
 
 from REvoDesign.common.MutantTree import MutantTree
@@ -19,6 +20,7 @@ class REvoDesignWebSocketServer:
         self.do_broadcast_view = False
         self.clients = set()
         self.is_running = False  # Flag to indicate server status
+        self.server = None
         
         # Other initialization
 
@@ -44,7 +46,7 @@ class REvoDesignWebSocketServer:
     def setup_ws_server(
         self,
         checkBox_ws_duplex_mode,
-        lineEdit_ws_server_port,
+        spinBox_ws_server_port,
         checkBox_ws_server_use_key,
         lineEdit_ws_server_key,
         checkBox_ws_broadcast_view,
@@ -57,16 +59,16 @@ class REvoDesignWebSocketServer:
         if self.use_authentication and not self.authentication_key:
             raise ValueError(f'Key for authentication is empty!')
         
-        requested_port = lineEdit_ws_server_port.text()
+        requested_port = spinBox_ws_server_port.value()
 
         if not requested_port:
             raise ValueError(f'Port {requested_port} not valid')
-        if not self.is_port_available(int(requested_port)):
+        if not self.is_port_available(requested_port):
             raise ValueError(
                 f'Port {requested_port} is already in use. Please choose another port.'
             )
 
-        self.port = int(requested_port)
+        self.port = requested_port
 
         self.do_broadcast_view = checkBox_ws_broadcast_view.isChecked()
         self.view_broadcast_interval = (
@@ -78,10 +80,17 @@ class REvoDesignWebSocketServer:
         from REvoDesign.tools.client_tools import generate_ssl_context
         self.is_running = True  # Set flag when server starts
         ssl_context = generate_ssl_context(role='server')  # Generate SSL context
-        logging.info(f'Server starting....')
-        async with websockets.serve(self.handler, "localhost", self.port, ssl=ssl_context):
-            await asyncio.Future()  # Keeps the server running indefinitely
+        logging.info('Server starting....')
+        self.server = websockets.serve(self.handler, "localhost", self.port, ssl=ssl_context)
         
+        # Keep the server running indefinitely using the event loop's run_forever() method
+        try:
+            await self.server  # Await server initialization
+        except:
+            traceback.print_exc()
+            logging.error('Server initialization failed. Closing...')
+            await self.server.ws_server.close()
+            # Perform any cleanup or shutdown operations here
 
     async def stop_server(self):
         # Close all WebSocket connections
@@ -89,6 +98,15 @@ class REvoDesignWebSocketServer:
         logging.info('Server is stopped.')
         for client in self.clients:
             await client.close()
+
+        try:
+            assert self.server is not None
+            await self.server.ws_server.close()
+            
+            logging.warning('Server closed.')
+        except:
+            traceback.print_exc()
+            logging.error('Server closing failed.')
 
         # Perform any additional cleanup or shutdown operations if needed
         # ...
@@ -111,6 +129,8 @@ class REvoDesignWebSocketServer:
         try:
             async for message in websocket:
                 await self.process_message(websocket, message)
+        except:
+            traceback.print_exc
         finally:
             self.clients.remove(websocket)
 
@@ -181,7 +201,7 @@ class REvoDesignWebSocketClient:
                         spinBox_nproc,
 
                         lineEdit_ws_server_url_to_connect,
-                        lineEdit_ws_server_port_to_connect,
+                        spinBox_ws_server_port_to_connect,
                         lineEdit_ws_server_key_to_connect,
 
                         checkBox_ws_receive_mutagenesis_broadcast,
@@ -202,10 +222,10 @@ class REvoDesignWebSocketClient:
 
         self.server_url=lineEdit_ws_server_url_to_connect.text()
         
-        server_port=lineEdit_ws_server_port_to_connect.text()
+        server_port=spinBox_ws_server_port_to_connect.value()
         if not server_port:
             raise ValueError(f'Invalid server port {server_port}')
-        self.server_port=int(server_port)
+        self.server_port=server_port
 
         if not self.server_url or not self.server_port:
             raise ValueError(f'Invalid server configurations!')
