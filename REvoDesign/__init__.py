@@ -706,18 +706,17 @@ class REvoDesignPlugin:
             )
         )
 
-        # Create a partial function
-        # partial_toggle_ws_server_mode = partial(
-        #     asyncio.run, self.toggle_ws_server_mode()
-        # )
-
         # Connect the partial function to the stateChanged signal
         self.ui.checkBox_ws_server_mode.stateChanged.connect(
             self.toggle_ws_server_mode
         )
 
         self.ui.pushButton_ws_connect_to_server.clicked.connect(
-            self.connect_to_server
+            self.ws_client_connect_to_server
+        )
+
+        self.ui.pushButton_ws_disconnect_from_server.clicked.connect(
+            self.ws_client_disconnect_from_server
         )
 
         return main_window
@@ -2967,7 +2966,9 @@ class REvoDesignPlugin:
         else:
             try:
                 # Stop the WebSocket server when unchecked
-                asyncio.run(self.ws_server.stop_server())
+                asyncio.get_event_loop().run_until_complete(
+                    self.ws_server.stop_server()
+                    )
             except:
                 traceback.print_exc()
             logging.info("WebSocket server is closed.")
@@ -3004,14 +3005,19 @@ class REvoDesignPlugin:
             progress_bar=self.ui.progressBar,
         )
 
-    async def ws_client_connect_to_server(self):
+    def ws_client_connect_to_server(self):
         if not self.ws_client:
             return
-        asyncio.get_event_loop().run_until_complete(
+        self.setup_ws_client()
+
+        asyncio.run(
             self.ws_client.connect_to_server()
         )
+    def ws_client_disconnect_from_server(self):
+        if not self.ws_client:
+            return
+        asyncio.run(
+            self.ws_client.disconnect_from_server()
+        )
 
-    # Assuming connect_to_server gets triggered on pushButton_ws_connect_to_server click
-    def connect_to_server(self):
-        self.setup_ws_client()
-        asyncio.ensure_future(self.ws_client_connect_to_server())
+
