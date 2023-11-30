@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>556</height>
+    <height>558</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -3734,113 +3734,31 @@
      <attribute name="title">
       <string>Socket</string>
      </attribute>
-     <widget class="QGroupBox" name="groupBox_12">
+     <widget class="QGroupBox" name="groupBox_ws_server_settings">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>0</y>
+        <y>70</y>
         <width>381</width>
-        <height>171</height>
+        <height>111</height>
        </rect>
       </property>
       <property name="title">
-       <string>Host</string>
+       <string>Server options</string>
       </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_10">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>120</y>
-         <width>241</width>
-         <height>41</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_54">
-        <item>
-         <widget class="QCheckBox" name="checkBox_ws_broadcast_view">
-          <property name="text">
-           <string>Broadcast view per</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval"/>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_molecule_14">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>sec</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
       <widget class="QWidget" name="verticalLayoutWidget_2">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>351</width>
-         <height>80</height>
+         <width>361</width>
+         <height>75</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_8">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_52">
-          <item>
-           <widget class="QCheckBox" name="checkBox_ws_server_mode">
-            <property name="text">
-             <string>Server Mode</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBox_ws_duplex_mode">
-            <property name="text">
-             <string>Duplex</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_molecule_13">
-            <property name="text">
-             <string>Port:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSpinBox" name="spinBox_ws_server_port">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimum">
-             <number>3000</number>
-            </property>
-            <property name="maximum">
-             <number>65534</number>
-            </property>
-            <property name="value">
-             <number>63189</number>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_53">
           <item>
@@ -3872,6 +3790,71 @@
           </item>
          </layout>
         </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_54">
+          <item>
+           <widget class="QLabel" name="label_molecule_13">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Port:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="spinBox_ws_server_port">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimum">
+             <number>3000</number>
+            </property>
+            <property name="maximum">
+             <number>65534</number>
+            </property>
+            <property name="value">
+             <number>63189</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_broadcast_view">
+            <property name="text">
+             <string>Broadcast view per</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_molecule_14">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>sec</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
        </layout>
       </widget>
      </widget>
@@ -3885,7 +3868,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Client</string>
+       <string>Client options</string>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_9">
        <property name="geometry">
@@ -3915,7 +3898,7 @@
              <string>Server URL for PSSM GREMLIN calculation.</string>
             </property>
             <property name="text">
-             <string/>
+             <string>localhost</string>
             </property>
            </widget>
           </item>
@@ -4042,6 +4025,45 @@
          <height>311</height>
         </rect>
        </property>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_13">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>381</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Mode controls</string>
+      </property>
+      <widget class="QWidget" name="horizontalLayoutWidget_5">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>361</width>
+         <height>34</height>
+        </rect>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_52">
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_server_mode">
+          <property name="text">
+           <string>Server Mode</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_duplex_mode">
+          <property name="text">
+           <string>Duplex</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </widget>
     </widget>
@@ -4405,6 +4427,22 @@
     <hint type="destinationlabel">
      <x>213</x>
      <y>408</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_ws_server_mode</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>groupBox_ws_server_settings</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>122</x>
+     <y>189</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>213</x>
+     <y>268</y>
     </hint>
    </hints>
   </connection>

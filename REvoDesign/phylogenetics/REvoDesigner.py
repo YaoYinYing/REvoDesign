@@ -511,14 +511,15 @@ class REvoDesigner:
         visualizer.full = self.create_full_pdb
         visualizer.cmap = self.cmap
 
-        if not self.external_designer or not self.external_designer in  EXTERNAL_DESIGNERS:
-            visualizer.min_score = -self.max_abs_profile
-            visualizer.max_score = self.max_abs_profile
-        else:
-            score_list=[mut_obj.get_mutant_score() for _, mut_obj in self.mutant_tree.get_a_branch(branch_id=group_id)]
+        if self.external_designer or self.input_profile_format in EXTERNAL_DESIGNERS:
+            branch=self.mutant_tree.get_a_branch(branch_id=group_id)
+            score_list=[mut_obj.get_mutant_score() for _, mut_obj in branch.items()]
             visualizer.min_score=min(score_list)
             visualizer.max_score=max(score_list)
-
+        else:
+            visualizer.min_score = -self.max_abs_profile
+            visualizer.max_score = self.max_abs_profile
+            
         visualizer.nproc = self.nproc
         visualizer.parallel_run = self.nproc > 1
         visualizer.input_session = self.input_pse
@@ -582,7 +583,7 @@ class REvoDesigner:
             abs(min(new_residue_scores)), abs(max(new_residue_scores))
         )
 
-        if not self.mutant_tree.empty:
+        if self.mutant_tree.empty:
             logging.warning(f'No available designs!')
             return
 

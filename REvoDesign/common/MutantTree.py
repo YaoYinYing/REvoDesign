@@ -91,7 +91,7 @@ class MutantTree:
         """
         return self.all_mutant_branch_ids.index(branch_id)
 
-    def get_a_branch(self, branch_id):
+    def get_a_branch(self, branch_id) -> dict[str: Mutant]:
         """
         Gets a specific branch from the MutantTree object.
 
@@ -103,7 +103,7 @@ class MutantTree:
         """
         return self.mutant_tree[branch_id]
 
-    def search_a_branch(self, branch_kw):
+    def search_a_branch(self, branch_kw) -> list:
         """
         Searches for branches containing a specific keyword in the MutantTree object.
 
@@ -115,7 +115,7 @@ class MutantTree:
         """
         return [x for x in self.all_mutant_branch_ids if branch_kw in x]
 
-    def get_mutant_index_in_branch(self, branch_id, mutant_id):
+    def get_mutant_index_in_branch(self, branch_id, mutant_id) -> int:
         """
         Gets the index of a mutant in a specific branch of the MutantTree object.
 

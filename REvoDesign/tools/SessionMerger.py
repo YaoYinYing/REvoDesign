@@ -1,9 +1,6 @@
 import os
-
-from shutil import rmtree
 from pymol import cmd
 import argparse
-
 
 class PyMOLSessionMerger:
     def __init__(self, session_paths, save_path):
@@ -25,7 +22,8 @@ class PyMOLSessionMerger:
             )
 
             if self.delete:
-                rmtree(os.path.dirname(session_path))
+                os.remove(session_path)
+
 
         print(f"Saving merged session: {self.save_path}")
         cmd.save(self.save_path, quiet=self.quiet)

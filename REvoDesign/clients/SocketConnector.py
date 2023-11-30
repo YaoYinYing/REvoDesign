@@ -17,7 +17,9 @@ class REvoDesignWebSocketServer:
         self.use_authentication = False
         self.authentication_key = None
         self.do_broadcast_view = False
-        self.clients = set()
+        # store client with its greeting message
+        self.clients = dict()
+        self.wait_room= set()
         self.is_running = False  # Flag to indicate server status
         self.server = None
 
@@ -77,7 +79,7 @@ class REvoDesignWebSocketServer:
             f'Server is reconfigured! \n ' f'Key: {self.authentication_key}\n'
         )
 
-    async def start_server(self, signal=0):
+    async def start_server(self):
         from REvoDesign.tools.client_tools import generate_ssl_context
 
         self.is_running = True  # Set flag when server starts
@@ -89,11 +91,12 @@ class REvoDesignWebSocketServer:
         # Keep the server running indefinitely using the event loop's run_forever() method
         try:
             self.server = await websockets.serve(
-                self.handler, "localhost", self.port, ssl=ssl_context
+                self.handler, "localhost", self.port, #ssl=ssl_context,
             )
         except:
             traceback.print_exc()
             logging.error('Server initialization failed.')
+            self.is_running=False
 
             # Perform any cleanup or shutdown operations here
 
@@ -120,7 +123,7 @@ class REvoDesignWebSocketServer:
         logging.info("Server shutting down...")
 
     async def handle_client_double_click(self, row_index):
-        client_list = list(self.clients)
+        client_list = list(self.clients.keys())
         if row_index < len(client_list):
             selected_client = client_list[row_index]
             await self.kick_out_client(selected_client)
@@ -131,25 +134,47 @@ class REvoDesignWebSocketServer:
         # Update the client list if needed
 
     async def handler(self, websocket, path):
-        self.clients.add(websocket)
+        self.wait_room.add(websocket)
+
+        # let the client join if no authentication requires
         try:
             async for message in websocket:
                 await self.process_message(websocket, message)
         except:
             traceback.print_exc
-        finally:
-            self.clients.remove(websocket)
+        # finally:
+        #     self.clients.pop(websocket)
 
     async def process_message(self, websocket, message):
         data = json.loads(message)
-        if 'auth_key' in data:
+
+        if websocket in self.wait_room and self.use_authentication and 'auth_key' in data:
             authenticated = await self.authenticate_client(data['auth_key'])
+            
             if not authenticated:
-                self.clients.remove(websocket)
+                self.wait_room.remove(websocket)
+                if websocket in self.clients:
+                    self.clients.pop(websocket) 
                 logging.info(
                     f'Client {websocket} is removed due to  unauthenticated identification.'
                 )
                 return  # Unauthorized client
+            else:
+                logging.info(
+                    f'Client {websocket} has passed authentication and is joined.'
+                )
+                self.clients[websocket]=data
+                self.wait_room.remove(websocket)
+                return
+        
+        if websocket in self.wait_room and (not self.use_authentication or not self.authentication_key):
+            logging.info(
+                    f'Client {websocket} is joined without authentication.'
+                )
+            self.clients[websocket]=data
+            self.wait_room.remove(websocket)
+            return
+
 
     async def authenticate_client(self, key):
         if self.use_authentication and key != self.authentication_key:
@@ -163,7 +188,7 @@ class REvoDesignWebSocketServer:
 
         serialized_obj = self.serialize_object(obj, data_type)
         serialized_json = json.dumps(serialized_obj)
-        websockets.broadcast(self.clients, serialized_json.encode())
+        websockets.broadcast(set(self.clients.keys()), serialized_json.encode())
 
         # await asyncio.wait([client.send(serialized_json.encode()) for client in self.clients])
 
@@ -249,23 +274,26 @@ class REvoDesignWebSocketClient:
 
     async def connect_to_server(self):
         from REvoDesign.tools.client_tools import generate_ssl_context
+        
 
         logging.info('Connecting to server ....')
         ssl_context = generate_ssl_context(role='client')
         self.connected = True
         try:
             self.client = await websockets.connect(
-                f"wss://{self.server_url}:{self.server_port}",
-                ssl=ssl_context,
+                f"ws://{self.server_url}:{self.server_port}",
+                #ssl=ssl_context,server_hostname=self.server_url
             )
 
             if self.authentication_key:
-                await self.authenticate_client(self.client)
+                await self.authenticate_client()
             async for message in self.client:
                 await self.process_message(message)
         except websockets.exceptions.ConnectionClosedError as e:
             logging.error(f"Connection Closed: {e}")
             self.connected = False
+        except:
+            traceback.print_exc()
 
     async def disconnect_from_server(self):
         if not self.connected:
@@ -281,10 +309,22 @@ class REvoDesignWebSocketClient:
             traceback.print_exc()
             logging.error(f'Client disconnecting failed.')
 
-    async def authenticate_client(self, websocket):
+    async def authenticate_client(self, ):
+        from REvoDesign.tools.system_tools import OS_INFO
+        from REvoDesign.tools.pymol_utils import PYMOL_VERSION
+        import os
+        greeting_message={
+                'node': OS_INFO.node,
+                'user': os.getlogin(),
+                'os': OS_INFO.system,
+                'pymol_version': PYMOL_VERSION
+                },
+                
         if self.authentication_key:
-            auth_message = json.dumps({'auth_key': self.authentication_key})
-            await websocket.send(auth_message)
+            greeting_message['auth_key']=self.authentication_key
+        
+        logging.info(f'Authentication is sent: {greeting_message}')
+        await self.client.send(json.dumps(greeting_message))
 
     async def process_message(self, message):
         data = json.loads(message)

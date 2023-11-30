@@ -50,8 +50,7 @@ def generate_ssl_context(role='server'):
     os.makedirs(crt_dir, exist_ok=True)
     crt_path = os.path.join(crt_dir, f'{role}.crt')
     key_path = os.path.join(crt_dir, f'{role}.key')
-    if not os.path.exists(crt_path) or not os.path.exists(key_path):
-        create_certificate(crt_path, key_path)
+    create_certificate(crt_path, key_path)
 
     if role == 'server':
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
