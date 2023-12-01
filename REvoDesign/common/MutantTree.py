@@ -140,7 +140,7 @@ class MutantTree:
         """
         return self.all_mutant_ids.index(mutant_id)
 
-    def is_the_mutant_the_last_in_branch(self, branch_id, mutant_id):
+    def is_the_mutant_the_last_in_branch(self, branch_id, mutant_id) -> bool:
         """
         Checks if the specified mutant is the last in a branch.
 
@@ -158,7 +158,7 @@ class MutantTree:
             == list(self.mutant_tree[branch_id].keys())[-1]
         )
 
-    def is_this_branch_empty(self, branch_id):
+    def is_this_branch_empty(self, branch_id)->bool:
         """
         Checks if a specific branch in the MutantTree object is empty.
 

@@ -116,6 +116,7 @@ class REvoDesignPlugin:
             logging.warning(
                 f'Teamwork is disabled. Please install the related requirements.'
             )
+            
 
     def set_working_directory(self):
         self.PWD = getExistingDirectory()
@@ -165,6 +166,10 @@ class REvoDesignPlugin:
         self.ui.actionInfo.triggered.connect(
             partial(logging.set_verbosity, logging.INFO)
         )
+
+        # hide tab_socket if websockets is not available.
+        if self.ws_server is None:
+            self.ui.tabWidget.setTabVisible(7, False)
 
         # Set up general input
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
@@ -2962,7 +2967,7 @@ class REvoDesignPlugin:
             asyncio.get_event_loop().run_until_complete(
                     self.ws_server.start_server()
             )
-            logging.info("WebSocket server is open.")
+            
         else:
             try:
                 # Stop the WebSocket server when unchecked
@@ -2971,13 +2976,11 @@ class REvoDesignPlugin:
                     )
             except:
                 traceback.print_exc()
-            logging.info("WebSocket server is closed.")
+        
+        logging.warning(f'Server status: {"ON" if self.ws_server.is_running else "OFF"}')
 
-    def handle_client_double_click(self, item):
-        row = item.row()  # Get the selected row index
-        # Call the server's method to handle client double-click
-        asyncio.ensure_future(self.ws_server.handle_client_double_click(row))
 
+    
     async def ws_broadcast_from_server(self, data, data_type: str):
         # Perform some action where you want to broadcast an object
 
@@ -2991,6 +2994,10 @@ class REvoDesignPlugin:
             )
 
             self.ws_client = REvoDesignWebSocketClient()
+
+
+        if not self.design_molecule or not self.design_chain_id or not self.design_sequence:
+            self.reload_molecule_info(self.ui.comboBox_design_molecule)
 
         self.ws_client.setup_ws_client(
             comboBox_design_molecule=self.ui.comboBox_design_molecule,
@@ -3010,14 +3017,23 @@ class REvoDesignPlugin:
             return
         self.setup_ws_client()
 
-        asyncio.run(
-            self.ws_client.connect_to_server()
-        )
+        if not self.ws_client.connected:
+            asyncio.get_event_loop().run_until_complete(
+                self.ws_client.connect_to_server()
+            )
+
+        if self.ws_client.authentication_key:
+            asyncio.get_event_loop().run_until_complete(
+                self.ws_client.authenticate_client(client=self.ws_client.client)
+            )
+        
+        logging.warning(f'Client status: {"ON" if self.ws_client.connected else "OFF"}')
+
     def ws_client_disconnect_from_server(self):
         if not self.ws_client:
             return
-        asyncio.run(
-            self.ws_client.disconnect_from_server()
+        asyncio.get_event_loop().run_until_complete(
+            self.ws_client.close_connection(client=self.ws_client.client)
         )
 
 
