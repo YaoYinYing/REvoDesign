@@ -50,7 +50,7 @@ def generate_ssl_context(role='server'):
     os.makedirs(crt_dir, exist_ok=True)
     crt_path = os.path.join(crt_dir, f'{role}.crt')
     key_path = os.path.join(crt_dir, f'{role}.key')
-    create_certificate(crt_path, key_path)
+    get_certificate(crt_path, key_path)
 
     if role == 'server':
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -65,7 +65,7 @@ def generate_ssl_context(role='server'):
 
 
 
-def create_certificate(crt_path, key_path):
+def get_certificate(crt_path, key_path):
     # Check if the existing certificate exists
     if not os.path.exists(crt_path):
         logging.info("Certificate does not exist. Generating a new certificate.")
