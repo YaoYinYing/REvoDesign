@@ -419,7 +419,7 @@ def existed_mutant_tree(sequence):
 
 
 def quick_mutagenesis(
-        mutant_tree: MutantTree, molecule: str, chain_id: str, sequence: str, cmap: str, nproc: int, progress_bar
+        mutant_tree: MutantTree, molecule: str, chain_id: str, sequence: str, cmap: str, nproc: int, progress_bar=None
     ):
         from REvoDesign.common.MutantVisualizer import MutantVisualizer
         from REvoDesign.tools.pymol_utils import make_temperal_input_pdb

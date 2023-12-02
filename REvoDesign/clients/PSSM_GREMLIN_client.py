@@ -31,7 +31,7 @@ class PSSMGremlinCalculator:
         temp_file_name = f"{molecule}_{chain_id}.fasta"
         self.temp_file_path = os.path.join(self.WORKING_DIR, temp_file_name)
         with open(self.temp_file_path, 'w') as fasta_file:
-            fasta_file.write(f'>{molecule}_{chain_id}\n{sequence}')
+            fasta_file.write(f'>{molecule}_{chain_id}\n{sequence}\n')
 
         logging.info(f"Saved sequence file: {self.temp_file_path}")
 

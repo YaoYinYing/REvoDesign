@@ -109,10 +109,12 @@ class REvoDesignPlugin:
 
             self.ws_server = REvoDesignWebSocketServer()
             self.ws_client = REvoDesignWebSocketClient()
+            self.event_loop= asyncio.get_event_loop() 
 
         except ImportError:
             self.ws_server = None
             self.ws_client = None
+            self.event_loop = None
             logging.warning(
                 f'Teamwork is disabled. Please install the related requirements.'
             )
@@ -2958,28 +2960,40 @@ class REvoDesignPlugin:
 
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):
-        if (
-            self.ui.checkBox_ws_server_mode.isChecked()
-            #or not self.ws_server.is_running
-        ):
-            # Start the WebSocket server when checked
-            self.setup_ws_server()
-            asyncio.get_event_loop().run_until_complete(
-                    self.ws_server.start_server()
-            )
-            
-        else:
-            try:
-                # Stop the WebSocket server when unchecked
-                asyncio.get_event_loop().run_until_complete(
-                    self.ws_server.stop_server()
-                    )
-            except:
-                traceback.print_exc()
+        from REvoDesign.tools.customized_widgets import WorkerThread
+        try:
+            if (
+                self.ui.checkBox_ws_server_mode.isChecked()
+            ):
+                server_worker=WorkerThread(func=self.start_ws_server)
+                server_worker.run()
+            else:
+                server_worker=WorkerThread(func=self.stop_ws_server)
+                server_worker.run()
+        except:
+            traceback.print_exc()
         
         logging.warning(f'Server status: {"ON" if self.ws_server.is_running else "OFF"}')
 
+    def start_ws_server(self):
+        if self.ws_server.is_running:
+            logging.warning(f'Server is already in running state. Do nothing.')
+            return
+        # Start the WebSocket server when checked
+        self.setup_ws_server()
+        asyncio.get_event_loop().run_until_complete(
+                    self.ws_server.start_server()
+            )
+        asyncio.get_event_loop().run_forever()
 
+    def stop_ws_server(self):
+        if not self.ws_server.is_running:
+            logging.warning(f'Server is already stopped. Do nothing.')
+            return
+        # Stop the WebSocket server when unchecked
+        asyncio.get_event_loop().run_until_complete(
+            self.ws_server.stop_server()
+            )
     
     async def ws_broadcast_from_server(self, data, data_type: str):
         # Perform some action where you want to broadcast an object
@@ -2995,7 +3009,6 @@ class REvoDesignPlugin:
 
             self.ws_client = REvoDesignWebSocketClient()
 
-
         if not self.design_molecule or not self.design_chain_id or not self.design_sequence:
             self.reload_molecule_info(self.ui.comboBox_design_molecule)
 
@@ -3009,31 +3022,44 @@ class REvoDesignPlugin:
             lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key_to_connect,
             checkBox_ws_receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast,
             checkBox_ws_receive_mutagenesis_broadcast=self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
-            progress_bar=self.ui.progressBar,
         )
 
-    def ws_client_connect_to_server(self):
+    def toggle_ws_client_connection(self, connect=True):
+        from REvoDesign.tools.customized_widgets import WorkerThread
         if not self.ws_client:
             return
-        self.setup_ws_client()
+        try:
+            if connect:
+                client_worker=WorkerThread(func=self.ws_client_connect_to_server)
+                client_worker.run()
+            else:
+                client_worker=WorkerThread(func=self.ws_client_disconnect_from_server)
+                client_worker.run()
+        except:
+            traceback.print_exc()
 
-        if not self.ws_client.connected:
-            asyncio.get_event_loop().run_until_complete(
-                self.ws_client.connect_to_server()
-            )
-
-        if self.ws_client.authentication_key:
-            asyncio.get_event_loop().run_until_complete(
-                self.ws_client.authenticate_client(client=self.ws_client.client)
-            )
-        
         logging.warning(f'Client status: {"ON" if self.ws_client.connected else "OFF"}')
+
+    def ws_client_connect_to_server(self):
+        self.setup_ws_client()
+        if self.ws_client.connected:
+            logging.warning(f'Client has already connected. Do noting.')
+            return
+        asyncio.get_event_loop().run_until_complete(
+            self.ws_client.connect_to_server()
+        )
+        asyncio.get_event_loop().run_forever()
+            
 
     def ws_client_disconnect_from_server(self):
         if not self.ws_client:
             return
+        if not self.ws_client.connected:
+            logging.warning(f'Client has already disconneced. Do noting.')
+            return
         asyncio.get_event_loop().run_until_complete(
-            self.ws_client.close_connection(client=self.ws_client.client)
+            self.ws_client.close_connection()
         )
+
 
 

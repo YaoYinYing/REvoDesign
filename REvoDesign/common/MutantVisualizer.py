@@ -393,7 +393,7 @@ class MutantVisualizer:
 
         self.run_mutagenesis_tasks(progress_bar=progress_bar)
 
-    def run_mutagenesis_tasks(self, progress_bar):
+    def run_mutagenesis_tasks(self, progress_bar=None):
         """
         Runs mutagenesis tasks based on the MutantTree and updates progress using the provided progress bar.
 
@@ -422,7 +422,7 @@ class MutantVisualizer:
         # Create a multiprocessing pool
         self.mutagenesis_tasks = [[variant] for _, variant in self.mutant_tree.all_mutants]
 
-        progress_bar.setRange(0, 0)
+        if not progress_bar: progress_bar.setRange(0, 0)
 
         if self.parallel_run:
             parallel_executor = ParallelExecutor(
@@ -438,8 +438,8 @@ class MutantVisualizer:
                 refresh_window()
                 time.sleep(0.001)
 
-            progress_bar.setRange(0, len(self.mutant_tree.all_mutant_ids))
-            progress_bar.setValue(len(self.mutant_tree.all_mutant_ids))
+            if not progress_bar: progress_bar.setRange(0, len(self.mutant_tree.all_mutant_ids))
+            if not progress_bar: progress_bar.setValue(len(self.mutant_tree.all_mutant_ids))
 
             self.results = parallel_executor.handle_result()
 
@@ -451,7 +451,7 @@ class MutantVisualizer:
                 session_path for session_path in self.results if session_path
             ]
         else:
-            progress_bar.setRange(0, len(self.mutagenesis_tasks))
+            if not progress_bar: progress_bar.setRange(0, len(self.mutagenesis_tasks))
             self.mutagenesis_sessions = []
             for mutagenesis_task in self.mutagenesis_tasks:
                 self.mutagenesis_sessions.append(
@@ -461,13 +461,13 @@ class MutantVisualizer:
                 # https://www.jianshu.com/p/38562df9e65d
                 # refresh UI if calculation is not done.
                 refresh_window()
-                progress_bar.setValue(progress_bar.value() + 1)
+                if not progress_bar: progress_bar.setValue(progress_bar.value() + 1)
 
-            progress_bar.setValue(len(self.mutagenesis_tasks))
+            if not progress_bar: progress_bar.setValue(len(self.mutagenesis_tasks))
 
-        progress_bar.setRange(0, 0)
+        if not progress_bar: progress_bar.setRange(0, 0)
         self.merge_sessions_via_commandline()
-        progress_bar.setRange(0, 1)
+        if not progress_bar: progress_bar.setRange(0, 1)
 
     def merge_sessions_via_commandline(self):
         '''

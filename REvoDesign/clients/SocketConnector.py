@@ -1,6 +1,8 @@
 import asyncio
+import ssl
 from typing import Union
 import websockets
+
 import socket
 import json
 import base64
@@ -13,7 +15,7 @@ from REvoDesign.common.MutantTree import MutantTree
 
 class REvoDesignWebSocketServer:
     def __init__(self, port=7890):
-        self.host = 'localhost'
+        self.host = ''
         self.port = port
         self.use_authentication = False
         self.authentication_key = None
@@ -87,6 +89,7 @@ class REvoDesignWebSocketServer:
         ssl_context = generate_ssl_context(
             role='server'
         )  # Generate SSL context
+        
         logging.info('Server starting....')
 
         # Keep the server running indefinitely using the event loop's run_forever() method
@@ -94,10 +97,13 @@ class REvoDesignWebSocketServer:
             self.server = await websockets.serve(
                 self.handler,
                 self.host,
-                self.port,  # ssl=ssl_context,
+                self.port,
+                #ssl=ssl_context,
             )
 
             await self.server.start_serving()
+            await asyncio.sleep(0)  # yield control to the event loop
+
             logging.info(f'Server runs on {self.host}:{self.port}')
 
         except:
@@ -147,6 +153,7 @@ class REvoDesignWebSocketServer:
         try:
             async for message in client:
                 await self.process_message(client, message)
+                
         except:
             traceback.print_exc()
         # finally:
@@ -154,6 +161,9 @@ class REvoDesignWebSocketServer:
         #     client.close()
 
     async def process_message(self, client, message):
+        if type(message) == dict:
+            logging.info(f'>>>{self.clients[client]["user"]}: {message}')
+            return
         data = json.loads(message)
 
         if (
@@ -169,15 +179,16 @@ class REvoDesignWebSocketServer:
                 if client in self.clients:
                     self.clients.pop(client)
                 logging.info(
-                    f'Client {client} is removed due to  unauthenticated identification.'
+                    f'User {data["user"]} from {data["node"]} is reject due to failed authentication.'
                 )
                 return  # Unauthorized client
             else:
-                logging.info(
-                    f'Client {client} has passed authentication and is joined.'
-                )
+                
                 self.clients[client] = data
                 self.wait_room.remove(client)
+                logging.info(
+                    f'User {self.clients[client]["user"]} from {self.clients[client]["node"]} is joined.'
+                )
                 return
 
         if client in self.wait_room and (
@@ -237,7 +248,6 @@ class REvoDesignWebSocketClient:
 
         self.cmap = 'bwr_r'
         self.nproc = 1
-        self.progress_bar = None
 
         self.connected = False
         self.client = None
@@ -253,14 +263,12 @@ class REvoDesignWebSocketClient:
         lineEdit_ws_server_key_to_connect,
         checkBox_ws_receive_mutagenesis_broadcast,
         checkBox_ws_receive_view_broadcast,
-        progress_bar,
     ):
         self.design_molecule = comboBox_design_molecule.currentText()
         self.design_chain_id = comboBox_chain_id.currentText()
         self.cmap = comboBox_cmap.currentText()
         self.nproc = spinBox_nproc.value()
 
-        self.progress_bar = progress_bar
 
         if not self.design_molecule or not self.design_chain_id:
             raise ValueError(f'Invalid design moleculre/chain id!')
@@ -298,25 +306,30 @@ class REvoDesignWebSocketClient:
         logging.info("Server is reachable.")
 
         ssl_context = generate_ssl_context(role='client')
+        
         self.connected = True
+        server_uri=f"ws://{self.server_url}:{self.server_port}"
+        logging.info(f'Connecting to server ....\n\t\t{server_uri}')
         try:
-            logging.info('Connecting to server ....')
             self.client= await websockets.connect(
-                f"ws://{self.server_url}:{self.server_port}"
-                # ssl=ssl_context,server_hostname=self.server_url
+                server_uri,
+                #ssl=ssl_context
             ) 
+            await self.authenticate_client()
+            await self.client.send({'hello':'world'})
 
             logging.info('Connection established.')
 
             async for message in self.client:
                 await self.process_message(message)
+                
 
         except Exception:
             logging.error(f"Unexpected error during connection: ")
             traceback.print_exc()
             self.connected = False
 
-    async def close_connection(self,client: websockets.WebSocketClientProtocol):
+    async def close_connection(self):
         if not self.connected:
             logging.warning(
                 'Client is not connected to any server. Do nothing.'
@@ -324,8 +337,8 @@ class REvoDesignWebSocketClient:
             return
 
         try:
-            client.close_connection()
-            client.close()
+            self.client.close_connection()
+            self.client.close()
         except:
             traceback.print_exc()
             logging.error(f'Client disconnecting failed.')
@@ -342,7 +355,7 @@ class REvoDesignWebSocketClient:
             return False
 
     async def authenticate_client(
-        self, client: websockets.WebSocketClientProtocol
+        self
     ):
         from REvoDesign.tools.system_tools import OS_INFO
         from REvoDesign.tools.pymol_utils import PYMOL_VERSION
@@ -359,9 +372,7 @@ class REvoDesignWebSocketClient:
             greeting_message['auth_key'] = self.authentication_key
 
         logging.info(f'Authentication is sent: {greeting_message}')
-        await client.send(json.dumps(greeting_message))
-
-
+        await self.client.send(json.dumps(greeting_message))
 
     async def process_message(self, message):
         data = json.loads(message)
@@ -380,9 +391,10 @@ class REvoDesignWebSocketClient:
                         'Building Mutagenesis from differential mutant tree: \n '
                         f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants'
                     )
-                    self.mutagenesis_from_mutant_tree(
-                        mutant_tree=diff_mutant_tree
-                    )
+                    # self.mutagenesis_from_mutant_tree(
+                    #     mutant_tree=diff_mutant_tree
+                    # )
+                    
 
     def deserialize_object(
         self, serialized_data, data_type
@@ -410,5 +422,4 @@ class REvoDesignWebSocketClient:
             sequence=self.design_sequence,
             cmap=self.cmap,
             nproc=self.nproc,
-            progress_bar=self.progress_bar,
         )
