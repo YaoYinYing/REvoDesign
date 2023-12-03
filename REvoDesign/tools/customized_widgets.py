@@ -1,6 +1,7 @@
 import os
 from typing import Union
-from pymol.Qt import QtWidgets, QtGui, QtCore
+# from pymol.Qt import QtWidgets, QtGui, QtCore
+from PyQt5 import QtWidgets, QtGui, QtCore
 from absl import logging
 
 from REvoDesign.tools.system_tools import OS_INFO, OS_TYPE
@@ -577,7 +578,8 @@ def create_cmap_icon(cmap: str):
     ```
     """
     import matplotlib
-    from pymol.Qt import QtGui
+    # from pymol.Qt import QtGui
+    from PyQt5 import QtGui
 
     # Create a pixmap representing the color pattern of the colormap
     color_map = matplotlib.colormaps[cmap]

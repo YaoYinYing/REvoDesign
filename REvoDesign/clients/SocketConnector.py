@@ -13,7 +13,7 @@ from absl import logging
 from REvoDesign.common.MutantTree import MutantTree
 
 
-class REvoDesignWebSocketServer:
+class REvoDesignWebSocketServer():
     def __init__(self, port=7890):
         self.host = ''
         self.port = port
@@ -100,9 +100,8 @@ class REvoDesignWebSocketServer:
                 self.port,
                 #ssl=ssl_context,
             )
+            await self.server
 
-            await self.server.start_serving()
-            await asyncio.sleep(0)  # yield control to the event loop
 
             logging.info(f'Server runs on {self.host}:{self.port}')
 
