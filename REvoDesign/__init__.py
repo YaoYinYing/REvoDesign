@@ -2,7 +2,8 @@ import asyncio
 import sys, os
 import time
 from pymol import cmd
-from pymol.Qt import QtWidgets, QtGui
+
+from PyQt5 import QtCore, QtGui, QtWidgets, QtWebSockets
 
 # using partial module to reduce duplicate code.
 from functools import partial
@@ -101,23 +102,16 @@ class REvoDesignPlugin:
 
         try:
             # if websocket is available, teamwork is activated.
-            import websockets
-            from REvoDesign.clients.SocketConnector import (
-                REvoDesignWebSocketServer,
-                REvoDesignWebSocketClient,
-            )
-
-            self.ws_server = REvoDesignWebSocketServer()
-            self.ws_client = REvoDesignWebSocketClient()
-            self.event_loop= asyncio.get_event_loop() 
-
+            
+            from PyQt5 import QtWebSockets
+            self.teamwork_enabled=True
         except ImportError:
-            self.ws_server = None
-            self.ws_client = None
-            self.event_loop = None
+            
             logging.warning(
                 f'Teamwork is disabled. Please install the related requirements.'
             )
+            traceback.print_exc()
+            self.teamwork_enabled=False
             
 
     def set_working_directory(self):
@@ -133,7 +127,8 @@ class REvoDesignPlugin:
     def make_window(self):
         main_window = QtWidgets.QMainWindow()
 
-        from pymol.Qt.utils import loadUi
+        # from pymol.Qt.utils import loadUi
+        from PyQt5.uic import loadUi
 
         self.ui = loadUi(
             self.ui_file, main_window
@@ -169,9 +164,23 @@ class REvoDesignPlugin:
             partial(logging.set_verbosity, logging.INFO)
         )
 
-        # hide tab_socket if websockets is not available.
-        if self.ws_server is None:
+        if self.teamwork_enabled:
+            from PyQt5 import QtWebSockets
+            from REvoDesign.clients.QtSocketConnector import (
+                REvoDesignWebSocketServer,
+                REvoDesignWebSocketClient,
+            )
+            from REvoDesign.tools.system_tools import OS_INFO
+            #serverObject = QtWebSockets.QWebSocketServer(OS_INFO.node, QtWebSockets.QWebSocketServer.NonSecureMode)
+    
+            self.ws_server = REvoDesignWebSocketServer()
+            self.ws_client = REvoDesignWebSocketClient()
+        else:
+            self.ws_server = None
+            self.ws_client = None
+            # hide tab_socket if websockets is not available.
             self.ui.tabWidget.setTabVisible(7, False)
+
 
         # Set up general input
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
@@ -719,11 +728,15 @@ class REvoDesignPlugin:
         )
 
         self.ui.pushButton_ws_connect_to_server.clicked.connect(
-            self.ws_client_connect_to_server
+            partial(
+                self.toggle_ws_client_connection, True
+            )
         )
 
         self.ui.pushButton_ws_disconnect_from_server.clicked.connect(
-            self.ws_client_disconnect_from_server
+            partial(
+                self.toggle_ws_client_connection, False
+            )
         )
 
         return main_window
@@ -747,6 +760,7 @@ class REvoDesignPlugin:
     # callback for the "Browse" button
     def browse_filename(self, mode='r', exts=[AnyFileExt]):
         from pymol.Qt.utils import getSaveFileNameWithExt
+        #from PyQt5.QtCore import getSaveFileNameWith
 
         filter_strings = ';;'.join(
             [
@@ -2942,13 +2956,7 @@ class REvoDesignPlugin:
             set_widget_value(lineEdit_ws_server_key, key)
 
     def setup_ws_server(self):
-        if not self.ws_server:
-            from REvoDesign.clients.SocketConnector import (
-                REvoDesignWebSocketServer,
-            )
-
-            self.ws_server = REvoDesignWebSocketServer()
-
+        
         self.ws_server.setup_ws_server(
             checkBox_ws_broadcast_view=self.ui.checkBox_ws_broadcast_view,
             checkBox_ws_duplex_mode=self.ui.checkBox_ws_duplex_mode,
@@ -2960,63 +2968,51 @@ class REvoDesignPlugin:
 
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):
-        from REvoDesign.tools.customized_widgets import WorkerThread
         try:
+            if not self.ws_server:
+                from REvoDesign.clients.QtSocketConnector import (
+                    REvoDesignWebSocketServer,
+                )
+                
+                from PyQt5 import QtWebSockets
+                from REvoDesign.tools.system_tools import OS_INFO
+                serverObject = QtWebSockets.QWebSocketServer()
+                self.ws_server = REvoDesignWebSocketServer()
+
             if (
                 self.ui.checkBox_ws_server_mode.isChecked()
             ):
-                server_worker=WorkerThread(func=self.start_ws_server)
-                server_worker.run()
+                if not self.ws_server or not self.ws_server.is_running:
+                    self.setup_ws_server()
+                else:
+                    logging.warning(f'Server is already in running state. Do nothing.')
+                    return
             else:
-                server_worker=WorkerThread(func=self.stop_ws_server)
-                server_worker.run()
+                if not self.ws_server.is_running:
+                    logging.warning(f'Server is already stopped. Do nothing.')
+                    return
+                self.ws_server.stop_server()
         except:
             traceback.print_exc()
         
         logging.warning(f'Server status: {"ON" if self.ws_server.is_running else "OFF"}')
 
-    def start_ws_server(self):
-        if self.ws_server.is_running:
-            logging.warning(f'Server is already in running state. Do nothing.')
-            return
-        # Start the WebSocket server when checked
-        self.setup_ws_server()
-        asyncio.get_event_loop().run_until_complete(
-                    self.ws_server.start_server()
-            )
-        asyncio.get_event_loop().run_forever()
-
-    def stop_ws_server(self):
-        if not self.ws_server.is_running:
-            logging.warning(f'Server is already stopped. Do nothing.')
-            return
-        # Stop the WebSocket server when unchecked
-        asyncio.get_event_loop().run_until_complete(
-            self.ws_server.stop_server()
-            )
-    
     async def ws_broadcast_from_server(self, data, data_type: str):
-        # Perform some action where you want to broadcast an object
-
-        # Call the broadcast_object method to send the object to connected clients
         await self.ws_server.broadcast_object(data, data_type)
 
     def setup_ws_client(self):
-        if not self.ws_client:
-            from REvoDesign.clients.SocketConnector import (
-                REvoDesignWebSocketClient,
-            )
-
-            self.ws_client = REvoDesignWebSocketClient()
+        
 
         if not self.design_molecule or not self.design_chain_id or not self.design_sequence:
             self.reload_molecule_info(self.ui.comboBox_design_molecule)
 
+        self.ws_client.design_molecule=self.design_molecule
+        self.ws_client.design_chain_id=self.design_chain_id
+        self.ws_client.design_sequence=self.design_sequence
+        self.ws_client.cmap=self.ui.comboBox_cmap.currentText()
+        self.ws_client.nproc=self.ui.spinBox_nproc.value()
+
         self.ws_client.setup_ws_client(
-            comboBox_design_molecule=self.ui.comboBox_design_molecule,
-            comboBox_chain_id=self.ui.comboBox_chain_id,
-            comboBox_cmap=self.ui.comboBox_cmap,
-            spinBox_nproc=self.ui.spinBox_nproc,
             lineEdit_ws_server_url_to_connect=self.ui.lineEdit_ws_server_url_to_connect,
             spinBox_ws_server_port_to_connect=self.ui.spinBox_ws_server_port_to_connect,
             lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key_to_connect,
@@ -3025,16 +3021,18 @@ class REvoDesignPlugin:
         )
 
     def toggle_ws_client_connection(self, connect=True):
-        from REvoDesign.tools.customized_widgets import WorkerThread
         if not self.ws_client:
-            return
+            from REvoDesign.clients.SocketConnector import (
+                REvoDesignWebSocketClient,
+            )
+
+            self.ws_client = REvoDesignWebSocketClient()
+
         try:
             if connect:
-                client_worker=WorkerThread(func=self.ws_client_connect_to_server)
-                client_worker.run()
+                self.ws_client_connect_to_server()
             else:
-                client_worker=WorkerThread(func=self.ws_client_disconnect_from_server)
-                client_worker.run()
+                self.ws_client_disconnect_from_server()
         except:
             traceback.print_exc()
 
@@ -3045,11 +3043,8 @@ class REvoDesignPlugin:
         if self.ws_client.connected:
             logging.warning(f'Client has already connected. Do noting.')
             return
-        asyncio.get_event_loop().run_until_complete(
-            self.ws_client.connect_to_server()
-        )
-        asyncio.get_event_loop().run_forever()
-            
+        self.ws_client.connect_to_server()
+        
 
     def ws_client_disconnect_from_server(self):
         if not self.ws_client:
@@ -3057,9 +3052,8 @@ class REvoDesignPlugin:
         if not self.ws_client.connected:
             logging.warning(f'Client has already disconneced. Do noting.')
             return
-        asyncio.get_event_loop().run_until_complete(
-            self.ws_client.close_connection()
-        )
+        self.ws_client.close_connection()
+
 
 
 
