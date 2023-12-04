@@ -3755,7 +3755,7 @@
          <x>10</x>
          <y>30</y>
          <width>361</width>
-         <height>71</height>
+         <height>73</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -3835,7 +3835,20 @@
            </widget>
           </item>
           <item>
-           <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval"/>
+           <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval">
+            <property name="decimals">
+             <number>3</number>
+            </property>
+            <property name="minimum">
+             <double>0.001000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>60.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.010000000000000</double>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QLabel" name="label_molecule_14">
@@ -4033,7 +4046,7 @@
         <x>10</x>
         <y>0</y>
         <width>381</width>
-        <height>71</height>
+        <height>61</height>
        </rect>
       </property>
       <property name="title">
@@ -4045,7 +4058,7 @@
          <x>10</x>
          <y>30</y>
          <width>361</width>
-         <height>31</height>
+         <height>21</height>
         </rect>
        </property>
        <layout class="QHBoxLayout" name="horizontalLayout_52">
@@ -4187,7 +4200,7 @@
        <x>10</x>
        <y>30</y>
        <width>91</width>
-       <height>21</height>
+       <height>23</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
@@ -4250,7 +4263,7 @@
        <x>10</x>
        <y>30</y>
        <width>121</width>
-       <height>21</height>
+       <height>32</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_4">

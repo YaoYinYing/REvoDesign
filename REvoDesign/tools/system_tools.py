@@ -3,9 +3,7 @@ import importlib
 import platform
 
 
-def determine_system():
-    
-
+def get_system_info():
     os_info = platform.uname()
     os_name = os_info.system
 
@@ -25,7 +23,7 @@ def determine_system():
     return os_name, os_info
 
 
-OS_TYPE, OS_INFO = determine_system()
+OS_TYPE, OS_INFO = get_system_info()
 PY_VERSION=platform.python_version()
 
 

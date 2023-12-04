@@ -480,11 +480,13 @@ class WorkerThread(QtCore.QThread):
     Attributes:
     - result_signal (QtCore.pyqtSignal): Signal emitted when the result is available.
     - finished_signal (QtCore.pyqtSignal): Signal emitted when the thread finishes its execution.
+    - interrupt_signal (QtCore.pyqtSignal): Signal to interrupt the thread.
 
     Methods:
     - __init__: Initializes the WorkerThread object.
     - run: Executes the specified function with arguments and emits the result through signals.
     - handle_result: Returns the result obtained after the thread execution.
+    - interrupt: Interrupts the execution of the thread.
 
     Example Usage:
     ```python
@@ -494,11 +496,15 @@ class WorkerThread(QtCore.QThread):
     worker = WorkerThread(func=some_function, args=(10, 20))
     worker.result_signal.connect(handle_result_function)
     worker.finished_signal.connect(handle_finished_function)
+    worker.interrupt_signal.connect(handle_interrupt_function)
     worker.start()
+    # To interrupt the execution:
+    # worker.interrupt()
     ```
     """
     result_signal = QtCore.pyqtSignal(list)
     finished_signal = QtCore.pyqtSignal()
+    interrupt_signal = QtCore.pyqtSignal()
 
     def __init__(self, func, args=None, kwargs=None):
         super().__init__()
@@ -508,12 +514,19 @@ class WorkerThread(QtCore.QThread):
         self.results = None  # Define the results attribute
 
     def run(self):
-        self.results = [self.func(*self.args, **self.kwargs)]
-        if self.results:
-            self.result_signal.emit(self.results)
+        if not self.isInterruptionRequested():
+            self.results = [self.func(*self.args, **self.kwargs)]
+            if self.results:
+                self.result_signal.emit(self.results)
+            self.finished_signal.emit()
 
     def handle_result(self):
         return self.results
+
+    def interrupt(self):
+        self.interrupt_signal.emit()
+
+
 
 
 def proceed_with_comfirm_msg_box(title='', description=''):

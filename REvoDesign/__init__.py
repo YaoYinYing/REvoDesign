@@ -1,6 +1,7 @@
 import asyncio
 import sys, os
 import time
+import threading
 from pymol import cmd
 
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -733,6 +734,17 @@ class REvoDesignPlugin:
             )
         )
 
+        self.ui.checkBox_ws_broadcast_view.stateChanged.connect(
+            self.update_ws_server_view_update_options
+        )
+        self.ui.doubleSpinBox_ws_view_broadcast_interval.valueChanged.connect(
+            self.update_ws_server_view_update_options
+        )
+
+        self.ui.checkBox_ws_recieve_view_broadcast.stateChanged.connect(
+            self.update_ws_client_view_update_options
+        )
+
         return main_window
 
     def set_design_sequence(
@@ -1213,6 +1225,7 @@ class REvoDesignPlugin:
                 molecule=self.design_molecule,
                 format='pdb',
                 wd=os.path.join(self.PWD, 'temperal_pdb'),
+                reload=False
             )
 
             from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
@@ -2034,6 +2047,7 @@ class REvoDesignPlugin:
             visualizer.input_session = make_temperal_input_pdb(
                 molecule=self.design_molecule,
                 wd=os.path.join(os.path.dirname(output_pse), 'temperal_pdb'),
+                reload=False
             )
             visualizer.nproc = nproc
             visualizer.parallel_run = nproc > 1
@@ -2959,6 +2973,44 @@ class REvoDesignPlugin:
             doubleSpinBox_ws_view_broadcast_interval=self.ui.doubleSpinBox_ws_view_broadcast_interval,
         )
 
+    def update_ws_server_view_update_options(self):
+        if not self.ws_server or not self.ws_server.is_running:
+            logging.warning(f'Server is not in service.')
+            return
+        
+        self.ws_server.view_broadcast_enabled=self.ui.checkBox_ws_broadcast_view.isChecked()
+        self.ws_server.view_broadcast_interval=self.ui.doubleSpinBox_ws_view_broadcast_interval.value()
+        if self.ui.checkBox_ws_broadcast_view.isChecked():
+
+            if not self.ws_server.clients:
+                logging.warning('Server has no client, ignore view updating.')
+                return
+            if self.ws_server.view_broadcast_on_air:
+                logging.warning('Server is broadcasting view changes!')
+                return
+            
+            from REvoDesign.tools.customized_widgets import WorkerThread
+            if not self.ws_server.view_broadcast_on_air:
+                self.ws_server.view_broadcast_worker=WorkerThread(func=self.ws_server.broadcast_view)
+
+            self.ws_server.view_broadcast_on_air=True
+            self.ws_server.view_broadcast_worker.run()
+            
+            logging.info('Starting broadcasting view changes ...')
+            return
+            
+        if not self.ui.checkBox_ws_broadcast_view.isChecked():
+            if not self.ws_server.view_broadcast_on_air:
+                logging.warning('Server is not broadcasting view changes')
+                return
+            
+            self.ws_server.view_broadcast_worker.interrupt()
+            self.ws_server.view_broadcast_on_air=False
+            logging.warning('View changes is stopped broadcasting')
+            return
+            
+
+
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):
         try:
@@ -2991,7 +3043,6 @@ class REvoDesignPlugin:
 
     def setup_ws_client(self):
         
-
         if not self.design_molecule or not self.design_chain_id or not self.design_sequence:
             self.reload_molecule_info(self.ui.comboBox_design_molecule)
 
@@ -3009,6 +3060,13 @@ class REvoDesignPlugin:
             checkBox_ws_receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast,
             checkBox_ws_receive_mutagenesis_broadcast=self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
         )
+
+    def update_ws_client_view_update_options(self):
+        if not self.ws_client or not self.ws_client.connected:
+            logging.warning(f'Client is not connected')
+            return
+        
+        self.ws_client.receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast.isChecked()
 
     def toggle_ws_client_connection(self, connect=True):
         if not self.ws_client:

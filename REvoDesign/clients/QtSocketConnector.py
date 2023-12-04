@@ -4,13 +4,23 @@ from functools import partial
 import json
 import pickle
 import socket
+import time
 import traceback
 from typing import Union
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
 from absl import logging
 from REvoDesign.common.MutantTree import MutantTree
+from pymol import cmd
+
+from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window
 
 
+
+'''
+helpful:
+https://stackoverflow.com/questions/15092076/pyqt-and-websocket-client-listen-websocket-in-background
+https://stackoverflow.com/questions/26270681/can-an-asyncio-event-loop-run-in-the-background-without-suspending-the-python-in
+'''
 
 
 class REvoDesignWebSocketServer():
@@ -25,6 +35,11 @@ class REvoDesignWebSocketServer():
         
         self.use_authentication = False
         self.authentication_key = None
+        self.view_broadcast_enabled=False
+        self.view_broadcast_on_air=False
+        self.view_broadcast_worker=None
+        self.view_broadcast_interval=0.1
+
 
     def onAcceptError(self, accept_error):
         logging.error(f"Accept Error: {accept_error}")
@@ -80,7 +95,7 @@ class REvoDesignWebSocketServer():
                 authenticated=False
 
             if not authenticated:
-                logging.info("Authentication failed for client:", client)
+                logging.info(f"Authentication failed for client:{client}" )
                 client.sendTextMessage(f'Key authentication is failed. {data["user"]} is rejected.')
                 client.close()
             else:
@@ -108,10 +123,12 @@ class REvoDesignWebSocketServer():
 
     def stop_server(self):
         logging.info("Stopping Server")
-        for client in self.clients.keys():
+        for client in list(self.clients.keys()):
             client.close()
         if self.server:
             self.server.close()
+            self.server = None
+        self.is_running = False
 
     def authenticate_client(self, key):
         return key == self.authentication_key
@@ -123,7 +140,7 @@ class REvoDesignWebSocketServer():
         for client in self.clients.keys():
             client.sendTextMessage(serialized_json)
 
-    def serialize_object(self, obj, data_type):
+    def serialize_object(self, obj, data_type: str):
         serialized_data = {
             'data_type': data_type,
             'data': self.encode_object(obj),
@@ -183,8 +200,34 @@ class REvoDesignWebSocketServer():
 
             self.server.acceptError.connect(self.onAcceptError)
             self.server.newConnection.connect(self.onNewConnection)
-
+    
+    
+    def check_broadcast_interval(self) ->float:
+        return self.view_broadcast_interval
+    
         
+        
+    def broadcast_view(self):
+
+        last_view=cmd.get_view()
+        while True:
+            for t in range(int(self.check_broadcast_interval() // 0.001)):
+                time.sleep(0.001)
+                refresh_window()
+
+            view_data=cmd.get_view()
+            if view_data==last_view:
+                continue
+            
+            serialized_obj = self.serialize_object(obj=view_data, data_type='ViewUpdate')
+            serialized_json = json.dumps(serialized_obj)
+            last_view=view_data
+            
+            for client in self.clients.keys():
+                client.sendTextMessage(serialized_json)
+            
+            
+
 
     def is_port_available(self, port):
         """
@@ -348,16 +391,26 @@ class REvoDesignWebSocketClient():
                         worker_function=self.mutagenesis_from_mutant_tree,
                         mutant_tree=diff_mutant_tree,
                         progress_bar=self.progress_bar)
+                return
+            if data['data_type'] == 'ViewUpdate' and type(obj) == tuple:
+                if not self.receive_view_broadcast:
+                    logging.warning(f'View update is disabled.')
+                    return
+                
+                #logging.debug('update pymol view')
+                cmd.set_view(obj)
+                return
+            
+            logging.warning(f'Unknow data in type {data["data_type"]}: {obj} (type {type(obj)})')
+
 
     def deserialize_object(
         self, serialized_data, data_type
     ) -> Union[MutantTree, tuple, None]:
-        if data_type == 'MutantTree':
-            logging.info('Deserializing object is a MutantTree.')
+        if data_type == 'MutantTree' or data_type == 'ViewUpdate':
             decoded_data = base64.b64decode(serialized_data)
-            mutant_tree = pickle.loads(decoded_data)
-            return mutant_tree
-        # Handle other data types if needed
+            return pickle.loads(decoded_data)
+        
         else:
             # Handle unrecognized data types or return None
             return None
@@ -379,3 +432,4 @@ class REvoDesignWebSocketClient():
     def error(self, error_code):
         logging.error(f"error code: {error_code}")
         logging.error(self.client.errorString())
+
