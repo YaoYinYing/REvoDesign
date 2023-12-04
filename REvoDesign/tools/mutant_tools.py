@@ -425,9 +425,14 @@ def quick_mutagenesis(
         from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
         from REvoDesign.tools.utils import run_worker_thread_with_progress
         if mutant_tree.empty:
+            logging.warning(f'Mutant tree is empty!')
             return
 
-        score_list=[mut_obj.get_mutant_score() for group_id in mutant_tree.all_mutant_branch_ids for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id) ]
+        score_list=[
+            mut_obj.get_mutant_score() 
+                for group_id in mutant_tree.all_mutant_branch_ids 
+                    for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items() 
+                ]
         
         results=[]
 
@@ -453,7 +458,7 @@ def quick_mutagenesis(
             visualizer.input_session = input_pdb
             visualizer.save_session = os.path.join(
                 os.path.dirname(input_pdb),
-                f'group.{group_id}.{os.path.basename(input_pdb)}',
+                f'group.{group_id}.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
             )
 
             visualizer.mutant_tree = MutantTree(
@@ -466,7 +471,9 @@ def quick_mutagenesis(
         # call MutantVisualizer for merge sessions
         session_merger = MutantVisualizer(molecule='', chain_id='')
         session_merger.input_session = input_pdb
-        session_merger.save_session = input_pdb
+        session_merger.save_session = os.path.join(
+                os.path.dirname(input_pdb),
+                f'merged.{os.path.basename(input_pdb).replace(".pdb",".pze")}')
         session_merger.mutagenesis_sessions = results
         run_worker_thread_with_progress(session_merger.merge_sessions_via_commandline,progress_bar=progress_bar)
         cmd.load(session_merger.save_session,partial=2)

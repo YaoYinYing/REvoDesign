@@ -2,9 +2,12 @@ from pymol import cmd
 from absl import logging
 import os
 
+from pymol import get_version_message
+
 from REvoDesign.tools.utils import suppress_print
 
 PYMOL_VERSION = cmd.get_version()[0]
+PYMOL_BUILD=get_version_message()
 
 
 def is_empty_session():

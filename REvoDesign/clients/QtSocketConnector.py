@@ -1,3 +1,4 @@
+import asyncio
 import base64
 from functools import partial
 import json
@@ -12,9 +13,9 @@ from REvoDesign.common.MutantTree import MutantTree
 
 
 
-class REvoDesignWebSocketServer(QtCore.QObject):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class REvoDesignWebSocketServer():
+    def __init__(self):
+        super().__init__()
         self.clients = {}
         self.waiting_room=set()
         self.server = None  # Initialize server as None
@@ -26,12 +27,11 @@ class REvoDesignWebSocketServer(QtCore.QObject):
         self.authentication_key = None
 
     def onAcceptError(self, accept_error):
-        print("Accept Error: {}".format(accept_error))
+        logging.error(f"Accept Error: {accept_error}")
 
     def onNewConnection(self):
-        print("New Connection")
         client_connection = self.server.nextPendingConnection()
-        client_connection.connected.connect(lambda client=client_connection: self.askUserAuthentication(client))
+        #client_connection.connected.connect(lambda client=client_connection: self.askUserAuthentication(client))
         client_connection.textMessageReceived.connect(lambda message, client=client_connection: self.processTextMessage(client, message))
         client_connection.binaryMessageReceived.connect(lambda message, client=client_connection: self.processBinaryMessage(client, message))
         client_connection.disconnected.connect(lambda client=client_connection: self.socketDisconnected(client))
@@ -39,27 +39,39 @@ class REvoDesignWebSocketServer(QtCore.QObject):
 
 
     def askUserAuthentication(self,client):
-        if client not in self.waiting_room and client not in self.clients:
-            self.waiting_room.add(client)
-            client.sendTextMessage('Require key')
-            logging.info(f'New client {client} has come.')
+        if client in self.clients:
+            logging.warning(f'Client {client} has already joined in chat room.')
             return
+        
+        if client not in self.waiting_room:
+            logging.warning(f'Client {client} joins waiting room')
+            self.waiting_room.add(client)
 
-        logging.warning(f'Client has already joined in {"waitroom" if client.peerName() in self.waiting_room else "chatroom"}.')
-
+        logging.info(f'Asking {client} for authentication...')
+        client.sendTextMessage('Require key')
+        
+        return
 
 
     def processTextMessage(self, client, message):
-        print("Text Message: {}".format(message))
-        
+        logging.info(f">>> {message}")
+
+        # a new client who has not joined yet
+        if client not in self.waiting_room and client not in self.clients:
+            # by asking the authentication, this client will be added to the waiting room
+            self.askUserAuthentication(client)
+            return        
         try:
+            # try to load message, treating as a json-loadable string
             data = json.loads(message)
         except:
+            # if json fails to load it, we treat it as a normal text
             data=message
             logging.info(f'>>> {self.clients[client]["user"] if client in self.clients else client}: {message}')
             return
 
         if client in self.waiting_room:
+            from REvoDesign.tools.system_tools import OS_INFO
             if not self.use_authentication or not self.authentication_key:
                 authenticated=True
             elif self.use_authentication and 'auth_key' in data:
@@ -68,33 +80,34 @@ class REvoDesignWebSocketServer(QtCore.QObject):
                 authenticated=False
 
             if not authenticated:
-                print("Authentication failed for client:", client)
+                logging.info("Authentication failed for client:", client)
+                client.sendTextMessage(f'Key authentication is failed. {data["user"]} is rejected.')
                 client.close()
             else:
                 self.clients[client]=data
-
+                logging.info(f'Client  {data["user"]} from {data["node"]} is join.')
+                client.sendTextMessage(f'Key authentication is successful. Wellcome to {OS_INFO.node}, {data["user"]}.')
+            # once the authentcation finished, the client should be removed from waiting room
             self.waiting_room.remove(client)
             return
 
 
-        if client:
-            for c in self.clients.keys():
-                if c != client:
-                    c.sendTextMessage(message)
+        if client in self.clients:
+            pass
 
     def processBinaryMessage(self, client, message):
-        print("Binary Message:", message)
+        logging.info("Binary Message:", message)
         if client:
             client.sendBinaryMessage(message)
 
     def socketDisconnected(self, client):
-        print("Socket Disconnected")
+        logging.info("Socket Disconnected")
         if client in self.clients:
             del self.clients[client]
             client.deleteLater()
 
     def stop_server(self):
-        print("Stopping Server")
+        logging.info("Stopping Server")
         for client in self.clients.keys():
             client.close()
         if self.server:
@@ -103,9 +116,9 @@ class REvoDesignWebSocketServer(QtCore.QObject):
     def authenticate_client(self, key):
         return key == self.authentication_key
 
-    def broadcast_object(self, obj, data_type):
+    async def broadcast_object(self, obj, data_type):
         serialized_obj = self.serialize_object(obj, data_type)
-        serialized_json = QtCore.QJsonDocument(serialized_obj).toJson()
+        serialized_json = json.dumps(serialized_obj)
         
         for client in self.clients.keys():
             client.sendTextMessage(serialized_json)
@@ -162,12 +175,10 @@ class REvoDesignWebSocketServer(QtCore.QObject):
             )
 
             if self.server.listen(QtNetwork.QHostAddress.LocalHost, self.port):
-                print('Listening: {}:{}:{}'.format(
-                    self.server.serverName(), self.server.serverAddress().toString(),
-                    str(self.server.serverPort())))
+                logging.info(f'Listening: {self.server.serverAddress().toString()}:{str(self.server.serverPort())}')
                 self.is_running=True
             else:
-                print('Error: Unable to start the server.')
+                logging.error('Error: Unable to start the server.')
                 self.is_running=False
 
             self.server.acceptError.connect(self.onAcceptError)
@@ -205,9 +216,12 @@ class REvoDesignWebSocketClient():
         self.design_chain_id=''
         self.design_sequence=''
         # Other initializations...
+        self.cmap='bwr_r'
+        self.nproc=2
 
         self.connected = False
         self.client = None
+        self.progress_bar = None
 
     def setup_ws_client(
         self,
@@ -269,6 +283,7 @@ class REvoDesignWebSocketClient():
 
         try:
             self.client.close()
+            self.connected = False
         except:
             traceback.print_exc()
             logging.error('Client disconnection failed.')
@@ -285,17 +300,10 @@ class REvoDesignWebSocketClient():
             return False
 
     def authenticate_client(self):
-        import os
         import json
-        from REvoDesign.tools.system_tools import OS_INFO
-        from REvoDesign.tools.pymol_utils import PYMOL_VERSION
-
-        greeting_message = {
-            'node': OS_INFO.node,
-            'user': os.getlogin(),
-            'os': OS_INFO.system,
-            'pymol_version': PYMOL_VERSION,
-        }
+        
+        from REvoDesign.tools.system_tools import get_client_info
+        greeting_message=get_client_info()
 
         if self.authentication_key:
             greeting_message['auth_key'] = self.authentication_key
@@ -304,13 +312,23 @@ class REvoDesignWebSocketClient():
         self.client.sendTextMessage(json.dumps(greeting_message))
 
     def process_message(self, message):
-        if message=='Require key':
-            self.authenticate_client()
+        try:
+            # try to load message, treating as a json-loadable string
+            data = json.loads(message)
+        except:
+            data=message
+
+        # process data if it is a text message
+        if type(data) is str:
+            logging.info(f'>>>  {data}')
+            if message=='Require key':
+                self.authenticate_client()
+
             return
         
-        data = json.loads(message)
 
         if 'data' in data and 'data_type' in data:
+            from REvoDesign.tools.utils import run_worker_thread_with_progress
             obj = self.deserialize_object(data['data'], data['data_type'])
             # Use the received 'obj' and 'data_type' as needed
             if data['data_type'] == 'MutantTree' and obj and not obj.empty:
@@ -318,16 +336,18 @@ class REvoDesignWebSocketClient():
 
                 received_mutant_tree = obj.__deepcopy__()
                 diff_mutant_tree = received_mutant_tree.diff_tree_from(
-                    existed_mutant_tree()
+                    existed_mutant_tree(sequence=self.design_sequence)
                 )
                 if self.receive_mutagenesis_broadcast:
                     logging.info(
                         'Building Mutagenesis from differential mutant tree: \n '
                         f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants'
                     )
-        
-
-        pass
+                    
+                    run_worker_thread_with_progress(
+                        worker_function=self.mutagenesis_from_mutant_tree,
+                        mutant_tree=diff_mutant_tree,
+                        progress_bar=self.progress_bar)
 
     def deserialize_object(
         self, serialized_data, data_type
@@ -343,8 +363,6 @@ class REvoDesignWebSocketClient():
             return None
 
     def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
-        if not mutant_tree or not mutant_tree.empty:
-            return
 
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
 
@@ -359,5 +377,5 @@ class REvoDesignWebSocketClient():
 
 
     def error(self, error_code):
-        print("error code: {}".format(error_code))
-        print(self.client.errorString())
+        logging.error(f"error code: {error_code}")
+        logging.error(self.client.errorString())
