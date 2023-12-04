@@ -3,7 +3,7 @@ import sys, os
 import time
 from pymol import cmd
 
-from PyQt5 import QtCore, QtGui, QtWidgets, QtWebSockets
+from pymol.Qt import QtCore, QtGui, QtWidgets
 
 # using partial module to reduce duplicate code.
 from functools import partial
@@ -101,8 +101,7 @@ class REvoDesignPlugin:
         self.multi_mutagenesis_designer = None
 
         try:
-            # if websocket is available, teamwork is activated.
-            
+            # if QtWebsockets is available, teamwork is activated.
             from PyQt5 import QtWebSockets
             self.teamwork_enabled=True
         except ImportError:
@@ -127,8 +126,7 @@ class REvoDesignPlugin:
     def make_window(self):
         main_window = QtWidgets.QMainWindow()
 
-        # from pymol.Qt.utils import loadUi
-        from PyQt5.uic import loadUi
+        from pymol.Qt.utils import loadUi
 
         self.ui = loadUi(
             self.ui_file, main_window
@@ -165,14 +163,10 @@ class REvoDesignPlugin:
         )
 
         if self.teamwork_enabled:
-            from PyQt5 import QtWebSockets
             from REvoDesign.clients.QtSocketConnector import (
                 REvoDesignWebSocketServer,
                 REvoDesignWebSocketClient,
             )
-            from REvoDesign.tools.system_tools import OS_INFO
-            #serverObject = QtWebSockets.QWebSocketServer(OS_INFO.node, QtWebSockets.QWebSocketServer.NonSecureMode)
-    
             self.ws_server = REvoDesignWebSocketServer()
             self.ws_client = REvoDesignWebSocketClient()
         else:
@@ -760,7 +754,6 @@ class REvoDesignPlugin:
     # callback for the "Browse" button
     def browse_filename(self, mode='r', exts=[AnyFileExt]):
         from pymol.Qt.utils import getSaveFileNameWithExt
-        #from PyQt5.QtCore import getSaveFileNameWith
 
         filter_strings = ';;'.join(
             [
@@ -2973,10 +2966,6 @@ class REvoDesignPlugin:
                 from REvoDesign.clients.QtSocketConnector import (
                     REvoDesignWebSocketServer,
                 )
-                
-                from PyQt5 import QtWebSockets
-                from REvoDesign.tools.system_tools import OS_INFO
-                serverObject = QtWebSockets.QWebSocketServer()
                 self.ws_server = REvoDesignWebSocketServer()
 
             if (
@@ -3011,6 +3000,7 @@ class REvoDesignPlugin:
         self.ws_client.design_sequence=self.design_sequence
         self.ws_client.cmap=self.ui.comboBox_cmap.currentText()
         self.ws_client.nproc=self.ui.spinBox_nproc.value()
+        self.ws_client.progress_bar=self.ui.progressBar
 
         self.ws_client.setup_ws_client(
             lineEdit_ws_server_url_to_connect=self.ui.lineEdit_ws_server_url_to_connect,
@@ -3048,6 +3038,7 @@ class REvoDesignPlugin:
 
     def ws_client_disconnect_from_server(self):
         if not self.ws_client:
+            logging.warning(f'Client is not initialized. Do noting.')
             return
         if not self.ws_client.connected:
             logging.warning(f'Client has already disconneced. Do noting.')
