@@ -430,6 +430,24 @@ def quick_mutagenesis(
     nproc: int,
     progress_bar=None,
 ):
+    """
+    Function: quick_mutagenesis
+    Usage: quick_mutagenesis(mutant_tree, molecule, chain_id, sequence, cmap, nproc, progress_bar=None)
+    
+    This function performs quick mutagenesis tasks using MutantVisualizer from REvoDesign.
+
+    Args:
+    - mutant_tree (MutantTree): MutantTree object containing mutation information
+    - molecule (str): PyMOL selection string of the molecule
+    - chain_id (str): Chain ID of the molecule
+    - sequence (str): Amino acid sequence
+    - cmap (str): Color map string
+    - nproc (int): Number of processors
+    - progress_bar (object): Progress bar object (default is None)
+
+    Returns:
+    - None
+    """
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
     from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
     from REvoDesign.tools.utils import run_worker_thread_with_progress

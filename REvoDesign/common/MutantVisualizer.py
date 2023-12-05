@@ -62,6 +62,20 @@ class MutantVisualizer:
         self.consider_global_score_from_profile = False
 
     def process_position(self, mutant_obj: Mutant):
+        """
+        Process a specific position based on the information in the Mutant object.
+
+        Args:
+        - self: Instance of the class containing the method.
+        - mutant_obj (Mutant): Mutant object containing information about the position.
+
+        Returns:
+        - temp_session_path (str): Filepath to the temporary session containing processed data.
+
+        Notes:
+        - Loads the input session, hides surface, visualizes the mutant, and creates mutagenesis objects.
+        - Saves the processed session data to a temporary file and returns the file path.
+        """
         mutant = mutant_obj.get_short_mutant_id()
         score = mutant_obj.get_mutant_score()
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')
@@ -81,6 +95,21 @@ class MutantVisualizer:
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
     def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
+        """
+        Creates mutagenesis objects in PyMOL based on explicit mutagenesis descriptions.
+
+        Args:
+        - self: Instance of the class containing the method.
+        - mutant_obj (Mutant): Mutant object containing explicit mutagenesis description.
+        - color: Color to assign to the mutagenesis objects.
+
+        Returns:
+        - None
+
+        Notes:
+        - Creates mutagenesis objects in PyMOL based on the provided Mutant object.
+        - Handles explicit mutagenesis descriptions by applying mutations and assigning colors.
+        """
         from pymol import cmd, util
         from REvoDesign.tools.pymol_utils import mutate
 
@@ -136,6 +165,23 @@ class MutantVisualizer:
             )
 
     def parse_profile(self, profile_fp, profile_format):
+        """
+        Parse the profile data based on the specified format and return the processed DataFrame.
+
+        Args:
+        - profile_fp (str): File path of the profile data.
+        - profile_format (str): Format of the profile data (e.g., 'PSSM', 'CSV', 'TSV').
+
+        Returns:
+        - DataFrame: Processed DataFrame based on the profile format.
+
+        Notes:
+        - Parses the profile data based on the specified format and returns a processed DataFrame.
+        - Handles different formats (PSSM, CSV, TSV) and processes the data accordingly.
+        - Initializes and uses external designers if available for specific profile formats.
+        - Logs debug information during the processing for easier debugging.
+        - Returns the processed DataFrame or None based on the profile format.
+        """
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
         # select the designer
@@ -235,6 +281,20 @@ class MutantVisualizer:
             return None
 
     def convert_PSSM_file_to_df(self, input_pssm_file):
+        """
+        Converts a PSSM file to a pandas DataFrame.
+
+        Args:
+        - self: Instance of the class containing the method.
+        - input_pssm_file (str): Path to the input PSSM file.
+
+        Returns:
+        - df (DataFrame): Pandas DataFrame containing the parsed PSSM data.
+
+        Notes:
+        - Reads the PSSM file, parses the table header, defines column specifications, and reads the table data.
+        - Transposes the DataFrame and drops NaN values to clean the data before returning.
+        """
         PSSM_Alphabet = 'ARNDCQEGHILKMFPSTWYV'
         # Fetch table header of PSSM
         c = 0
@@ -266,6 +326,21 @@ class MutantVisualizer:
         return df
 
     def run_with_progressbar(self, progress_bar):
+        """
+        Runs mutation tasks using a progress bar.
+
+        Args:
+        - progress_bar: Progress bar object to track the mutation progress.
+
+        Reads mutation data from different file formats (CSV, TXT, FASTA) and performs mutation-related operations. 
+        Calculates scores for mutants and adds them to the mutant tree.
+        Determines the range for the color bar based on mutant scores.
+        Adjusts score ranges based on certain conditions.
+
+        Raises:
+        - ValueError: If an invalid file format is encountered or if required columns are missing in the data.
+
+        """
         # Check the file format and read data accordingly
         if self.mutfile.lower().endswith('.csv'):
             # Read mutation data from CSV file using pandas

@@ -87,6 +87,19 @@ def find_design_molecules():
 
 
 def find_all_protein_chain_ids_in_protein(sele):
+    """
+    Function: find_all_protein_chain_ids_in_protein
+    Usage: chain_ids = find_all_protein_chain_ids_in_protein(selection)
+    
+    This function finds all chain IDs assigned to a protein molecule within the given selection.
+
+    Args:
+    - sele (str): PyMOL selection string
+
+    Returns:
+    - list: List of chain IDs assigned to a protein molecule within the selection.
+            Returns None if the selection is empty or no protein chains are found.
+    """
     if not sele:
         return
     # return a list of chain IDs that assigned to a protein molecule
@@ -192,6 +205,19 @@ def is_distal_residue_pair(
 
 
 def renumber_chain_ids(target_protein):
+    """
+    Function: renumber_chain_ids
+    Usage: renumber_chain_ids(target_protein)
+    
+    This function renumbers chain IDs of a given protein molecule using alphabets A-Z.
+    It alters the chain IDs of the protein structure in PyMOL.
+
+    Args:
+    - target_protein (str): PyMOL selection string of the target protein
+    
+    Returns:
+    - None
+    """
     chain_ids = cmd.get_chains(target_protein)
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     for chain_id, _alphabet in zip(chain_ids, alphabet):
@@ -202,6 +228,19 @@ def renumber_chain_ids(target_protein):
 
 
 def get_molecule_sequence(molecule, chain_id):
+    """
+    Function: get_molecule_sequence
+    Usage: sequence = get_molecule_sequence(molecule, chain_id)
+    
+    This function retrieves the amino acid sequence of a molecule (protein) specified by a given chain ID.
+
+    Args:
+    - molecule (str): PyMOL selection string of the molecule
+    - chain_id (str): Chain ID of the molecule
+
+    Returns:
+    - str: Amino acid sequence of the specified molecule and chain
+    """
     from Bio.Data import IUPACData
 
     protein_letters_3to1_upper = {
@@ -219,6 +258,18 @@ def get_molecule_sequence(molecule, chain_id):
 
 
 def get_atom_pair_cst(selection='sele'):
+    """
+    Function: get_atom_pair_cst
+    Usage: cst = get_atom_pair_cst(selection='sele')
+    
+    This function generates a distance constraint (cst) in CHARMM format for a pair of atoms selected in PyMOL.
+
+    Args:
+    - selection (str): PyMOL selection string for the atom pair (default is 'sele')
+
+    Returns:
+    - str or None: Distance constraint in CHARMM format if exactly 2 atoms are selected; otherwise, returns None
+    """
     _sele = cmd.get_model(selection=selection).atom
     if len(_sele) != 2:
         logging.error(
@@ -231,6 +282,21 @@ def get_atom_pair_cst(selection='sele'):
 
 
 def autogrid_flexible_residue(molecule, chain_id, selection):
+    """
+    Function: autogrid_flexible_residue
+    Usage: flex_residues = autogrid_flexible_residue(molecule, chain_id, selection)
+    
+    This function generates a string specifying flexible residues for AutoGrid in AutoDock.
+
+    Args:
+    - molecule (str): PyMOL selection string of the molecule
+    - chain_id (str): Chain ID of the molecule
+    - selection (str): PyMOL selection string for residue selection
+    
+    Returns:
+    - str or None: String specifying flexible residues for AutoGrid in AutoDock.
+                   Returns None if any of the input parameters (molecule, chain_id, selection) are invalid.
+    """
     if not molecule or not chain_id or not selection:
         logging.warning(
             f'Invalid parameters: \nmolecule - {molecule}\n chain_id - {chain_id} \n selection - {selection}'
@@ -254,6 +320,15 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
 
 
 def refresh_all_selections():
+    """
+    Function: refresh_all_selections
+    Usage: selections = refresh_all_selections()
+    
+    This function refreshes and logs information about all PyMOL selections except 'sele' and those starting with '_align'.
+
+    Returns:
+    - list: List of all non-'sele' selections (excluding those starting with '_align')
+    """
     from REvoDesign.tools.mutant_tools import shorter_range
 
     selections = [
@@ -269,12 +344,36 @@ def refresh_all_selections():
 
 
 def is_a_REvoDesign_session():
+    """
+    Function: is_a_REvoDesign_session
+    Usage: result = is_a_REvoDesign_session()
+    
+    This function checks if it's a REvoDesign session by verifying the existence of public group objects.
+
+    Returns:
+    - bool: True if it's a REvoDesign session (public group objects exist), False otherwise.
+    """
     return bool(cmd.get_names(type='public_group_objects'))
 
 
 def make_temperal_input_pdb(
     molecule, format='pdb', wd=os.getcwd(), reload=True
 ):
+    """
+    Function: make_temperal_input_pdb
+    Usage: input_file = make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd(), reload=True)
+    
+    This function generates a temporary input PDB file from the specified molecule selection.
+
+    Args:
+    - molecule (str): PyMOL selection string of the molecule
+    - format (str): File format for the generated PDB file (default is 'pdb')
+    - wd (str): Working directory path where the file will be saved (default is current working directory)
+    - reload (bool): Whether to reload the PyMOL session after generating the file (default is True)
+
+    Returns:
+    - str: Path to the generated temporary input PDB file
+    """
     os.makedirs(wd, exist_ok=True)
 
     input_file = os.path.join(wd, f'{molecule}.{format}')
@@ -293,6 +392,22 @@ def make_temperal_input_pdb(
 # http://www.pymolwiki.org/index.php/rotkit
 @suppress_print
 def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
+    """
+    Function: mutate
+    Usage: mutate(molecule, chain, resi, target="CYS", mutframe="1")
+    
+    This function performs residue mutation in PyMOL using the mutagenesis wizard.
+
+    Args:
+    - molecule (str): PyMOL object name or selection string of the molecule
+    - chain (str): Chain ID of the residue to be mutated
+    - resi (str): Residue number to be mutated
+    - target (str): Target residue type for mutation (default is "CYS")
+    - mutframe (str): Mutagenesis frame number (default is "1")
+
+    Returns:
+    - None
+    """
     from pymol import cmd
 
     target = target.upper()

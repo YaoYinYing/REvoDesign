@@ -13,6 +13,21 @@ WITH_COLABDESIGN = is_package_installed('colabdesign')
 
 
 def run_command(excutable='python', command_list=[]):
+    """
+    Run a command using subprocess and return the result.
+
+    Args:
+    - executable (str): Executable to run the command (default is 'python').
+    - command_list (list): List containing the command and its arguments.
+
+    Returns:
+    - CompletedProcess: Result of the executed command.
+
+    Notes:
+    - Executes a command using subprocess and returns the result.
+    - Handles the execution of the specified command and arguments.
+    - Logs the command_list for debugging purposes.
+    """
     import sys
     import subprocess
     from absl import logging
@@ -47,6 +62,19 @@ def filepath_does_exists(fp):
 
 
 def suppress_print(func):
+    """
+    Decorator to suppress standard output (stdout) and standard error (stderr) during function execution.
+
+    Args:
+    - func: Function to be decorated.
+
+    Returns:
+    - Function wrapper that suppresses print outputs.
+
+    Notes:
+    - Wraps the provided function to suppress any output to stdout and stderr.
+    - Uses contextlib to redirect both stdout and stderr to /dev/null, effectively silencing any print statements.
+    """
     def wrapper(*args, **kwargs):
         with contextlib.redirect_stdout(open(os.devnull, 'w')):
             with contextlib.redirect_stderr(open(os.devnull, 'w')):
@@ -216,6 +244,22 @@ def extract_archive(archive_file, extract_to):
 
 
 def get_color(cmap, data, min_value, max_value):
+    """
+    Get color value from a colormap based on given data.
+
+    Args:
+    - cmap: Colormap name or object.
+    - data: Value to map to a color.
+    - min_value: Minimum value of the data range.
+    - max_value: Maximum value of the data range.
+
+    Returns:
+    - list: RGB color value based on the colormap and data.
+
+    Notes:
+    - Uses a specified colormap to map data values to color.
+    - Returns a RGB color value in the range [0, 1].
+    """
     import matplotlib
 
     if min_value == max_value:
@@ -319,6 +363,22 @@ def random_deduplicate(seq, score):
 
 
 def generate_strong_password(length=16):
+    """
+    Generate a strong random password.
+
+    Args:
+    - length (int): Length of the password (default is 16).
+
+    Returns:
+    - str: Strong password of the specified length.
+
+    Raises:
+    - ValueError: If the password length is not within the range of 16 to 64 characters.
+
+    Notes:
+    - Generates a strong password using a mix of ASCII letters, digits, and punctuation.
+    - The password length should be between 16 and 64 characters.
+    """
     if length < 16 or length > 64:
         raise ValueError(
             "Password length should be between 16 and 64 characters."

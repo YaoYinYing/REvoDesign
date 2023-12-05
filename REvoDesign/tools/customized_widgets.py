@@ -525,6 +525,20 @@ class WorkerThread(QtCore.QThread):
 
 
 def proceed_with_comfirm_msg_box(title='', description=''):
+    """
+    Function: proceed_with_confirm_msg_box
+    Usage: result = proceed_with_confirm_msg_box(title='', description='')
+
+    This function displays a confirmation message box with a title and description,
+    allowing the user to proceed or cancel.
+
+    Args:
+    - title (str): Title of the confirmation box (default is empty)
+    - description (str): Description displayed in the confirmation box (default is empty)
+
+    Returns:
+    - bool: True if 'Yes' is selected, False otherwise
+    """
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Question)
@@ -539,6 +553,18 @@ def proceed_with_comfirm_msg_box(title='', description=''):
 
 
 def set_window_font(main_window):
+    """
+    Function: set_window_font
+    Usage: set_window_font(main_window)
+    
+    This function sets the font for the main window based on the operating system.
+
+    Args:
+    - main_window: Reference to the main window object
+
+    Returns:
+    - None
+    """
     font_families = QtGui.QFontDatabase().families()
 
     OS_TYPE_FONT_TABLE = {

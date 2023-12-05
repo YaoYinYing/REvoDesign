@@ -1,4 +1,3 @@
-import asyncio
 import base64
 from functools import partial
 import json
@@ -23,6 +22,35 @@ https://stackoverflow.com/questions/26270681/can-an-asyncio-event-loop-run-in-th
 
 
 class REvoDesignWebSocketServer:
+    """
+    Class for managing a WebSocket server in REvoDesign.
+
+    Attributes:
+    - clients: Dictionary to store connected clients.
+    - waiting_room: Set to hold clients waiting for authentication.
+    - server: WebSocket server object.
+    - server_url: URL for the server (default: 'localhost').
+    - port: Port number for the server (default: 7890).
+    - is_running: Flag indicating if the server is running.
+
+    Methods:
+    - onAcceptError: Handles accept errors.
+    - onNewConnection: Manages new client connections.
+    - askUserAuthentication: Asks client for authentication.
+    - processTextMessage: Processes incoming text messages from clients.
+    - processBinaryMessage: Processes incoming binary messages from clients.
+    - socketDisconnected: Handles client disconnection.
+    - stop_server: Stops the WebSocket server.
+    - authenticate_client: Authenticates clients based on a key.
+    - broadcast_object: Broadcasts serialized objects to connected clients.
+    - serialize_object: Serializes objects for broadcasting.
+    - encode_object: Encodes objects for serialization.
+    - setup_ws_server: Sets up the WebSocket server with specified settings.
+    - check_broadcast_interval: Checks the broadcast interval.
+    - check_broadcast_enabled_flag: Checks if broadcast is enabled.
+    - broadcast_view: Broadcasts view updates to clients.
+    - is_port_available: Checks if a port is available for use.
+    """
     def __init__(self):
         super().__init__()
         self.clients = {}
@@ -40,9 +68,24 @@ class REvoDesignWebSocketServer:
         self.view_broadcast_interval = 0.1
 
     def onAcceptError(self, accept_error):
+        """
+        Handles accept errors when setting up the server.
+
+        Args:
+        - accept_error: Error encountered during accept.
+
+        Returns:
+        None
+        """
         logging.error(f"Accept Error: {accept_error}")
 
     def onNewConnection(self):
+        """
+        Manages new client connections.
+
+        Returns:
+        None
+        """
         client_connection = self.server.nextPendingConnection()
         # client_connection.connected.connect(lambda client=client_connection: self.askUserAuthentication(client))
         client_connection.textMessageReceived.connect(
@@ -61,6 +104,15 @@ class REvoDesignWebSocketServer:
         # self.clients[client_connection] = {}
 
     def askUserAuthentication(self, client):
+        """
+        Asks the client for authentication.
+
+        Args:
+        - client: Client connection object.
+
+        Returns:
+        None
+        """
         if client in self.clients:
             logging.warning(
                 f'Client {client} has already joined in chat room.'
@@ -77,6 +129,16 @@ class REvoDesignWebSocketServer:
         return
 
     def processTextMessage(self, client, message):
+        """
+        Processes incoming text messages from clients.
+
+        Args:
+        - client: Client connection object.
+        - message: Incoming text message.
+
+        Returns:
+        None
+        """
         logging.info(f">>> {message}")
 
         # a new client who has not joined yet
@@ -127,17 +189,42 @@ class REvoDesignWebSocketServer:
             pass
 
     def processBinaryMessage(self, client, message):
+        """
+        Processes incoming binary messages from clients.
+
+        Args:
+        - client: Client connection object.
+        - message: Incoming binary message.
+
+        Returns:
+        None
+        """
         logging.info("Binary Message:", message)
         if client:
             client.sendBinaryMessage(message)
 
     def socketDisconnected(self, client):
+        """
+        Handles client disconnection.
+
+        Args:
+        - client: Client connection object.
+
+        Returns:
+        None
+        """
         logging.info("Socket Disconnected")
         if client in self.clients:
             del self.clients[client]
             client.deleteLater()
 
     def stop_server(self):
+        """
+        Stops the WebSocket server and closes client connections.
+
+        Returns:
+        None
+        """
         logging.info("Stopping Server")
         for client in list(self.clients.keys()):
             client.close()
@@ -147,9 +234,28 @@ class REvoDesignWebSocketServer:
         self.is_running = False
 
     def authenticate_client(self, key):
+        """
+        Authenticates clients based on a provided key.
+
+        Args:
+        - key: Authentication key.
+
+        Returns:
+        bool: True if the key matches, False otherwise.
+        """
         return key == self.authentication_key
 
     async def broadcast_object(self, obj, data_type):
+        """
+        Broadcasts serialized objects to connected clients.
+
+        Args:
+        - obj: Object to be serialized and broadcasted.
+        - data_type: Type of the data.
+
+        Returns:
+        None
+        """
         serialized_obj = self.serialize_object(obj, data_type)
         serialized_json = json.dumps(serialized_obj)
 
@@ -157,6 +263,16 @@ class REvoDesignWebSocketServer:
             client.sendTextMessage(serialized_json)
 
     def serialize_object(self, obj, data_type: str):
+        """
+        Serializes objects for broadcasting.
+
+        Args:
+        - obj: Object to be serialized.
+        - data_type: Type of the data.
+
+        Returns:
+        dict: Serialized object data.
+        """
         serialized_data = {
             'data_type': data_type,
             'data': self.encode_object(obj),
@@ -164,6 +280,15 @@ class REvoDesignWebSocketServer:
         return serialized_data
 
     def encode_object(self, obj):
+        """
+        Encodes objects for serialization.
+
+        Args:
+        - obj: Object to be encoded.
+
+        Returns:
+        str: Encoded object data.
+        """
         pickled_obj = pickle.dumps(obj)
         return base64.b64encode(pickled_obj).decode()
 
@@ -176,6 +301,15 @@ class REvoDesignWebSocketServer:
         checkBox_ws_broadcast_view,
         doubleSpinBox_ws_view_broadcast_interval,
     ):
+        """
+        Sets up the WebSocket server with specified settings.
+
+        Args:
+        (Arguments from previous implementation remain unchanged)
+
+        Returns:
+        None
+        """
         from REvoDesign.tools.system_tools import OS_INFO
 
         self.use_authentication = checkBox_ws_server_use_key.isChecked()
@@ -221,12 +355,30 @@ class REvoDesignWebSocketServer:
             self.server.newConnection.connect(self.onNewConnection)
 
     def check_broadcast_interval(self) -> float:
+        """
+        Checks the broadcast interval.
+
+        Returns:
+        float: Broadcast interval value.
+        """
         return self.view_broadcast_interval
 
     def check_broadcast_enabled_flag(self) -> bool:
+        """
+        Checks if broadcast is enabled.
+
+        Returns:
+        bool: True if broadcast is enabled, False otherwise.
+        """
         return self.view_broadcast_enabled == True
 
     def broadcast_view(self):
+        """
+        Broadcasts view updates to clients.
+
+        Returns:
+        None
+        """
         last_view = cmd.get_view()
         while True:
             for t in range(int(self.check_broadcast_interval() // 0.001)):
@@ -397,43 +549,53 @@ class REvoDesignWebSocketClient:
                 self.authenticate_client()
 
             return
+        
+        # discard broken data objects
+        if not 'data' in data or not 'data_type' in data:
+            logging.warning('Uncomplete data object is discarded.')
+            return
 
-        if 'data' in data and 'data_type' in data:
-            from REvoDesign.tools.utils import run_worker_thread_with_progress
+        
+        from REvoDesign.tools.utils import run_worker_thread_with_progress
 
-            obj = self.deserialize_object(data['data'], data['data_type'])
-            # Use the received 'obj' and 'data_type' as needed
-            if data['data_type'] == 'MutantTree' and obj and not obj.empty:
-                from REvoDesign.tools.mutant_tools import existed_mutant_tree
+        obj = self.deserialize_object(data['data'], data['data_type'])
 
-                received_mutant_tree = obj.__deepcopy__()
-                diff_mutant_tree = received_mutant_tree.diff_tree_from(
-                    existed_mutant_tree(sequence=self.design_sequence)
-                )
-                if self.receive_mutagenesis_broadcast:
-                    logging.info(
-                        'Building Mutagenesis from differential mutant tree: \n '
-                        f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants'
-                    )
+        # process Non-empty MutantTree
+        if data['data_type'] == 'MutantTree' and obj and not obj.empty:
+            from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
-                    run_worker_thread_with_progress(
-                        worker_function=self.mutagenesis_from_mutant_tree,
-                        mutant_tree=diff_mutant_tree,
-                        progress_bar=self.progress_bar,
-                    )
-                return
-            if data['data_type'] == 'ViewUpdate' and type(obj) == tuple:
-                if not self.receive_view_broadcast:
-                    logging.warning(f'View update is disabled.')
-                    return
-
-                # logging.debug('update pymol view')
-                cmd.set_view(obj)
-                return
-
-            logging.warning(
-                f'Unknow data in type {data["data_type"]}: {obj} (type {type(obj)})'
+            received_mutant_tree = obj.__deepcopy__()
+            diff_mutant_tree = received_mutant_tree.diff_tree_from(
+                existed_mutant_tree(sequence=self.design_sequence)
             )
+            if self.receive_mutagenesis_broadcast:
+                logging.info(
+                    'Building Mutagenesis from differential mutant tree: \n '
+                    f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants'
+                )
+
+                run_worker_thread_with_progress(
+                    worker_function=self.mutagenesis_from_mutant_tree,
+                    mutant_tree=diff_mutant_tree,
+                    progress_bar=self.progress_bar,
+                )
+            return
+        
+        # process ViewUpdates
+        if data['data_type'] == 'ViewUpdate' and type(obj) == tuple:
+            if not self.receive_view_broadcast:
+                logging.warning(f'View update is disabled.')
+                return
+
+            # logging.debug('update pymol view')
+            cmd.set_view(obj)
+            return
+        
+        # process more data objects ....
+
+        logging.warning(
+            f'Unknow data in type {data["data_type"]}: {obj} (type {type(obj)})'
+        )
 
     def deserialize_object(
         self, serialized_data, data_type
@@ -441,6 +603,8 @@ class REvoDesignWebSocketClient:
         if data_type == 'MutantTree' or data_type == 'ViewUpdate':
             decoded_data = base64.b64decode(serialized_data)
             return pickle.loads(decoded_data)
+        
+        # process more data objects ....
 
         else:
             # Handle unrecognized data types or return None

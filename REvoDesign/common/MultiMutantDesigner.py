@@ -21,6 +21,17 @@ from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
 class MultiMutantDesigner:
     def __init__(self, molecule, chain_id, sequence):
+        """
+        Initialize MultiMutantDesigner.
+
+        Args:
+        - molecule: The molecule identifier.
+        - chain_id: The chain identifier.
+        - sequence: The sequence of the protein.
+
+        This method initializes the MultiMutantDesigner with the given parameters,
+        sets up necessary attributes, and initializes the mutant tree for design.
+        """
         self.molecule = molecule
         self.chain_id = chain_id
         self.sequence = sequence
@@ -72,6 +83,12 @@ class MultiMutantDesigner:
         )
 
     def refresh_design_color(self):
+        """
+        Refreshes the color representation of designed mutants.
+
+        This method updates the color representation based on scores or other criteria
+        for the designed mutants.
+        """
         _total_num_design_cases = max(
             self.total_design_cases, len(self.design_case_variant_objects)
         )
@@ -144,6 +161,15 @@ class MultiMutantDesigner:
         logging.debug('-' * 60)
 
     def evaluate_design(self, design: list[Mutant]) -> Mutant:
+        """
+        Evaluate the designed mutant.
+
+        Args:
+        - design: A list of Mutant objects representing the designed mutants.
+
+        Returns:
+        - Mutant: The evaluated Mutant object with a calculated score.
+        """
         tmp_mutant_obj = Mutant(
             mutant_info=[
                 _mut_info
@@ -169,6 +195,11 @@ class MultiMutantDesigner:
         return tmp_mutant_obj
 
     def initialize_scorer(self):
+        """
+        Initialize the external scorer for mutant designs.
+
+        This method initializes the external scorer for mutant designs if available.
+        """
         # early return for non-scorer
         if self.scorer not in EXTERNAL_DESIGNERS:
             if self.external_scorer:
@@ -192,6 +223,11 @@ class MultiMutantDesigner:
         return
 
     def start_new_design(self):
+        """
+        Starts a new mutant design.
+
+        This method initiates the start of a new mutant design process.
+        """
         if self.mutant_tree_multi_design.empty:
             logging.error('Mutant Tree for multi-design is empty!')
             return
@@ -214,6 +250,14 @@ class MultiMutantDesigner:
         logging.info(f'Starting design with {self.design_case_variant}')
 
     def _auto_pick_tryout(self, tryout=30):
+        """
+        Attempts to auto-pick mutants for design.
+
+        Args:
+        - tryout: Number of attempts to auto-pick mutants (default: 30).
+
+        This method tries to automatically pick mutants for the design process.
+        """
         for i in range(tryout):
             try:
                 branch, (mutant_id, mutant_obj) = self._select_random_mutant()
@@ -242,6 +286,11 @@ class MultiMutantDesigner:
             return
 
     def pick_next_mutant(self):
+        """
+        Picks the next mutant for design.
+
+        This method selects the next mutant to be included in the design process.
+        """
         if not self.mutant_tree_multi_design:
             logging.error(f'Mutant Tree is not found.')
             return
@@ -327,6 +376,11 @@ class MultiMutantDesigner:
             self.new_design()
 
     def undo_previous_mutant(self):
+        """
+        Undoes the last mutant addition in the design.
+
+        This method removes the last mutant added to the design.
+        """
         if (
             not self.in_design_multi_design_case
             and not self.all_design_multi_design_cases
@@ -403,6 +457,15 @@ class MultiMutantDesigner:
             cmd.delete(self.design_case_variant)
 
     def new_design(self, continue_design=True):
+        """
+        Completes the current design and starts a new one.
+
+        Args:
+        - continue_design: Boolean flag to continue the design process.
+
+        This method finalizes the current design, starts a new one if requested,
+        and evaluates the designed mutants.
+        """
         if not self.in_design_multi_design_case:
             logging.error("Design case is empty.")
             return
@@ -432,6 +495,14 @@ class MultiMutantDesigner:
             self.start_new_design()
 
     def export_designed_variant(self, save_mutant_table=''):
+        """
+        Exports the designed variants.
+
+        Args:
+        - save_mutant_table: File path to save the mutant variants.
+
+        This method exports the designed mutant variants to a specified file path.
+        """
         if not self.all_design_multi_design_cases:
             logging.error("No designed variants to export.")
             return
@@ -459,6 +530,14 @@ class MultiMutantDesigner:
             f.write('\n'.join(mutant_list))
 
     def _select_random_mutant(self):
+        """
+        Selects a random mutant for design.
+
+        Returns:
+        - Tuple: Branch identifier and a randomly selected mutant.
+
+        This method randomly selects a mutant for the design process.
+        """
         branch = random.choice(
             self.mutant_tree_multi_design_copy.all_mutant_branch_ids
         )
@@ -472,6 +551,20 @@ class MultiMutantDesigner:
     def _is_compatible_mutant(
         self, mutant, minimal_distance=20, use_sidechain_angle=True
     ):
+        """
+        Checks compatibility of mutants.
+
+        Args:
+        - mutant: Tuple containing mutant information.
+        - minimal_distance: Minimal distance between mutants (default: 20).
+        - use_sidechain_angle: Flag to use sidechain angle (default: True).
+
+        Returns:
+        - bool: True if mutants are compatible, False otherwise.
+
+        This method checks if the selected mutant is compatible with existing mutants
+        based on distance and sidechain angle criteria.
+        """
         if not self.in_design_multi_design_case:
             # early return for initial design.
             return True

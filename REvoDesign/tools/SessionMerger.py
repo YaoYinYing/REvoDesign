@@ -4,6 +4,27 @@ import argparse
 
 
 class PyMOLSessionMerger:
+    """
+    Class: PyMOLSessionMerger
+    Usage:
+    - Initialize: merger = PyMOLSessionMerger(session_paths, save_path)
+    - Add Session Path: merger.add_session_path(session_path)
+    - Merge Sessions: merger.merge_sessions()
+    
+    This class facilitates merging PyMOL sessions by loading multiple sessions and saving the merged session.
+
+    Attributes:
+    - session_paths (list): List of paths to PyMOL session files
+    - save_path (str): Path to save the merged PyMOL session
+    - mode (int): Partial or full loading mode (default is 1)
+    - delete (bool): Whether to delete loaded sessions after merging (default is False)
+    - quiet (bool): Whether to suppress informational messages during loading and saving (default is False)
+
+    Methods:
+    - add_session_path(session_path): Adds a session path to the list of session_paths.
+    - merge_sessions(): Merges the PyMOL sessions by loading and saving according to provided attributes.
+    """
+
     def __init__(self, session_paths, save_path):
         self.session_paths = session_paths
         self.save_path = save_path
@@ -12,9 +33,30 @@ class PyMOLSessionMerger:
         self.quiet = False
 
     def add_session_path(self, session_path):
+        """
+        Method: add_session_path
+        Usage: merger.add_session_path(session_path)
+        
+        Adds a session path to the list of session_paths.
+
+        Args:
+        - session_path (str): Path to a PyMOL session file
+
+        Returns:
+        - None
+        """
         self.session_paths.append(session_path)
 
     def merge_sessions(self):
+        """
+        Method: merge_sessions
+        Usage: merger.merge_sessions()
+        
+        Merges the PyMOL sessions by loading and saving according to the provided attributes.
+
+        Returns:
+        - None
+        """
         cmd.reinitialize()
         for session_path in self.session_paths:
             print(f"Loading session: {session_path}")

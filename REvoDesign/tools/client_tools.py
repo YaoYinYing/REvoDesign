@@ -65,6 +65,19 @@ def generate_ssl_context(role='server'):
 
 
 def get_certificate(crt_path, key_path):
+    """
+    Function: get_certificate
+    Usage: get_certificate(crt_path, key_path)
+    
+    This function checks for the existence of an SSL certificate and generates a new one if it doesn't exist or has expired.
+
+    Args:
+    - crt_path (str): Path to the certificate file
+    - key_path (str): Path to the private key file
+
+    Returns:
+    - None
+    """
     # Check if the existing certificate exists
     if not os.path.exists(crt_path):
         logging.info(
@@ -95,6 +108,19 @@ def get_certificate(crt_path, key_path):
 
 
 def create_new_certificate(crt_path, key_path):
+    """
+    Function: create_new_certificate
+    Usage: create_new_certificate(crt_path, key_path)
+    
+    This function creates a new SSL certificate and private key if they do not exist or if the certificate has expired.
+
+    Args:
+    - crt_path (str): Path to the certificate file
+    - key_path (str): Path to the private key file
+
+    Returns:
+    - None
+    """
     # Extract role from the certificate path
     role = os.path.basename(crt_path).replace('.crt', '')
 

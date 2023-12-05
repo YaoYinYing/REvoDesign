@@ -82,6 +82,22 @@ class REvoDesigner:
         cutoff=[-100, 100],
         preferred_substitutions=None,
     ):
+        """
+        Plot custom indices segments on a heatmap.
+
+        Args:
+        - df_ori: Original DataFrame.
+        - custom_indices_str: String representing custom indices.
+        - cutoff: List representing cutoff values.
+        - preferred_substitutions: Dictionary of preferred substitutions.
+
+        Returns:
+        - Tuple: File paths for JSON and PNG representations of mutations.
+
+        Notes:
+        - Generates a heatmap representing custom indices and mutations.
+        - Saves JSON and PNG files for visualization.
+        """
         df = df_ori.copy()
 
         logging.debug(custom_indices_str)
@@ -202,6 +218,15 @@ class REvoDesigner:
         self,
         preffered_mutation_string,
     ):
+        """
+        Validate the format of the preferred mutation string.
+
+        Args:
+        - preferred_mutation_string: Preferred mutation string.
+
+        Returns:
+        - bool: True if the format is valid, False otherwise.
+        """
         pattern = f'^[{"".join(self.profile_alphabet)}]:[{"".join(self.profile_alphabet)}]+$'
         preffered_mutation_string = preffered_mutation_string.replace(
             '[', ''
@@ -212,6 +237,15 @@ class REvoDesigner:
             return False
 
     def parse_preffered_mutation_string(self, preffered_str):
+        """
+        Parse the preferred mutation string into a dictionary.
+
+        Args:
+        - preferred_str: Preferred mutation string.
+
+        Returns:
+        - dict: Dictionary representation of preferred mutations.
+        """
         preffered_dict = {
             _preffered_sub[0]: [res for res in _preffered_sub[2:]]
             for _preffered_sub in preffered_str.split(' ')
@@ -221,6 +255,13 @@ class REvoDesigner:
         return preffered_dict
 
     def setup_parameters_for_external_designer(self):
+        """
+        Set up parameters for the external designer based on molecule and chain ID.
+
+        Notes:
+        - Determines the design chain ID based on the molecule and sequence.
+        - Sets up parameters required for the external designer.
+        """
         all_chains = find_all_protein_chain_ids_in_protein(sele=self.molecule)
 
         if len(all_chains) == 1 or (not self.homooligomeric):
@@ -246,6 +287,16 @@ class REvoDesigner:
         self,
         custom_indices_str='',
     ):
+        """
+        Set up the external designer for protein design.
+
+        Args:
+        - custom_indices_str: String representing custom indices.
+
+        Notes:
+        - Initializes the external designer with specified parameters.
+        - Handles different types of external designers.
+        """
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
         if not self.input_profile_format in EXTERNAL_DESIGNERS.keys():
@@ -326,6 +377,17 @@ class REvoDesigner:
     def design_protein_using_external_designer(
         self, custom_indices_fp, progress_bar
     ):
+        """
+        Design protein using an external designer.
+
+        Args:
+        - custom_indices_fp: File path to custom indices.
+        - progress_bar: Progress bar for displaying progress.
+
+        Notes:
+        - Initiates the protein design process using an external designer.
+        - Sets up parameters and executes the design process.
+        """
         custom_indices_str = read_customized_indice(
             custom_indices_from_input=custom_indices_fp
         )
@@ -434,6 +496,20 @@ class REvoDesigner:
         custom_indices_fp='',
         cutoff=[-100, 100],
     ):
+        """
+        Set up profile design based on specified parameters.
+
+        Args:
+        - custom_indices_fp: File path to custom indices.
+        - cutoff: List representing cutoff values.
+
+        Returns:
+        - Tuple: File paths for JSON and PNG representations of mutations.
+
+        Notes:
+        - Parses profile data and generates a heatmap of design segments.
+        - Saves JSON and PNG files for visualization.
+        """
         custom_indices_str = read_customized_indice(
             custom_indices_from_input=custom_indices_fp
         )
@@ -544,6 +620,17 @@ class REvoDesigner:
         mutant_json,
         progress_bar,
     ):
+        """
+        Load mutants to PyMOL session for visualization.
+
+        Args:
+        - mutant_json: JSON file containing mutant information.
+        - progress_bar: Progress bar for displaying progress.
+
+        Notes:
+        - Loads mutants into PyMOL session for visualization.
+        - Handles mutations and creates visualization sessions.
+        """
         mutations = read_profile_design_mutations(mutant_json)
 
         self.mutagenesis_tasks = []

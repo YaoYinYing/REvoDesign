@@ -4,6 +4,16 @@ import platform
 
 
 def get_system_info():
+    """
+    Function: get_system_info
+    Usage: os_name, os_info = get_system_info()
+
+    This function retrieves system information using the platform module.
+
+    Returns:
+    - os_name (str): Name of the operating system
+    - os_info (namedtuple): Detailed information about the operating system
+    """
     os_info = platform.uname()
     os_name = os_info.system
 
@@ -28,11 +38,32 @@ PY_VERSION = platform.python_version()
 
 
 def is_package_installed(package):
+    """
+    Function: is_package_installed
+    Usage: is_installed = is_package_installed(package)
+
+    This function checks if a specified package is installed in the current Python environment.
+
+    Args:
+    - package (str): Name of the package to check
+
+    Returns:
+    - bool: True if the package is installed, False otherwise
+    """
     package_loader = importlib.find_loader(package)
     return package_loader is not None
 
 
 def get_client_info():
+    """
+    Function: get_client_info
+    Usage: client_info = get_client_info()
+
+    This function retrieves information about the client system, including node, user, OS, Python, PyMOL, network, and Qt versions.
+
+    Returns:
+    - client_info (dict): Dictionary containing client system information
+    """
     import os
     import socket
     from REvoDesign.tools.pymol_utils import PYMOL_VERSION, PYMOL_BUILD
