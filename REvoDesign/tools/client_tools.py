@@ -44,7 +44,7 @@ def generate_ssl_context(role='server'):
     ValueError: If an unknown role is provided.
     FileNotFoundError: If client certificate is not found.
     """
-    
+
     # Generate SSL context and certificate if needed
     crt_dir = os.path.expanduser('~/.REvoDesign/crts/')
     os.makedirs(crt_dir, exist_ok=True)
@@ -64,24 +64,31 @@ def generate_ssl_context(role='server'):
     return context
 
 
-
 def get_certificate(crt_path, key_path):
     # Check if the existing certificate exists
     if not os.path.exists(crt_path):
-        logging.info("Certificate does not exist. Generating a new certificate.")
+        logging.info(
+            "Certificate does not exist. Generating a new certificate."
+        )
         create_new_certificate(crt_path, key_path)
         return
 
     with open(crt_path, 'rb') as f:
         existing_cert_data = f.read()
-        existing_cert = crypto.load_certificate(crypto.FILETYPE_PEM, existing_cert_data)
+        existing_cert = crypto.load_certificate(
+            crypto.FILETYPE_PEM, existing_cert_data
+        )
 
         # Get the expiration date of the existing certificate
-        expiration_date = datetime.datetime.strptime(existing_cert.get_notAfter().decode('utf-8'), '%Y%m%d%H%M%SZ')
-        
+        expiration_date = datetime.datetime.strptime(
+            existing_cert.get_notAfter().decode('utf-8'), '%Y%m%d%H%M%SZ'
+        )
+
     # Check if the certificate has expired
     if expiration_date < datetime.datetime.now():
-        logging.warning("Certificate has expired. Generating a new certificate.")
+        logging.warning(
+            "Certificate has expired. Generating a new certificate."
+        )
         create_new_certificate(crt_path, key_path)
     else:
         logging.info("Certificate is still valid.")
@@ -93,6 +100,7 @@ def create_new_certificate(crt_path, key_path):
 
     # Get node information from OS or set to 'Unknown' if not available
     from REvoDesign.tools.system_tools import OS_INFO
+
     node = OS_INFO.node if OS_INFO.node else 'Unknown'
 
     # Generate RSA key
@@ -122,4 +130,3 @@ def create_new_certificate(crt_path, key_path):
         f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
     with open(key_path, 'wb') as f:
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
-

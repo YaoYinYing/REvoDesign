@@ -51,9 +51,12 @@ scipy = [
 
 colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1.1" , optional = true }
 
+pyOpenSSL = { version = "^23.3.0", optional = true}
+
 
 [tool.poetry.extras]
 colabdesign = ["colabdesign"]
+teamwork = [ "pyOpenSSL"]
 
 [tool.black]
 line-length = 79

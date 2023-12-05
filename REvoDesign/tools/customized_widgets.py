@@ -6,7 +6,8 @@ from absl import logging
 from REvoDesign.tools.system_tools import OS_INFO, OS_TYPE
 
 
-PYQT_VERSION_STR=QtCore.PYQT_VERSION_STR
+PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
+
 
 # Custom widget for displaying images
 class ImageWidget(QtWidgets.QWidget):
@@ -40,6 +41,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
         pos_i (int): Position index for sequence.
         pos_j (int): Position index for sequence.
     """
+
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
 
@@ -274,11 +276,10 @@ def set_widget_value(widget, value):
     ```
     """
 
-    def set_value_error(value,widget,type_value,type_widget):
+    def set_value_error(value, widget, type_value, type_widget):
         logging.warning(
-                f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
-            )
-
+            f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
+        )
 
     type_widget = type(widget)
     type_value = type(value)
@@ -287,7 +288,7 @@ def set_widget_value(widget, value):
     if type_value == type(lambda: None):  # Check if value is a function
         value = value()  # If it's a function, call it to get the value
         type_value = type(value)
-    
+
     if type_value == range or type_value == type(
         (x for x in range(0, 1))
     ):  # Check if value is a range or generator
@@ -296,18 +297,18 @@ def set_widget_value(widget, value):
         ]  # If it's a range or generator, expand it as a list
         type_value = type(value)
 
-    # Setting values    
+    # Setting values
     if type_widget == QtWidgets.QDoubleSpinBox:
-        if type_value == int or type_value==float:
+        if type_value == int or type_value == float:
             widget.setValue(float(value))
-        elif (type_value == list or type_value == tuple) and len(value) >1 :
+        elif (type_value == list or type_value == tuple) and len(value) > 1:
             widget.setRange(float(value[0]), float(value[1]))
         return
-    
+
     if type_widget == QtWidgets.QSpinBox:
-        if type_value == int or type_value==float:
+        if type_value == int or type_value == float:
             widget.setValue(int(value))
-        elif (type_value == list or type_value == tuple) and len(value) >1:
+        elif (type_value == list or type_value == tuple) and len(value) > 1:
             widget.setRange(int(value[0]), int(value[1]))
         return
 
@@ -319,33 +320,33 @@ def set_widget_value(widget, value):
             widget.addItems(map(str, value))
         elif type_value == dict:
             widget.clear()
-            for k,v in value.items():
-                widget.addItem(v,k)
+            for k, v in value.items():
+                widget.addItem(v, k)
         else:
-            set_value_error(value,widget,type_value,type_widget)
+            set_value_error(value, widget, type_value, type_widget)
         return
-    
+
     if type_widget == QtWidgets.QLineEdit:
         widget.setText(str(value))
         return
-    
+
     if type_widget == QtWidgets.QProgressBar:
         if type_value == list or type_value == tuple:
             widget.setRange(int(value[0]), int(value[1]))
         elif type_value == int:
             widget.setValue(int(value))
         else:
-            set_value_error(value,widget,type_value,type_widget)
+            set_value_error(value, widget, type_value, type_widget)
         return
-    
+
     if type_widget == QtWidgets.QLCDNumber:
         widget.display(str(value))
         return
-    
+
     if type_widget == QtWidgets.QCheckBox:
         widget.setChecked(bool(value))
         return
-    
+
     if type_widget == QtWidgets.QStackedWidget:
         # Check if the value is a list of image paths
         if type_value == list:
@@ -360,9 +361,9 @@ def set_widget_value(widget, value):
             if len(value) > 0:
                 widget.setCurrentIndex(0)
         else:
-            set_value_error(value,widget,type_value,type_widget)
+            set_value_error(value, widget, type_value, type_widget)
         return
-    
+
     if type_widget == QtWidgets.QGridLayout:
         if type_value == str and os.path.exists(value):
             # Clear the existing widgets from gridLayout_interact_pairs
@@ -373,15 +374,10 @@ def set_widget_value(widget, value):
             image_widget = ImageWidget(value)
             widget.addWidget(image_widget)
         else:
-            set_value_error(value,widget,type_value,type_widget)
+            set_value_error(value, widget, type_value, type_widget)
         return
-    
 
-
-
-    logging.warning(
-        f'FIX ME: Widget {widget} is not currently supported. '
-    )
+    logging.warning(f'FIX ME: Widget {widget} is not currently supported. ')
     return
 
 
@@ -502,6 +498,7 @@ class WorkerThread(QtCore.QThread):
     # worker.interrupt()
     ```
     """
+
     result_signal = QtCore.pyqtSignal(list)
     finished_signal = QtCore.pyqtSignal()
     interrupt_signal = QtCore.pyqtSignal()
@@ -525,8 +522,6 @@ class WorkerThread(QtCore.QThread):
 
     def interrupt(self):
         self.interrupt_signal.emit()
-
-
 
 
 def proceed_with_comfirm_msg_box(title='', description=''):
@@ -601,7 +596,9 @@ def create_cmap_icon(cmap: str):
 
     # Draw color gradient representing the colormap
     painter = QtGui.QPainter(pixmap)
-    gradient = QtGui.QLinearGradient(0, 0, 100, 100)  # Changed to create a square gradient
+    gradient = QtGui.QLinearGradient(
+        0, 0, 100, 100
+    )  # Changed to create a square gradient
     for i in range(100):
         color = QtGui.QColor.fromRgbF(*color_map(i / 100)[:3])
         gradient.setColorAt(i / 100, color)

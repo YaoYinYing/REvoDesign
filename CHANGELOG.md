@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2023-12-05
+
 ### Added
 - External Designer's scorer as GREMLIN design scorer option.
 - `randomized_sample` and `randomized_sample_num` for external designers to randomly pick a given number of position in customized indices.
@@ -16,6 +18,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - typing notes to `Mutant` class and `MultiMutantDesigner` class.
 - Server deployment user guide.
 - Color icons for color map.
+- [ChatGPT prompt as coding helper](prompt/prompt.md)
+- Many usages and code comments, thanks to ChatGPT and a novel prompt example from tldraw's [make-real](https://github.com/tldraw/make-real) project: 
+  - https://github.com/tldraw/make-real/blob/a2e9ac80d47bc9a911973e61afe9748db0139090/app/prompt.ts
+- Socket tab page for teamwork.
+  - self-signed SSL certificates tool, unused: 
+    - `generate_ssl_context`
+    - `get_certificate`
+    - `create_new_certificate`
+    - *Dependency Note* for MacOS user:
+    ```shell
+    # install openssl 
+    brew install openssl@1.1
+    #link brew-installed ssl library to the system lib path
+    ln -s /opt/homebrew/Cellar/openssl@1.1/1.1.1w/lib/libssl.1.1.dylib /usr/local/lib/
+    ln -s /opt/homebrew/Cellar/openssl@1.1/1.1.1w/lib/libcrypto.1.1.dylib /usr/local/lib
+    ``` 
+  - `SocketConector.py`: replaced by `QtSocketConnector`
+  - `QtSocketConnector`:
+    - `REvoDesignWebSocketServer`
+    - `REvoDesignWebSocketClient`
+  - BroadCast:
+    - MutantTree: mutagenesis-triggered
+    - PyMOL view: timer-triggered
+- `get_client_info` for collecting sufficient client info when websocket is called:
+  - Node name: `platform.uname()`
+  - User login: `os.getlogin()`
+  - OS type: `platform.uname()`
+  - OS build: `platform.uname()`
+  - Machine architecture: `platform.uname()`
+  - PyMOL version: `pymol.cmd.get_version()[0]`
+  - PyMOL build: `pymol.get_version_message()`
+  - Python Version: `platform.python_version()`
+  - IP addresses: `socket.gethostbyname_ex(socket.gethostname())[2]`
+  - PyQt version: `QtCore.PYQT_VERSION_STR`
+- `quick_mutagenesis` for applying quick mutageneses from a mutant tree.
+- `MutantTree`: 
+  - `list_mutants` to list all mutant objects, unused.
+  - `diff_tree_from` to create a differential mutant tree.
+- UI entry: `traceback.print_exc()` to print error traces if occurs.
+- `WorkerThread`: interrupting signal, untested.
+
 
 ### Changed
 - UI element changes:
@@ -28,6 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make_temperal_input_pdb`: reload pdb option `reload` to fix pdb reload while external designer is used to score GREMLIN's design.
 - if `group_id.startswith('multi_design')`, don't use this group as mutant tree branch.
 - simplified logging message of `is_distal_residue_pair`.
+- `determine_system` -> `get_system_info`
+- Improved logging message of `check_response_code`
+- `MutantVisualizer`: Using `MutantTree` to store mutagenesis info
+- `REvoDesigner`: For both profile design and external-designer design, a `MutantTree` will be created followed by calling `MutantVisualizer` with `run_mutagenesis_via_mutant_visualizer`. Thiis `MutantTree` can be called for mutant broadcasting.
+  - *Performance Note*: Processor usage will be reduced in parallel run due to mutagenesis one-branch-by-another workflow.
+- `PSSMGremlinCalculator`: line breaker in sequence end of fasta file, useful when `cat *.fasta`
 
 ### Fixed
 - `MutantTree.emtpy` if there is one mutant left.
@@ -36,10 +85,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In-used progressbar is status-restorable in `run_worker_thread_with_progress`. If progress bar has a range and value, they will be stored before used.
 - Minor typo.
 - Rescoring multi-designs if no score is available.
+- Dir deleting issue of `PyMOLSessionMerger`: use `os.remove(session_path)` instead of `shutil.rmtree(os.path.dirname(session_path))`
 
 ### Removed
 - `run_worker_thread_with_progress` in `MultiMutantDesigner.external_scorer.initialize()` so UI can freeze to fobbid unexpected button clicking events. 
 - Magic numbers.
+- `REvoDesign/UI/REvoDesign-CommentMutant.ui`
 
 ## [1.2.2] - 2023-11-17
 
@@ -76,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `design_protein_using_pssm` -> `setup_profile_design`
   - Refactoring of `REvoDesigner.process_position` (static function) and -> `REvoDesigner.run_profile_mutagenesis` (class function)
   - `mutagenesis_tasks`: a list of `Mutant` object
+- Don not load new created temperal PDB file before mutagenesis
 
 ### Fixed
 - use `int` as the type of `position` in `extract_mutants_from_mutant_id`

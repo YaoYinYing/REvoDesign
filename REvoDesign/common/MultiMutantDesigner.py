@@ -7,10 +7,7 @@ from pymol import cmd, util
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.Mutant import Mutant
 
-from REvoDesign.tools.utils import (
-    get_color,
-    cmap_reverser
-)
+from REvoDesign.tools.utils import get_color, cmap_reverser
 
 
 from REvoDesign.tools.pymol_utils import (
@@ -99,14 +96,17 @@ class MultiMutantDesigner:
         else:
             for mut_obj in self.all_design_multi_design_mutant_object:
                 if not mut_obj.get_mutant_score():
-                    mut_obj.set_mutant_score(new_score=self.external_scorer.scorer(sequence=mut_obj.get_mutant_sequence())) 
-            
+                    mut_obj.set_mutant_score(
+                        new_score=self.external_scorer.scorer(
+                            sequence=mut_obj.get_mutant_sequence()
+                        )
+                    )
+
             all_scores = [
                 mut_obj.get_mutant_score()
                 for mut_obj in self.all_design_multi_design_mutant_object
                 if mut_obj.get_mutant_score()
             ]
-
 
             for (i_obj, obj), (j_des, des) in zip(
                 enumerate(self.design_case_variant_objects),
@@ -128,7 +128,7 @@ class MultiMutantDesigner:
                     f'{obj}',
                 )
                 util.cnc(f'{obj}', _self=cmd)
-            
+
         logging.debug('All design with score: \n')
         logging.debug('-' * 60)
         logging.debug(

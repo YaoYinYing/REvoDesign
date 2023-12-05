@@ -24,8 +24,7 @@ celery = Celery(
 
 # Directory for server to save uploaded input and processed results.
 SERVER_DIR = '/path/to/PSSM_GREMLIN/run/dir/'
-PORT=8080
-
+PORT = 8080
 
 
 # number of processors for a run
@@ -428,6 +427,7 @@ def task_dashboard():
         task_statuses=sorted_task_statuses,
         task_summary=task_summary,
     )
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT)

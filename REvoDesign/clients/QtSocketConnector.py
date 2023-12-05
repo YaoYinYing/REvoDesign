@@ -15,7 +15,6 @@ from pymol import cmd
 from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window
 
 
-
 '''
 helpful:
 https://stackoverflow.com/questions/15092076/pyqt-and-websocket-client-listen-websocket-in-background
@@ -23,50 +22,59 @@ https://stackoverflow.com/questions/26270681/can-an-asyncio-event-loop-run-in-th
 '''
 
 
-class REvoDesignWebSocketServer():
+class REvoDesignWebSocketServer:
     def __init__(self):
         super().__init__()
         self.clients = {}
-        self.waiting_room=set()
+        self.waiting_room = set()
         self.server = None  # Initialize server as None
-        self.server_url='localhost'
-        self.port=7890
-        self.is_running=False
-        
+        self.server_url = 'localhost'
+        self.port = 7890
+        self.is_running = False
+
         self.use_authentication = False
         self.authentication_key = None
-        self.view_broadcast_enabled=False
-        self.view_broadcast_on_air=False
-        self.view_broadcast_worker=None
-        self.view_broadcast_interval=0.1
-
+        self.view_broadcast_enabled = False
+        self.view_broadcast_on_air = False
+        self.view_broadcast_worker = None
+        self.view_broadcast_interval = 0.1
 
     def onAcceptError(self, accept_error):
         logging.error(f"Accept Error: {accept_error}")
 
     def onNewConnection(self):
         client_connection = self.server.nextPendingConnection()
-        #client_connection.connected.connect(lambda client=client_connection: self.askUserAuthentication(client))
-        client_connection.textMessageReceived.connect(lambda message, client=client_connection: self.processTextMessage(client, message))
-        client_connection.binaryMessageReceived.connect(lambda message, client=client_connection: self.processBinaryMessage(client, message))
-        client_connection.disconnected.connect(lambda client=client_connection: self.socketDisconnected(client))
+        # client_connection.connected.connect(lambda client=client_connection: self.askUserAuthentication(client))
+        client_connection.textMessageReceived.connect(
+            lambda message, client=client_connection: self.processTextMessage(
+                client, message
+            )
+        )
+        client_connection.binaryMessageReceived.connect(
+            lambda message, client=client_connection: self.processBinaryMessage(
+                client, message
+            )
+        )
+        client_connection.disconnected.connect(
+            lambda client=client_connection: self.socketDisconnected(client)
+        )
         # self.clients[client_connection] = {}
 
-
-    def askUserAuthentication(self,client):
+    def askUserAuthentication(self, client):
         if client in self.clients:
-            logging.warning(f'Client {client} has already joined in chat room.')
+            logging.warning(
+                f'Client {client} has already joined in chat room.'
+            )
             return
-        
+
         if client not in self.waiting_room:
             logging.warning(f'Client {client} joins waiting room')
             self.waiting_room.add(client)
 
         logging.info(f'Asking {client} for authentication...')
         client.sendTextMessage('Require key')
-        
-        return
 
+        return
 
     def processTextMessage(self, client, message):
         logging.info(f">>> {message}")
@@ -75,37 +83,45 @@ class REvoDesignWebSocketServer():
         if client not in self.waiting_room and client not in self.clients:
             # by asking the authentication, this client will be added to the waiting room
             self.askUserAuthentication(client)
-            return        
+            return
         try:
             # try to load message, treating as a json-loadable string
             data = json.loads(message)
         except:
             # if json fails to load it, we treat it as a normal text
-            data=message
-            logging.info(f'>>> {self.clients[client]["user"] if client in self.clients else client}: {message}')
+            data = message
+            logging.info(
+                f'>>> {self.clients[client]["user"] if client in self.clients else client}: {message}'
+            )
             return
 
         if client in self.waiting_room:
             from REvoDesign.tools.system_tools import OS_INFO
+
             if not self.use_authentication or not self.authentication_key:
-                authenticated=True
+                authenticated = True
             elif self.use_authentication and 'auth_key' in data:
                 authenticated = self.authenticate_client(data['auth_key'])
             else:
-                authenticated=False
+                authenticated = False
 
             if not authenticated:
-                logging.info(f"Authentication failed for client:{client}" )
-                client.sendTextMessage(f'Key authentication is failed. {data["user"]} is rejected.')
+                logging.info(f"Authentication failed for client:{client}")
+                client.sendTextMessage(
+                    f'Key authentication is failed. {data["user"]} is rejected.'
+                )
                 client.close()
             else:
-                self.clients[client]=data
-                logging.info(f'Client  {data["user"]} from {data["node"]} is join.')
-                client.sendTextMessage(f'Key authentication is successful. Wellcome to {OS_INFO.node}, {data["user"]}.')
+                self.clients[client] = data
+                logging.info(
+                    f'Client  {data["user"]} from {data["node"]} is join.'
+                )
+                client.sendTextMessage(
+                    f'Key authentication is successful. Wellcome to {OS_INFO.node}, {data["user"]}.'
+                )
             # once the authentcation finished, the client should be removed from waiting room
             self.waiting_room.remove(client)
             return
-
 
         if client in self.clients:
             pass
@@ -136,7 +152,7 @@ class REvoDesignWebSocketServer():
     async def broadcast_object(self, obj, data_type):
         serialized_obj = self.serialize_object(obj, data_type)
         serialized_json = json.dumps(serialized_obj)
-        
+
         for client in self.clients.keys():
             client.sendTextMessage(serialized_json)
 
@@ -161,6 +177,7 @@ class REvoDesignWebSocketServer():
         doubleSpinBox_ws_view_broadcast_interval,
     ):
         from REvoDesign.tools.system_tools import OS_INFO
+
         self.use_authentication = checkBox_ws_server_use_key.isChecked()
         self.authentication_key = lineEdit_ws_server_key.text()
         if self.use_authentication and not self.authentication_key:
@@ -192,42 +209,44 @@ class REvoDesignWebSocketServer():
             )
 
             if self.server.listen(QtNetwork.QHostAddress.LocalHost, self.port):
-                logging.info(f'Listening: {self.server.serverAddress().toString()}:{str(self.server.serverPort())}')
-                self.is_running=True
+                logging.info(
+                    f'Listening: {self.server.serverAddress().toString()}:{str(self.server.serverPort())}'
+                )
+                self.is_running = True
             else:
                 logging.error('Error: Unable to start the server.')
-                self.is_running=False
+                self.is_running = False
 
             self.server.acceptError.connect(self.onAcceptError)
             self.server.newConnection.connect(self.onNewConnection)
-    
-    
-    def check_broadcast_interval(self) ->float:
-        return self.view_broadcast_interval
-    
-        
-        
-    def broadcast_view(self):
 
-        last_view=cmd.get_view()
+    def check_broadcast_interval(self) -> float:
+        return self.view_broadcast_interval
+
+    def check_broadcast_enabled_flag(self) -> bool:
+        return self.view_broadcast_enabled == True
+
+    def broadcast_view(self):
+        last_view = cmd.get_view()
         while True:
             for t in range(int(self.check_broadcast_interval() // 0.001)):
                 time.sleep(0.001)
                 refresh_window()
 
-            view_data=cmd.get_view()
-            if view_data==last_view:
+            view_data = cmd.get_view()
+            if view_data == last_view:
                 continue
-            
-            serialized_obj = self.serialize_object(obj=view_data, data_type='ViewUpdate')
+            if not self.check_broadcast_enabled_flag():
+                return
+
+            serialized_obj = self.serialize_object(
+                obj=view_data, data_type='ViewUpdate'
+            )
             serialized_json = json.dumps(serialized_obj)
-            last_view=view_data
-            
+            last_view = view_data
+
             for client in self.clients.keys():
                 client.sendTextMessage(serialized_json)
-            
-            
-
 
     def is_port_available(self, port):
         """
@@ -241,26 +260,26 @@ class REvoDesignWebSocketServer():
         """
         sock = QtNetwork.QTcpSocket()
         sock.bind(QtNetwork.QHostAddress.LocalHost, port)
-        can_listen = sock.waitForConnected(500)  # Wait for 0.5 seconds to check connection
+        can_listen = sock.waitForConnected(
+            500
+        )  # Wait for 0.5 seconds to check connection
         sock.disconnectFromHost()
         return not can_listen
 
 
-
-
-class REvoDesignWebSocketClient():
+class REvoDesignWebSocketClient:
     def __init__(self):
         self.server_url = 'localhost'
         self.server_port = 7890
         self.authentication_key = None
         self.receive_view_broadcast = False
         self.receive_mutagenesis_broadcast = True
-        self.design_molecule=''
-        self.design_chain_id=''
-        self.design_sequence=''
+        self.design_molecule = ''
+        self.design_chain_id = ''
+        self.design_sequence = ''
         # Other initializations...
-        self.cmap='bwr_r'
-        self.nproc=2
+        self.cmap = 'bwr_r'
+        self.nproc = 2
 
         self.connected = False
         self.client = None
@@ -273,10 +292,7 @@ class REvoDesignWebSocketClient():
         lineEdit_ws_server_key_to_connect,
         checkBox_ws_receive_mutagenesis_broadcast,
         checkBox_ws_receive_view_broadcast,
-        
     ):
-        
-
         if not self.design_molecule or not self.design_chain_id:
             raise ValueError('Invalid design molecule/chain ID!')
 
@@ -291,24 +307,34 @@ class REvoDesignWebSocketClient():
             raise ValueError('Invalid server configurations!')
 
         self.authentication_key = lineEdit_ws_server_key_to_connect.text()
-        self.receive_mutagenesis_broadcast = checkBox_ws_receive_mutagenesis_broadcast.isChecked()
-        self.receive_view_broadcast = checkBox_ws_receive_view_broadcast.isChecked()
+        self.receive_mutagenesis_broadcast = (
+            checkBox_ws_receive_mutagenesis_broadcast.isChecked()
+        )
+        self.receive_view_broadcast = (
+            checkBox_ws_receive_view_broadcast.isChecked()
+        )
 
-        logging.info('Setting up client is done. Preparing to connect to the server.')
+        logging.info(
+            'Setting up client is done. Preparing to connect to the server.'
+        )
 
     def connect_to_server(self):
         if not self.check_server_reachable():
             logging.error("Server unreachable or network issue.")
             return
-        
+
         self.connected = True
         server_uri = f"ws://{self.server_url}:{self.server_port}"
         logging.info(f'Connecting to server: {server_uri}')
         try:
-            self.client = QtWebSockets.QWebSocket("", QtWebSockets.QWebSocketProtocol.Version13, None)
+            self.client = QtWebSockets.QWebSocket(
+                "", QtWebSockets.QWebSocketProtocol.Version13, None
+            )
             self.client.error.connect(self.error)
             self.client.open(QtCore.QUrl(server_uri))
-            self.client.connected.connect(partial(self.client.sendTextMessage,'hello, server.'))
+            self.client.connected.connect(
+                partial(self.client.sendTextMessage, 'hello, server.')
+            )
             self.client.textMessageReceived.connect(self.process_message)
             self.client.disconnected.connect(self.close_connection)
 
@@ -321,7 +347,9 @@ class REvoDesignWebSocketClient():
 
     def close_connection(self):
         if not self.connected:
-            logging.warning('Client is not connected to any server. Doing nothing.')
+            logging.warning(
+                'Client is not connected to any server. Doing nothing.'
+            )
             return
 
         try:
@@ -344,9 +372,10 @@ class REvoDesignWebSocketClient():
 
     def authenticate_client(self):
         import json
-        
+
         from REvoDesign.tools.system_tools import get_client_info
-        greeting_message=get_client_info()
+
+        greeting_message = get_client_info()
 
         if self.authentication_key:
             greeting_message['auth_key'] = self.authentication_key
@@ -359,19 +388,19 @@ class REvoDesignWebSocketClient():
             # try to load message, treating as a json-loadable string
             data = json.loads(message)
         except:
-            data=message
+            data = message
 
         # process data if it is a text message
         if type(data) is str:
             logging.info(f'>>>  {data}')
-            if message=='Require key':
+            if message == 'Require key':
                 self.authenticate_client()
 
             return
-        
 
         if 'data' in data and 'data_type' in data:
             from REvoDesign.tools.utils import run_worker_thread_with_progress
+
             obj = self.deserialize_object(data['data'], data['data_type'])
             # Use the received 'obj' and 'data_type' as needed
             if data['data_type'] == 'MutantTree' and obj and not obj.empty:
@@ -386,23 +415,25 @@ class REvoDesignWebSocketClient():
                         'Building Mutagenesis from differential mutant tree: \n '
                         f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants'
                     )
-                    
+
                     run_worker_thread_with_progress(
                         worker_function=self.mutagenesis_from_mutant_tree,
                         mutant_tree=diff_mutant_tree,
-                        progress_bar=self.progress_bar)
+                        progress_bar=self.progress_bar,
+                    )
                 return
             if data['data_type'] == 'ViewUpdate' and type(obj) == tuple:
                 if not self.receive_view_broadcast:
                     logging.warning(f'View update is disabled.')
                     return
-                
-                #logging.debug('update pymol view')
+
+                # logging.debug('update pymol view')
                 cmd.set_view(obj)
                 return
-            
-            logging.warning(f'Unknow data in type {data["data_type"]}: {obj} (type {type(obj)})')
 
+            logging.warning(
+                f'Unknow data in type {data["data_type"]}: {obj} (type {type(obj)})'
+            )
 
     def deserialize_object(
         self, serialized_data, data_type
@@ -410,13 +441,12 @@ class REvoDesignWebSocketClient():
         if data_type == 'MutantTree' or data_type == 'ViewUpdate':
             decoded_data = base64.b64decode(serialized_data)
             return pickle.loads(decoded_data)
-        
+
         else:
             # Handle unrecognized data types or return None
             return None
 
     def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
-
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
 
         quick_mutagenesis(
@@ -428,8 +458,6 @@ class REvoDesignWebSocketClient():
             nproc=self.nproc,
         )
 
-
     def error(self, error_code):
         logging.error(f"error code: {error_code}")
         logging.error(self.client.errorString())
-

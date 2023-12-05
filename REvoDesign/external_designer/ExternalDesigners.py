@@ -15,10 +15,14 @@ class ColabDesigner_MPNN:
         from colabdesign.mpnn import mk_mpnn_model
         from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
-        self.pdb_filename = make_temperal_input_pdb(molecule=self.molecule,reload=self.reload)
+        self.pdb_filename = make_temperal_input_pdb(
+            molecule=self.molecule, reload=self.reload
+        )
         self.mpnn_model = mk_mpnn_model()
         assert os.path.exists(self.pdb_filename)
-        self.mpnn_model.prep_inputs(pdb_filename=self.pdb_filename, *args, **kwargs)
+        self.mpnn_model.prep_inputs(
+            pdb_filename=self.pdb_filename, *args, **kwargs
+        )
         self.initialized = True
 
     def preffer_substitutions(self, aa=''):
@@ -35,5 +39,5 @@ class ColabDesigner_MPNN:
 
     def designer(self, *args, **kwargs):
         # designer must return a dict containing `'seq'` and `'score'` iterables.
-        design_results=self.mpnn_model.sample(*args, **kwargs)
+        design_results = self.mpnn_model.sample(*args, **kwargs)
         return design_results

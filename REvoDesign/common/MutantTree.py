@@ -91,7 +91,7 @@ class MutantTree:
         """
         return self.all_mutant_branch_ids.index(branch_id)
 
-    def get_a_branch(self, branch_id) -> dict[str: Mutant]:
+    def get_a_branch(self, branch_id) -> dict[str:Mutant]:
         """
         Gets a specific branch from the MutantTree object.
 
@@ -158,7 +158,7 @@ class MutantTree:
             == list(self.mutant_tree[branch_id].keys())[-1]
         )
 
-    def is_this_branch_empty(self, branch_id)->bool:
+    def is_this_branch_empty(self, branch_id) -> bool:
         """
         Checks if a specific branch in the MutantTree object is empty.
 
@@ -418,7 +418,7 @@ class MutantTree:
                 branch_id=branch_id
             ).items()
         ]
-    
+
     def diff_tree_from(self, other_tree):
         """
         Compares two MutantTree objects and returns the differences as a new MutantTree.
@@ -429,7 +429,7 @@ class MutantTree:
         Returns:
         - MutantTree or None: A MutantTree object containing the differences between self and other_tree,
         or None if there are no differences.
-        
+
         Raises:
         - ValueError: If the input other_tree is not a MutantTree object.
         """
@@ -442,21 +442,23 @@ class MutantTree:
         for branch_id in self.all_mutant_branch_ids:
             if branch_id not in other_tree.all_mutant_branch_ids:
                 # Branch exists in self but not in other_tree
-                diff_tree.extend_tree_with_new_branches({branch_id: self.get_a_branch(branch_id)})
+                diff_tree.extend_tree_with_new_branches(
+                    {branch_id: self.get_a_branch(branch_id)}
+                )
             else:
                 # Branch exists in both trees, compare branch contents
                 self_branch = self.get_a_branch(branch_id)
                 other_branch = other_tree.get_a_branch(branch_id)
-                
+
                 diff_branch_contents = {
-                    k: v for k, v in self_branch.items() if k not in other_branch
+                    k: v
+                    for k, v in self_branch.items()
+                    if k not in other_branch
                 }
 
                 if diff_branch_contents:
-                    diff_tree.extend_tree_with_new_branches({branch_id: diff_branch_contents})
+                    diff_tree.extend_tree_with_new_branches(
+                        {branch_id: diff_branch_contents}
+                    )
 
         return diff_tree if not diff_tree.empty else None
-                        
-
-
-        

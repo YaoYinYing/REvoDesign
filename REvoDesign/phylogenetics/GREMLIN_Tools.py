@@ -308,7 +308,6 @@ class GREMLIN_Tools:
 
             csv_fp, plot_fp = self.plot_w(i, j, i_aa, j_aa, n)
             if csv_fp and plot_fp:
-
                 plot_w_fps[n] = ([i, j, i_aa, j_aa, zscore], csv_fp, plot_fp)
 
         return plot_w_fps

@@ -414,7 +414,7 @@ class REvoDesigner:
         if not mutant_objs:
             logging.warning('No available designs is founded.')
             return
-        
+
         mutant_tree = {
             self.design_case: {
                 mut_obj.get_short_mutant_id(): mut_obj
@@ -422,8 +422,10 @@ class REvoDesigner:
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
-        
-        self.output_pse=self.run_mutagenesis_via_mutant_visualizer(group_id=self.design_case,progress_bar=progress_bar)
+
+        self.output_pse = self.run_mutagenesis_via_mutant_visualizer(
+            group_id=self.design_case, progress_bar=progress_bar
+        )
 
         logging.info("Done.")
 
@@ -481,9 +483,7 @@ class REvoDesigner:
 
         return mutation_json_fp, mutation_png_fp
 
-    def run_mutagenesis_via_mutant_visualizer(
-        self, group_id, progress_bar
-    ):
+    def run_mutagenesis_via_mutant_visualizer(self, group_id, progress_bar):
         """
         Runs mutagenesis using MutantVisualizer based on specified parameters.
 
@@ -506,20 +506,25 @@ class REvoDesigner:
         visualizer = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id
         )
-        visualizer.sequence=self.sequence
+        visualizer.sequence = self.sequence
         visualizer.group_name = group_id
         visualizer.full = self.create_full_pdb
         visualizer.cmap = self.cmap
 
-        if self.external_designer or self.input_profile_format in EXTERNAL_DESIGNERS:
-            branch=self.mutant_tree.get_a_branch(branch_id=group_id)
-            score_list=[mut_obj.get_mutant_score() for _, mut_obj in branch.items()]
-            visualizer.min_score=min(score_list)
-            visualizer.max_score=max(score_list)
+        if (
+            self.external_designer
+            or self.input_profile_format in EXTERNAL_DESIGNERS
+        ):
+            branch = self.mutant_tree.get_a_branch(branch_id=group_id)
+            score_list = [
+                mut_obj.get_mutant_score() for _, mut_obj in branch.items()
+            ]
+            visualizer.min_score = min(score_list)
+            visualizer.max_score = max(score_list)
         else:
             visualizer.min_score = -self.max_abs_profile
             visualizer.max_score = self.max_abs_profile
-            
+
         visualizer.nproc = self.nproc
         visualizer.parallel_run = self.nproc > 1
         visualizer.input_session = self.input_pse
@@ -591,10 +596,8 @@ class REvoDesigner:
 
         for branch_id in self.mutant_tree.all_mutant_branch_ids:
             logging.info(f'Creating mutagenesis for {branch_id}')
-            result_session = (
-                self.run_mutagenesis_via_mutant_visualizer(
-                    group_id=branch_id, progress_bar=progress_bar
-                )
+            result_session = self.run_mutagenesis_via_mutant_visualizer(
+                group_id=branch_id, progress_bar=progress_bar
             )
             self.results.append(result_session)
 
@@ -603,5 +606,8 @@ class REvoDesigner:
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
         session_merger.mutagenesis_sessions = self.results
-        run_worker_thread_with_progress(session_merger.merge_sessions_via_commandline,progress_bar=progress_bar)
+        run_worker_thread_with_progress(
+            session_merger.merge_sessions_via_commandline,
+            progress_bar=progress_bar,
+        )
         self.output_pse = session_merger.save_session

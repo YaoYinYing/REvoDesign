@@ -156,9 +156,9 @@ def run_worker_thread_with_progress(
     """
     if progress_bar:
         # store the progress bar state
-        _min=progress_bar.minimum()
-        _max=progress_bar.maximum()
-        _val=progress_bar.value()
+        _min = progress_bar.minimum()
+        _max = progress_bar.maximum()
+        _val = progress_bar.value()
 
         progress_bar.setRange(0, 0)
 
@@ -258,7 +258,7 @@ def rescale_number(number, min_value, max_value):
 
     Returns:
     - float: The rescaled value between 0 and 1.
-    
+
     Raises:
     - ValueError: If min_value is greater than or equal to max_value.
     """
@@ -284,10 +284,16 @@ def count_and_sort_characters(input_string, characters):
     Returns:
     - dict: Dictionary containing character counts sorted in descending order.
     """
-    char_count = {char: input_string.lower().count(char) for char in characters}
-    
-    sorted_count = dict(sorted(char_count.items(), key=lambda item: item[1], reverse=True))
-    sorted_count = {key: value for key, value in sorted_count.items() if value != 0}
+    char_count = {
+        char: input_string.lower().count(char) for char in characters
+    }
+
+    sorted_count = dict(
+        sorted(char_count.items(), key=lambda item: item[1], reverse=True)
+    )
+    sorted_count = {
+        key: value for key, value in sorted_count.items() if value != 0
+    }
     return sorted_count
 
 
@@ -304,19 +310,28 @@ def random_deduplicate(seq, score):
     - numpy.array: Randomly chosen scores corresponding to unique items.
     """
     import numpy as np
+
     unique_items = np.unique(seq)
-    unique_scores = [np.random.choice(score[seq == item]) for item in unique_items]
+    unique_scores = [
+        np.random.choice(score[seq == item]) for item in unique_items
+    ]
     return np.array(unique_items), np.array(unique_scores)
 
 
 def generate_strong_password(length=16):
     if length < 16 or length > 64:
-        raise ValueError("Password length should be between 16 and 64 characters.")
+        raise ValueError(
+            "Password length should be between 16 and 64 characters."
+        )
 
     # Define the characters to use for generating the password
-    password_characters = string.ascii_letters + string.digits + string.punctuation
+    password_characters = (
+        string.ascii_letters + string.digits + string.punctuation
+    )
 
     # Generate the password using random characters from the defined set
-    generated_password = ''.join(random.choice(password_characters) for _ in range(length))
-    
+    generated_password = ''.join(
+        random.choice(password_characters) for _ in range(length)
+    )
+
     return generated_password

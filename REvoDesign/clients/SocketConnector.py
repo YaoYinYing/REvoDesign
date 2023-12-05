@@ -13,7 +13,7 @@ from absl import logging
 from REvoDesign.common.MutantTree import MutantTree
 
 
-class REvoDesignWebSocketServer():
+class REvoDesignWebSocketServer:
     def __init__(self, port=7890):
         self.host = ''
         self.port = port
@@ -89,7 +89,7 @@ class REvoDesignWebSocketServer():
         ssl_context = generate_ssl_context(
             role='server'
         )  # Generate SSL context
-        
+
         logging.info('Server starting....')
 
         # Keep the server running indefinitely using the event loop's run_forever() method
@@ -98,10 +98,9 @@ class REvoDesignWebSocketServer():
                 self.handler,
                 self.host,
                 self.port,
-                #ssl=ssl_context,
+                # ssl=ssl_context,
             )
             await self.server
-
 
             logging.info(f'Server runs on {self.host}:{self.port}')
 
@@ -152,7 +151,7 @@ class REvoDesignWebSocketServer():
         try:
             async for message in client:
                 await self.process_message(client, message)
-                
+
         except:
             traceback.print_exc()
         # finally:
@@ -182,7 +181,6 @@ class REvoDesignWebSocketServer():
                 )
                 return  # Unauthorized client
             else:
-                
                 self.clients[client] = data
                 self.wait_room.remove(client)
                 logging.info(
@@ -268,7 +266,6 @@ class REvoDesignWebSocketClient:
         self.cmap = comboBox_cmap.currentText()
         self.nproc = spinBox_nproc.value()
 
-
         if not self.design_molecule or not self.design_chain_id:
             raise ValueError(f'Invalid design moleculre/chain id!')
 
@@ -297,7 +294,6 @@ class REvoDesignWebSocketClient:
     async def connect_to_server(self):
         from REvoDesign.tools.client_tools import generate_ssl_context
 
-
         # Check network accessibility before attempting to connect
         if not self.check_server_reachable():
             logging.error("Server unreachable or network issue.")
@@ -305,23 +301,22 @@ class REvoDesignWebSocketClient:
         logging.info("Server is reachable.")
 
         ssl_context = generate_ssl_context(role='client')
-        
+
         self.connected = True
-        server_uri=f"ws://{self.server_url}:{self.server_port}"
+        server_uri = f"ws://{self.server_url}:{self.server_port}"
         logging.info(f'Connecting to server ....\n\t\t{server_uri}')
         try:
-            self.client= await websockets.connect(
+            self.client = await websockets.connect(
                 server_uri,
-                #ssl=ssl_context
-            ) 
+                # ssl=ssl_context
+            )
             await self.authenticate_client()
-            await self.client.send({'hello':'world'})
+            await self.client.send({'hello': 'world'})
 
             logging.info('Connection established.')
 
             async for message in self.client:
                 await self.process_message(message)
-                
 
         except Exception:
             logging.error(f"Unexpected error during connection: ")
@@ -353,9 +348,7 @@ class REvoDesignWebSocketClient:
             logging.error(f"Socket error: {e}")
             return False
 
-    async def authenticate_client(
-        self
-    ):
+    async def authenticate_client(self):
         from REvoDesign.tools.system_tools import OS_INFO
         from REvoDesign.tools.pymol_utils import PYMOL_VERSION
         import os
@@ -393,7 +386,6 @@ class REvoDesignWebSocketClient:
                     # self.mutagenesis_from_mutant_tree(
                     #     mutant_tree=diff_mutant_tree
                     # )
-                    
 
     def deserialize_object(
         self, serialized_data, data_type

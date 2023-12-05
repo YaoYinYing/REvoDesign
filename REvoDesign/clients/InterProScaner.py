@@ -11,6 +11,7 @@ import requests
 from lxml import etree
 from absl import logging
 
+
 class InterProScanner:
     def __init__(self):
         self.base_url = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
@@ -20,28 +21,29 @@ class InterProScanner:
         self.sequence = ''
 
         self.version = '2023-05-12 14:28'
-        self.pwd=os.getcwd()
-        
+        self.pwd = os.getcwd()
+
         self.poll_freq = 3
         self.output_level = 1
         self.debug_level = 0
-        
+
         self.outfile = None
         self.outformat = None
         self.async_job = False
         self.job_id = None
-
 
     def service_run(self, params):
         user_agent = self.get_user_agent()
         self.http_headers = {'User-Agent': user_agent}
         request_url = f"{self.base_url}/run/"
         logging.info(f"Request URL: {request_url}")
-        response = requests.post(request_url, data=params, headers=self.http_headers)
+        response = requests.post(
+            request_url, data=params, headers=self.http_headers
+        )
         response_text = response.text
         print(response_text)
         if response_text.startswith('iprscan5-'):
-            self.job_id=response_text
+            self.job_id = response_text
 
     def service_get_status(self, job_id):
         request_url = f"{self.base_url}/status/{job_id}"
@@ -68,35 +70,43 @@ class InterProScanner:
             root = etree.fromstring(xml_data)
 
             for result_type in root.findall('type'):
-                logging.debug(f"{result_type.find('identifier').text} - {result_type.find('description').text if result_type.find('description') is not None else None}" )
+                logging.debug(
+                    f"{result_type.find('identifier').text} - {result_type.find('description').text if result_type.find('description') is not None else None}"
+                )
                 result_types.append(result_type.find('identifier').text)
 
             logging.info('End service_get_result_types')
             return result_types
         else:
-            logging.warning('Error: Failed to get result types. Status code: %d', response.status_code)
+            logging.warning(
+                'Error: Failed to get result types. Status code: %d',
+                response.status_code,
+            )
             return []
 
     def get_user_agent(self):
         urllib_agent = f'Python-urllib/{requests.__version__}'
         client_revision = self.version
-        user_agent = f'EBI-Sample-Client/{client_revision} ({os.path.basename(__file__)} ' \
-                     f'Python {platform.python_version()}; {platform.system()}) {urllib_agent}'
+        user_agent = (
+            f'EBI-Sample-Client/{client_revision} ({os.path.basename(__file__)} '
+            f'Python {platform.python_version()}; {platform.system()}) {urllib_agent}'
+        )
         return user_agent
-
 
     def submit_job(self):
         self.params = {
             'email': self.email,
             'title': self.title,
-            'sequence': self.sequence  # Include other required parameters
+            'sequence': self.sequence,  # Include other required parameters
         }
 
         response_text = self.service_run(self.params)
         if self.async_job:
             logging.info(response_text)
-            logging.info("To check status: python %s --status --jobid %s"
-                         "" % (os.path.basename(__file__), self.job_id))
+            logging.info(
+                "To check status: python %s --status --jobid %s"
+                "" % (os.path.basename(__file__), self.job_id)
+            )
         else:
             self.poll_job()
 
@@ -131,6 +141,7 @@ class InterProScanner:
         else:
             filename = f"{self.job_id}.{result_type}"
         return filename
+
 
 if __name__ == '__main__':
     logging.info('Starting InterProScanner...')

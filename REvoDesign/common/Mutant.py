@@ -1,7 +1,10 @@
 from typing import Union
 
+
 class Mutant:
-    def __init__(self, mutant_info: list[dict], mutant_score: Union[float, None]):
+    def __init__(
+        self, mutant_info: list[dict], mutant_score: Union[float, None]
+    ):
         """
         Initialize a Mutant object with mutant information and score.
 
@@ -22,7 +25,7 @@ class Mutant:
         self.mutant_description = ''
         self.mutant_id = ''
         self.wt_sequence = ''
-        self.wt_score=0
+        self.wt_score = 0
 
     def __str__(self):
         """
@@ -91,7 +94,7 @@ class Mutant:
         """
         return self.mutant_score
 
-    def set_mutant_score(self, new_score:float):
+    def set_mutant_score(self, new_score: float):
         """
         Set the mutant score to a new value.
 
@@ -109,7 +112,7 @@ class Mutant:
         """
         self.mutant_description = new_description
 
-    def get_mutant_description(self) ->str:
+    def get_mutant_description(self) -> str:
         """
         Get the mutant description.
 
@@ -155,19 +158,16 @@ class Mutant:
             other_mutant, Mutant
         ), 'Input mutant must be a Mutant object.'
 
-        return (
-            (self.mutant_info == other_mutant.mutant_info)
-            and all(
-                [
-                    self_item == others_item
-                    for self_item, others_item in zip(
-                        sorted(self.mutant_info),
-                        sorted(other_mutant.mutant_info),
-                    )
-                ]
-            )
+        return (self.mutant_info == other_mutant.mutant_info) and all(
+            [
+                self_item == others_item
+                for self_item, others_item in zip(
+                    sorted(self.mutant_info),
+                    sorted(other_mutant.mutant_info),
+                )
+            ]
         )
-    
+
     def get_wt_score(self) -> float:
         """
         Get the wt score.

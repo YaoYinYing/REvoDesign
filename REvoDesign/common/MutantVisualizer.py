@@ -57,7 +57,7 @@ class MutantVisualizer:
 
         self.min_score_profile = 0
         self.max_score_profile = 0
-        self.mutant_tree=MutantTree({})
+        self.mutant_tree = MutantTree({})
 
         self.consider_global_score_from_profile = False
 
@@ -83,6 +83,7 @@ class MutantVisualizer:
     def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
         from pymol import cmd, util
         from REvoDesign.tools.pymol_utils import mutate
+
         # mutant: <chain_id><wt><pos><mut>_..._<score>
         new_obj_name = mutant_obj.get_short_mutant_id()
         cmd.create(f"{new_obj_name}", self.molecule)
@@ -368,13 +369,14 @@ class MutantVisualizer:
             variant_obj.set_mutant_score(float(_score))
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,
-                mutant=variant_obj.get_short_mutant_id(), 
-                mutant_info=variant_obj)
-
+                mutant=variant_obj.get_short_mutant_id(),
+                mutant_info=variant_obj,
+            )
 
         # Determine the range for color bar
         score_list = [
-            variant_obj.get_mutant_score() for _, variant_obj in self.mutant_tree.all_mutants
+            variant_obj.get_mutant_score()
+            for _, variant_obj in self.mutant_tree.all_mutants
         ]
         logging.debug(f'Scores: {score_list}')
 
@@ -420,9 +422,12 @@ class MutantVisualizer:
         )
 
         # Create a multiprocessing pool
-        self.mutagenesis_tasks = [[variant] for _, variant in self.mutant_tree.all_mutants]
+        self.mutagenesis_tasks = [
+            [variant] for _, variant in self.mutant_tree.all_mutants
+        ]
 
-        if progress_bar: progress_bar.setRange(0, 0)
+        if progress_bar:
+            progress_bar.setRange(0, 0)
 
         if self.parallel_run:
             parallel_executor = ParallelExecutor(
@@ -438,8 +443,10 @@ class MutantVisualizer:
                 refresh_window()
                 time.sleep(0.001)
 
-            if progress_bar: progress_bar.setRange(0, len(self.mutant_tree.all_mutant_ids))
-            if progress_bar: progress_bar.setValue(len(self.mutant_tree.all_mutant_ids))
+            if progress_bar:
+                progress_bar.setRange(0, len(self.mutant_tree.all_mutant_ids))
+            if progress_bar:
+                progress_bar.setValue(len(self.mutant_tree.all_mutant_ids))
 
             self.results = parallel_executor.handle_result()
 
@@ -451,7 +458,8 @@ class MutantVisualizer:
                 session_path for session_path in self.results if session_path
             ]
         else:
-            if progress_bar: progress_bar.setRange(0, len(self.mutagenesis_tasks))
+            if progress_bar:
+                progress_bar.setRange(0, len(self.mutagenesis_tasks))
             self.mutagenesis_sessions = []
             for mutagenesis_task in self.mutagenesis_tasks:
                 self.mutagenesis_sessions.append(
@@ -461,13 +469,17 @@ class MutantVisualizer:
                 # https://www.jianshu.com/p/38562df9e65d
                 # refresh UI if calculation is not done.
                 refresh_window()
-                if progress_bar: progress_bar.setValue(progress_bar.value() + 1)
+                if progress_bar:
+                    progress_bar.setValue(progress_bar.value() + 1)
 
-            if progress_bar: progress_bar.setValue(len(self.mutagenesis_tasks))
+            if progress_bar:
+                progress_bar.setValue(len(self.mutagenesis_tasks))
 
-        if progress_bar: progress_bar.setRange(0, 0)
+        if progress_bar:
+            progress_bar.setRange(0, 0)
         self.merge_sessions_via_commandline()
-        if progress_bar: progress_bar.setRange(0, 1)
+        if progress_bar:
+            progress_bar.setRange(0, 1)
 
     def merge_sessions_via_commandline(self):
         '''
@@ -496,8 +508,12 @@ class MutantVisualizer:
         from REvoDesign.tools import SessionMerger
 
         logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
-        merged_temp_session = os.path.join(os.path.dirname(self.save_session),'temp_sessions', f'mutate_only.{os.path.basename(self.save_session)}')
-        os.makedirs(os.path.dirname(merged_temp_session),exist_ok=True)
+        merged_temp_session = os.path.join(
+            os.path.dirname(self.save_session),
+            'temp_sessions',
+            f'mutate_only.{os.path.basename(self.save_session)}',
+        )
+        os.makedirs(os.path.dirname(merged_temp_session), exist_ok=True)
 
         tmp_merge_command = [
             SessionMerger.__file__,

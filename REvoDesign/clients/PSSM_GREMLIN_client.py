@@ -41,18 +41,16 @@ class PSSMGremlinCalculator:
         logging.info(f'Calculated MD5 sum {self.md5sum}')
 
     def submit_remote_pssm_gremlin_calc(self, opt):
-
         if opt == 'submit':
             # Submit the file by posting the FASTA file
             response = self.submit_fasta_file(self.temp_file_path)
-            check_response_code(response,successfull_opt='Submitted')
+            check_response_code(response, successfull_opt='Submitted')
             return
-            
 
         elif opt == 'cancel':
             # Cancel the job by posting the cancel URL
             response = self.cancel_job(self.md5sum)
-            check_response_code(response=response,successfull_opt='Cancelled')
+            check_response_code(response=response, successfull_opt='Cancelled')
             return
 
         elif opt == 'download':
@@ -106,7 +104,7 @@ class PSSMGremlinCalculator:
             logging.info(f"Redirected to download page: {redirected_url}")
             self.download_from_redirected_url(redirected_url, md5sum)
         else:
-            check_response_code(response=response,successfull_opt="")
+            check_response_code(response=response, successfull_opt="")
 
     def download_from_redirected_url(self, redirected_url, md5sum):
         response = requests.get(
@@ -139,4 +137,4 @@ class PSSMGremlinCalculator:
             logging.warning(
                 f"Unexpected response when downloading: {response.status_code}"
             )
-            check_response_code(response=response,successfull_opt="")
+            check_response_code(response=response, successfull_opt="")

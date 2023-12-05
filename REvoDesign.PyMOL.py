@@ -21,11 +21,15 @@ After it is done, you should restart PyMOL.
 
 
 def install_via_pip(
-    source='https://github.com/YaoYinYing/REvoDesign', upgrade=0,quiet=0, extras=''
+    source='https://github.com/YaoYinYing/REvoDesign',
+    upgrade=0,
+    quiet=0,
+    extras='',
 ):
     import sys, subprocess
-    upgrade=int(upgrade)
-    quiet=int(quiet)
+
+    upgrade = int(upgrade)
+    quiet = int(quiet)
 
     print(
         'Installation is started. This may take a while and the window will freeze until it is done.'
@@ -88,16 +92,18 @@ def install_via_pip(
     )
     if result.returncode != 0:
         print(f'Installation failed: {source}')
-        if not quiet: 
+        if not quiet:
             print(f'stdout: {result.stdout.decode()}')
             print(f'stderr: {result.stderr.decode()}')
     else:
         print(
             f'Installation succeeded: {source}',
         )
-        if not quiet: 
+        if not quiet:
             print(f'stdout: {result.stdout.decode()}')
-        print('If this is an upgrade, please restart PyMOL for it to take effect.')
+        print(
+            'If this is an upgrade, please restart PyMOL for it to take effect.'
+        )
 
 
 from pymol import cmd
@@ -110,7 +116,6 @@ try:
 except ImportError:
     print('Installation failed. ')
     print(install_msg)
-    
 
 
 # entrypoint of PyMOL plugin

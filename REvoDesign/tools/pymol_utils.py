@@ -7,7 +7,7 @@ from pymol import get_version_message
 from REvoDesign.tools.utils import suppress_print
 
 PYMOL_VERSION = cmd.get_version()[0]
-PYMOL_BUILD=get_version_message()
+PYMOL_BUILD = get_version_message()
 
 
 def is_empty_session():
@@ -34,14 +34,12 @@ def is_polymer_protein(sele=''):
 
     # Retrieve the atoms that belong to a protein polymer within the selection and count unique residues
     resi_list = [
-        at.resi
-        for at in cmd.get_model(f'({sele}) and polymer.protein').atom
+        at.resi for at in cmd.get_model(f'({sele}) and polymer.protein').atom
     ]
     unique_residues = set(resi_list)
 
     # Check if the count of unique residues is greater than 10 to determine if it's a protein with at least 10 residues
     return len(unique_residues) > 10
-
 
 
 def find_small_molecules_in_protein(sele):
@@ -68,7 +66,6 @@ def find_small_molecules_in_protein(sele):
 
     # Return a list of unique small molecule names found within the selection
     return [''] + unique_small_molecules if unique_small_molecules else []
-
 
 
 def find_design_molecules():
@@ -167,19 +164,18 @@ def is_distal_residue_pair(
 
         # Check if the side chains are oriented in opposite directions
         if sidechain_orient < 0:
-            
             if sidechain_com_dist >= Ca_distance:
                 # /-------------\
                 # *---Ca   Ca---*
                 logging.warning(
-                f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal.'
-                )   
+                    f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal.'
+                )
                 return True
             else:
                 #       /--\
                 # Ca---*    *---Ca
                 logging.warning(
-                f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
+                    f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
                 )
                 return sidechain_com_dist > minimal_distance
         else:
@@ -259,6 +255,7 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
 
 def refresh_all_selections():
     from REvoDesign.tools.mutant_tools import shorter_range
+
     selections = [
         sel
         for sel in cmd.get_names(type='selections')
@@ -275,7 +272,9 @@ def is_a_REvoDesign_session():
     return bool(cmd.get_names(type='public_group_objects'))
 
 
-def make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd(), reload=True):
+def make_temperal_input_pdb(
+    molecule, format='pdb', wd=os.getcwd(), reload=True
+):
     os.makedirs(wd, exist_ok=True)
 
     input_file = os.path.join(wd, f'{molecule}.{format}')
@@ -295,6 +294,7 @@ def make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd(), reload=True)
 @suppress_print
 def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
     from pymol import cmd
+
     target = target.upper()
     cmd.wizard("mutagenesis")
     # cmd.do("refresh_wizard")
@@ -307,5 +307,6 @@ def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
     # cmd.set_wizard("done")
     cmd.set_wizard()
     # cmd.refresh()
+
 
 cmd.extend("mutate", mutate)

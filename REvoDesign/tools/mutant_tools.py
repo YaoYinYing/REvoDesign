@@ -260,7 +260,7 @@ def expand_range(shortened_str, connector='-', seperator='+') -> list[int]:
 
     if shortened_str.isdigit():
         return [int(shortened_str)]
-    
+
     ranges = shortened_str.split(seperator)
 
     for rng in ranges:
@@ -303,7 +303,7 @@ def extract_mutant_from_pymol_object(pymol_object, sequence=''):
     return mutant_obj
 
 
-def read_customized_indice(custom_indices_from_input='') -> str: 
+def read_customized_indice(custom_indices_from_input='') -> str:
     """
     Reads and processes customized indices based on the provided input.
 
@@ -316,18 +316,16 @@ def read_customized_indice(custom_indices_from_input='') -> str:
 
     if not custom_indices_from_input:
         return ''
-        
 
     if filepath_does_exists(custom_indices_from_input):
         custom_indices_str = (
             open(custom_indices_from_input, 'r').read().strip()
         )
         return custom_indices_str
-    
+
     # treat input as a digit
     if custom_indices_from_input.isdigit():
         return custom_indices_from_input
-
 
     # direct input of customized indices: 1-20;78-99
     if any([custom_indices_from_input.count(x) >= 1 for x in '-:,;+ ']):
@@ -341,8 +339,12 @@ def read_customized_indice(custom_indices_from_input='') -> str:
             input_string=custom_indices_from_input, characters=',;+ '
         )
 
-        guessed_connector = list(_guessed_connector.keys())[0] if _guessed_connector else '-'
-        guessed_seperator = list(_guessed_seperator.keys())[0] if _guessed_seperator else ','
+        guessed_connector = (
+            list(_guessed_connector.keys())[0] if _guessed_connector else '-'
+        )
+        guessed_seperator = (
+            list(_guessed_seperator.keys())[0] if _guessed_seperator else ','
+        )
 
         custom_indices_str = expand_range(
             shortened_str=custom_indices_from_input,
@@ -351,12 +353,13 @@ def read_customized_indice(custom_indices_from_input='') -> str:
         )
 
         return ','.join([str(x) for x in custom_indices_str])
-    
+
     else:
         logging.error(
             f'Failed in parsing customized indice file/string: {custom_indices_from_input}'
         )
         return ''
+
 
 def process_mutations(data):
     """
@@ -419,62 +422,69 @@ def existed_mutant_tree(sequence):
 
 
 def quick_mutagenesis(
-        mutant_tree: MutantTree, molecule: str, chain_id: str, sequence: str, cmap: str, nproc: int, progress_bar=None
-    ):
-        from REvoDesign.common.MutantVisualizer import MutantVisualizer
-        from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-        from REvoDesign.tools.utils import run_worker_thread_with_progress
-        if mutant_tree.empty:
-            logging.warning(f'Mutant tree is empty!')
-            return
+    mutant_tree: MutantTree,
+    molecule: str,
+    chain_id: str,
+    sequence: str,
+    cmap: str,
+    nproc: int,
+    progress_bar=None,
+):
+    from REvoDesign.common.MutantVisualizer import MutantVisualizer
+    from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
+    from REvoDesign.tools.utils import run_worker_thread_with_progress
 
-        score_list=[
-            mut_obj.get_mutant_score() 
-                for group_id in mutant_tree.all_mutant_branch_ids 
-                    for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items() 
-                ]
-        
-        results=[]
+    if mutant_tree.empty:
+        logging.warning(f'Mutant tree is empty!')
+        return
 
-        input_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
+    score_list = [
+        mut_obj.get_mutant_score()
+        for group_id in mutant_tree.all_mutant_branch_ids
+        for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items()
+    ]
 
-        for group_id in mutant_tree.all_mutant_branch_ids:
+    results = []
 
-            visualizer = MutantVisualizer(
-                molecule=molecule, chain_id=chain_id
-            )
+    input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
 
-            visualizer.sequence=sequence
-            visualizer.full = False
-            visualizer.cmap = cmap
+    for group_id in mutant_tree.all_mutant_branch_ids:
+        visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
 
-            visualizer.min_score=min(score_list)
-            visualizer.max_score=max(score_list)
+        visualizer.sequence = sequence
+        visualizer.full = False
+        visualizer.cmap = cmap
 
-            visualizer.nproc = nproc
+        visualizer.min_score = min(score_list)
+        visualizer.max_score = max(score_list)
 
-            visualizer.group_name = group_id
-            visualizer.parallel_run = nproc > 1
-            visualizer.input_session = input_pdb
-            visualizer.save_session = os.path.join(
-                os.path.dirname(input_pdb),
-                f'group.{group_id}.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
-            )
+        visualizer.nproc = nproc
 
-            visualizer.mutant_tree = MutantTree(
-                {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
-            )
-            visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
-            results.append(visualizer.save_session)
+        visualizer.group_name = group_id
+        visualizer.parallel_run = nproc > 1
+        visualizer.input_session = input_pdb
+        visualizer.save_session = os.path.join(
+            os.path.dirname(input_pdb),
+            f'group.{group_id}.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
+        )
 
-        
-        # call MutantVisualizer for merge sessions
-        session_merger = MutantVisualizer(molecule='', chain_id='')
-        session_merger.input_session = input_pdb
-        session_merger.save_session = os.path.join(
-                os.path.dirname(input_pdb),
-                f'merged.{os.path.basename(input_pdb).replace(".pdb",".pze")}')
-        session_merger.mutagenesis_sessions = results
-        run_worker_thread_with_progress(session_merger.merge_sessions_via_commandline,progress_bar=progress_bar)
-        cmd.load(session_merger.save_session,partial=2)
-        return 
+        visualizer.mutant_tree = MutantTree(
+            {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
+        )
+        visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
+        results.append(visualizer.save_session)
+
+    # call MutantVisualizer for merge sessions
+    session_merger = MutantVisualizer(molecule='', chain_id='')
+    session_merger.input_session = input_pdb
+    session_merger.save_session = os.path.join(
+        os.path.dirname(input_pdb),
+        f'merged.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
+    )
+    session_merger.mutagenesis_sessions = results
+    run_worker_thread_with_progress(
+        session_merger.merge_sessions_via_commandline,
+        progress_bar=progress_bar,
+    )
+    cmd.load(session_merger.save_session, partial=2)
+    return
