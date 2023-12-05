@@ -90,7 +90,7 @@ def find_all_protein_chain_ids_in_protein(sele):
     """
     Function: find_all_protein_chain_ids_in_protein
     Usage: chain_ids = find_all_protein_chain_ids_in_protein(selection)
-    
+
     This function finds all chain IDs assigned to a protein molecule within the given selection.
 
     Args:
@@ -208,13 +208,13 @@ def renumber_chain_ids(target_protein):
     """
     Function: renumber_chain_ids
     Usage: renumber_chain_ids(target_protein)
-    
+
     This function renumbers chain IDs of a given protein molecule using alphabets A-Z.
     It alters the chain IDs of the protein structure in PyMOL.
 
     Args:
     - target_protein (str): PyMOL selection string of the target protein
-    
+
     Returns:
     - None
     """
@@ -227,16 +227,17 @@ def renumber_chain_ids(target_protein):
         )
 
 
-def get_molecule_sequence(molecule, chain_id):
+def get_molecule_sequence(molecule, chain_id, keep_missing=True):
     """
     Function: get_molecule_sequence
     Usage: sequence = get_molecule_sequence(molecule, chain_id)
-    
+
     This function retrieves the amino acid sequence of a molecule (protein) specified by a given chain ID.
 
     Args:
     - molecule (str): PyMOL selection string of the molecule
     - chain_id (str): Chain ID of the molecule
+    - keep_missing (bool): Keep missing residues in structure as 'X'
 
     Returns:
     - str: Amino acid sequence of the specified molecule and chain
@@ -247,21 +248,37 @@ def get_molecule_sequence(molecule, chain_id):
         key.upper(): val.upper()
         for key, val in IUPACData.protein_letters_3to1.items()
     }
-    return ''.join(
-        [
-            protein_letters_3to1_upper[atom.resn]
-            for atom in cmd.get_model(
-                f'( {molecule} and c. {chain_id} and n. CA )'
-            ).atom
-        ]
-    )
+
+    CA = [
+        atom
+        for atom in cmd.get_model(
+            f'( {molecule} and c. {chain_id} and n. CA )'
+        ).atom
+    ]
+    if keep_missing:
+        resi = [int(atom.resi) for atom in CA]
+        resi_max = max(resi)
+        resn = []
+        offset = 0
+
+        for i in range(1, resi_max + 1):
+            if i in resi:
+                res = CA[i - 1 + offset].resn
+                resn.append(protein_letters_3to1_upper[res])
+            else:
+                resn.append('X')
+                offset -= 1
+
+        return ''.join(resn)
+    else:
+        return ''.join([protein_letters_3to1_upper[atom.resn] for atom in CA])
 
 
 def get_atom_pair_cst(selection='sele'):
     """
     Function: get_atom_pair_cst
     Usage: cst = get_atom_pair_cst(selection='sele')
-    
+
     This function generates a distance constraint (cst) in CHARMM format for a pair of atoms selected in PyMOL.
 
     Args:
@@ -285,14 +302,14 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
     """
     Function: autogrid_flexible_residue
     Usage: flex_residues = autogrid_flexible_residue(molecule, chain_id, selection)
-    
+
     This function generates a string specifying flexible residues for AutoGrid in AutoDock.
 
     Args:
     - molecule (str): PyMOL selection string of the molecule
     - chain_id (str): Chain ID of the molecule
     - selection (str): PyMOL selection string for residue selection
-    
+
     Returns:
     - str or None: String specifying flexible residues for AutoGrid in AutoDock.
                    Returns None if any of the input parameters (molecule, chain_id, selection) are invalid.
@@ -323,7 +340,7 @@ def refresh_all_selections():
     """
     Function: refresh_all_selections
     Usage: selections = refresh_all_selections()
-    
+
     This function refreshes and logs information about all PyMOL selections except 'sele' and those starting with '_align'.
 
     Returns:
@@ -347,7 +364,7 @@ def is_a_REvoDesign_session():
     """
     Function: is_a_REvoDesign_session
     Usage: result = is_a_REvoDesign_session()
-    
+
     This function checks if it's a REvoDesign session by verifying the existence of public group objects.
 
     Returns:
@@ -362,7 +379,7 @@ def make_temperal_input_pdb(
     """
     Function: make_temperal_input_pdb
     Usage: input_file = make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd(), reload=True)
-    
+
     This function generates a temporary input PDB file from the specified molecule selection.
 
     Args:
@@ -395,7 +412,7 @@ def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
     """
     Function: mutate
     Usage: mutate(molecule, chain, resi, target="CYS", mutframe="1")
-    
+
     This function performs residue mutation in PyMOL using the mutagenesis wizard.
 
     Args:

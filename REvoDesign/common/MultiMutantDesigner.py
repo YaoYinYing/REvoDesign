@@ -218,7 +218,9 @@ class MultiMutantDesigner:
                 f'Pre-heating {self.scorer} ... This could take a while...'
             )
             self.external_scorer = magician(molecule=self.molecule)
-            self.external_scorer.initialize()
+            self.external_scorer.initialize(
+                ignore_missing=bool('X' in self.sequence)
+            )
 
         return
 

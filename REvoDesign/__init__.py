@@ -2814,6 +2814,7 @@ class REvoDesignPlugin:
                 )
                 run_worker_thread_with_progress(
                     worker_function=self.gremlin_external_scorer.initialize,
+                    ignore_missing=bool('X' in self.sequence),
                     progress_bar=self.ui.progressBar,
                 )
 

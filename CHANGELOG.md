@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Loads of usage info thanks to the [ChatGPT prompt as coding helper](prompt/prompt.md) prompt!
+- `get_molecule_sequence`: `keep_missing` option to save missing residue as `X`
+- `extract_mutant_from_sequences`: `fix_missing` to restore missing `X` in mutant from external designer.
+
+
+### Fixed
+- Loop (`127.0.0.1`) as websocket server address
+- External designer ProteinMPNN failure if residue is missing in crystal structure model
+- Missing chain id argument in `External designer` calling of `REvoDesigner`
+
+
 ## [1.3.0] - 2023-12-05
 
 ### Added

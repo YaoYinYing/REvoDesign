@@ -192,7 +192,7 @@ class MutantVisualizer:
             magician = EXTERNAL_DESIGNERS[profile_format]
 
             self.scorer = magician(molecule=self.molecule)
-            self.scorer.initialize()
+            self.scorer.initialize(ignore_missing=bool('X' in self.sequence))
             if not self.scorer:
                 logging.error(
                     f'Failed to initialize designer from `{profile_format}`: {self.scorer.__class__.__name__}'

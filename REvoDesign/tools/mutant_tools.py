@@ -145,7 +145,7 @@ def extract_mutant_score_from_string(mutant_string):
 
 
 def extract_mutant_from_sequences(
-    mutant_sequence, wt_sequence, chain_id='A'
+    mutant_sequence, wt_sequence, chain_id='A', fix_missing=False
 ) -> Mutant:
     '''
     Extract mutant from mutant sequence.
@@ -154,19 +154,44 @@ def extract_mutant_from_sequences(
     mutant_sequence (str): Mutant sequence.
     wt_sequence (str): Wild-type sequence.
     chain_id (str): Chain id
+    fix_missing (bool): Fix missing residue ('X') in mutant according to the WT sequence.
 
     Returns:
     Mutant: Mutant object
     '''
-    if len(mutant_sequence) != len(wt_sequence):
+    _wt_sequence = wt_sequence.replace('X', '')
+    _mutant_sequence = mutant_sequence.replace('X', '')
+
+    if len(_mutant_sequence) != len(_wt_sequence):
         logging.error(
-            f'Lengths of WT and mutant are not equal to each other: {len(wt_sequence)}: {len(mutant_sequence)}'
+            f'Lengths of filtered WT and mutant are not equal to each other: {len(_wt_sequence)}: {len(_mutant_sequence)}'
         )
         return None
 
     if mutant_sequence == wt_sequence:
         logging.warning(f'WT and mutant sequences are identical.')
         return None
+
+    if 'X' in wt_sequence and not fix_missing:
+        logging.warning(f'WT has missing residue masked as "X"!')
+
+    if fix_missing:
+        _mutant_sequence = ''
+        offset = 0
+        for i, c in enumerate(wt_sequence):
+            if c != 'X':
+                _mutant_sequence += mutant_sequence[i + offset]
+            else:
+                _mutant_sequence += 'X'
+                offset -= 1
+
+        if len(_mutant_sequence) != len(wt_sequence):
+            logging.error(
+                f'Lengths of WT and fixed mutant are not equal to each other: {len(wt_sequence)}: {len(_mutant_sequence)}'
+            )
+            return None
+
+        mutant_sequence = _mutant_sequence
 
     mut_info = [
         {
@@ -433,7 +458,7 @@ def quick_mutagenesis(
     """
     Function: quick_mutagenesis
     Usage: quick_mutagenesis(mutant_tree, molecule, chain_id, sequence, cmap, nproc, progress_bar=None)
-    
+
     This function performs quick mutagenesis tasks using MutantVisualizer from REvoDesign.
 
     Args:

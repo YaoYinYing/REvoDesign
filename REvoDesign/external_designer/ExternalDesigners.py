@@ -1,5 +1,7 @@
 import os
 
+from REvoDesign.tools.pymol_utils import get_molecule_sequence
+
 
 # Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN:
@@ -27,10 +29,11 @@ class ColabDesigner_MPNN:
         self.pdb_filename = make_temperal_input_pdb(
             molecule=self.molecule, reload=self.reload
         )
+        
         self.mpnn_model = mk_mpnn_model()
         assert os.path.exists(self.pdb_filename)
         self.mpnn_model.prep_inputs(
-            pdb_filename=self.pdb_filename, *args, **kwargs
+            pdb_filename=self.pdb_filename, *args, **kwargs, 
         )
         self.initialized = True
 

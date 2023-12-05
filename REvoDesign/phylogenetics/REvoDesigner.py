@@ -368,6 +368,7 @@ class REvoDesigner:
                     else None,
                     chain=','.join(self.design_chain_id),
                     homooligomeric=self.homooligomeric,
+                    ignore_missing=bool('X' in self.sequence),
                 )
 
             # register more Magician at here.
@@ -457,7 +458,10 @@ class REvoDesigner:
 
         for seq, score in zip(seqs, scores):
             mutant_obj = extract_mutant_from_sequences(
-                mutant_sequence=seq, wt_sequence=self.sequence
+                mutant_sequence=seq,
+                chain_id=self.chain_id,
+                wt_sequence=self.sequence,
+                fix_missing=bool('X' in self.sequence),
             )
             if not mutant_obj:
                 logging.warning('Skipped.')
