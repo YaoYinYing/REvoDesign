@@ -208,7 +208,7 @@ class REvoDesignWebSocketServer:
                 OS_INFO.node, QtWebSockets.QWebSocketServer.NonSecureMode
             )
 
-            if self.server.listen(QtNetwork.QHostAddress.LocalHost, self.port):
+            if self.server.listen(QtNetwork.QHostAddress.Any, self.port):
                 logging.info(
                     f'Listening: {self.server.serverAddress().toString()}:{str(self.server.serverPort())}'
                 )
