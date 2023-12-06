@@ -1,8 +1,5 @@
 import os
 
-from REvoDesign.tools.pymol_utils import get_molecule_sequence
-
-
 # Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN:
     def __init__(self, molecule):

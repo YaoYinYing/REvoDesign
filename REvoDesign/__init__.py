@@ -1,7 +1,6 @@
 import asyncio
 import sys, os
 import time
-import threading
 from pymol import cmd
 
 from pymol.Qt import QtCore, QtGui, QtWidgets

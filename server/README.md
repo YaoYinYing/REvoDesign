@@ -104,6 +104,12 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    openssl dhparam -out /path/to/certificates/dhparam.pem 2048
    ```
 
+   To schedule certificate renew task, use `crontab -e` to create a monthly renew task:
+   ```crontab
+   0 5 1 * * CLOUDFLARE_EMAIL=your.cloudflare_account@email.address CLOUDFLARE_API_KEY=YOUR-CLOUDFLARE-API-KEY lego --email your@email.address  -a --key-type rsa4096 --dns cloudflare --domains 'revodesign.your-domain.name' --path /path/to/certificates/ renew
+   ```
+   
+
    **IMPORTANT**: Create a http user for basic authentication from accessing the server
    ```shell
    htpasswd -c /etc/apache2/.htpasswd revodesign_users
