@@ -58,7 +58,7 @@ class REvoDesignWebSocketServer:
 
     def __init__(self):
         super().__init__()
-        self.clients = {}
+        self.clients: dict[dict, None] = {}
         self.waiting_room = set()
         self.server = None  # Initialize server as None
         self.server_url = 'localhost'
@@ -152,10 +152,13 @@ class REvoDesignWebSocketServer:
         ]
 
     def refresh_user_tree(self) -> dict:
-        return {
+        from REvoDesign.tools.system_tools import get_client_info
+        user_tree= {
             uuid: {k: v for k, v in data.items() if k != 'client'}
             for uuid, data in self.clients.items()
         }
+        user_tree['Host']=get_client_info()
+        return user_tree
 
     def processTextMessage(self, client, message):
         """
@@ -231,11 +234,12 @@ class REvoDesignWebSocketServer:
 
             logging.debug(self.clients)
             user_tree = self.refresh_user_tree()
+            self._broadcast_object(obj=user_tree, data_type='UserTree')
             refresh_tree_widget(
                 user_tree=user_tree,
                 treeWidget_ws_peers=self.treeWidget_ws_peers,
             )
-            self._broadcast_object(obj=user_tree, data_type='UserTree')
+            
 
             return
 
@@ -274,9 +278,11 @@ class REvoDesignWebSocketServer:
             client.deleteLater()
 
         user_tree = self.refresh_user_tree()
+        self._broadcast_object(obj=user_tree, data_type='UserTree')
         refresh_tree_widget(
             user_tree=user_tree, treeWidget_ws_peers=self.treeWidget_ws_peers
         )
+        
 
     def stop_server(self):
         """
@@ -293,10 +299,9 @@ class REvoDesignWebSocketServer:
         if self.server:
             self.server.close()
             self.server = None
-
-        user_tree = self.refresh_user_tree()
+        
         refresh_tree_widget(
-            user_tree=user_tree, treeWidget_ws_peers=self.treeWidget_ws_peers
+            user_tree={}, treeWidget_ws_peers=self.treeWidget_ws_peers
         )
 
         self.is_running = False
