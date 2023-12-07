@@ -636,6 +636,16 @@ def create_cmap_icon(cmap: str):
 
 
 def refresh_tree_widget(user_tree, treeWidget_ws_peers):
+    """
+    Refreshes a given tree widget with user data.
+
+    Args:
+    - user_tree (dict): Dictionary containing user information.
+    - treeWidget_ws_peers (QtWidgets.QTreeWidget): Tree widget to be refreshed.
+
+    Returns:
+    - None
+    """
     # Clear the existing table
     treeWidget_ws_peers.clear()
 

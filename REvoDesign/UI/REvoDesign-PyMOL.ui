@@ -3885,7 +3885,7 @@
           <item>
            <widget class="QCheckBox" name="checkBox_ws_recieve_view_broadcast">
             <property name="statusTip">
-             <string>Receive PyMOL view update</string>
+             <string>Receive PyMOL view updates</string>
             </property>
             <property name="text">
              <string>Receive view broadcast</string>
@@ -4005,6 +4005,9 @@
          <layout class="QHBoxLayout" name="horizontalLayout_42">
           <item>
            <widget class="QCheckBox" name="checkBox_ws_server_use_key">
+            <property name="statusTip">
+             <string>Use key in server</string>
+            </property>
             <property name="text">
              <string>Key:</string>
             </property>

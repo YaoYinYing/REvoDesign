@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Loads of usage info thanks to the [ChatGPT prompt as coding helper](prompt/prompt.md) prompt!
 - `get_molecule_sequence`: `keep_missing` option to save missing residue as `X`
 - `extract_mutant_from_sequences`: `fix_missing` to restore missing `X` in mutant from external designer.
+- Peer view in `Socket` tab
+
+### Changed
+- UI changes of `Socket` tab. Similar widgets between server and client are now uniq.
+- Using UUID as the key of client table.
 
 
 ### Fixed

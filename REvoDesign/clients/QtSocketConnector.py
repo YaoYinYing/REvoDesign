@@ -11,10 +11,8 @@ from PyQt5 import QtWebSockets, QtNetwork, QtCore
 from absl import logging
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
-import datetime
 
 from REvoDesign.tools.customized_widgets import (
-    WorkerThread,
     refresh_tree_widget,
     refresh_window,
 )
@@ -227,6 +225,7 @@ class REvoDesignWebSocketServer:
                 client.sendTextMessage(
                     f'Key authentication is successful.\nWellcome to {OS_INFO.node}, {data["user"]}.'
                 )
+                self._broadcast_object(obj=uuid,data_type='UUID',client=client)
             # once the authentcation finished, the client should leave waiting room
             self.waiting_room.remove(client)
 
@@ -313,8 +312,10 @@ class REvoDesignWebSocketServer:
         bool: True if the key matches, False otherwise.
         """
         return key == self.authentication_key
+    
 
-    def _broadcast_object(self, obj, data_type):
+
+    def _broadcast_object(self, obj, data_type: str, client=None):
         """
         Broadcasts serialized objects to connected clients.
 
@@ -327,6 +328,10 @@ class REvoDesignWebSocketServer:
         """
         serialized_obj = self.serialize_object(obj, data_type)
         serialized_json = json.dumps(serialized_obj)
+
+        if client:
+            client.sendTextMessage(serialized_json)
+            return
 
         for client in self.current_clients():
             client.sendTextMessage(serialized_json)
@@ -518,6 +523,7 @@ class REvoDesignWebSocketClient:
         self.cmap = 'bwr_r'
         self.nproc = 2
 
+        self.uuid=''
         self.connected = False
         self.client = None
         self.progress_bar = None
@@ -650,13 +656,13 @@ class REvoDesignWebSocketClient:
 
         from REvoDesign.tools.utils import run_worker_thread_with_progress
 
-        obj = self.deserialize_object(data['data'], data['data_type'])
+        deserialized_object = self.deserialize_object(data['data'], data['data_type'])
 
         # process Non-empty MutantTree
-        if data['data_type'] == 'MutantTree' and obj and not obj.empty:
+        if data['data_type'] == 'MutantTree' and deserialized_object and not deserialized_object.empty:
             from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
-            received_mutant_tree = obj.__deepcopy__()
+            received_mutant_tree = deserialized_object.__deepcopy__()
             diff_mutant_tree = received_mutant_tree.diff_tree_from(
                 existed_mutant_tree(sequence=self.design_sequence)
             )
@@ -674,30 +680,36 @@ class REvoDesignWebSocketClient:
             return
 
         # process ViewUpdates
-        if data['data_type'] == 'ViewUpdate' and type(obj) == tuple:
+        if data['data_type'] == 'ViewUpdate' and type(deserialized_object) == tuple:
             if not self.receive_view_broadcast:
                 logging.warning(f'View update is disabled.')
                 return
 
             # logging.debug('update pymol view')
-            cmd.set_view(obj)
+            cmd.set_view(deserialized_object)
             return
 
-        if data['data_type'] == 'UserTree' and type(obj) == dict:
+        if data['data_type'] == 'UserTree' and type(deserialized_object) == dict:
             refresh_tree_widget(
-                user_tree=obj, treeWidget_ws_peers=self.treeWidget_ws_peers
+                user_tree=deserialized_object, treeWidget_ws_peers=self.treeWidget_ws_peers
             )
+            return
+        
+        if data['data_type'] == 'UUID' and type(deserialized_object) == str:
+            logging.info(f'Get a new UUID: {deserialized_object}')
+            self.uuid=deserialized_object
             return
 
         # process more data objects ....
 
         logging.warning(
-            f'Unknow data in type {data["data_type"]}: {obj} (type {type(obj)})'
+            f'Unknow data in type {data["data_type"]}: {deserialized_object} (type {type(deserialized_object)})'
         )
+        return
 
     def deserialize_object(
         self, serialized_data, data_type
-    ) -> Union[MutantTree, tuple, None]:
+    ) -> Union[MutantTree, tuple, None, str, dict]:
         if data_type:
             decoded_data = base64.b64decode(serialized_data)
             return pickle.loads(decoded_data)
