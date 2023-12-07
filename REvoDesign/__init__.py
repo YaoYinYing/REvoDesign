@@ -2965,6 +2965,7 @@ class REvoDesignPlugin:
             lineEdit_ws_server_key=self.ui.lineEdit_ws_server_key,
             spinBox_ws_server_port=self.ui.spinBox_ws_server_port,
             doubleSpinBox_ws_view_broadcast_interval=self.ui.doubleSpinBox_ws_view_broadcast_interval,
+            treeWidget_ws_peers=self.ui.treeWidget_ws_peers
         )
 
     def update_ws_server_view_update_options(self):
@@ -3065,10 +3066,11 @@ class REvoDesignPlugin:
 
         self.ws_client.setup_ws_client(
             lineEdit_ws_server_url_to_connect=self.ui.lineEdit_ws_server_url_to_connect,
-            spinBox_ws_server_port_to_connect=self.ui.spinBox_ws_server_port_to_connect,
-            lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key_to_connect,
+            spinBox_ws_server_port_to_connect=self.ui.spinBox_ws_server_port,
+            lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key,
             checkBox_ws_receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast,
             checkBox_ws_receive_mutagenesis_broadcast=self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
+            treeWidget_ws_peers=self.ui.treeWidget_ws_peers
         )
 
     def update_ws_client_view_update_options(self):
@@ -3082,7 +3084,7 @@ class REvoDesignPlugin:
 
     def toggle_ws_client_connection(self, connect=True):
         if not self.ws_client:
-            from REvoDesign.clients.SocketConnector import (
+            from REvoDesign.clients.QtSocketConnector import (
                 REvoDesignWebSocketClient,
             )
 

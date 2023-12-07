@@ -6,12 +6,18 @@ import socket
 import time
 import traceback
 from typing import Union
+from pymol.Qt import QtWidgets
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
 from absl import logging
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
+import datetime
 
-from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window
+from REvoDesign.tools.customized_widgets import (
+    WorkerThread,
+    refresh_tree_widget,
+    refresh_window,
+)
 
 
 '''
@@ -51,6 +57,7 @@ class REvoDesignWebSocketServer:
     - broadcast_view: Broadcasts view updates to clients.
     - is_port_available: Checks if a port is available for use.
     """
+
     def __init__(self):
         super().__init__()
         self.clients = {}
@@ -66,6 +73,8 @@ class REvoDesignWebSocketServer:
         self.view_broadcast_on_air = False
         self.view_broadcast_worker = None
         self.view_broadcast_interval = 0.1
+
+        self.treeWidget_ws_peers = None
 
     def onAcceptError(self, accept_error):
         """
@@ -87,7 +96,6 @@ class REvoDesignWebSocketServer:
         None
         """
         client_connection = self.server.nextPendingConnection()
-        # client_connection.connected.connect(lambda client=client_connection: self.askUserAuthentication(client))
         client_connection.textMessageReceived.connect(
             lambda message, client=client_connection: self.processTextMessage(
                 client, message
@@ -101,7 +109,6 @@ class REvoDesignWebSocketServer:
         client_connection.disconnected.connect(
             lambda client=client_connection: self.socketDisconnected(client)
         )
-        # self.clients[client_connection] = {}
 
     def askUserAuthentication(self, client):
         """
@@ -113,7 +120,7 @@ class REvoDesignWebSocketServer:
         Returns:
         None
         """
-        if client in self.clients:
+        if self.is_logged_in_client(client=client):
             logging.warning(
                 f'Client {client} has already joined in chat room.'
             )
@@ -127,6 +134,30 @@ class REvoDesignWebSocketServer:
         client.sendTextMessage('Require key')
 
         return
+
+    def is_logged_in_client(self, client):
+        return any([_client == client for _client in self.current_clients()])
+
+    def get_client_uuid(self, client):
+        assert self.is_logged_in_client(client=client)
+        _ = [
+            uuid
+            for uuid in self.clients.keys()
+            if self.clients[uuid]['client'] == client
+        ]
+        return _[0]
+
+    def current_clients(self):
+        return [
+            _client_info['client']
+            for uuid, _client_info in self.clients.items()
+        ]
+
+    def refresh_user_tree(self) -> dict:
+        return {
+            uuid: {k: v for k, v in data.items() if k != 'client'}
+            for uuid, data in self.clients.items()
+        }
 
     def processTextMessage(self, client, message):
         """
@@ -142,23 +173,26 @@ class REvoDesignWebSocketServer:
         logging.info(f">>> {message}")
 
         # a new client who has not joined yet
-        if client not in self.waiting_room and client not in self.clients:
+        if client not in self.waiting_room and not self.is_logged_in_client(
+            client=client
+        ):
             # by asking the authentication, this client will be added to the waiting room
             self.askUserAuthentication(client)
             return
         try:
             # try to load message, treating as a json-loadable string
-            data = json.loads(message)
+            data: dict = json.loads(message)
         except:
             # if json fails to load it, we treat it as a normal text
             data = message
             logging.info(
-                f'>>> {self.clients[client]["user"] if client in self.clients else client}: {message}'
+                f'>>> {self.clients[self.get_client_uuid(client=client)]["user"] if self.is_logged_in_client(client=client) else client}: {message}'
             )
             return
 
         if client in self.waiting_room:
             from REvoDesign.tools.system_tools import OS_INFO
+            from REvoDesign.tools.client_tools import UUIDGenerator
 
             if not self.use_authentication or not self.authentication_key:
                 authenticated = True
@@ -174,18 +208,39 @@ class REvoDesignWebSocketServer:
                 )
                 client.close()
             else:
-                self.clients[client] = data
+                uuid = UUIDGenerator().generate_uuid()
+
+                joined_time_stamp = time.time()
+                joined_time_str = time.strftime(
+                    '%Y-%m-%d %H:%M:%S', time.localtime(joined_time_stamp)
+                )
+
+                data['joined_time_stamp'] = joined_time_stamp
+                data['joined_time'] = joined_time_str
+                data['client'] = client
+
+                data.pop('auth_key')
+                self.clients[uuid] = data
                 logging.info(
                     f'Client  {data["user"]} from {data["node"]} is join.'
                 )
                 client.sendTextMessage(
-                    f'Key authentication is successful. Wellcome to {OS_INFO.node}, {data["user"]}.'
+                    f'Key authentication is successful.\nWellcome to {OS_INFO.node}, {data["user"]}.'
                 )
-            # once the authentcation finished, the client should be removed from waiting room
+            # once the authentcation finished, the client should leave waiting room
             self.waiting_room.remove(client)
+
+            logging.debug(self.clients)
+            user_tree = self.refresh_user_tree()
+            refresh_tree_widget(
+                user_tree=user_tree,
+                treeWidget_ws_peers=self.treeWidget_ws_peers,
+            )
+            self._broadcast_object(obj=user_tree, data_type='UserTree')
+
             return
 
-        if client in self.clients:
+        if client in self.current_clients():
             pass
 
     def processBinaryMessage(self, client, message):
@@ -214,9 +269,15 @@ class REvoDesignWebSocketServer:
         None
         """
         logging.info("Socket Disconnected")
-        if client in self.clients:
-            del self.clients[client]
+        if client in self.current_clients():
+            uuid = self.get_client_uuid(client=client)
+            self.clients.pop(uuid)
             client.deleteLater()
+
+        user_tree = self.refresh_user_tree()
+        refresh_tree_widget(
+            user_tree=user_tree, treeWidget_ws_peers=self.treeWidget_ws_peers
+        )
 
     def stop_server(self):
         """
@@ -226,11 +287,19 @@ class REvoDesignWebSocketServer:
         None
         """
         logging.info("Stopping Server")
-        for client in list(self.clients.keys()):
+        for client in self.current_clients():
+            uuid = self.get_client_uuid(client=client)
+            self.clients.pop(uuid)
             client.close()
         if self.server:
             self.server.close()
             self.server = None
+
+        user_tree = self.refresh_user_tree()
+        refresh_tree_widget(
+            user_tree=user_tree, treeWidget_ws_peers=self.treeWidget_ws_peers
+        )
+
         self.is_running = False
 
     def authenticate_client(self, key):
@@ -245,7 +314,7 @@ class REvoDesignWebSocketServer:
         """
         return key == self.authentication_key
 
-    async def broadcast_object(self, obj, data_type):
+    def _broadcast_object(self, obj, data_type):
         """
         Broadcasts serialized objects to connected clients.
 
@@ -259,8 +328,21 @@ class REvoDesignWebSocketServer:
         serialized_obj = self.serialize_object(obj, data_type)
         serialized_json = json.dumps(serialized_obj)
 
-        for client in self.clients.keys():
+        for client in self.current_clients():
             client.sendTextMessage(serialized_json)
+
+    async def broadcast_object(self, obj, data_type):
+        """
+        Broadcasts serialized objects to connected clients.
+
+        Args:
+        - obj: Object to be serialized and broadcasted.
+        - data_type: Type of the data.
+
+        Returns:
+        None
+        """
+        self._broadcast_object(obj=obj, data_type=data_type)
 
     def serialize_object(self, obj, data_type: str):
         """
@@ -300,6 +382,7 @@ class REvoDesignWebSocketServer:
         lineEdit_ws_server_key,
         checkBox_ws_broadcast_view,
         doubleSpinBox_ws_view_broadcast_interval,
+        treeWidget_ws_peers,
     ):
         """
         Sets up the WebSocket server with specified settings.
@@ -354,6 +437,8 @@ class REvoDesignWebSocketServer:
             self.server.acceptError.connect(self.onAcceptError)
             self.server.newConnection.connect(self.onNewConnection)
 
+        self.treeWidget_ws_peers = treeWidget_ws_peers
+
     def check_broadcast_interval(self) -> float:
         """
         Checks the broadcast interval.
@@ -397,7 +482,7 @@ class REvoDesignWebSocketServer:
             serialized_json = json.dumps(serialized_obj)
             last_view = view_data
 
-            for client in self.clients.keys():
+            for client in self.current_clients():
                 client.sendTextMessage(serialized_json)
 
     def is_port_available(self, port):
@@ -436,6 +521,7 @@ class REvoDesignWebSocketClient:
         self.connected = False
         self.client = None
         self.progress_bar = None
+        self.treeWidget_ws_peers = None
 
     def setup_ws_client(
         self,
@@ -444,6 +530,7 @@ class REvoDesignWebSocketClient:
         lineEdit_ws_server_key_to_connect,
         checkBox_ws_receive_mutagenesis_broadcast,
         checkBox_ws_receive_view_broadcast,
+        treeWidget_ws_peers,
     ):
         if not self.design_molecule or not self.design_chain_id:
             raise ValueError('Invalid design molecule/chain ID!')
@@ -465,6 +552,8 @@ class REvoDesignWebSocketClient:
         self.receive_view_broadcast = (
             checkBox_ws_receive_view_broadcast.isChecked()
         )
+
+        self.treeWidget_ws_peers = treeWidget_ws_peers
 
         logging.info(
             'Setting up client is done. Preparing to connect to the server.'
@@ -507,6 +596,10 @@ class REvoDesignWebSocketClient:
         try:
             self.client.close()
             self.connected = False
+            refresh_tree_widget(
+                user_tree={}, treeWidget_ws_peers=self.treeWidget_ws_peers
+            )
+
         except:
             traceback.print_exc()
             logging.error('Client disconnection failed.')
@@ -549,13 +642,12 @@ class REvoDesignWebSocketClient:
                 self.authenticate_client()
 
             return
-        
+
         # discard broken data objects
         if not 'data' in data or not 'data_type' in data:
             logging.warning('Uncomplete data object is discarded.')
             return
 
-        
         from REvoDesign.tools.utils import run_worker_thread_with_progress
 
         obj = self.deserialize_object(data['data'], data['data_type'])
@@ -580,7 +672,7 @@ class REvoDesignWebSocketClient:
                     progress_bar=self.progress_bar,
                 )
             return
-        
+
         # process ViewUpdates
         if data['data_type'] == 'ViewUpdate' and type(obj) == tuple:
             if not self.receive_view_broadcast:
@@ -590,7 +682,13 @@ class REvoDesignWebSocketClient:
             # logging.debug('update pymol view')
             cmd.set_view(obj)
             return
-        
+
+        if data['data_type'] == 'UserTree' and type(obj) == dict:
+            refresh_tree_widget(
+                user_tree=obj, treeWidget_ws_peers=self.treeWidget_ws_peers
+            )
+            return
+
         # process more data objects ....
 
         logging.warning(
@@ -600,10 +698,10 @@ class REvoDesignWebSocketClient:
     def deserialize_object(
         self, serialized_data, data_type
     ) -> Union[MutantTree, tuple, None]:
-        if data_type == 'MutantTree' or data_type == 'ViewUpdate':
+        if data_type:
             decoded_data = base64.b64decode(serialized_data)
             return pickle.loads(decoded_data)
-        
+
         # process more data objects ....
 
         else:

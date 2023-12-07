@@ -3,7 +3,7 @@ from absl import logging
 import os
 import ssl
 from OpenSSL import crypto
-
+import uuid
 
 def check_response_code(response, successfull_opt='Submitted'):
     """
@@ -156,3 +156,19 @@ def create_new_certificate(crt_path, key_path):
         f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
     with open(key_path, 'wb') as f:
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
+
+
+
+class UUIDGenerator:
+    """
+    This class implements a UUID generator using Python's built-in 'uuid' module.
+    """
+
+    def generate_uuid(self):
+        """
+        Generates a UUID using the uuid4 method.
+        
+        Returns:
+        - str: A string representation of the generated UUID.
+        """
+        return str(uuid.uuid4())

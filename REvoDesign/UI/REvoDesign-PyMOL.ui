@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>558</height>
+    <height>557</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -3741,26 +3741,268 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>90</y>
-        <width>381</width>
-        <height>111</height>
+        <y>110</y>
+        <width>331</width>
+        <height>71</height>
        </rect>
       </property>
       <property name="title">
        <string>Server options</string>
       </property>
-      <widget class="QWidget" name="verticalLayoutWidget_2">
+      <widget class="QWidget" name="">
        <property name="geometry">
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>361</width>
-         <height>73</height>
+         <width>241</width>
+         <height>31</height>
         </rect>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_8">
+       <layout class="QHBoxLayout" name="horizontalLayout_54">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_53">
+         <widget class="QCheckBox" name="checkBox_ws_broadcast_view">
+          <property name="statusTip">
+           <string>View broadcasting interval</string>
+          </property>
+          <property name="text">
+           <string>Broadcast view per</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval">
+          <property name="statusTip">
+           <string>View broadcasting interval</string>
+          </property>
+          <property name="decimals">
+           <number>3</number>
+          </property>
+          <property name="minimum">
+           <double>0.001000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>60.000000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.010000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_molecule_14">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>sec</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_ws_client_settings">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>180</y>
+        <width>331</width>
+        <height>181</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Client options</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_9">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>311</width>
+         <height>141</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_16">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_48">
+          <item>
+           <widget class="QLabel" name="label_molecule_8">
+            <property name="statusTip">
+             <string>Server IP/domain to connect</string>
+            </property>
+            <property name="text">
+             <string>Sever:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_ws_server_url_to_connect">
+            <property name="statusTip">
+             <string>Server IP/domain to connect</string>
+            </property>
+            <property name="text">
+             <string>localhost</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_51">
+          <item>
+           <widget class="QPushButton" name="pushButton_ws_connect_to_server">
+            <property name="statusTip">
+             <string>Join the network</string>
+            </property>
+            <property name="text">
+             <string>Join</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_ws_disconnect_from_server">
+            <property name="statusTip">
+             <string>Leave the network</string>
+            </property>
+            <property name="text">
+             <string>Leave</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_8">
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_recieve_view_broadcast">
+            <property name="statusTip">
+             <string>Receive PyMOL view update</string>
+            </property>
+            <property name="text">
+             <string>Receive view broadcast</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_recieve_mutagenesis_broadcast">
+            <property name="statusTip">
+             <string>Receive mutant updates</string>
+            </property>
+            <property name="text">
+             <string>Receive mutations</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+            <property name="tristate">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_13">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>331</width>
+        <height>111</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Socket role</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_10">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>29</y>
+         <width>311</width>
+         <height>71</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_17">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_52">
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_server_mode">
+            <property name="statusTip">
+             <string>Start teamwork server to create a network</string>
+            </property>
+            <property name="text">
+             <string>Server Mode</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBox_ws_duplex_mode">
+            <property name="text">
+             <string>Duplex</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_31">
+            <item>
+             <widget class="QLabel" name="label_molecule_13">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Port:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_ws_server_port">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="statusTip">
+               <string>Server port to communicate with peers</string>
+              </property>
+              <property name="minimum">
+               <number>3000</number>
+              </property>
+              <property name="maximum">
+               <number>65534</number>
+              </property>
+              <property name="value">
+               <number>63189</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_42">
           <item>
            <widget class="QCheckBox" name="checkBox_ws_server_use_key">
             <property name="text">
@@ -3774,7 +4016,7 @@
           <item>
            <widget class="QLineEdit" name="lineEdit_ws_server_key">
             <property name="statusTip">
-             <string>Server URL for PSSM GREMLIN calculation.</string>
+             <string>Server key.</string>
             </property>
             <property name="text">
              <string/>
@@ -3783,6 +4025,9 @@
           </item>
           <item>
            <widget class="QPushButton" name="pushButton_ws_generate_randomized_key">
+            <property name="statusTip">
+             <string>Generate key</string>
+            </property>
             <property name="text">
              <string>Generate</string>
             </property>
@@ -3790,294 +4035,26 @@
           </item>
          </layout>
         </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_54">
-          <item>
-           <widget class="QLabel" name="label_molecule_13">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Port:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSpinBox" name="spinBox_ws_server_port">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimum">
-             <number>3000</number>
-            </property>
-            <property name="maximum">
-             <number>65534</number>
-            </property>
-            <property name="value">
-             <number>63189</number>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBox_ws_broadcast_view">
-            <property name="text">
-             <string>Broadcast view per</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval">
-            <property name="decimals">
-             <number>3</number>
-            </property>
-            <property name="minimum">
-             <double>0.001000000000000</double>
-            </property>
-            <property name="maximum">
-             <double>60.000000000000000</double>
-            </property>
-            <property name="value">
-             <double>0.010000000000000</double>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_molecule_14">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>sec</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
        </layout>
       </widget>
      </widget>
-     <widget class="QGroupBox" name="groupBox_ws_client_settings">
+     <widget class="QTreeWidget" name="treeWidget_ws_peers">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>210</y>
-        <width>381</width>
-        <height>151</height>
+        <x>350</x>
+        <y>10</y>
+        <width>281</width>
+        <height>351</height>
        </rect>
       </property>
-      <property name="title">
-       <string>Client options</string>
+      <property name="statusTip">
+       <string>Peers in this network</string>
       </property>
-      <widget class="QWidget" name="verticalLayoutWidget_9">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>361</width>
-         <height>111</height>
-        </rect>
+      <column>
+       <property name="text">
+        <string>Peers</string>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_16">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_48">
-          <item>
-           <widget class="QLabel" name="label_molecule_8">
-            <property name="text">
-             <string>Sever:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lineEdit_ws_server_url_to_connect">
-            <property name="statusTip">
-             <string>Server URL for PSSM GREMLIN calculation.</string>
-            </property>
-            <property name="text">
-             <string>localhost</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_molecule_11">
-            <property name="text">
-             <string>Port:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QSpinBox" name="spinBox_ws_server_port_to_connect">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimum">
-             <number>3000</number>
-            </property>
-            <property name="maximum">
-             <number>65534</number>
-            </property>
-            <property name="value">
-             <number>63189</number>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_51">
-          <item>
-           <widget class="QLabel" name="label_molecule_12">
-            <property name="text">
-             <string>Key:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lineEdit_ws_server_key_to_connect">
-            <property name="statusTip">
-             <string>Server URL for PSSM GREMLIN calculation.</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_ws_connect_to_server">
-            <property name="statusTip">
-             <string>Submit the selected molecule and chain.</string>
-            </property>
-            <property name="text">
-             <string>Join</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_ws_disconnect_from_server">
-            <property name="statusTip">
-             <string>Submit the selected molecule and chain.</string>
-            </property>
-            <property name="text">
-             <string>Leave</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_55">
-          <item>
-           <widget class="QCheckBox" name="checkBox_ws_recieve_mutagenesis_broadcast">
-            <property name="text">
-             <string>Receive mutations</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="tristate">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBox_ws_recieve_view_broadcast">
-            <property name="text">
-             <string>Receive view broadcast</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_5">
-      <property name="geometry">
-       <rect>
-        <x>400</x>
-        <y>0</y>
-        <width>231</width>
-        <height>361</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Clients list</string>
-      </property>
-      <widget class="QTableWidget" name="tableWidget_ws_clients">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>211</width>
-         <height>321</height>
-        </rect>
-       </property>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_13">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>0</y>
-        <width>381</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Socket role</string>
-      </property>
-      <widget class="QWidget" name="horizontalLayoutWidget_5">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>361</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_52">
-        <item>
-         <widget class="QCheckBox" name="checkBox_ws_server_mode">
-          <property name="text">
-           <string>Server Mode</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox_ws_duplex_mode">
-          <property name="text">
-           <string>Duplex</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
+      </column>
      </widget>
     </widget>
    </widget>
@@ -4263,14 +4240,14 @@
        <x>10</x>
        <y>30</y>
        <width>121</width>
-       <height>32</height>
+       <height>21</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
        <widget class="QComboBox" name="comboBox_cmap">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -4456,6 +4433,22 @@
     <hint type="destinationlabel">
      <x>213</x>
      <y>268</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_ws_server_use_key</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_ws_server_key</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>59</x>
+     <y>212</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>149</x>
+     <y>212</y>
     </hint>
    </hints>
   </connection>

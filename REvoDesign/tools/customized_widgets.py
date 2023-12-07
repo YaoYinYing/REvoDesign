@@ -556,7 +556,7 @@ def set_window_font(main_window):
     """
     Function: set_window_font
     Usage: set_window_font(main_window)
-    
+
     This function sets the font for the main window based on the operating system.
 
     Args:
@@ -633,3 +633,29 @@ def create_cmap_icon(cmap: str):
     painter.end()
 
     return pixmap
+
+
+def refresh_tree_widget(user_tree, treeWidget_ws_peers):
+    # Clear the existing table
+    treeWidget_ws_peers.clear()
+
+    # Sort the user data by joined_time_stamp including UUIDs
+    sorted_users = sorted(
+        user_tree.items(),
+        key=lambda x: x[1]['joined_time_stamp'],
+        reverse=True,
+    )
+
+    # Refresh the tree view
+    for uuid, user_info in sorted_users:
+        user_node = QtWidgets.QTreeWidgetItem(treeWidget_ws_peers)
+        user_node.setText(0, f"{user_info['user']}@{user_info['node']}")
+
+        for key, value in user_info.items():
+            child = QtWidgets.QTreeWidgetItem(user_node)
+            child.setText(0, f"{key}: {value}")
+
+        child = QtWidgets.QTreeWidgetItem(user_node)
+        child.setText(0, f"uuid: {uuid}")
+
+    return
