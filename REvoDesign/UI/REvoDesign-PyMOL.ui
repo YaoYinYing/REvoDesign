@@ -888,7 +888,7 @@
        <rect>
         <x>10</x>
         <y>150</y>
-        <width>311</width>
+        <width>351</width>
         <height>141</height>
        </rect>
       </property>
@@ -900,7 +900,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>293</width>
+         <width>331</width>
          <height>101</height>
         </rect>
        </property>
@@ -1006,7 +1006,7 @@
        <rect>
         <x>180</x>
         <y>300</y>
-        <width>171</width>
+        <width>181</width>
         <height>61</height>
        </rect>
       </property>
@@ -1018,7 +1018,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>151</width>
+         <width>161</width>
          <height>21</height>
         </rect>
        </property>
@@ -1059,9 +1059,9 @@
      <widget class="QGroupBox" name="groupBox_11">
       <property name="geometry">
        <rect>
-        <x>330</x>
+        <x>370</x>
         <y>150</y>
-        <width>291</width>
+        <width>251</width>
         <height>141</height>
        </rect>
       </property>
@@ -1857,7 +1857,7 @@
         <x>10</x>
         <y>0</y>
         <width>261</width>
-        <height>351</height>
+        <height>231</height>
        </rect>
       </property>
       <property name="title">
@@ -1869,7 +1869,7 @@
          <x>10</x>
          <y>30</y>
          <width>241</width>
-         <height>311</height>
+         <height>191</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_5">

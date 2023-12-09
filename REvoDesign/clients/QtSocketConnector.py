@@ -133,7 +133,7 @@ class REvoDesignWebSocketServer:
 
         return
 
-    def is_logged_in_client(self, client):
+    def is_logged_in_client(self, client)->bool:
         return any([_client == client for _client in self.current_clients()])
 
     def get_client_uuid(self, client):
@@ -145,13 +145,13 @@ class REvoDesignWebSocketServer:
         ]
         return _[0]
 
-    def current_clients(self):
+    def current_clients(self) -> list:
         return [
             _client_info['client']
             for uuid, _client_info in self.clients.items()
         ]
 
-    def refresh_user_tree(self) -> dict:
+    def refresh_user_tree(self) -> dict[dict]:
         from REvoDesign.tools.system_tools import get_client_info
         user_tree= {
             uuid: {k: v for k, v in data.items() if k != 'client'}

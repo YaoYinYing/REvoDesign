@@ -59,6 +59,7 @@ from REvoDesign.tools.pymol_utils import (
     get_molecule_sequence,
     make_temperal_input_pdb,
     is_a_REvoDesign_session,
+    any_posision_has_been_selected,
     PYMOL_VERSION,
 )
 
@@ -2386,7 +2387,7 @@ class REvoDesignPlugin:
 
         self.plot_w_fps = {}
 
-        if self.any_posision_has_been_selected():
+        if any_posision_has_been_selected():
             logging.info(f'One vs All mode.')
             self.gremlin_tool_a2a_mode = False
             resi = int(cmd.get_model('sele and n. CA').atom[0].resi)
@@ -2548,14 +2549,7 @@ class REvoDesignPlugin:
 
         self.load_co_evolving_pairs(progress_bar)
 
-    def any_posision_has_been_selected(self):
-        return bool(
-            [
-                x
-                for x in cmd.get_names(type='selections', enabled_only=1)
-                if x == 'sele'
-            ]
-        )
+
 
     def renumber_plot_w_fps(self):
         logging.info('Renumbering anaysis results.')

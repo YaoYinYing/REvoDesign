@@ -11,3 +11,5 @@ REvoDesign/UI/REvoDesign-CommentMutant_ui.py
 REvoDesign/library/*
 draws/server_dashboard.tldr
 prompt/revised.txt
+REvoDesign/clients/UniBroadcaster.py
+REvoDesign/external_designer/ExternalBuilders.py
