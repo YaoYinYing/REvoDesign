@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>557</height>
+    <height>559</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -3740,9 +3740,9 @@
       </property>
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>110</y>
-        <width>331</width>
+        <x>350</x>
+        <y>0</y>
+        <width>271</width>
         <height>71</height>
        </rect>
       </property>
@@ -3754,7 +3754,7 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>241</width>
+         <width>251</width>
          <height>31</height>
         </rect>
        </property>
@@ -3765,7 +3765,7 @@
            <string>View broadcasting interval</string>
           </property>
           <property name="text">
-           <string>Broadcast view per</string>
+           <string>Broadcast interval:</string>
           </property>
          </widget>
         </item>
@@ -3811,9 +3811,9 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>180</y>
+        <y>110</y>
         <width>331</width>
-        <height>181</height>
+        <height>101</height>
        </rect>
       </property>
       <property name="title">
@@ -3825,10 +3825,13 @@
          <x>10</x>
          <y>30</y>
          <width>311</width>
-         <height>141</height>
+         <height>61</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_16">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_48">
           <item>
@@ -3875,36 +3878,6 @@
             </property>
             <property name="text">
              <string>Leave</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_8">
-          <item>
-           <widget class="QCheckBox" name="checkBox_ws_recieve_view_broadcast">
-            <property name="statusTip">
-             <string>Receive PyMOL view updates</string>
-            </property>
-            <property name="text">
-             <string>Receive view broadcast</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBox_ws_recieve_mutagenesis_broadcast">
-            <property name="statusTip">
-             <string>Receive mutant updates</string>
-            </property>
-            <property name="text">
-             <string>Receive mutations</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <property name="tristate">
-             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -4045,9 +4018,9 @@
       <property name="geometry">
        <rect>
         <x>350</x>
-        <y>10</y>
-        <width>281</width>
-        <height>351</height>
+        <y>80</y>
+        <width>271</width>
+        <height>281</height>
        </rect>
       </property>
       <property name="statusTip">
@@ -4058,6 +4031,140 @@
         <string>Peers</string>
        </property>
       </column>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_5">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>210</y>
+        <width>161</width>
+        <height>151</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Recieve</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_2">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>141</width>
+         <height>111</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_8">
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_recieve_mutagenesis_broadcast">
+          <property name="statusTip">
+           <string>Receive mutant updates</string>
+          </property>
+          <property name="text">
+           <string>Mutations</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="tristate">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_recieve_view_broadcast">
+          <property name="statusTip">
+           <string>Receive PyMOL view updates</string>
+          </property>
+          <property name="text">
+           <string>View Change</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_recieve_mutagenesis_selection">
+          <property name="statusTip">
+           <string>Receive mutant updates</string>
+          </property>
+          <property name="text">
+           <string>Selection</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="tristate">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_12">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>210</y>
+        <width>161</width>
+        <height>151</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Broadcast</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_11">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>141</width>
+         <height>111</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_19">
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_broadcast_mutagenesis">
+          <property name="statusTip">
+           <string>Receive mutant updates</string>
+          </property>
+          <property name="text">
+           <string>Mutations</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="tristate">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_broadcast">
+          <property name="statusTip">
+           <string>Receive PyMOL view updates</string>
+          </property>
+          <property name="text">
+           <string>View Change</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBox_ws_broadcast_selection">
+          <property name="statusTip">
+           <string>Receive mutant updates</string>
+          </property>
+          <property name="text">
+           <string>Selection</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+          <property name="tristate">
+           <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </widget>
    </widget>
@@ -4079,7 +4186,7 @@
        <x>10</x>
        <y>30</y>
        <width>351</width>
-       <height>21</height>
+       <height>32</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_37">
