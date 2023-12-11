@@ -13,6 +13,8 @@ PYMOL_BUILD = get_version_message()
 def is_empty_session():
     return len(cmd.get_names(type='objects', enabled_only=0)) == 0
 
+def is_hidden_object(selection='(all)'):
+    return len(cmd.get_names(type='objects',selection=selection, enabled_only=1)) == 0
 
 def fetch_exclusion_expressions():
     return [""] + [sel for sel in refresh_all_selections()]

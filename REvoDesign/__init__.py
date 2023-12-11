@@ -64,6 +64,7 @@ from REvoDesign.tools.pymol_utils import (
 )
 
 from REvoDesign.tools.mutant_tools import (
+    existed_mutant_tree,
     extract_mutant_from_pymol_object,
     extract_mutants_from_mutant_id,
 )
@@ -1632,63 +1633,6 @@ class REvoDesignPlugin:
         )
         return _mutant_obj is not None
 
-    # basic function that works for mutant_tree instantiation
-    def fetch_all_mutant_branch_ids(self, enabled_only=0):
-        self.all_mutant_branch_ids = [
-            group_id
-            for group_id in cmd.get_names(
-                type='group_objects', enabled_only=enabled_only
-            )
-            if not group_id.startswith('multi_design')
-        ]
-
-    # basic function that works for mutant_tree instantiation
-    def fetch_all_mutant_in_one_branch(self, group_id, enabled_only=0):
-        all_nongroup_objects = cmd.get_names('nongroup_objects', enabled_only)
-
-        # cmd.get_object_list:
-        # https://sourceforge.net/p/pymol/mailman/message/34797180/
-        mutants_in_current_group = [
-            mutant
-            for mutant in cmd.get_object_list(f'({group_id})')
-            if self.is_this_pymol_object_a_mutant(mutant)
-            and mutant in all_nongroup_objects
-        ]
-
-        all_mutants_in_current_branch = {}
-        for mutant_id in mutants_in_current_group:
-            mutant_obj = extract_mutant_from_pymol_object(
-                pymol_object=mutant_id, sequence=self.design_sequence
-            )
-            all_mutants_in_current_branch.update({mutant_id: mutant_obj})
-
-        return all_mutants_in_current_branch
-
-    # basic function that works for mutant_tree instantiation
-    def fetch_mutant_tree(self, reinitialize=False):
-        if reinitialize:
-            # self.all_mutant_groups
-            self.fetch_all_mutant_branch_ids()
-            if not self.all_mutant_branch_ids:
-                logging.error(f'This sesion may not contain an mutant tree.')
-                return None
-            mutant_tree = {}
-
-            # self.all_mutants_in_all_groups
-            for group_id in self.all_mutant_branch_ids:
-                mutant_branch = self.fetch_all_mutant_in_one_branch(group_id)
-                mutant_tree.update({group_id: mutant_branch})
-                logging.info(
-                    f'update {group_id} with {len(mutant_branch.keys())} mutants.'
-                )
-
-            # instantialize a mutant tree from current session.
-            self.mutant_tree_pssm = MutantTree(mutant_tree)
-        else:
-            logging.warning(
-                f'This sesion already has a valid mutant tree. To regenerate it, smash the `Reinitialize` button.'
-            )
-
     def recover_mutant_choices_from_checkpoint(
         self, lcdNumber_selected_mutant
     ):
@@ -1738,8 +1682,10 @@ class REvoDesignPlugin:
         comboBox_group_ids,
         checkBox_show_wt,
     ):
-        self.fetch_mutant_tree(reinitialize=True)
-        if not self.all_mutant_branch_ids:
+        self.mutant_tree_pssm = existed_mutant_tree(
+            sequence=self.design_sequence, enabled_only=0
+        )
+        if self.mutant_tree_pssm.empty:
             logging.error(f'This sesion may not contain an mutant tree.')
             return None
 
@@ -1987,12 +1933,8 @@ class REvoDesignPlugin:
             return
 
         logging.info('Instantializing MutantTree for current selection ... ')
-        self.visualizing_mutant_tree = MutantTree(
-            {
-                group_name: self.fetch_all_mutant_in_one_branch(
-                    group_id=group_name, enabled_only=1
-                )
-            }
+        self.visualizing_mutant_tree = existed_mutant_tree(
+            sequence=self.design_sequence, enabled_only=1
         )
 
         logging.info(f'Saving mutant table to {mutant_table_fp} ...')
@@ -2072,8 +2014,6 @@ class REvoDesignPlugin:
                 progress_bar=progressBar_visualize_mutants
             )
 
-            # cmd.reinitialize()
-            # cmd.load(self.temperal_session)
             cmd.load(visualizer.save_session, partial=2)
             cmd.center(self.design_molecule)
             cmd.set('surface_color', 'gray70')
@@ -2549,8 +2489,6 @@ class REvoDesignPlugin:
 
         self.load_co_evolving_pairs(progress_bar)
 
-
-
     def renumber_plot_w_fps(self):
         logging.info('Renumbering anaysis results.')
         new_plot_w_fps = {}
@@ -2807,7 +2745,7 @@ class REvoDesignPlugin:
                 )
                 run_worker_thread_with_progress(
                     worker_function=self.gremlin_external_scorer.initialize,
-                    ignore_missing=bool('X' in self.sequence),
+                    ignore_missing=bool('X' in self.design_sequence),
                     progress_bar=self.ui.progressBar,
                 )
 
@@ -2959,7 +2897,7 @@ class REvoDesignPlugin:
             lineEdit_ws_server_key=self.ui.lineEdit_ws_server_key,
             spinBox_ws_server_port=self.ui.spinBox_ws_server_port,
             doubleSpinBox_ws_view_broadcast_interval=self.ui.doubleSpinBox_ws_view_broadcast_interval,
-            treeWidget_ws_peers=self.ui.treeWidget_ws_peers
+            treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
         )
 
     def update_ws_server_view_update_options(self):
@@ -3064,7 +3002,7 @@ class REvoDesignPlugin:
             lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key,
             checkBox_ws_receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast,
             checkBox_ws_receive_mutagenesis_broadcast=self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
-            treeWidget_ws_peers=self.ui.treeWidget_ws_peers
+            treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
         )
 
     def update_ws_client_view_update_options(self):

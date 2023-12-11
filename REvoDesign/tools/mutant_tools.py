@@ -6,6 +6,7 @@ from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
+from REvoDesign.tools.pymol_utils import is_hidden_object
 
 
 from REvoDesign.tools.utils import filepath_does_exists
@@ -421,7 +422,7 @@ def read_profile_design_mutations(filename):
     return process_mutations(data)
 
 
-def existed_mutant_tree(sequence):
+def existed_mutant_tree(sequence, enabled_only=1):
     """
     Creates a tree structure of existing mutants based on PyMOL objects.
 
@@ -438,7 +439,7 @@ def existed_mutant_tree(sequence):
             mutant_id: extract_mutant_from_pymol_object(
                 pymol_object=mutant_id, sequence=sequence
             )
-            for mutant_id in cmd.get_object_list(f'({group_id})')
+            for mutant_id in cmd.get_object_list(f'({group_id})') if not enabled_only or not is_hidden_object(selection=mutant_id)
         }
         for group_id in cmd.get_names(type='group_objects', enabled_only=1)
         if not group_id.startswith('multi_design')
