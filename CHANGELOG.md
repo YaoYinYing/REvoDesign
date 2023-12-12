@@ -12,17 +12,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get_molecule_sequence`: `keep_missing` option to save missing residue as `X`
 - `extract_mutant_from_sequences`: `fix_missing` to restore missing `X` in mutant from external designer.
 - Peer view in `Socket` tab
+- Unit test cases, WIP.
+- `existed_mutant_tree`: fetch existed mutant tree in current session.
+- `refresh_user_tree`: Adding Host info and set on the top
 
 ### Changed
 - UI changes of `Socket` tab. Similar widgets between server and client are now uniq.
 - Using UUID as the key of client table.
+- Moving `any_posision_has_been_selected` to `pymol_utils.py`
+- Broadcast user tree before `refresh_tree_widget`
+- `MultiMutantDesigner`: use `existed_mutant_tree` to fetch mutant tree
 
 
 ### Fixed
 - Loop (`127.0.0.1`) as websocket server address
 - External designer ProteinMPNN failure if residue is missing in crystal structure model
 - Missing chain id argument in `External designer` calling of `REvoDesigner`
+- PSSM-GREMLIN run script `REvoDesign_PSSM_GREMLIN.sh`
 
+### Removed
+- Mutant tree initializing methods:
+  - `fetch_all_mutant_branch_ids`
+  - `fetch_all_mutant_in_one_branch`
+  - `fetch_mutant_tree`
+- class `Mutant`: `equals_to`
 
 ## [1.3.0] - 2023-12-05
 
