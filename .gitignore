@@ -14,3 +14,7 @@ prompt/revised.txt
 REvoDesign/clients/UniBroadcaster.py
 REvoDesign/external_designer/ExternalBuilders.py
 .vscode/settings.json
+tests/testdata/secret/revodesign.txt
+1nww.cif
+5i9f.cif
+tests/testres/*

@@ -153,20 +153,6 @@ class Mutant:
 
         return ''.join(_sequence)
 
-    def equals_to(self, other_mutant) -> bool:
-        assert isinstance(
-            other_mutant, Mutant
-        ), 'Input mutant must be a Mutant object.'
-
-        return (self.mutant_info == other_mutant.mutant_info) and all(
-            [
-                self_item == others_item
-                for self_item, others_item in zip(
-                    sorted(self.mutant_info),
-                    sorted(other_mutant.mutant_info),
-                )
-            ]
-        )
 
     def get_wt_score(self) -> float:
         """
