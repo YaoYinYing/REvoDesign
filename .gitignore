@@ -2,8 +2,6 @@
 REvoDesign/.DS_Store
 .DS_Store
 REvoDesign/UI/REvoDesign-PyMOL_ui.py
-demo/data/CHS_CM4.diffdock.unrelaxed_B_PSSM_GREMLIN_results.zip.zip
-demo/results/*
 TODO
 *.pyc
 iprscan5-*
@@ -18,3 +16,7 @@ tests/testdata/secret/revodesign.txt
 1nww.cif
 5i9f.cif
 tests/testres/*
+tests/testdata/gremlin/*.pkl
+tests/testdata/*.pze
+tests/playgroud/*
+tests/testdata/pssm/1nww.surf.pze

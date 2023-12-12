@@ -115,7 +115,7 @@ class REvoDesigner:
             custom_indices = [
                 resi for resi in range(1, len(self.sequence) + 1)
             ]
-
+    
         custom_indices = [0] + custom_indices
 
         df = df.iloc[:, custom_indices]

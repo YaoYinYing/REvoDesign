@@ -117,6 +117,8 @@ def extract_mutants_from_mutant_id(
 
     # Instantializing a Mutant obj
     mutant_obj = Mutant(mutant_info, mutant_score)
+    if sequence: 
+        mutant_obj.wt_sequence=sequence
 
     logging.debug(mutant_obj)
 

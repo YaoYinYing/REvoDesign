@@ -1,5 +1,6 @@
 import os
-from pymol import cmd,util,CmdException
+import random
+from pymol import cmd, util, CmdException
 from absl.testing import absltest
 from unittest.mock import Mock
 from unittest.mock import MagicMock
@@ -11,7 +12,22 @@ from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.tools.pymol_utils import any_posision_has_been_selected, find_all_protein_chain_ids_in_protein, find_design_molecules, find_small_molecules_in_protein, get_molecule_sequence, is_a_REvoDesign_session, is_distal_residue_pair, is_empty_session, is_polymer_protein, make_temperal_input_pdb, mutate, refresh_all_selections
+from REvoDesign.tools.mutant_tools import expand_range, extract_mutant_from_sequences, extract_mutant_score_from_string, extract_mutants_from_mutant_id, shorter_range
+from REvoDesign.tools.pymol_utils import (
+    any_posision_has_been_selected,
+    find_all_protein_chain_ids_in_protein,
+    find_design_molecules,
+    find_small_molecules_in_protein,
+    get_molecule_sequence,
+    is_a_REvoDesign_session,
+    is_distal_residue_pair,
+    is_empty_session,
+    is_hidden_object,
+    is_polymer_protein,
+    make_temperal_input_pdb,
+    mutate,
+    refresh_all_selections,
+)
 
 TEST_DATA = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(TEST_DATA, 'testdata')
@@ -21,7 +37,8 @@ TEST_DATA_RES = os.path.join(TEST_DATA, 'testres')
 molecule = '1nww'
 chain_id = 'A'
 sequence = 'XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
-hetatm='HPN'
+hetatm = 'HPN'
+
 
 class TestMutant(absltest.TestCase):
     def setUp(self):
@@ -224,10 +241,9 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
             lineEdit_url, lineEdit_user, lineEdit_password
         )
 
-
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES
-        self.calculator.setup_calculator(tmp_dir, molecule, chain_id, sequence)
+        self.calculator.setup_calculator(tmp_dir, molecule, chain_id, random.sample(sequence,len(sequence)))
 
     def tearDown(self):
         if os.path.exists(self.calculator.temp_file_path):
@@ -241,7 +257,9 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.assertTrue(os.path.exists(self.calculator.temp_file_path))
 
     def test_submit_fasta_file(self):
-        fasta_file_path = os.path.join(TEST_DATA_RES, f'{molecule}_{chain_id}.fasta')
+        fasta_file_path = os.path.join(
+            TEST_DATA_RES, f'{molecule}_{chain_id}.fasta'
+        )
         result = self.calculator.submit_fasta_file(fasta_file_path)
 
         self.assertEqual(result.status_code, 202)
@@ -260,13 +278,13 @@ class TestPymolUtils(absltest.TestCase):
             cmd.remove('r. hoh or r. MES')
         except CmdException:
             pass
-        
 
     def test_is_empty_session(self):
         self.assertFalse(is_empty_session())
-    # def test_is_hidden_object(self):
-    #     self.assertFalse(is_hidden_object(selection=molecule))
-    
+
+    def test_is_hidden_object(self):
+        self.assertFalse(is_hidden_object(selection=molecule))
+
     def test_is_polymer_protein(self):
         self.assertTrue(is_polymer_protein(sele=molecule))
 
@@ -275,21 +293,82 @@ class TestPymolUtils(absltest.TestCase):
 
     def test_find_design_molecules(self):
         self.assertIn(molecule, find_design_molecules())
-        
+
     def test_find_all_protein_chain_ids_in_protein(self):
-        self.assertIn(chain_id, find_all_protein_chain_ids_in_protein(sele=molecule))
+        self.assertIn(
+            chain_id, find_all_protein_chain_ids_in_protein(sele=molecule)
+        )
 
     def test_is_distal_residue_pair(self):
-        self.assertTrue(is_distal_residue_pair(molecule=molecule, chain_id=chain_id, resi_1=137,resi_2=45, minimal_distance=10, use_sidechain_angle=1))
-        self.assertFalse(is_distal_residue_pair(molecule=molecule, chain_id=chain_id, resi_1=137,resi_2=138, minimal_distance=10, use_sidechain_angle=1))
-        self.assertTrue(is_distal_residue_pair(molecule=molecule, chain_id=chain_id, resi_1=8,resi_2=141, minimal_distance=20, use_sidechain_angle=1))
-        self.assertFalse(is_distal_residue_pair(molecule=molecule, chain_id=chain_id, resi_1=8,resi_2=141, minimal_distance=60, use_sidechain_angle=1))
+        self.assertTrue(
+            is_distal_residue_pair(
+                molecule=molecule,
+                chain_id=chain_id,
+                resi_1=137,
+                resi_2=45,
+                minimal_distance=10,
+                use_sidechain_angle=1,
+            )
+        )
+        self.assertFalse(
+            is_distal_residue_pair(
+                molecule=molecule,
+                chain_id=chain_id,
+                resi_1=137,
+                resi_2=138,
+                minimal_distance=10,
+                use_sidechain_angle=1,
+            )
+        )
+        self.assertTrue(
+            is_distal_residue_pair(
+                molecule=molecule,
+                chain_id=chain_id,
+                resi_1=8,
+                resi_2=141,
+                minimal_distance=20,
+                use_sidechain_angle=1,
+            )
+        )
+        self.assertFalse(
+            is_distal_residue_pair(
+                molecule=molecule,
+                chain_id=chain_id,
+                resi_1=8,
+                resi_2=141,
+                minimal_distance=60,
+                use_sidechain_angle=1,
+            )
+        )
 
-        self.assertTrue(is_distal_residue_pair(molecule=molecule, chain_id=chain_id, resi_1=104,resi_2=98, minimal_distance=20, use_sidechain_angle=1))
-        self.assertFalse(is_distal_residue_pair(molecule=molecule, chain_id=chain_id, resi_1=104,resi_2=98, minimal_distance=20, use_sidechain_angle=0))
+        self.assertTrue(
+            is_distal_residue_pair(
+                molecule=molecule,
+                chain_id=chain_id,
+                resi_1=104,
+                resi_2=98,
+                minimal_distance=20,
+                use_sidechain_angle=1,
+            )
+        )
+        self.assertFalse(
+            is_distal_residue_pair(
+                molecule=molecule,
+                chain_id=chain_id,
+                resi_1=104,
+                resi_2=98,
+                minimal_distance=20,
+                use_sidechain_angle=0,
+            )
+        )
 
     def test_get_molecule_sequence(self):
-        self.assertEqual(get_molecule_sequence(molecule=molecule, chain_id=chain_id,keep_missing=True),sequence)
+        self.assertEqual(
+            get_molecule_sequence(
+                molecule=molecule, chain_id=chain_id, keep_missing=True
+            ),
+            sequence,
+        )
 
     def test_refresh_all_selections(self):
         cmd.select('test', 'byres hetatm around 4')
@@ -302,23 +381,120 @@ class TestPymolUtils(absltest.TestCase):
         self.assertTrue(is_a_REvoDesign_session())
 
     def test_make_temperal_input_pdb(self):
-        self.assertTrue(os.path.exists(make_temperal_input_pdb(molecule=molecule, wd=TEST_DATA_RES,reload=False)))
+        self.assertTrue(
+            os.path.exists(
+                make_temperal_input_pdb(
+                    molecule=molecule, wd=TEST_DATA_RES, reload=False
+                )
+            )
+        )
 
     def test_mutate(self):
         cmd.create(f'copy_{molecule}', molecule)
-        mutate(molecule=f'copy_{molecule}',chain=chain_id,resi=45, target='ALA')
-        mutant_seq=get_molecule_sequence(molecule=f'copy_{molecule}',chain_id=chain_id,keep_missing=True)
-        expected_sequence='XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIAYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+        mutate(
+            molecule=f'copy_{molecule}', chain=chain_id, resi=45, target='ALA'
+        )
+        mutant_seq = get_molecule_sequence(
+            molecule=f'copy_{molecule}', chain_id=chain_id, keep_missing=True
+        )
+        expected_sequence = 'XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIAYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
         self.assertNotEqual(mutant_seq, sequence)
-        self.assertEqual(mutant_seq,expected_sequence)
+        self.assertEqual(mutant_seq, expected_sequence)
 
         cmd.delete(f'copy_{molecule}')
-        
+
     def test_any_posision_has_been_selected(self):
         cmd.select('sele', 'i. 45')
         self.assertTrue(any_posision_has_been_selected())
         cmd.disable('sele')
         self.assertFalse(any_posision_has_been_selected())
+    
+    def tearDown(self):
+        cmd.reinitialize()
+
+
+class TestMutantTools(absltest.TestCase):
+    def setUp(self):
+        try:
+            cmd.fetch(molecule)
+            cmd.remove('c. B')
+            cmd.remove('r. hoh or r. MES')
+        except CmdException:
+            pass
+    def test_extract_mutants_from_mutant_id_full(self):
+        mutant_string='AI5R_AK26T_0.4567'
+        expected_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+
+        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string)
+        self.assertIsInstance(_o,Mutant)
+        self.assertEqual(_o.get_mutant_score(), 0.4567)
+        _o.wt_sequence=sequence
+        
+        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
+        
+    def test_extract_mutants_from_mutant_id_reduced(self):
+        mutant_string='I5R_K26T_0.4567'
+        expected_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+
+        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string,chain_id=chain_id)
+        self.assertIsInstance(_o,Mutant)
+        self.assertEqual(_o.get_mutant_score(), 0.4567)
+        _o.wt_sequence=sequence
+        
+        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
+        
+    def test_extract_mutants_from_mutant_id_fuzzy(self):
+        mutant_string='5R_26T_0.4567'
+        expected_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+
+        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string,chain_id=chain_id,sequence=sequence)
+        self.assertIsInstance(_o,Mutant)
+        self.assertEqual(_o.get_mutant_score(), 0.4567)
+        _o.wt_sequence=sequence
+        
+        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
+        
+    def test_extract_mutants_from_mutant_id_invalid(self):
+        mutant_string='5R_26T_0.4567'
+
+        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string)
+        self.assertIsNone(_o,)
+
+    def test_extract_mutant_score_from_string(self):
+        mutant_string='I5R_K26T_0.4567'
+        self.assertEqual(extract_mutant_score_from_string(mutant_string=mutant_string), 0.4567)
+
+    def test_extract_mutant_from_sequences(self):
+        mutant_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+        _o1=extract_mutant_from_sequences(wt_sequence=sequence,mutant_sequence=mutant_sequence,chain_id=chain_id,fix_missing=False)
+        _o2=extract_mutant_from_sequences(wt_sequence=sequence,mutant_sequence=mutant_sequence.replace('X', ''),chain_id=chain_id,fix_missing=True)
+
+        self.assertEqual(_o1.get_mutant_info(), _o2.get_mutant_info())
+
+    def test_shorter_range_continuous_sequence(self):
+        input_list = [395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409]
+        expected_expression='395-409'
+        result = shorter_range(input_list)
+        self.assertEqual(result,expected_expression)
+
+    def test_shorter_range_discontinuous_sequence(self):
+        input_list = [395, 396, 397, 398, 399, 401, 402, 403, 404, 405, 406, 407, 408, 409]
+        expected_expression='395-399+401-409'
+        result = shorter_range(input_list)
+        self.assertEqual(result,expected_expression)
+
+    def test_expand_range_continuous_sequence(self):
+        shortened_str = "395-409"
+        expected_list=[395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409]
+        result = expand_range(shortened_str)
+        self.assertEqual(result, expected_list)
+
+    def test_expand_range_discontinuous_sequence(self):
+        shortened_str = "395-401+403-409"
+        expected_list=[395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
+        result = expand_range(shortened_str)
+        self.assertEqual(result, expected_list)
+
 
 
 if __name__ == '__main__':

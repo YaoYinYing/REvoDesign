@@ -755,7 +755,9 @@ class REvoDesignPlugin:
             self.design_molecule = design_molecule
             self.design_chain_id = design_chain
             self.design_sequence = get_molecule_sequence(
-                molecule=self.design_molecule, chain_id=self.design_chain_id
+                molecule=self.design_molecule,
+                chain_id=self.design_chain_id,
+                keep_missing=True,
             )
 
     # class public function that can be shared with each tab
