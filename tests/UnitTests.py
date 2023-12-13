@@ -230,7 +230,9 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.calculator = PSSMGremlinCalculator()
         # Mock QLineEdit objects
         lineEdit_url = MagicMock(text=lambda: 'https://revodesign.yaoyy.moe/')
-        lineEdit_user = MagicMock(text=lambda: os.environ['REVODESIGN_USERS'])
+        
+        user=os.environ['REVODESIGN_USERS']
+        lineEdit_user = MagicMock(text=lambda: user)
         
         password = os.environ['REVODESIGN_SERVER_PASS']
         lineEdit_password = MagicMock(text=lambda: password)
@@ -238,6 +240,8 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.calculator.setup_url(
             lineEdit_url, lineEdit_user, lineEdit_password
         )
+        print(f'{user}:{password}')
+        print(f'{self.calculator.user}: {self.calculator.password}@{self.calculator.url}')
 
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES
@@ -251,6 +255,8 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
     def test_setup_url(self):
         self.assertEqual(self.calculator.url, 'https://revodesign.yaoyy.moe/')
         self.assertIsNotNone(self.calculator.auth)
+        self.assertEqual(self.calculator.user, os.environ['REVODESIGN_USERS'])
+        self.assertEqual(self.calculator.password, os.environ['REVODESIGN_SERVER_PASS'])
 
     def test_setup_calculator(self):
         self.assertTrue(os.path.exists(self.calculator.temp_file_path))
