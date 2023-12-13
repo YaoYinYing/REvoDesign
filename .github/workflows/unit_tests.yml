@@ -42,19 +42,11 @@ jobs:
         python3-pil
         python3-pytest
 
-    - name: Install collada2gltf
-      run: |
-        wget -nv https://anaconda.org/schrodinger/collada2gltf/2.1.4/download/linux-64/collada2gltf-2.1.4-h6bb024c_0.tar.bz2
-        sudo tar xf collada2gltf-*.tar.bz2 -C / bin/collada2gltf
 
-
-    - name: Build pymol-open-source
+    - name: Install pymol-open-source via apt
       run: |
         python -m pip install PyQt5==5.15.10
-
-        git clone https://github.com/schrodinger/pymol-open-source.git
-        cd pymol-open-source
-        python setup.py install --prefix=${{ env.REPO }}/pymol/  --use-msgpackc=no --no-vmd-plugins --jobs=4
+        apt-get install -y pymol
 
       
     - name: Install REvoDesign via pip
@@ -62,4 +54,4 @@ jobs:
         python -m pip install .[colabdesign] -U
 
     - name: Test
-      run: export REVODESIGN_SERVER_PASS="${{ secrets.REVODESIGN_SERVER_PASS }}"; ${{ env.REPO }}/pymol/bin/pymol run ${{ env.REPO }}/tests/UnitTests.py
+      run: export REVODESIGN_SERVER_PASS="${{ secrets.REVODESIGN_SERVER_PASS }}"; python ${{ env.REPO }}/tests/UnitTests.py
