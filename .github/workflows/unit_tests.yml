@@ -56,6 +56,6 @@ jobs:
     - name: Unit Test
       env:
         REVODESIGN_USERS: ${{ secrets.REVODESIGN_USERS }}
-        REVODESIGN_SERVER_PASS: ${{ REVODESIGN_SERVER_PASS }}
+        REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
       run: |
         python ${{ env.REPO }}/tests/UnitTests.py
