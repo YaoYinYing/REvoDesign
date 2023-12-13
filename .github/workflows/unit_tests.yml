@@ -62,5 +62,4 @@ jobs:
         python -m pip install .[colabdesign] -U
 
     - name: Test
-      run: |
-      REVODESIGN_SERVER_PASS=${{ secrets.REVODESIGN_SERVER_PASS }} ${{ env.REPO }}/pymol/bin/pymol run ${{ env.REPO }}/tests/UnitTests.py
+      run: REVODESIGN_SERVER_PASS=${{ secrets.REVODESIGN_SERVER_PASS }} ${{ env.REPO }}/pymol/bin/pymol run ${{ env.REPO }}/tests/UnitTests.py
