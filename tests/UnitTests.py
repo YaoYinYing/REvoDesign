@@ -231,9 +231,9 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         # Mock QLineEdit objects
         lineEdit_url = MagicMock(text=lambda: 'https://revodesign.yaoyy.moe/')
         lineEdit_user = MagicMock(text=lambda: os.environ['REVODESIGN_USERS'])
-        print(f'user: { os.environ["REVODESIGN_USERS"]}')
         
-        lineEdit_password = MagicMock(text=lambda:  os.environ['REVODESIGN_SERVER_PASS'])
+        password = os.environ['REVODESIGN_SERVER_PASS']
+        lineEdit_password = MagicMock(text=lambda: password)
 
         self.calculator.setup_url(
             lineEdit_url, lineEdit_user, lineEdit_password
