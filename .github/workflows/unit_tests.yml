@@ -41,12 +41,13 @@ jobs:
         python3-numpy
         python3-pil
         python3-pytest
+        pymol
+
 
 
     - name: Install pymol-open-source via apt
       run: |
         python -m pip install PyQt5==5.15.10
-        apt-get install -y pymol
 
       
     - name: Install REvoDesign via pip
