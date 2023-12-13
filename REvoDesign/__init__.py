@@ -821,9 +821,12 @@ class REvoDesignPlugin:
         self.temperal_session = tempfile.mktemp(suffix=".pse")
 
         if not is_empty_session():
+            # remove alternative comformations
+            cmd.remove('not alt ""+A')
+            cmd.alter('all', 'alt=""')
             cmd.save(self.temperal_session)
             cmd.reinitialize()
-            cmd.load(self.temperal_session)
+            cmd.load(self.temperal_session) 
         else:
             logging.warning(
                 f'Current session is empty! \n \
@@ -834,15 +837,18 @@ class REvoDesignPlugin:
             )
             if not new_session_file:
                 logging.error(
-                    f'Abored recognizing sessions from input {new_session_file}.'
+                    f'Abored recognizing sessions from input.'
                 )
                 return
             elif not os.path.exists(new_session_file):
-                logging.error(f'File not exist: {new_session_file}.')
+                logging.error(f'File does not exist: {new_session_file}.')
                 return
             else:
                 cmd.reinitialize()
                 cmd.load(new_session_file)
+                # remove alternative comformations
+                cmd.remove('not alt ""+A')
+                cmd.alter('all', 'alt=""')
                 cmd.save(self.temperal_session)
 
         set_widget_value(comboBox_molecule, find_design_molecules)

@@ -18,5 +18,5 @@ tests/testdata/secret/revodesign.txt
 tests/testres/*
 tests/testdata/gremlin/*.pkl
 tests/testdata/*.pze
-tests/playgroud/*
+tests/playground/*
 tests/testdata/pssm/1nww.surf.pze

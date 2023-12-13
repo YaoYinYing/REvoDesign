@@ -231,10 +231,8 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         # Mock QLineEdit objects
         lineEdit_url = MagicMock(text=lambda: 'https://revodesign.yaoyy.moe/')
         lineEdit_user = MagicMock(text=lambda: 'revodesign_users')
-        with open(
-            os.path.join(TEST_DATA_DIR, 'secret', 'revodesign.txt'), 'r'
-        ) as _:
-            password = _.read().strip()
+        
+        password = os.environ.get('REVODESIGN_SERVER_PASS','password')
         lineEdit_password = MagicMock(text=lambda: password)
 
         self.calculator.setup_url(
@@ -243,6 +241,7 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
 
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES
+        random.seed(42)
         self.calculator.setup_calculator(tmp_dir, molecule, chain_id, random.sample(sequence,len(sequence)))
 
     def tearDown(self):
@@ -494,6 +493,9 @@ class TestMutantTools(absltest.TestCase):
         expected_list=[395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
         result = expand_range(shortened_str)
         self.assertEqual(result, expected_list)
+
+    def tearDown(self):
+        cmd.reinitialize()
 
 
 
