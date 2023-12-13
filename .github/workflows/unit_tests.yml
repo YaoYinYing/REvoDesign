@@ -55,4 +55,5 @@ jobs:
         python -m pip install .[colabdesign] -U
 
     - name: Test
-      run: export REVODESIGN_SERVER_PASS="${{ secrets.REVODESIGN_SERVER_PASS }}"; python ${{ env.REPO }}/tests/UnitTests.py
+      run: |
+        python ${{ env.REPO }}/tests/UnitTests.py
