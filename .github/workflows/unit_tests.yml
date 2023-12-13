@@ -3,8 +3,11 @@ name: Test REvoDesign
 on:
   push:
     paths:
-      - '.github/workflows/unit_tests.yml' # monitor the main workflow script. enable it again if in necessary maintainances.
+      - '.github/workflows/unit_tests.yml' # monitor the main workflow script.
+      - 'tests/*.py' # monitor the unit tests
+      - 'REvoDesign' # monitor the REvoDesign project source code
 
+      
     branches:
       - main
     
