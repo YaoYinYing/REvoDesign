@@ -12,7 +12,7 @@ on:
 
 
 jobs:
-  test:
+  REvoDesign-UnitTests:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
@@ -24,6 +24,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Set environment variable with current repo dir
+        run: |
+          echo "REPO=$PWD" >> $GITHUB_ENV
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -51,6 +55,6 @@ jobs:
         env:
           REVODESIGN_USERS: ${{ secrets.REVODESIGN_USERS }}
           REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
-          REPO: ${{ github.repository }}
+
         run: |
           python ${{ env.REPO }}/tests/UnitTests.py
