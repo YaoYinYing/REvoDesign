@@ -39,6 +39,7 @@ jobs:
 
       - name: Setup PyMOL on ${{ matrix.os }}
         run: |
+          conda activate ${{ env.conda_env }}
           conda install -c conda-forge pymol-open-source python -y 
           conda info
           conda list
@@ -48,9 +49,10 @@ jobs:
 
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
+          conda activate ${{ env.conda_env }}
           which python
           which python3
-          python3 -m pip install .[colabdesign] -U
+          python -m pip install .[colabdesign] -U
 
       - name: Unit Test on ${{ matrix.os }}
         env:
@@ -58,4 +60,5 @@ jobs:
           REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
 
         run: |
-          python3 ${{ env.REPO }}/tests/UnitTests.py
+          conda activate ${{ env.conda_env }}
+          python ${{ env.REPO }}/tests/UnitTests.py
