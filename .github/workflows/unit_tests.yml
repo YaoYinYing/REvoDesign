@@ -31,26 +31,31 @@ jobs:
           echo "REPO=$PWD" >> $GITHUB_ENV
         
       
-      - name: Setup Conda
+      - name: Setup Conda on ${{ matrix.os }}
         uses: conda-incubator/setup-miniconda@v3
         with:
             auto-update-conda: true
-            miniconda-version: "latest"
             activate-environment: ${{ env.conda_env }}
 
-      - name: Setup PyMOL
+      - name: Setup PyMOL on ${{ matrix.os }}
         run: |
-          conda install -c conda-forge pymol-open-source -y
+          conda install -c conda-forge pymol-open-source python -y 
+          conda info
+          conda list
+          which python
+          which python3
 
 
-      - name: Install REvoDesign
+      - name: Install REvoDesign on ${{ matrix.os }}
         run: |
-          python -m pip install .[colabdesign] -U
+          which python
+          which python3
+          python3 -m pip install .[colabdesign] -U
 
-      - name: Unit Test
+      - name: Unit Test on ${{ matrix.os }}
         env:
           REVODESIGN_USERS: ${{ secrets.REVODESIGN_USERS }}
           REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
 
         run: |
-          python ${{ env.REPO }}/tests/UnitTests.py
+          python3 ${{ env.REPO }}/tests/UnitTests.py
