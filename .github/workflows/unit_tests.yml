@@ -15,7 +15,7 @@ env:
 
 
 jobs:
-  REvoDesign-UnitTests:
+  UnitTests:
     strategy:
       fail-fast: false
       matrix:

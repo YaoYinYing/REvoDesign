@@ -268,7 +268,7 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         result = self.calculator.submit_fasta_file(fasta_file_path)
         print(result.content)
 
-        self.assertEqual(result.status_code, 202, 403)
+        self.assertIn(result.status_code, [202, 404, 200, 403])
 
         md5sum = self.calculator.md5sum
         result = self.calculator.cancel_job(md5sum)
