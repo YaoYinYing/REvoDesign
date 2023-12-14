@@ -10,6 +10,9 @@ on:
     branches:
       - main
 
+env: 
+  conda_env: REvoDesign
+
 
 jobs:
   REvoDesign-UnitTests:
@@ -18,8 +21,6 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
-    env:
-      PYTHON_EXEC: ${{ matrix.os != 'windows-latest'  && 'python3' || 'C:\Programs\PyMOL\python.exe' }} 
 
     steps:
       - name: Checkout Repository
@@ -28,11 +29,6 @@ jobs:
       - name: Set environment variable with current repo dir
         run: |
           echo "REPO=$PWD" >> $GITHUB_ENV
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
         
       
       - name: Setup Conda
@@ -40,9 +36,9 @@ jobs:
         with:
             auto-update-conda: true
             miniconda-version: "latest"
-            activate-environment: REvoDesign
+            activate-environment: ${{ env.conda_env }}
 
-      - name: Setup PyMOL for Ubuntu
+      - name: Setup PyMOL
         run: |
           conda install -c conda-forge pymol-open-source -y
 
