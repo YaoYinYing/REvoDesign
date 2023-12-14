@@ -21,9 +21,11 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macOS-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
+    env:
+      PYTHON_EXEC: ${{ matrix.os != 'windows-latest'  && 'python3' || 'C:\Programs\PyMOL\python.exe' }} 
 
     steps:
       - name: Checkout Repository
@@ -31,22 +33,20 @@ jobs:
 
       - name: Setup Python
         if: ${{ matrix.os != 'windows-latest' }}
-        env: 
-          PYTHON_EXEC: python3
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
         
 
       - name: Setup PyMOL for Ubuntu
-        if: ${{ matrix.os }} == 'ubuntu-latest'
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
         run: >
           sudo apt-get update;
           sudo apt-get --no-install-recommends install pymol
 
       
       - name: Setup PyMOL for MacOS
-        if: ${{ matrix.os }} == 'macos-latest'
+        if: ${{ matrix.os == 'macOS-latest' }}
         run: >
           brew install pymol
 
@@ -54,7 +54,6 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         env:
           incensive_pymol_installer_basename: PyMOL-${{ env.incensive_pymol_version }}-Windows-x86_64.exe
-          PYTHON_EXEC: C:\Programs\PyMOL\python.exe
         run: |
             curl.exe -O ${{ env.incensive_pymol_base_url }}/${{ env.incensive_pymol_installer_basename }}
             start /wait "" ${{ env.incensive_pymol_installer_basename }} /InstallationType=AllUsers /S /D=C:\Programs\PyMOL
