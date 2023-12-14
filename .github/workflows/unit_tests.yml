@@ -6,17 +6,11 @@ on:
       - '.github/workflows/unit_tests.yml' # monitor the main workflow script.
       - 'tests/*.py' # monitor the unit tests
       - 'REvoDesign' # monitor the REvoDesign project source code
-
       
     branches:
       - main
 
 
-env:
-  incensive_pymol_version: 2.5.7
-  incensive_pymol_base_url: https://storage.googleapis.com/pymol-storage/installers
-  
-  
 jobs:
   test:
     strategy:
@@ -32,35 +26,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Python
-        if: ${{ matrix.os != 'windows-latest' }}
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
         
+      
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+            auto-update-conda: true
+            miniconda-version: "latest"
+            activate-environment: REvoDesign
 
       - name: Setup PyMOL for Ubuntu
-        if: ${{ matrix.os == 'ubuntu-latest' }} 
-        run: >
-          sudo apt-get update;
-          sudo apt-get --no-install-recommends install pymol
-
-      
-      - name: Setup PyMOL for MacOS
-        if: ${{ matrix.os == 'macOS-latest' }}
-        run: >
-          brew install pymol
-
-      - name: Setup PyMOL for Windows
-        if: ${{ matrix.os == 'windows-latest' }}
-        env:
-          incensive_pymol_installer_basename: PyMOL-${{ env.incensive_pymol_version }}-Windows-x86_64.exe
         run: |
-            curl.exe -O ${{ env.incensive_pymol_base_url }}/${{ env.incensive_pymol_installer_basename }}
-            start /wait "" ${{ env.incensive_pymol_installer_basename }} /InstallationType=AllUsers /S /D=C:\Programs\PyMOL
+          conda install -c conda-forge pymol-open-source -y
+
 
       - name: Install REvoDesign
         run: |
-          ${{ env.PYTHON_EXEC }} -m pip install .[colabdesign] -U
+          python -m pip install .[colabdesign] -U
 
       - name: Unit Test
         env:
@@ -68,4 +53,4 @@ jobs:
           REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
           REPO: ${{ github.repository }}
         run: |
-          ${{ env.PYTHON_EXEC }} ${{ env.REPO }}/tests/UnitTests.py
+          python ${{ env.REPO }}/tests/UnitTests.py
