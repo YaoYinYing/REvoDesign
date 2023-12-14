@@ -40,20 +40,18 @@ jobs:
 
       - name: Setup PyMOL for Ubuntu
         if: ${{ matrix.os }} == 'ubuntu-latest'
-        env:
-          PYTHON_EXEC: python3
         run: >
-          sudo apt-get install -y pymol
+          sudo apt-get update;
+          sudo apt-get --no-install-recommends install pymol
 
       
       - name: Setup PyMOL for MacOS
         if: ${{ matrix.os }} == 'macos-latest'
-        env:
-          PYTHON_EXEC: python3
         run: >
           brew install pymol
 
       - name: Setup PyMOL for Windows
+        if: ${{ matrix.os == 'windows-latest' }}
         env:
           incensive_pymol_installer_basename: PyMOL-${{ env.incensive_pymol_version }}-Windows-x86_64.exe
           PYTHON_EXEC: C:\Programs\PyMOL\python.exe
