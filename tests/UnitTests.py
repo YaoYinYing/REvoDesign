@@ -38,6 +38,8 @@ molecule = '1nww'
 chain_id = 'A'
 sequence = 'XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 hetatm = 'HPN'
+gremlin_mrf_pkl_url='https://revodesign.yaoyy.moe/test_data/1nww_A.i90c75_aln.GREMLIN.mrf.pkl'
+gremlin_mrf_pkl_md5sum='201517130bbae68428e855c97dabe98a'
 
 
 class TestMutant(absltest.TestCase):
@@ -240,8 +242,6 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.calculator.setup_url(
             lineEdit_url, lineEdit_user, lineEdit_password
         )
-        print(f'{user}:{password}')
-        print(f'{self.calculator.user}: {self.calculator.password}@{self.calculator.url}')
 
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES

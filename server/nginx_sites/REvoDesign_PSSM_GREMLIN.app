@@ -12,12 +12,19 @@ server {
     ssl_stapling on;
     ssl_stapling_verify on;
     add_header Strict-Transport-Security max-age=15768000;
+    
     location / {
+        auth_basic off;
+        root /mnt/data/yinying/server/public;
+        index index.html;
+    }
+
+    location /PSSM_GREMLIN {
         auth_basic           "REvoDesign Server API";
         auth_basic_user_file /etc/apache2/.htpasswd;
         proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
+
 }
-~
