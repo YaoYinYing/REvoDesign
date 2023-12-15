@@ -2355,6 +2355,19 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_export_mutant_pdbs">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="statusTip">
+             <string>Export mutant as pdbs.</string>
+            </property>
+            <property name="text">
+             <string>Export PDBs</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
        </layout>
@@ -3747,7 +3760,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Server options</string>
+       <string>Host options</string>
       </property>
       <widget class="QWidget" name="">
        <property name="geometry">
@@ -3762,7 +3775,7 @@
         <item>
          <widget class="QLabel" name="label_molecule_11">
           <property name="statusTip">
-           <string>Server IP/domain to connect</string>
+           <string>Broadcast time interval.</string>
           </property>
           <property name="text">
            <string>Broadcast interval:</string>
@@ -3775,7 +3788,7 @@
         <item>
          <widget class="QDoubleSpinBox" name="doubleSpinBox_ws_view_broadcast_interval">
           <property name="statusTip">
-           <string>View broadcasting interval</string>
+           <string>Broadcast time interval. Smaller means faster.</string>
           </property>
           <property name="decimals">
            <number>3</number>
@@ -3820,7 +3833,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Client options</string>
+       <string>Peer options</string>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_9">
        <property name="geometry">
@@ -3843,7 +3856,7 @@
              <string>Server IP/domain to connect</string>
             </property>
             <property name="text">
-             <string>Sever:</string>
+             <string>Host:</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -3853,7 +3866,7 @@
           <item>
            <widget class="QLineEdit" name="lineEdit_ws_server_url_to_connect">
             <property name="statusTip">
-             <string>Server IP/domain to connect</string>
+             <string>Host IP/domain to connect</string>
             </property>
             <property name="text">
              <string>localhost</string>
@@ -3899,7 +3912,7 @@
        </rect>
       </property>
       <property name="title">
-       <string>Socket role</string>
+       <string>Team role</string>
       </property>
       <widget class="QWidget" name="verticalLayoutWidget_10">
        <property name="geometry">
@@ -3922,12 +3935,15 @@
              <string>Start teamwork server to create a network</string>
             </property>
             <property name="text">
-             <string>Server Mode</string>
+             <string>Host Mode</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="checkBox_ws_duplex_mode">
+            <property name="statusTip">
+             <string>Duplex mode: receive broadcasts from the clients.</string>
+            </property>
             <property name="text">
              <string>Duplex</string>
             </property>
@@ -3995,7 +4011,7 @@
           <item>
            <widget class="QLineEdit" name="lineEdit_ws_server_key">
             <property name="statusTip">
-             <string>Server key.</string>
+             <string>Server key for client authentication.</string>
             </property>
             <property name="text">
              <string/>
@@ -4027,7 +4043,7 @@
        </rect>
       </property>
       <property name="statusTip">
-       <string>Peers in this network</string>
+       <string>Peers in this networks</string>
       </property>
       <column>
        <property name="text">
@@ -4076,7 +4092,7 @@
         <item>
          <widget class="QCheckBox" name="checkBox_ws_recieve_view_broadcast">
           <property name="statusTip">
-           <string>Receive PyMOL view updates</string>
+           <string>Receive  view updates</string>
           </property>
           <property name="text">
            <string>View Change</string>
@@ -4127,7 +4143,7 @@
         <item>
          <widget class="QCheckBox" name="checkBox_ws_broadcast_mutagenesis">
           <property name="statusTip">
-           <string>Receive mutant updates</string>
+           <string>Broadcast mutant updates</string>
           </property>
           <property name="text">
            <string>Mutations</string>
@@ -4143,7 +4159,7 @@
         <item>
          <widget class="QCheckBox" name="checkBox_ws_broadcast_view">
           <property name="statusTip">
-           <string>View broadcasting interval</string>
+           <string>Broadcast view changes</string>
           </property>
           <property name="text">
            <string>View Change</string>
@@ -4153,7 +4169,7 @@
         <item>
          <widget class="QCheckBox" name="checkBox_ws_broadcast_selection">
           <property name="statusTip">
-           <string>Receive mutant updates</string>
+           <string>Broadcast mutant updates</string>
           </property>
           <property name="text">
            <string>Selection</string>

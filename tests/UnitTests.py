@@ -38,7 +38,7 @@ molecule = '1nww'
 chain_id = 'A'
 sequence = 'XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 hetatm = 'HPN'
-gremlin_mrf_pkl_url='https://revodesign.yaoyy.moe/test_data/1nww_A.i90c75_aln.GREMLIN.mrf.pkl'
+gremlin_mrf_pkl_url='https://raw.githubusercontent.com/YaoYinYing/REvoDesign-test-data/main/1nww_A.i90c75_aln.GREMLIN.mrf.pkl'
 gremlin_mrf_pkl_md5sum='201517130bbae68428e855c97dabe98a'
 
 
