@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [1.3.1] - 2023-12-26
 
 ### Added
 - Loads of usage info thanks to the [ChatGPT prompt as coding helper](prompt/prompt.md) prompt!
@@ -15,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit test cases, WIP.
 - `existed_mutant_tree`: fetch existed mutant tree in current session.
 - `refresh_user_tree`: Adding Host info and set on the top
+- `pybiolib` package for [pythia biolib](https://biolib.com/YaoYinYing/pythia-wubianlab), repo at [here](https://github.com/YaoYinYing/Pythia), docker image at [here](https://hub.docker.com/r/yaoyinying/pythia-wubianlab).
+  - `REvoDesign/clients/PythiaBiolibClient.py` as wrapper runner class.
+  - `REvoDesign/common/MutantVisualizer.py`: add cloud runner support for Biolib.
+  - `REvoDesign/phylogenetics/REvoDesigner.py`: assign sequence to profile parser before parsing.
+- `make_temperal_input_pdb`: add `chain id` as option. if `None`, use all chains.
+- `MutantVisualizer`: fix residue missing and resi shifting caused by Xtal structures.
 
 ### Changed
 - UI changes of `Socket` tab. Similar widgets between server and client are now uniq.
@@ -22,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moving `any_posision_has_been_selected` to `pymol_utils.py`
 - Broadcast user tree before `refresh_tree_widget`
 - `MultiMutantDesigner`: use `existed_mutant_tree` to fetch mutant tree
-
+- `reload_molecule_info`: drop alternative sidechain conformers before structure saving and loading .
 
 ### Fixed
 - Loop (`127.0.0.1`) as websocket server address
@@ -36,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `fetch_all_mutant_in_one_branch`
   - `fetch_mutant_tree`
 - class `Mutant`: `equals_to`
+- `tests/launch_REvoDesign.pymol.pml`
 
 ## [1.3.0] - 2023-12-05
 
