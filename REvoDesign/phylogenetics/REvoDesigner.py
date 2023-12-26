@@ -521,6 +521,7 @@ class REvoDesigner:
         profile_parser = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id
         )
+        profile_parser.sequence=self.sequence
         df = profile_parser.parse_profile(
             profile_fp=self.input_profile,
             profile_format=self.input_profile_format,

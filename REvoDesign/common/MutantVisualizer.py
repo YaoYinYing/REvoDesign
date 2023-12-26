@@ -17,6 +17,7 @@ from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.utils import (
     get_color,
     run_command,
+    run_worker_thread_with_progress,
 )
 
 
@@ -200,6 +201,39 @@ class MutantVisualizer:
                 return
             return
 
+        if profile_format == 'Pythia-ddG':
+            df_path = os.path.join(
+                os.path.abspath('.'),
+                'pythia',
+                f'{self.molecule}_pred_mask.csv',
+            )
+            if not os.path.exists(df_path):
+                from REvoDesign.clients.PythiaBiolibClient import PythiaBiolib
+
+                ddg_runner = PythiaBiolib(
+                    molecule=self.molecule, chain_id=self.chain_id
+                )
+                ddg_runner.work_dir = os.path.join(
+                    os.path.abspath('.'), 'pythia'
+                )
+                os.makedirs(ddg_runner.work_dir, exist_ok=True)
+                df_path = run_worker_thread_with_progress(
+                    worker_function=ddg_runner.predict
+                )
+                if not df_path:
+                    logging.error('Oops! error occurs during pythia running!')
+                    return
+
+                logging.debug(f'Result file is stored at: {df_path}')
+            else:
+                logging.warning(
+                    f'Find expected Pythia output: `{df_path}`, skipping.'
+                )
+
+            df = self.parse_profile(profile_fp=df_path, profile_format='CSV')
+
+            return df
+
         if not profile_fp:
             logging.warning(f'profile not available: {profile_fp}')
             return None
@@ -256,6 +290,34 @@ class MutantVisualizer:
                 df.rename(columns=column_rename_mapping, inplace=True)
 
             logging.debug(df.columns)
+
+            if (
+                len(df.columns) == len(self.sequence.replace('X', ''))
+                and 'X' in self.sequence
+            ):
+                logging.warning('Missing residues from structure.')
+
+                non_missing_resi = [
+                    i for i, j in enumerate(self.sequence) if j != 'X'
+                ]
+                # Create a dictionary to map old column names to new column names
+                column_rename_mapping = {
+                    str(int(i)): str(int(j))
+                    for i, j in zip(df.columns, non_missing_resi)
+                }
+                # Rename the columns using the mapping
+                df.rename(columns=column_rename_mapping, inplace=True)
+                logging.debug(f'Repaired: {df.columns}')
+
+                # Fill missing columns with zeros
+                logging.warning('Filling missing with zeros')
+                for i, j in enumerate(self.sequence):
+                    if j == 'X':
+                        df.insert(loc = i,
+                            column = f'{i}',
+                            value = [0 for k in range(20)])
+
+                logging.debug(f'Filled: {df.columns}')
 
             if len(df.columns) > 20 and str(df.columns[0]) == '0':
                 logging.debug(f'Profile data matches default format.')
@@ -332,7 +394,7 @@ class MutantVisualizer:
         Args:
         - progress_bar: Progress bar object to track the mutation progress.
 
-        Reads mutation data from different file formats (CSV, TXT, FASTA) and performs mutation-related operations. 
+        Reads mutation data from different file formats (CSV, TXT, FASTA) and performs mutation-related operations.
         Calculates scores for mutants and adds them to the mutant tree.
         Determines the range for the color bar based on mutant scores.
         Adjusts score ranges based on certain conditions.

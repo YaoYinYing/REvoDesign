@@ -50,6 +50,8 @@ scipy = [
 ]
 pyOpenSSL = "^23.3.0" 
 
+pybiolib = '1.1.1666'
+
 colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1.1" , optional = true }
 
 

@@ -12,7 +12,13 @@ from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.tools.mutant_tools import expand_range, extract_mutant_from_sequences, extract_mutant_score_from_string, extract_mutants_from_mutant_id, shorter_range
+from REvoDesign.tools.mutant_tools import (
+    expand_range,
+    extract_mutant_from_sequences,
+    extract_mutant_score_from_string,
+    extract_mutants_from_mutant_id,
+    shorter_range,
+)
 from REvoDesign.tools.pymol_utils import (
     any_posision_has_been_selected,
     find_all_protein_chain_ids_in_protein,
@@ -38,8 +44,8 @@ molecule = '1nww'
 chain_id = 'A'
 sequence = 'XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 hetatm = 'HPN'
-gremlin_mrf_pkl_url='https://raw.githubusercontent.com/YaoYinYing/REvoDesign-test-data/main/1nww_A.i90c75_aln.GREMLIN.mrf.pkl'
-gremlin_mrf_pkl_md5sum='201517130bbae68428e855c97dabe98a'
+gremlin_mrf_pkl_url = 'https://raw.githubusercontent.com/YaoYinYing/REvoDesign-test-data/main/1nww_A.i90c75_aln.GREMLIN.mrf.pkl'
+gremlin_mrf_pkl_md5sum = '201517130bbae68428e855c97dabe98a'
 
 
 class TestMutant(absltest.TestCase):
@@ -232,10 +238,10 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.calculator = PSSMGremlinCalculator()
         # Mock QLineEdit objects
         lineEdit_url = MagicMock(text=lambda: 'https://revodesign.yaoyy.moe/')
-        
-        user=os.environ['REVODESIGN_USERS']
+
+        user = os.environ['REVODESIGN_USERS']
         lineEdit_user = MagicMock(text=lambda: user)
-        
+
         password = os.environ['REVODESIGN_SERVER_PASS']
         lineEdit_password = MagicMock(text=lambda: password)
 
@@ -246,7 +252,9 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES
         random.seed(42)
-        self.calculator.setup_calculator(tmp_dir, molecule, chain_id, random.sample(sequence,len(sequence)))
+        self.calculator.setup_calculator(
+            tmp_dir, molecule, chain_id, random.sample(sequence, len(sequence))
+        )
 
     def tearDown(self):
         if os.path.exists(self.calculator.temp_file_path):
@@ -256,7 +264,9 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.assertEqual(self.calculator.url, 'https://revodesign.yaoyy.moe/')
         self.assertIsNotNone(self.calculator.auth)
         self.assertEqual(self.calculator.user, os.environ['REVODESIGN_USERS'])
-        self.assertEqual(self.calculator.password, os.environ['REVODESIGN_SERVER_PASS'])
+        self.assertEqual(
+            self.calculator.password, os.environ['REVODESIGN_SERVER_PASS']
+        )
 
     def test_setup_calculator(self):
         self.assertTrue(os.path.exists(self.calculator.temp_file_path))
@@ -415,7 +425,7 @@ class TestPymolUtils(absltest.TestCase):
         self.assertTrue(any_posision_has_been_selected())
         cmd.disable('sele')
         self.assertFalse(any_posision_has_been_selected())
-    
+
     def tearDown(self):
         cmd.reinitialize()
 
@@ -428,83 +438,164 @@ class TestMutantTools(absltest.TestCase):
             cmd.remove('r. hoh or r. MES')
         except CmdException:
             pass
+
     def test_extract_mutants_from_mutant_id_full(self):
-        mutant_string='AI5R_AK26T_0.4567'
-        expected_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+        mutant_string = 'AI5R_AK26T_0.4567'
+        expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
-        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string)
-        self.assertIsInstance(_o,Mutant)
+        _, _o = extract_mutants_from_mutant_id(mutant_string=mutant_string)
+        self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.get_mutant_score(), 0.4567)
-        _o.wt_sequence=sequence
-        
+        _o.wt_sequence = sequence
+
         self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
-        
+
     def test_extract_mutants_from_mutant_id_reduced(self):
-        mutant_string='I5R_K26T_0.4567'
-        expected_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+        mutant_string = 'I5R_K26T_0.4567'
+        expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
-        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string,chain_id=chain_id)
-        self.assertIsInstance(_o,Mutant)
+        _, _o = extract_mutants_from_mutant_id(
+            mutant_string=mutant_string, chain_id=chain_id
+        )
+        self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.get_mutant_score(), 0.4567)
-        _o.wt_sequence=sequence
-        
+        _o.wt_sequence = sequence
+
         self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
-        
+
     def test_extract_mutants_from_mutant_id_fuzzy(self):
-        mutant_string='5R_26T_0.4567'
-        expected_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+        mutant_string = '5R_26T_0.4567'
+        expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
-        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string,chain_id=chain_id,sequence=sequence)
-        self.assertIsInstance(_o,Mutant)
+        _, _o = extract_mutants_from_mutant_id(
+            mutant_string=mutant_string, chain_id=chain_id, sequence=sequence
+        )
+        self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.get_mutant_score(), 0.4567)
-        _o.wt_sequence=sequence
-        
-        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
-        
-    def test_extract_mutants_from_mutant_id_invalid(self):
-        mutant_string='5R_26T_0.4567'
+        _o.wt_sequence = sequence
 
-        _, _o=extract_mutants_from_mutant_id(mutant_string=mutant_string)
-        self.assertIsNone(_o,)
+        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
+
+    def test_extract_mutants_from_mutant_id_invalid(self):
+        mutant_string = '5R_26T_0.4567'
+
+        _, _o = extract_mutants_from_mutant_id(mutant_string=mutant_string)
+        self.assertIsNone(
+            _o,
+        )
 
     def test_extract_mutant_score_from_string(self):
-        mutant_string='I5R_K26T_0.4567'
-        self.assertEqual(extract_mutant_score_from_string(mutant_string=mutant_string), 0.4567)
+        mutant_string = 'I5R_K26T_0.4567'
+        self.assertEqual(
+            extract_mutant_score_from_string(mutant_string=mutant_string),
+            0.4567,
+        )
 
     def test_extract_mutant_from_sequences(self):
-        mutant_sequence='XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
-        _o1=extract_mutant_from_sequences(wt_sequence=sequence,mutant_sequence=mutant_sequence,chain_id=chain_id,fix_missing=False)
-        _o2=extract_mutant_from_sequences(wt_sequence=sequence,mutant_sequence=mutant_sequence.replace('X', ''),chain_id=chain_id,fix_missing=True)
+        mutant_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+        _o1 = extract_mutant_from_sequences(
+            wt_sequence=sequence,
+            mutant_sequence=mutant_sequence,
+            chain_id=chain_id,
+            fix_missing=False,
+        )
+        _o2 = extract_mutant_from_sequences(
+            wt_sequence=sequence,
+            mutant_sequence=mutant_sequence.replace('X', ''),
+            chain_id=chain_id,
+            fix_missing=True,
+        )
 
         self.assertEqual(_o1.get_mutant_info(), _o2.get_mutant_info())
 
     def test_shorter_range_continuous_sequence(self):
-        input_list = [395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409]
-        expected_expression='395-409'
+        input_list = [
+            395,
+            396,
+            397,
+            398,
+            399,
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+        ]
+        expected_expression = '395-409'
         result = shorter_range(input_list)
-        self.assertEqual(result,expected_expression)
+        self.assertEqual(result, expected_expression)
 
     def test_shorter_range_discontinuous_sequence(self):
-        input_list = [395, 396, 397, 398, 399, 401, 402, 403, 404, 405, 406, 407, 408, 409]
-        expected_expression='395-399+401-409'
+        input_list = [
+            395,
+            396,
+            397,
+            398,
+            399,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+        ]
+        expected_expression = '395-399+401-409'
         result = shorter_range(input_list)
-        self.assertEqual(result,expected_expression)
+        self.assertEqual(result, expected_expression)
 
     def test_expand_range_continuous_sequence(self):
         shortened_str = "395-409"
-        expected_list=[395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409]
+        expected_list = [
+            395,
+            396,
+            397,
+            398,
+            399,
+            400,
+            401,
+            402,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+        ]
         result = expand_range(shortened_str)
         self.assertEqual(result, expected_list)
 
     def test_expand_range_discontinuous_sequence(self):
         shortened_str = "395-401+403-409"
-        expected_list=[395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
+        expected_list = [
+            395,
+            396,
+            397,
+            398,
+            399,
+            400,
+            401,
+            403,
+            404,
+            405,
+            406,
+            407,
+            408,
+            409,
+        ]
         result = expand_range(shortened_str)
         self.assertEqual(result, expected_list)
 
     def tearDown(self):
         cmd.reinitialize()
-
 
 
 if __name__ == '__main__':

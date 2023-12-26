@@ -376,7 +376,7 @@ def is_a_REvoDesign_session():
 
 
 def make_temperal_input_pdb(
-    molecule, format='pdb', wd=os.getcwd(), reload=True
+    molecule,chain_id=None, format='pdb', wd=os.getcwd(), reload=True
 ):
     """
     Function: make_temperal_input_pdb
@@ -386,6 +386,7 @@ def make_temperal_input_pdb(
 
     Args:
     - molecule (str): PyMOL selection string of the molecule
+    - chain_id (str): chain id of the molecule. (deault is None for all chains)
     - format (str): File format for the generated PDB file (default is 'pdb')
     - wd (str): Working directory path where the file will be saved (default is current working directory)
     - reload (bool): Whether to reload the PyMOL session after generating the file (default is True)
@@ -397,7 +398,10 @@ def make_temperal_input_pdb(
 
     input_file = os.path.join(wd, f'{molecule}.{format}')
     if not os.path.exists(input_file):
-        cmd.save(input_file, f'{molecule}', -1)
+        if not chain_id:
+            cmd.save(input_file, f'{molecule}', -1)
+        else:
+            cmd.save(input_file, f'{molecule} and c. {chain_id}', -1)
     if reload:
         cmd.reinitialize()
         cmd.load(input_file)
