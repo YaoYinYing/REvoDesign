@@ -53,7 +53,6 @@ class MutantVisualizer:
         self.sidechain_solver = 'buildin'
         self.sidechain_solver_radius = 0
         self.mutate_runner = None
-        self.relax_radius = -1
 
         # this should be set via the following:
         # visualizer=MutantVisualizer(molecule=molecule,chain_id=chainid)
@@ -177,8 +176,8 @@ class MutantVisualizer:
 
         temp_mutant_pdb_path = self.mutate_runner.run_mutate(
             mutant_obj=mutant_obj,
-            reconstruct_area_radius=self.relax_radius,
-            relax_order='natoms' if self.relax_radius else 'sequence',
+            reconstruct_area_radius=self.sidechain_solver_radius,
+            relax_order='natoms' if self.sidechain_solver_radius>0 else 'sequence',
         )
 
         cmd.reinitialize()
