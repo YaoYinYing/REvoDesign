@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>561</height>
+    <height>562</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -857,39 +857,13 @@
        </layout>
       </widget>
      </widget>
-     <widget class="QGroupBox" name="groupBox_preffer_substitution">
-      <property name="geometry">
-       <rect>
-        <x>370</x>
-        <y>300</y>
-        <width>251</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Substitutions to Preffer</string>
-      </property>
-      <widget class="QLineEdit" name="lineEdit_preffer_substitution">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>231</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="statusTip">
-        <string>Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY`. For external designers: `DNEQKRHHH`. </string>
-       </property>
-      </widget>
-     </widget>
      <widget class="QGroupBox" name="groupBox_2">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>150</y>
         <width>351</width>
-        <height>141</height>
+        <height>121</height>
        </rect>
       </property>
       <property name="title">
@@ -901,7 +875,7 @@
          <x>10</x>
          <y>30</y>
          <width>331</width>
-         <height>101</height>
+         <height>81</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -994,73 +968,18 @@
            <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
           </property>
           <property name="text">
-           <string>Reversed</string>
+           <string>Reverse</string>
           </property>
          </widget>
         </item>
        </layout>
       </widget>
      </widget>
-     <widget class="QGroupBox" name="groupBox_reject_substitution">
-      <property name="geometry">
-       <rect>
-        <x>180</x>
-        <y>300</y>
-        <width>181</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Substitutions to Reject</string>
-      </property>
-      <widget class="QLineEdit" name="lineEdit_reject_substitution">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>161</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="statusTip">
-        <string>Substitutions to reject. eg. `PC` to reject proline and cysteine.</string>
-       </property>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>300</y>
-        <width>161</width>
-        <height>61</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Design Case</string>
-      </property>
-      <widget class="QLineEdit" name="lineEdit_design_case">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>30</y>
-         <width>141</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="statusTip">
-        <string>You should name this design case with a proper label.</string>
-       </property>
-       <property name="text">
-        <string>default</string>
-       </property>
-      </widget>
-     </widget>
      <widget class="QGroupBox" name="groupBox_11">
       <property name="geometry">
        <rect>
         <x>370</x>
-        <y>150</y>
+        <y>220</y>
         <width>251</width>
         <height>141</height>
        </rect>
@@ -1288,6 +1207,123 @@
          </layout>
         </item>
        </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox_reject_substitution">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>270</y>
+        <width>351</width>
+        <height>91</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Substitutions to:</string>
+      </property>
+      <widget class="QWidget" name="verticalLayoutWidget_14">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>331</width>
+         <height>51</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_20">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_53">
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Reject some substitutions</string>
+            </property>
+            <property name="text">
+             <string>Reject:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_reject_substitution">
+            <property name="statusTip">
+             <string>Substitutions to reject. eg. `PC` to reject proline and cysteine.</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_55">
+          <item>
+           <widget class="QLabel" name="label_5">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="statusTip">
+             <string>Allow some substitutions.</string>
+            </property>
+            <property name="text">
+             <string>Accept:</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_preffer_substitution">
+            <property name="statusTip">
+             <string>Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY`. For external designers: `DNEQKRHHH`. </string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="groupBox">
+      <property name="geometry">
+       <rect>
+        <x>370</x>
+        <y>150</y>
+        <width>241</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Design Case</string>
+      </property>
+      <widget class="QLineEdit" name="lineEdit_design_case">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>221</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="statusTip">
+        <string>You should name this design case with a proper label.</string>
+       </property>
+       <property name="text">
+        <string>default</string>
+       </property>
       </widget>
      </widget>
     </widget>
@@ -4179,6 +4215,106 @@
           </property>
           <property name="tristate">
            <bool>false</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab">
+     <attribute name="title">
+      <string>Config</string>
+     </attribute>
+     <widget class="QGroupBox" name="groupBox_16">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>351</width>
+        <height>71</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Sidechain options</string>
+      </property>
+      <widget class="QWidget" name="horizontalLayoutWidget_5">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>331</width>
+         <height>32</height>
+        </rect>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_57">
+        <item>
+         <widget class="QLabel" name="label_molecule_2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Solver:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBox_sidechain_solver">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="statusTip">
+           <string>Sidechain solver. Default: buildin for Dunbrack rotamer library used by PyMOL </string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_molecule_3">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>radius:</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBox_sidechain_solver_radius">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximum">
+           <double>20.000000000000000</double>
           </property>
          </widget>
         </item>

@@ -34,6 +34,7 @@ from REvoDesign.tools.pymol_utils import (
     mutate,
     refresh_all_selections,
 )
+from REvoDesign.tools.utils import WITH_DLPACKER
 
 TEST_DATA = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(TEST_DATA, 'testdata')
@@ -596,6 +597,75 @@ class TestMutantTools(absltest.TestCase):
 
     def tearDown(self):
         cmd.reinitialize()
+
+class TestSidechainSolver(absltest.TestCase):
+    def setUp(self):
+        self.mutant_string = 'AI5R_AK26T_0.4567'
+        self.expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
+        _, self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string)
+        self.mutant_obj.wt_sequence = sequence
+
+        try:
+            cmd.fetch(molecule)
+            cmd.remove('c. B')
+            cmd.remove('r. hoh or r. MES')
+            
+            
+        except CmdException:
+            pass
+    def test_pymol_mutate(self):
+        from REvoDesign.sidechain_solver.Buildin import PyMOL_mutate
+        wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
+        
+        mutate_runner=PyMOL_mutate(molecule=molecule,input_session=wt_pdb)
+        mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+        from Bio.PDB.PDBParser import PDBParser
+        parser = PDBParser(PERMISSIVE=1)
+        structure = parser.get_structure(self.mutant_string, mutate_pdb_path)
+        mut_residue_1=structure[0]["A"][5]
+        mut_residue_2=structure[0]["A"][26]
+        self.assertEqual(mut_residue_1.get_resname(), 'ARG')
+        self.assertEqual(mut_residue_2.get_resname(), 'THR')
+    
+    def test_dlpacker_mutate(self):
+        
+        if not WITH_DLPACKER:
+            print('Skiping dlpacker tests..')
+        from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
+        wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
+        mutate_runner=DLPacker_worker(pdb_file=wt_pdb)
+        mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+
+        from Bio.PDB.PDBParser import PDBParser
+        parser = PDBParser(PERMISSIVE=1)
+        structure = parser.get_structure(self.mutant_string, mutate_pdb_path)
+        mut_residue_1=structure[0]["A"][5]
+        mut_residue_2=structure[0]["A"][26]
+        self.assertEqual(mut_residue_1.get_resname(), 'ARG')
+        self.assertEqual(mut_residue_2.get_resname(), 'THR')
+
+    def test_dlpacker_mutate_reconstruct_range(self):
+        if not WITH_DLPACKER:
+            print('Skiping dlpacker tests..')
+        from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
+        wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
+        mutate_runner=DLPacker_worker(pdb_file=wt_pdb)
+        mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj,reconstruct_area_radius=8)
+
+
+        from Bio.PDB.PDBParser import PDBParser
+        parser = PDBParser(PERMISSIVE=1)
+        structure = parser.get_structure(self.mutant_string, mutate_pdb_path)
+        mut_residue_1=structure[0]["A"][5]
+        mut_residue_2=structure[0]["A"][26]
+        self.assertEqual(mut_residue_1.get_resname(), 'ARG')
+        self.assertEqual(mut_residue_2.get_resname(), 'THR')
+
+
+        
+        
 
 
 if __name__ == '__main__':

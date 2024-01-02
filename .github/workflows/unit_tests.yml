@@ -56,7 +56,7 @@ jobs:
 
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
-          python -m pip install .[colabdesign] -U
+          python -m pip install ".[colabdesign,dlpacker]" -U
 
       - name: Unit Test on ${{ matrix.os }}
         env:

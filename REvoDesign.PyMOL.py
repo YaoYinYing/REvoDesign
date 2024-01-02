@@ -37,7 +37,7 @@ def install_via_pip(
     python_exe = os.path.realpath(sys.executable)
 
     _source = ''
-    _extras = f'[{extras}]' if extras in ['colabdesign'] else ''
+    _extras = f'[{extras}]' if extras in ['colabdesign', 'dlpacker'] else ''
 
     # a HTTP repo URL
     if source.startswith('https://'):
