@@ -10,6 +10,7 @@ from REvoDesign.tools.system_tools import is_package_installed
 
 
 WITH_COLABDESIGN = is_package_installed('colabdesign')
+WITH_DLPACKER=is_package_installed('DLPacker')
 
 
 def run_command(excutable='python', command_list=[]):

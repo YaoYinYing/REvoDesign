@@ -53,6 +53,9 @@ class REvoDesigner:
         self.randomized_sample = False
         self.randomized_sample_num = 10
 
+        self.sidechain_solver= 'buildin'
+        self.sidechain_solver_radius=0
+
         self.molecule = ''
         self.chain_id = 'A'
         self.pwd = '.'
@@ -591,6 +594,9 @@ class REvoDesigner:
         visualizer.group_name = group_id
         visualizer.full = self.create_full_pdb
         visualizer.cmap = self.cmap
+        visualizer.sidechain_solver= self.sidechain_solver
+        visualizer.sidechain_solver_radius=self.sidechain_solver_radius
+        visualizer.setup_side_chain_solver()
 
         if (
             self.external_designer

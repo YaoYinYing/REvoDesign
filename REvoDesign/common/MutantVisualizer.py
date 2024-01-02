@@ -2,22 +2,27 @@ import os
 import time
 import tempfile
 import pandas as pd
-from Bio.Data import IUPACData
+
 from Bio import SeqIO
 from pymol import cmd
 import matplotlib
 from absl import logging
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 matplotlib.use('Agg')
 
-from REvoDesign.common.magic_numbers import DEFAULT_PROFILE_TYPE
+from REvoDesign.common.magic_numbers import (
+    DEFAULT_PROFILE_TYPE,
+    SIDECHAIN_SOLVER,
+)
 from REvoDesign.common.Mutant import Mutant
 
 from REvoDesign.tools.utils import (
     get_color,
     run_command,
     run_worker_thread_with_progress,
+    WITH_DLPACKER,
 )
 
 
@@ -45,6 +50,10 @@ class MutantVisualizer:
         self.profile = ''
         self.profile_format = DEFAULT_PROFILE_TYPE
         self.scorer = None
+        self.sidechain_solver = 'buildin'
+        self.sidechain_solver_radius = 0
+        self.mutate_runner = None
+        self.relax_radius = -1
 
         # this should be set via the following:
         # visualizer=MutantVisualizer(molecule=molecule,chain_id=chainid)
@@ -62,7 +71,52 @@ class MutantVisualizer:
 
         self.consider_global_score_from_profile = False
 
-    def process_position(self, mutant_obj: Mutant):
+    def setup_side_chain_solver(self):
+        if (
+            not self.sidechain_solver
+            or self.sidechain_solver not in SIDECHAIN_SOLVER
+        ):
+            logging.error(
+                f'Sidechain solver is not available: {self.sidechain_solver}'
+            )
+            return
+
+        input_pdb = make_temperal_input_pdb(
+            molecule=self.molecule, chain_id=self.chain_id, reload=False
+        )
+        if self.sidechain_solver == 'buildin':
+            if (
+                not self.mutate_runner
+                or not self.mutate_runner.__class__.__name__ == 'PyMOL_mutate'
+            ):
+                from REvoDesign.sidechain_solver.Buildin import PyMOL_mutate
+
+                self.mutate_runner = PyMOL_mutate(
+                    molecule=self.molecule, input_session=input_pdb
+                )
+
+        elif self.sidechain_solver == 'DLPacker':
+            if not WITH_DLPACKER:
+                logging.error(
+                    'DLPacker is not available in your installation. Aborded..'
+                )
+                return
+            if (
+                not self.mutate_runner
+                or not self.mutate_runner.__class__.__name__
+                == 'DLPacker_worker'
+            ):
+                from REvoDesign.sidechain_solver.DLPacker import (
+                    DLPacker_worker,
+                )
+
+                self.mutate_runner = DLPacker_worker(pdb_file=input_pdb)
+                # logging.warning('Cannot use DLPacker in parallel mutagenesis. nproc will be set to')
+                # self.parallel_run=False
+
+        logging.info(f'Using {self.sidechain_solver} as sidechain solver.')
+
+    def process_mutant(self, mutant_obj: Mutant):
         """
         Process a specific position based on the information in the Mutant object.
 
@@ -79,19 +133,11 @@ class MutantVisualizer:
         """
         mutant = mutant_obj.get_short_mutant_id()
         score = mutant_obj.get_mutant_score()
-        temp_dir = tempfile.mkdtemp(prefix='RD_design_')
-        temp_session_path = os.path.join(temp_dir, f"position_{mutant}.pse")
-        cmd.load(self.input_session)
-
-        cmd.hide('surface')
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f" Visualizing {mutant} {score}: {color}")
-        self.create_mutagenesis_objects(mutant_obj, color)
-        cmd.hide('everything', 'hydrogens and polymer.protein')
-        cmd.delete(self.molecule)
-        cmd.save(temp_session_path)
-        cmd.reinitialize()
+        temp_session_path = self.create_mutagenesis_objects(mutant_obj, color)
+
         return temp_session_path
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
@@ -112,37 +158,45 @@ class MutantVisualizer:
         - Handles explicit mutagenesis descriptions by applying mutations and assigning colors.
         """
         from pymol import cmd, util
-        from REvoDesign.tools.pymol_utils import mutate
 
-        # mutant: <chain_id><wt><pos><mut>_..._<score>
         new_obj_name = mutant_obj.get_short_mutant_id()
-        cmd.create(f"{new_obj_name}", self.molecule)
-
-        mut_pos = []
         score = mutant_obj.get_mutant_score()
 
-        for mut_info in mutant_obj.get_mutant_info():
-            chain_id = mut_info['chain_id']
-            position = mut_info['position']
-            new_residue = mut_info['mut_res']
+        temp_dir = tempfile.mkdtemp(prefix='RD_design_')
+        temp_mutant_path = os.path.join(
+            temp_dir, f"{self.molecule}_{new_obj_name}.pse"
+        )
 
-            new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
-            # mut_pos.append(position)
+        mut_pos = [
+            f'(c. {mut_info["chain_id"]} and i. {str(mut_info["position"])})'
+            for mut_info in mutant_obj.get_mutant_info()
+        ]
 
-            mut_pos.append(f'(c. {chain_id} and i. {str(position)})')
-            mutate(new_obj_name, chain_id, position, new_residue_3)
+        if not self.mutate_runner:
+            self.setup_side_chain_solver()
 
-            if score:
-                cmd.alter(
-                    f" {new_obj_name} and i. {str(position)} and (sidechain or n. CA) ",
-                    f'b={score}',
-                )
+        temp_mutant_pdb_path = self.mutate_runner.run_mutate(
+            mutant_obj=mutant_obj,
+            reconstruct_area_radius=self.relax_radius,
+            relax_order='natoms' if self.relax_radius else 'sequence',
+        )
 
-            cmd.hide('lines', f'{new_obj_name}')
-            cmd.hide('cartoon', f'{new_obj_name}')
-            cmd.show(
-                "sticks",
-                f' {new_obj_name} and c. {chain_id} and i. {str(position)} and (sidechain or n. CA) and (not hydrogen)',
+        cmd.reinitialize()
+        cmd.load(temp_mutant_pdb_path)
+
+        cmd.hide('lines', f'{new_obj_name}')
+        cmd.hide('cartoon', f'{new_obj_name}')
+        cmd.show(
+            "sticks",
+            f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and (sidechain or n. CA) and (not hydrogen)',
+        )
+
+        cmd.hide('everything', 'hydrogens and polymer.protein')
+
+        if score:
+            cmd.alter(
+                f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and (sidechain or n. CA) ',
+                f'b={score}',
             )
 
         if not self.full:
@@ -164,6 +218,11 @@ class MutantVisualizer:
                 self.group_name,
                 f'{new_obj_name}',
             )
+
+        cmd.save(temp_mutant_path)
+        cmd.reinitialize()
+
+        return temp_mutant_path
 
     def parse_profile(self, profile_fp, profile_format):
         """
@@ -313,9 +372,9 @@ class MutantVisualizer:
                 logging.warning('Filling missing with zeros')
                 for i, j in enumerate(self.sequence):
                     if j == 'X':
-                        df.insert(loc = i,
-                            column = f'{i}',
-                            value = [0 for k in range(20)])
+                        df.insert(
+                            loc=i, column=f'{i}', value=[0 for k in range(20)]
+                        )
 
                 logging.debug(f'Filled: {df.columns}')
 
@@ -568,7 +627,7 @@ class MutantVisualizer:
 
         if self.parallel_run:
             parallel_executor = ParallelExecutor(
-                self.process_position,
+                self.process_mutant,
                 args=self.mutagenesis_tasks,
                 n_jobs=self.nproc,
             )
@@ -600,7 +659,7 @@ class MutantVisualizer:
             self.mutagenesis_sessions = []
             for mutagenesis_task in self.mutagenesis_tasks:
                 self.mutagenesis_sessions.append(
-                    self.process_position(*mutagenesis_task)
+                    self.process_mutant(*mutagenesis_task)
                 )
 
                 # https://www.jianshu.com/p/38562df9e65d

@@ -54,9 +54,12 @@ pybiolib = '1.1.1666'
 
 colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1.1" , optional = true }
 
+DLPacker = {git = "https://github.com/YaoYinYing/DLPacker", branch = 'pip-installable', optional = true}
 
 [tool.poetry.extras]
 colabdesign = ["colabdesign"]
+
+dlpacker = ["DLPacker"]
 
 [tool.black]
 line-length = 79

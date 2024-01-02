@@ -10,6 +10,8 @@ from functools import partial
 import absl.logging as logging
 import traceback
 
+from REvoDesign.common.magic_numbers import SIDECHAIN_SOLVER
+
 
 logging.set_verbosity(logging.DEBUG)
 logging.info(f'REvoDesign is installed in {os.path.dirname(__file__)}')
@@ -741,6 +743,8 @@ class REvoDesignPlugin:
             self.update_ws_client_view_update_options
         )
 
+        set_widget_value(self.ui.comboBox_sidechain_solver, SIDECHAIN_SOLVER)
+
         return main_window
 
     def set_design_sequence(
@@ -826,7 +830,7 @@ class REvoDesignPlugin:
             cmd.alter('all', 'alt=""')
             cmd.save(self.temperal_session)
             cmd.reinitialize()
-            cmd.load(self.temperal_session) 
+            cmd.load(self.temperal_session)
         else:
             logging.warning(
                 f'Current session is empty! \n \
@@ -836,9 +840,7 @@ class REvoDesignPlugin:
                 mode='r', exts=[SessionFileExt, PDB_FileExt, AnyFileExt]
             )
             if not new_session_file:
-                logging.error(
-                    f'Abored recognizing sessions from input.'
-                )
+                logging.error(f'Abored recognizing sessions from input.')
                 return
             elif not os.path.exists(new_session_file):
                 logging.error(f'File does not exist: {new_session_file}.')
@@ -1216,6 +1218,11 @@ class REvoDesignPlugin:
                 reverse=reversed_mutant_effect,
             )
 
+            sidechain_solver = self.ui.comboBox_sidechain_solver.currentText()
+            sidechain_solver_radius = (
+                self.ui.doubleSpinBox_sidechain_solver_radius.value()
+            )
+
             progressbar = self.ui.progressBar
 
             if is_a_REvoDesign_session():
@@ -1252,6 +1259,9 @@ class REvoDesignPlugin:
             design.deduplicate_designs = deduplicate_designs
             design.randomized_sample = randomized_sample
             design.randomized_sample_num = randomized_sample_num
+
+            design.sidechain_solver = sidechain_solver
+            design.sidechain_solver_radius = sidechain_solver_radius
 
             design.preffered_substitutions = preffered
             design.reject_aa = rejected
@@ -1962,6 +1972,11 @@ class REvoDesignPlugin:
         nproc = self.ui.spinBox_nproc.value()
         group_name = self.ui.lineEdit_group_name.text()
 
+        sidechain_solver = self.ui.comboBox_sidechain_solver.currentText()
+        sidechain_solver_radius = (
+            self.ui.doubleSpinBox_sidechain_solver_radius.value()
+        )
+
         use_global_scores = self.ui.checkBox_global_score_policy.isChecked()
 
         trigger_button.setEnabled(False)
@@ -2017,6 +2032,10 @@ class REvoDesignPlugin:
             visualizer.full = False
             visualizer.group_name = group_name
             visualizer.cmap = cmap
+
+            visualizer.sidechain_solver = sidechain_solver
+            visualizer.sidechain_solver_radius = sidechain_solver_radius
+            visualizer.setup_side_chain_solver()
 
             visualizer.run_with_progressbar(
                 progress_bar=progressBar_visualize_mutants
@@ -2736,6 +2755,12 @@ class REvoDesignPlugin:
 
         comboBox_external_scorer = self.ui.comboBox_external_scorer
         external_scorer = comboBox_external_scorer.currentText()
+
+        sidechain_solver = self.ui.comboBox_sidechain_solver.currentText()
+        sidechain_solver_radius = (
+            self.ui.doubleSpinBox_sidechain_solver_radius.value()
+        )
+
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
         if external_scorer and external_scorer in EXTERNAL_DESIGNERS:
@@ -2769,6 +2794,11 @@ class REvoDesignPlugin:
         )
         visualizer.sequence = self.design_sequence
         alphabet = self.gremlin_tool.alphabet
+
+        visualizer.sidechain_solver = sidechain_solver
+        visualizer.sidechain_solver_radius = sidechain_solver_radius
+
+        visualizer.setup_side_chain_solver()
 
         visualizer.group_name = '_vs_'.join(
             [wt.replace('_', '') for wt in wt_info[-3:-1]]
