@@ -1,4 +1,5 @@
-[![Unit Tests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml)
+[![Tests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml)
+[![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
 ## Introduction
 
 Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
