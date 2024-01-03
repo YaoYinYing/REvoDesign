@@ -177,7 +177,9 @@ class MutantVisualizer:
         temp_mutant_pdb_path = self.mutate_runner.run_mutate(
             mutant_obj=mutant_obj,
             reconstruct_area_radius=self.sidechain_solver_radius,
-            relax_order='natoms' if self.sidechain_solver_radius>0 else 'sequence',
+            relax_order='natoms'
+            if self.sidechain_solver_radius > 0
+            else 'sequence',
         )
 
         cmd.reinitialize()

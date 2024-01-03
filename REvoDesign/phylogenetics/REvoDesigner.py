@@ -53,8 +53,8 @@ class REvoDesigner:
         self.randomized_sample = False
         self.randomized_sample_num = 10
 
-        self.sidechain_solver= 'buildin'
-        self.sidechain_solver_radius=0
+        self.sidechain_solver = 'buildin'
+        self.sidechain_solver_radius = 0
 
         self.molecule = ''
         self.chain_id = 'A'
@@ -118,7 +118,7 @@ class REvoDesigner:
             custom_indices = [
                 resi for resi in range(1, len(self.sequence) + 1)
             ]
-    
+
         custom_indices = [0] + custom_indices
 
         df = df.iloc[:, custom_indices]
@@ -524,7 +524,7 @@ class REvoDesigner:
         profile_parser = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id
         )
-        profile_parser.sequence=self.sequence
+        profile_parser.sequence = self.sequence
         df = profile_parser.parse_profile(
             profile_fp=self.input_profile,
             profile_format=self.input_profile_format,
@@ -594,8 +594,8 @@ class REvoDesigner:
         visualizer.group_name = group_id
         visualizer.full = self.create_full_pdb
         visualizer.cmap = self.cmap
-        visualizer.sidechain_solver= self.sidechain_solver
-        visualizer.sidechain_solver_radius=self.sidechain_solver_radius
+        visualizer.sidechain_solver = self.sidechain_solver
+        visualizer.sidechain_solver_radius = self.sidechain_solver_radius
         visualizer.setup_side_chain_solver()
 
         if (

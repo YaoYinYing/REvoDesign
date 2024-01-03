@@ -1,5 +1,6 @@
 import os
 
+
 # Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN:
     def __init__(self, molecule):
@@ -26,11 +27,13 @@ class ColabDesigner_MPNN:
         self.pdb_filename = make_temperal_input_pdb(
             molecule=self.molecule, reload=self.reload
         )
-        
+
         self.mpnn_model = mk_mpnn_model()
         assert os.path.exists(self.pdb_filename)
         self.mpnn_model.prep_inputs(
-            pdb_filename=self.pdb_filename, *args, **kwargs, 
+            pdb_filename=self.pdb_filename,
+            *args,
+            **kwargs,
         )
         self.initialized = True
 

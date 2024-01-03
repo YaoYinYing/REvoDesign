@@ -1,0 +1,8 @@
+[run]
+omit =
+    */tests/*
+    */REvoDesign/retired/*
+    */REvoDesign/UI/*
+    */server/*
+    */prompt/*
+    */REvoDesign.PyMOL.py

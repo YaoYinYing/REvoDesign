@@ -4,8 +4,6 @@ import traceback
 from absl import logging
 
 
-
-
 class PythiaBiolib:
     def __init__(self, molecule, chain_id):
         logging.info("Creating Pythia Instance ...")
@@ -16,6 +14,7 @@ class PythiaBiolib:
 
     def predict(self):
         from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
+
         input_pdb = make_temperal_input_pdb(
             molecule=self.molecule,
             chain_id=self.chain_id,
@@ -27,14 +26,16 @@ class PythiaBiolib:
         logging.info('Remote image loaded.')
         try:
             logging.info(f'Processing `{input_pdb}`... ')
-            res=pythia_wubianlab.cli(args=f'--pdb_filename {input_pdb}')
-            
+            res = pythia_wubianlab.cli(args=f'--pdb_filename {input_pdb}')
+
             expected_output = os.path.join(
                 self.work_dir,
                 f'{self.molecule}_pred_mask.csv',
             )
             res.save_files(os.path.dirname(expected_output))
-            logging.info(f'Result is saved at `{os.path.dirname(expected_output)}`')
+            logging.info(
+                f'Result is saved at `{os.path.dirname(expected_output)}`'
+            )
             assert os.path.exists(expected_output)
             return expected_output
         except AssertionError:

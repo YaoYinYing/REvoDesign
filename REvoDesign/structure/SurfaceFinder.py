@@ -8,6 +8,7 @@ This is a slightly modified version of the code on:
 http://pymolwiki.org/index.php/FindSurfaceResidues
 '''
 
+
 def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
     """
     DESCRIPTION
@@ -108,18 +109,27 @@ class SurfaceFinder:
         self.output_file = output_file
         self.molecule = molecule
         self.chain_id = chain_id
-        self.exclude_residue_selection =''
+        self.exclude_residue_selection = ''
         self.cutoff = 15
         self.do_show_surf_CA = True
 
-
     def process_surface_residues(self):
         cmd.save(self.input_file)
-        logging.debug(f'exclude_residue_selection = {self.exclude_residue_selection}')
-        
-        if self.exclude_residue_selection or self.exclude_residue_selection != '':
-            sel_exclude_residue_selection = f'and (not {self.exclude_residue_selection})'
-            ray_selection_list = [self.exclude_residue_selection, self.molecule]
+        logging.debug(
+            f'exclude_residue_selection = {self.exclude_residue_selection}'
+        )
+
+        if (
+            self.exclude_residue_selection
+            or self.exclude_residue_selection != ''
+        ):
+            sel_exclude_residue_selection = (
+                f'and (not {self.exclude_residue_selection})'
+            )
+            ray_selection_list = [
+                self.exclude_residue_selection,
+                self.molecule,
+            ]
         else:
             sel_exclude_residue_selection = ''
             ray_selection_list = [self.molecule]
@@ -133,16 +143,26 @@ class SurfaceFinder:
 
         cmd.scene('initial_scene', 'store')
 
-        os.makedirs('surface_residue_records', exist_ok=True)  # Create a directory for residue records
+        os.makedirs(
+            'surface_residue_records', exist_ok=True
+        )  # Create a directory for residue records
 
         cmd.scene('initial_scene')
-        surface_selection = findSurfaceResidues(selection=self.molecule, cutoff=self.cutoff, return_selection=1)
+        surface_selection = findSurfaceResidues(
+            selection=self.molecule, cutoff=self.cutoff, return_selection=1
+        )
 
-        ner_ca_selection=f'ner_ca_{self.cutoff}'
-        er_ca_selection=f'er_ca_{self.cutoff}'
+        ner_ca_selection = f'ner_ca_{self.cutoff}'
+        er_ca_selection = f'er_ca_{self.cutoff}'
 
-        cmd.create(ner_ca_selection, f'{molecule_selection} and (not {surface_selection}) and n. CA {sel_exclude_residue_selection}')
-        cmd.create(er_ca_selection, f'{molecule_selection} and {surface_selection} and n. CA {sel_exclude_residue_selection}')
+        cmd.create(
+            ner_ca_selection,
+            f'{molecule_selection} and (not {surface_selection}) and n. CA {sel_exclude_residue_selection}',
+        )
+        cmd.create(
+            er_ca_selection,
+            f'{molecule_selection} and {surface_selection} and n. CA {sel_exclude_residue_selection}',
+        )
 
         if self.do_show_surf_CA:
             cmd.hide('everything', f'{ner_ca_selection} or {er_ca_selection}')
@@ -155,21 +175,29 @@ class SurfaceFinder:
             cmd.zoom(obj)
             scene_id = f'{obj[:20]}_cutoff_{self.cutoff}'
             cmd.refresh()
-            cmd.scene(scene_id, 'store', message=f'surface_cutoff: {self.cutoff}')
+            cmd.scene(
+                scene_id, 'store', message=f'surface_cutoff: {self.cutoff}'
+            )
 
         cmd.refresh()
 
         # Save residue IDs to a text file
-        surface_residue_ids = list(set([int(atom.resi) for atom in cmd.get_model(er_ca_selection).atom]))
+        surface_residue_ids = list(
+            set(
+                [
+                    int(atom.resi)
+                    for atom in cmd.get_model(er_ca_selection).atom
+                ]
+            )
+        )
         surface_residue_ids.sort()
-        residue_filename = os.path.join('surface_residue_records', f'residues_cutoff_{self.cutoff}.txt')
+        residue_filename = os.path.join(
+            'surface_residue_records', f'residues_cutoff_{self.cutoff}.txt'
+        )
         with open(residue_filename, 'w') as f:
             f.write(','.join(map(str, surface_residue_ids)))
 
         if self.do_show_surf_CA:
             cmd.hide('spheres', f'{ner_ca_selection} or {er_ca_selection}')
 
-
         cmd.save(self.output_file)
-
-

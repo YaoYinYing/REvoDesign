@@ -50,7 +50,7 @@ def is_package_installed(package):
     Returns:
     - bool: True if the package is installed, False otherwise
     """
-    package_loader = importlib.find_loader(package)
+    package_loader = importlib.util.find_spec(package)
     return package_loader is not None
 
 

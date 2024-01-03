@@ -117,8 +117,8 @@ def extract_mutants_from_mutant_id(
 
     # Instantializing a Mutant obj
     mutant_obj = Mutant(mutant_info, mutant_score)
-    if sequence: 
-        mutant_obj.wt_sequence=sequence
+    if sequence:
+        mutant_obj.wt_sequence = sequence
 
     logging.debug(mutant_obj)
 
@@ -441,7 +441,8 @@ def existed_mutant_tree(sequence, enabled_only=1):
             mutant_id: extract_mutant_from_pymol_object(
                 pymol_object=mutant_id, sequence=sequence
             )
-            for mutant_id in cmd.get_object_list(f'({group_id})') if not enabled_only or not is_hidden_object(selection=mutant_id)
+            for mutant_id in cmd.get_object_list(f'({group_id})')
+            if not enabled_only or not is_hidden_object(selection=mutant_id)
         }
         for group_id in cmd.get_names(type='group_objects', enabled_only=1)
         if not group_id.startswith('multi_design')

@@ -10,7 +10,7 @@ from REvoDesign.tools.system_tools import is_package_installed
 
 
 WITH_COLABDESIGN = is_package_installed('colabdesign')
-WITH_DLPACKER=is_package_installed('DLPacker')
+WITH_DLPACKER = is_package_installed('DLPacker')
 
 
 def run_command(excutable='python', command_list=[]):
@@ -76,6 +76,7 @@ def suppress_print(func):
     - Wraps the provided function to suppress any output to stdout and stderr.
     - Uses contextlib to redirect both stdout and stderr to /dev/null, effectively silencing any print statements.
     """
+
     def wrapper(*args, **kwargs):
         with contextlib.redirect_stdout(open(os.devnull, 'w')):
             with contextlib.redirect_stderr(open(os.devnull, 'w')):

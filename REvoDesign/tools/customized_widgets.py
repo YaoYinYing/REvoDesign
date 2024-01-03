@@ -635,7 +635,7 @@ def create_cmap_icon(cmap: str):
     return pixmap
 
 
-def refresh_tree_widget(user_tree:dict[dict], treeWidget_ws_peers):
+def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     """
     Refreshes a given tree widget with user data.
 
@@ -651,7 +651,7 @@ def refresh_tree_widget(user_tree:dict[dict], treeWidget_ws_peers):
     if not user_tree:
         return
 
-    host_info=user_tree.pop('Host')
+    host_info = user_tree.pop('Host')
     host_node = QtWidgets.QTreeWidgetItem(treeWidget_ws_peers)
     host_node.setText(0, f"Host: {host_info['user']}@{host_info['node']}")
 

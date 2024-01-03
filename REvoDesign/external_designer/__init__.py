@@ -37,5 +37,3 @@ else:
 from REvoDesign.external_designer.ExternalDesigners import *
 
 EXTERNAL_DESIGNERS = {'ProteinMPNN': ColabDesigner_MPNN}
-
-
