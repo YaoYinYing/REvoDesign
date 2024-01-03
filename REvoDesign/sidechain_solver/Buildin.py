@@ -7,17 +7,41 @@ from Bio.Data import IUPACData
 
 
 class PyMOL_mutate:
+    """
+    Class for performing mutations in PyMOL.
+
+    Usage:
+    pymol_mutator = PyMOL_mutate(molecule, input_session)
+    mutated_pdb = pymol_mutator.run_mutate(mutant_obj)  # Perform mutation
+
+    # Further usage for other functionalities
+    """
+
     def __init__(self, molecule, input_session):
+        """
+        Initialize PyMOL_mutate with a molecule and input session.
+
+        Args:
+        - molecule: Molecule object
+        - input_session: Input session information
+        """
         self.molecule = molecule
         self.input_session = input_session
 
-    def run_mutate(self, mutant_obj: Mutant,**kwargs) -> str:
+    def run_mutate(self, mutant_obj: Mutant, **kwargs) -> str:
+        """
+        Run mutation on the molecule using PyMOL.
+
+        Args:
+        - mutant_obj: Object containing mutation information
+
+        Returns:
+        - Path to the mutated PDB file
+        """
         new_obj_name = mutant_obj.get_short_mutant_id()
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')
-        temp_mutant_path = os.path.join(
-            temp_dir, f"{new_obj_name}.pdb"
-        )
+        temp_mutant_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")
         cmd.load(self.input_session)
         cmd.hide('surface')
         cmd.create(f"{new_obj_name}", self.molecule)

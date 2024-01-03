@@ -7,10 +7,45 @@ from REvoDesign.common.Mutant import Mutant
 
 
 class DLPacker_worker:
+    """
+    Class for managing protein reconstruction and mutation using DLPacker.
+
+    Usage:
+    dlpacker = DLPacker_worker(pdb_file)
+    relaxed_pdb = dlpacker.reconstruct()  # Reconstruct the protein
+
+    mutant = Mutant()  # Create a Mutant object
+    mutant_info = [
+        {
+            'chain_id': 'A',
+            'position': 10,
+            'mut_res': 'G',
+            'wt_res': 'A'
+        },
+        # Add more mutation info as needed
+    ]
+    mutated_pdb = dlpacker.run_mutate(mutant, reconstruct_area_radius=5)  # Perform mutation
+
+    # Further usage for other functionalities
+    """
+
     def __init__(self, pdb_file):
+        """
+        Initialize DLPacker_worker with a PDB file.
+
+        Args:
+        - pdb_file: Path to the PDB file
+        """
         self.pdb_file = pdb_file
 
     def reconstruct(self):
+        """
+        Reconstruct the protein using DLPacker.
+
+        Returns:
+        - Path to the temporally relaxed PDB file
+        """
+        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         temperal_relaxed_pdb = tempfile.mktemp(suffix=".pdb")
         self.dlpacker_worker.reconstruct_protein(
             order='sequence', output_filename=temperal_relaxed_pdb
@@ -21,8 +56,20 @@ class DLPacker_worker:
         self,
         mutant_obj: Mutant,
         reconstruct_area_radius: int = -1,
-        relax_order: str = 'sequence', **kwargs
+        relax_order: str = 'sequence',
+        **kwargs,
     ):
+        """
+        Run mutation on the protein using DLPacker.
+
+        Args:
+        - mutant_obj: Object containing mutation information
+        - reconstruct_area_radius: Radius for reconstructing mutated area (default: -1)
+        - relax_order: Order for relaxation (default: 'sequence')
+
+        Returns:
+        - Path to the mutated PDB file
+        """
         self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         new_obj_name = mutant_obj.get_short_mutant_id()
 
@@ -58,28 +105,36 @@ class DLPacker_worker:
     def _get_reconstruct_area(
         self, mutant_obj: Mutant, reconstruct_area_radius: int = -1
     ):
-        
+        """
+        Get the area for reconstruction based on mutation information.
+
+        Args:
+        - mutant_obj: Object containing mutation information
+        - reconstruct_area_radius: Radius for reconstruction (default: -1)
+
+        Returns:
+        - List of targets for reconstruction
+        """
         reconstruct_area = []
         for mut_info in mutant_obj.get_mutant_info():
             chain_id = mut_info['chain_id']
             position = mut_info['position']
             new_residue = mut_info['mut_res']
             new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
-            if reconstruct_area_radius<=0:
-                print(f'Adding {(position, chain_id, new_residue_3)} for relax...')
-                reconstruct_area.append(
-                    (position, chain_id, new_residue_3)
+            if reconstruct_area_radius <= 0:
+                print(
+                    f'Adding {(position, chain_id, new_residue_3)} for relax...'
                 )
+                reconstruct_area.append((position, chain_id, new_residue_3))
             else:
-                _=self.dlpacker_worker.get_targets(
-                        target=(position, chain_id, new_residue_3),
-                        radius=reconstruct_area_radius,
-                    )
+                _ = self.dlpacker_worker.get_targets(
+                    target=(position, chain_id, new_residue_3),
+                    radius=reconstruct_area_radius,
+                )
                 print(f'Adding {_} for relax...')
                 reconstruct_area.extend(_)
-        
+
         if reconstruct_area:
-            
-            reconstruct_area=list(set(reconstruct_area))
+            reconstruct_area = list(set(reconstruct_area))
 
         return reconstruct_area
