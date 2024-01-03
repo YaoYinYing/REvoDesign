@@ -133,7 +133,7 @@ class REvoDesignWebSocketServer:
 
         return
 
-    def is_logged_in_client(self, client)->bool:
+    def is_logged_in_client(self, client) -> bool:
         return any([_client == client for _client in self.current_clients()])
 
     def get_client_uuid(self, client):
@@ -153,11 +153,12 @@ class REvoDesignWebSocketServer:
 
     def refresh_user_tree(self) -> dict[dict]:
         from REvoDesign.tools.system_tools import get_client_info
-        user_tree= {
+
+        user_tree = {
             uuid: {k: v for k, v in data.items() if k != 'client'}
             for uuid, data in self.clients.items()
         }
-        user_tree['Host']=get_client_info()
+        user_tree['Host'] = get_client_info()
         return user_tree
 
     def processTextMessage(self, client, message):
@@ -228,7 +229,9 @@ class REvoDesignWebSocketServer:
                 client.sendTextMessage(
                     f'Key authentication is successful.\nWellcome to {OS_INFO.node}, {data["user"]}.'
                 )
-                self._broadcast_object(obj=uuid,data_type='UUID',client=client)
+                self._broadcast_object(
+                    obj=uuid, data_type='UUID', client=client
+                )
             # once the authentcation finished, the client should leave waiting room
             self.waiting_room.remove(client)
 
@@ -239,7 +242,6 @@ class REvoDesignWebSocketServer:
                 user_tree=user_tree,
                 treeWidget_ws_peers=self.treeWidget_ws_peers,
             )
-            
 
             return
 
@@ -282,7 +284,6 @@ class REvoDesignWebSocketServer:
         refresh_tree_widget(
             user_tree=user_tree, treeWidget_ws_peers=self.treeWidget_ws_peers
         )
-        
 
     def stop_server(self):
         """
@@ -299,7 +300,7 @@ class REvoDesignWebSocketServer:
         if self.server:
             self.server.close()
             self.server = None
-        
+
         refresh_tree_widget(
             user_tree={}, treeWidget_ws_peers=self.treeWidget_ws_peers
         )
@@ -317,8 +318,6 @@ class REvoDesignWebSocketServer:
         bool: True if the key matches, False otherwise.
         """
         return key == self.authentication_key
-    
-
 
     def _broadcast_object(self, obj, data_type: str, client=None):
         """
@@ -528,7 +527,7 @@ class REvoDesignWebSocketClient:
         self.cmap = 'bwr_r'
         self.nproc = 2
 
-        self.uuid=''
+        self.uuid = ''
         self.connected = False
         self.client = None
         self.progress_bar = None
@@ -661,10 +660,16 @@ class REvoDesignWebSocketClient:
 
         from REvoDesign.tools.utils import run_worker_thread_with_progress
 
-        deserialized_object = self.deserialize_object(data['data'], data['data_type'])
+        deserialized_object = self.deserialize_object(
+            data['data'], data['data_type']
+        )
 
         # process Non-empty MutantTree
-        if data['data_type'] == 'MutantTree' and deserialized_object and not deserialized_object.empty:
+        if (
+            data['data_type'] == 'MutantTree'
+            and deserialized_object
+            and not deserialized_object.empty
+        ):
             from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
             received_mutant_tree = deserialized_object.__deepcopy__()
@@ -685,7 +690,10 @@ class REvoDesignWebSocketClient:
             return
 
         # process ViewUpdates
-        if data['data_type'] == 'ViewUpdate' and type(deserialized_object) == tuple:
+        if (
+            data['data_type'] == 'ViewUpdate'
+            and type(deserialized_object) == tuple
+        ):
             if not self.receive_view_broadcast:
                 logging.warning(f'View update is disabled.')
                 return
@@ -694,15 +702,19 @@ class REvoDesignWebSocketClient:
             cmd.set_view(deserialized_object)
             return
 
-        if data['data_type'] == 'UserTree' and type(deserialized_object) == dict:
+        if (
+            data['data_type'] == 'UserTree'
+            and type(deserialized_object) == dict
+        ):
             refresh_tree_widget(
-                user_tree=deserialized_object, treeWidget_ws_peers=self.treeWidget_ws_peers
+                user_tree=deserialized_object,
+                treeWidget_ws_peers=self.treeWidget_ws_peers,
             )
             return
-        
+
         if data['data_type'] == 'UUID' and type(deserialized_object) == str:
             logging.info(f'Get a new UUID: {deserialized_object}')
-            self.uuid=deserialized_object
+            self.uuid = deserialized_object
             return
 
         # process more data objects ....

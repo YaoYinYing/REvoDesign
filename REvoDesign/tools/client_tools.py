@@ -5,6 +5,7 @@ import ssl
 from OpenSSL import crypto
 import uuid
 
+
 def check_response_code(response, successfull_opt='Submitted'):
     """
     Check the HTTP response code and log information based on different status codes.
@@ -68,7 +69,7 @@ def get_certificate(crt_path, key_path):
     """
     Function: get_certificate
     Usage: get_certificate(crt_path, key_path)
-    
+
     This function checks for the existence of an SSL certificate and generates a new one if it doesn't exist or has expired.
 
     Args:
@@ -111,7 +112,7 @@ def create_new_certificate(crt_path, key_path):
     """
     Function: create_new_certificate
     Usage: create_new_certificate(crt_path, key_path)
-    
+
     This function creates a new SSL certificate and private key if they do not exist or if the certificate has expired.
 
     Args:
@@ -158,7 +159,6 @@ def create_new_certificate(crt_path, key_path):
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
 
 
-
 class UUIDGenerator:
     """
     This class implements a UUID generator using Python's built-in 'uuid' module.
@@ -167,7 +167,7 @@ class UUIDGenerator:
     def generate_uuid(self):
         """
         Generates a UUID using the uuid4 method.
-        
+
         Returns:
         - str: A string representation of the generated UUID.
         """

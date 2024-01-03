@@ -153,7 +153,6 @@ class Mutant:
 
         return ''.join(_sequence)
 
-
     def get_wt_score(self) -> float:
         """
         Get the wt score.

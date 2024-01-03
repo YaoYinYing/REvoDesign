@@ -14,7 +14,10 @@ from REvoDesign.tools.pymol_utils import (
     is_distal_residue_pair,
 )
 
-from REvoDesign.tools.mutant_tools import existed_mutant_tree, extract_mutant_from_pymol_object
+from REvoDesign.tools.mutant_tools import (
+    existed_mutant_tree,
+    extract_mutant_from_pymol_object,
+)
 
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
@@ -57,7 +60,9 @@ class MultiMutantDesigner:
         self.bond_CA = True
 
         # Initialize mutant tree for design
-        self.mutant_tree_multi_design = existed_mutant_tree(sequence=self.sequence,enabled_only=0)
+        self.mutant_tree_multi_design = existed_mutant_tree(
+            sequence=self.sequence, enabled_only=0
+        )
 
         if self.mutant_tree_multi_design.empty:
             logging.error('MutantTree is empty!')

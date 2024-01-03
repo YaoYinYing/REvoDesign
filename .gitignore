@@ -20,3 +20,4 @@ tests/testdata/gremlin/*.pkl
 tests/testdata/*.pze
 tests/playground/*
 tests/testdata/pssm/1nww.surf.pze
+.coverage

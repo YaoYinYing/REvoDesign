@@ -10,7 +10,7 @@ class PyMOLSessionMerger:
     - Initialize: merger = PyMOLSessionMerger(session_paths, save_path)
     - Add Session Path: merger.add_session_path(session_path)
     - Merge Sessions: merger.merge_sessions()
-    
+
     This class facilitates merging PyMOL sessions by loading multiple sessions and saving the merged session.
 
     Attributes:
@@ -36,7 +36,7 @@ class PyMOLSessionMerger:
         """
         Method: add_session_path
         Usage: merger.add_session_path(session_path)
-        
+
         Adds a session path to the list of session_paths.
 
         Args:
@@ -51,7 +51,7 @@ class PyMOLSessionMerger:
         """
         Method: merge_sessions
         Usage: merger.merge_sessions()
-        
+
         Merges the PyMOL sessions by loading and saving according to the provided attributes.
 
         Returns:
