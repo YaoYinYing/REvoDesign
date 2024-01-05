@@ -28,7 +28,7 @@ class PyMOL_mutate:
         self.molecule = molecule
         self.input_session = input_session
 
-    def run_mutate(self, mutant_obj: Mutant, **kwargs) -> str:
+    def run_mutate(self, mutant_obj: Mutant, in_place=True, **kwargs) -> str:
         """
         Run mutation on the molecule using PyMOL.
 
@@ -42,10 +42,13 @@ class PyMOL_mutate:
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')
         temp_mutant_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")
-        cmd.load(self.input_session)
+        if not in_place:
+            cmd.reinitialize()
+            cmd.load(self.input_session)
         cmd.hide('surface')
         cmd.create(f"{new_obj_name}", self.molecule)
-        cmd.delete(self.molecule)
+        if not in_place:
+            cmd.delete(self.molecule)
 
         for mut_info in mutant_obj.get_mutant_info():
             chain_id = mut_info['chain_id']

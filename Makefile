@@ -4,6 +4,7 @@ TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests
+CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 
 help:
 	@echo "Commands:"
@@ -31,9 +32,9 @@ test:
 	cp $(TESTDIR)/.coverage* .
 	rm -r $(TESTDIR)
 
-format: license black
+format: license-update black
 
-check: black-check license-check flake8
+check: black-check flake8-lazy lint
 
 black:
 	black $(CHECK_STYLE)
@@ -41,16 +42,22 @@ black:
 black-check:
 	black --check $(CHECK_STYLE)
 
-license:
+license-update:
 	python tools/license_notice.py
 
 license-check:
 	python tools/license_notice.py --check
 
 flake8:
+	python -m pip install flake8
 	flake8 $(CHECK_STYLE)
 
+flake8-lazy:
+	python -m pip install flake8
+	flake8 $(CHECK_STYLE_LAZY)
+
 lint:
+	python -m pip install pylint
 	pylint --jobs=0 $(LINT_FILES)
 
 clean:

@@ -22,7 +22,7 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.neighbors import NearestCentroid
 
 from REvoDesign.tools.utils import refresh_window, minibatches_generator
-from REvoDesign.tools.utils import ParallelExecutor
+from REvoDesign.tools.customized_widgets import ParallelExecutor
 
 
 class Clustering:

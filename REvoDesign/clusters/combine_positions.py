@@ -5,7 +5,7 @@ import pathlib
 import numpy as np
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
-from REvoDesign.tools.utils import extract_mutants
+from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id as extract_mutants
 
 
 class GenerateVariantsinFastafile:

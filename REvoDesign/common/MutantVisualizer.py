@@ -135,12 +135,12 @@ class MutantVisualizer:
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f" Visualizing {mutant} {score}: {color}")
-        temp_session_path = self.create_mutagenesis_objects(mutant_obj, color)
+        temp_session_path = self.create_mutagenesis_objects(mutant_obj, color,in_place=False)
 
         return temp_session_path
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
-    def create_mutagenesis_objects(self, mutant_obj: Mutant, color):
+    def create_mutagenesis_objects(self, mutant_obj: Mutant, color, in_place=True):
         """
         Creates mutagenesis objects in PyMOL based on explicit mutagenesis descriptions.
 
@@ -180,9 +180,12 @@ class MutantVisualizer:
             relax_order='natoms'
             if self.sidechain_solver_radius > 0
             else 'sequence',
+            in_place=in_place
         )
 
-        cmd.reinitialize()
+        if not in_place:
+            cmd.reinitialize()
+
         cmd.load(temp_mutant_pdb_path)
 
         cmd.hide('lines', f'{new_obj_name}')
@@ -220,8 +223,9 @@ class MutantVisualizer:
                 f'{new_obj_name}',
             )
 
-        cmd.save(temp_mutant_path)
-        cmd.reinitialize()
+        if not in_place:
+            cmd.save(temp_mutant_path)
+            cmd.reinitialize()
 
         return temp_mutant_path
 

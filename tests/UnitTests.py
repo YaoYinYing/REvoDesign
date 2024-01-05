@@ -618,7 +618,7 @@ class TestSidechainSolver(absltest.TestCase):
         wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
         
         mutate_runner=PyMOL_mutate(molecule=molecule,input_session=wt_pdb)
-        mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+        mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj,in_place=False)
 
         from Bio.PDB.PDBParser import PDBParser
         parser = PDBParser(PERMISSIVE=1)
