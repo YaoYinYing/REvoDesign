@@ -19,11 +19,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macOS-latest]
+        os: [debian-11, macOS-latest]
         python-version: ["3.9", "3.11"]
-        include:
-          - os: armbian
-            python-version: "3.11"
+        # include:
+        #   - os: armbian
+        #     python-version: "3.11"
 
     runs-on: ${{ matrix.os }}
 
