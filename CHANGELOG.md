@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [ew_version] - ew_date
+## [1.3.1] - 2024-01-09
 
 ### Added
 - Sidechain solver:
