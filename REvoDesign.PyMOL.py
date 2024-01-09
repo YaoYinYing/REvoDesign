@@ -10,7 +10,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all.
 '''
 import os
 
-print(f'REvoDesign UI is installed in {os.path.dirname(__file__)}')
+print(f'REvoDesign entrypoint is located at {os.path.dirname(__file__)}')
 
 install_msg = '''
 You can still use the following in PyMOL command prompt to install REvoDesign manually:\n
