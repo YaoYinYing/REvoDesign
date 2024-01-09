@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [ew_version] - ew_date
+
 ### Added
 - Sidechain solver:
   - `buildin`: PyMOL mutagenesis with Dunbrack rotamer library.
