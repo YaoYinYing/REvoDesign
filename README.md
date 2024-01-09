@@ -53,13 +53,15 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 
    To install the main program from PyMOL commandline prompt, which is upgradable from internet access, you have two sources:
 
-   a. If you prefer to install from the remote repository, use this command:
+   a. If you prefer to install from the remote repository, use this command `install_REvoDesign_via_pip`:
 
    ```python
    # From remote repo
    install_REvoDesign_via_pip
    ```
 
+   This command will call the exact Python interpreter that used by current PyMOL instance and install REvoDesign as a package.
+   
    b. If you have no access to the remote url because of the policy from network provider, you may install it from a cloned local repository or unzipped source code by running the following command:
 
    ```python
@@ -96,6 +98,12 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
    
    **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
+
+
+   f. To install REvoDesign with full access of all features:
+   ```python
+   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1,0, full
+   ```
 
    Note that during the installation process, the window will freeze for a while.
 

@@ -58,8 +58,9 @@ DLPacker = {git = "https://github.com/YaoYinYing/DLPacker", branch = 'pip-instal
 
 [tool.poetry.extras]
 colabdesign = ["colabdesign"]
-
 dlpacker = ["DLPacker"]
+
+full = ["colabdesign", "DLPacker"]
 
 [tool.black]
 line-length = 79

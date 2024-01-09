@@ -22,7 +22,7 @@ build:
 	python -m build .
 
 install:
-	python -m pip install ".[colabdesign,dlpacker]" -U
+	python -m pip install ".[full]" -U
 
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
