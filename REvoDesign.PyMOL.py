@@ -65,26 +65,32 @@ def install_via_pip(
 
     # with unzipped code dir
     elif os.path.exists(source) and os.path.isdir(source):
-        if os.path.exists(os.path.join(source,'pyproject.toml')):
+        if not os.path.exists(os.path.join(source,'pyproject.toml')):
             raise FileNotFoundError(f'{source} is not a directory containing pyproject.toml')
         if git_tag:
             raise ValueError('unzipped code directory can not have a tag!')
         if source.endswith('/'):
-            source=source[:-2]
-        package_string = f"{source}[{extras}]"
+            source=source[:-1]
+        package_string = f"{source}{f'[{extras}]'if extras else ''}"
 
     # with zipped code archive
     elif os.path.exists(source) and os.path.isfile(source):
-        if not source.endswith('.zip'):
-            raise FileNotFoundError(f'{source} is not a zipped file.')
         if git_tag:
             raise ValueError('zipped file can not have a tag!')
+        
+        if source.endswith('.zip'):
+            package_string = source
+        elif source.endswith('.tar.gz'):
+            package_string += f'@{source}'
+        else:
+            raise FileNotFoundError(f'{source} is neither a zipped file nor a tar.gz file!')
+        
         
     else:
         raise ValueError(f'Unknown installation source {source}!')
 
 
-    # install via pip+git
+    # run installation via pip
     subprocess.run([python_exe, '-m', 'ensurepip'])
 
     pip_cmd = [
