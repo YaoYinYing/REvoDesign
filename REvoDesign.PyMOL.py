@@ -19,57 +19,70 @@ You can still use the following in PyMOL command prompt to install REvoDesign ma
 After it is done, you should restart PyMOL.
 '''
 
+REPO_URL='https://github.com/YaoYinYing/REvoDesign'
 
 def install_via_pip(
-    source='https://github.com/YaoYinYing/REvoDesign',
+    source=REPO_URL,
     upgrade=0,
-    quiet=0,
+    vebose=1,
     extras='',
 ):
+    def get_source_and_tag(source):
+        git_dir=source.split('@')[0]
+        if '@' in source:
+            git_tag=source.split('@')[1]
+        else:
+            git_tag=''
+        return git_dir, git_tag
+    
     import sys, subprocess
 
     upgrade = int(upgrade)
-    quiet = int(quiet)
+    vebose = int(vebose)
 
     print(
         'Installation is started. This may take a while and the window will freeze until it is done.'
     )
     python_exe = os.path.realpath(sys.executable)
 
-    _source = ''
-    _extras = f'[{extras}]' if extras in ['colabdesign', 'dlpacker', 'full'] else ''
+    
+    # use default source
+    if not source:
+        source=REPO_URL
 
-    # a HTTP repo URL
-    if source.startswith('https://'):
-        _source = f'git+{source}{_extras}'
+    git_url,git_tag=get_source_and_tag(source=source)
+    package_string=f"REvoDesign{f'[{extras}]' if extras and extras in ['colabdesign', 'dlpacker', 'full'] else ''}"
+    
+    # with github url and tag
+    if source and source.startswith('https://'):
+        package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
 
-    # Downloaded or cloned source code
+    # with git repo clone and tag
+    elif source.startswith('file://'):
+        if not os.path.exists(os.path.join(git_url, '.git')):
+            raise FileNotFoundError(f'Git dir not found: {os.path.join(git_url, ".git")}')
+        package_string += f' @ git+{source}{f"@{git_tag}" if git_tag else ""}'
+
+    # with unzipped code dir
+    elif os.path.exists(source) and os.path.isdir(source):
+        if os.path.exists(os.path.join(source,'pyproject.toml')):
+            raise FileNotFoundError(f'{source} is not a directory containing pyproject.toml')
+        if git_tag:
+            raise ValueError('unzipped code directory can not have a tag!')
+        if source.endswith('/'):
+            source=source[:-2]
+        package_string = f"{source}[{extras}]"
+
+    # with zipped code archive
+    elif os.path.exists(source) and os.path.isfile(source):
+        if not source.endswith('.zip'):
+            raise FileNotFoundError(f'{source} is not a zipped file.')
+        if git_tag:
+            raise ValueError('zipped file can not have a tag!')
+        
     else:
-        local_source_dir = os.path.abspath(source.replace('file://', ''))
+        raise ValueError(f'Unknown installation source {source}!')
 
-        #  Early return due to invalid path
-        if not os.path.exists(local_source_dir):
-            print(f'{local_source_dir} does not exist')
-            return
-
-        # Early return due to path offset.
-        elif not os.path.exists(
-            os.path.join(local_source_dir, 'pyproject.toml')
-        ):
-            print(
-                f'{local_source_dir}/pyproject.toml does not exist. Please check the source code path.'
-            )
-            return
-
-        # An repo clone that contains .git if source requires
-        if os.path.exists(
-            os.path.join(local_source_dir, '.git')
-        ) and source.startswith('file://'):
-            _source = f'git+file://{local_source_dir}{_extras}'
-
-        # An unzipped copy of source code with building file or non `'file://'` source for git
-        else:
-            _source = f'{local_source_dir}{_extras}'
 
     # install via pip+git
     subprocess.run([python_exe, '-m', 'ensurepip'])
@@ -79,11 +92,13 @@ def install_via_pip(
         '-m',
         'pip',
         'install',
-        _source,
+        f"{package_string}",
     ]
 
     if upgrade:
         pip_cmd.append('--upgrade')
+
+    print(pip_cmd)
 
     result = subprocess.run(
         pip_cmd,
@@ -92,14 +107,14 @@ def install_via_pip(
     )
     if result.returncode != 0:
         print(f'Installation failed: {source}')
-        if not quiet:
+        if vebose:
             print(f'stdout: {result.stdout.decode()}')
             print(f'stderr: {result.stderr.decode()}')
     else:
         print(
             f'Installation succeeded: {source}',
         )
-        if not quiet:
+        if vebose:
             print(f'stdout: {result.stdout.decode()}')
         print(
             'If this is an upgrade, please restart PyMOL for it to take effect.'
