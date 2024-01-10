@@ -21,6 +21,10 @@ echo 'Done.'
 echo set new tag to changelog
 sed -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md
 
+echo fetching changelog bwt two versions:
+rm -f changelog_tag.md
+sed -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' > changelog_tag.md
+
 echo set new tag to pyproject
 sed -i 's/^version = \"'"$old_version"'\"/version = \"'"$new_version"'\"/' ./pyproject.toml
 
@@ -32,5 +36,6 @@ echo pushing new version
 git push 
 
 echo set git tag ..
-git tag v$new_version
+git tag -F changelog_tag.md v$new_version 
 git push origin --tags
+rm -f changelog_tag.md

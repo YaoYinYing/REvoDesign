@@ -22,7 +22,7 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
         python-version: ["3.9", "3.11"]
         include:
-          - os: windows-latest
+          - os: windows-10
             python-version: "3.11"
 
     runs-on: ${{ matrix.os }}
