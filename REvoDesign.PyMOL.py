@@ -51,7 +51,7 @@ def install_via_pip(
         source=REPO_URL
 
     git_url,git_tag=get_source_and_tag(source=source)
-    package_string=f"REvoDesign{f'[{extras}]' if extras and extras in ['colabdesign', 'dlpacker', 'full'] else ''}"
+    package_string=f"REvoDesign{f'[{extras}]' if extras and extras in ['jax', 'tf','torch', 'full'] else ''}"
     
     # with github url and tag
     if source and source.startswith('https://'):

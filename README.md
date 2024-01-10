@@ -26,7 +26,7 @@ In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to h
 
 **REvoDesign** is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, **REvoDesign** Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
 
-Please refer to the [documentation](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
+Please refer to the [documentation(WIP)](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
 
 ## Installation
 
@@ -61,7 +61,7 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    ```
 
    This command will call the exact Python interpreter that used by current PyMOL instance and install REvoDesign as a package.
-   
+
    b. If you have no access to the remote url because of the policy from network provider, you may install it from a cloned local repository or unzipped source code by running the following command:
 
    ```python
@@ -70,13 +70,19 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    
    # from an unzipped source code release
    install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign
+
+   # from a zipped source code release
+   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign.zip
+
+   # from a archived source code release
+   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign.tar.bz
    ```
 
 
    c. To install a specific commit/branch, use source@<commit/branch>:
    ```python
-   # From remote repo, commit id ffe0219978da929bd1d183ca764c4c5d9da0bf96
-   install_REvoDesign_via_pip https://github.com/YaoYinYing/REvoDesign@ffe0219
+   # From remote repo, tag v1.3.2
+   install_REvoDesign_via_pip https://github.com/YaoYinYing/REvoDesign@v1.3.2
    ```
 
    d. To upgrade to the latest version:
@@ -84,26 +90,39 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    # Upgrade from a local repo/directory
    install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1
    ```
-   e. To install REvoDesign with **[ColabDesign](https://github.com/sokrypton/ColabDesign)**:
+   e. To enable stdout and stderr (`verbose`): 
    ```python
-   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1,0, colabdesign
+   install_REvoDesign_via_pip, 1,1
    ```
-   **WARNING: ColabDesign uses Jax, which requires Python >= 3.9**
-   
-   Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+   f. To install with extra features:
 
-   ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
-   Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
+   - With **[ColabDesign](https://github.com/sokrypton/ColabDesign)**:
+      ```python
+      install_REvoDesign_via_pip, 1,1, jax
+      ```
+      **WARNING: ColabDesign uses Jax, which requires Python >= 3.9**
+      
+      Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
 
-   **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
-   
-   **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
+      ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
+      Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
 
+      **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
+      
+      **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
+   - With **[DLPacker](https://github.com/YaoYinYing/DLPacker)**
+      ```python
+      install_REvoDesign_via_pip, 1,1, tf
+      ```
+   - With **[PRIME](https://github.com/ai4protein/Prime)**
+      ```python
+      install_REvoDesign_via_pip, 1,1, torch
+      ```
 
-   f. To install REvoDesign with full access of all features:
-   ```python
-   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1,0, full
-   ```
+   - With full access of all features:
+      ```python
+      install_REvoDesign_via_pip, 1,1, full
+      ```
 
    Note that during the installation process, the window will freeze for a while.
 

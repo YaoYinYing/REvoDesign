@@ -56,11 +56,14 @@ colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1
 
 DLPacker = {git = "https://github.com/YaoYinYing/DLPacker", branch = 'pip-installable', optional = true}
 
-[tool.poetry.extras]
-colabdesign = ["colabdesign"]
-dlpacker = ["DLPacker"]
+PRIME = {git = "https://github.com/YaoYinYing/Prime_1", optional = true}
 
-full = ["colabdesign", "DLPacker"]
+[tool.poetry.extras]
+jax = ["colabdesign"]
+torch = ["DLPacker"]
+tf = ["PRIME"]
+
+full = ["colabdesign", "DLPacker", "PRIME"]
 
 [tool.black]
 line-length = 79
