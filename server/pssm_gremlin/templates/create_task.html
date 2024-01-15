@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create a new task of PSSM_GREMLIN</title>
+</head>
+<body>
+    <style>
+        body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+    }
+
+    .upload-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 5px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    #uploadForm {
+        margin-bottom: 15px;
+    }
+
+    #fileInput {
+        margin-bottom: 10px;
+    }
+
+    #uploadButton {
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+    }
+
+    #uploadButton:hover {
+        background-color: #45a049;
+    }
+
+    #uploadStatus {
+        margin-top: 15px;
+    }
+
+    </style>
+
+    <div class="upload-container">
+        <h2>Upload a File</h2>
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" id="fileInput">
+            <button type="submit" id="uploadButton">Upload</button>
+        </form>
+        <div id="uploadStatus"></div>
+    </div>
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var statusDiv = document.getElementById('uploadStatus');
+        var formData = new FormData();
+        var fileInput = document.getElementById('fileInput');
+        
+        if (fileInput.files.length === 0) {
+            statusDiv.innerHTML = 'Please select a file to upload.';
+            return;
+        }
+
+        formData.append('file', fileInput.files[0]);
+        statusDiv.innerHTML = 'Uploading...';
+
+        fetch('/PSSM_GREMLIN/api/post', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())  // assuming the server response is text
+        .then(data => {
+            // Update the inner HTML of the statusDiv with the server response
+            statusDiv.innerHTML = data;
+        })
+        .catch(error => {
+            // Handle any errors here and update the statusDiv
+            statusDiv.innerHTML = 'An error occurred: ' + error.message;
+        });
+    });
+
+    </script>
+</body>
+</html>

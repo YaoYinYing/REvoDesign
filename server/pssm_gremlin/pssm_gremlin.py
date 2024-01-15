@@ -122,6 +122,11 @@ def run_gremlin_task(md5sum, filename):
         return
 
 
+@app.route('/PSSM_GREMLIN/create_task', methods=['GET'])
+def create_task():
+    return render_template('create_task.html')
+
+
 @app.route('/PSSM_GREMLIN/api/post', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -296,7 +301,7 @@ def download_results(md5sum):
     )
 
 
-@app.route('/PSSM_GREMLIN/api/cancel/<md5sum>', methods=['POST'])
+@app.route('/PSSM_GREMLIN/api/cancel/<md5sum>', methods=['POST', 'GET'])
 def cancel_task(md5sum):
     # Check if the task with the specified MD5sum exists and is not finished
     state_file = os.path.join(STATE_FOLDER, f'{md5sum}.state')
@@ -365,16 +370,8 @@ def task_dashboard():
     # Query state marker files to gather task status information
     state_folder = app.config['STATE_FOLDER']
     results_folder = app.config['RESULTS_FOLDER']
-    task_statuses = {}
-
-    task_summary = {
-        'total_tasks': 0,
-        'finished_tasks': 0,
-        'processing_tasks': 0,
-        'pending_tasks': 0,
-        'failed_tasks': 0,
-        'cancelled_tasks': 0,
-    }
+    task_statuses = []
+    i = 0
 
     for filename in os.listdir(state_folder):
         if filename.endswith('.state'):
@@ -391,41 +388,40 @@ def task_dashboard():
                 submitted_time=submitted_time, finished_time=finished_time
             )
 
-            task_statuses[md5sum] = {
-                'status': status,
-                'fasta_fn': fasta_fn,
-                'submitted_time': format_times(submitted_time),
-                'finished_time': format_times(finished_time),
-                'walltime': int(walltime),
-                'submitted_timestamp': submitted_time,
-            }
-            # Update task summary based on status
-            task_summary['total_tasks'] += 1
-            if status == 'finished':
-                task_summary['finished_tasks'] += 1
-            elif status == 'running':
-                task_summary['processing_tasks'] += 1
-            elif status == 'queued':
-                task_summary['pending_tasks'] += 1
-            elif status == 'failed':
-                task_summary['failed_tasks'] += 1
-            elif status == 'cancelled':
-                task_summary['cancelled_tasks'] += 1
+            task_statuses.append(
+                {
+                    'id': i,
+                    'md5': md5sum,
+                    'status': status,
+                    'fasta_fn': fasta_fn,
+                    'submitted_time': format_times(submitted_time),
+                    'finished_time': format_times(finished_time)
+                    if status == 'finished'
+                    else '-',
+                    'walltime': int(walltime) if status == 'finished' else '-',
+                    'submitted_timestamp': submitted_time,
+                    'sequence': open(os.path.join(UPLOAD_FOLDER, fasta_fn))
+                    .read()
+                    .strip(),
+                }
+            )
+            i += 1
 
     # Sort the task_statuses dictionary by submitted_time (ascending order)
-    sorted_task_statuses = dict(
+    sorted_task_statuses = list(
         sorted(
-            task_statuses.items(),
-            key=lambda x: x[1]['submitted_timestamp'],
+            task_statuses,
+            key=lambda x: x['submitted_timestamp'],
             reverse=True,
         )
     )
 
+    # return jsonify(sorted_task_statuses)
+
     # Render the HTML template with sorted task status information
     return render_template(
         'pssm_gremlin_dashboard.html',
-        task_statuses=sorted_task_statuses,
-        task_summary=task_summary,
+        sorted_task_statuses=sorted_task_statuses,
     )
 
 

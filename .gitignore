@@ -22,3 +22,4 @@ tests/playground/*
 tests/testdata/pssm/1nww.surf.pze
 .coverage
 coverage.xml
+*.pdf
