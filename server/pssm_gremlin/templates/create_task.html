@@ -1,12 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create a new task of PSSM_GREMLIN</title>
-</head>
+<link rel="icon" type="image/svg+xml" href="https://revodesign.yaoyy.moe/images/logo.svg"/>
+<link rel="mask-icon" href="https://revodesign.yaoyy.moe/images/logo.svg" color="#000000"/>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<body class="bg-gray-50 text-gray-900 font-sans">
+<div class="container mx-auto px-4">
+<header class="flex justify-between items-center py-4">
+<div class="flex items-center">
+    <!-- <div class="mr-4"><svg href="https://revodesign.yaoyy.moe/images/logo.svg"></svg></div> -->
+    <strong>REvoDesign: Create a new task of PSSM_GREMLIN</strong>
+</div>
+<nav>
+    <ul class="flex space-x-4">
+    <li><a href="/PSSM_GREMLIN/dashboard" class="hover:text-blue-500">Dashboard</a></li>
+    <li><a href="#" class="hover:text-blue-500">Document</a></li>
+    <li><a href="https://github.com/YaoYinYing/REvoDesign" class="hover:text-blue-500">GitHub</a></li>
+    </ul>
+</nav>
+</header>
+
 <body>
     <style>
+        /* Additional CSS if needed */
+        .grid-cell {
+            width: 100px;
+            height: 100px;
+        }
+        .task:hover .task-details {
+            display: block;
+        }
+        .task-details {
+            display: none;
+        }
+        .d-flex {
+        display: flex;
+        justify-content: space-between; /* Adjusts spacing between items */
+        }
         body {
         font-family: Arial, sans-serif;
         display: flex;
