@@ -38,7 +38,7 @@ def install_via_pip(
     import sys, subprocess
 
     upgrade = int(upgrade)
-    vebose = int(vebose)
+    verbose = int(verbose)
 
     print(
         'Installation is started. This may take a while and the window will freeze until it is done.'
