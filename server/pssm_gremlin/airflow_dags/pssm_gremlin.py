@@ -1,7 +1,7 @@
 from datetime import timedelta
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-from airflow.sensors.filesystem import FileSensor
+from airflow.sensors.filesystem_sensor import FileSensor
 from airflow.utils.dates import days_ago
 
 default_args = {
@@ -67,4 +67,4 @@ compile_results_task = PythonOperator(
 )
 
 # Setting up the task sequence
-file_sensor_task >> validate_file_task >> process_file_task >> compile_results_task
+file_sensor_task > validate_file_task > process_file_task > compile_results_task
