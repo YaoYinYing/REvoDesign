@@ -5,7 +5,8 @@ FROM condaforge/mambaforge
 SHELL ["/bin/bash", "-c"]
 
 COPY ./env/GREMLIN.yml /tmp/
-RUN conda env create -f /tmp/GREMLIN.yml \
+RUN conda env create -n GREMLIN -f /tmp/GREMLIN.yml \
+      && conda activate GREMLIN \
       && conda clean --all --force-pkgs-dirs --yes \
       && rm -f /tmp/GREMLIN.yml
 
