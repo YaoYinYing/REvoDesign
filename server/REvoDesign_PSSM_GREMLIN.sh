@@ -5,30 +5,32 @@
 # make it stop if error occurs.
 # use traditional way for conda environment
 
-set -e
-
 ############################################################
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('conda' 'shell.bash' 'hook' 2>/dev/null)"
-eval "$__conda_setup"
-unset __conda_setup
-# <<< conda initialize <<<
-############################################################
+if command -v conda;then 
+  __conda_setup="$('conda' 'shell.bash' 'hook' 2>/dev/null)"
+  eval "$__conda_setup"
+  unset __conda_setup
+  # <<< conda initialize <<<
+  ############################################################
 
-# detect the conda env
-possible_conda_env_names=("GREMLIN" "tensorflow1.13")
-existed_conda_env_names=$(conda info --envs | awk '{print $1}')
+  # detect the conda env
+  possible_conda_env_names=("GREMLIN" "tensorflow1.13")
+  existed_conda_env_names=$(conda info --envs | awk '{print $1}')
 
-for env_1 in ${possible_conda_env_names[@]}; do
- for env_2 in ${existed_conda_env_names[@]}; do 
-    if [[ "$env_1" == "$env_2" ]]; then
-      echo find ${env_1} env
-      conda activate ${env_1}
-      break
-    fi
+  for env_1 in ${possible_conda_env_names[@]}; do
+  for env_2 in ${existed_conda_env_names[@]}; do 
+      if [[ "$env_1" == "$env_2" ]]; then
+        echo find ${env_1} env
+        conda activate ${env_1}
+        break
+      fi
+    done
   done
-done
+else
+ echo expected in docker image.
+fi
 
 # run dir
 REVODESIGN_RUNSCRIPT_PATH=$(readlink -f $(dirname $0))
@@ -92,11 +94,8 @@ echo Using $nproc processors.
 # GREMLIN calc
 export GREMLIN_CALC_CPU_NUM=$nproc
 
-if [[ ! -f "$fasta" ]]; then
-    usage
-else
-  fasta_fp=$(readlink -f $fasta)
-fi
+
+fasta_fp=$(readlink -f $fasta)
 
 if [[ "$gremlin_iter" == "" ]]; then
     gremlin_iter=100

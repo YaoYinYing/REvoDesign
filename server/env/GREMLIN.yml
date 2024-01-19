@@ -6,8 +6,11 @@ dependencies:
   - hmmer=3.3.2
   - matplotlib=3.3.4
   - numpy=1.19.2
-  - numpy-base=1.19.2
   - pandas=1.1.5
   - python=3.6.13
   - scipy=1.5.2
   - tensorflow=1.13.1
+channels:
+  - defaults
+  - conda-forge
+  - bioconda
