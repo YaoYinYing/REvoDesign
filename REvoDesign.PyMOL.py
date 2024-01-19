@@ -147,7 +147,7 @@ def __init_plugin__(app=None):
     from pymol.plugins import addmenuitemqt
 
     try:
-        from REvoDesign import REvoDesignPlugin
+
 
         plugin = REvoDesignPlugin()
         addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
