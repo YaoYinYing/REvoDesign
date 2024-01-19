@@ -8,7 +8,7 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
 1. Clone the repository to your server and fetch the runner docker image:
 
    ```shell
-   git clone https://github.com/YaoYinYing/REvoDesign.git
+   git clone https://github.com/REvoDesign/REvoDesign.git
    docker pull yaoyinying/revodesign-pssm-gremlin:latest
    ```
 
@@ -24,7 +24,7 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
 
    **UniRef90**
    ```shell
-   # stole from alphafold, DeepMind
+   # Download UniRef90 sequence database
    ROOT_DIR="${DOWNLOAD_DIR}/uniref90"
    SOURCE_URL="https://ftp.ebi.ac.uk/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz"
    BASENAME=$(basename "${SOURCE_URL}")
@@ -40,7 +40,7 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
 
    **UniRef30**
    ```shell
-   # stole from alphafold, DeepMind
+   # Download UniRef30 sequence database
    ROOT_DIR="${DOWNLOAD_DIR}/uniref30"
    SOURCE_URL="https://wwwuser.gwdg.de/~compbiol/uniclust/2023_02/UniRef30_2023_02_hhsuite.tar.gz"
    BASENAME=$(basename "${SOURCE_URL}")
