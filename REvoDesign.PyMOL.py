@@ -100,6 +100,8 @@ def install_via_pip(
         'install',
         f"{package_string}",
     ]
+    if upgrade:
+        pip_cmd.append('--upgrade')
 
     if upgrade:
         pip_cmd.append('--upgrade')
