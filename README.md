@@ -1,4 +1,5 @@
-[![Tests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml)
+[![Unit Tests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml)
+[![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
 ## Introduction
 

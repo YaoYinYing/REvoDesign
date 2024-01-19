@@ -1,4 +1,4 @@
-name: Test REvoDesign
+name: Unit Test
 
 on:
   push:
