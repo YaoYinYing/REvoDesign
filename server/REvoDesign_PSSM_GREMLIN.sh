@@ -109,6 +109,25 @@ fi
 
 if [[ "$uniref90_db" == "" ]]; then
     uniref90_db=/mnt/db/uniref90/uniref90
+    
+fi
+
+uniref90_db_dir=$(dirname $uniref90_db)
+
+if [[ $(ls $uniref90_db_dir |grep .psi) ]];then
+  echo Uniref90 is already formatted as BLAST+ readable.
+else 
+  if [[ $(ls $uniref90_db_dir |grep .fasta) ]];then 
+    echo find ${uniref90_db}.fasta;
+  else
+    echo ${uniref90_db}.fasta not found, exit.
+    exit 1
+  fi
+  echo Making BLAST DB Uniref90 for the first time use... this will take a long time.
+  pushd ${uniref90_db_dir};
+  makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90;
+  popd
+  echo Uniref90 is now formatted.
 fi
 
 # into workingdir

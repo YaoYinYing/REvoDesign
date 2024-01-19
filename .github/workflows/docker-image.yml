@@ -1,0 +1,58 @@
+name: Docker Workflow
+
+on:
+  push:
+    paths:
+      - 'server/docker/Dockerfile' # Monitor the entire 'docker' directory
+      - '.github/workflows/docker-image.yml' # monitor the main workflow script. enable it again if in necessary maintainances.
+
+    branches:
+      - main
+    
+jobs:
+  build-docker-image:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set environment variable with current date
+      run: |
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        echo "DATE: ${{ env.DATE }}"
+    
+    - name: Set environment variable with current repo dir
+      run: |
+        echo "REPO=$PWD" >> $GITHUB_ENV
+        echo "REPO: ${{ env.REPO }}"
+      
+    - name: Build Docker image
+      run: |
+        cd server/
+        docker build -f docker/Dockerfile -t revodesign-pssm-gremlin .
+        cd ..
+
+    - name: Tag Docker image with date and latest
+      run: |
+        docker tag revodesign-pssm-gremlin yaoyinying/revodesign-pssm-gremlin:${{ env.DATE }}
+        docker tag revodesign-pssm-gremlin yaoyinying/revodesign-pssm-gremlin:latest
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKER_GITHUB_REPO_SECRET }}" | docker login -u yaoyinying --password-stdin
+
+        
+    - name: Push Docker image
+      run: |
+        cd ${{ env.REPO }}
+        docker push yaoyinying/revodesign-pssm-gremlin:${{ env.DATE }}
+        docker push yaoyinying/revodesign-pssm-gremlin:latest
+
+    - name: Refresh Docker Hub Description
+      uses: peter-evans/dockerhub-description@v3
+      with:
+        username: yaoyinying
+        password: ${{ secrets.DOCKER_GITHUB_REPO_SECRET }}
+        repository: yaoyinying/revodesign-pssm-gremlin
+        readme-filepath: ./server/README.md
+        enable-url-completion: true

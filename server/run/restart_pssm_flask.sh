@@ -7,6 +7,7 @@ FLASK_APP_DIR="${RUN_DIR}/../pssm_gremlin"
 CONDA_ENV_NAME="REvoDesign"
 DOMAIN_NAME="revodesign.your-domain.name"
 GUNICORN_WORKERS=2  # Number of Gunicorn worker processes
+CONCURRENCY=2
 PORT=8080
 
 # Directory where the uploaded files will be stored and processed
@@ -19,7 +20,7 @@ source activate $CONDA_ENV_NAME
 cd $FLASK_APP_DIR
 
 # (re)start celery
-celery multi restart worker -A  pssm_gremlin.celery -l INFO  --pidfile="${WORK_DIR}/run/celery/pid/%n.pid" --logfile="${WORK_DIR}/logs/celery/%n%I.log" --concurrency=2
+celery multi restart worker -A  pssm_gremlin.celery -l INFO  --pidfile="${WORK_DIR}/run/celery/pid/%n.pid" --logfile="${WORK_DIR}/logs/celery/%n%I.log" --concurrency=$CONCURRENCY
 
 # Kill all previously running processes
 pkill -f "gunicorn.*${DOMAIN_NAME}"

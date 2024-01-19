@@ -5,22 +5,22 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
 
 ## Installation
 
-1. Clone the repository to your server:
+1. Clone the repository to your server and fetch the runner docker image:
 
    ```shell
    git clone https://github.com/YaoYinYing/REvoDesign.git
+   docker pull yaoyinying/revodesign-pssm-gremlin:latest
    ```
 
 2. Navigate to the project directory and create GREMLIN and Flask server Conda environment:
 
    ```shell
    cd REvoDesign
-   conda env create -f server/env/GREMLIN.yml
    conda env create -f server/env/REvoDesign.yml
    conda activate REvoDesign
    pip install -U "celery[redis]"
    ```
-3. Prepare the sequence databases required by the run script. Note that for `psiblast`, the `uniref90` database should be formated using the `makeblastdb` tool from BLAST+:
+3. Prepare the sequence databases required by the run script. :
 
    **UniRef90**
    ```shell
@@ -35,11 +35,9 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    gunzip "${ROOT_DIR}/${BASENAME}"
    popd
 
-   cd /path/to/uniref90/database
-   
-   conda activate GREMLIN
-   makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90
    ```
+   **Note** that for `psiblast`, the `uniref90` database should be formated using the `makeblastdb` tool from BLAST+. this can be done by whether the `run_docker.py` (see bellow) or call your own `makeblastdb` command`.
+
    **UniRef30**
    ```shell
    # stole from alphafold, DeepMind
@@ -54,21 +52,30 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    rm "${ROOT_DIR}/${BASENAME}"
    ```
 
-   After that, you should change database paths in `server/REvoDesign_PSSM_GREMLIN.sh`
+4. After that, you should test this with `server/docker/run_docker.py`:
+   ```bash
+   python /path/to/REvoDesign/server/docker/run_docker.py --fasta /path/to/REvoDesign/tests/testdata/1SUO_A.fasta --output ./test --uniref90_db ${DOWNLOAD_DIR}/uniref90/uniref90 --make_uniref90_db --uniref30_db ${DOWNLOAD_DIR}/uniref30/UniRef30_2023_02
+   ```
+   `--make_uniref90_db` is called to mount the uniref90 db and format it with `makeblastdb` tool.
 
-4. Install and start the Redis server (`root` required):
+   alternatively, you can call the installed `makeblastdb` tool on machine:
+   
+   ```bash
+   makeblastdb -in uniref90.fasta -dbtype prot -parse_seqids -out uniref90
+   ```
+5. Install and start the Redis server (`root` required):
 
    ```shell
    sudo apt-get install redis-server
    sudo service redis-server start
    ```
-5. Modify the following configuration:
+6. Modify the following configuration:
 - `server/pssm_gremlin/pssm_gremlin.py`: 
   - `SERVER_DIR`: Directory where the uploaded files will be stored and processed
 - `server/run/restart_pssm_flask.sh`: 
   - `WORK_DIR`: Directory where the uploaded files will be stored and processed
   - `DOMAIN_NAME`: domain name the REvoDesign server uses to communicate.
-6. (Re)Start the REvoDesign server:
+7. (Re)Start the REvoDesign server:
    
    By default REvoDesign uses `8080`. You can check if port `8080` is occupied by other process.
    ```shell
@@ -80,7 +87,7 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    ```shell
    bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh
    ```
-7. Optional: Install `NGINX` as a production server:
+8. Optional: Install `NGINX` as a production server:
    
    ```shell
    sudo apt-get install nginx

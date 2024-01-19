@@ -8,6 +8,7 @@ import signal
 import docker
 from absl import app
 from absl import flags
+from absl import logging
 from docker import types
 from typing import Tuple
 
@@ -17,6 +18,7 @@ flags.DEFINE_integer('nproc', os.cpu_count(), "Number of CPU cores to launch")
 flags.DEFINE_string("output", None, "Path to a output file")
 flags.DEFINE_string("uniref30_db", '/mnt/db/uniref30_uc30/UniRef30_2022_02/UniRef30_2022_02', "<uniref30_db> Path/prefix to Uniclust30 database.")
 flags.DEFINE_string("uniref90_db", '/mnt/db/uniref90/uniref90', "Path/prefix to Uniref90")
+flags.DEFINE_boolean('make_uniref90_db',False, "Whether to use `makeblastdb` tool for formatting uniref90 database.")
 
 flags.DEFINE_string(
     "docker_image_name", "revodesign-pssm-gremlin", "Name of the Docker image."
@@ -44,6 +46,9 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> Tuple[types.Mou
     path = os.path.abspath(path)
     target_path = os.path.join(_ROOT_MOUNT_DIRECTORY, mount_name)
 
+    if not read_only:
+        logging.warning(f'{mount_name} is not read-only!')
+
     if os.path.isdir(path):
         source_path = path
         mounted_path = target_path
@@ -52,7 +57,7 @@ def _create_mount(mount_name: str, path: str, read_only=True) -> Tuple[types.Mou
         mounted_path = os.path.join(target_path, os.path.basename(path))
     if not os.path.exists(source_path):
         os.makedirs(source_path)
-    print('Mounting %s -> %s', source_path, target_path)
+    logging.info('Mounting %s -> %s', source_path, target_path)
     mount = types.Mount(target=str(target_path), source=str(source_path),
                         type='bind', read_only=read_only)
     return mount, str(mounted_path)
@@ -85,14 +90,14 @@ def main(argv):
 
     if FLAGS.uniref90_db:
         uniref90_db = os.path.abspath(FLAGS.uniref90_db)
-        mount_uniref90_db, mounted_uniref90_db=_create_mount(mount_name='uniref90_db', path=uniref90_db,read_only=True)
+        mount_uniref90_db, mounted_uniref90_db=_create_mount(mount_name='uniref90_db', path=uniref90_db,read_only=not FLAGS.make_uniref90_db)
         mounts.append(mount_uniref90_db)
         command_args.append(f"-u {mounted_uniref90_db}")
 
 
     command_args.append(f"-j {FLAGS.nproc}")
 
-    print(command_args)
+    logging.info(command_args)
 
     client = docker.from_env()
 
@@ -109,7 +114,7 @@ def main(argv):
     signal.signal(signal.SIGINT, lambda unused_sig, unused_frame: container.kill())
 
     for line in container.logs(stream=True):
-        print(line.strip().decode("utf-8"))
+        logging.info(line.strip().decode("utf-8"))
 
 
 if __name__ == "__main__":

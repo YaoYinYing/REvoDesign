@@ -13,3 +13,6 @@ dependencies:
       - matplotlib==3.7.2
       - pandas==2.0.3
       - redis==4.6.0
+      - absl-py==2.1.0
+      - docker==7.0.0
+      - six==1.16.0
