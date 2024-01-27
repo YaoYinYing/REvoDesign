@@ -23,7 +23,7 @@ cd $FLASK_APP_DIR
 celery multi restart worker -A  pssm_gremlin.celery -l INFO  --pidfile="${WORK_DIR}/run/celery/pid/%n.pid" --logfile="${WORK_DIR}/logs/celery/%n%I.log" --concurrency=$CONCURRENCY
 
 # Kill all previously running processes
-pkill -f "gunicorn.*${DOMAIN_NAME}"
+pkill -f ${CONDA_ENV_NAME}.*gunicorn
 
 # Run your Flask app using Gunicorn
 gunicorn -w $GUNICORN_WORKERS -b 0.0.0.0:${PORT} pssm_gremlin:app --log-level=info --error-logfile ${WORK_DIR}/logs/gunicorn_errors.log --access-logfile ${WORK_DIR}/logs/gunicorn_access.log 2>&1 &
