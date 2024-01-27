@@ -258,11 +258,11 @@ def upload_file():
         # Create a directory for the results using the MD5sum as the directory name
         result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
 
-        state_file = state_file
+        state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
 
         # early return for finished tasks
         if os.path.exists(os.path.join(result_dir, "log", "task_finished")):
-            return redirect(f"/PSSM_GREMLIN/api/results/{md5sum}", code=302)
+            return redirect(f"/PSSM_GREMLIN/api/running/{md5sum}", code=302)
 
         # early return for running tasks
         if (
@@ -300,7 +300,7 @@ def upload_file():
 @app.route("/PSSM_GREMLIN/api/running/<md5sum>", methods=["GET"])
 def run_gremlin(md5sum):
     output_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
-    state_file = state_file
+    state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
 
     # connect pipeline state marker to the server state
     if os.path.exists(os.path.join(output_dir, "log", "task_finished")):
@@ -313,7 +313,7 @@ def run_gremlin(md5sum):
             status = f.read().strip()
         # early return if the status is not running
         if status == "finished":
-            return redirect(f"/PSSM_GREMLIN/api/results/{md5sum}", code=302)
+            return jsonify({"status": status, "md5sum": md5sum}), 200
         elif status.startswith("failed"):
             return jsonify({"status": status, "md5sum": md5sum}), 404
         elif status == "running":
