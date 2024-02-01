@@ -254,7 +254,7 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         tmp_dir = TEST_DATA_RES
         random.seed(42)
         self.calculator.setup_calculator(
-            tmp_dir, molecule, chain_id, random.sample(sequence, len(sequence))
+            tmp_dir, molecule, chain_id, ''.join(random.sample(sequence, len(sequence)))
         )
 
     def tearDown(self):

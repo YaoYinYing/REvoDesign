@@ -52,18 +52,27 @@ pyOpenSSL = "^23.3.0"
 
 pybiolib = '1.1.1666'
 
+hydra-core= "^1.3.2"
+omegaconf = "^2.3.0"
+
+# optional packages
+## designers
 colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1.1" , optional = true }
 
+## sidechain solver
 DLPacker = {git = "https://github.com/YaoYinYing/DLPacker", branch = 'pip-installable', optional = true}
+PIPpack = {git = "https://github.com/YaoYinYing/PIPPack", branch = 'pip-installable', optional = true}
 
 PRIME = {git = "https://github.com/YaoYinYing/Prime_1", optional = true}
 
+UniKP = {git = "https://github.com/YaoYinYing/unikp.git", optional = true}
+
 [tool.poetry.extras]
 jax = ["colabdesign"]
-torch = ["DLPacker"]
-tf = ["PRIME"]
+torch = ["PRIME", "UniKP", "PIPpack"]
+tf = ["DLPacker"]
 
-full = ["colabdesign", "DLPacker", "PRIME"]
+full = ["colabdesign", "DLPacker", "PRIME", "UniKP"]
 
 [tool.black]
 line-length = 79
