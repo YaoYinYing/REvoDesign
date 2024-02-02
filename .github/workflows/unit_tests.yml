@@ -10,9 +10,6 @@ on:
     branches:
       - main
 
-env: 
-  conda_env: REvoDesign
-
 
 jobs:
   Tests:
@@ -43,27 +40,22 @@ jobs:
         with:
             installer-url: https://github.com/conda-forge/miniforge/releases/download/23.11.0-0/Mambaforge-23.11.0-0-MacOSX-arm64.sh
             auto-update-conda: false
-            activate-environment: ${{ env.conda_env }}
-            auto-activate-base: false
+            auto-activate-base: true
             python-version: ${{ matrix.python-version }}
       
       - name: Setup Conda on windows, ubuntu and macos-12
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'ubuntu') || matrix.os == 'macos-12'
         uses: s-weigand/setup-conda@v1
         with:
-          activate-conda: false
+          activate-conda: true
           update-conda: false
           conda-channels: conda-forge
-      
-      - name: activate Conda env on windows, ubuntu and macos-12
-        if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'ubuntu') || matrix.os == 'macos-12'
-        run: |
-          conda create -y -n ${{ env.conda_env }} python=${{ matrix.python-version }}
-          conda activate ${{ env.conda_env }}
+          python-version: ${{ matrix.python-version }}
+
 
       - name: Setup PyMOL on ${{ matrix.os }} - py${{ matrix.python-version }}
         run: |
-          conda install -c conda-forge pymol-open-source -n ${{ env.conda_env }} -y 
+          conda install -c conda-forge pymol-open-source -y 
           conda info
           conda list
           which python
