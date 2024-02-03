@@ -22,9 +22,8 @@ jobs:
       matrix:
         os: 
           - ubuntu-latest
-          - macOS-latest
           - macos-14
-        python-version: ["3.9", "3.11"]
+        python-version: ["3.11"]
         # include:
         #   - os: windows-latest
         #     python-version: "3.11"

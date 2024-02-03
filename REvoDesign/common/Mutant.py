@@ -127,7 +127,7 @@ class Mutant:
             for chain in self.wt_sequence
         }
 
-    def get_mutant_sequence_single_chain(self, chain_id: str) -> str | None:
+    def get_mutant_sequence_single_chain(self, chain_id: str) -> str:
         """
         Get the mutant sequence of a single chain.
 
