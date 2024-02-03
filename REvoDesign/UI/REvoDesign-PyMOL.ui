@@ -4564,6 +4564,7 @@
     <addaction name="actionSet_Working_Directory"/>
     <addaction name="separator"/>
     <addaction name="menuLogging_Level"/>
+    <addaction name="actionReconfigure"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -4626,6 +4627,14 @@
   <action name="actionInfo">
    <property name="text">
     <string>Info</string>
+   </property>
+  </action>
+  <action name="actionReconfigure">
+   <property name="text">
+    <string>Reconfigure</string>
+   </property>
+   <property name="statusTip">
+    <string>Reconfigure REvoDesign from YAML config file.</string>
    </property>
   </action>
  </widget>

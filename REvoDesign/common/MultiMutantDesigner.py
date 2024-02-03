@@ -61,7 +61,7 @@ class MultiMutantDesigner:
 
         # Initialize mutant tree for design
         self.mutant_tree_multi_design = existed_mutant_tree(
-            sequence=self.sequence, enabled_only=0
+            sequences={self.chain_id: self.sequence}, enabled_only=0
         )
 
         if self.mutant_tree_multi_design.empty:
@@ -110,7 +110,9 @@ class MultiMutantDesigner:
                 if not mut_obj.get_mutant_score():
                     mut_obj.set_mutant_score(
                         new_score=self.external_scorer.scorer(
-                            sequence=mut_obj.get_mutant_sequence()
+                            sequence=mut_obj.get_mutant_sequence_single_chain(
+                                chain_id=self.chain_id
+                            )
                         )
                     )
 
@@ -174,7 +176,7 @@ class MultiMutantDesigner:
             mutant_score=None,
         )
 
-        tmp_mutant_obj.wt_sequence = self.sequence
+        tmp_mutant_obj.wt_sequence = {self.chain_id: self.sequence}
 
         if not self.external_scorer:
             logging.warning(
@@ -184,7 +186,9 @@ class MultiMutantDesigner:
 
         tmp_mutant_obj.set_mutant_score(
             self.external_scorer.scorer(
-                sequence=tmp_mutant_obj.get_mutant_sequence()
+                sequence=tmp_mutant_obj.get_mutant_sequence_single_chain(
+                    chain_id=self.chain_id
+                )
             )
         )
         return tmp_mutant_obj

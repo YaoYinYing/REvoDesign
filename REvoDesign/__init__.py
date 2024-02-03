@@ -2,7 +2,6 @@ import asyncio
 import sys, os
 import time
 from pymol import cmd
-
 from pymol.Qt import QtCore, QtGui, QtWidgets
 
 # using partial module to reduce duplicate code.
@@ -10,11 +9,12 @@ from functools import partial
 import absl.logging as logging
 import traceback
 
-from REvoDesign.common.magic_numbers import SIDECHAIN_SOLVER
-
 
 logging.set_verbosity(logging.DEBUG)
 logging.info(f'REvoDesign is installed in {os.path.dirname(__file__)}')
+
+from REvoDesign.tools.post_installed import reload_config_file
+
 
 sys.path.append(os.path.dirname(__file__))
 
@@ -85,6 +85,11 @@ class REvoDesignPlugin:
         self.PWD = os.getcwd()
 
         self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign-PyMOL.ui')
+
+        self.cfg = None
+        self.reload_configurations()
+
+        self.designable_sequences = {}
         self.design_molecule = ''
         self.design_chain_id = ''
         self.design_sequence = ''
@@ -139,14 +144,6 @@ class REvoDesignPlugin:
 
         set_window_font(main_window)
 
-        from REvoDesign.common.magic_numbers import (
-            DEFAULT_CLUSTER_SCORE_MTX,
-            DEFAULT_PROFILE_TYPE,
-            DEFAULT_PROFILE_TYPE_GROUP,
-        )
-
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
         # Set up Menu
 
         self.ui.actionSet_Working_Directory.triggered.connect(
@@ -164,6 +161,7 @@ class REvoDesignPlugin:
         self.ui.actionInfo.triggered.connect(
             partial(logging.set_verbosity, logging.INFO)
         )
+        self.ui.actionReconfigure.triggered.connect(self.reload_configurations)
 
         if self.teamwork_enabled:
             from REvoDesign.clients.QtSocketConnector import (
@@ -219,7 +217,6 @@ class REvoDesignPlugin:
                 for _cmap in matplotlib.colormaps()
             },
         )
-        set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
 
         # Tab Client
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
@@ -289,6 +286,7 @@ class REvoDesignPlugin:
 
         # Set up general arguments
         # Tab `Determine`
+
         self.ui.pushButton_open_output_pse_pocket.clicked.connect(
             partial(
                 self.save_as_a_session,
@@ -347,6 +345,12 @@ class REvoDesignPlugin:
         )
 
         # Tab `Mutate`
+        set_widget_value(
+            self.ui.comboBox_profile_type,
+            list(self.cfg.ui.profile.group)
+            + list(self.cfg.ui.profile.designer),
+        )
+
         self.ui.pushButton_open_output_pse_mutate.clicked.connect(
             partial(
                 self.save_as_a_session,
@@ -369,12 +373,6 @@ class REvoDesignPlugin:
                 [PSSM_FileExt, AnyFileExt, CompressedFileExt],
             )
         )
-
-        set_widget_value(
-            self.ui.comboBox_profile_type,
-            DEFAULT_PROFILE_TYPE_GROUP + list(EXTERNAL_DESIGNERS.keys()),
-        )
-        set_widget_value(self.ui.comboBox_profile_type, DEFAULT_PROFILE_TYPE)
 
         self.ui.lineEdit_input_csv.textChanged.connect(
             partial(
@@ -506,9 +504,6 @@ class REvoDesignPlugin:
                 )
             ],
         )
-        set_widget_value(
-            self.ui.comboBox_cluster_matrix, DEFAULT_CLUSTER_SCORE_MTX
-        )
 
         self.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(
@@ -525,6 +520,12 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_cluster.clicked.connect(self.run_clustering)
 
         # Tab Visualize
+        set_widget_value(
+            self.ui.comboBox_profile_type_2,
+            list(self.cfg.ui.profile.group)
+            + list(self.cfg.ui.profile.designer),
+        )
+
         self.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
                 self.release_run_button_if_lineEdit_fp_is_valid,
@@ -557,12 +558,6 @@ class REvoDesignPlugin:
                 self.ui.lineEdit_group_name,
             )
         )
-
-        set_widget_value(
-            self.ui.comboBox_profile_type_2,
-            DEFAULT_PROFILE_TYPE_GROUP + list(EXTERNAL_DESIGNERS.keys()),
-        )
-        set_widget_value(self.ui.comboBox_profile_type_2, DEFAULT_PROFILE_TYPE)
 
         self.ui.lineEdit_input_csv_2.textChanged.connect(
             partial(
@@ -675,6 +670,12 @@ class REvoDesignPlugin:
         )
 
         # Tab Interact
+
+        set_widget_value(
+            self.ui.comboBox_external_scorer,
+            [''] + list(self.cfg.ui.profile.designer),
+        )
+
         self.ui.pushButton_open_gremlin_mtx.clicked.connect(
             partial(
                 self.open_input_filepath,
@@ -704,12 +705,8 @@ class REvoDesignPlugin:
         self.ui.pushButton_interact_accept.clicked.connect(
             self.coevoled_mutant_decision, True
         )
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
-        set_widget_value(
-            self.ui.comboBox_external_scorer,
-            [''] + list(EXTERNAL_DESIGNERS.keys()),
-        )
+        # Tab socket
 
         self.generate_ws_server_key(self.ui.lineEdit_ws_server_key)
 
@@ -743,8 +740,8 @@ class REvoDesignPlugin:
             self.update_ws_client_view_update_options
         )
 
-        set_widget_value(self.ui.comboBox_sidechain_solver, SIDECHAIN_SOLVER)
-
+        # Tab Config
+        self.refresh_ui_from_new_configuration()
         return main_window
 
     def set_design_sequence(
@@ -758,11 +755,9 @@ class REvoDesignPlugin:
         if design_molecule and design_chain:
             self.design_molecule = design_molecule
             self.design_chain_id = design_chain
-            self.design_sequence = get_molecule_sequence(
-                molecule=self.design_molecule,
-                chain_id=self.design_chain_id,
-                keep_missing=True,
-            )
+            self.design_sequence = self.designable_sequences[
+                self.design_chain_id
+            ]
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
@@ -899,6 +894,14 @@ class REvoDesignPlugin:
             logging.warning(f'No available designable molecule!')
             return
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
+        self.designable_sequences = {
+            chain_id: get_molecule_sequence(
+                molecule=molecule,
+                chain_id=chain_id,
+                keep_missing=True,
+            )
+            for chain_id in chain_ids
+        }
         if chain_ids:
             set_widget_value(comboBox_chain_id, chain_ids)
             set_widget_value(comboBox_chain_id, chain_ids[0])
@@ -980,7 +983,7 @@ class REvoDesignPlugin:
                 output_mut_txt_fn,
                 [
                     extract_mutant_from_pymol_object(
-                        pymol_object=mt, sequence=self.design_sequence
+                        pymol_object=mt, sequences=self.designable_sequences
                     ).get_mutant_id()
                     for mt in mutants_to_save
                 ],
@@ -992,7 +995,7 @@ class REvoDesignPlugin:
                 output_mut_txt_fn,
                 [
                     extract_mutant_from_pymol_object(
-                        pymol_object=mt, sequence=self.design_sequence
+                        pymol_object=mt, sequences=self.designable_sequences
                     ).get_mutant_id()
                     for mt in mutants_to_save
                 ],
@@ -1067,7 +1070,7 @@ class REvoDesignPlugin:
     def setup_pssm_gremlin_calculator(self):
         molecule = self.design_molecule
         chain_id = self.design_chain_id
-        sequence = self.design_sequence
+        sequence = self.designable_sequences[self.design_chain_id]
 
         if (not molecule) or (not chain_id) or (not sequence):
             return
@@ -1337,7 +1340,7 @@ class REvoDesignPlugin:
         if molecule and chain_id:
             mut_obj = extract_mutant_from_pymol_object(
                 pymol_object=self.mutant_tree_pssm.current_mutant_id,
-                sequence=self.design_sequence,
+                sequences=self.designable_sequences,
             )
             resi = mut_obj.get_mutant_info()[0]['position']
 
@@ -1647,7 +1650,7 @@ class REvoDesignPlugin:
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self, mutant):
         _mutant_obj = extract_mutant_from_pymol_object(
-            pymol_object=mutant, sequence=self.design_sequence
+            pymol_object=mutant, sequences=self.designable_sequences
         )
         return _mutant_obj is not None
 
@@ -1701,7 +1704,7 @@ class REvoDesignPlugin:
         checkBox_show_wt,
     ):
         self.mutant_tree_pssm = existed_mutant_tree(
-            sequence=self.design_sequence, enabled_only=0
+            sequences=self.designable_sequences, enabled_only=0
         )
         if self.mutant_tree_pssm.empty:
             logging.error(f'This sesion may not contain an mutant tree.')
@@ -1952,7 +1955,7 @@ class REvoDesignPlugin:
 
         logging.info('Instantializing MutantTree for current selection ... ')
         self.visualizing_mutant_tree = existed_mutant_tree(
-            sequence=self.design_sequence, enabled_only=1
+            sequences=self.designable_sequences, enabled_only=1
         )
 
         logging.info(f'Saving mutant table to {mutant_table_fp} ...')
@@ -2650,7 +2653,7 @@ class REvoDesignPlugin:
                 self.current_gremlin_co_evoving_pair_mutant_id,
                 extract_mutant_from_pymol_object(
                     pymol_object=self.current_gremlin_co_evoving_pair_mutant_id,
-                    sequence=self.design_sequence,
+                    sequences=self.designable_sequences,
                 ),
             )
         else:
@@ -2862,16 +2865,18 @@ class REvoDesignPlugin:
         _, mutant_obj = extract_mutants_from_mutant_id(
             mutant_string=mutant,
             chain_id=self.design_chain_id,
-            sequence=self.design_sequence,
+            sequences=self.designable_sequences,
         )
 
-        mutant_obj.wt_sequence = self.design_sequence
+        mutant_obj.wt_sequence = self.designable_sequences
 
         mut_score = (
             matrix[col][row]
             if not self.gremlin_external_scorer
             else self.gremlin_external_scorer.scorer(
-                sequence=mutant_obj.get_mutant_sequence()
+                sequence=mutant_obj.get_mutant_sequence_single_chain(
+                    chain_id=self.design_chain_id
+                )
             )
         )
         mutant_obj.set_mutant_score(mut_score)
@@ -3087,3 +3092,173 @@ class REvoDesignPlugin:
             logging.warning(f'Client has already disconneced. Do noting.')
             return
         self.ws_client.close_connection()
+
+    def reload_configurations(self):
+        if self.cfg:
+            old_cfg = self.cfg.__deepcopy__
+        else:
+            old_cfg = None
+        self.cfg = reload_config_file()
+        if old_cfg:
+            logging.warning(f'Reconfigured with changes.')
+            self.refresh_ui_from_new_configuration()
+        else:
+            logging.warning(f'Reconfigured with no changes.')
+        return
+
+    def refresh_ui_from_new_configuration(self):
+        if not self.cfg:
+            raise ValueError('Reconfiguration failed.')
+
+        set_widget_value(self.ui.comboBox_cmap, self.cfg.ui.header_panel.cmap)
+        set_widget_value(
+            self.ui.lineEdit_pssm_gremlin_url,
+            self.cfg.ui.client.pssm_gremlin_url,
+        )
+        set_widget_value(
+            self.ui.lineEdit_pssm_gremlin_user,
+            self.cfg.ui.client.pssm_gremlin_user,
+        )
+        set_widget_value(
+            self.ui.lineEdit_pssm_gremlin_passwd,
+            self.cfg.ui.client.pssm_gremlin_passwd,
+        )
+        set_widget_value(
+            self.ui.doubleSpinBox_cofactor_radius,
+            self.cfg.ui.prepare.cofactor_radius,
+        )
+        set_widget_value(
+            self.ui.doubleSpinBox_ligand_radius,
+            self.cfg.ui.prepare.ligand_radius,
+        )
+        set_widget_value(
+            self.ui.doubleSpinBox_interface_cutoff,
+            self.cfg.ui.prepare.chain_dist,
+        )
+        set_widget_value(
+            self.ui.doubleSpinBox_surface_cutoff,
+            self.cfg.ui.prepare.surface_probe_radius,
+        )
+        set_widget_value(
+            self.ui.comboBox_profile_type, self.cfg.ui.profile.default
+        )
+        set_widget_value(
+            self.ui.checkBox_reverse_mutant_effect,
+            self.cfg.ui.mutate.reverse_score,
+        )
+        set_widget_value(
+            self.ui.lineEdit_score_maxima, self.cfg.ui.mutate.max_score
+        )
+        set_widget_value(
+            self.ui.lineEdit_score_minima, self.cfg.ui.mutate.min_score
+        )
+
+        set_widget_value(
+            self.ui.lineEdit_reject_substitution, self.cfg.ui.mutate.reject
+        )
+        set_widget_value(
+            self.ui.lineEdit_preffer_substitution, self.cfg.ui.mutate.accept
+        )
+
+        set_widget_value(
+            self.ui.spinBox_randomized_sampling,
+            self.cfg.ui.mutate.designer.randomized_sampling,
+        )
+        set_widget_value(
+            self.ui.checkBox_randomized_sampling,
+            self.cfg.ui.mutate.designer.enable_randomized_sampling,
+        )
+        set_widget_value(
+            self.ui.checkBox_deduplicate_designs,
+            self.cfg.ui.mutate.designer.deduplicate_designs,
+        )
+        set_widget_value(
+            self.ui.spinBox_designer_batch, self.cfg.ui.mutate.designer.batch
+        )
+        set_widget_value(
+            self.ui.spinBox_designer_num_samples,
+            self.cfg.ui.mutate.designer.num_sample,
+        )
+        set_widget_value(
+            self.ui.doubleSpinBox_designer_temperature,
+            self.cfg.ui.mutate.designer.temperature,
+        )
+        set_widget_value(
+            self.ui.comboBox_cluster_matrix, self.cfg.ui.cluster.score_matrix
+        )
+        set_widget_value(
+            self.ui.checkBox_shuffle_clustering, self.cfg.ui.cluster.shuffle
+        )
+        set_widget_value(
+            self.ui.spinBox_num_mut_maximum, self.cfg.ui.cluster.mut_num_max
+        )
+        set_widget_value(
+            self.ui.spinBox_num_mut_minimun, self.cfg.ui.cluster.mut_num_min
+        )
+        set_widget_value(
+            self.ui.spinBox_num_cluster, self.cfg.ui.cluster.num_cluster
+        )
+        set_widget_value(
+            self.ui.spinBox_cluster_batchsize, self.cfg.ui.cluster.batch_size
+        )
+        set_widget_value(
+            self.ui.checkBox_reverse_mutant_effect_3,
+            self.cfg.ui.visualize.reverse_score,
+        )
+        set_widget_value(
+            self.ui.checkBox_global_score_policy,
+            self.cfg.ui.visualize.global_score_policy,
+        )
+        set_widget_value(
+            self.ui.comboBox_profile_type_2, self.cfg.ui.profile.default
+        )
+        set_widget_value(
+            self.ui.checkBox_interact_ignore_wt,
+            self.cfg.ui.interact.interact_ignore_wt,
+        )
+        set_widget_value(
+            self.ui.spinBox_gremlin_topN, self.cfg.ui.interact.topN_pairs
+        )
+        set_widget_value(
+            self.ui.doubleSpinBox_max_interact_dist,
+            self.cfg.ui.interact.max_interact_dist,
+        )
+        set_widget_value(
+            self.ui.comboBox_external_scorer,
+            self.cfg.ui.interact.use_external_scorer,
+        )
+
+        set_widget_value(
+            self.ui.lineEdit_ws_server_url_to_connect,
+            self.cfg.ui.socket.server_url,
+        )
+        set_widget_value(
+            self.ui.spinBox_ws_server_port, self.cfg.ui.socket.server_port
+        )
+        set_widget_value(
+            self.ui.checkBox_ws_server_use_key, self.cfg.ui.socket.use_key
+        )
+        set_widget_value(
+            self.ui.doubleSpinBox_ws_view_broadcast_interval,
+            self.cfg.ui.socket.broadcast.interval,
+        )
+        set_widget_value(
+            self.ui.checkBox_ws_broadcast_view,
+            self.cfg.ui.socket.broadcast.view,
+        )
+        set_widget_value(
+            self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
+            self.cfg.ui.socket.receive.mutagenesis,
+        )
+        set_widget_value(
+            self.ui.checkBox_ws_recieve_view_broadcast,
+            self.cfg.ui.socket.receive.view,
+        )
+        set_widget_value(
+            self.ui.comboBox_sidechain_solver,
+            list(self.cfg.ui.config.sidechain_solver.group),
+        )
+        set_widget_value(
+            self.ui.comboBox_sidechain_solver,
+            self.cfg.ui.config.sidechain_solver.default,
+        )

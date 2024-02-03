@@ -674,7 +674,9 @@ class REvoDesignWebSocketClient:
 
             received_mutant_tree = deserialized_object.__deepcopy__()
             diff_mutant_tree = received_mutant_tree.diff_tree_from(
-                existed_mutant_tree(sequence=self.design_sequence)
+                existed_mutant_tree(
+                    sequences={self.design_chain_id: self.design_sequence}
+                )
             )
             if self.receive_mutagenesis_broadcast:
                 logging.info(

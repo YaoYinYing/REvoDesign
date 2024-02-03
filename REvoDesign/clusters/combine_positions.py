@@ -5,7 +5,9 @@ import pathlib
 import numpy as np
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
-from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id as extract_mutants
+from REvoDesign.tools.mutant_tools import (
+    extract_mutants_from_mutant_id as extract_mutants,
+)
 
 
 class GenerateVariantsinFastafile:
@@ -170,7 +172,7 @@ class Combinations:
             for line in f:
                 _line = line.strip()
                 _, mut_obj = extract_mutants(
-                    _line, chain_id=self.chain_id, sequence=self.fastasequence
+                    _line, sequences={self.chain_id: self.fastasequence}
                 )
                 mut_id = ''.join(
                     [
@@ -186,15 +188,14 @@ class Combinations:
         unique = True
         for i in list_w_mutations:
             _, mut_obj_i = extract_mutants(
-                i.strip(), chain_id=self.chain_id, sequence=self.fastasequence
+                i.strip(), sequences={self.chain_id: self.fastasequence}
             )
             position = mut_obj_i.get_mutant_info()[0]['position']
             for j in list_w_mutations:
                 if i != j:
                     _, mut_obj_j = extract_mutants(
                         j.strip(),
-                        chain_id=self.chain_id,
-                        sequence=self.fastasequence,
+                        sequences={self.chain_id: self.fastasequence},
                     )
                     position2 = mut_obj_j.get_mutant_info()[0]['position']
                     if position == position2:

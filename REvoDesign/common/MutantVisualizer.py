@@ -12,10 +12,9 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 matplotlib.use('Agg')
 
-from REvoDesign.common.magic_numbers import (
-    DEFAULT_PROFILE_TYPE,
-    SIDECHAIN_SOLVER,
-)
+from REvoDesign.tools.post_installed import reload_config_file
+from omegaconf import DictConfig
+
 from REvoDesign.common.Mutant import Mutant
 
 from REvoDesign.tools.utils import (
@@ -34,6 +33,7 @@ from REvoDesign.tools.mutant_tools import (
 
 class MutantVisualizer:
     def __init__(self, molecule, chain_id):
+        self.REVODESIGN_CONFIG: DictConfig = reload_config_file()
         self.molecule = molecule
         self.chain_id = chain_id
         self.mutfile = ''
@@ -48,9 +48,9 @@ class MutantVisualizer:
         self.group_name = 'default_group'
         self.sequence = ''
         self.profile = ''
-        self.profile_format = DEFAULT_PROFILE_TYPE
+        self.profile_format = self.REVODESIGN_CONFIG.ui.profile.default
         self.scorer = None
-        self.sidechain_solver = 'buildin'
+        self.sidechain_solver = 'Dunbrack Rotamer Library'
         self.sidechain_solver_radius = 0
         self.mutate_runner = None
 
@@ -71,9 +71,8 @@ class MutantVisualizer:
         self.consider_global_score_from_profile = False
 
     def setup_side_chain_solver(self):
-        if (
-            not self.sidechain_solver
-            or self.sidechain_solver not in SIDECHAIN_SOLVER
+        if not self.sidechain_solver or self.sidechain_solver not in list(
+            self.REVODESIGN_CONFIG.ui.config.sidechain_solver.group
         ):
             logging.error(
                 f'Sidechain solver is not available: {self.sidechain_solver}'
@@ -83,12 +82,14 @@ class MutantVisualizer:
         input_pdb = make_temperal_input_pdb(
             molecule=self.molecule, chain_id=self.chain_id, reload=False
         )
-        if self.sidechain_solver == 'buildin':
+        if self.sidechain_solver == 'Dunbrack Rotamer Library':
             if (
                 not self.mutate_runner
                 or not self.mutate_runner.__class__.__name__ == 'PyMOL_mutate'
             ):
-                from REvoDesign.sidechain_solver.Buildin import PyMOL_mutate
+                from REvoDesign.sidechain_solver.DunbrackRotamerLib import (
+                    PyMOL_mutate,
+                )
 
                 self.mutate_runner = PyMOL_mutate(
                     molecule=self.molecule, input_session=input_pdb
@@ -110,8 +111,10 @@ class MutantVisualizer:
                 )
 
                 self.mutate_runner = DLPacker_worker(pdb_file=input_pdb)
-                # logging.warning('Cannot use DLPacker in parallel mutagenesis. nproc will be set to')
-                # self.parallel_run=False
+                logging.warning(
+                    'Cannot use DLPacker in parallel mutagenesis. nproc will be set to'
+                )
+                self.nproc = 1
 
         logging.info(f'Using {self.sidechain_solver} as sidechain solver.')
 
@@ -135,12 +138,16 @@ class MutantVisualizer:
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f" Visualizing {mutant} {score}: {color}")
-        temp_session_path = self.create_mutagenesis_objects(mutant_obj, color,in_place=False)
+        temp_session_path = self.create_mutagenesis_objects(
+            mutant_obj, color, in_place=False
+        )
 
         return temp_session_path
 
     # provide a full function of PyMOL mutate that requires explicit mutagenesis description as mutant object
-    def create_mutagenesis_objects(self, mutant_obj: Mutant, color, in_place=True):
+    def create_mutagenesis_objects(
+        self, mutant_obj: Mutant, color, in_place=True
+    ):
         """
         Creates mutagenesis objects in PyMOL based on explicit mutagenesis descriptions.
 
@@ -180,7 +187,7 @@ class MutantVisualizer:
             relax_order='natoms'
             if self.sidechain_solver_radius > 0
             else 'sequence',
-            in_place=in_place
+            in_place=in_place,
         )
 
         if not in_place:
@@ -527,7 +534,7 @@ class MutantVisualizer:
             variant, variant_obj = extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
                 chain_id=self.chain_id,
-                sequence=self.sequence,
+                sequences={self.chain_id: self.sequence},
             )
 
             # skip None variant (failed to be parsed)
@@ -536,11 +543,13 @@ class MutantVisualizer:
 
             _variant_info = variant_obj.get_mutant_info()
 
-            variant_obj.wt_sequence = self.sequence
+            variant_obj.wt_sequence = {self.chain_id: self.sequence}
 
             # external scorer stays highest priority.
             if self.scorer:
-                _sequence = variant_obj.get_mutant_sequence()
+                _sequence = variant_obj.get_mutant_sequence_single_chain(
+                    chain_id=self.chain_id
+                )
                 _score = self.scorer.scorer(sequence=_sequence)
                 logging.debug(
                     f'Reading profile score for scorcer {type(self.scorer)}: {_score}'

@@ -1,0 +1,106 @@
+# This is the configuration of REvoDesign program.
+# A copy of `REvoDesign/config/revodesign/global_config.yaml` will be created inside `$HOME/.REvoDesign/config/` 
+# to perform customized configurations while REvoDesign is called at the very first time.
+# Click menu-REvoDesign-Reconfigure to apply changes from this copy. 
+
+ui:
+  header_panel: 
+    cmap: bwr_r
+  prepare:
+    ligand_radius: 8.0
+    cofactor_radius: 7.0
+    chain_dist: 3.0
+    surface_probe_radius: 15.0
+  mutate:
+    min_score: -2
+    max_score: 10
+    reject: PC
+    accept: E:DATY K:RATY N:ATY Q:EDATY
+    reverse_score: False
+    designer:
+      temperature: 0.1
+      batch: 10
+      num_sample: 1
+      enable_randomized_sampling: False
+      randomized_sampling: 3
+      deduplicate_designs: True
+  cluster:
+    mut_num_min: 1
+    mut_num_max: 1
+    num_cluster: 15
+    score_matrix: PAM30
+    batch_size: 100
+    shuffle: True
+  
+  visualize:
+    global_score_policy: True
+    reverse_score: False
+    multi_design:
+      num_mut_max: 5
+      num_variant_max: 20
+      spatial_dist: 30.0
+      use_bond_CA: True
+      use_sidechain_orientation: True
+      use_external_scorer: True
+      color_by_scores: True
+
+  interact:
+    topN_pairs: 100
+    max_interact_dist: 20.0
+    interact_ignore_wt: False
+    use_external_scorer: ProteinMPNN
+  
+  client:
+    pssm_gremlin_url: https://revodesign.yaoyy.moe/
+    pssm_gremlin_user: revodesign_users
+    pssm_gremlin_passwd: 1234567
+  
+  socket: 
+    server_mode: False
+    server_url: localhost
+    server_port: 63189
+    use_key: True
+
+    broadcast:
+      interval: 0.001
+      mutagenesis: True
+      view: True
+
+
+    receive:
+      mutagenesis: True
+      view: True
+
+  profile:
+    group:
+      - PSSM
+      - CSV
+      - TSV
+      - Pythia-ddG
+    designer:
+      - ProteinMPNN
+
+    default: PSSM
+
+  config: 
+    sidechain_solver:
+      group:
+        - Dunbrack Rotamer Library
+        - DLPacker
+        # - PIPpack
+      default: DLPacker
+      pippack:
+        use_ensemble: True
+        model_names:
+          - pippack_model_1
+          - pippack_model_2
+          - pippack_model_3
+        default: pippack_model_1
+
+log:
+  level: DEBUG
+
+cache_dir:
+  # ~/.REvoDesign/
+  under_home_dir: True
+  customized: 

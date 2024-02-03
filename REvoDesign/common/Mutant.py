@@ -24,7 +24,7 @@ class Mutant:
         self.mutant_score = mutant_score
         self.mutant_description = ''
         self.mutant_id = ''
-        self.wt_sequence = ''
+        self.wt_sequence = {}
         self.wt_score = 0
 
     def __str__(self):
@@ -121,22 +121,36 @@ class Mutant:
         """
         return self.mutant_description
 
-    def get_mutant_sequence(self) -> str:
+    def get_mutant_sequences(self) -> dict:
+        return {
+            chain: self.get_mutant_sequence_single_chain(chain_id=chain)
+            for chain in self.wt_sequence
+        }
+
+    def get_mutant_sequence_single_chain(self, chain_id: str) -> str | None:
         """
-        Get the mutant sequence.
+        Get the mutant sequence of a single chain.
 
         Returns:
         string: The mutant sequence
         """
+        if chain_id not in self.wt_sequence:
+            raise ValueError(f'chain {chain_id} is not exist in wt sequence')
+
+        _wt_sequence = self.wt_sequence[chain_id]
+
         if not self.mutant_info:
             raise ValueError("No available mutant!")
-        if not self.wt_sequence:
+        if not _wt_sequence:
             raise ValueError('WT sequence is empty!')
 
-        _sequence = list(self.wt_sequence)
+        _sequence = list(_wt_sequence)
 
         for _mut in self.mutant_info:
             _pos = int(_mut['position'])
+            _chain = _mut['chain_id']
+            if _chain != chain_id:
+                continue
             if _pos > len(_sequence):
                 raise ValueError(
                     f"Mutant sequence is too short! {_pos} >{len(_sequence)}"

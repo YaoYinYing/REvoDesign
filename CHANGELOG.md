@@ -6,9 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `Hydra` configurations
+- `set_REvoDesign_config_file`
+- `actionReconfigure` for reconfigurations, calling `reload_configurations` and `refresh_ui_from_new_configuration`
+- selection arguments in `make_temperal_input_pdb`: `chain_id, segment_id, resn, selection`
+- Global `designable_sequences: dict` for all chains of WT sequences.
+- New webpage for PSSM/GREMLIN task server.
+- WE HAVE A NEW LOGO AND BANNER!
+- `macos-14` (apple silicon) runner for unit tests.
+  
+
+### Changed
+- sidechain solver:
+  - `buildin` -> `Dunbrack Rotamer Library`
+- Mutant tools:
+  - `Mutant.get_mutant_sequence` -> `Mutant.get_mutant_sequence_single_chain` for single chang sequences. use `Mutant.get_mutant_sequences` for all.
+  - `extract_mutants_from_mutant_id`: receive `sequences: dict` for multiple chains.
+  - `extract_mutant_from_pymol_object`: receive `sequences: dict` for multiple chains.
+  - `existed_mutant_tree`: receive `sequences: dict` for multiple chains.
+- Dockerized PSSM GREMLIN server image: `yaoyinying/revodesign-pssm-gremlin`.
+- GitHub Action runner: use `Mambaforge` for conda env.
+- Weight file handling of `DLPacker`
+
+### Fixed
+- `.github/workflows/unit_tests.yml`: reversed to `conda-incubator/setup-miniconda@v3` runner scripts to handle conda environments. 
+- minor fixes on unit test cases.
+- minor fixes on server APIs
+
+### Removed
+- `magic_numbers`
+- "PRIME", "UniKP" in setup script.
+- Windows and self-hosted runners of GitHub Actions.
 
 ## [1.3.2] - 2024-01-09
-
 
 ### Added
 - Sidechain solver:

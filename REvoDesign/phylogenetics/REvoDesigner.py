@@ -53,7 +53,7 @@ class REvoDesigner:
         self.randomized_sample = False
         self.randomized_sample_num = 10
 
-        self.sidechain_solver = 'buildin'
+        self.sidechain_solver = 'Dunbrack Rotamer Library'
         self.sidechain_solver_radius = 0
 
         self.molecule = ''

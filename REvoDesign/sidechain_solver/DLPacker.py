@@ -1,8 +1,5 @@
 import os
-from DLPacker.dlpacker import DLPacker
 import tempfile
-from Bio.Data import IUPACData
-
 from REvoDesign.common.Mutant import Mutant
 
 
@@ -30,6 +27,17 @@ class DLPacker_worker:
     """
 
     def __init__(self, pdb_file):
+        from REvoDesign.tools.post_installed import set_cache_dir
+
+        cache_dir = set_cache_dir()
+
+        expected_dlpacker_weight_cache_dir = os.path.join(
+            os.path.abspath(cache_dir), 'weights', 'DLPacker'
+        )
+        os.environ[
+            'DLPACKER_PRETRAINED_WEIGHT'
+        ] = expected_dlpacker_weight_cache_dir
+
         """
         Initialize DLPacker_worker with a PDB file.
 
@@ -45,6 +53,8 @@ class DLPacker_worker:
         Returns:
         - Path to the temporally relaxed PDB file
         """
+        from DLPacker.dlpacker import DLPacker
+
         self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         temperal_relaxed_pdb = tempfile.mktemp(suffix=".pdb")
         self.dlpacker_worker.reconstruct_protein(
@@ -70,6 +80,9 @@ class DLPacker_worker:
         Returns:
         - Path to the mutated PDB file
         """
+        from DLPacker.dlpacker import DLPacker
+        from Bio.Data import IUPACData
+
         self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         new_obj_name = mutant_obj.get_short_mutant_id()
 
@@ -115,6 +128,8 @@ class DLPacker_worker:
         Returns:
         - List of targets for reconstruction
         """
+        from Bio.Data import IUPACData
+
         reconstruct_area = []
         for mut_info in mutant_obj.get_mutant_info():
             chain_id = mut_info['chain_id']

@@ -59,20 +59,20 @@ omegaconf = "^2.3.0"
 ## designers
 colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1.1" , optional = true }
 
+#PRIME = {git = "https://github.com/YaoYinYing/Prime_1", optional = true}
+#UniKP = {git = "https://github.com/YaoYinYing/unikp.git", optional = true}
+
 ## sidechain solver
 DLPacker = {git = "https://github.com/YaoYinYing/DLPacker", branch = 'pip-installable', optional = true}
 PIPpack = {git = "https://github.com/YaoYinYing/PIPPack", branch = 'pip-installable', optional = true}
 
-PRIME = {git = "https://github.com/YaoYinYing/Prime_1", optional = true}
-
-UniKP = {git = "https://github.com/YaoYinYing/unikp.git", optional = true}
 
 [tool.poetry.extras]
 jax = ["colabdesign"]
-torch = ["PRIME", "UniKP", "PIPpack"]
+torch = ["PIPpack"]
 tf = ["DLPacker"]
 
-full = ["colabdesign", "DLPacker", "PRIME", "UniKP"]
+full = ["colabdesign", "DLPacker", "PIPpack"]
 
 [tool.black]
 line-length = 79

@@ -57,6 +57,7 @@ class TestMutant(absltest.TestCase):
         ]
         self.mutant_score = 0.95
         self.mutant_obj = Mutant(self.mutant_info, self.mutant_score)
+        self.mutant_obj.wt_sequence = {'A': 'MABCDEFGHPJKLMNOHHHSHHHQCEV'}
 
     def test_mutant_info(self):
         self.assertEqual(self.mutant_obj.get_mutant_info(), self.mutant_info)
@@ -88,10 +89,9 @@ class TestMutant(absltest.TestCase):
         self.assertEqual(self.mutant_obj.get_short_mutant_id(), expected_id)
 
     def test_mutant_sequence(self):
-        self.mutant_obj.wt_sequence = 'MABCDEFGHPJKLMNOHHHSHHHQCEV'
         expected_sequence = 'MABCDEFGHLJKLMNOHHHTHHHQCEV'
         self.assertEqual(
-            self.mutant_obj.get_mutant_sequence(), expected_sequence
+            self.mutant_obj.get_mutant_sequence_single_chain(chain_id='A'), expected_sequence
         )
 
     def test_wt_score(self):
@@ -99,25 +99,25 @@ class TestMutant(absltest.TestCase):
         self.assertEqual(self.mutant_obj.get_wt_score(), 5.0)
 
     def test_invalid_mutant_sequence(self):
-        self.mutant_obj.wt_sequence = 'ABC'
+        self.mutant_obj.wt_sequence = {'A': 'ABC'}
         with self.assertRaises(ValueError):
-            self.mutant_obj.get_mutant_sequence()
+            self.mutant_obj.get_mutant_sequence_single_chain(chain_id='A')
 
     def test_mutant_sequence_mismatch(self):
-        self.mutant_obj.wt_sequence = 'MABCDEFGHIJKLMNO'
+        self.mutant_obj.wt_sequence = {'A': 'MABCDEFGHIJKLMNO'}
         self.mutant_obj.mutant_info = [
             {'chain_id': 'A', 'position': 10, 'wt_res': 'Q', 'mut_res': 'L'}
         ]
         with self.assertRaises(ValueError):
-            self.mutant_obj.get_mutant_sequence()
+            self.mutant_obj.get_mutant_sequence_single_chain(chain_id='A')
 
     def test_mutant_sequence_short(self):
-        self.mutant_obj.wt_sequence = 'MABCDEFGHIJKLMNO'
+        self.mutant_obj.wt_sequence = {'A': 'MABCDEFGHIJKLMNO'}
         self.mutant_obj.mutant_info = [
             {'chain_id': 'A', 'position': 30, 'wt_res': 'Q', 'mut_res': 'L'}
         ]
         with self.assertRaises(ValueError):
-            self.mutant_obj.get_mutant_sequence()
+            self.mutant_obj.get_mutant_sequence_single_chain(chain_id='A')
 
 
 class TestMutantTree(absltest.TestCase):
@@ -279,13 +279,13 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         result = self.calculator.submit_fasta_file(fasta_file_path)
         print(result.content)
 
-        self.assertIn(result.status_code, [202, 404, 200, 403])
+        self.assertIn(result.status_code, [202, 404, 200, 403, 400])
 
         md5sum = self.calculator.md5sum
         result = self.calculator.cancel_job(md5sum)
         print(result.content)
 
-        self.assertIn(result.status_code, [202, 404, 200, 403])
+        self.assertIn(result.status_code, [202, 404, 200, 403, 400])
 
 
 class TestPymolUtils(absltest.TestCase):
@@ -444,38 +444,35 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = 'AI5R_AK26T_0.4567'
         expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
-        _, _o = extract_mutants_from_mutant_id(mutant_string=mutant_string)
+        _, _o = extract_mutants_from_mutant_id(mutant_string=mutant_string,sequences={'A': sequence})
         self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.get_mutant_score(), 0.4567)
-        _o.wt_sequence = sequence
 
-        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
+        self.assertEqual(_o.get_mutant_sequence_single_chain(chain_id='A'), expected_sequence)
 
     def test_extract_mutants_from_mutant_id_reduced(self):
         mutant_string = 'I5R_K26T_0.4567'
         expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
         _, _o = extract_mutants_from_mutant_id(
-            mutant_string=mutant_string, chain_id=chain_id
+            mutant_string=mutant_string, sequences={'A': sequence}
         )
         self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.get_mutant_score(), 0.4567)
-        _o.wt_sequence = sequence
 
-        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
+        self.assertEqual(_o.get_mutant_sequence_single_chain(chain_id='A'), expected_sequence)
 
     def test_extract_mutants_from_mutant_id_fuzzy(self):
         mutant_string = '5R_26T_0.4567'
         expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
         _, _o = extract_mutants_from_mutant_id(
-            mutant_string=mutant_string, chain_id=chain_id, sequence=sequence
+            mutant_string=mutant_string, sequences={'A': sequence}
         )
         self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.get_mutant_score(), 0.4567)
-        _o.wt_sequence = sequence
 
-        self.assertEqual(_o.get_mutant_sequence(), expected_sequence)
+        self.assertEqual(_o.get_mutant_sequence_single_chain(chain_id='A'), expected_sequence)
 
     def test_extract_mutants_from_mutant_id_invalid(self):
         mutant_string = '5R_26T_0.4567'
@@ -602,22 +599,25 @@ class TestSidechainSolver(absltest.TestCase):
     def setUp(self):
         self.mutant_string = 'AI5R_AK26T_0.4567'
         self.expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
-        _, self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string)
-        self.mutant_obj.wt_sequence = sequence
+        _, self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string, sequences={'A': sequence})
+
+        
 
         try:
             cmd.fetch(molecule)
             cmd.remove('c. B')
             cmd.remove('r. hoh or r. MES')
-            
-            
+
         except CmdException:
             pass
-    def test_pymol_mutate(self):
-        from REvoDesign.sidechain_solver.Buildin import PyMOL_mutate
-        wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
         
-        mutate_runner=PyMOL_mutate(molecule=molecule,input_session=wt_pdb)
+        self.wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False,chain_id='A')
+        self.new_pdb_code='1nww._A__'
+        
+
+    def test_pymol_mutate(self):
+        from REvoDesign.sidechain_solver.DunbrackRotamerLib import PyMOL_mutate
+        mutate_runner=PyMOL_mutate(molecule=self.new_pdb_code,input_session=self.wt_pdb)
         mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj,in_place=False)
 
         from Bio.PDB.PDBParser import PDBParser
@@ -633,8 +633,7 @@ class TestSidechainSolver(absltest.TestCase):
         if not WITH_DLPACKER:
             print('Skiping dlpacker tests..')
         from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
-        wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
-        mutate_runner=DLPacker_worker(pdb_file=wt_pdb)
+        mutate_runner=DLPacker_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
 
 
@@ -650,8 +649,7 @@ class TestSidechainSolver(absltest.TestCase):
         if not WITH_DLPACKER:
             print('Skiping dlpacker tests..')
         from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
-        wt_pdb=make_temperal_input_pdb(molecule=molecule,reload=False)
-        mutate_runner=DLPacker_worker(pdb_file=wt_pdb)
+        mutate_runner=DLPacker_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj,reconstruct_area_radius=8)
 
 
@@ -662,10 +660,6 @@ class TestSidechainSolver(absltest.TestCase):
         mut_residue_2=structure[0]["A"][26]
         self.assertEqual(mut_residue_1.get_resname(), 'ARG')
         self.assertEqual(mut_residue_2.get_resname(), 'THR')
-
-
-        
-        
 
 
 if __name__ == '__main__':

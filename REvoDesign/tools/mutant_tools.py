@@ -20,16 +20,15 @@ protein_letters_3to1 = {
 
 
 def extract_mutants_from_mutant_id(
-    mutant_string, chain_id=None, sequence=None
-):
+    mutant_string: str, sequences: dict = {}
+) -> (str, Mutant):
     '''
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
 
     Parameters:
     mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
                         <chain_id><wt_res><resi><mut_res>_...._<score>
-    chain_id (str): design chain id.
-    sequence (str): Wild-type sequence of design molecule and chain
+    sequences (dict): Wild-type chain: sequence of design molecule
 
     Returns:
     tuple:
@@ -47,11 +46,8 @@ def extract_mutants_from_mutant_id(
         if re.match(r'[A-Z]{2}\d+[A-Z]{1}', mut):
             logging.debug(f'full description: {mut}')
             _mut = re.match(r'([A-Z]{1})([A-Z]{1})(\d+)([A-Z]{1})', mut)
-            _chain_id = (
-                _mut.group(1)
-                if chain_id is None or chain_id == ''
-                else chain_id
-            )
+            _chain_id = _mut.group(1)
+
             _position = _mut.group(3)
             _wt_res = _mut.group(2)
             _mut_res = _mut.group(4)
@@ -59,14 +55,14 @@ def extract_mutants_from_mutant_id(
         # reduced description of mutation, <wt_res><pos><mut>, missing <chain_id>
         elif re.match(r'[A-Z]{1}\d+[A-Z]{1}', mut):
             logging.debug(f'reduced description: {mut}')
-            if not (mutant_info or chain_id):
+            if not (mutant_info or sequences):
                 logging.error(
-                    f'Error while processing mutant id {mut}: Invalid chain id: {chain_id}'
+                    f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
                 )
                 continue
             _mut = re.match(r'([A-Z]{1})(\d+)([A-Z]{1})', mut)
 
-            _chain_id = chain_id
+            _chain_id = list(sequences.keys())[0]
             _position = int(_mut.group(2))
             _wt_res = _mut.group(1)
             _mut_res = _mut.group(3)
@@ -75,22 +71,17 @@ def extract_mutants_from_mutant_id(
         elif re.match(r'\d+[A-Z]{1}', mut):
             logging.debug(f'fuzzy description: {mut}')
             # silent error report while mismatching the score term
-            if not (mutant_info or chain_id):
+            if not (mutant_info or sequences):
                 logging.error(
-                    f'Error while processing mutant id {mut}: Invalid chain id: {chain_id}'
-                )
-                continue
-            if not (sequence or mutant_info):
-                logging.error(
-                    f'Error while processing mutant id {mut}: Invalid sequence: {sequence}'
+                    f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
                 )
                 continue
 
             _mut = re.match(r'(\d+)([A-Z]{1})', mut)
 
-            _chain_id = chain_id
+            _chain_id = list(sequences.keys())[0]
             _position = int(_mut.group(1))
-            _wt_res = sequence[_position - 1]
+            _wt_res = list(sequences.values())[0][_position - 1]
             _mut_res = _mut.group(2)
 
         else:
@@ -117,8 +108,8 @@ def extract_mutants_from_mutant_id(
 
     # Instantializing a Mutant obj
     mutant_obj = Mutant(mutant_info, mutant_score)
-    if sequence:
-        mutant_obj.wt_sequence = sequence
+    if sequences:
+        mutant_obj.wt_sequence = sequences
 
     logging.debug(mutant_obj)
 
@@ -301,32 +292,38 @@ def expand_range(shortened_str, connector='-', seperator='+') -> list[int]:
     return expanded_list
 
 
-def extract_mutant_from_pymol_object(pymol_object, sequence=''):
+def extract_mutant_from_pymol_object(pymol_object, sequences: dict):
     '''
     Extract mutant info from an existing pymol object.
 
     Parameters:
     pymol_object (str): object to extract from.
-    sequence (str): Wild-type sequence of design molecule and chain
+    sequences (dict[str]): Wild-type sequence of design molecule and chain
 
     Returns:
     Mutant : Mutant object.
     '''
     from pymol import cmd
 
-    mutant_info = [
-        {
-            'chain_id': at.chain,
-            'position': int(at.resi),
-            'wt_res': sequence[int(at.resi) - 1] if sequence else 'X',
-            'mut_res': protein_letters_3to1[at.resn],
-        }
-        for at in cmd.get_model(f'{pymol_object} and n. CA').atom
-    ]
+    mutant_info = []
+
+    for chain_id in sequences:
+        sequence = sequences[chain_id]
+        for at in cmd.get_model(f'{pymol_object} and n. CA').atom:
+            mutant_info.append(
+                {
+                    'chain_id': at.chain,
+                    'position': int(at.resi),
+                    'wt_res': sequence[int(at.resi) - 1] if sequence else 'X',
+                    'mut_res': protein_letters_3to1[at.resn],
+                }
+            )
+
     mutant_obj = Mutant(
         mutant_info=mutant_info,
         mutant_score=extract_mutant_score_from_string(pymol_object),
     )
+    mutant_obj.wt_sequence = sequences
 
     return mutant_obj
 
@@ -424,7 +421,7 @@ def read_profile_design_mutations(filename):
     return process_mutations(data)
 
 
-def existed_mutant_tree(sequence, enabled_only=1):
+def existed_mutant_tree(sequences: dict, enabled_only=1):
     """
     Creates a tree structure of existing mutants based on PyMOL objects.
 
@@ -439,7 +436,7 @@ def existed_mutant_tree(sequence, enabled_only=1):
     _mutant_tree = {
         group_id: {
             mutant_id: extract_mutant_from_pymol_object(
-                pymol_object=mutant_id, sequence=sequence
+                pymol_object=mutant_id, sequences=sequences
             )
             for mutant_id in cmd.get_object_list(f'({group_id})')
             if not enabled_only or not is_hidden_object(selection=mutant_id)
@@ -518,6 +515,7 @@ def quick_mutagenesis(
         visualizer.mutant_tree = MutantTree(
             {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
         )
+        # TODO: sidechain solver
         visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
         results.append(visualizer.save_session)
 
