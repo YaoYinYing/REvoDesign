@@ -111,10 +111,10 @@ class MutantVisualizer:
                 )
 
                 self.mutate_runner = DLPacker_worker(pdb_file=input_pdb)
-                logging.warning(
-                    'Cannot use DLPacker in parallel mutagenesis. nproc will be set to'
-                )
-                self.nproc = 1
+                # logging.warning(
+                #     'Cannot use DLPacker in parallel mutagenesis. nproc will be set to'
+                # )
+                # self.nproc = 1
 
         logging.info(f'Using {self.sidechain_solver} as sidechain solver.')
 
