@@ -1,7 +1,8 @@
 from pymol import cmd
 from absl import logging
 import os
-
+from rdkit import Chem
+from rdkit.Chem import MolToSmiles
 from pymol import get_version_message
 
 from REvoDesign.tools.utils import suppress_print
@@ -381,40 +382,111 @@ def is_a_REvoDesign_session():
 
 
 def make_temperal_input_pdb(
-    molecule, chain_id=None, format='pdb', wd=os.getcwd(), reload=True
+    molecule,
+    chain_id='',
+    segment_id='',
+    resn='',
+    selection='',
+    format='pdb',
+    wd=os.getcwd(),
+    reload=True,
 ):
     """
-    Function: make_temperal_input_pdb
-    Usage: input_file = make_temperal_input_pdb(molecule, format='pdb', wd=os.getcwd(), reload=True)
+        Function: make_temperal_input_pdb
+        Usage: input_file = make_temperal_input_pdb(molecule, chain_id=None, segment_id=None, format='pdb', wd=os.getcwd(), reload=True)
+    exi
+        This function generates a temporary input PDB file from the specified molecule selection.
+        It supports selection by chain ID, segment ID, or both.
 
-    This function generates a temporary input PDB file from the specified molecule selection.
+        Args:
+        - molecule (str): PyMOL selection string of the molecule
+        - chain_id (str): Chain id of the molecule (default is None)
+        - segment_id (str): Segment id of the molecule (default is None)
+        - resn (str): Residue name of the molecule (useful for small-molecule ligand)
+        - selection (str): Customized selection in PyMOL syntax.
+        - format (str): File format for the generated PDB file (default is 'pdb')
+        - wd (str): Working directory path where the file will be saved (default is current working directory)
+        - reload (bool): Whether to reload the PyMOL session after generating the file (default is True)
 
-    Args:
-    - molecule (str): PyMOL selection string of the molecule
-    - chain_id (str): chain id of the molecule. (deault is None for all chains)
-    - format (str): File format for the generated PDB file (default is 'pdb')
-    - wd (str): Working directory path where the file will be saved (default is current working directory)
-    - reload (bool): Whether to reload the PyMOL session after generating the file (default is True)
-
-    Returns:
-    - str: Path to the generated temporary input PDB file
+        Returns:
+        - str: Path to the generated temporary input PDB file
     """
     os.makedirs(wd, exist_ok=True)
+    input_file = os.path.join(
+        wd,
+        f'{molecule}.{segment_id}_{chain_id}_{resn}_{selection.replace(" ","-")[:20]}.{format}',
+    )
 
-    input_file = os.path.join(wd, f'{molecule}.{format}')
-    if not os.path.exists(input_file):
-        if not chain_id:
-            cmd.save(input_file, f'{molecule}', -1)
-        else:
-            cmd.save(input_file, f'{molecule} and c. {chain_id}', -1)
+    selection_str = molecule
+    if chain_id:
+        selection_str += f' and chain {chain_id}'
+    if segment_id:
+        selection_str += f' and segi {segment_id}'
+    if resn:
+        selection_str += f' and resn {resn}'
+    if selection:
+        selection_str += f' and {selection}'
+
+    cmd.save(input_file, selection_str, -1)
+
     if reload:
         cmd.reinitialize()
         cmd.load(input_file)
+
     logging.warning(
-        'A temperal session is created based on your molecule selection: \n'
-        f'{molecule} --> {input_file}'
+        'A temporary session is created based on your molecule selection: \n'
+        f'{molecule} (chain: {chain_id}, segment: {segment_id}), resn: {resn} --> {input_file}'
     )
     return input_file
+
+
+def extract_smiles_from_chain(
+    molecule, chain_id=None, segment_id=None, resn=None, selection=None
+):
+    """
+    Function: extract_smiles_from_chain
+    Usage: smiles_string = extract_smiles_from_chain(molecule, chain_id=None, segment_id=None)
+
+    This function extracts the SMILES string of a small molecule from a given chain and/or segment identifier
+    in a PyMOL session.
+
+    Args:
+    - molecule (str): PyMOL selection string of the molecule
+    - chain_id (str): Chain identifier from which SMILES will be extracted (default is None)
+    - segment_id (str): Segment identifier from which SMILES will be extracted (default is None)
+    - resn (str): Residue from which SMILES will be extracted (default is None)
+
+    Returns:
+    - str: The SMILES string of the specified molecule
+    """
+    # Step 1: Create a temporary input PDB file
+    temp_pdb = make_temperal_input_pdb(
+        molecule,
+        chain_id=chain_id,
+        segment_id=segment_id,
+        resn=resn,
+        selection=selection,
+        format='pdb',
+        wd=os.path.abspath('./ligand'),
+        reload=False,
+    )
+
+    # Step 2: Use RDKit to read the PDB file
+    mol = Chem.rdmolfiles.MolFromPDBFile(temp_pdb, removeHs=False)
+
+    if mol is None:
+        logging.error(
+            f"Failed to create RDKit molecule from PDB file: {temp_pdb}"
+        )
+        return None
+
+    # Step 3: Convert the molecule to a SMILES string
+    smiles = MolToSmiles(mol)
+
+    # Cleanup: Optionally delete the temporary PDB file
+    # os.remove(temp_pdb)
+
+    return smiles
 
 
 # http://www.pymolwiki.org/index.php/rotkit
