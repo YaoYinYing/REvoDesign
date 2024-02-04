@@ -478,9 +478,7 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = '5R_26T_0.4567'
 
         _o = extract_mutants_from_mutant_id(mutant_string=mutant_string)
-        self.assertIsNone(
-            _o,
-        )
+        self.assertIs(_o.__empty__(), True)
 
     def test_extract_mutant_score_from_string(self):
         mutant_string = 'I5R_K26T_0.4567'

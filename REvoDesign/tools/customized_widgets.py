@@ -265,8 +265,8 @@ def set_widget_value(widget, value):
     if callable(value):
         value = value()  # Call the function to get the value if value is callable
 
-    if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple)):
-        value = list(value)  # Convert iterable (excluding strings, lists, tuples) to list
+    if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple,dict)):
+        value = list(value)  # Convert iterable (excluding strings, lists, tuples, dicts) to list
 
     # Setting values
     if isinstance(widget, QtWidgets.QDoubleSpinBox):

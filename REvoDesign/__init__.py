@@ -186,7 +186,6 @@ class REvoDesignPlugin:
             (self.ui.checkBox_ws_broadcast_view, self.cfg.ui.socket.broadcast.view),
             (self.ui.checkBox_ws_recieve_mutagenesis_broadcast, self.cfg.ui.socket.receive.mutagenesis),
             (self.ui.checkBox_ws_recieve_view_broadcast, self.cfg.ui.socket.receive.view),
-            (self.ui.comboBox_sidechain_solver, list(self.cfg.ui.config.sidechain_solver.group)),
             (self.ui.comboBox_sidechain_solver, self.cfg.ui.config.sidechain_solver.default),
         ]
 
@@ -787,6 +786,7 @@ class REvoDesignPlugin:
         )
 
         # Tab Config
+        set_widget_value(self.ui.comboBox_sidechain_solver, list(self.cfg.ui.config.sidechain_solver.group))
         self.refresh_ui_from_new_configuration()
         return main_window
 

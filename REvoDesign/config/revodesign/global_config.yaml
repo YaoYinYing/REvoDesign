@@ -48,7 +48,7 @@ ui:
     topN_pairs: 100
     max_interact_dist: 20.0
     interact_ignore_wt: False
-    use_external_scorer: ProteinMPNN
+    use_external_scorer: 
   
   client:
     pssm_gremlin_url: https://revodesign.yaoyy.moe/

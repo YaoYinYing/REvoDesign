@@ -37,7 +37,7 @@ class Mutant:
         """
         Return a bool of empty check of the Mutant object.
         """
-        return bool(self.mutant_info)
+        return not bool(self.mutant_info)
 
     def get_mutant_info(self):
         """
