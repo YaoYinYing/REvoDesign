@@ -1,4 +1,17 @@
 #! bash
+set -e
+
+if [[ $(uname -s) == 'Darwin' ]];then 
+    SED=gsed;
+    echo In Darwin, using gsed: GNU-sed
+    if ! command -v gsed; then 
+        echo GNU-sed is not found, fetching via homebrew...
+        brew install gnu-sed;
+    fi
+else
+    SED=sed;
+fi
+
 echo 'Dumping version from `REvoDesign/__version__.py` ...'
 old_version=$(git diff REvoDesign/__version__.py | grep '^\-__version__=' | awk '{str=$2;gsub("'\''","",str);print str}')
 new_version=$(git diff REvoDesign/__version__.py | grep '^+__version__=' | awk '{str=$2;gsub("'\''","",str);print str}')
@@ -19,23 +32,24 @@ fi
 echo 'Done.'
 
 echo set new tag to changelog
-sed -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md
-
+$SED -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md 
 echo fetching changelog bwt two versions:
 rm -f changelog_tag.md
-sed -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' > changelog_tag.md
+echo 'Dump version: '"$old_version"' -> '"$new_version"'' > changelog_tag.md
+$SED -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
 
 echo set new tag to pyproject
-sed -i 's/^version = \"'"$old_version"'\"/version = \"'"$new_version"'\"/' ./pyproject.toml
+$SED -i 's/^version = \"'"$old_version"'\"/version = \"'"$new_version"'\"/' ./pyproject.toml
 
 echo  collect version files and creating new commit...
 git add ./CHANGELOG.md ./pyproject.toml REvoDesign/__version__.py
 # version commit
 git commit -m 'Dump version: '"$old_version"' -> '"$new_version"''
-echo pushing new version
-git push 
 
+echo pushing new version
 echo set git tag ..
 git tag -F changelog_tag.md v$new_version 
+
+git push 
 git push origin --tags
 rm -f changelog_tag.md

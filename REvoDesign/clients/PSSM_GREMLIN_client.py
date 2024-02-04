@@ -1,7 +1,9 @@
 import os
 import hashlib
 import requests
-from absl import logging
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
+
 from REvoDesign.tools.client_tools import check_response_code
 
 

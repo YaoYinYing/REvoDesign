@@ -171,7 +171,7 @@ class Combinations:
         with open(datafile) as f:
             for line in f:
                 _line = line.strip()
-                _, mut_obj = extract_mutants(
+                mut_obj = extract_mutants(
                     _line, sequences={self.chain_id: self.fastasequence}
                 )
                 mut_id = ''.join(
@@ -187,13 +187,13 @@ class Combinations:
     def getUniquePositions(self, list_w_mutations):
         unique = True
         for i in list_w_mutations:
-            _, mut_obj_i = extract_mutants(
+            mut_obj_i = extract_mutants(
                 i.strip(), sequences={self.chain_id: self.fastasequence}
             )
             position = mut_obj_i.get_mutant_info()[0]['position']
             for j in list_w_mutations:
                 if i != j:
-                    _, mut_obj_j = extract_mutants(
+                    mut_obj_j = extract_mutants(
                         j.strip(),
                         sequences={self.chain_id: self.fastasequence},
                     )

@@ -1,8 +1,7 @@
 import os
-from absl import logging
 import hydra
 from omegaconf import DictConfig
-
+from typing import Any
 
 def set_REvoDesign_config_file():
     default_storage_path = os.path.expanduser('~/.REvoDesign/')
@@ -21,9 +20,9 @@ def set_REvoDesign_config_file():
             'config/revodesign/global_config.yaml',
         )
         shutil.copyfile(template_config_file, config_file)
-        logging.info(f'Config file is created at {config_file}')
+        print(f'Config file is created at {config_file}')
     else:
-        logging.info(f'Config file is located at {config_file}')
+        print(f'Config file is located at {config_file}')
 
     return config_file
 
@@ -34,13 +33,14 @@ hydra.initialize_config_dir(
 )
 
 
-def reload_config_file() -> DictConfig:
+def reload_config_file(config_name: str = 'global_config') -> DictConfig:
     return hydra.compose(
-        config_name=os.path.basename(REVODESIGN_CONFIG_FILE).replace(
-            '.yaml', ''
-        ),
+        config_name=config_name,
         return_hydra_config=True,
     )
+
+# def save_to_config_file(cfg:DictConfig, drop_groups: bool = True) -> None:
+    
 
 
 def set_cache_dir() -> str:
@@ -53,3 +53,43 @@ def set_cache_dir() -> str:
     else:
         cache_dir = os.path.expanduser(cfg.cache_dir.customized)
     return cache_dir
+
+
+
+class ConfigConverter:
+    """
+    A utility class to convert omegaconf.DictConfig objects to standard Python dictionaries.
+    This conversion is done recursively to handle nested DictConfig objects.
+    """
+    
+    @staticmethod
+    def convert(config: DictConfig) -> dict:
+        """
+        Converts an omegaconf.DictConfig object to a standard Python dictionary.
+        
+        Usage:
+            converted_dict = ConfigConverter.convert(dict_config)
+        
+        :param config: The DictConfig object to convert.
+        :return: A standard Python dictionary representation of the input DictConfig.
+        """
+        if not isinstance(config, DictConfig):
+            raise ValueError("Input must be an instance of omegaconf.DictConfig")
+        
+        return ConfigConverter._recursive_convert(config)
+    
+    @staticmethod
+    def _recursive_convert(config: Any) -> Any:
+        """
+        Recursively converts an omegaconf.DictConfig object or its nested structures
+        to a standard Python dictionary. This method handles the recursion.
+        
+        :param config: The DictConfig object or its nested structure.
+        :return: A standard Python dictionary or the original type if not DictConfig.
+        """
+        if isinstance(config, DictConfig):
+            return {key: ConfigConverter._recursive_convert(value) for key, value in config.items()}
+        elif isinstance(config, list):
+            return [ConfigConverter._recursive_convert(item) for item in config]
+        else:
+            return config

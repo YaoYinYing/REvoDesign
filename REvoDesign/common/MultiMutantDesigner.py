@@ -1,6 +1,8 @@
 import random
 import os
-from absl import logging
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
+
 import itertools
 from pymol import cmd, util
 

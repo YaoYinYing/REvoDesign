@@ -6,7 +6,10 @@ import pandas as pd
 from Bio import SeqIO
 from pymol import cmd
 import matplotlib
-from absl import logging
+
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
+
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
@@ -531,14 +534,14 @@ class MutantVisualizer:
             mutation_data[self.score_col] = 1
 
         for _, row in mutation_data.iterrows():
-            variant, variant_obj = extract_mutants_from_mutant_id(
+            variant_obj: Mutant = extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
                 chain_id=self.chain_id,
                 sequences={self.chain_id: self.sequence},
             )
 
             # skip None variant (failed to be parsed)
-            if not variant:
+            if not variant_obj.__empty__():
                 continue
 
             _variant_info = variant_obj.get_mutant_info()

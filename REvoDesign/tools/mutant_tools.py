@@ -1,5 +1,4 @@
 import os
-from absl import logging
 import re
 import json
 from REvoDesign.common.Mutant import Mutant
@@ -7,9 +6,10 @@ from Bio.Data import IUPACData
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
 from REvoDesign.tools.pymol_utils import is_hidden_object
-
-
 from REvoDesign.tools.utils import filepath_does_exists
+
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 # Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
 # It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.
@@ -21,7 +21,7 @@ protein_letters_3to1 = {
 
 def extract_mutants_from_mutant_id(
     mutant_string: str, sequences: dict = {}
-) -> (str, Mutant):
+) -> Mutant:
     '''
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
 
@@ -32,8 +32,7 @@ def extract_mutants_from_mutant_id(
 
     Returns:
     tuple:
-        [0] - Parsed mutant string (no score)
-        [1] - Mutant : Mutant object.
+        Mutant : Mutant object.
     '''
     logging.debug(f'Parsing {mutant_string}')
 
@@ -99,7 +98,7 @@ def extract_mutants_from_mutant_id(
 
     if not mutant_info:
         # early return if the input string failes to be parsed
-        return None, None
+        return Mutant(mutant_info,0)
 
     # if the mutation has a position of score, we need to extract it.
     mutant_score = extract_mutant_score_from_string(
@@ -114,7 +113,7 @@ def extract_mutants_from_mutant_id(
     logging.debug(mutant_obj)
 
     # Join the mutants into a single string separated by underscores and instantialized Mutant obj
-    return '_'.join(mutants), mutant_obj
+    return mutant_obj
 
 
 def extract_mutant_score_from_string(mutant_string):

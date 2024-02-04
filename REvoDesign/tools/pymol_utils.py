@@ -1,11 +1,13 @@
 from pymol import cmd
-from absl import logging
 import os
 from rdkit import Chem
 from rdkit.Chem import MolToSmiles
 from pymol import get_version_message
 
 from REvoDesign.tools.utils import suppress_print
+
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 PYMOL_VERSION = cmd.get_version()[0]
 PYMOL_BUILD = get_version_message()

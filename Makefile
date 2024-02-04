@@ -21,8 +21,9 @@ help:
 build:
 	python -m build .
 
+# only for unittest on runner or local machine.
 install:
-	python -m pip install ".[full]" -U
+	python -m pip install ".[full,unittest]" -U
 
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
@@ -70,3 +71,4 @@ clean:
 	find . -name ".DS_Store" -exec rm -v {} \;
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py
 	rm -rvf $(TESTDIR) dask-worker-space
+	rm -rvf logs

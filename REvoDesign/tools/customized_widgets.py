@@ -1,10 +1,12 @@
 import os
 from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
-from absl import logging
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 from REvoDesign.tools.system_tools import OS_INFO, OS_TYPE
 
+from collections.abc import Iterable
 
 PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 
@@ -234,11 +236,10 @@ def getOpenFileNameWithExt(*args, **kwargs):
     return fname
 
 
-# A universal and versatile function for value setting. ;-)
 def set_widget_value(widget, value):
     """
     Sets the value of a PyQt5 widget based on the provided value.
-
+    
     Args:
     - widget: The PyQt5 widget whose value needs to be set.
     - value: The value to be set on the widget.
@@ -253,132 +254,116 @@ def set_widget_value(widget, value):
     - QCheckBox: Supports bool.
     - QStackedWidget: Supports list of image paths (adds ImageWidget widgets).
     - QGridLayout: Supports a string (image path) to add an ImageWidget widget.
-
-    Example Usage:
-    ```python
-    # Set value for QDoubleSpinBox
-    set_widget_value(double_spinbox, 25.5)
-
-    # Set value for QComboBox using list
-    set_widget_value(combo_box, ['Option 1', 'Option 2', 'Option 3'])
-
-    # Set value for QProgressBar with range
-    set_widget_value(progress_bar, [0, 100])
-
-    # Set value for QCheckBox
-    set_widget_value(checkbox, True)
-
-    # Set value for QStackedWidget with a list of image paths
-    set_widget_value(stacked_widget, ['path/to/image1.png', 'path/to/image2.png'])
-
-    # Set value for QGridLayout with an image path
-    set_widget_value(grid_layout, 'path/to/image.png')
-    ```
     """
 
-    def set_value_error(value, widget, type_value, type_widget):
+    def set_value_error(widget, value):
         logging.warning(
-            f'FIX ME: Value {value} ({type_value}) is not currently supported on widget {widget} ({type_widget})'
+            f'FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}'
         )
 
-    type_widget = type(widget)
-    type_value = type(value)
+    # Preprocess values according to types
+    if callable(value):
+        value = value()  # Call the function to get the value if value is callable
 
-    # preprocess values according to types
-    if type_value == type(lambda: None):  # Check if value is a function
-        value = value()  # If it's a function, call it to get the value
-        type_value = type(value)
-
-    if type_value == range or type_value == type(
-        (x for x in range(0, 1))
-    ):  # Check if value is a range or generator
-        value = [
-            x for x in value
-        ]  # If it's a range or generator, expand it as a list
-        type_value = type(value)
+    if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple)):
+        value = list(value)  # Convert iterable (excluding strings, lists, tuples) to list
 
     # Setting values
-    if type_widget == QtWidgets.QDoubleSpinBox:
-        if type_value == int or type_value == float:
+    if isinstance(widget, QtWidgets.QDoubleSpinBox):
+        if isinstance(value, (int, float)):
             widget.setValue(float(value))
-        elif (type_value == list or type_value == tuple) and len(value) > 1:
+        elif isinstance(value, (list, tuple)) and len(value) > 1:
             widget.setRange(float(value[0]), float(value[1]))
-        return
-
-    if type_widget == QtWidgets.QSpinBox:
-        if type_value == int or type_value == float:
+    elif isinstance(widget, QtWidgets.QSpinBox):
+        if isinstance(value, (int, float)):
             widget.setValue(int(value))
-        elif (type_value == list or type_value == tuple) and len(value) > 1:
+        elif isinstance(value, (list, tuple)) and len(value) > 1:
             widget.setRange(int(value[0]), int(value[1]))
-        return
-
-    if type_widget == QtWidgets.QComboBox:
-        if type_value != list and type_value != tuple and type_value != dict:
-            widget.setCurrentText(str(value))
-        elif type_value == list or type_value == tuple:
+    elif isinstance(widget, QtWidgets.QComboBox):
+        if isinstance(value, (list, tuple)):
             widget.clear()
             widget.addItems(map(str, value))
-        elif type_value == dict:
+        elif isinstance(value, dict):
             widget.clear()
             for k, v in value.items():
                 widget.addItem(v, k)
         else:
-            set_value_error(value, widget, type_value, type_widget)
-        return
-
-    if type_widget == QtWidgets.QLineEdit:
+            widget.setCurrentText(str(value))
+    elif isinstance(widget, QtWidgets.QLineEdit):
         widget.setText(str(value))
-        return
-
-    if type_widget == QtWidgets.QProgressBar:
-        if type_value == list or type_value == tuple:
-            widget.setRange(int(value[0]), int(value[1]))
-        elif type_value == int:
-            widget.setValue(int(value))
-        else:
-            set_value_error(value, widget, type_value, type_widget)
-        return
-
-    if type_widget == QtWidgets.QLCDNumber:
+    elif isinstance(widget, QtWidgets.QProgressBar):
+        if isinstance(value, int):
+            widget.setValue(value)
+        elif isinstance(value, (list, tuple)) and len(value) == 2:
+            widget.setRange(*value)
+    elif isinstance(widget, QtWidgets.QLCDNumber):
         widget.display(str(value))
-        return
-
-    if type_widget == QtWidgets.QCheckBox:
+    elif isinstance(widget, QtWidgets.QCheckBox):
         widget.setChecked(bool(value))
-        return
-
-    if type_widget == QtWidgets.QStackedWidget:
-        # Check if the value is a list of image paths
-        if type_value == list:
-            # Remove all existing widgets from the stacked widget
+    elif isinstance(widget, QtWidgets.QStackedWidget):
+        if isinstance(value, list):
             while widget.count() > 0:
                 widget.removeWidget(widget.widget(0))
-            # Add image widgets to the stacked widget
             for image_path in value:
-                image_widget = ImageWidget(image_path)
+                image_widget = ImageWidget(image_path)  # Assuming ImageWidget is defined elsewhere
                 widget.addWidget(image_widget)
-            # Show the first image by default
-            if len(value) > 0:
+            if value:
                 widget.setCurrentIndex(0)
-        else:
-            set_value_error(value, widget, type_value, type_widget)
-        return
-
-    if type_widget == QtWidgets.QGridLayout:
-        if type_value == str and os.path.exists(value):
+    elif isinstance(widget, QtWidgets.QGridLayout):
+        if isinstance(value, str) and os.path.exists(value):
             # Clear the existing widgets from gridLayout_interact_pairs
             for i in reversed(range(widget.count())):
                 widget = widget.itemAt(i).widget()
                 if widget is not None:
                     widget.deleteLater()
-            image_widget = ImageWidget(value)
+            image_widget = ImageWidget(value)  # Assuming ImageWidget is defined elsewhere
             widget.addWidget(image_widget)
-        else:
-            set_value_error(value, widget, type_value, type_widget)
-        return
+    else:
+        set_value_error(widget, value)
 
-    logging.warning(f'FIX ME: Widget {widget} is not currently supported. ')
-    return
+def get_widget_value(widget):
+    """
+    Retrieves the value from a PyQt5 widget.
+
+    Args:
+    - widget: The PyQt5 widget from which the value needs to be retrieved.
+
+    Returns:
+    The current value of the widget.
+
+    Supported Widgets:
+    - QDoubleSpinBox, QSpinBox: Returns the current value as float or int.
+    - QComboBox: Returns the current text or the userData of the current item if any.
+    - QLineEdit: Returns the current text as str.
+    - QProgressBar: Returns the current value as int.
+    - QLCDNumber: Returns the displayed value as str.
+    - QCheckBox: Returns the checked state as bool.
+    - QStackedWidget, QGridLayout: These are not typically used for value retrieval and thus not supported here.
+
+    Raises:
+    - ValueError: If the widget type is not supported for value retrieval.
+    """
+    if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(widget, QtWidgets.QSpinBox):
+        return widget.value()
+    elif isinstance(widget, QtWidgets.QComboBox):
+        current_index = widget.currentIndex()
+        # Check if userData is used for items
+        user_data = widget.itemData(current_index)
+        if user_data is not None:
+            return user_data
+        else:
+            return widget.currentText()
+    elif isinstance(widget, QtWidgets.QLineEdit):
+        return widget.text()
+    elif isinstance(widget, QtWidgets.QProgressBar):
+        return widget.value()
+    elif isinstance(widget, QtWidgets.QLCDNumber):
+        # Assuming the display value is always numeric
+        return widget.value()  # This method might need to be adjusted based on how values are displayed
+    elif isinstance(widget, QtWidgets.QCheckBox):
+        return widget.isChecked()
+    else:
+        raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
 
 class ParallelExecutor(QtCore.QThread):

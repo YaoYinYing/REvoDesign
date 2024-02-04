@@ -444,7 +444,7 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = 'AI5R_AK26T_0.4567'
         expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
-        _, _o = extract_mutants_from_mutant_id(mutant_string=mutant_string,sequences={'A': sequence})
+        _o = extract_mutants_from_mutant_id(mutant_string=mutant_string,sequences={'A': sequence})
         self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.get_mutant_score(), 0.4567)
 
@@ -454,7 +454,7 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = 'I5R_K26T_0.4567'
         expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
-        _, _o = extract_mutants_from_mutant_id(
+        _o = extract_mutants_from_mutant_id(
             mutant_string=mutant_string, sequences={'A': sequence}
         )
         self.assertIsInstance(_o, Mutant)
@@ -466,7 +466,7 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = '5R_26T_0.4567'
         expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
 
-        _, _o = extract_mutants_from_mutant_id(
+        _o = extract_mutants_from_mutant_id(
             mutant_string=mutant_string, sequences={'A': sequence}
         )
         self.assertIsInstance(_o, Mutant)
@@ -477,7 +477,7 @@ class TestMutantTools(absltest.TestCase):
     def test_extract_mutants_from_mutant_id_invalid(self):
         mutant_string = '5R_26T_0.4567'
 
-        _, _o = extract_mutants_from_mutant_id(mutant_string=mutant_string)
+        _o = extract_mutants_from_mutant_id(mutant_string=mutant_string)
         self.assertIsNone(
             _o,
         )
@@ -599,7 +599,7 @@ class TestSidechainSolver(absltest.TestCase):
     def setUp(self):
         self.mutant_string = 'AI5R_AK26T_0.4567'
         self.expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
-        _, self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string, sequences={'A': sequence})
+        self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string, sequences={'A': sequence})
 
         
 

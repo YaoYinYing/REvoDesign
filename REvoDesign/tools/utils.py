@@ -2,11 +2,13 @@ import contextlib
 import os
 import random
 import string
-from absl import logging
 import time
 
 from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window
-from REvoDesign.tools.system_tools import is_package_installed
+from REvoDesign.tools.system_tools import is_package_installed\
+
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 
 WITH_COLABDESIGN = is_package_installed('colabdesign')
@@ -31,7 +33,6 @@ def run_command(excutable='python', command_list=[]):
     """
     import sys
     import subprocess
-    from absl import logging
 
     if excutable == 'python':
         python_exe = os.path.realpath(sys.executable)

@@ -6,17 +6,17 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 
 # using partial module to reduce duplicate code.
 from functools import partial
-import absl.logging as logging
+
+from REvoDesign.tools.logger import setup_logging,logging
+setup_logging()
+
 import traceback
+from REvoDesign.common.Mutant import Mutant
 
-
-logging.set_verbosity(logging.DEBUG)
-logging.info(f'REvoDesign is installed in {os.path.dirname(__file__)}')
+logging.debug(f'REvoDesign is installed in {os.path.dirname(__file__)}')
 
 from REvoDesign.tools.post_installed import reload_config_file
 
-
-sys.path.append(os.path.dirname(__file__))
 
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.file_extensions import (
@@ -144,23 +144,69 @@ class REvoDesignPlugin:
 
         set_window_font(main_window)
 
+        # mapping ui widgets <--> cfg.elements
+        self.widget_config_map = [
+            (self.ui.comboBox_cmap, self.cfg.ui.header_panel.cmap),
+            (self.ui.lineEdit_pssm_gremlin_url, self.cfg.ui.client.pssm_gremlin_url),
+            (self.ui.lineEdit_pssm_gremlin_user, self.cfg.ui.client.pssm_gremlin_user),
+            (self.ui.lineEdit_pssm_gremlin_passwd, self.cfg.ui.client.pssm_gremlin_passwd),
+            (self.ui.doubleSpinBox_cofactor_radius, self.cfg.ui.prepare.cofactor_radius),
+            (self.ui.doubleSpinBox_ligand_radius, self.cfg.ui.prepare.ligand_radius),
+            (self.ui.doubleSpinBox_interface_cutoff, self.cfg.ui.prepare.chain_dist),
+            (self.ui.doubleSpinBox_surface_cutoff, self.cfg.ui.prepare.surface_probe_radius),
+            (self.ui.comboBox_profile_type, self.cfg.ui.profile.default),
+            (self.ui.checkBox_reverse_mutant_effect, self.cfg.ui.mutate.reverse_score),
+            (self.ui.lineEdit_score_maxima, self.cfg.ui.mutate.max_score),
+            (self.ui.lineEdit_score_minima, self.cfg.ui.mutate.min_score),
+            (self.ui.lineEdit_reject_substitution, self.cfg.ui.mutate.reject),
+            (self.ui.lineEdit_preffer_substitution, self.cfg.ui.mutate.accept),
+            (self.ui.spinBox_randomized_sampling, self.cfg.ui.mutate.designer.randomized_sampling),
+            (self.ui.checkBox_randomized_sampling, self.cfg.ui.mutate.designer.enable_randomized_sampling),
+            (self.ui.checkBox_deduplicate_designs, self.cfg.ui.mutate.designer.deduplicate_designs),
+            (self.ui.spinBox_designer_batch, self.cfg.ui.mutate.designer.batch),
+            (self.ui.spinBox_designer_num_samples, self.cfg.ui.mutate.designer.num_sample),
+            (self.ui.doubleSpinBox_designer_temperature, self.cfg.ui.mutate.designer.temperature),
+            (self.ui.comboBox_cluster_matrix, self.cfg.ui.cluster.score_matrix),
+            (self.ui.checkBox_shuffle_clustering, self.cfg.ui.cluster.shuffle),
+            (self.ui.spinBox_num_mut_maximum, self.cfg.ui.cluster.mut_num_max),
+            (self.ui.spinBox_num_mut_minimun, self.cfg.ui.cluster.mut_num_min),
+            (self.ui.spinBox_num_cluster, self.cfg.ui.cluster.num_cluster),
+            (self.ui.spinBox_cluster_batchsize, self.cfg.ui.cluster.batch_size),
+            (self.ui.checkBox_reverse_mutant_effect_3, self.cfg.ui.visualize.reverse_score),
+            (self.ui.checkBox_global_score_policy, self.cfg.ui.visualize.global_score_policy),
+            (self.ui.comboBox_profile_type_2, self.cfg.ui.profile.default),
+            (self.ui.checkBox_interact_ignore_wt, self.cfg.ui.interact.interact_ignore_wt),
+            (self.ui.spinBox_gremlin_topN, self.cfg.ui.interact.topN_pairs),
+            (self.ui.doubleSpinBox_max_interact_dist, self.cfg.ui.interact.max_interact_dist),
+            (self.ui.comboBox_external_scorer, self.cfg.ui.interact.use_external_scorer),
+            (self.ui.lineEdit_ws_server_url_to_connect, self.cfg.ui.socket.server_url),
+            (self.ui.spinBox_ws_server_port, self.cfg.ui.socket.server_port),
+            (self.ui.checkBox_ws_server_use_key, self.cfg.ui.socket.use_key),
+            (self.ui.doubleSpinBox_ws_view_broadcast_interval, self.cfg.ui.socket.broadcast.interval),
+            (self.ui.checkBox_ws_broadcast_view, self.cfg.ui.socket.broadcast.view),
+            (self.ui.checkBox_ws_recieve_mutagenesis_broadcast, self.cfg.ui.socket.receive.mutagenesis),
+            (self.ui.checkBox_ws_recieve_view_broadcast, self.cfg.ui.socket.receive.view),
+            (self.ui.comboBox_sidechain_solver, list(self.cfg.ui.config.sidechain_solver.group)),
+            (self.ui.comboBox_sidechain_solver, self.cfg.ui.config.sidechain_solver.default),
+        ]
+
         # Set up Menu
 
         self.ui.actionSet_Working_Directory.triggered.connect(
             self.set_working_directory
         )
 
-        self.ui.actionDebug.triggered.connect(
-            partial(logging.set_verbosity, logging.DEBUG)
-        )
+        # self.ui.actionDebug.triggered.connect(
+        #     partial(logging.set_verbosity, logging.DEBUG)
+        # )
 
-        self.ui.actionWarning.triggered.connect(
-            partial(logging.set_verbosity, logging.WARNING)
-        )
+        # self.ui.actionWarning.triggered.connect(
+        #     partial(logging.set_verbosity, logging.WARNING)
+        # )
 
-        self.ui.actionInfo.triggered.connect(
-            partial(logging.set_verbosity, logging.INFO)
-        )
+        # self.ui.actionInfo.triggered.connect(
+        #     partial(logging.set_verbosity, logging.INFO)
+        # )
         self.ui.actionReconfigure.triggered.connect(self.reload_configurations)
 
         if self.teamwork_enabled:
@@ -2862,7 +2908,7 @@ class REvoDesignPlugin:
 
         mutant = '_'.join(_mutant)
 
-        _, mutant_obj = extract_mutants_from_mutant_id(
+        mutant_obj:Mutant = extract_mutants_from_mutant_id(
             mutant_string=mutant,
             chain_id=self.design_chain_id,
             sequences=self.designable_sequences,
@@ -3109,156 +3155,5 @@ class REvoDesignPlugin:
     def refresh_ui_from_new_configuration(self):
         if not self.cfg:
             raise ValueError('Reconfiguration failed.')
-
-        set_widget_value(self.ui.comboBox_cmap, self.cfg.ui.header_panel.cmap)
-        set_widget_value(
-            self.ui.lineEdit_pssm_gremlin_url,
-            self.cfg.ui.client.pssm_gremlin_url,
-        )
-        set_widget_value(
-            self.ui.lineEdit_pssm_gremlin_user,
-            self.cfg.ui.client.pssm_gremlin_user,
-        )
-        set_widget_value(
-            self.ui.lineEdit_pssm_gremlin_passwd,
-            self.cfg.ui.client.pssm_gremlin_passwd,
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_cofactor_radius,
-            self.cfg.ui.prepare.cofactor_radius,
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_ligand_radius,
-            self.cfg.ui.prepare.ligand_radius,
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_interface_cutoff,
-            self.cfg.ui.prepare.chain_dist,
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_surface_cutoff,
-            self.cfg.ui.prepare.surface_probe_radius,
-        )
-        set_widget_value(
-            self.ui.comboBox_profile_type, self.cfg.ui.profile.default
-        )
-        set_widget_value(
-            self.ui.checkBox_reverse_mutant_effect,
-            self.cfg.ui.mutate.reverse_score,
-        )
-        set_widget_value(
-            self.ui.lineEdit_score_maxima, self.cfg.ui.mutate.max_score
-        )
-        set_widget_value(
-            self.ui.lineEdit_score_minima, self.cfg.ui.mutate.min_score
-        )
-
-        set_widget_value(
-            self.ui.lineEdit_reject_substitution, self.cfg.ui.mutate.reject
-        )
-        set_widget_value(
-            self.ui.lineEdit_preffer_substitution, self.cfg.ui.mutate.accept
-        )
-
-        set_widget_value(
-            self.ui.spinBox_randomized_sampling,
-            self.cfg.ui.mutate.designer.randomized_sampling,
-        )
-        set_widget_value(
-            self.ui.checkBox_randomized_sampling,
-            self.cfg.ui.mutate.designer.enable_randomized_sampling,
-        )
-        set_widget_value(
-            self.ui.checkBox_deduplicate_designs,
-            self.cfg.ui.mutate.designer.deduplicate_designs,
-        )
-        set_widget_value(
-            self.ui.spinBox_designer_batch, self.cfg.ui.mutate.designer.batch
-        )
-        set_widget_value(
-            self.ui.spinBox_designer_num_samples,
-            self.cfg.ui.mutate.designer.num_sample,
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_designer_temperature,
-            self.cfg.ui.mutate.designer.temperature,
-        )
-        set_widget_value(
-            self.ui.comboBox_cluster_matrix, self.cfg.ui.cluster.score_matrix
-        )
-        set_widget_value(
-            self.ui.checkBox_shuffle_clustering, self.cfg.ui.cluster.shuffle
-        )
-        set_widget_value(
-            self.ui.spinBox_num_mut_maximum, self.cfg.ui.cluster.mut_num_max
-        )
-        set_widget_value(
-            self.ui.spinBox_num_mut_minimun, self.cfg.ui.cluster.mut_num_min
-        )
-        set_widget_value(
-            self.ui.spinBox_num_cluster, self.cfg.ui.cluster.num_cluster
-        )
-        set_widget_value(
-            self.ui.spinBox_cluster_batchsize, self.cfg.ui.cluster.batch_size
-        )
-        set_widget_value(
-            self.ui.checkBox_reverse_mutant_effect_3,
-            self.cfg.ui.visualize.reverse_score,
-        )
-        set_widget_value(
-            self.ui.checkBox_global_score_policy,
-            self.cfg.ui.visualize.global_score_policy,
-        )
-        set_widget_value(
-            self.ui.comboBox_profile_type_2, self.cfg.ui.profile.default
-        )
-        set_widget_value(
-            self.ui.checkBox_interact_ignore_wt,
-            self.cfg.ui.interact.interact_ignore_wt,
-        )
-        set_widget_value(
-            self.ui.spinBox_gremlin_topN, self.cfg.ui.interact.topN_pairs
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_max_interact_dist,
-            self.cfg.ui.interact.max_interact_dist,
-        )
-        set_widget_value(
-            self.ui.comboBox_external_scorer,
-            self.cfg.ui.interact.use_external_scorer,
-        )
-
-        set_widget_value(
-            self.ui.lineEdit_ws_server_url_to_connect,
-            self.cfg.ui.socket.server_url,
-        )
-        set_widget_value(
-            self.ui.spinBox_ws_server_port, self.cfg.ui.socket.server_port
-        )
-        set_widget_value(
-            self.ui.checkBox_ws_server_use_key, self.cfg.ui.socket.use_key
-        )
-        set_widget_value(
-            self.ui.doubleSpinBox_ws_view_broadcast_interval,
-            self.cfg.ui.socket.broadcast.interval,
-        )
-        set_widget_value(
-            self.ui.checkBox_ws_broadcast_view,
-            self.cfg.ui.socket.broadcast.view,
-        )
-        set_widget_value(
-            self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
-            self.cfg.ui.socket.receive.mutagenesis,
-        )
-        set_widget_value(
-            self.ui.checkBox_ws_recieve_view_broadcast,
-            self.cfg.ui.socket.receive.view,
-        )
-        set_widget_value(
-            self.ui.comboBox_sidechain_solver,
-            list(self.cfg.ui.config.sidechain_solver.group),
-        )
-        set_widget_value(
-            self.ui.comboBox_sidechain_solver,
-            self.cfg.ui.config.sidechain_solver.default,
-        )
+        for widget, value in self.widget_config_map:
+            set_widget_value(widget, value)

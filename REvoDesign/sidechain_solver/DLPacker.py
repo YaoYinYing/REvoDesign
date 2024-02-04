@@ -1,7 +1,8 @@
 import os
 import tempfile
 from REvoDesign.common.Mutant import Mutant
-
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 class DLPacker_worker:
     """

@@ -1,7 +1,8 @@
-from absl import logging
 import importlib
 import platform
 
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 def get_system_info():
     """
@@ -21,8 +22,8 @@ def get_system_info():
         is_arm_macos = "ARM64" in os_info.version
         is_recognized_as_x86 = os_info.machine == 'x86_64'
 
-        logging.warning(f'Does it ARMed? {is_arm_macos}')
-        logging.warning(f'Does it Rosetta-ed? {is_recognized_as_x86}')
+        logging.debug(f'Does it ARMed? {is_arm_macos}')
+        logging.debug(f'Does it Rosetta-ed? {is_recognized_as_x86}')
 
         if is_arm_macos and is_recognized_as_x86:
             logging.warning(

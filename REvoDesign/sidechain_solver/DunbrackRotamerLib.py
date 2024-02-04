@@ -5,6 +5,8 @@ from pymol import cmd
 from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
 
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 class PyMOL_mutate:
     """

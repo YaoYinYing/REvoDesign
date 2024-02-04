@@ -32,6 +32,12 @@ class Mutant:
         Return a string representation of the Mutant object.
         """
         return f"Mutant Info: {self.mutant_info}, Mutant Score: {self.mutant_score}"
+    
+    def __empty__(self) -> bool:
+        """
+        Return a bool of empty check of the Mutant object.
+        """
+        return bool(self.mutant_info)
 
     def get_mutant_info(self):
         """

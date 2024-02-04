@@ -1,6 +1,7 @@
 from pymol import cmd
 import os
-from absl import logging
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 
 class PocketSearcher:

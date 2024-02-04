@@ -11,7 +11,8 @@ from Bio import SeqIO
 from Bio.Align import PairwiseAligner
 from Bio.Align import substitution_matrices
 from joblib import parallel_backend
-from absl import logging
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 
 import matplotlib

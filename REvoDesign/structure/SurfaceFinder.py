@@ -1,7 +1,8 @@
 from __future__ import print_function
 from pymol import cmd
 import os
-from absl import logging
+from REvoDesign.tools.logger import logging as logger
+logging=logger.getChild(__name__)
 
 '''
 This is a slightly modified version of the code on: 
