@@ -6,6 +6,7 @@ from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
 
+
 # using partial module to reduce duplicate code.
 from functools import partial
 
@@ -161,6 +162,13 @@ class REvoDesignPlugin:
         self.ui.actionReconfigure.triggered.connect(self.reload_configurations)
         self.ui.actionSave_Configurations.triggered.connect(
             self.save_configuration_from_ui
+        )
+
+        self.ui.actionSource_Code.triggered.connect(
+            partial(
+                QtGui.QDesktopServices.openUrl,
+                QtCore.QUrl("https://github.com/YaoYinYing/REvoDesign"),
+            )
         )
 
         if self.teamwork_enabled:
