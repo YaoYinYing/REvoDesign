@@ -7,7 +7,7 @@ import time
 from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window
 from REvoDesign.tools.system_tools import is_package_installed\
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.logger import python_logging as logger
 logging=logger.getChild(__name__)
 
 

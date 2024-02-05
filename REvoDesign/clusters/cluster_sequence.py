@@ -11,7 +11,7 @@ from Bio import SeqIO
 from Bio.Align import PairwiseAligner
 from Bio.Align import substitution_matrices
 from joblib import parallel_backend
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.logger import python_logging as logger
 logging=logger.getChild(__name__)
 
 

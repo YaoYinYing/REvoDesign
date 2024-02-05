@@ -1,7 +1,7 @@
 import os
 from pymol import cmd
 import argparse
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.logger import python_logging as logger
 logging=logger.getChild(__name__)
 
 class PyMOLSessionMerger:

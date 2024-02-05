@@ -1,14 +1,15 @@
+import atexit
 import datetime as dt
 import json
-import logging.config as python_logging_config
+import logging.handlers as python_logging_handlers
 import logging as python_logging
 import os
+import queue
 import traceback
 from typing_extensions import override
 from omegaconf import DictConfig
 from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.post_installed import ConfigConverter
-from queue import Queue
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",
@@ -37,7 +38,7 @@ LOG_RECORD_BUILTIN_ATTRS = {
 }
 
 
-class MyJSONFormatter(python_logging.Formatter):
+class REvoDesignLogFormatter(python_logging.Formatter):
     def __init__(
         self,
         *,
@@ -84,18 +85,105 @@ class NonErrorFilter(python_logging.Filter):
     def filter(self, record: python_logging.LogRecord) -> bool | python_logging.LogRecord:
         return record.levelno <= python_logging.INFO
     
-LOGGER_QUEUE=Queue()
-
-def setup_logging():
-    c=ConfigConverter()
-    try:
-        cfg:DictConfig=reload_config_file()
-        log_cfg=c.convert(cfg.log)
-        logging_dir=os.path.dirname(os.path.abspath(cfg.log.handlers.file.filename))
-        os.makedirs(logging_dir,exist_ok=True)
-        python_logging_config.dictConfig(log_cfg)
-    except Exception:
-        traceback.print_exc()
+# LOGGER_QUEUE=Queue()
+# LOGGER_QUEUE_HANDLER=python_logging_handlers.QueueHandler(LOGGER_QUEUE)
+# python_logging = python_logging.getLogger('REvoDesign')
+# python_logging.addHandler(LOGGER_QUEUE_HANDLER)
+# LOGGER_QUEUE_HANDLER.addHandler()
 
 
-logging = python_logging.getLogger('REvoDesign')
+logger_level={
+    'CRITICAL':python_logging.CRITICAL,
+    'ERROR':python_logging.ERROR,
+    'WARNING':python_logging.WARNING,
+    'INFO':python_logging.INFO,
+    'DEBUG':python_logging.DEBUG,
+    'NOTSET':python_logging.NOTSET,
+    }
+
+def setup_logger_level(level:str):
+    _level=logger_level.get(level)
+    return _level if _level else python_logging.NOTSET
+
+
+def setup_logging_from_dictconfig(log_config: DictConfig) ->python_logging.Logger:
+    # Directly access configuration values using native expressions
+    file_filename = log_config.handlers.file.filename
+    file_maxBytes = log_config.handlers.file.maxBytes
+    file_backupCount = log_config.handlers.file.backupCount
+    notebook_filename = log_config.handlers.notebook.filename
+    notebook_maxBytes = log_config.handlers.notebook.maxBytes
+    notebook_backupCount = log_config.handlers.notebook.backupCount
+
+    # Create a queue for the QueueHandler
+    log_queue = queue.Queue(-1)  # No limit on queue size
+
+    # Initialize handlers
+    stdout_handler = python_logging.StreamHandler()
+    stdout_handler.setLevel(setup_logger_level(log_config.handlers.stdout.level))
+    stdout_handler.setFormatter(python_logging.Formatter(log_config.formatters.simple.format))
+
+    stderr_handler = python_logging.StreamHandler()
+    stderr_handler.setLevel(setup_logger_level(log_config.handlers.stderr.level))
+    stderr_handler.setFormatter(python_logging.Formatter(log_config.formatters.simple.format))
+
+    file_handler = python_logging_handlers.RotatingFileHandler(
+        filename=file_filename,
+        maxBytes=file_maxBytes,
+        backupCount=file_backupCount
+    )
+    file_handler.setLevel(setup_logger_level(log_config.handlers.file.level))
+    # Custom formatter needs to be implemented accordingly
+    print(dict(log_config.formatters.json.fmt_keys))
+    file_handler.setFormatter(REvoDesignLogFormatter(fmt_keys=dict(log_config.formatters.json.fmt_keys)))
+
+    notebook_handler = python_logging_handlers.RotatingFileHandler(
+        filename=notebook_filename,
+        maxBytes=notebook_maxBytes,
+        backupCount=notebook_backupCount
+    )
+    notebook_handler.setLevel(setup_logger_level(log_config.handlers.notebook.level))
+    # Custom formatter needs to be implemented accordingly
+    notebook_handler.setFormatter(REvoDesignLogFormatter(fmt_keys=dict(log_config.formatters.json.fmt_keys)))
+
+    # Set up the QueueHandler
+    queue_handler = python_logging_handlers.QueueHandler(log_queue)
+    queue_handler.setLevel(setup_logger_level(log_config.loggers.root.level))  # Capture all logs
+
+    # Initialize the QueueListener with the handlers
+    listener = python_logging_handlers.QueueListener(log_queue, stdout_handler, stderr_handler, file_handler, notebook_handler, respect_handler_level=True)
+    print(listener.handlers)
+
+    # Configure the root logger
+    python_logging.basicConfig(level=setup_logger_level(log_config.loggers.root.level), handlers=[queue_handler])  # Adjust as needed
+    # Start the listener
+    listener.start()
+
+    # Ensure the listener is stopped gracefully on program exit
+    atexit.register(listener.stop)
+
+    return python_logging.getLogger('REvoDesign')
+
+
+def setup_logging() -> python_logging.Logger:
+    # c=ConfigConverter()
+    # try:
+    #     cfg:DictConfig=reload_config_file()
+    #     log_cfg=c.convert(cfg.log)
+    #     logging_dir=os.path.dirname(os.path.abspath(cfg.log.handlers.file.filename))
+    #     os.makedirs(logging_dir,exist_ok=True)
+    #     python_logging_config.dictConfig(log_cfg)
+    #     print(logging.handlers)
+    #     queue_listener = python_logging_handlers.QueueListener(LOGGER_QUEUE, *logging.handlers,respect_handler_level=True)
+    #     if queue_listener is not None:
+    #         queue_listener.start()
+    #         atexit.register(queue_listener.stop)
+    # except Exception:
+    #     traceback.print_exc()
+    cfg:DictConfig=reload_config_file()
+    logging_dir=os.path.dirname(os.path.abspath(cfg.log.handlers.file.filename))
+    os.makedirs(logging_dir,exist_ok=True)
+    logger=setup_logging_from_dictconfig(log_config=cfg.log)
+    return logger
+
+logging: python_logging.Logger =setup_logging()

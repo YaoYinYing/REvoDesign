@@ -1,7 +1,7 @@
 import os
 from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.logger import python_logging as logger
 logging=logger.getChild(__name__)
 
 from REvoDesign.tools.system_tools import OS_INFO, OS_TYPE

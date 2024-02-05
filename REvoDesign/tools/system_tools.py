@@ -1,7 +1,7 @@
 import importlib
 import platform
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.logger import python_logging as logger
 logging=logger.getChild(__name__)
 
 def get_system_info():

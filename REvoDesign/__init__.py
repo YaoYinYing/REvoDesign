@@ -7,8 +7,7 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 # using partial module to reduce duplicate code.
 from functools import partial
 
-from REvoDesign.tools.logger import setup_logging,logging
-setup_logging()
+from REvoDesign.tools.logger import logging
 
 import traceback
 from REvoDesign.common.Mutant import Mutant

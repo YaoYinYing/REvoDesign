@@ -1,6 +1,6 @@
 import random
 import os
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.logger import python_logging as logger
 logging=logger.getChild(__name__)
 
 import itertools

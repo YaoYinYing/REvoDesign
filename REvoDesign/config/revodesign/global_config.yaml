@@ -118,10 +118,10 @@ log:
         thread_name: threadName
   handlers:
     stdout:
-        class: logging.StreamHandler
-        level: INFO
-        formatter: simple
-        stream: ext://sys.stdout
+      class: logging.StreamHandler
+      level: INFO
+      formatter: simple
+      stream: ext://sys.stdout
     stderr:
       class: logging.StreamHandler
       level: WARNING
@@ -141,14 +141,11 @@ log:
       filename: logs/revodesign.notebook.jsonl
       maxBytes: 1000_000
       backupCount: 30
+
   loggers:
     root:
-      level: NOTSET
-      handlers:
-        - stdout
-        - stderr
-        - file
-        - notebook
+      level: DEBUG
+
 
 cache_dir:
   # ~/.REvoDesign/

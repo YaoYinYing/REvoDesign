@@ -8,7 +8,7 @@ from pymol import cmd
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.logger import python_logging as logger
 logging=logger.getChild(__name__)
 
 # Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
