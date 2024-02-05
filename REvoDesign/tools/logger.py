@@ -5,6 +5,7 @@ import logging.handlers as python_logging_handlers
 import logging as python_logging
 import os
 import queue
+from typing import Union
 from typing_extensions import override
 from omegaconf import DictConfig
 from REvoDesign.tools.post_installed import reload_config_file
@@ -40,7 +41,7 @@ class REvoDesignLogFormatter(python_logging.Formatter):
     def __init__(
         self,
         *,
-        fmt_keys: dict[str, str] | None = None,
+        fmt_keys: Union[dict[str, str], None] = None,
     ):
         super().__init__()
         self.fmt_keys = fmt_keys if fmt_keys is not None else {}
@@ -82,7 +83,7 @@ class NonErrorFilter(python_logging.Filter):
     @override
     def filter(
         self, record: python_logging.LogRecord
-    ) -> bool | python_logging.LogRecord:
+    ) -> Union[bool, python_logging.LogRecord]:
         return record.levelno <= python_logging.INFO
 
 
