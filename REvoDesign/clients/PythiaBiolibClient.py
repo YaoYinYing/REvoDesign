@@ -1,8 +1,9 @@
 import os
 import biolib
 import traceback
-from REvoDesign.tools.logger import python_logging as logger
-logging=logger.getChild(__name__)
+from REvoDesign.tools.logger import logging as logger
+
+logging = logger.getChild(__name__)
 
 
 class PythiaBiolib:

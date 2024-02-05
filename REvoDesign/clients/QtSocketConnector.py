@@ -8,8 +8,9 @@ import traceback
 from typing import Union
 from pymol.Qt import QtWidgets
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
-from REvoDesign.tools.logger import python_logging as logger
-logging=logger.getChild(__name__)
+from REvoDesign.tools.logger import logging as logger
+
+logging = logger.getChild(__name__)
 
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd

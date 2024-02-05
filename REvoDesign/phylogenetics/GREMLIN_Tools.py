@@ -10,8 +10,9 @@ from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 import pickle
 import os, pathlib
-from REvoDesign.tools.logger import python_logging as logger
-logging=logger.getChild(__name__)
+from REvoDesign.tools.logger import logging as logger
+
+logging = logger.getChild(__name__)
 
 
 class GREMLIN_Tools:

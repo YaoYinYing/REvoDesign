@@ -1,8 +1,9 @@
 import os
 from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
-from REvoDesign.tools.logger import python_logging as logger
-logging=logger.getChild(__name__)
+from REvoDesign.tools.logger import logging as logger
+
+logging = logger.getChild(__name__)
 
 from REvoDesign.tools.system_tools import OS_INFO, OS_TYPE
 
@@ -239,7 +240,7 @@ def getOpenFileNameWithExt(*args, **kwargs):
 def set_widget_value(widget, value):
     """
     Sets the value of a PyQt5 widget based on the provided value.
-    
+
     Args:
     - widget: The PyQt5 widget whose value needs to be set.
     - value: The value to be set on the widget.
@@ -263,10 +264,16 @@ def set_widget_value(widget, value):
 
     # Preprocess values according to types
     if callable(value):
-        value = value()  # Call the function to get the value if value is callable
+        value = (
+            value()
+        )  # Call the function to get the value if value is callable
 
-    if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple,dict)):
-        value = list(value)  # Convert iterable (excluding strings, lists, tuples, dicts) to list
+    if isinstance(value, Iterable) and not isinstance(
+        value, (str, list, tuple, dict)
+    ):
+        value = list(
+            value
+        )  # Convert iterable (excluding strings, lists, tuples, dicts) to list
 
     # Setting values
     if isinstance(widget, QtWidgets.QDoubleSpinBox):
@@ -305,7 +312,9 @@ def set_widget_value(widget, value):
             while widget.count() > 0:
                 widget.removeWidget(widget.widget(0))
             for image_path in value:
-                image_widget = ImageWidget(image_path)  # Assuming ImageWidget is defined elsewhere
+                image_widget = ImageWidget(
+                    image_path
+                )  # Assuming ImageWidget is defined elsewhere
                 widget.addWidget(image_widget)
             if value:
                 widget.setCurrentIndex(0)
@@ -316,10 +325,13 @@ def set_widget_value(widget, value):
                 widget = widget.itemAt(i).widget()
                 if widget is not None:
                     widget.deleteLater()
-            image_widget = ImageWidget(value)  # Assuming ImageWidget is defined elsewhere
+            image_widget = ImageWidget(
+                value
+            )  # Assuming ImageWidget is defined elsewhere
             widget.addWidget(image_widget)
     else:
         set_value_error(widget, value)
+
 
 def get_widget_value(widget):
     """
@@ -343,7 +355,9 @@ def get_widget_value(widget):
     Raises:
     - ValueError: If the widget type is not supported for value retrieval.
     """
-    if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(widget, QtWidgets.QSpinBox):
+    if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(
+        widget, QtWidgets.QSpinBox
+    ):
         return widget.value()
     elif isinstance(widget, QtWidgets.QComboBox):
         current_index = widget.currentIndex()
@@ -359,11 +373,15 @@ def get_widget_value(widget):
         return widget.value()
     elif isinstance(widget, QtWidgets.QLCDNumber):
         # Assuming the display value is always numeric
-        return widget.value()  # This method might need to be adjusted based on how values are displayed
+        return (
+            widget.value()
+        )  # This method might need to be adjusted based on how values are displayed
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
     else:
-        raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
+        raise ValueError(
+            f"Widget type {type(widget).__name__} is not supported for value retrieval."
+        )
 
 
 class ParallelExecutor(QtCore.QThread):

@@ -7,8 +7,9 @@ from Bio import SeqIO
 from pymol import cmd
 import matplotlib
 
-from REvoDesign.tools.logger import python_logging as logger
-logging=logger.getChild(__name__)
+from REvoDesign.tools.logger import logging as logger
+
+logging = logger.getChild(__name__)
 
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb

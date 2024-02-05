@@ -4552,18 +4552,9 @@
     <property name="title">
      <string>REvoDesign</string>
     </property>
-    <widget class="QMenu" name="menuLogging_Level">
-     <property name="title">
-      <string>Logging Level</string>
-     </property>
-     <addaction name="actionDebug"/>
-     <addaction name="actionWarning"/>
-     <addaction name="actionInfo"/>
-    </widget>
     <addaction name="actionCheck_PyMOL_session"/>
     <addaction name="actionSet_Working_Directory"/>
     <addaction name="separator"/>
-    <addaction name="menuLogging_Level"/>
     <addaction name="actionReconfigure"/>
     <addaction name="actionSave_Configurations"/>
     <addaction name="actionLoad_Demo"/>

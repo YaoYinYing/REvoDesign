@@ -103,10 +103,9 @@ log:
   disable_existing_loggers: true
   formatters:
     simple:
-      format: '%(levelname)s: %(message)s'
+      format: '%(message)s'
       datefmt: '%Y-%m-%dT%H:%M:%S%z'
     json:
-      (): REvoDesign.tools.logger.MyJSONFormatter
       fmt_keys:
         level: levelname
         message: message
@@ -124,7 +123,7 @@ log:
       stream: ext://sys.stdout
     stderr:
       class: logging.StreamHandler
-      level: WARNING
+      level: ERROR
       formatter: simple
       stream: ext://sys.stderr
     file:

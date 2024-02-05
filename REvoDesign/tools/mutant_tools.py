@@ -8,8 +8,9 @@ from pymol import cmd
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
 
-from REvoDesign.tools.logger import python_logging as logger
-logging=logger.getChild(__name__)
+from REvoDesign.tools.logger import logging as logger
+
+logging = logger.getChild(__name__)
 
 # Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
 # It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.
@@ -98,7 +99,7 @@ def extract_mutants_from_mutant_id(
 
     if not mutant_info:
         # early return if the input string failes to be parsed
-        return Mutant(mutant_info,0)
+        return Mutant(mutant_info, 0)
 
     # if the mutation has a position of score, we need to extract it.
     mutant_score = extract_mutant_score_from_string(
