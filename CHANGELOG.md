@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `logging`: 
+  - `stdout` up to `INFO`
+  - `stderr` up to `ERROR`
+  - `file` up to `DEBUG`, `JSON`
+  - `notebook` up to `INFO`, `JSON`
+- `widget_config_map` to store the relationships of widgets and configs
+- `Mutant.__empty__` for empty checking
+- `customized_widgets.get_widget_value` for future uses.
+- `post_installed.ConfigConverter` for recursively conversion from `omegaconf.DictConfig` to `dict`
+- 
+
+### Changed
+- refactored `customized_widgets.set_widget_value` by calling `isinstance` methods instead of `type()` checks.
+- `post_installed.reload_config_file`: accept config name as argument, for future uses.
+- logging level changes of installation check: for `info` to `debug`: `f'REvoDesign is installed in {os.path.dirname(__file__)}'`
+- logging level changes of system check: for `warning` to `debug`: `Does it ARMed?`, `Does it Rosetta-ed?`
+
+### Removed
+- `str` returns of `extract_mutants_from_mutant_id`
+- `absl-py` dependency from non-unit-test installation
+
+### Fix
+- `tools/release_tag.sh` on MacOS: using gnu-sed instead of build-in version shipped with MacOS.
+- UI: logging level actions: `actionDebug`, `actionWarning`, `actionInfo`.
 
 ## [1.3.3] - 2024-02-04
 ### Added
