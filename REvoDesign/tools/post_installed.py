@@ -1,6 +1,6 @@
 import os
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from typing import Any
 
 
@@ -23,7 +23,7 @@ def set_REvoDesign_config_file():
         shutil.copyfile(template_config_file, config_file)
         print(f'Config file is created at {config_file}')
     else:
-        print(f'Config file is located at {config_file}')
+        print(f'Config file is already located at {config_file}, do nothing.')
 
     return config_file
 
@@ -39,6 +39,15 @@ def reload_config_file(config_name: str = 'global_config') -> DictConfig:
         config_name=config_name,
         return_hydra_config=True,
     )
+
+
+def save_configuration(
+    new_cfg: DictConfig, config_name: str = 'global_config'
+):
+    cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
+    cfg_save_fp = os.path.join(cfg_save_dir, f'{config_name}.yaml')
+    OmegaConf.save(new_cfg, cfg_save_fp)
+    return
 
 
 # def save_to_config_file(cfg:DictConfig, drop_groups: bool = True) -> None:

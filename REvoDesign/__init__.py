@@ -1,6 +1,8 @@
 import asyncio
-import sys, os
+import os
 import time
+import traceback
+from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
 
@@ -8,14 +10,15 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 from functools import partial
 
 from REvoDesign.tools.logger import logging
-import traceback
+from REvoDesign.application.ui_driver import Widget2ConfigMapper
+
+from REvoDesign.tools.post_installed import (
+    reload_config_file,
+    REVODESIGN_CONFIG_FILE,
+    save_configuration,
+)
+
 from REvoDesign.common.Mutant import Mutant
-
-logging.debug(f'REvoDesign is installed in {os.path.dirname(__file__)}')
-
-from REvoDesign.tools.post_installed import reload_config_file
-
-
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.file_extensions import (
     SessionFileExt,
@@ -130,6 +133,9 @@ class REvoDesignPlugin:
 
     # main function that makes the plugin window
     def make_window(self):
+        logging.debug(
+            f'REvoDesign is installed in {os.path.dirname(__file__)}'
+        )
         main_window = QtWidgets.QMainWindow()
 
         from pymol.Qt.utils import loadUi
@@ -143,130 +149,8 @@ class REvoDesignPlugin:
         set_window_font(main_window)
 
         # mapping ui widgets <--> cfg.elements
-        self.widget_config_map = [
-            (self.ui.comboBox_cmap, self.cfg.ui.header_panel.cmap),
-            (
-                self.ui.lineEdit_pssm_gremlin_url,
-                self.cfg.ui.client.pssm_gremlin_url,
-            ),
-            (
-                self.ui.lineEdit_pssm_gremlin_user,
-                self.cfg.ui.client.pssm_gremlin_user,
-            ),
-            (
-                self.ui.lineEdit_pssm_gremlin_passwd,
-                self.cfg.ui.client.pssm_gremlin_passwd,
-            ),
-            (
-                self.ui.doubleSpinBox_cofactor_radius,
-                self.cfg.ui.prepare.cofactor_radius,
-            ),
-            (
-                self.ui.doubleSpinBox_ligand_radius,
-                self.cfg.ui.prepare.ligand_radius,
-            ),
-            (
-                self.ui.doubleSpinBox_interface_cutoff,
-                self.cfg.ui.prepare.chain_dist,
-            ),
-            (
-                self.ui.doubleSpinBox_surface_cutoff,
-                self.cfg.ui.prepare.surface_probe_radius,
-            ),
-            (self.ui.comboBox_profile_type, self.cfg.ui.profile.default),
-            (
-                self.ui.checkBox_reverse_mutant_effect,
-                self.cfg.ui.mutate.reverse_score,
-            ),
-            (self.ui.lineEdit_score_maxima, self.cfg.ui.mutate.max_score),
-            (self.ui.lineEdit_score_minima, self.cfg.ui.mutate.min_score),
-            (self.ui.lineEdit_reject_substitution, self.cfg.ui.mutate.reject),
-            (self.ui.lineEdit_preffer_substitution, self.cfg.ui.mutate.accept),
-            (
-                self.ui.spinBox_randomized_sampling,
-                self.cfg.ui.mutate.designer.randomized_sampling,
-            ),
-            (
-                self.ui.checkBox_randomized_sampling,
-                self.cfg.ui.mutate.designer.enable_randomized_sampling,
-            ),
-            (
-                self.ui.checkBox_deduplicate_designs,
-                self.cfg.ui.mutate.designer.deduplicate_designs,
-            ),
-            (
-                self.ui.spinBox_designer_batch,
-                self.cfg.ui.mutate.designer.batch,
-            ),
-            (
-                self.ui.spinBox_designer_num_samples,
-                self.cfg.ui.mutate.designer.num_sample,
-            ),
-            (
-                self.ui.doubleSpinBox_designer_temperature,
-                self.cfg.ui.mutate.designer.temperature,
-            ),
-            (
-                self.ui.comboBox_cluster_matrix,
-                self.cfg.ui.cluster.score_matrix,
-            ),
-            (self.ui.checkBox_shuffle_clustering, self.cfg.ui.cluster.shuffle),
-            (self.ui.spinBox_num_mut_maximum, self.cfg.ui.cluster.mut_num_max),
-            (self.ui.spinBox_num_mut_minimun, self.cfg.ui.cluster.mut_num_min),
-            (self.ui.spinBox_num_cluster, self.cfg.ui.cluster.num_cluster),
-            (
-                self.ui.spinBox_cluster_batchsize,
-                self.cfg.ui.cluster.batch_size,
-            ),
-            (
-                self.ui.checkBox_reverse_mutant_effect_3,
-                self.cfg.ui.visualize.reverse_score,
-            ),
-            (
-                self.ui.checkBox_global_score_policy,
-                self.cfg.ui.visualize.global_score_policy,
-            ),
-            (self.ui.comboBox_profile_type_2, self.cfg.ui.profile.default),
-            (
-                self.ui.checkBox_interact_ignore_wt,
-                self.cfg.ui.interact.interact_ignore_wt,
-            ),
-            (self.ui.spinBox_gremlin_topN, self.cfg.ui.interact.topN_pairs),
-            (
-                self.ui.doubleSpinBox_max_interact_dist,
-                self.cfg.ui.interact.max_interact_dist,
-            ),
-            (
-                self.ui.comboBox_external_scorer,
-                self.cfg.ui.interact.use_external_scorer,
-            ),
-            (
-                self.ui.lineEdit_ws_server_url_to_connect,
-                self.cfg.ui.socket.server_url,
-            ),
-            (self.ui.spinBox_ws_server_port, self.cfg.ui.socket.server_port),
-            (self.ui.checkBox_ws_server_use_key, self.cfg.ui.socket.use_key),
-            (
-                self.ui.doubleSpinBox_ws_view_broadcast_interval,
-                self.cfg.ui.socket.broadcast.interval,
-            ),
-            (
-                self.ui.checkBox_ws_broadcast_view,
-                self.cfg.ui.socket.broadcast.view,
-            ),
-            (
-                self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
-                self.cfg.ui.socket.receive.mutagenesis,
-            ),
-            (
-                self.ui.checkBox_ws_recieve_view_broadcast,
-                self.cfg.ui.socket.receive.view,
-            ),
-            (
-                self.ui.comboBox_sidechain_solver,
-                self.cfg.ui.config.sidechain_solver.default,
-            ),
-        ]
+        self.widget_config_mapper = Widget2ConfigMapper(ui=self.ui)
+        self.widget_config_map = self.widget_config_mapper.widget2config_dict
 
         # Set up Menu
 
@@ -275,6 +159,9 @@ class REvoDesignPlugin:
         )
 
         self.ui.actionReconfigure.triggered.connect(self.reload_configurations)
+        self.ui.actionSave_Configurations.triggered.connect(
+            self.save_configuration_from_ui
+        )
 
         if self.teamwork_enabled:
             from REvoDesign.clients.QtSocketConnector import (
@@ -3227,5 +3114,19 @@ class REvoDesignPlugin:
     def refresh_ui_from_new_configuration(self):
         if not self.cfg:
             raise ValueError('Reconfiguration failed.')
-        for widget, value in self.widget_config_map:
-            set_widget_value(widget, value)
+        for widget, config_item in self.widget_config_map.items():
+            set_widget_value(widget, OmegaConf.select(self.cfg, config_item))
+
+    def save_configuration_from_ui(self):
+        from REvoDesign.tools.customized_widgets import get_widget_value
+
+        # print(self.widget_config_mapper.widget2config_dict)
+        for (
+            widget,
+            config_item,
+        ) in self.widget_config_mapper.widget2config_dict.items():
+            value = get_widget_value(widget=widget)
+            logging.debug(f'Save {config_item}: {value}')
+            OmegaConf.update(self.cfg, config_item, value)
+
+        save_configuration(new_cfg=self.cfg)
