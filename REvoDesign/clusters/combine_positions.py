@@ -177,7 +177,7 @@ class Combinations:
                 mut_id = ''.join(
                     [
                         f'{_mut["wt_res"]}{_mut["position"]}{_mut["mut_res"]}'
-                        for _mut in mut_obj.get_mutant_info()
+                        for _mut in mut_obj.mutant_info
                     ]
                 )
 
@@ -190,14 +190,14 @@ class Combinations:
             mut_obj_i = extract_mutants(
                 i.strip(), sequences={self.chain_id: self.fastasequence}
             )
-            position = mut_obj_i.get_mutant_info()[0]['position']
+            position = mut_obj_i.mutant_info[0]['position']
             for j in list_w_mutations:
                 if i != j:
                     mut_obj_j = extract_mutants(
                         j.strip(),
                         sequences={self.chain_id: self.fastasequence},
                     )
-                    position2 = mut_obj_j.get_mutant_info()[0]['position']
+                    position2 = mut_obj_j.mutant_info[0]['position']
                     if position == position2:
                         print(f"skip {i} - {j} : {position} == {position2}")
                         return False

@@ -54,7 +54,7 @@ class PyMOL_mutate:
         if not in_place:
             cmd.delete(self.molecule)
 
-        for mut_info in mutant_obj.get_mutant_info():
+        for mut_info in mutant_obj.mutant_info:
             chain_id = mut_info['chain_id']
             position = mut_info['position']
             new_residue = mut_info['mut_res']

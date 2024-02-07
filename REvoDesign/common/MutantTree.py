@@ -289,7 +289,7 @@ class MutantTree:
     # internal function that returns instead of changes the current stored values
     def _jump_to_the_best_mutant_in_branch(self, branch_id, reversed=False):
         mutants_scores = {
-            mutant_id: mutant_obj.get_mutant_score()
+            mutant_id: mutant_obj.mutant_score
             for mutant_id, mutant_obj in self.mutant_tree[branch_id].items()
         }
         sorted_mutants_scores = sorted(

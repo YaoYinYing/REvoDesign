@@ -1354,7 +1354,7 @@ class REvoDesignPlugin:
                 pymol_object=self.mutant_tree_pssm.current_mutant_id,
                 sequences=self.designable_sequences,
             )
-            resi = mut_obj.get_mutant_info()[0]['position']
+            resi = mut_obj.mutant_info[0]['position']
 
         if self.mutant_tree_pssm.current_mutant_id:
             cmd.enable(self.mutant_tree_pssm.current_mutant_id)
@@ -2891,7 +2891,7 @@ class REvoDesignPlugin:
                 )
             )
         )
-        mutant_obj.set_mutant_score(mut_score)
+        mutant_obj.mutant_score = mut_score
 
         set_widget_value(lineEdit_current_pair_wt_score, f'{wt_score:.3f}')
         set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.3f}')

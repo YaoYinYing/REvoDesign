@@ -25,6 +25,11 @@ build:
 install:
 	python -m pip install ".[full,unittest]" -U
 
+reinstall:
+	make clean
+	python -m pip install . -U
+	pytest tests/UnitTests.py
+
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	python -m pip install pytest-cov -q
