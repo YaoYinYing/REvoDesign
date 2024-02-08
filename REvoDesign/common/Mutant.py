@@ -69,7 +69,7 @@ class Mutant:
         return self._wt_score
 
     @wt_score.setter
-    def wt_score(self, value: float):
+    def wt_score(self, value: Union[float, str, int]):
         """
         Set the wild-type score to a new value.
         """

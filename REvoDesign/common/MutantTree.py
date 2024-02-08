@@ -1,5 +1,5 @@
 from REvoDesign.common.Mutant import Mutant
-
+from typing import List, Dict, Union, Optional
 
 class MutantTree:
     def __init__(self, mutant_tree: dict[dict]):
@@ -16,7 +16,7 @@ class MutantTree:
         self.current_mutant_id = ''
 
         self.all_mutant_branch_ids = []
-        self.all_mutants = []
+        self.all_mutants: List[tuple[str, Mutant]] = []
         self.all_mutant_ids = []
         self.empty = True
 
