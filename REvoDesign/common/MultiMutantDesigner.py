@@ -110,19 +110,17 @@ class MultiMutantDesigner:
                 util.cnc(f'{item}', _self=cmd)
         else:
             for mut_obj in self.all_design_multi_design_mutant_object:
-                if not mut_obj.get_mutant_score():
-                    mut_obj.set_mutant_score(
-                        new_score=self.external_scorer.scorer(
-                            sequence=mut_obj.get_mutant_sequence_single_chain(
-                                chain_id=self.chain_id
-                            )
+                if not mut_obj.mutant_score:
+                    mut_obj.mutant_score = self.external_scorer.scorer(
+                        sequence=mut_obj.get_mutant_sequence_single_chain(
+                            chain_id=self.chain_id
                         )
                     )
 
             all_scores = [
-                mut_obj.get_mutant_score()
+                mut_obj.mutant_score
                 for mut_obj in self.all_design_multi_design_mutant_object
-                if mut_obj.get_mutant_score()
+                if mut_obj.mutant_score
             ]
 
             for (i_obj, obj), (j_des, des) in zip(
@@ -134,7 +132,7 @@ class MultiMutantDesigner:
                         cmap=self.cmap,
                         reverse=self.external_scorer_reversed_score,
                     ),
-                    data=des.get_mutant_score(),
+                    data=des.mutant_score,
                     min_value=min(all_scores),
                     max_value=max(all_scores),
                 )
@@ -175,9 +173,9 @@ class MultiMutantDesigner:
                 _mut_info
                 for _mut_obj in design
                 for _mut_info in _mut_obj.mutant_info
-            ],
-            mutant_score=None,
+            ]
         )
+        tmp_mutant_obj.mutant_score = None
 
         tmp_mutant_obj.wt_sequence = {self.chain_id: self.sequence}
 
@@ -187,13 +185,12 @@ class MultiMutantDesigner:
             )
             return tmp_mutant_obj
 
-        tmp_mutant_obj.set_mutant_score(
-            self.external_scorer.scorer(
-                sequence=tmp_mutant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.chain_id
-                )
+        tmp_mutant_obj.mutant_score = self.external_scorer.scorer(
+            sequence=tmp_mutant_obj.get_mutant_sequence_single_chain(
+                chain_id=self.chain_id
             )
         )
+
         return tmp_mutant_obj
 
     def initialize_scorer(self):
@@ -328,7 +325,7 @@ class MultiMutantDesigner:
 
         (branch, mutant_id, mutant_obj) = self.in_design_multi_design_case[-1]
 
-        resi_last_mutant = mutant_obj.get_mutant_info()[0]['position']
+        resi_last_mutant = mutant_obj.mutant_info[0]['position']
         cmd.set(
             'sphere_scale',
             0.4,
@@ -347,7 +344,7 @@ class MultiMutantDesigner:
                 ]
                 resi_second_mutant_to_the_last = second_mutant_to_the_last[
                     2
-                ].get_mutant_info()[-1]['position']
+                ].mutant_info[-1]['position']
 
                 cmd.bond(
                     atom1=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_second_mutant_to_the_last} and n. CA',
@@ -355,7 +352,7 @@ class MultiMutantDesigner:
                 )
 
             # bond internal CAs in a multi-design mutant.
-            current_mutant_info = mutant_obj.get_mutant_info()
+            current_mutant_info = mutant_obj.mutant_info
             if len(current_mutant_info) > 1:
                 positions_pairwise = [
                     x
@@ -417,7 +414,7 @@ class MultiMutantDesigner:
         self.mutant_tree_multi_design_copy = (
             self.mutant_tree_multi_design.__deepcopy__()
         )
-        resi_undo_mutant = undo_mutant_obj.get_mutant_info()[0]['position']
+        resi_undo_mutant = undo_mutant_obj.mutant_info[0]['position']
 
         cmd.hide(
             'sphere',
@@ -428,9 +425,7 @@ class MultiMutantDesigner:
             # unbond to the last previous design
             if len(self.in_design_multi_design_case) >= 1:
                 last_mutant = self.in_design_multi_design_case[-1]
-                resi_last_mutant = last_mutant[2].get_mutant_info()[-1][
-                    'position'
-                ]
+                resi_last_mutant = last_mutant[2].mutant_info[-1]['position']
 
                 cmd.unbond(
                     atom1=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
@@ -438,7 +433,7 @@ class MultiMutantDesigner:
                 )
 
             # bond internal CA in a multi-design mutant.
-            current_mutant_info = undo_mutant_obj.get_mutant_info()
+            current_mutant_info = undo_mutant_obj.mutant_info
             if len(current_mutant_info) > 1:
                 positions_pairwise = [
                     x
@@ -523,7 +518,7 @@ class MultiMutantDesigner:
                 mutant_decision_list.extend(
                     [
                         f'{_mut["chain_id"]}{_mut["wt_res"]}{_mut["position"]}{_mut["mut_res"]}'
-                        for _mut in mut_obj.get_mutant_info()
+                        for _mut in mut_obj.mutant_info
                     ]
                 )
             mutant_list.append('_'.join(mutant_decision_list))
@@ -574,14 +569,14 @@ class MultiMutantDesigner:
             return True
 
         mutant_id, mutant_obj = mutant
-        for _picked_residue in mutant_obj.get_mutant_info():
+        for _picked_residue in mutant_obj.mutant_info:
             for (
                 _,
                 _existed_mutant_id,
                 _existed_mutant_obj,
             ) in self.in_design_multi_design_case:
                 _existed_residues = [
-                    _mut for _mut in _existed_mutant_obj.get_mutant_info()
+                    _mut for _mut in _existed_mutant_obj.mutant_info
                 ]
 
                 if any(

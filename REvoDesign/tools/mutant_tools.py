@@ -199,7 +199,8 @@ def extract_mutant_from_sequences(
     ]
     logging.debug(mut_info)
 
-    mutant_obj = Mutant(mutant_info=mut_info, mutant_score=0)
+    mutant_obj = Mutant(mutant_info=mut_info)
+    mutant_obj.mutant_score = 0
 
     return mutant_obj
 
@@ -292,7 +293,7 @@ def expand_range(shortened_str, connector='-', seperator='+') -> list[int]:
     return expanded_list
 
 
-def extract_mutant_from_pymol_object(pymol_object, sequences: dict):
+def extract_mutant_from_pymol_object(pymol_object, sequences: dict) -> Mutant:
     '''
     Extract mutant info from an existing pymol object.
 
@@ -319,10 +320,8 @@ def extract_mutant_from_pymol_object(pymol_object, sequences: dict):
                 }
             )
 
-    mutant_obj = Mutant(
-        mutant_info=mutant_info,
-        mutant_score=extract_mutant_score_from_string(pymol_object),
-    )
+    mutant_obj = Mutant(mutant_info=mutant_info)
+    mutant_obj.mutant_score = extract_mutant_score_from_string(pymol_object)
     mutant_obj.wt_sequence = sequences
 
     return mutant_obj
@@ -483,7 +482,7 @@ def quick_mutagenesis(
         return
 
     score_list = [
-        mut_obj.get_mutant_score()
+        mut_obj.mutant_score
         for group_id in mutant_tree.all_mutant_branch_ids
         for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items()
     ]

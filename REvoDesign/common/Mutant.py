@@ -1,192 +1,109 @@
-from typing import Union
+from dataclasses import dataclass, field
+from typing import List, Dict, Union, Optional
+import hashlib
 
 
+@dataclass
 class Mutant:
-    def __init__(
-        self, mutant_info: list[dict], mutant_score: Union[float, None]
-    ):
-        """
-        Initialize a Mutant object with mutant information and score.
+    mutant_info: List[Dict[str, Union[str, int]]]
+    _mutant_score: Optional[float] = field(
+        default_factory=float
+    )  # Note the underscore, indicating "private"
+    mutant_description: str = ''
+    mutant_id: str = ''
+    wt_sequence: Dict[str, str] = field(default_factory=dict)
+    _wt_score: float = 0.0  # Note the underscore, indicating "private"
 
-        Args:
-        mutant_info (list of dict): List of dictionaries containing mutant information.
-            Each dictionary should have the following keys: 'molecule', 'chain_id',
-            'position', 'wt_res', 'mut_res'.
-        mutant_score (float): The mutant score.
+    def __post_init__(self):
+        self.validate_mutant_info()
 
-        Example:
-        mutant_info = [{'chain_id': 'A', 'position': 10, 'wt_res': 'P', 'mut_res': 'L'},
-                       {'chain_id': 'B', 'position': 20, 'wt_res': 'S', 'mut_res': 'T'}]
-        mutant_score = 0.95
-        mutant_obj = Mutant(mutant_info, mutant_score)
-        """
-        self.mutant_info = mutant_info
-        self.mutant_score = mutant_score
-        self.mutant_description = ''
-        self.mutant_id = ''
-        self.wt_sequence = {}
-        self.wt_score = 0
+    def validate_mutant_info(self):
+        for mutation in self.mutant_info:
+            required_keys = ['chain_id', 'position', 'wt_res', 'mut_res']
+            if not all(key in mutation for key in required_keys):
+                raise ValueError("Missing keys in mutant_info.")
 
     def __str__(self):
-        """
-        Return a string representation of the Mutant object.
-        """
         return f"Mutant Info: {self.mutant_info}, Mutant Score: {self.mutant_score}"
 
     def __empty__(self) -> bool:
-        """
-        Return a bool of empty check of the Mutant object.
-        """
         return not bool(self.mutant_info)
 
-    def get_mutant_info(self):
-        """
-        Get the mutant information.
-
-        Returns:
-        list of dict: List of dictionaries containing mutant information.
-        """
-        return self.mutant_info
-
-    def get_mutant_id(self):
-        """
-        Get the mutant identifier.
-
-        Returns:
-        string: The mutant identifier with score
-        """
-
+    def get_mutant_id(self) -> str:
         self.mutant_id = '_'.join(
             [
-                f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}'
-                for _mutant_info in self.mutant_info
+                f'{mutant["chain_id"]}{mutant["wt_res"]}{mutant["position"]}{mutant["mut_res"]}'
+                for mutant in self.mutant_info
             ]
         )
-
         return f'{self.mutant_id}_{self.mutant_score}'
 
-    def get_short_mutant_id(self):
-        """
-        Get the short mutant identifier.
-
-        Returns:
-        string: The short mutant identifier with score
-        """
-        self.mutant_id = '_'.join(
-            [
-                f'{_mutant_info["chain_id"]}{_mutant_info["wt_res"]}{_mutant_info["position"]}{_mutant_info["mut_res"]}'
-                for _mutant_info in self.mutant_info
-            ]
-        )
-
-        if len(self.mutant_id) > 15:
-            import hashlib
-
-            hashed_mutant_id = hashlib.sha256(
-                bytes(self.mutant_id.encode())
-            ).hexdigest()
-            mutant_id = hashed_mutant_id[:15]
+    def get_short_mutant_id(self) -> str:
+        full_id = self.get_mutant_id()
+        if len(full_id) > 15:
+            hashed_id = hashlib.sha256(full_id.encode()).hexdigest()
+            short_id = hashed_id[:15]
         else:
-            mutant_id = self.mutant_id
+            short_id = full_id
+        return f'{short_id}_{self.mutant_score}'
 
-        return f'{mutant_id}_{self.mutant_score}'
-
-    def get_mutant_score(self) -> float:
+    @property
+    def mutant_score(self) -> float:
         """
-        Get the mutant score.
-
-        Returns:
-        float: The mutant score.
+        The mutant score property.
         """
-        return self.mutant_score
+        return self._mutant_score
 
-    def set_mutant_score(self, new_score: float):
+    @mutant_score.setter
+    def mutant_score(self, value: Union[float, str, int]):
         """
         Set the mutant score to a new value.
-
-        Args:
-        new_score (float): The new mutant score.
         """
-        self.mutant_score = new_score
+        self._mutant_score = float(value)
 
-    def set_mutant_description(self, new_description: str):
+    @property
+    def wt_score(self) -> float:
         """
-        Set the mutant description to a new value.
-
-        Args:
-        new_description (str): The new mutant description.
+        The wild-type score property.
         """
-        self.mutant_description = new_description
+        return self._wt_score
 
-    def get_mutant_description(self) -> str:
+    @wt_score.setter
+    def wt_score(self, value: Union[float, str, int]):
         """
-        Get the mutant description.
-
-        Returns:
-        str: The mutant description.
+        Set the wild-type score to a new value.
         """
-        return self.mutant_description
+        self._wt_score = value
 
-    def get_mutant_sequences(self) -> dict:
+    def get_mutant_sequence_single_chain(self, chain_id: str) -> str:
+        if chain_id not in self.wt_sequence:
+            raise ValueError(
+                f'Chain {chain_id} does not exist in wt sequence.'
+            )
+
+        wt_sequence = self.wt_sequence[chain_id]
+        if not self.mutant_info or not wt_sequence:
+            raise ValueError(
+                "No available mutant information or WT sequence is empty."
+            )
+
+        sequence = list(wt_sequence)
+        for mutant in self.mutant_info:
+            if mutant['chain_id'] != chain_id:
+                continue
+            pos = int(mutant['position'])
+            if pos > len(sequence):
+                raise ValueError(f"Position {pos} out of sequence range.")
+            if sequence[pos - 1] != mutant['wt_res']:
+                raise ValueError(
+                    f"WT residue at position {pos} does not match mutant info."
+                )
+            sequence[pos - 1] = mutant['mut_res']
+
+        return ''.join(sequence)
+
+    def get_mutant_sequences(self) -> Dict[str, str]:
         return {
             chain: self.get_mutant_sequence_single_chain(chain_id=chain)
             for chain in self.wt_sequence
         }
-
-    def get_mutant_sequence_single_chain(self, chain_id: str) -> str:
-        """
-        Get the mutant sequence of a single chain.
-
-        Returns:
-        string: The mutant sequence
-        """
-        if chain_id not in self.wt_sequence:
-            raise ValueError(f'chain {chain_id} is not exist in wt sequence')
-
-        _wt_sequence = self.wt_sequence[chain_id]
-
-        if not self.mutant_info:
-            raise ValueError("No available mutant!")
-        if not _wt_sequence:
-            raise ValueError('WT sequence is empty!')
-
-        _sequence = list(_wt_sequence)
-
-        for _mut in self.mutant_info:
-            _pos = int(_mut['position'])
-            _chain = _mut['chain_id']
-            if _chain != chain_id:
-                continue
-            if _pos > len(_sequence):
-                raise ValueError(
-                    f"Mutant sequence is too short! {_pos} >{len(_sequence)}"
-                )
-
-            _wt_res_mut = _mut['wt_res']
-            _wt_res_seq = _sequence[_pos - 1]
-
-            if _wt_res_mut != _wt_res_seq:
-                raise ValueError(
-                    f'Mutant WT residue {_wt_res_mut} does not match sequence {_wt_res_seq}!'
-                )
-            _sequence[_pos - 1] = _mut['mut_res']
-
-        return ''.join(_sequence)
-
-    def get_wt_score(self) -> float:
-        """
-        Get the wt score.
-
-        Returns:
-        float: The wt score.
-        """
-        return self.wt_score
-
-    def set_wt_score(self, new_score: str):
-        """
-        Set the wt score to a new value.
-
-        Args:
-        new_score (float): The new wt score.
-        """
-        self.wt_score = new_score

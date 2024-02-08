@@ -480,7 +480,7 @@ class REvoDesigner:
                     'Check `De-duplicated` for picking a random unique one.'
                 )
 
-            mutant_obj.set_mutant_score(score)
+            mutant_obj.mutant_score = score
             score_list.append(score)
             mutant_objs.append(mutant_obj)
 
@@ -608,7 +608,7 @@ class REvoDesigner:
         ):
             branch = self.mutant_tree.get_a_branch(branch_id=group_id)
             score_list = [
-                mut_obj.get_mutant_score() for _, mut_obj in branch.items()
+                mut_obj.mutant_score for _, mut_obj in branch.items()
             ]
             visualizer.min_score = min(score_list)
             visualizer.max_score = max(score_list)
@@ -672,19 +672,20 @@ class REvoDesigner:
                             'wt_res': wt_res,
                             'mut_res': mut_res,
                         }
-                    ],
-                    mutant_score=float(mut_score),
+                    ]
                 )
+                mutant_obj.mutant_score = float(mut_score)
+                mutant_obj.wt_sequence = {self.chain_id: self.sequence}
 
-                mutant_obj.set_wt_score(float(wt_score))
+                mutant_obj.wt_score = float(wt_score)
                 self.mutagenesis_tasks.append([mutant_obj])
                 self.mutant_tree.add_mutant_to_branch(
-                    branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.get_wt_score())}",
+                    branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.wt_score)}",
                     mutant=mutant_obj.get_short_mutant_id(),
                     mutant_info=mutant_obj,
                 )
 
-                new_residue_scores.append(mutant_obj.get_mutant_score())
+                new_residue_scores.append(mutant_obj.mutant_score)
 
         self.max_abs_profile = max(
             abs(min(new_residue_scores)), abs(max(new_residue_scores))

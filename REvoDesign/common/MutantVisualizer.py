@@ -138,7 +138,7 @@ class MutantVisualizer:
         - Saves the processed session data to a temporary file and returns the file path.
         """
         mutant = mutant_obj.get_short_mutant_id()
-        score = mutant_obj.get_mutant_score()
+        score = mutant_obj.mutant_score
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f" Visualizing {mutant} {score}: {color}")
@@ -170,7 +170,7 @@ class MutantVisualizer:
         from pymol import cmd, util
 
         new_obj_name = mutant_obj.get_short_mutant_id()
-        score = mutant_obj.get_mutant_score()
+        score = mutant_obj.mutant_score
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')
         temp_mutant_path = os.path.join(
@@ -179,7 +179,7 @@ class MutantVisualizer:
 
         mut_pos = [
             f'(c. {mut_info["chain_id"]} and i. {str(mut_info["position"])})'
-            for mut_info in mutant_obj.get_mutant_info()
+            for mut_info in mutant_obj.mutant_info
         ]
 
         if not self.mutate_runner:
@@ -545,7 +545,7 @@ class MutantVisualizer:
             if not variant_obj.__empty__():
                 continue
 
-            _variant_info = variant_obj.get_mutant_info()
+            _variant_info = variant_obj.mutant_info
 
             variant_obj.wt_sequence = {self.chain_id: self.sequence}
 
@@ -580,7 +580,7 @@ class MutantVisualizer:
                     f'Reading mutant table score for variant {variant_obj.get_short_mutant_id()}: {_score}'
                 )
 
-            variant_obj.set_mutant_score(float(_score))
+            variant_obj.mutant_score = float(_score)
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,
                 mutant=variant_obj.get_short_mutant_id(),
@@ -589,7 +589,7 @@ class MutantVisualizer:
 
         # Determine the range for color bar
         score_list = [
-            variant_obj.get_mutant_score()
+            variant_obj.mutant_score
             for _, variant_obj in self.mutant_tree.all_mutants
         ]
         logging.debug(f'Scores: {score_list}')

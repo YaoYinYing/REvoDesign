@@ -92,7 +92,7 @@ class DLPacker_worker:
         temp_dir = tempfile.mkdtemp(prefix='RD_design_dlp')
         temp_pdb_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")
 
-        for mut_info in mutant_obj.get_mutant_info():
+        for mut_info in mutant_obj.mutant_info:
             chain_id = mut_info['chain_id']
             position = mut_info['position']
             new_residue = mut_info['mut_res']
@@ -134,7 +134,7 @@ class DLPacker_worker:
         from Bio.Data import IUPACData
 
         reconstruct_area = []
-        for mut_info in mutant_obj.get_mutant_info():
+        for mut_info in mutant_obj.mutant_info:
             chain_id = mut_info['chain_id']
             position = mut_info['position']
             new_residue = mut_info['mut_res']
