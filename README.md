@@ -35,9 +35,9 @@ Please refer to the [documentation(WIP)](link_to_documentation) for detailed ins
 
 With the recent updates, the installation process for **REvoDesign** Toolkit has been dramatically changed. Please follow the steps below:
 
-1. **Install the PyMOL Entrypoint**:
+1. **Install the PyMOL Graphic Installer**:
 
-   Before installing the main program, you should install its entrypoint towards the PyMOL menu like other PyMOL plugins. Follow these steps:
+   Before installing the main program, you should install its installer towards the PyMOL menu like other PyMOL plugins. Follow these steps:
 
    - Open PyMOL.
    - Go to the "Plugin Manager" and choose "Install New Plugin."
@@ -48,86 +48,62 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    <repo-url-or-filepath>/REvoDesign.PyMOL.py
    ```
 
-   This will create an function for installing the core package of **REvoDesign**. Once the package is installed, the entrypoint will allow you to access it from the PyMOL menu.
+   This will create an graphic installer for installing the core package of **REvoDesign**. Once the package is installed, the entrypoint file will allow you to access it from the PyMOL menu.
 
-   
+   ![installer](https://github.com/YaoYinYing/REvoDesign/assets/33014714/b44fc4df-e1a7-4ded-9f9b-bba2c1303bb7)
+
 
 2. **Install the Main Program**:
 
-   To install the main program from PyMOL commandline prompt, which is upgradable from internet access, you have two sources:
+   To install the main program, which is upgradable from internet access, you have two sources:
 
-   a. If you prefer to install from the remote repository, use this command `install_REvoDesign_via_pip`:
+   a. If you prefer to install from the remote repository, check `Repository` and click `Install`:
 
-   ```python
-   # From remote repo
-   install_REvoDesign_via_pip
-   ```
+   ![From remote repo](https://github.com/YaoYinYing/REvoDesign/assets/33014714/75d50ebd-cb92-4ad5-b761-40fce374a79e)
 
-   This command will call the exact Python interpreter that used by current PyMOL instance and install REvoDesign as a package.
+
+   This action will call the exact Python interpreter that used by current PyMOL instance and install REvoDesign as a package.
 
    b. If you have no access to the remote url because of the policy from network provider, you may install it from a cloned local repository or unzipped source code by running the following command:
 
-   ```python
-   # From a local repo
-   install_REvoDesign_via_pip file:///local/path/to/repository/of/REvoDesign
+   ![From a local src](https://github.com/YaoYinYing/REvoDesign/assets/33014714/5d35c6cc-d057-46ff-a31b-f3e056172116)
    
-   # from an unzipped source code release
-   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign
 
-   # from a zipped source code release
-   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign.zip
+   c. To install a specific commit/branch, check `Version` or `Commit` for more historical releases:
+   ![From remote repo, commit c66f29356907102ffdf797486f299a9608558e34](https://github.com/YaoYinYing/REvoDesign/assets/33014714/a950091c-09c5-4266-bef4-4df5c93e0923)
+   
 
-   # from a archived source code release
-   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign.tar.bz
-   ```
+   d. To install with extra features, use `Extras` to pick a desire one, or install full version by selecting `full`:
+
+   ![install with extras](https://github.com/YaoYinYing/REvoDesign/assets/33014714/06655184-6c0d-4291-9371-23d6a7ed2ce5)
+
+   **Extras table**
+
+   | extras tag |   packages   |                        references                      |   explanations  |
+   | :--------: | :----------: | :----------------------------------------------------- | :-------------: |
+   |    `jax`   | `colabdesign`| https://github.com/sokrypton/ColabDesign.git@v1.1.1    |     with JAX    |
+   |    `tf`    |  `DLPacker`  | https://github.com/YaoYinYing/DLPacker@pip-installable | with TensorFlow |
+   |   `torch`  |   `PIPPack`  | https://github.com/YaoYinYing/PIPPack@pip-installable  |  with PyTorch   |
+   |   `full`   |   all above  |                        all above                       | with all above  |
+   | `unittest` |   `absl-py`  |                                                        | for unit tests  |
+   
+   
+   **WARNING: ColabDesign uses Jax, which requires Python >= 3.9**
+   
+   Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+
+   ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
+   Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
+
+   **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
+   
+   **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
 
 
-   c. To install a specific commit/branch, use source@<commit/branch>:
-   ```python
-   # From remote repo, tag v1.3.2
-   install_REvoDesign_via_pip https://github.com/YaoYinYing/REvoDesign@v1.3.2
-   ```
-
-   d. To upgrade to the latest version:
-   ```python
-   # Upgrade from a local repo/directory
-   install_REvoDesign_via_pip /local/path/to/repository/of/REvoDesign, 1
-   ```
-   e. To enable stdout and stderr (`verbose`): 
-   ```python
-   install_REvoDesign_via_pip, 1,1
-   ```
-   f. To install with extra features:
-
-   - With **[ColabDesign](https://github.com/sokrypton/ColabDesign)**:
-      ```python
-      install_REvoDesign_via_pip, 1,1, jax
-      ```
-      **WARNING: ColabDesign uses Jax, which requires Python >= 3.9**
-      
-      Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
-
-      ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
-      Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
-
-      **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
-      
-      **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
-   - With **[DLPacker](https://github.com/YaoYinYing/DLPacker)**
-      ```python
-      install_REvoDesign_via_pip, 1,1, tf
-      ```
-   - With **[PRIME](https://github.com/ai4protein/Prime)**
-      ```python
-      install_REvoDesign_via_pip, 1,1, torch
-      ```
-
-   - With full access of all features:
-      ```python
-      install_REvoDesign_via_pip, 1,1, full
-      ```
-
-   Note that during the installation process, the window will freeze for a while.
+3. **Getting started**:
+   - In order to get started, you need to load/fetch a structure(`fetch 1SUO`, for example) into your PyMOL session.
+   - Click `Menu` -> `REvoDesign` -> `Import PyMOL Session` to let **REvoDesign** find a designable molecule.
+   - Have fun!
 
 
 Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from **REvoDesign** toolkit's support resources.
