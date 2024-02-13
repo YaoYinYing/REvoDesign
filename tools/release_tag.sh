@@ -42,7 +42,6 @@ echo >> changelog_tag.md
 $SED -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
 
 cat changelog_tag.md
-exit 1
 
 echo set new tag to pyproject
 $SED -i 's/^version = \"'"$old_version"'\"/version = \"'"$new_version"'\"/' ./pyproject.toml
