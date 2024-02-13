@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Graphic installer/upgrader
+- `README.md`: 
+  - installation guided
+  - extras explained
+  - getting started hint
+
+
 ## [1.3.5] - 2024-02-13
 ### Added
 - Configuration saving and loading
