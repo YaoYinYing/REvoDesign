@@ -76,7 +76,9 @@ class PocketSearcher:
             resi.sort()
 
             # Save pocket residue records
-            pocket_filename = os.path.join(self.save_dir, f"{i}_residues.txt")
+            pocket_filename = os.path.join(
+                self.save_dir, f"{self.molecule}_{i}_residues.txt"
+            )
             os.makedirs(os.path.dirname(pocket_filename), exist_ok=True)
             with open(pocket_filename, 'w') as f:
                 f.write(','.join(map(str, resi)))

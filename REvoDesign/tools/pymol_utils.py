@@ -417,8 +417,10 @@ def make_temperal_input_pdb(
     os.makedirs(wd, exist_ok=True)
     input_file = os.path.join(
         wd,
-        f'{molecule}.{segment_id}_{chain_id}_{resn}_{selection.replace(" ","-")[:20]}.{format}',
+        f'seg{segment_id}_chain{chain_id}_resn{resn}_sel{selection.replace(" ","-")[:20]}',
+        f'{molecule}.{format}',
     )
+    os.makedirs(os.path.dirname(input_file), exist_ok=True)
 
     selection_str = molecule
     if chain_id:

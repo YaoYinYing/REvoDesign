@@ -194,7 +194,8 @@ class SurfaceFinder:
         )
         surface_residue_ids.sort()
         residue_filename = os.path.join(
-            'surface_residue_records', f'residues_cutoff_{self.cutoff}.txt'
+            'surface_residue_records',
+            f'{self.molecule}_residues_cutoff_{self.cutoff}.txt',
         )
         with open(residue_filename, 'w') as f:
             f.write(','.join(map(str, surface_residue_ids)))

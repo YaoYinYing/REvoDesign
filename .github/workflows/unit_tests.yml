@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/workflows/unit_tests.yml' # monitor the main workflow script.
       - 'tests/*.py' # monitor the unit tests
-      - 'REvoDesign' # monitor the REvoDesign project source code
+      - 'REvoDesign/*' # monitor the REvoDesign project source code
       
     branches:
       - main
