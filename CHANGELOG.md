@@ -11,9 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `save_configuration` 
   - `save_configuration_from_ui`
   - trigger: `ui.actionSave_Configurations`
+- `PIPPack` as a alternative sidechain solver
+- much more unitest cases.
+- `Widget2Widget` as configurations among widget from to another and can be used by `refresh_widget_while_another_changed` calling.
 
 ### Changed
 - widget-config item mapping -> `Widget2ConfigMapper`
+- re-organized config files.
+- pin `codecov/codecov-action` from `v3` to `v4`
+
+### Fixed
+- in-class `REvoDesigner.visualizer` instance to prevent repetative instantialization of `MutantVisualizer`, handled by `REvoDesigner.setup_visualizer`
+
 
 
 ## [1.3.4] - 2024-02-05

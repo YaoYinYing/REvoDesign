@@ -13,8 +13,8 @@ else
 fi
 
 echo 'Dumping version from `REvoDesign/__version__.py` ...'
-old_version=$(git diff REvoDesign/__version__.py | grep '^\-__version__ = ' | awk '{str=$2;gsub("'\''","",str);print str}')
-new_version=$(git diff REvoDesign/__version__.py | grep '^+__version__ = ' | awk '{str=$2;gsub("'\''","",str);print str}')
+old_version=$(git diff REvoDesign/__version__.py | grep '^\-__version__ = ' | awk '{str=$3;gsub("'\''","",str);print str}')
+new_version=$(git diff REvoDesign/__version__.py | grep '^+__version__ = ' | awk '{str=$3;gsub("'\''","",str);print str}')
 new_date=$(date +'%Y-%m-%d')
 
 echo "New Version: ${new_version}, Old Version: ${old_version}, tagged date: ${new_date}"
@@ -35,8 +35,14 @@ echo set new tag to changelog
 $SED -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md 
 echo fetching changelog bwt two versions:
 rm -f changelog_tag.md
-echo 'Dump version: '"$old_version"' -> '"$new_version"'' > changelog_tag.md
+echo 'Dump version: '"$old_version"' -> '"$new_version" > changelog_tag.md
+echo >> changelog_tag.md
+echo '## Change log:' >> changelog_tag.md
+echo >> changelog_tag.md
 $SED -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
+
+cat changelog_tag.md
+exit 1
 
 echo set new tag to pyproject
 $SED -i 's/^version = \"'"$old_version"'\"/version = \"'"$new_version"'\"/' ./pyproject.toml
