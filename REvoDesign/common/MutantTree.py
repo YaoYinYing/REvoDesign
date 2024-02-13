@@ -91,7 +91,7 @@ class MutantTree:
         """
         return self.all_mutant_branch_ids.index(branch_id)
 
-    def get_a_branch(self, branch_id) -> dict[str:Mutant]:
+    def get_a_branch(self, branch_id) -> dict[str,Mutant]:
         """
         Gets a specific branch from the MutantTree object.
 

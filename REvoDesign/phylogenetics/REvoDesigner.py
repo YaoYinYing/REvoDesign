@@ -59,6 +59,7 @@ class REvoDesigner:
 
         self.sidechain_solver = 'Dunbrack Rotamer Library'
         self.sidechain_solver_radius = 0
+        self.sidechain_solver_model=''
 
         self.molecule = ''
         self.chain_id = 'A'
@@ -81,6 +82,8 @@ class REvoDesigner:
         self.mutant_tree = None
 
         self.mutagenesis_tasks = []
+
+        self.visualizer: MutantVisualizer = None
 
     def plot_custom_indices_segments(
         self,
@@ -495,6 +498,9 @@ class REvoDesigner:
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
+        
+        if not self.visualizer:
+            self.setup_visualizer()
 
         self.output_pse = self.run_mutagenesis_via_mutant_visualizer(
             group_id=self.design_case, progress_bar=progress_bar
@@ -570,6 +576,41 @@ class REvoDesigner:
         )
 
         return mutation_json_fp, mutation_png_fp
+    
+    def setup_visualizer(self):
+        self.visualizer = MutantVisualizer(
+            molecule=self.molecule, chain_id=self.chain_id
+        )
+        self.visualizer.sequence = self.sequence
+        
+        self.visualizer.full = self.create_full_pdb
+        self.visualizer.cmap = self.cmap
+
+        self.visualizer.nproc = self.nproc
+        self.visualizer.parallel_run = self.nproc > 1
+        self.visualizer.input_session = self.input_pse
+
+        self.visualizer.sidechain_solver = self.sidechain_solver
+        self.visualizer.sidechain_solver_radius = self.sidechain_solver_radius
+        self.visualizer.sidechain_solver_model = self.sidechain_solver_model
+
+        if (
+            self.external_designer
+            or self.input_profile_format in EXTERNAL_DESIGNERS
+        ):
+            score_list = [
+                mut_obj.mutant_score 
+                for group_id in self.mutant_tree.all_mutant_branch_ids
+                for branch in  self.mutant_tree.get_a_branch(branch_id=group_id) 
+                for _, mut_obj in branch.items() 
+            ]
+            self.visualizer.min_score = min(score_list)
+            self.visualizer.max_score = max(score_list)
+        else:
+            self.visualizer.min_score = -self.max_abs_profile
+            self.visualizer.max_score = self.max_abs_profile
+
+        self.visualizer.setup_side_chain_solver()
 
     def run_mutagenesis_via_mutant_visualizer(self, group_id, progress_bar):
         """
@@ -591,44 +632,21 @@ class REvoDesigner:
         - Sets nproc and parallel_run based on the number of processors available.
         - Saves the resulting session file and returns the file path.
         """
-        visualizer = MutantVisualizer(
-            molecule=self.molecule, chain_id=self.chain_id
-        )
-        visualizer.sequence = self.sequence
-        visualizer.group_name = group_id
-        visualizer.full = self.create_full_pdb
-        visualizer.cmap = self.cmap
-        visualizer.sidechain_solver = self.sidechain_solver
-        visualizer.sidechain_solver_radius = self.sidechain_solver_radius
-        visualizer.setup_side_chain_solver()
+        if not self.visualizer:
+            self.setup_visualizer()
 
-        if (
-            self.external_designer
-            or self.input_profile_format in EXTERNAL_DESIGNERS
-        ):
-            branch = self.mutant_tree.get_a_branch(branch_id=group_id)
-            score_list = [
-                mut_obj.mutant_score for _, mut_obj in branch.items()
-            ]
-            visualizer.min_score = min(score_list)
-            visualizer.max_score = max(score_list)
-        else:
-            visualizer.min_score = -self.max_abs_profile
-            visualizer.max_score = self.max_abs_profile
+        self.visualizer.group_name = group_id
 
-        visualizer.nproc = self.nproc
-        visualizer.parallel_run = self.nproc > 1
-        visualizer.input_session = self.input_pse
-        visualizer.save_session = os.path.join(
+        self.visualizer.save_session = os.path.join(
             os.path.dirname(self.output_pse),
             f'group.{group_id}.{os.path.basename(self.output_pse)}',
         )
 
-        visualizer.mutant_tree = MutantTree(
+        self.visualizer.mutant_tree = MutantTree(
             {group_id: self.mutant_tree.get_a_branch(branch_id=group_id)}
         )
-        visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
-        return visualizer.save_session
+        self.visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
+        return self.visualizer.save_session
 
     def load_mutants_to_pymol_session(
         self,

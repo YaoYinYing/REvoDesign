@@ -2,6 +2,7 @@ import asyncio
 import os
 import time
 import traceback
+from typing import Iterable
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -11,7 +12,7 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 from functools import partial
 
 from REvoDesign.tools.logger import logging
-from REvoDesign.application.ui_driver import Widget2ConfigMapper
+from REvoDesign.application.ui_driver import Widget2ConfigMapper,Widget2Widget
 
 from REvoDesign.tools.post_installed import (
     reload_config_file,
@@ -51,6 +52,7 @@ from REvoDesign.tools.customized_widgets import (
     proceed_with_comfirm_msg_box,
     getOpenFileNameWithExt,
     create_cmap_icon,
+    refresh_widget_while_another_changed
 )
 
 
@@ -90,6 +92,8 @@ class REvoDesignPlugin:
 
         self.cfg = None
         self.reload_configurations()
+
+        self.widget2widget=Widget2Widget()
 
         self.designable_sequences = {}
         self.design_molecule = ''
@@ -753,7 +757,20 @@ class REvoDesignPlugin:
             self.ui.comboBox_sidechain_solver,
             list(self.cfg.ui.config.sidechain_solver.group),
         )
+
+        
+        self.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
+            partial(
+                refresh_widget_while_another_changed,
+                self.ui.comboBox_sidechain_solver,
+                self.ui.comboBox_sidechain_solver_model,
+                self.widget2widget.sidechain_solver2model
+            )
+        )
+
         self.refresh_ui_from_new_configuration()
+
+
         return main_window
 
     def set_design_sequence(
@@ -1237,6 +1254,7 @@ class REvoDesignPlugin:
             sidechain_solver_radius = (
                 self.ui.doubleSpinBox_sidechain_solver_radius.value()
             )
+            sidechain_solver_model = self.ui.comboBox_sidechain_solver_model.currentText()
 
             progressbar = self.ui.progressBar
 
@@ -1277,6 +1295,7 @@ class REvoDesignPlugin:
 
             design.sidechain_solver = sidechain_solver
             design.sidechain_solver_radius = sidechain_solver_radius
+            design.sidechain_solver_model  = sidechain_solver_model
 
             design.preffered_substitutions = preffered
             design.reject_aa = rejected
@@ -1991,6 +2010,7 @@ class REvoDesignPlugin:
         sidechain_solver_radius = (
             self.ui.doubleSpinBox_sidechain_solver_radius.value()
         )
+        sidechain_solver_model = self.ui.comboBox_sidechain_solver_model.currentText()
 
         use_global_scores = self.ui.checkBox_global_score_policy.isChecked()
 
@@ -2050,6 +2070,7 @@ class REvoDesignPlugin:
 
             visualizer.sidechain_solver = sidechain_solver
             visualizer.sidechain_solver_radius = sidechain_solver_radius
+            visualizer.sidechain_solver_model = sidechain_solver_model
             visualizer.setup_side_chain_solver()
 
             visualizer.run_with_progressbar(
@@ -2775,6 +2796,7 @@ class REvoDesignPlugin:
         sidechain_solver_radius = (
             self.ui.doubleSpinBox_sidechain_solver_radius.value()
         )
+        sidechain_solver_model = self.ui.comboBox_sidechain_solver_model.currentText()
 
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
@@ -2812,6 +2834,8 @@ class REvoDesignPlugin:
 
         visualizer.sidechain_solver = sidechain_solver
         visualizer.sidechain_solver_radius = sidechain_solver_radius
+        visualizer.sidechain_solver_model = sidechain_solver_model
+
 
         visualizer.setup_side_chain_solver()
 
@@ -3138,3 +3162,4 @@ class REvoDesignPlugin:
             OmegaConf.update(self.cfg, config_item, value)
 
         save_configuration(new_cfg=self.cfg)
+

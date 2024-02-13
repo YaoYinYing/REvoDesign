@@ -2,30 +2,27 @@ import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from typing import Any
-
-
+import glob
+import shutil
 def set_REvoDesign_config_file():
+    template_config_dir=os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..',
+            'config',
+        )
+    
     default_storage_path = os.path.expanduser('~/.REvoDesign/')
     config_dir = os.path.join(default_storage_path, 'config')
 
-    os.makedirs(config_dir, exist_ok=True)
-
-    config_file = os.path.join(config_dir, 'global_config.yaml')
-
-    if not os.path.exists(config_file):
-        import shutil
-
-        template_config_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            '..',
-            'config/revodesign/global_config.yaml',
-        )
-        shutil.copyfile(template_config_file, config_file)
-        print(f'Config file is created at {config_file}')
+    if not glob.glob(os.path.join(config_dir, '*.yaml')):
+        print(f'Copied configuratiosn from {template_config_dir} to {config_dir}')
+        shutil.copytree(src=template_config_dir,dst=config_dir,dirs_exist_ok=True)
     else:
-        print(f'Config file is already located at {config_file}, do nothing.')
+        print(f'Config file is already located at `{config_dir}`, do nothing.')
 
-    return config_file
+    main_config_file = os.path.join(config_dir,'global_config.yaml')
+    print(f'Main config: {main_config_file}')
+    return main_config_file
 
 
 REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()
@@ -37,9 +34,8 @@ hydra.initialize_config_dir(
 def reload_config_file(config_name: str = 'global_config') -> DictConfig:
     return hydra.compose(
         config_name=config_name,
-        return_hydra_config=True,
+        return_hydra_config=False,
     )
-
 
 def save_configuration(
     new_cfg: DictConfig, config_name: str = 'global_config'
@@ -109,3 +105,4 @@ class ConfigConverter:
             ]
         else:
             return config
+
