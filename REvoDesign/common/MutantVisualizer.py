@@ -22,6 +22,7 @@ from omegaconf import DictConfig
 from REvoDesign.common.Mutant import Mutant
 
 from REvoDesign.tools.utils import (
+    WITH_PIPPACK,
     get_color,
     run_command,
     run_worker_thread_with_progress,
@@ -56,6 +57,7 @@ class MutantVisualizer:
         self.scorer = None
         self.sidechain_solver = 'Dunbrack Rotamer Library'
         self.sidechain_solver_radius = 0
+        self.sidechain_solver_model = ''
         self.mutate_runner = None
 
         # this should be set via the following:
@@ -119,6 +121,26 @@ class MutantVisualizer:
                 #     'Cannot use DLPacker in parallel mutagenesis. nproc will be set to'
                 # )
                 # self.nproc = 1
+        elif self.sidechain_solver == 'PIPPack':
+            if not WITH_PIPPACK:
+                logging.error(
+                    'PIPPack is not available in your installation. Aborded..'
+                )
+                return
+            if (
+                not self.mutate_runner
+                or not self.mutate_runner.__class__.__name__
+                == 'PIPPack_worker'
+            ):
+                from REvoDesign.sidechain_solver.PIPPack import (
+                    PIPPack_worker,
+                )
+
+                self.mutate_runner = PIPPack_worker(
+                    pdb_file=input_pdb, use_model=self.sidechain_solver_model
+                )
+
+        # setup more sidechain solvers here ...
 
         logging.info(f'Using {self.sidechain_solver} as sidechain solver.')
 
@@ -304,7 +326,7 @@ class MutantVisualizer:
                 logging.warning(
                     f'Find expected Pythia output: `{df_path}`, skipping.'
                 )
-
+            # a nested call of parse_profile to convert ddg csv into dataframe.
             df = self.parse_profile(profile_fp=df_path, profile_format='CSV')
 
             return df
@@ -749,6 +771,8 @@ class MutantVisualizer:
             self.save_session = merged_temp_session
         else:
             logging.warning(
-                f'Temperal merged result is failed to create. Try again with a clean PyMOL session.'
+                f'Temperal merged result is failed to create. Try again with a clean PyMOL session. \n'
+                f'STDOUT:\n{merge_results.stdout}\n'
+                f'STDERR:\n{merge_results.stderr}'
             )
             return

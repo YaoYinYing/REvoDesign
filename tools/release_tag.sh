@@ -13,8 +13,8 @@ else
 fi
 
 echo 'Dumping version from `REvoDesign/__version__.py` ...'
-old_version=$(git diff REvoDesign/__version__.py | grep '^\-__version__=' | awk '{str=$2;gsub("'\''","",str);print str}')
-new_version=$(git diff REvoDesign/__version__.py | grep '^+__version__=' | awk '{str=$2;gsub("'\''","",str);print str}')
+old_version=$(git diff REvoDesign/__version__.py | grep '^\-__version__ = ' | awk '{str=$2;gsub("'\''","",str);print str}')
+new_version=$(git diff REvoDesign/__version__.py | grep '^+__version__ = ' | awk '{str=$2;gsub("'\''","",str);print str}')
 new_date=$(date +'%Y-%m-%d')
 
 echo "New Version: ${new_version}, Old Version: ${old_version}, tagged date: ${new_date}"

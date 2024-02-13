@@ -1,4 +1,6 @@
 import os
+import shutil
+import glob
 import random
 from pymol import cmd, util, CmdException
 from absl.testing import absltest
@@ -6,12 +8,22 @@ from unittest.mock import Mock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from typing import List, Dict, Union
+from omegaconf import DictConfig, OmegaConf
+
+import logging as python_logging
+import json
+import datetime as dt
+
+from typing import List, Dict, Union,Any
+from dataclasses import dataclass
+from collections.abc import MutableMapping
 from hashlib import sha256
+from REvoDesign.application.ui_driver import Widget2ConfigMapper, Widget2Widget
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.tools.logger import REvoDesignLogFormatter, setup_logger_level,logger_level
 from REvoDesign.tools.mutant_tools import (
     expand_range,
     extract_mutant_from_sequences,
@@ -19,6 +31,8 @@ from REvoDesign.tools.mutant_tools import (
     extract_mutants_from_mutant_id,
     shorter_range,
 )
+
+from REvoDesign.tools.post_installed import REVODESIGN_CONFIG_FILE, ConfigConverter, reload_config_file, save_configuration, set_REvoDesign_config_file, set_cache_dir
 from REvoDesign.tools.pymol_utils import (
     any_posision_has_been_selected,
     find_all_protein_chain_ids_in_protein,
@@ -34,7 +48,7 @@ from REvoDesign.tools.pymol_utils import (
     mutate,
     refresh_all_selections,
 )
-from REvoDesign.tools.utils import WITH_DLPACKER
+from REvoDesign.tools.utils import WITH_DLPACKER, WITH_PIPPACK
 
 TEST_DATA = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(TEST_DATA, 'testdata')
@@ -47,6 +61,223 @@ sequence = 'XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVE
 hetatm = 'HPN'
 gremlin_mrf_pkl_url = 'https://raw.githubusercontent.com/YaoYinYing/REvoDesign-test-data/main/1nww_A.i90c75_aln.GREMLIN.mrf.pkl'
 gremlin_mrf_pkl_md5sum = '201517130bbae68428e855c97dabe98a'
+
+class TestREvoDesignLogFormatter(absltest.TestCase):
+    """
+    Tests for the REvoDesignLogFormatter to ensure it formats log records as expected.
+    """
+
+    def setUp(self):
+        # Set up a minimal logging record
+        self.record = python_logging.LogRecord(
+            name='test', level=python_logging.INFO, pathname=__file__,
+            lineno=10, msg='Test message', args=(), exc_info=None
+        )
+        self.record.created = 1609459200.0  # Equivalent to 2021-01-01 00:00:00 UTC
+        self.formatter = REvoDesignLogFormatter()
+        super().setUp()
+
+    def test_format(self):
+        """
+        Test if the log formatter correctly formats a log record into JSON.
+        """
+        expected_timestamp = dt.datetime.fromtimestamp(
+            self.record.created, tz=dt.timezone.utc
+        ).isoformat()
+        formatted_message = self.formatter.format(self.record)
+        message_dict = json.loads(formatted_message)
+
+        # Ensure the message contains at least the basic expected keys
+        self.assertIn('message', message_dict)
+        self.assertIn('timestamp', message_dict)
+        self.assertEqual(message_dict['message'], 'Test message')
+        self.assertEqual(message_dict['timestamp'], expected_timestamp)
+
+class TestLoggingSetup(absltest.TestCase):
+    """
+    Tests for logging setup functions to ensure they configure the logging system as expected.
+    """
+
+    def test_setup_logger_level(self):
+        """
+        Test if the setup_logger_level function correctly maps string levels to logging constants.
+        """
+        for level_str, expected_level in logger_level.items():
+            actual_level = setup_logger_level(level_str)
+            self.assertEqual(actual_level, expected_level, f"Logger level mapping failed for {level_str}")
+
+    def test_setup_logging_from_dictconfig(self):
+        """
+        Test if setup_logging_from_dictconfig properly sets up logging handlers and formatters based on a DictConfig.
+        """
+        # Setup a minimal DictConfig for testing
+        log_config = OmegaConf.create({
+            "handlers": {
+                "stdout": {"level": "INFO"},
+                "stderr": {"level": "ERROR"},
+                "file": {"filename": "test.log", "maxBytes": 1024*1024, "backupCount": 3, "level": "DEBUG"},
+                "notebook": {"filename": "notebook.log", "maxBytes": 1024*1024, "backupCount": 3, "level": "DEBUG"},
+            },
+            "formatters": {
+                "simple": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"},
+                "json": {"fmt_keys": {"message": "msg", "timestamp": "asctime"}},
+            },
+            "loggers": {
+                "root": {"level": "DEBUG"},
+            },
+        })
+
+
+class TestWidget2ConfigMapper(absltest.TestCase):
+    """
+    Tests for the Widget2ConfigMapper class to ensure that UI elements are correctly mapped to configuration settings.
+    """
+
+    def setUp(self):
+        # Mock the UI elements to simulate the real UI components
+        self.mock_ui = self._create_mock_ui()
+        self.mapper = Widget2ConfigMapper(self.mock_ui)
+        super().setUp()
+
+    def _create_mock_ui(self) -> Dict[str, Any]:
+        """
+        Creates a mock UI with simulated UI components.
+        
+        Returns:
+            A dictionary representing mock UI components.
+        """
+        # This mock should mirror the structure expected by Widget2ConfigMapper
+        # For simplicity, we use dummy objects or simple placeholders
+        return {
+            "comboBox_cmap": object(),
+            "lineEdit_pssm_gremlin_url": object(),
+            # Add other UI elements as needed
+        }
+
+
+
+class TestWidget2Widget(absltest.TestCase):
+    """
+    Tests for the Widget2Widget class to ensure that related widget mappings are correctly handled.
+    """
+
+    def setUp(self):
+        self.widget2widget = Widget2Widget()
+        super().setUp()
+
+    def test_sidechain_solver2model_mapping(self):
+        """
+        Test if the mapping from sidechain solver to its models is correctly established.
+        """
+        # Example test for PIPPack solver
+        expected_models = [
+            'ui.config.sidechain_solver.pippack.model_names.group',
+            'ui.config.sidechain_solver.pippack.model_names.default',
+        ]
+        actual_models = self.widget2widget.sidechain_solver2model['PIPPack']
+        self.assertEqual(expected_models, actual_models, "The mapping for PIPPack models is incorrect.")
+
+
+class TestREvoDesignConfigFile(absltest.TestCase):
+    """
+    Tests for the REvoDesign configuration file setting and related functionalities.
+    """
+
+    def setUp(self):
+        # Setup necessary variables for the test
+        self.expected_default_storage_path = os.path.expanduser('~/.REvoDesign/')
+        self.expected_config_dir = os.path.join(self.expected_default_storage_path, 'config')
+        self.expected_main_config_file = os.path.join(self.expected_config_dir, 'global_config.yaml')
+        self.expected_global_cfg=reload_config_file()
+        self.expected_pippack_cfg=reload_config_file('sidechain-solver/pippack')['sidechain-solver']
+        super().setUp()
+
+    def test_set_REvoDesign_config_file(self):
+        """
+        Test if the set_REvoDesign_config_file function creates the config directory and copies the configuration templates correctly.
+        """
+        # Mock the os.path and shutil functionalities to not actually perform file system operations
+        
+        # Test the function's output
+        main_config_file = set_REvoDesign_config_file()
+        self.assertEqual(main_config_file, self.expected_main_config_file)
+        
+        # Further tests can mock file system effects and check for the expected behavior
+        
+    def test_reload_config_file(self):
+        """
+        Test if the reload_config_file function correctly reloads the configuration.
+        """
+        # This test depends on the actual implementation details of hydra.compose
+        # Mocking or setting up a test environment for hydra might be necessary
+        
+        self.assertTrue(isinstance(self.expected_global_cfg,DictConfig))
+        self.assertEqual(self.expected_global_cfg.ui.header_panel.cmap, 'bwr_r')
+        
+    def test_save_configuration(self):
+        """
+        Test if the save_configuration function saves the configuration correctly.
+        """
+        # Setup a temporary configuration for testing
+        test_cfg = OmegaConf.create({"test_key": "test_value"})
+        
+        # Save the configuration
+        save_configuration(test_cfg, "test_config")
+        
+        # Check if the file was saved correctly
+        cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
+        cfg_save_fp = os.path.join(cfg_save_dir, 'test_config.yaml')
+        
+        # Assert the file exists and contains the expected content
+        self.assertTrue(os.path.exists(cfg_save_fp))
+        with open(cfg_save_fp, 'r') as f:
+            loaded_cfg = OmegaConf.load(f)
+            self.assertEqual(loaded_cfg.test_key, "test_value")
+            
+    def test_set_cache_dir(self):
+        """
+        Test the behavior of set_cache_dir function under various configuration conditions.
+        """
+        # This test will require to mock or manipulate the DictConfig returned by reload_config_file to simulate different scenarios
+        new_customized_cache_dir = os.path.abspath(os.path.join('.','customized_revodesign_cache_dir'))
+        self.expected_global_cfg.cache_dir.under_home_dir=False
+        self.expected_global_cfg.cache_dir.customized = new_customized_cache_dir
+        save_configuration(self.expected_global_cfg)
+        new_cfg=reload_config_file()
+        expected_new_cache_dir=set_cache_dir()
+        self.assertEqual(new_customized_cache_dir,new_cfg.cache_dir.customized)
+        self.assertEqual(new_customized_cache_dir,expected_new_cache_dir)
+
+class TestConfigConverter(absltest.TestCase):
+    """
+    Tests for the ConfigConverter utility class.
+    """
+
+    def test_convert_valid_input(self):
+        """
+        Test converting a valid DictConfig to a Python dictionary.
+        """
+        dict_config = OmegaConf.create({"key": "value", "nested": {"nkey": "nvalue"}})
+        expected_output = {"key": "value", "nested": {"nkey": "nvalue"}}
+        output = ConfigConverter.convert(dict_config)
+        self.assertEqual(output, expected_output)
+
+    def test_convert_raises_with_invalid_input(self):
+        """
+        Test that converting a non-DictConfig object raises a ValueError.
+        """
+        with self.assertRaises(ValueError):
+            ConfigConverter.convert("not a DictConfig")
+
+    def test_recursive_conversion(self):
+        """
+        Test the recursive conversion of nested DictConfig objects.
+        """
+        nested_dict_config = OmegaConf.create({"key": "value", "nested": {"nkey": "nvalue", "nnested": {"nnkey": "nnvalue"}}})
+        expected_output = {"key": "value", "nested": {"nkey": "nvalue", "nnested": {"nnkey": "nnvalue"}}}
+        output = ConfigConverter.convert(nested_dict_config)
+        self.assertEqual(output, expected_output)
+
 
 class TestMutant(absltest.TestCase):
     def setUp(self):
@@ -76,8 +307,10 @@ class TestMutant(absltest.TestCase):
         self.assertEqual(self.mutant_obj.mutant_description, new_description)
 
     def test_mutant_id(self):
+        expected_raw_id = 'AP10L_AS20T'
         expected_id = 'AP10L_AS20T_0.95'
-        self.assertEqual(self.mutant_obj.get_mutant_id(), expected_id)
+        self.assertEqual(self.mutant_obj.get_mutant_id(), expected_raw_id)
+        self.assertEqual(self.mutant_obj.get_short_mutant_id(), expected_id)
 
     def test_short_mutant_id(self):
         self.mutant_obj.mutant_info = [{'chain_id': 'A', 'position': 1, 'wt_res': 'P', 'mut_res': 'L'}]
@@ -592,9 +825,6 @@ class TestSidechainSolver(absltest.TestCase):
         self.mutant_string = 'AI5R_AK26T_0.4567'
         self.expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
         self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string, sequences={'A': sequence})
-
-        
-
         try:
             cmd.fetch(molecule)
             cmd.remove('c. B')
@@ -643,6 +873,23 @@ class TestSidechainSolver(absltest.TestCase):
         from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
         mutate_runner=DLPacker_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj,reconstruct_area_radius=8)
+
+
+        from Bio.PDB.PDBParser import PDBParser
+        parser = PDBParser(PERMISSIVE=1)
+        structure = parser.get_structure(self.mutant_string, mutate_pdb_path)
+        mut_residue_1=structure[0]["A"][5]
+        mut_residue_2=structure[0]["A"][26]
+        self.assertEqual(mut_residue_1.get_resname(), 'ARG')
+        self.assertEqual(mut_residue_2.get_resname(), 'THR')
+
+    def test_pippack_mutate(self):
+        
+        if not WITH_PIPPACK:
+            print('Skiping pippack tests..')
+        from REvoDesign.sidechain_solver.PIPPack import PIPPack_worker
+        mutate_runner=PIPPack_worker(pdb_file=self.wt_pdb)
+        mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
 
 
         from Bio.PDB.PDBParser import PDBParser

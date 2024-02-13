@@ -1,0 +1,16 @@
+# Default configuration for inference.
+
+inference:
+  n_recycle: 3
+  temperature: 0.0
+  use_resample: False
+  force_cpu: True
+  batch_size: 10000
+  seed: 42
+
+  resample_args:
+    sample_temp: 0.5
+    clash_overlap_tolerance: 0.6
+    pro_tolerance_factor: 12
+    max_iters: 10
+    metropolis_temp: 0.000005

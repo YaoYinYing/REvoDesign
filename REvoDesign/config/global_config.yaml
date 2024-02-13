@@ -87,16 +87,19 @@ ui:
       group:
         - Dunbrack Rotamer Library
         - DLPacker
-        # - PIPpack
+        - PIPPack
       default: DLPacker
+
+      model: 
+
       pippack:
-        use_ensemble: True
         model_names:
           group:
             - pippack_model_1
             - pippack_model_2
             - pippack_model_3
-          default: pippack_model_1
+            - ensemble
+          default: ensemble
 
 log:
   version: 1

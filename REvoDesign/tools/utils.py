@@ -13,6 +13,7 @@ logging = logger.getChild(__name__)
 
 WITH_COLABDESIGN = is_package_installed('colabdesign')
 WITH_DLPACKER = is_package_installed('DLPacker')
+WITH_PIPPACK = is_package_installed('pippack')
 
 
 def run_command(excutable='python', command_list=[]):

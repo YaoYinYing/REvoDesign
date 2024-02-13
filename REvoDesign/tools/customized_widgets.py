@@ -2,12 +2,14 @@ import os
 from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
 from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.post_installed import reload_config_file
 
 logging = logger.getChild(__name__)
 
 from REvoDesign.tools.system_tools import OS_INFO, OS_TYPE
 
 from collections.abc import Iterable
+from omegaconf import DictConfig, OmegaConf
 
 PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 
@@ -382,6 +384,24 @@ def get_widget_value(widget):
         raise ValueError(
             f"Widget type {type(widget).__name__} is not supported for value retrieval."
         )
+
+
+def refresh_widget_while_another_changed(
+    trigger_widget, target_widget, target_data_group: dict[str, list]
+):
+    cfg = reload_config_file()
+    trigger_value = get_widget_value(widget=trigger_widget)
+    if trigger_value in target_data_group:
+        for idx, target_data_cfg in enumerate(
+            target_data_group.get(trigger_value)
+        ):
+            # print(f'Get: {target_data} from {target_data_cfg}')
+            if not target_data_cfg:
+                target_data = ['']
+            else:
+                target_data = OmegaConf.select(cfg, target_data_cfg)
+
+            set_widget_value(widget=target_widget, value=target_data)
 
 
 class ParallelExecutor(QtCore.QThread):

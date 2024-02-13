@@ -36,7 +36,7 @@ class Mutant:
                 for mutant in self.mutant_info
             ]
         )
-        return f'{self.mutant_id}_{self.mutant_score}'
+        return f'{self.mutant_id}'
 
     def get_short_mutant_id(self) -> str:
         full_id = self.get_mutant_id()
