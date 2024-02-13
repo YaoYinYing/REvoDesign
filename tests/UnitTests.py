@@ -34,7 +34,7 @@ from REvoDesign.tools.pymol_utils import (
     mutate,
     refresh_all_selections,
 )
-from REvoDesign.tools.utils import WITH_DLPACKER
+from REvoDesign.tools.utils import WITH_DLPACKER, WITH_PIPPACK
 
 TEST_DATA = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(TEST_DATA, 'testdata')
@@ -76,8 +76,10 @@ class TestMutant(absltest.TestCase):
         self.assertEqual(self.mutant_obj.mutant_description, new_description)
 
     def test_mutant_id(self):
+        expected_raw_id = 'AP10L_AS20T'
         expected_id = 'AP10L_AS20T_0.95'
-        self.assertEqual(self.mutant_obj.get_mutant_id(), expected_id)
+        self.assertEqual(self.mutant_obj.get_mutant_id(), expected_raw_id)
+        self.assertEqual(self.mutant_obj.get_short_mutant_id(), expected_id)
 
     def test_short_mutant_id(self):
         self.mutant_obj.mutant_info = [{'chain_id': 'A', 'position': 1, 'wt_res': 'P', 'mut_res': 'L'}]
@@ -592,9 +594,6 @@ class TestSidechainSolver(absltest.TestCase):
         self.mutant_string = 'AI5R_AK26T_0.4567'
         self.expected_sequence = 'XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
         self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string, sequences={'A': sequence})
-
-        
-
         try:
             cmd.fetch(molecule)
             cmd.remove('c. B')
@@ -653,6 +652,22 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_1.get_resname(), 'ARG')
         self.assertEqual(mut_residue_2.get_resname(), 'THR')
 
+    def test_pippack_mutate(self):
+        
+        if not WITH_PIPPACK:
+            print('Skiping pippack tests..')
+        from REvoDesign.sidechain_solver.PIPPack import PIPPack_worker
+        mutate_runner=PIPPack_worker(pdb_file=self.wt_pdb)
+        mutate_pdb_path=mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+
+        from Bio.PDB.PDBParser import PDBParser
+        parser = PDBParser(PERMISSIVE=1)
+        structure = parser.get_structure(self.mutant_string, mutate_pdb_path)
+        mut_residue_1=structure[0]["A"][5]
+        mut_residue_2=structure[0]["A"][26]
+        self.assertEqual(mut_residue_1.get_resname(), 'ARG')
+        self.assertEqual(mut_residue_2.get_resname(), 'THR')
 
 if __name__ == '__main__':
     absltest.main()
