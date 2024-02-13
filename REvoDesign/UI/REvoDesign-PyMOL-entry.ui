@@ -81,6 +81,9 @@
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="text">
+            <string>/Users/yyy/Documents/protein_design/REvoDesign</string>
+           </property>
           </widget>
          </item>
          <item>
@@ -219,6 +222,9 @@
            <property name="text">
             <string>Verbose</string>
            </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
         </layout>
@@ -259,6 +265,9 @@
            </property>
            <property name="text">
             <string>Upgrade</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -401,6 +410,70 @@
     <hint type="destinationlabel">
      <x>388</x>
      <y>227</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_clone</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_local</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>118</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>195</x>
+     <y>160</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_clone</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>pushButton_open</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>118</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>398</x>
+     <y>161</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_file</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_local</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>360</x>
+     <y>118</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>195</x>
+     <y>160</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_file</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>pushButton_open</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>360</x>
+     <y>118</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>398</x>
+     <y>161</y>
     </hint>
    </hints>
   </connection>

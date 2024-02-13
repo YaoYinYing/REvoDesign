@@ -122,6 +122,7 @@ class Ui_Dialog(object):
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
         self.checkBox_verbose = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
+        self.checkBox_verbose.setChecked(True)
         self.checkBox_verbose.setObjectName("checkBox_verbose")
         self.horizontalLayout_7.addWidget(self.checkBox_verbose)
         self.verticalLayout_3.addLayout(self.horizontalLayout_7)
@@ -148,6 +149,7 @@ class Ui_Dialog(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.checkBox_upgrade.sizePolicy().hasHeightForWidth())
         self.checkBox_upgrade.setSizePolicy(sizePolicy)
+        self.checkBox_upgrade.setChecked(True)
         self.checkBox_upgrade.setObjectName("checkBox_upgrade")
         self.horizontalLayout_5.addWidget(self.checkBox_upgrade)
         self.verticalLayout_4.addLayout(self.horizontalLayout_5)
@@ -190,6 +192,10 @@ class Ui_Dialog(object):
         self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled) # type: ignore
         self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled) # type: ignore
         self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
@@ -199,6 +205,7 @@ class Ui_Dialog(object):
         self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
         self.radioButton_from_local_clone.setText(_translate("Dialog", "Local clone"))
         self.radioButton_from_local_file.setText(_translate("Dialog", "Local file"))
+        self.lineEdit_local.setText(_translate("Dialog", "/Users/yyy/Documents/protein_design/REvoDesign"))
         self.pushButton_open.setText(_translate("Dialog", "..."))
         self.pushButton_install.setText(_translate("Dialog", "Install"))
         self.groupBox_2.setTitle(_translate("Dialog", "Options:"))

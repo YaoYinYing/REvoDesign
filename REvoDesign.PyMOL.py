@@ -37,79 +37,49 @@ class Ui_Dialog(object):
         Dialog.resize(544, 325)
         self.groupBox = QtWidgets.QGroupBox(Dialog)
         self.groupBox.setGeometry(QtCore.QRect(10, 70, 521, 121))
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.groupBox.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
         self.groupBox.setSizePolicy(sizePolicy)
         self.groupBox.setObjectName("groupBox")
         self.horizontalLayoutWidget_2 = QtWidgets.QWidget(self.groupBox)
-        self.horizontalLayoutWidget_2.setGeometry(
-            QtCore.QRect(10, 30, 501, 81)
-        )
+        self.horizontalLayoutWidget_2.setGeometry(QtCore.QRect(10, 30, 501, 81))
         self.horizontalLayoutWidget_2.setObjectName("horizontalLayoutWidget_2")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(
-            self.horizontalLayoutWidget_2
-        )
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_2)
         self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.radioButton_from_repo = QtWidgets.QRadioButton(
-            self.horizontalLayoutWidget_2
-        )
+        self.radioButton_from_repo = QtWidgets.QRadioButton(self.horizontalLayoutWidget_2)
         self.radioButton_from_repo.setObjectName("radioButton_from_repo")
         self.horizontalLayout_3.addWidget(self.radioButton_from_repo)
-        self.radioButton_from_local_clone = QtWidgets.QRadioButton(
-            self.horizontalLayoutWidget_2
-        )
-        self.radioButton_from_local_clone.setObjectName(
-            "radioButton_from_local_clone"
-        )
+        self.radioButton_from_local_clone = QtWidgets.QRadioButton(self.horizontalLayoutWidget_2)
+        self.radioButton_from_local_clone.setObjectName("radioButton_from_local_clone")
         self.horizontalLayout_3.addWidget(self.radioButton_from_local_clone)
-        self.radioButton_from_local_file = QtWidgets.QRadioButton(
-            self.horizontalLayoutWidget_2
-        )
-        self.radioButton_from_local_file.setObjectName(
-            "radioButton_from_local_file"
-        )
+        self.radioButton_from_local_file = QtWidgets.QRadioButton(self.horizontalLayoutWidget_2)
+        self.radioButton_from_local_file.setObjectName("radioButton_from_local_file")
         self.horizontalLayout_3.addWidget(self.radioButton_from_local_file)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.lineEdit_local = QtWidgets.QLineEdit(
-            self.horizontalLayoutWidget_2
-        )
+        self.lineEdit_local = QtWidgets.QLineEdit(self.horizontalLayoutWidget_2)
         self.lineEdit_local.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.lineEdit_local.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.lineEdit_local.sizePolicy().hasHeightForWidth())
         self.lineEdit_local.setSizePolicy(sizePolicy)
         self.lineEdit_local.setObjectName("lineEdit_local")
         self.horizontalLayout.addWidget(self.lineEdit_local)
-        self.pushButton_open = QtWidgets.QPushButton(
-            self.horizontalLayoutWidget_2
-        )
+        self.pushButton_open = QtWidgets.QPushButton(self.horizontalLayoutWidget_2)
         self.pushButton_open.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.pushButton_open.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.pushButton_open.sizePolicy().hasHeightForWidth())
         self.pushButton_open.setSizePolicy(sizePolicy)
         self.pushButton_open.setObjectName("pushButton_open")
         self.horizontalLayout.addWidget(self.pushButton_open)
@@ -117,31 +87,19 @@ class Ui_Dialog(object):
         self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.pushButton_install = QtWidgets.QPushButton(
-            self.horizontalLayoutWidget_2
-        )
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
-        )
+        self.pushButton_install = QtWidgets.QPushButton(self.horizontalLayoutWidget_2)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.pushButton_install.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.pushButton_install.sizePolicy().hasHeightForWidth())
         self.pushButton_install.setSizePolicy(sizePolicy)
         self.pushButton_install.setObjectName("pushButton_install")
         self.verticalLayout_2.addWidget(self.pushButton_install)
-        self.progressBar = QtWidgets.QProgressBar(
-            self.horizontalLayoutWidget_2
-        )
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        )
+        self.progressBar = QtWidgets.QProgressBar(self.horizontalLayoutWidget_2)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.progressBar.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.progressBar.sizePolicy().hasHeightForWidth())
         self.progressBar.setSizePolicy(sizePolicy)
         self.progressBar.setMinimumSize(QtCore.QSize(0, 0))
         self.progressBar.setSizeIncrement(QtCore.QSize(0, 0))
@@ -150,9 +108,7 @@ class Ui_Dialog(object):
         font.setPointSize(3)
         self.progressBar.setFont(font)
         self.progressBar.setProperty("value", 0)
-        self.progressBar.setAlignment(
-            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop
-        )
+        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
         self.progressBar.setOrientation(QtCore.Qt.Horizontal)
         self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
         self.progressBar.setObjectName("progressBar")
@@ -162,13 +118,9 @@ class Ui_Dialog(object):
         self.groupBox_2.setGeometry(QtCore.QRect(10, 200, 521, 111))
         self.groupBox_2.setObjectName("groupBox_2")
         self.horizontalLayoutWidget_8 = QtWidgets.QWidget(self.groupBox_2)
-        self.horizontalLayoutWidget_8.setGeometry(
-            QtCore.QRect(10, 29, 501, 75)
-        )
+        self.horizontalLayoutWidget_8.setGeometry(QtCore.QRect(10, 29, 501, 75))
         self.horizontalLayoutWidget_8.setObjectName("horizontalLayoutWidget_8")
-        self.horizontalLayout_8 = QtWidgets.QHBoxLayout(
-            self.horizontalLayoutWidget_8
-        )
+        self.horizontalLayout_8 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_8)
         self.horizontalLayout_8.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout()
@@ -176,28 +128,21 @@ class Ui_Dialog(object):
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.label = QtWidgets.QLabel(self.horizontalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.label.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
         self.label.setSizePolicy(sizePolicy)
         self.label.setObjectName("label")
         self.horizontalLayout_4.addWidget(self.label)
-        self.comboBox_extras = QtWidgets.QComboBox(
-            self.horizontalLayoutWidget_8
-        )
+        self.comboBox_extras = QtWidgets.QComboBox(self.horizontalLayoutWidget_8)
         self.comboBox_extras.setObjectName("comboBox_extras")
         self.horizontalLayout_4.addWidget(self.comboBox_extras)
         self.verticalLayout_3.addLayout(self.horizontalLayout_4)
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
-        self.checkBox_verbose = QtWidgets.QCheckBox(
-            self.horizontalLayoutWidget_8
-        )
+        self.checkBox_verbose = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
+        self.checkBox_verbose.setChecked(True)
         self.checkBox_verbose.setObjectName("checkBox_verbose")
         self.horizontalLayout_7.addWidget(self.checkBox_verbose)
         self.verticalLayout_3.addLayout(self.horizontalLayout_7)
@@ -206,64 +151,39 @@ class Ui_Dialog(object):
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.checkBox_specified_version = QtWidgets.QCheckBox(
-            self.horizontalLayoutWidget_8
-        )
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
-        )
+        self.checkBox_specified_version = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.checkBox_specified_version.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.checkBox_specified_version.sizePolicy().hasHeightForWidth())
         self.checkBox_specified_version.setSizePolicy(sizePolicy)
-        self.checkBox_specified_version.setObjectName(
-            "checkBox_specified_version"
-        )
+        self.checkBox_specified_version.setObjectName("checkBox_specified_version")
         self.horizontalLayout_5.addWidget(self.checkBox_specified_version)
-        self.comboBox_version = QtWidgets.QComboBox(
-            self.horizontalLayoutWidget_8
-        )
+        self.comboBox_version = QtWidgets.QComboBox(self.horizontalLayoutWidget_8)
         self.comboBox_version.setEnabled(False)
         self.comboBox_version.setObjectName("comboBox_version")
         self.horizontalLayout_5.addWidget(self.comboBox_version)
-        self.checkBox_upgrade = QtWidgets.QCheckBox(
-            self.horizontalLayoutWidget_8
-        )
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
-        )
+        self.checkBox_upgrade = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.checkBox_upgrade.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.checkBox_upgrade.sizePolicy().hasHeightForWidth())
         self.checkBox_upgrade.setSizePolicy(sizePolicy)
+        self.checkBox_upgrade.setChecked(True)
         self.checkBox_upgrade.setObjectName("checkBox_upgrade")
         self.horizontalLayout_5.addWidget(self.checkBox_upgrade)
         self.verticalLayout_4.addLayout(self.horizontalLayout_5)
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.checkBox_specified_commit = QtWidgets.QCheckBox(
-            self.horizontalLayoutWidget_8
-        )
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
-        )
+        self.checkBox_specified_commit = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.checkBox_specified_commit.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.checkBox_specified_commit.sizePolicy().hasHeightForWidth())
         self.checkBox_specified_commit.setSizePolicy(sizePolicy)
-        self.checkBox_specified_commit.setObjectName(
-            "checkBox_specified_commit"
-        )
+        self.checkBox_specified_commit.setObjectName("checkBox_specified_commit")
         self.horizontalLayout_6.addWidget(self.checkBox_specified_commit)
-        self.lineEdit_commit = QtWidgets.QLineEdit(
-            self.horizontalLayoutWidget_8
-        )
+        self.lineEdit_commit = QtWidgets.QLineEdit(self.horizontalLayoutWidget_8)
         self.lineEdit_commit.setEnabled(False)
         self.lineEdit_commit.setObjectName("lineEdit_commit")
         self.horizontalLayout_6.addWidget(self.lineEdit_commit)
@@ -288,41 +208,33 @@ class Ui_Dialog(object):
         self.label_2.setObjectName("label_2")
 
         self.retranslateUi(Dialog)
-        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled)  # type: ignore
-        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled)  # type: ignore
-        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled)  # type: ignore
-        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled)  # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled) # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled) # type: ignore
+        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled) # type: ignore
+        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(
-            _translate("Dialog", "Install REvoDesign to PyMOL")
-        )
+        Dialog.setWindowTitle(_translate("Dialog", "Install REvoDesign to PyMOL"))
         self.groupBox.setTitle(_translate("Dialog", "Source:"))
         self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
-        self.radioButton_from_local_clone.setText(
-            _translate("Dialog", "Local clone")
-        )
-        self.radioButton_from_local_file.setText(
-            _translate("Dialog", "Local file")
-        )
+        self.radioButton_from_local_clone.setText(_translate("Dialog", "Local clone"))
+        self.radioButton_from_local_file.setText(_translate("Dialog", "Local file"))
+        self.lineEdit_local.setText(_translate("Dialog", "/Users/yyy/Documents/protein_design/REvoDesign"))
         self.pushButton_open.setText(_translate("Dialog", "..."))
         self.pushButton_install.setText(_translate("Dialog", "Install"))
         self.groupBox_2.setTitle(_translate("Dialog", "Options:"))
         self.label.setText(_translate("Dialog", "Extras:"))
         self.checkBox_verbose.setText(_translate("Dialog", "Verbose"))
-        self.checkBox_specified_version.setText(
-            _translate("Dialog", "Version:")
-        )
+        self.checkBox_specified_version.setText(_translate("Dialog", "Version:"))
         self.checkBox_upgrade.setText(_translate("Dialog", "Upgrade"))
         self.checkBox_specified_commit.setText(_translate("Dialog", "commit:"))
-        self.label_2.setText(
-            _translate(
-                "Dialog",
-                "This tool helps you with installation of REvoDesign to PyMOL.",
-            )
-        )
+        self.label_2.setText(_translate("Dialog", "This tool helps you with installation of REvoDesign to PyMOL."))
 
 
 class REvoDesignInstaller:
@@ -706,11 +618,12 @@ def install_via_pip(
 
     # with git repo clone and tag
     elif source.startswith('file://'):
-        if not os.path.exists(os.path.join(git_url, '.git')):
+        dir=git_url.replace('file://','')
+        if not os.path.exists(os.path.join(dir, '.git')):
             raise FileNotFoundError(
-                f'Git dir not found: {os.path.join(git_url, ".git")}'
+                f'Git dir not found: {os.path.join(dir, ".git")}'
             )
-        package_string += f' @ git+{source}{f"@{git_tag}" if git_tag else ""}'
+        package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
 
     # with unzipped code dir
     elif os.path.exists(source) and os.path.isdir(source):
