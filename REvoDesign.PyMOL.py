@@ -445,7 +445,7 @@ class REvoDesignInstaller:
             if use_version and target_version:
                 install_source = f'file://{install_source}@{target_version}'
             elif use_commit and target_commit:
-                install_source += f'file://{install_source}@{target_commit}'
+                install_source = f'file://{install_source}@{target_commit}'
         elif from_local_file:
             install_source = local_source
             if not os.path.exists(local_source):
