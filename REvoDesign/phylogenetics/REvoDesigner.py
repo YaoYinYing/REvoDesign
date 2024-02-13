@@ -59,7 +59,7 @@ class REvoDesigner:
 
         self.sidechain_solver = 'Dunbrack Rotamer Library'
         self.sidechain_solver_radius = 0
-        self.sidechain_solver_model=''
+        self.sidechain_solver_model = ''
 
         self.molecule = ''
         self.chain_id = 'A'
@@ -498,7 +498,7 @@ class REvoDesigner:
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
-        
+
         if not self.visualizer:
             self.setup_visualizer()
 
@@ -576,13 +576,13 @@ class REvoDesigner:
         )
 
         return mutation_json_fp, mutation_png_fp
-    
+
     def setup_visualizer(self):
         self.visualizer = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id
         )
         self.visualizer.sequence = self.sequence
-        
+
         self.visualizer.full = self.create_full_pdb
         self.visualizer.cmap = self.cmap
 
@@ -599,10 +599,10 @@ class REvoDesigner:
             or self.input_profile_format in EXTERNAL_DESIGNERS
         ):
             score_list = [
-                mut_obj.mutant_score 
+                mut_obj.mutant_score
                 for group_id in self.mutant_tree.all_mutant_branch_ids
-                for branch in  self.mutant_tree.get_a_branch(branch_id=group_id) 
-                for _, mut_obj in branch.items() 
+                for branch in self.mutant_tree.get_a_branch(branch_id=group_id)
+                for _, mut_obj in branch.items()
             ]
             self.visualizer.min_score = min(score_list)
             self.visualizer.max_score = max(score_list)

@@ -136,10 +136,11 @@ class MutantVisualizer:
                     PIPPack_worker,
                 )
 
-                self.mutate_runner = PIPPack_worker(pdb_file=input_pdb,use_model=self.sidechain_solver_model)
+                self.mutate_runner = PIPPack_worker(
+                    pdb_file=input_pdb, use_model=self.sidechain_solver_model
+                )
 
         # setup more sidechain solvers here ...
-                
 
         logging.info(f'Using {self.sidechain_solver} as sidechain solver.')
 
@@ -770,8 +771,8 @@ class MutantVisualizer:
             self.save_session = merged_temp_session
         else:
             logging.warning(
-                f'Temperal merged result is failed to create. Try again with a clean PyMOL session. \n'\
-                f'STDOUT:\n{merge_results.stdout}\n'\
+                f'Temperal merged result is failed to create. Try again with a clean PyMOL session. \n'
+                f'STDOUT:\n{merge_results.stdout}\n'
                 f'STDERR:\n{merge_results.stderr}'
             )
             return

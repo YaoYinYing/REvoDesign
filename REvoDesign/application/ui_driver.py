@@ -128,11 +128,11 @@ class Widget2ConfigMapper:
                 self.ui.comboBox_sidechain_solver,
                 'ui.config.sidechain_solver.default',
             ),
-            (   self.ui.comboBox_sidechain_solver_model,
-                'ui.config.sidechain_solver.model')
+            (
+                self.ui.comboBox_sidechain_solver_model,
+                'ui.config.sidechain_solver.model',
+            ),
         ]
-
-
 
         self.widget2config_dict = self._widget2config()
         self.config2widget_dict = self._config2widget()
@@ -152,15 +152,15 @@ class Widget2ConfigMapper:
         ui_element = self.config2widget_dict[config_item]
         print(f'{config_item} -> {ui_element}')
         return ui_element
+
+
 @dataclass
 class Widget2Widget:
-    sidechain_solver2model={
-
-        'PIPPack':[
-        'ui.config.sidechain_solver.pippack.model_names.group',
-        'ui.config.sidechain_solver.pippack.model_names.default'
+    sidechain_solver2model = {
+        'PIPPack': [
+            'ui.config.sidechain_solver.pippack.model_names.group',
+            'ui.config.sidechain_solver.pippack.model_names.default',
         ],
         'DLPacker': [''],
-        'Dunbrack Rotamer Library': ['']
-
+        'Dunbrack Rotamer Library': [''],
     }
