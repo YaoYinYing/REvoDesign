@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "REvoDesign"
-version = "1.3.4"
+version = "1.3.5"
 description = "A PyMOL plugin that makes enzyme redesign tasks easier to all."
 authors = ["Yinying Yao <yaoyy.hi@gmail.com>"]
 
