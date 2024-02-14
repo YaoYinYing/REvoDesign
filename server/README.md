@@ -2,6 +2,7 @@
 
 This README provides an overview and documentation for the PSSM GREMLIN Flask application. This application is designed to facilitate the submission and management of tasks for the GREMLIN_PSSM protocol within the context of protein design and analysis. Users can upload FASTA files, which are processed in the background using Celery tasks, and the results can be downloaded when the tasks are completed.
 
+![Server Design](./image/server.svg)
 
 ## Installation
 
