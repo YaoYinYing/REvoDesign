@@ -16,6 +16,7 @@ import traceback
 import urllib.request
 import json
 import os
+import asyncio
 
 
 print(f'REvoDesign entrypoint is located at {os.path.dirname(__file__)}')
@@ -433,30 +434,25 @@ class REvoDesignInstaller:
         if self.dialog is None:
             self.dialog = self.make_window()
         self.dialog.show()
+        run_worker_thread_with_progress(
+            worker_function=self.fetch_tags, progress_bar=self.ui.progressBar
+        )
 
-    def make_window(self):
+    def make_window(self) -> QtWidgets.QDialog:
         self.ui = Ui_Dialog()
 
         dialog = QtWidgets.QDialog()
         self.ui.setupUi(Dialog=dialog)
         self.ui.pushButton_open.clicked.connect(self.open_files)
         self.ui.pushButton_install.clicked.connect(self.install)
-        run_worker_thread_with_progress(
-            worker_function=set_widget_value,
-            widget=self.ui.comboBox_version,
-            value=self.fetch_tags,
-        )
+
         set_widget_value(self.ui.comboBox_extras, AVAILABLE_EXTRAS)
         return dialog
 
-    def fetch_tags(self) -> Union[list, str]:
-        try:
-            tags = get_github_repo_tags(repo_url=REPO_URL)
-            assert tags
-            return tags
-        except ValueError as e:
-            traceback.print_exc()
-            return ''
+    def fetch_tags(self) -> list:
+        set_widget_value(
+            self.ui.comboBox_version, get_github_repo_tags(repo_url=REPO_URL)
+        )
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
     def getExistingDirectory(self):
@@ -678,7 +674,7 @@ def run_worker_thread_with_progress(
     return result[0] if result else None
 
 
-def get_github_repo_tags(repo_url):
+def get_github_repo_tags(repo_url) -> list[str]:
     """
     Retrieve all released tags of a GitHub repository using urllib.
 
@@ -690,7 +686,7 @@ def get_github_repo_tags(repo_url):
         repo_url (str): The URL of the GitHub repository.
 
     Returns:
-        list: A list of tag names for the repository, or an error message.
+        list: A list of tag names for the repository.
     """
     # Extract the owner and repo name from the URL
     parts = repo_url.split("/")
@@ -712,10 +708,12 @@ def get_github_repo_tags(repo_url):
             return tag_names
     except urllib.error.HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
-        return f"Error: GitHub API returned status code {e.code}"
+        print(f"Error: GitHub API returned status code {e.code}")
+        return []
     except urllib.error.URLError as e:
         # Handle URL errors (e.g., network issues)
-        return f"Error: Failed to reach the server. Reason: {e.reason}"
+        print(f"Error: Failed to reach the server. Reason: {e.reason}")
+        return []
 
 
 # a minimum copy from `REvoDesign/tools/customized_widgets.py`
