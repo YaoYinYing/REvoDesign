@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>544</width>
-    <height>325</height>
+    <height>390</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Install REvoDesign to PyMOL</string>
+   <string>REvoDesign Installation/Upgradation Tool</string>
   </property>
   <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
@@ -19,7 +19,7 @@
      <x>10</x>
      <y>70</y>
      <width>521</width>
-     <height>121</height>
+     <height>101</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -37,18 +37,24 @@
       <x>10</x>
       <y>30</y>
       <width>501</width>
-      <height>81</height>
+      <height>61</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
+       <property name="spacing">
+        <number>0</number>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
           <widget class="QRadioButton" name="radioButton_from_repo">
            <property name="text">
             <string>Repository</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -175,9 +181,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>200</y>
+     <y>170</y>
      <width>521</width>
-     <height>111</height>
+     <height>101</height>
     </rect>
    </property>
    <property name="title">
@@ -189,12 +195,15 @@
       <x>10</x>
       <y>29</y>
       <width>501</width>
-      <height>75</height>
+      <height>65</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_8">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <property name="spacing">
+        <number>0</number>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
@@ -211,7 +220,20 @@
           </widget>
          </item>
          <item>
-          <widget class="QComboBox" name="comboBox_extras"/>
+          <widget class="QComboBox" name="comboBox_extras">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>75</width>
+             <height>16777215</height>
+            </size>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -233,6 +255,9 @@
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_4">
+       <property name="spacing">
+        <number>0</number>
+       </property>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
@@ -334,7 +359,7 @@
     <number>0</number>
    </property>
    <property name="text">
-    <string>This tool helps you with installation of REvoDesign to PyMOL.</string>
+    <string>REvoDesign Installation/Upgradation Tool</string>
    </property>
    <property name="textFormat">
     <enum>Qt::RichText</enum>
@@ -345,6 +370,88 @@
    <property name="margin">
     <number>3</number>
    </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>270</y>
+     <width>521</width>
+     <height>101</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Network:</string>
+   </property>
+   <widget class="QWidget" name="verticalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>501</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_5">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_9">
+       <item>
+        <widget class="QCheckBox" name="checkBox_use_proxy">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>proxy:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_proxy_url">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>http://localhost:7890</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_10">
+       <item>
+        <widget class="QCheckBox" name="checkBox_use_mirror">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Mirror:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_mirror_url">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>https://mirrors.bfsu.edu.cn/pypi/web/simple</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
   </widget>
  </widget>
  <resources/>
@@ -474,6 +581,166 @@
     <hint type="destinationlabel">
      <x>398</x>
      <y>161</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_file</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>comboBox_version</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>360</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>347</x>
+     <y>215</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_use_proxy</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_proxy_url</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>51</x>
+     <y>344</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>301</x>
+     <y>344</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_use_mirror</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_mirror_url</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>52</x>
+     <y>369</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>303</x>
+     <y>369</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_file</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBox_specified_version</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>360</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>224</x>
+     <y>214</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_file</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBox_specified_commit</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>360</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>223</x>
+     <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_file</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_commit</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>360</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>389</x>
+     <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_clone</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>comboBox_version</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>347</x>
+     <y>215</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_clone</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBox_specified_version</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>224</x>
+     <y>214</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_clone</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBox_specified_commit</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>223</x>
+     <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_from_local_clone</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_commit</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>223</x>
+     <y>113</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>389</x>
+     <y>243</y>
     </hint>
    </hints>
   </connection>
