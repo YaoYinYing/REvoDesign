@@ -80,3 +80,4 @@ clean:
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py
 	rm -rvf $(TESTDIR) dask-worker-space
 	rm -rvf logs surface_residue_records downloaded mutations_design_profile pockets temperal_pdb
+	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb

@@ -5,6 +5,7 @@ import time
 import re
 
 from REvoDesign.tools.logger import logging as logger
+from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
 
 logging = logger.getChild(__name__)
 
@@ -19,7 +20,6 @@ from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
 from REvoDesign.tools.utils import (
-    WITH_COLABDESIGN,
     random_deduplicate,
     run_worker_thread_with_progress,
 )
@@ -317,7 +317,7 @@ class REvoDesigner:
 
         # help msg if MPNN is called yet not installed.
         if self.input_profile_format == 'ProteinMPNN':
-            if not WITH_COLABDESIGN:
+            if not WITH_DEPENDENCIES.COLABDESIGN:
                 logging.error(
                     'ColabDesign is not available. Please install it manually then restart pymol for taking effort.'
                     '`system pip -q install git+https://github.com/sokrypton/ColabDesign.git@v1.1.1`'

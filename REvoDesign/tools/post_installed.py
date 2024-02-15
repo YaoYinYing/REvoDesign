@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+import importlib
 import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -112,3 +114,27 @@ class ConfigConverter:
             ]
         else:
             return config
+
+
+def is_package_installed(package):
+    """
+    Function: is_package_installed
+    Usage: is_installed = is_package_installed(package)
+
+    This function checks if a specified package is installed in the current Python environment.
+
+    Args:
+    - package (str): Name of the package to check
+
+    Returns:
+    - bool: True if the package is installed, False otherwise
+    """
+    package_loader = importlib.util.find_spec(package)
+    return package_loader is not None
+
+
+@dataclass(frozen=True)
+class WITH_DEPENDENCIES:
+    COLABDESIGN = is_package_installed('colabdesign')
+    DLPACKER = is_package_installed('DLPacker')
+    PIPPACK = is_package_installed('pippack')

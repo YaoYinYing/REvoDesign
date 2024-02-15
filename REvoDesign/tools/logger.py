@@ -132,13 +132,13 @@ def setup_logging_from_dictconfig(
         python_logging.Formatter(log_config.formatters.simple.format)
     )
 
-    stderr_handler = python_logging.StreamHandler()
-    stderr_handler.setLevel(
-        setup_logger_level(log_config.handlers.stderr.level)
-    )
-    stderr_handler.setFormatter(
-        python_logging.Formatter(log_config.formatters.simple.format)
-    )
+    # stderr_handler = python_logging.StreamHandler()
+    # stderr_handler.setLevel(
+    #     setup_logger_level(log_config.handlers.stderr.level)
+    # )
+    # stderr_handler.setFormatter(
+    #     python_logging.Formatter(log_config.formatters.simple.format)
+    # )
 
     file_handler = python_logging_handlers.RotatingFileHandler(
         filename=file_filename,
@@ -178,7 +178,7 @@ def setup_logging_from_dictconfig(
     listener = python_logging_handlers.QueueListener(
         log_queue,
         stdout_handler,
-        stderr_handler,
+        # stderr_handler,
         file_handler,
         notebook_handler,
         respect_handler_level=True,

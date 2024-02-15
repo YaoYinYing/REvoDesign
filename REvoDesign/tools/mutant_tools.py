@@ -1,6 +1,8 @@
 import os
 import re
 import json
+
+from omegaconf import DictConfig
 from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
 from REvoDesign.common.MutantTree import MutantTree
@@ -451,7 +453,6 @@ def quick_mutagenesis(
     molecule: str,
     chain_id: str,
     sequence: str,
-    cmap: str,
     nproc: int,
     progress_bar=None,
 ):
@@ -466,7 +467,6 @@ def quick_mutagenesis(
     - molecule (str): PyMOL selection string of the molecule
     - chain_id (str): Chain ID of the molecule
     - sequence (str): Amino acid sequence
-    - cmap (str): Color map string
     - nproc (int): Number of processors
     - progress_bar (object): Progress bar object (default is None)
 
@@ -490,22 +490,30 @@ def quick_mutagenesis(
     results = []
 
     input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
+    visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
+    cfg: DictConfig = visualizer.REVODESIGN_CONFIG
+
+    visualizer.nproc = nproc
+    visualizer.parallel_run = nproc > 1
+    visualizer.input_session = input_pdb
+    visualizer.sequence = sequence
+
+    visualizer.full = cfg.ui.visualize.full_pdb
+    visualizer.cmap = cfg.ui.header_panel.cmap
+    visualizer.sidechain_solver = cfg.ui.config.sidechain_solver.default
+    visualizer.sidechain_solver_model = cfg.ui.config.sidechain_solver.model
+    visualizer.sidechain_solver_radius = (
+        cfg.ui.config.sidechain_solver.repack_radius
+    )
+
+    visualizer.min_score = min(score_list)
+    visualizer.max_score = max(score_list)
+
+    visualizer.setup_side_chain_solver()
 
     for group_id in mutant_tree.all_mutant_branch_ids:
-        visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-
-        visualizer.sequence = sequence
-        visualizer.full = False
-        visualizer.cmap = cmap
-
-        visualizer.min_score = min(score_list)
-        visualizer.max_score = max(score_list)
-
-        visualizer.nproc = nproc
-
         visualizer.group_name = group_id
-        visualizer.parallel_run = nproc > 1
-        visualizer.input_session = input_pdb
+
         visualizer.save_session = os.path.join(
             os.path.dirname(input_pdb),
             f'group.{group_id}.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
@@ -514,7 +522,7 @@ def quick_mutagenesis(
         visualizer.mutant_tree = MutantTree(
             {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
         )
-        # TODO: sidechain solver
+
         visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
         results.append(visualizer.save_session)
 

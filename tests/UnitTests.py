@@ -46,6 +46,7 @@ from REvoDesign.tools.post_installed import (
     save_configuration,
     set_REvoDesign_config_file,
     set_cache_dir,
+    WITH_DEPENDENCIES
 )
 from REvoDesign.tools.pymol_utils import (
     any_posision_has_been_selected,
@@ -62,7 +63,6 @@ from REvoDesign.tools.pymol_utils import (
     mutate,
     refresh_all_selections,
 )
-from REvoDesign.tools.utils import WITH_DLPACKER, WITH_PIPPACK
 
 TEST_DATA = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(TEST_DATA, 'testdata')
@@ -1066,7 +1066,7 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_2.get_resname(), 'THR')
 
     def test_dlpacker_mutate(self):
-        if not WITH_DLPACKER:
+        if not WITH_DEPENDENCIES.DLPACKER:
             print('Skiping dlpacker tests..')
         from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
 
@@ -1083,7 +1083,7 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_2.get_resname(), 'THR')
 
     def test_dlpacker_mutate_reconstruct_range(self):
-        if not WITH_DLPACKER:
+        if not WITH_DEPENDENCIES.DLPACKER:
             print('Skiping dlpacker tests..')
         from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
 
@@ -1102,7 +1102,7 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_2.get_resname(), 'THR')
 
     def test_pippack_mutate(self):
-        if not WITH_PIPPACK:
+        if not WITH_DEPENDENCIES.PIPPACK:
             print('Skiping pippack tests..')
         from REvoDesign.sidechain_solver.PIPPack import PIPPack_worker
 

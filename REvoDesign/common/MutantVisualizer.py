@@ -16,17 +16,18 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 matplotlib.use('Agg')
 
-from REvoDesign.tools.post_installed import reload_config_file
+from REvoDesign.tools.post_installed import (
+    reload_config_file,
+    WITH_DEPENDENCIES,
+)
 from omegaconf import DictConfig
 
 from REvoDesign.common.Mutant import Mutant
 
 from REvoDesign.tools.utils import (
-    WITH_PIPPACK,
     get_color,
     run_command,
     run_worker_thread_with_progress,
-    WITH_DLPACKER,
 )
 
 
@@ -102,7 +103,7 @@ class MutantVisualizer:
                 )
 
         elif self.sidechain_solver == 'DLPacker':
-            if not WITH_DLPACKER:
+            if not WITH_DEPENDENCIES.DLPACKER:
                 logging.error(
                     'DLPacker is not available in your installation. Aborded..'
                 )
@@ -122,7 +123,7 @@ class MutantVisualizer:
                 # )
                 # self.nproc = 1
         elif self.sidechain_solver == 'PIPPack':
-            if not WITH_PIPPACK:
+            if not WITH_DEPENDENCIES.PIPPACK:
                 logging.error(
                     'PIPPack is not available in your installation. Aborded..'
                 )

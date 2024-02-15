@@ -43,6 +43,7 @@ ui:
       use_sidechain_orientation: True
       use_external_scorer: True
       color_by_scores: True
+    full_pdb: False
 
   interact:
     topN_pairs: 100
@@ -91,6 +92,7 @@ ui:
       default: DLPacker
 
       model: 
+      repack_radius: 0.0
 
       pippack:
         model_names:

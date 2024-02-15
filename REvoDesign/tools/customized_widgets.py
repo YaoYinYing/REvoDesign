@@ -7,7 +7,7 @@ from REvoDesign.tools.post_installed import reload_config_file
 
 logging = logger.getChild(__name__)
 
-from REvoDesign.tools.system_tools import OS_INFO, OS_TYPE
+from REvoDesign.tools.system_tools import CLIENT_INFO
 
 from collections.abc import Iterable
 from omegaconf import DictConfig, OmegaConf
@@ -458,7 +458,7 @@ class ParallelExecutor(QtCore.QThread):
         self.args = args
         self.n_jobs = n_jobs
 
-        os_type = OS_TYPE
+        os_type = CLIENT_INFO.OS_TYPE
         # guessing backend according to OS
         if not backend == 'auto':
             self.backend = backend
@@ -597,7 +597,7 @@ def set_window_font(main_window):
         #'Darwin': ['Chalkboard']
     }
 
-    _OS_TYPE = OS_INFO.system
+    _OS_TYPE = CLIENT_INFO.OS_INFO.system
     if _OS_TYPE not in OS_TYPE_FONT_TABLE:
         return
 

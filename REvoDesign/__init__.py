@@ -3123,7 +3123,7 @@ class REvoDesignPlugin:
 
     def reload_configurations(self):
         if self.cfg:
-            old_cfg = self.cfg.__deepcopy__
+            old_cfg = self.cfg.__deepcopy__()
             self.cfg = None
         else:
             old_cfg = None

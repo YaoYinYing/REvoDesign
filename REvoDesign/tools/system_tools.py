@@ -1,4 +1,5 @@
-import importlib
+from dataclasses import asdict, dataclass
+import os
 import platform
 
 from REvoDesign.tools.logger import logging as logger
@@ -6,7 +7,7 @@ from REvoDesign.tools.logger import logging as logger
 logging = logger.getChild(__name__)
 
 
-def get_system_info():
+def get_system_info(os_info: platform.uname_result):
     """
     Function: get_system_info
     Usage: os_name, os_info = get_system_info()
@@ -15,9 +16,7 @@ def get_system_info():
 
     Returns:
     - os_name (str): Name of the operating system
-    - os_info (namedtuple): Detailed information about the operating system
     """
-    os_info = platform.uname()
     os_name = os_info.system
 
     if os_name == 'Darwin':
@@ -33,68 +32,54 @@ def get_system_info():
                 'This might limit the performance of joblib, causing MutantVisualizer slower.'
             )
             os_name += '_Rosetta'
-    return os_name, os_info
+    return os_name
 
 
-OS_TYPE, OS_INFO = get_system_info()
-PY_VERSION = platform.python_version()
+@dataclass
+class CLIENT_INFO:
+    OS_INFO: platform.uname_result = platform.uname()
+    node: str = None
+    user: str = None
+    os: str = None
+    os_build: str = None
+    machine_arch: str = None
+    revodesign_version: str = None
+    pymol_version: str = None
+    pymol_build: str = None
+    python_version: str = None
+    ip: list = None
+    qt_ver: str = None
+    OS_TYPE: str = None
+    is_translated_arm_mac: bool = None
+
+    def __post_init__(self):
+        import os
+        import socket
+        from REvoDesign.__version__ import __version__
+        from REvoDesign.tools.pymol_utils import PYMOL_VERSION, PYMOL_BUILD
+        from REvoDesign.tools.customized_widgets import PYQT_VERSION_STR
+
+        self.node: str = self.OS_INFO.node
+        self.user: str = os.getlogin()
+        self.os: str = self.OS_INFO.system
+        self.os_build: str = self.OS_INFO.version
+        self.machine_arch: str = self.OS_INFO.machine
+        self.revodesign_version: str = __version__
+        self.pymol_version = PYMOL_VERSION
+        self.pymol_build = PYMOL_BUILD
+        self.python_version: str = platform.python_version()
+        self.OS_TYPE: str = get_system_info(os_info=self.OS_INFO)
+        self.is_translated_arm_mac: bool = 'Rosetta' in self.OS_TYPE
+
+        try:
+            self.ip = socket.gethostbyname_ex(socket.gethostname())[2]
+            self.ip.remove('127.0.0.1')
+        except Exception as e:
+            logging.error(f'Failed to fetch client ip: {e}')
+            self.ip = []
+        self.qt_ver = PYQT_VERSION_STR
 
 
-def is_package_installed(package):
-    """
-    Function: is_package_installed
-    Usage: is_installed = is_package_installed(package)
-
-    This function checks if a specified package is installed in the current Python environment.
-
-    Args:
-    - package (str): Name of the package to check
-
-    Returns:
-    - bool: True if the package is installed, False otherwise
-    """
-    package_loader = importlib.util.find_spec(package)
-    return package_loader is not None
-
-
-def get_client_info():
-    """
-    Function: get_client_info
-    Usage: client_info = get_client_info()
-
-    This function retrieves information about the client system, including node, user, OS, Python, PyMOL, network, and Qt versions.
-
-    Returns:
-    - client_info (dict): Dictionary containing client system information
-    """
-    import os
-    import socket
-    from REvoDesign.tools.pymol_utils import PYMOL_VERSION, PYMOL_BUILD
-    from REvoDesign.tools.customized_widgets import PYQT_VERSION_STR
-
-    try:
-        client_ip = socket.gethostbyname_ex(socket.gethostname())[2]
-        # pop the loop
-        client_ip.remove('127.0.0.1')
-    except Exception as e:
-        logging.error(f'Failed to fetch client ip: {e}')
-        client_ip = []
-
-    client_info = {
-        # node and login
-        'node': OS_INFO.node,
-        'user': os.getlogin(),
-        # os and march
-        'os': OS_INFO.system,
-        'os_build': OS_INFO.version,
-        'machine_arch': OS_INFO.machine,
-        # python and pymol
-        'pymol_version': PYMOL_VERSION,
-        'pymol_build': PYMOL_BUILD,
-        'python_version': PY_VERSION,
-        # network
-        'ip': client_ip,
-        # qt
-        'qt_ver': PYQT_VERSION_STR,
-    }
-    return client_info
+# if __name__ == '__main__':
+#     client_info=CLIENT_INFO()
+#     print(client_info.__dict__)

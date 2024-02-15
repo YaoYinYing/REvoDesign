@@ -155,13 +155,13 @@ class REvoDesignWebSocketServer:
         ]
 
     def refresh_user_tree(self) -> dict[dict]:
-        from REvoDesign.tools.system_tools import get_client_info
+        from REvoDesign.tools.system_tools import CLIENT_INFO
 
         user_tree = {
             uuid: {k: v for k, v in data.items() if k != 'client'}
             for uuid, data in self.clients.items()
         }
-        user_tree['Host'] = get_client_info()
+        user_tree['Host'] = CLIENT_INFO().__dict__
         return user_tree
 
     def processTextMessage(self, client, message):
@@ -196,7 +196,7 @@ class REvoDesignWebSocketServer:
             return
 
         if client in self.waiting_room:
-            from REvoDesign.tools.system_tools import OS_INFO
+            from REvoDesign.tools.system_tools import CLIENT_INFO
             from REvoDesign.tools.client_tools import UUIDGenerator
 
             if not self.use_authentication or not self.authentication_key:
@@ -230,7 +230,7 @@ class REvoDesignWebSocketServer:
                     f'Client  {data["user"]} from {data["node"]} is join.'
                 )
                 client.sendTextMessage(
-                    f'Key authentication is successful.\nWellcome to {OS_INFO.node}, {data["user"]}.'
+                    f'Key authentication is successful.\nWellcome to {CLIENT_INFO.node}, {data["user"]}.'
                 )
                 self._broadcast_object(
                     obj=uuid, data_type='UUID', client=client
@@ -405,7 +405,7 @@ class REvoDesignWebSocketServer:
         Returns:
         None
         """
-        from REvoDesign.tools.system_tools import OS_INFO
+        from REvoDesign.tools.system_tools import CLIENT_INFO
 
         self.use_authentication = checkBox_ws_server_use_key.isChecked()
         self.authentication_key = lineEdit_ws_server_key.text()
@@ -434,7 +434,7 @@ class REvoDesignWebSocketServer:
 
         if not self.server:
             self.server = QtWebSockets.QWebSocketServer(
-                OS_INFO.node, QtWebSockets.QWebSocketServer.NonSecureMode
+                CLIENT_INFO.node, QtWebSockets.QWebSocketServer.NonSecureMode
             )
 
             if self.server.listen(QtNetwork.QHostAddress.Any, self.port):
@@ -631,9 +631,9 @@ class REvoDesignWebSocketClient:
     def authenticate_client(self):
         import json
 
-        from REvoDesign.tools.system_tools import get_client_info
+        from REvoDesign.tools.system_tools import CLIENT_INFO
 
-        greeting_message = get_client_info()
+        greeting_message = CLIENT_INFO().__dict__
 
         if self.authentication_key:
             greeting_message['auth_key'] = self.authentication_key
@@ -750,7 +750,6 @@ class REvoDesignWebSocketClient:
             molecule=self.design_molecule,
             chain_id=self.design_chain_id,
             sequence=self.design_sequence,
-            cmap=self.cmap,
             nproc=self.nproc,
         )
 
