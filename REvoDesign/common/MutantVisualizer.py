@@ -559,7 +559,6 @@ class MutantVisualizer:
         for _, row in mutation_data.iterrows():
             variant_obj: Mutant = extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
-                chain_id=self.chain_id,
                 sequences={self.chain_id: self.sequence},
             )
 

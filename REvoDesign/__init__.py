@@ -2893,7 +2893,6 @@ class REvoDesignPlugin:
 
         mutant_obj: Mutant = extract_mutants_from_mutant_id(
             mutant_string=mutant,
-            chain_id=self.design_chain_id,
             sequences=self.designable_sequences,
         )
 

@@ -6,7 +6,7 @@ import numpy as np
 from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 from REvoDesign.tools.mutant_tools import (
-    extract_mutants_from_mutant_id as extract_mutants,
+    extract_mutants_from_mutant_id
 )
 
 
@@ -171,7 +171,7 @@ class Combinations:
         with open(datafile) as f:
             for line in f:
                 _line = line.strip()
-                mut_obj = extract_mutants(
+                mut_obj = extract_mutants_from_mutant_id(
                     _line, sequences={self.chain_id: self.fastasequence}
                 )
                 mut_id = ''.join(
@@ -187,13 +187,13 @@ class Combinations:
     def getUniquePositions(self, list_w_mutations):
         unique = True
         for i in list_w_mutations:
-            mut_obj_i = extract_mutants(
+            mut_obj_i = extract_mutants_from_mutant_id(
                 i.strip(), sequences={self.chain_id: self.fastasequence}
             )
             position = mut_obj_i.mutant_info[0]['position']
             for j in list_w_mutations:
                 if i != j:
-                    mut_obj_j = extract_mutants(
+                    mut_obj_j = extract_mutants_from_mutant_id(
                         j.strip(),
                         sequences={self.chain_id: self.fastasequence},
                     )
