@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Qt Test driven by `pytest-qt`, a working phenotype
+- `post_installed.WITH_DEPENDENCIES`
+- `TestData` and `TestDataOnLocalMac`
+- `hold_trigger_button` to process trigger button freezing as a context manager.
+- server design explained
+- Proxy and mirror setup of installer
+
+### Changed
+- `get_client_info` -> `CLIENT_INFO`
+- `quick_mutagenesis` with `DictConfig`
+- `get_system_info` as a `platform.uname_result` parser
+- `system_tools.is_package_installed` -> `post_installed.is_package_installed`
+
+### Fixed
+- `old_cfg = self.cfg.__deepcopy__` -> `old_cfg = self.cfg.__deepcopy__()`
+- calling of `extract_mutants_from_mutant_id` with `chain_id` argument
+- freezed installer while calling `fetch_tags`: using `run_worker_thread_with_progress` after `dialog.show()`
+
+### Removed
+- `OS_INFO, OS_TYPE`
+- `stderr_handler` in `logger`
+
+
 ## [1.4.0] - 2024-02-13
 
 ### Added
