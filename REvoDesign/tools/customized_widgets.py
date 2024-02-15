@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import os
 from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
@@ -705,3 +706,20 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
         child.setText(0, f"uuid: {uuid}")
 
     return
+
+
+@contextmanager
+def hold_trigger_button(button: QtWidgets.QPushButton):
+    """
+    A context manager for holding and releasing a trigger button.
+
+    Usage:
+        with hold_trigger_button(button):
+            # Code block where the button is held (disabled)
+            # The button will be automatically released (enabled) at the end of the block
+    """
+    try:
+        button.setEnabled(False)
+        yield
+    finally:
+        button.setEnabled(True)

@@ -46,6 +46,7 @@ from REvoDesign.tools.utils import (
 )
 
 from REvoDesign.tools.customized_widgets import (
+    hold_trigger_button,
     getExistingDirectory,
     set_widget_value,
     QbuttonMatrix,
@@ -1054,8 +1055,8 @@ class REvoDesignPlugin:
         else:
             logging.debug(f'Giving up centering design area: {mutant_id}')
 
-    def find_session_path(self):
-        session_path = cmd.get('session_file')
+    def find_session_path(self) -> str:
+        session_path: str = cmd.get('session_file')
 
         if not session_path:
             logging.warning(
@@ -1079,7 +1080,7 @@ class REvoDesignPlugin:
 
         return session_path
 
-    def flatten_compressed_files(self, compressed_file):
+    def flatten_compressed_files(self, compressed_file: str) -> str:
         flatten_path = os.path.join(
             self.PWD,
             'expanded_compressed_files',
@@ -1860,9 +1861,8 @@ class REvoDesignPlugin:
 
         # output files
         cluster_outputs = {}
-        trigger_button.setEnabled(False)
 
-        try:
+        with hold_trigger_button(trigger_button):
             for num_mut in range(min_mut_num, max_mut_num + 1):
                 # combination
                 combinations = Combinations()
@@ -1900,9 +1900,6 @@ class REvoDesignPlugin:
                 _cluster['score'] for _, _cluster in cluster_outputs.items()
             ]
             set_widget_value(plot_space, cluster_imgs)
-
-        finally:
-            trigger_button.setEnabled(True)
 
     # Tab Visualize
 
@@ -2016,87 +2013,87 @@ class REvoDesignPlugin:
 
         use_global_scores = self.ui.checkBox_global_score_policy.isChecked()
 
-        trigger_button.setEnabled(False)
+        with hold_trigger_button(trigger_button):
+            try:
+                reversed_mutant_effect = (
+                    self.ui.checkBox_reverse_mutant_effect_3.isChecked()
+                )
+                cmap = cmap_reverser(
+                    cmap=self.ui.comboBox_cmap.currentText(),
+                    reverse=reversed_mutant_effect,
+                )
 
-        try:
-            reversed_mutant_effect = (
-                self.ui.checkBox_reverse_mutant_effect_3.isChecked()
-            )
-            cmap = cmap_reverser(
-                cmap=self.ui.comboBox_cmap.currentText(),
-                reverse=reversed_mutant_effect,
-            )
+                design_profile = self.ui.lineEdit_input_csv_2.text()
+                design_profile_format = (
+                    self.ui.comboBox_profile_type_2.currentText()
+                )
 
-            design_profile = self.ui.lineEdit_input_csv_2.text()
-            design_profile_format = (
-                self.ui.comboBox_profile_type_2.currentText()
-            )
+                progressBar_visualize_mutants = self.ui.progressBar
 
-            progressBar_visualize_mutants = self.ui.progressBar
+                from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
-            from REvoDesign.common.MutantVisualizer import MutantVisualizer
+                visualizer = MutantVisualizer(
+                    molecule=self.design_molecule,
+                    chain_id=self.design_chain_id,
+                )
+                visualizer.mutfile = input_mut_table_csv
+                visualizer.input_session = make_temperal_input_pdb(
+                    molecule=self.design_molecule,
+                    wd=os.path.join(
+                        os.path.dirname(output_pse), 'temperal_pdb'
+                    ),
+                    reload=False,
+                )
+                visualizer.nproc = nproc
+                visualizer.parallel_run = nproc > 1
+                visualizer.sequence = self.design_sequence
 
-            visualizer = MutantVisualizer(
-                molecule=self.design_molecule,
-                chain_id=self.design_chain_id,
-            )
-            visualizer.mutfile = input_mut_table_csv
-            visualizer.input_session = make_temperal_input_pdb(
-                molecule=self.design_molecule,
-                wd=os.path.join(os.path.dirname(output_pse), 'temperal_pdb'),
-                reload=False,
-            )
-            visualizer.nproc = nproc
-            visualizer.parallel_run = nproc > 1
-            visualizer.sequence = self.design_sequence
+                visualizer.consider_global_score_from_profile = (
+                    use_global_scores
+                )
 
-            visualizer.consider_global_score_from_profile = use_global_scores
+                visualizer.profile_scoring_df = None
+                visualizer.consider_global_score_from_profile = False
 
-            visualizer.profile_scoring_df = None
-            visualizer.consider_global_score_from_profile = False
+                visualizer.profile_scoring_df = visualizer.parse_profile(
+                    profile_fp=design_profile,
+                    profile_format=design_profile_format,
+                )
 
-            visualizer.profile_scoring_df = visualizer.parse_profile(
-                profile_fp=design_profile,
-                profile_format=design_profile_format,
-            )
+                if best_leaf:
+                    visualizer.key_col = best_leaf
+                if totalscore:
+                    visualizer.score_col = totalscore
 
-            if best_leaf:
-                visualizer.key_col = best_leaf
-            if totalscore:
-                visualizer.score_col = totalscore
+                visualizer.save_session = output_pse
+                visualizer.full = False
+                visualizer.group_name = group_name
+                visualizer.cmap = cmap
 
-            visualizer.save_session = output_pse
-            visualizer.full = False
-            visualizer.group_name = group_name
-            visualizer.cmap = cmap
+                visualizer.sidechain_solver = sidechain_solver
+                visualizer.sidechain_solver_radius = sidechain_solver_radius
+                visualizer.sidechain_solver_model = sidechain_solver_model
+                visualizer.setup_side_chain_solver()
 
-            visualizer.sidechain_solver = sidechain_solver
-            visualizer.sidechain_solver_radius = sidechain_solver_radius
-            visualizer.sidechain_solver_model = sidechain_solver_model
-            visualizer.setup_side_chain_solver()
+                visualizer.run_with_progressbar(
+                    progress_bar=progressBar_visualize_mutants
+                )
 
-            visualizer.run_with_progressbar(
-                progress_bar=progressBar_visualize_mutants
-            )
+                cmd.load(visualizer.save_session, partial=2)
+                cmd.center(self.design_molecule)
+                cmd.set('surface_color', 'gray70')
+                cmd.set('cartoon_color', 'gray70')
+                cmd.set('surface_cavity_mode', 4)
+                cmd.set('transparency', 0.6)
+                cmd.set(
+                    'cartoon_cylindrical_helices',
+                )
+                cmd.set('cartoon_transparency', 0.3)
+                cmd.save(output_pse)
 
-            cmd.load(visualizer.save_session, partial=2)
-            cmd.center(self.design_molecule)
-            cmd.set('surface_color', 'gray70')
-            cmd.set('cartoon_color', 'gray70')
-            cmd.set('surface_cavity_mode', 4)
-            cmd.set('transparency', 0.6)
-            cmd.set(
-                'cartoon_cylindrical_helices',
-            )
-            cmd.set('cartoon_transparency', 0.3)
-            cmd.save(output_pse)
-
-        except Exception:
-            logging.error('Error while running the visualization: ')
-            traceback.print_exc()
-
-        finally:
-            trigger_button.setEnabled(True)
+            except Exception:
+                logging.error('Error while running the visualization: ')
+                traceback.print_exc()
 
         if (
             self.ws_server
@@ -2285,19 +2282,17 @@ class REvoDesignPlugin:
             logging.error('Multi design failed in initializing.')
             return
 
-        trigger_button.setEnabled(False)
-        try:
-            for i in range(maximal_multi_design_variant_num):
-                self.multi_mutagenesis_design_start()
-                # pick mutant until it reaches the required number
-                for j in range(maximal_mutant_num):
-                    self.multi_mutagenesis_design_pick_next_mut()
-                self.multi_mutagenesis_design_stop_design()
-            self.multi_mutagenesis_design_save_design()
-        except Exception:
-            traceback.print_exc()
-        finally:
-            trigger_button.setEnabled(True)
+        with hold_trigger_button(trigger_button):
+            try:
+                for i in range(maximal_multi_design_variant_num):
+                    self.multi_mutagenesis_design_start()
+                    # pick mutant until it reaches the required number
+                    for j in range(maximal_mutant_num):
+                        self.multi_mutagenesis_design_pick_next_mut()
+                    self.multi_mutagenesis_design_stop_design()
+                self.multi_mutagenesis_design_save_design()
+            except Exception:
+                traceback.print_exc()
 
     # Tab Interact via GREMLIN
     def load_gremlin_mrf(
@@ -2306,9 +2301,7 @@ class REvoDesignPlugin:
         trigger_button = self.ui.pushButton_reinitialize_interact
         from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
 
-        trigger_button.setEnabled(False)
-
-        try:
+        with hold_trigger_button(trigger_button):
             gremlin_mrf_fp = self.ui.lineEdit_input_gremlin_mtx.text()
 
             topN_gremlin_candidates = self.ui.spinBox_gremlin_topN.value()
@@ -2382,9 +2375,6 @@ class REvoDesignPlugin:
                 logging.info(
                     f'Work Space is cleaned. Click once again to reinitialize. '
                 )
-
-        finally:
-            trigger_button.setEnabled(True)
 
     def run_gremlin_tool(self):
         progress_bar = self.ui.progressBar
