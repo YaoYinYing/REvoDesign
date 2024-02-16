@@ -237,7 +237,7 @@ class MultiMutantDesigner:
 
         self.in_design_multi_design_case = []
         self.mutant_tree_multi_design_copy = (
-            self.mutant_tree_multi_design.__deepcopy__()
+            self.mutant_tree_multi_design.__deepcopy__
         )
         self.design_case_variant = cmd.get_unused_name('multi_design_variant')
         cmd.create(
@@ -412,7 +412,7 @@ class MultiMutantDesigner:
 
         # recover the whole mutant tree, as the deleted branch might be used in the future.
         self.mutant_tree_multi_design_copy = (
-            self.mutant_tree_multi_design.__deepcopy__()
+            self.mutant_tree_multi_design.__deepcopy__
         )
         resi_undo_mutant = undo_mutant_obj.mutant_info[0]['position']
 

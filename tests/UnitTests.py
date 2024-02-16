@@ -603,7 +603,7 @@ class TestMutantTree(absltest.TestCase):
         new_branches = {
             'branch3': {'mutant4': Mutant(mutant_info=[], _mutant_score=0.6)}
         }
-        self.mutant_tree_obj.extend_tree_with_new_branches(new_branches)
+        self.mutant_tree_obj.update_tree_with_new_branches(new_branches)
         self.assertIn('branch3', self.mutant_tree_obj.all_mutant_branch_ids)
 
     def test_add_mutant_to_branch(self):

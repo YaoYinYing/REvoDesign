@@ -498,7 +498,7 @@ class REvoDesigner:
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
-        logging.debug(f'MutantTree: {self.mutant_tree.__str__()}')
+        logging.debug(f'MutantTree: {self.mutant_tree.__str__}')
 
         if not self.visualizer:
             self.setup_visualizer()
