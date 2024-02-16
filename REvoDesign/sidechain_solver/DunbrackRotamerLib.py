@@ -42,7 +42,7 @@ class PyMOL_mutate:
         Returns:
         - Path to the mutated PDB file
         """
-        new_obj_name = mutant_obj.get_short_mutant_id()
+        new_obj_name = mutant_obj.short_mutant_id
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')
         temp_mutant_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")

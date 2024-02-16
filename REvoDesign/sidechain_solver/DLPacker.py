@@ -87,7 +87,7 @@ class DLPacker_worker:
         from Bio.Data import IUPACData
 
         self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
-        new_obj_name = mutant_obj.get_short_mutant_id()
+        new_obj_name = mutant_obj.short_mutant_id
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_dlp')
         temp_pdb_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")

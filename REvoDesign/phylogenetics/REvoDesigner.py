@@ -493,7 +493,7 @@ class REvoDesigner:
 
         mutant_tree = {
             self.design_case: {
-                mut_obj.get_short_mutant_id(): mut_obj
+                mut_obj.short_mutant_id: mut_obj
                 for mut_obj in mutant_objs
             }
         }
@@ -712,7 +712,7 @@ class REvoDesigner:
                 self.mutagenesis_tasks.append([mutant_obj])
                 self.mutant_tree.add_mutant_to_branch(
                     branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.wt_score)}",
-                    mutant=mutant_obj.get_short_mutant_id(),
+                    mutant=mutant_obj.short_mutant_id,
                     mutant_info=mutant_obj,
                 )
 

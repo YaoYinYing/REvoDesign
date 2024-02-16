@@ -56,7 +56,7 @@ class PIPPack_worker:
         mutant_obj: Mutant,
         **kwargs,
     ):
-        new_obj_name = mutant_obj.get_short_mutant_id()
+        new_obj_name = mutant_obj.short_mutant_id
         mutant_sequence = [
             list(
                 [

@@ -38,7 +38,8 @@ class Mutant:
         )
         return f'{self.mutant_id}'
 
-    def get_short_mutant_id(self) -> str:
+    @property
+    def short_mutant_id(self) -> str:
         full_id = self.get_mutant_id()
         if len(full_id) > 15:
             hashed_id = hashlib.sha256(full_id.encode()).hexdigest()

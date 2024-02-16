@@ -160,7 +160,7 @@ class MutantVisualizer:
         - Loads the input session, hides surface, visualizes the mutant, and creates mutagenesis objects.
         - Saves the processed session data to a temporary file and returns the file path.
         """
-        mutant = mutant_obj.get_short_mutant_id()
+        mutant = mutant_obj.short_mutant_id
         score = mutant_obj.mutant_score
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
@@ -192,7 +192,7 @@ class MutantVisualizer:
         """
         from pymol import cmd, util
 
-        new_obj_name = mutant_obj.get_short_mutant_id()
+        new_obj_name = mutant_obj.short_mutant_id
         score = mutant_obj.mutant_score
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')
@@ -533,7 +533,7 @@ class MutantVisualizer:
             mutation_data = pd.DataFrame.from_dict(
                 {
                     self.key_col: [
-                        mut_obj.get_short_mutant_id()
+                        mut_obj.short_mutant_id
                         for mut_obj in _mutation_objs
                     ]
                 }
@@ -593,19 +593,19 @@ class MutantVisualizer:
                     str(int(_variant_info[0]['position']) - 1),
                 ]
                 logging.debug(
-                    f'Reading profile score for variant {variant_obj.get_short_mutant_id()}: {_score}'
+                    f'Reading profile score for variant {variant_obj.short_mutant_id}: {_score}'
                 )
 
             else:
                 _score = row[self.score_col]
                 logging.debug(
-                    f'Reading mutant table score for variant {variant_obj.get_short_mutant_id()}: {_score}'
+                    f'Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}'
                 )
 
             variant_obj.mutant_score = float(_score)
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,
-                mutant=variant_obj.get_short_mutant_id(),
+                mutant=variant_obj.short_mutant_id,
                 mutant_info=variant_obj,
             )
 

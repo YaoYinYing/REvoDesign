@@ -489,7 +489,7 @@ class TestMutant(absltest.TestCase):
         expected_raw_id = 'AP10L_AS20T'
         expected_id = 'AP10L_AS20T_0.95'
         self.assertEqual(self.mutant_obj.get_mutant_id(), expected_raw_id)
-        self.assertEqual(self.mutant_obj.get_short_mutant_id(), expected_id)
+        self.assertEqual(self.mutant_obj.short_mutant_id, expected_id)
 
     def test_short_mutant_id(self):
         self.mutant_obj.mutant_info = [
@@ -497,7 +497,7 @@ class TestMutant(absltest.TestCase):
         ]
         expected_id = 'AP1L_0.95'  # This might change based on hashing
         self.assertTrue(
-            self.mutant_obj.get_short_mutant_id().startswith(
+            self.mutant_obj.short_mutant_id.startswith(
                 expected_id.split('_')[0]
             )
         )
