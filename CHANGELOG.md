@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- QtTest cases:
+  - `TestREvoDesignPlugin_TabMutate`
+    - `test_pssm_ent_surf`
+    - `test_mpnn_surf`
+- QtTest tools
+  - `navigate_to_tab`: switching tabs
+  - `method_name`: fetch caller's method name
+  - `save_screenshot`: save screenshots to files
+  - `KeyDataDuringTests`: store key data during tests
+- `pyproject.toml`:
+  - `pooch` and `pytest-qt` for `unittest` extras
+- `Makefile`: `ui-test` and `all-test`, for future uses.
+
+### Changed
+- `MutantTree`
+  - properties:
+    - `all_mutant_objects`
+    - `all_mutant_branch_ids`
+    - `empty`
+    - `all_mutants`
+    - `all_mutant_ids`
+    - `__str__`
+    - `__copy__`
+    - `__deepcopy__`
+  - rename:
+    - `extend_tree_with_new_branches` -> `update_tree_with_new_branches`
+  - typing hints
+- `Mutant`: method`get_short_mutant_id` -> property `short_mutant_id`
+
+
+### Fixed
+- output session from external designer.
+- `TestData`: saving paths
 
 ## [1.4.1] - 2024-02-15
 
