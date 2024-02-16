@@ -32,3 +32,5 @@ logs/*.jsonl
 pockets/*
 mutations_design_profile/*
 surface_residue_records/*
+tmp-test-dir-with-unique-name/*
+tests/downloaded/1SUO_A_PSSM_GREMLIN_results.zip

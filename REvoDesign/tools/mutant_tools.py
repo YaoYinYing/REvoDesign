@@ -422,13 +422,14 @@ def read_profile_design_mutations(filename):
     return process_mutations(data)
 
 
-def existed_mutant_tree(sequences: dict, enabled_only=1):
+def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
     """
     Creates a tree structure of existing mutants based on PyMOL objects.
 
     Parameters:
-    - sequence: str
-        A string representing the sequence.
+    - sequences: dict[str,str]
+        A dict of strings representing the designable sequences.
+        eg. {'A': 'MANGHFDTYE', 'B': 'MCSAKLPIQWE'}
 
     Returns:
     - MutantTree

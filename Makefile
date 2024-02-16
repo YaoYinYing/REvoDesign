@@ -38,6 +38,23 @@ test:
 	cp $(TESTDIR)/.coverage* .
 	rm -r $(TESTDIR)
 
+ui-test:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	python -m pip install pytest-cov -q
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); pytest $(PYTEST_ARGS) ../tests/QtTests.py;
+	cp $(TESTDIR)/.coverage* .
+	rm -r $(TESTDIR)
+
+all-test:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	python -m pip install pytest-cov -q
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); pytest $(PYTEST_ARGS) ../tests/QtTests.py ../tests/UnitTests.py;
+	cp -r ./screenshots/ ../tests/
+	cp $(TESTDIR)/.coverage* .
+	rm -r $(TESTDIR)
+
 format: license-update black
 
 check: black-check flake8-lazy lint
@@ -79,5 +96,5 @@ clean:
 	find . -name "*.cif" -exec rm -v {} \;
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py
 	rm -rvf $(TESTDIR) dask-worker-space
-	rm -rvf logs surface_residue_records downloaded mutations_design_profile pockets temperal_pdb
-	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb
+	rm -rvf logs surface_residue_records downloaded mutations_design_profile pockets temperal_pdb expanded_compressed_files analysis screenshots
+	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ tests/expanded_compressed_files/ tests/screenshots/

@@ -441,7 +441,7 @@ class REvoDesigner:
 
         logging.info('Design is done. Parsing the results...')
 
-        mutant_objs = []
+        mutant_objs: list[Mutant] = []
         score_list = []
 
         counter_1 = collections.Counter(designs['seq'])
@@ -467,7 +467,7 @@ class REvoDesigner:
         counter_2 = collections.Counter(seqs)
 
         for seq, score in zip(seqs, scores):
-            mutant_obj = extract_mutant_from_sequences(
+            mutant_obj: Mutant = extract_mutant_from_sequences(
                 mutant_sequence=seq,
                 chain_id=self.chain_id,
                 wt_sequence=self.sequence,
@@ -498,13 +498,27 @@ class REvoDesigner:
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
+        logging.debug(f'MutantTree: {self.mutant_tree.__str__()}')
 
         if not self.visualizer:
             self.setup_visualizer()
 
-        self.output_pse = self.run_mutagenesis_via_mutant_visualizer(
+        external_design_session = self.run_mutagenesis_via_mutant_visualizer(
             group_id=self.design_case, progress_bar=progress_bar
         )
+
+        logging.warning(f'Saving at {external_design_session}')
+
+        # call MutantVisualizer for merge sessions
+        session_merger = MutantVisualizer(molecule='', chain_id='')
+        session_merger.input_session = self.input_pse
+        session_merger.save_session = self.output_pse
+        session_merger.mutagenesis_sessions = [external_design_session]
+        run_worker_thread_with_progress(
+            session_merger.merge_sessions_via_commandline,
+            progress_bar=progress_bar,
+        )
+        self.output_pse = session_merger.save_session
 
         logging.info("Done.")
 
@@ -598,11 +612,10 @@ class REvoDesigner:
             self.external_designer
             or self.input_profile_format in EXTERNAL_DESIGNERS
         ):
+            assert not self.mutant_tree.empty
             score_list = [
                 mut_obj.mutant_score
-                for group_id in self.mutant_tree.all_mutant_branch_ids
-                for branch in self.mutant_tree.get_a_branch(branch_id=group_id)
-                for _, mut_obj in branch.items()
+                for mut_obj in self.mutant_tree.all_mutant_objects
             ]
             self.visualizer.min_score = min(score_list)
             self.visualizer.max_score = max(score_list)

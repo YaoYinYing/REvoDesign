@@ -1012,7 +1012,7 @@ class REvoDesignPlugin:
                 [
                     extract_mutant_from_pymol_object(
                         pymol_object=mt, sequences=self.designable_sequences
-                    ).get_mutant_id()
+                    ).mutant_id
                     for mt in mutants_to_save
                 ],
             )
@@ -1024,7 +1024,7 @@ class REvoDesignPlugin:
                 [
                     extract_mutant_from_pymol_object(
                         pymol_object=mt, sequences=self.designable_sequences
-                    ).get_mutant_id()
+                    ).mutant_id
                     for mt in mutants_to_save
                 ],
             )
@@ -2913,7 +2913,7 @@ class REvoDesignPlugin:
         set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.3f}')
 
         # update mutant id from Mutant object.
-        mutant = mutant_obj.get_short_mutant_id()
+        mutant = mutant_obj.short_mutant_id
 
         if mutant in cmd.get_names(
             type='nongroup_objects',
@@ -2943,9 +2943,7 @@ class REvoDesignPlugin:
 
         if self.ws_server and self.ws_server.is_running and mutant_obj:
             mutant_tree = {
-                visualizer.group_name: {
-                    mutant_obj.get_short_mutant_id(): mutant_obj
-                }
+                visualizer.group_name: {mutant_obj.short_mutant_id: mutant_obj}
             }
 
             asyncio.run(

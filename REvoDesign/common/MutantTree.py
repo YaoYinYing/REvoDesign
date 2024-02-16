@@ -3,7 +3,7 @@ from typing import List, Dict, Union, Optional
 
 
 class MutantTree:
-    def __init__(self, mutant_tree: dict[dict]):
+    def __init__(self, mutant_tree: dict[str, dict[str, Mutant]]):
         """
         Initialize MutantTree object with a mutant tree dictionary.
 
@@ -24,6 +24,10 @@ class MutantTree:
         self.mutant_tree = mutant_tree
 
         self.refresh_mutants()
+
+    @property
+    def all_mutant_objects(self):
+        return [mutant[1] for mutant in self.all_mutants]
 
     def refresh_mutants(self):
         """
@@ -92,7 +96,7 @@ class MutantTree:
         """
         return self.all_mutant_branch_ids.index(branch_id)
 
-    def get_a_branch(self, branch_id) -> dict[str, Mutant]:
+    def get_a_branch(self, branch_id: str) -> dict[str, Mutant]:
         """
         Gets a specific branch from the MutantTree object.
 
@@ -102,7 +106,7 @@ class MutantTree:
         Usage:
         branch = tree.get_a_branch('branch_id')
         """
-        return self.mutant_tree[branch_id]
+        return self.mutant_tree.get(branch_id)
 
     def search_a_branch(self, branch_kw) -> list:
         """
