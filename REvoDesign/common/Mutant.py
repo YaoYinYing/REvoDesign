@@ -9,9 +9,9 @@ class Mutant:
     _mutant_score: Optional[float] = field(
         default_factory=float
     )  # Note the underscore, indicating "private"
-    mutant_description: str = ''
-    mutant_id: str = ''
-    wt_sequence: Dict[str, str] = field(default_factory=dict)
+    _mutant_description: str = ''
+    _mutant_id: str = ''
+    _wt_sequences: Dict[str, str] = field(default_factory=dict)
     _wt_score: float = 0.0  # Note the underscore, indicating "private"
 
     def __post_init__(self):
@@ -28,19 +28,36 @@ class Mutant:
 
     def __empty__(self) -> bool:
         return not bool(self.mutant_info)
+    
+    @property
+    def wt_sequences(self) -> Dict[str, str]:
+        return self._wt_sequences
+    
+    @wt_sequences.setter
+    def wt_sequences(self, new_wt_sequences:Dict[str, str]):
+        self._wt_sequences=new_wt_sequences
+    
+    @property
+    def mutant_description(self) -> str:
+        return self._mutant_description
+    
+    @mutant_description.setter
+    def mutant_description(self, new_description: str):
+        self._mutant_description=new_description
 
-    def get_mutant_id(self) -> str:
-        self.mutant_id = '_'.join(
+    @property
+    def full_mutant_id(self) -> str:
+        self._mutant_id = '_'.join(
             [
                 f'{mutant["chain_id"]}{mutant["wt_res"]}{mutant["position"]}{mutant["mut_res"]}'
                 for mutant in self.mutant_info
             ]
         )
-        return f'{self.mutant_id}'
+        return self._mutant_id
 
     @property
     def short_mutant_id(self) -> str:
-        full_id = self.get_mutant_id()
+        full_id = self.full_mutant_id
         if len(full_id) > 15:
             hashed_id = hashlib.sha256(full_id.encode()).hexdigest()
             short_id = hashed_id[:15]
@@ -77,12 +94,12 @@ class Mutant:
         self._wt_score = value
 
     def get_mutant_sequence_single_chain(self, chain_id: str) -> str:
-        if chain_id not in self.wt_sequence:
+        if chain_id not in self.wt_sequences:
             raise ValueError(
                 f'Chain {chain_id} does not exist in wt sequence.'
             )
 
-        wt_sequence = self.wt_sequence[chain_id]
+        wt_sequence = self.wt_sequences[chain_id]
         if not self.mutant_info or not wt_sequence:
             raise ValueError(
                 "No available mutant information or WT sequence is empty."
@@ -103,8 +120,9 @@ class Mutant:
 
         return ''.join(sequence)
 
-    def get_mutant_sequences(self) -> Dict[str, str]:
+    @property
+    def mutant_sequences(self) -> dict[str, str]:
         return {
             chain: self.get_mutant_sequence_single_chain(chain_id=chain)
-            for chain in self.wt_sequence
+            for chain in self.wt_sequences.keys()
         }

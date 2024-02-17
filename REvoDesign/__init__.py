@@ -2,7 +2,7 @@ import asyncio
 import os
 import time
 import traceback
-from typing import Iterable
+from typing import Iterable, Union
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -984,13 +984,18 @@ class REvoDesignPlugin:
 
         set_widget_value(comboBox_profile_format, profile_format)
 
-    def save_mutant_choices(self, lineEdit_output_mut_txt, mutants_to_save):
-        if not mutants_to_save:
-            logging.warning(f"Mutant list is empty or None!")
-            return None
+    def save_mutant_choices(self, lineEdit_output_mut_txt, mutant_tree: MutantTree):
+        if not mutant_tree:
+            logging.error(f"No Mutant tree is given!")
+            return
+    
+        if mutant_tree.empty:
+            logging.warning(f'mutant tree is empty. save nothing.')
+            return
 
-        if type(mutants_to_save) == MutantTree:
-            mutants_to_save = mutants_to_save.all_mutant_ids
+        
+        mutants_to_save = mutant_tree.all_mutant_ids
+        logging.info(f"saving: {mutants_to_save}")
 
         # TODO mutant_choices function
         output_mut_txt_fn = lineEdit_output_mut_txt.text()
@@ -1012,7 +1017,7 @@ class REvoDesignPlugin:
                 [
                     extract_mutant_from_pymol_object(
                         pymol_object=mt, sequences=self.designable_sequences
-                    ).mutant_id
+                    ).full_mutant_id
                     for mt in mutants_to_save
                 ],
             )
@@ -1024,7 +1029,7 @@ class REvoDesignPlugin:
                 [
                     extract_mutant_from_pymol_object(
                         pymol_object=mt, sequences=self.designable_sequences
-                    ).mutant_id
+                    ).full_mutant_id
                     for mt in mutants_to_save
                 ],
             )
@@ -1045,7 +1050,6 @@ class REvoDesignPlugin:
         )
 
     def set_pymol_session_rock(self, checkBox_rock_pymol):
-        # rocked_view=(cmd.get('rock')=='on')
         cmd.set('rock', checkBox_rock_pymol.isChecked())
 
     def center_design_area(self, mutant_id):
@@ -1990,7 +1994,7 @@ class REvoDesignPlugin:
 
         self.save_mutant_choices(
             lineEdit_mutant_table_fp,
-            self.visualizing_mutant_tree.all_mutant_ids,
+            self.visualizing_mutant_tree,
         )
 
     def visualize_mutants(self):
@@ -2896,7 +2900,7 @@ class REvoDesignPlugin:
             sequences=self.designable_sequences,
         )
 
-        mutant_obj.wt_sequence = self.designable_sequences
+        mutant_obj.wt_sequences = self.designable_sequences
 
         mut_score = (
             matrix[col][row]

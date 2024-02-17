@@ -150,7 +150,7 @@ class MultiMutantDesigner:
             '\n\n'
             + '\n'.join(
                 [
-                    _.get_mutant_id()
+                    _.full_mutant_id
                     for _ in self.all_design_multi_design_mutant_object
                 ]
             )
@@ -177,7 +177,7 @@ class MultiMutantDesigner:
         )
         tmp_mutant_obj.mutant_score = None
 
-        tmp_mutant_obj.wt_sequence = {self.chain_id: self.sequence}
+        tmp_mutant_obj.wt_sequences = {self.chain_id: self.sequence}
 
         if not self.external_scorer:
             logging.warning(

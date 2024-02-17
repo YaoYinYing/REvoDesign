@@ -11,12 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add QtTest to Github Actions CI. See ref:
   - https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
   - https://github.com/tlambert03/setup-qt-libs
+- Qttest `TestWorker` to handle loads/downloads/expands/clicks/tab-switchs/screenshots/pymol-rays/
+- Qt Test cases:
+  - `Prepare`: pocket, surface
+  - `Mutate`: surface-pssm, surface-ddg, surface-mpnn, pocket-pssm
+  - `Evaluate`: besthits/manuals
+  - `Config`: `PIPPack` with `pippack_model_1`
+  - reduced data scales for faster test run
 
 ### Changed
 - Reduced test cases in `TestData`
+- `save_mutant_choices`: Only accept `MutantTree`
+- `Mutant`:
+  - `wt_sequence` -> `_wt_sequences`
+  - properties:
+    - `wt_sequences`
+    - `mutant_description`
+    - `full_mutant_id`
+    - `mutant_sequences`
+- `MutantTree`:
+  - refactored `empty`
 
 ### Removed
 - failed screenshot copying after `all-test`.
+
+### Fixed
+- `Mutant` missing wt sequences from external designer
 
 ## [1.4.2] - 2024-02-16
 ### Added

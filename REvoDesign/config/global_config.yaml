@@ -133,7 +133,7 @@ log:
       stream: ext://sys.stderr
     file:
       class: logging.handlers.RotatingFileHandler
-      level: DEBUG
+      level: NOTSET
       formatter: json
       filename: logs/revodesign.log.jsonl
       maxBytes: 1000_000
@@ -148,7 +148,7 @@ log:
 
   loggers:
     root:
-      level: DEBUG
+      level: NOTSET
 
 
 cache_dir:

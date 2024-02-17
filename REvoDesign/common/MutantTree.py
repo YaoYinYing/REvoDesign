@@ -31,7 +31,7 @@ class MutantTree:
 
     @property
     def empty(self)-> bool:
-        return len(self.all_mutant_branch_ids) == 0
+        return not bool(self.all_mutant_objects)
     
     @property
     def all_mutants(self)-> list[tuple[str,Mutant]]:
@@ -52,18 +52,11 @@ class MutantTree:
         Usage:
         tree.refresh_mutants()
         """
-        #self.all_mutant_branch_ids = list(self.mutant_tree.keys())
-        #self.empty = bool(len(self.all_mutant_branch_ids) == 0)
 
         if not self.current_branch_id:
             self.initialize_current_branch()
 
-        # self.all_mutants = [
-        #     mutant
-        #     for branch_id in self.mutant_tree.keys()
-        #     for mutant in self.mutant_tree[branch_id].items()
-        # ]
-        #self.all_mutant_ids = [mutant for mutant, _ in self.all_mutants]
+
 
     @property
     def __str__(self):
@@ -429,7 +422,7 @@ class MutantTree:
 
     def list_mutants(self) -> list[dict]:
         if self.empty:
-            return None
+            return []
 
         return [
             {

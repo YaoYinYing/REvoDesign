@@ -4222,7 +4222,7 @@
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab">
+    <widget class="QWidget" name="tab_config">
      <attribute name="title">
       <string>Config</string>
      </attribute>

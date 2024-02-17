@@ -12,12 +12,14 @@ class TestData:
     chain_id: str = 'A'
 
     # after fetch
-    post_fetch_spell: str = 'remove r. hoh'
+    post_fetch_spell: str = 'remove r. hoh;dss'
 
     # dataset PSSM&GREMLIN
-    PSSM_GREMLIN_DATA_URL = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip'
-    PSSM_GREMLIN_DATA_MD5 = 'md5:5fc8ab8f657051ae8117a678924ac471'
+    PSSM_GREMLIN_DATA_URL:str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip'
+    PSSM_GREMLIN_DATA_MD5:str = 'md5:5fc8ab8f657051ae8117a678924ac471'
 
+    PYTHIA_DDG_CSV_URL:str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_pred_mask.csv'
+    PYTHIA_DDG_CSV_MD5: str ='md5:982eda8c8056c388d9741407dea8e750'
     # pocket
     substrate: str = 'CPZ'
     cofactor: str = 'HEM'
@@ -45,12 +47,16 @@ class TestData:
     mpnn_reject: str = 'PC'
     mpnn_accept: str = 'DDDDEENQHRKKK'
 
+    ddg_profile_type_biolib: str = 'Pythia-ddG'
+    ddg_profile_type_local: str = 'CSV'
+    ddg_surface_residues: str = '37,38,39,40'
     ddg_min_score: str = '-200'
     ddg_max_score: str = '0.3'
     ddg_score_reversed: bool = True
     ddg_design_case: str = 'ddg.surf'
 
     # pocket design
+    pocket_pssm_residues: str = '103,104,105,108'
     pocket_pssm_min_score: str = '-10'
     pocket_pssm_max_score: str = '15'
     pocket_pssm_score_reversed: bool = False
@@ -88,12 +94,17 @@ class TestData:
 
     @property
     def ddg_design_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.pze'
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.biolib.pze'
+
+    @property
+    def ddg_design_non_biolib_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.local.pze'
+
 
     @property
     def pocket_design_pse(self):
         return (
-            f'{self.test_data_repo}/analysis/1SUO.xtal.surface.pocket.pssm.pze'
+            f'{self.test_data_repo}/analysis/1SUO.xtal.pocket.pssm.pze'
         )
 
     @property
@@ -105,6 +116,9 @@ class TestData:
     def entropy_to_ddg_pse(self):
         return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.hits.pze'
 
+    @property
+    def pippack_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.test_pippack.pze'
 
 @dataclass()
 class TestDataOnLocalMac(TestData):

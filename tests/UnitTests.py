@@ -467,7 +467,7 @@ class TestMutant(absltest.TestCase):
         ]
         self.mutant_score = 0.95
         self.mutant_obj = Mutant(self.mutant_info, self.mutant_score)
-        self.mutant_obj.wt_sequence = {'A': 'MABCDEFGHPJKLMNOHHHSHHHQCEV'}
+        self.mutant_obj.wt_sequences = {'A': 'MABCDEFGHPJKLMNOHHHSHHHQCEV'}
 
     def test_mutant_info(self):
         self.assertEqual(self.mutant_obj.mutant_info, self.mutant_info)
@@ -482,13 +482,13 @@ class TestMutant(absltest.TestCase):
 
     def test_set_mutant_description(self):
         new_description = "New mutant description"
-        self.mutant_obj.mutant_description = new_description
-        self.assertEqual(self.mutant_obj.mutant_description, new_description)
+        self.mutant_obj._mutant_description = new_description
+        self.assertEqual(self.mutant_obj._mutant_description, new_description)
 
     def test_mutant_id(self):
         expected_raw_id = 'AP10L_AS20T'
         expected_id = 'AP10L_AS20T_0.95'
-        self.assertEqual(self.mutant_obj.get_mutant_id(), expected_raw_id)
+        self.assertEqual(self.mutant_obj.full_mutant_id, expected_raw_id)
         self.assertEqual(self.mutant_obj.short_mutant_id, expected_id)
 
     def test_short_mutant_id(self):
@@ -514,12 +514,12 @@ class TestMutant(absltest.TestCase):
         self.assertEqual(self.mutant_obj.wt_score, 5.0)
 
     def test_invalid_mutant_sequence(self):
-        self.mutant_obj.wt_sequence = {'A': 'ABC'}
+        self.mutant_obj.wt_sequences = {'A': 'ABC'}
         with self.assertRaises(ValueError):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id='A')
 
     def test_mutant_sequence_mismatch(self):
-        self.mutant_obj.wt_sequence = {'A': 'MABCDEFGHIJKLMNO'}
+        self.mutant_obj.wt_sequences = {'A': 'MABCDEFGHIJKLMNO'}
         self.mutant_obj.mutant_info = [
             {'chain_id': 'A', 'position': 10, 'wt_res': 'Q', 'mut_res': 'L'}
         ]
@@ -527,7 +527,7 @@ class TestMutant(absltest.TestCase):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id='A')
 
     def test_mutant_sequence_short(self):
-        self.mutant_obj.wt_sequence = {'A': 'MABCDEFGHIJKLMNO'}
+        self.mutant_obj.wt_sequences = {'A': 'MABCDEFGHIJKLMNO'}
         self.mutant_obj.mutant_info = [
             {'chain_id': 'A', 'position': 30, 'wt_res': 'Q', 'mut_res': 'L'}
         ]
@@ -1089,7 +1089,7 @@ class TestSidechainSolver(absltest.TestCase):
 
         mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path = mutate_runner.run_mutate(
-            mutant_obj=self.mutant_obj, reconstruct_area_radius=8
+            mutant_obj=self.mutant_obj, reconstruct_area_radius=5
         )
 
         from Bio.PDB.PDBParser import PDBParser

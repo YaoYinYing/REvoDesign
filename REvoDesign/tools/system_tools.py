@@ -80,7 +80,8 @@ class CLIENT_INFO:
 
         try:
             self.ip = socket.gethostbyname_ex(socket.gethostname())[2]
-            self.ip.remove('127.0.0.1')
+            if '127.0.0.1' in self.ip:
+                self.ip.remove('127.0.0.1')
         except Exception as e:
             logging.error(f'Failed to fetch client ip: {e}')
             self.ip = []

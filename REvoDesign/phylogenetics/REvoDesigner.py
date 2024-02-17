@@ -478,12 +478,13 @@ class REvoDesigner:
                 continue
             if counter_2.get(seq) > 1:
                 logging.warning(
-                    f'Design {mutant_obj.get_mutant_id()} has multiple scores!\n'
+                    f'Design {mutant_obj.full_mutant_id} has multiple scores!\n'
                     'See: https://github.com/dauparas/ProteinMPNN/issues/19#issuecomment-1283072787\n'
                     'Check `De-duplicated` for picking a random unique one.'
                 )
 
             mutant_obj.mutant_score = score
+            mutant_obj.wt_sequences = {self.sequence: self.sequence}
             score_list.append(score)
             mutant_objs.append(mutant_obj)
 
@@ -706,7 +707,7 @@ class REvoDesigner:
                     ]
                 )
                 mutant_obj.mutant_score = float(mut_score)
-                mutant_obj.wt_sequence = {self.chain_id: self.sequence}
+                mutant_obj.wt_sequences = {self.chain_id: self.sequence}
 
                 mutant_obj.wt_score = float(wt_score)
                 self.mutagenesis_tasks.append([mutant_obj])

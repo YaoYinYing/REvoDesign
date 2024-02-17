@@ -111,7 +111,7 @@ def extract_mutants_from_mutant_id(
     # Instantializing a Mutant obj
     mutant_obj = Mutant(mutant_info, mutant_score)
     if sequences:
-        mutant_obj.wt_sequence = sequences
+        mutant_obj.wt_sequences = sequences
 
     logging.debug(mutant_obj)
 
@@ -324,7 +324,7 @@ def extract_mutant_from_pymol_object(pymol_object, sequences: dict) -> Mutant:
 
     mutant_obj = Mutant(mutant_info=mutant_info)
     mutant_obj.mutant_score = extract_mutant_score_from_string(pymol_object)
-    mutant_obj.wt_sequence = sequences
+    mutant_obj.wt_sequences = sequences
 
     return mutant_obj
 

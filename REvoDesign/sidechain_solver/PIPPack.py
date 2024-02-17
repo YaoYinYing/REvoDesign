@@ -57,14 +57,15 @@ class PIPPack_worker:
         **kwargs,
     ):
         new_obj_name = mutant_obj.short_mutant_id
+        
         mutant_sequence = [
-            list(
                 [
-                    v.replace('X', '')
-                    for v in mutant_obj.get_mutant_sequences().values()
+                    seq.replace('X', '')
+                    for seq in mutant_obj.mutant_sequences.values()
                 ]
-            )
         ]
+        logging.debug(mutant_obj)
+        logging.debug(f'Mutated: {mutant_obj.mutant_sequences}')
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_pipp')
         temp_pdb_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")

@@ -160,11 +160,10 @@ class MutantVisualizer:
         - Loads the input session, hides surface, visualizes the mutant, and creates mutagenesis objects.
         - Saves the processed session data to a temporary file and returns the file path.
         """
-        mutant = mutant_obj.short_mutant_id
         score = mutant_obj.mutant_score
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
-        logging.info(f" Visualizing {mutant} {score}: {color}")
+        logging.info(f" Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) : {color}")
         temp_session_path = self.create_mutagenesis_objects(
             mutant_obj, color, in_place=False
         )
@@ -569,7 +568,7 @@ class MutantVisualizer:
 
             _variant_info = variant_obj.mutant_info
 
-            variant_obj.wt_sequence = {self.chain_id: self.sequence}
+            variant_obj.wt_sequences = {self.chain_id: self.sequence}
 
             # external scorer stays highest priority.
             if self.scorer:
@@ -612,7 +611,7 @@ class MutantVisualizer:
         # Determine the range for color bar
         score_list = [
             variant_obj.mutant_score
-            for _, variant_obj in self.mutant_tree.all_mutants
+            for variant_obj in self.mutant_tree.all_mutant_objects
         ]
         logging.debug(f'Scores: {score_list}')
 
@@ -659,7 +658,7 @@ class MutantVisualizer:
 
         # Create a multiprocessing pool
         self.mutagenesis_tasks = [
-            [variant] for _, variant in self.mutant_tree.all_mutants
+            [variant] for variant in self.mutant_tree.all_mutant_objects
         ]
 
         if progress_bar:
