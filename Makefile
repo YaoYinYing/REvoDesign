@@ -51,7 +51,6 @@ all-test:
 	python -m pip install pytest-cov -q
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); pytest $(PYTEST_ARGS) ../tests/QtTests.py ../tests/UnitTests.py;
-	cp -r ./screenshots/ ../tests/
 	cp $(TESTDIR)/.coverage* .
 	rm -r $(TESTDIR)
 

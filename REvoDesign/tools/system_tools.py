@@ -60,7 +60,14 @@ class CLIENT_INFO:
         from REvoDesign.tools.customized_widgets import PYQT_VERSION_STR
 
         self.node: str = self.OS_INFO.node
-        self.user: str = os.getlogin()
+        try:
+            user: str = os.getlogin()
+        except OSError as e:
+            logging.warning(
+                f'Failed to fetch user, maybe in CI runners? \nError: {e}'
+            )
+            user: str = 'CI'
+        self.user: str = user
         self.os: str = self.OS_INFO.system
         self.os_build: str = self.OS_INFO.version
         self.machine_arch: str = self.OS_INFO.machine

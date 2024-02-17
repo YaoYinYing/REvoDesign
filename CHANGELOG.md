@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add QtTest to Github Actions CI. See ref:
+  - https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
+  - https://github.com/tlambert03/setup-qt-libs
+
+### Changed
+- Reduced test cases in `TestData`
+
+### Removed
+- failed screenshot copying after `all-test`.
+
 ## [1.4.2] - 2024-02-16
 ### Added
 - QtTest cases:
