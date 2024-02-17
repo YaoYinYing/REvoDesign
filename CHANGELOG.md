@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.3] - 2024-02-17
+
 ### Added
 - Add QtTest to Github Actions CI. See ref:
   - https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
