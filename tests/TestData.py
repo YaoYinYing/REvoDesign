@@ -4,6 +4,9 @@ from dataclasses import dataclass
 
 @dataclass()
 class TestData:
+    # running 
+    nproc_circleci: int = 1
+
     # setup dir
     test_data_repo: str = os.path.join(os.path.dirname(__file__), 'qttests')
 

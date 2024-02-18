@@ -1,0 +1,69 @@
+version: 2.1
+
+orbs:
+  codecov: codecov/codecov@4.0.1
+
+jobs:
+  build-and-test:
+    parameters:
+      python-version:
+        type: string
+        default: "3.9"
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      DISPLAY: ':99.0'
+    steps:
+      - checkout
+      
+      - run:
+          name: Apt installs
+          command: |
+            apt-get update
+            apt-get install -y build-essential make sudo xvfb fluxbox curl
+
+      - run:
+          name: Start Display
+          command: |
+            Xvfb :99 -screen 0 1280x1024x24 &
+            fluxbox &
+            sleep 3
+
+      - run:
+          name: Setup Environment for << parameters.python-version >>
+          command: |
+            conda create --name REvoDesign python=<< parameters.python-version >> -y
+            source activate REvoDesign
+            conda install -c conda-forge pymol-open-source -y
+
+      - run:
+          name: Install REvoDesign
+          command: |
+            source activate REvoDesign
+            make install
+
+
+      - run:
+          name: Run Unit Tests
+          command: |
+            source activate REvoDesign
+            make prepare-test
+            make all-test
+
+      - run:
+          name: Generate Coverage Report
+          command: |
+            source activate REvoDesign
+            coverage xml
+
+      - codecov/upload:
+          file: coverage.xml
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - build-and-test:
+          matrix:
+            parameters:
+              python-version: ["3.9", "3.10", "3.11"]

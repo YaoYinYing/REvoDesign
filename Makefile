@@ -22,7 +22,7 @@ build:
 	python -m build .
 
 setup-ubuntu:
-	sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
+	sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
 	/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
 
 # only for unittest on runner or local machine.
@@ -32,29 +32,29 @@ install:
 reinstall:
 	make clean
 	python -m pip install . -U
-	pytest tests/UnitTests.py
+
+
+prepare-test:
+	python -m pip install pytest pytest-cov PyQt5 coverage -q
 
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
-	python -m pip install pytest-cov -q
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); pytest $(PYTEST_ARGS) ../tests/UnitTests.py
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/UnitTests.py
 	cp $(TESTDIR)/.coverage* .
 	rm -r $(TESTDIR)
 
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
-	python -m pip install pytest-cov -q
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); pytest $(PYTEST_ARGS) ../tests/QtTests.py;
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/QtTests.py;
 	cp $(TESTDIR)/.coverage* .
 	rm -r $(TESTDIR)
 
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
-	python -m pip install pytest-cov -q
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); pytest $(PYTEST_ARGS) ../tests/QtTests.py ../tests/UnitTests.py;
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/QtTests.py ../tests/UnitTests.py;
 	cp $(TESTDIR)/.coverage* .
 	rm -r $(TESTDIR)
 

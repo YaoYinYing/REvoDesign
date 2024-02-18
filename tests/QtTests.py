@@ -75,6 +75,13 @@ class TestWorker:
         )
         os.makedirs(self.PYMOL_PNG_DIR, exist_ok=True)
 
+        # determine which runner carries this test
+        self.in_which_runner: dict[str, bool] = {
+            'CIRCLECI': bool(os.environ.get('CIRCLE_OIDC_TOKEN')),
+            'GITHUB': bool(os.environ.get('GITHUB_ACTION')),
+            'MACBOOKPRO': bool(os.environ.get('PROTEIN_DESIGN_KIT')),
+        }
+
     def _fetch_pdb(self):
         try:
             molecules = cmd.get_names()
@@ -99,6 +106,19 @@ class TestWorker:
     def load_session_and_check(
         self, from_rcsb=False, customized_session: str = None
     ):
+        nproc = get_widget_value(self.revo_design_plugin.ui.spinBox_nproc)
+        print(f'nproc: {nproc}')
+        if (
+            self.in_which_runner.get('CIRCLECI')
+            and nproc > self.test_data.nproc_circleci
+        ):
+            print(
+                f'Fix nproc to reduce performance for CircleCI: {nproc} {os.cpu_count()}-> {self.test_data.nproc_circleci}'
+            )
+            set_widget_value(
+                self.revo_design_plugin.ui.spinBox_nproc,
+                self.test_data.nproc_circleci,
+            )
         if from_rcsb:
             self._fetch_pdb()
         else:
@@ -217,8 +237,8 @@ class TestWorker:
         self,
         basename: str = 'default',
         dpi: int = 300,
-        use_ray:bool=False,
-        spells:str=None
+        use_ray: bool = False,
+        spells: str = None,
     ):
         if spells:
             cmd.do(spells)
@@ -402,9 +422,10 @@ class TestREvoDesignPlugin_TabPrepare:
         assert os.path.exists(surface_dir)
         surface_files = glob.glob(
             os.path.join(
-                surface_dir, 
-                f'{WORKER.test_data.molecule}_residues_cutoff_{WORKER.test_data.suface_probe:.1f}.txt'
-                ))
+                surface_dir,
+                f'{WORKER.test_data.molecule}_residues_cutoff_{WORKER.test_data.suface_probe:.1f}.txt',
+            )
+        )
         assert len(surface_files) == 1
 
         surface_file_design_shell = [
@@ -737,7 +758,7 @@ class TestREvoDesignPlugin_TabMutate:
         set_widget_value(revo_design_plugin.ui.lineEdit_input_csv, pssm_file)
         set_widget_value(
             revo_design_plugin.ui.lineEdit_input_customized_indices,
-            WORKER.test_data.pocket_pssm_residues
+            WORKER.test_data.pocket_pssm_residues,
         )
 
         set_widget_value(
@@ -889,7 +910,6 @@ class TestREvoDesignPlugin_TabEvaluate:
         WORKER.click(
             widget=revo_design_plugin.ui.pushButton_goto_best_hit_in_group
         )
-
 
         WORKER.click(
             widget=revo_design_plugin.ui.pushButton_accept_this_mutant

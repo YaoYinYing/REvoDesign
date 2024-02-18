@@ -47,7 +47,7 @@ colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1
 #UniKP = {git = "https://github.com/YaoYinYing/unikp.git", optional = true}
 
 ## sidechain solver
-DLPacker = {git = "https://github.com/YaoYinYing/DLPacker", branch = 'pip-installable', optional = true}
+DLPacker = {git = "https://github.com/YaoYinYing/DLPacker", branch = 'pip-installable-cpu', optional = true}
 PIPPack = {git = "https://github.com/YaoYinYing/PIPPack", branch = 'pip-installable', optional = true}
 
 # unit tests
