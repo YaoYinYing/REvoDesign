@@ -4,9 +4,10 @@ import random
 import string
 import time
 
-from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window
+from REvoDesign.tools.customized_widgets import WorkerThread, refresh_window, set_widget_value
 from REvoDesign.tools.logger import logging as logger
 
+from pymol.Qt import QtWidgets
 logging = logger.getChild(__name__)
 
 
@@ -393,3 +394,4 @@ def generate_strong_password(length=16):
     )
 
     return generated_password
+

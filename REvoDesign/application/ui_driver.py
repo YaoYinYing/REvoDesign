@@ -1,10 +1,106 @@
 from dataclasses import dataclass
+from typing import Any, Union
 from immutabledict import immutabledict
+from omegaconf import DictConfig, OmegaConf
+from pymol.Qt import QtWidgets
+
+from REvoDesign.tools.customized_widgets import (
+    get_widget_value,
+    set_widget_value,
+)
+from functools import partial
+
+
+class ConfigBus:
+    def __init__(self, ui: QtWidgets.QWidget, config: DictConfig):
+        self.ui = ui
+        self.cfg = config
+        self.w2c = Widget2ConfigMapper(ui=self.ui)
+
+    def fill_widget_with_cfg_group(self):
+        
+        for i, widget, group_cfgs in enumerate(self.w2c.group_config_map):
+            group_values=[]
+
+            if isinstance(group_cfgs, str):
+                group_cfgs=tuple([group_cfgs])
+            for j in enumerate(group_cfgs):
+                group_values.extend(self.get_value(j))
+            set_widget_value(widget, group_values)
+
+
+    def update_cfg_item_from_widget(self, widget: QtWidgets.QWidget):
+        cfg_item = self.w2c.widget2config_dict.get(widget)
+        value = get_widget_value(widget=widget)
+        OmegaConf.update(self.cfg, cfg_item, value)
+
+    def _widget_link(self, widget: QtWidgets.QWidget):
+        return partial(self.update_cfg_item_from_widget, widget)
+
+    def register_widget_changes_to_cfg(self):
+        for widget in self.w2c.all_widgets:
+
+            if isinstance(
+                widget,
+                (
+                    QtWidgets.QDoubleSpinBox,
+                    QtWidgets.QSpinBox,
+                    QtWidgets.QProgressBar,
+                ),
+            ):
+                widget.valueChanged.connect(self._widget_link(widget))
+            elif isinstance(widget, QtWidgets.QComboBox):
+                widget.currentTextChanged.connect(self._widget_link(widget))
+            elif isinstance(widget, QtWidgets.QLineEdit):
+                widget.textChanged.connect(self._widget_link(widget))
+            elif isinstance(widget, QtWidgets.QCheckBox):
+                widget.stateChanged.connect(self._widget_link(widget))
+
+    def get_widget(self, cfg_item: str) -> QtWidgets.QWidget:
+        assert cfg_item in self.w2c.all_cfg_items
+        return self.w2c._find_widget(cfg_item)
+
+    def get_widget_value(self, cfg_item: str):
+        return get_widget_value(widget=self.get_widget(cfg_item))
+
+    def set_widget_value(self, cfg_item: str, value):
+        set_widget_value(widget=self.get_widget(cfg_item), value=value)
+
+    
+
+    def get_cfg_item(self, widget: QtWidgets.QWidget) -> DictConfig:
+        assert widget in self.w2c.all_widgets
+        return self.w2c._find_config_item(widget)
+
+    def get_value(self, cfg_item: str) -> Union[Any, list[Any]]:
+        value = OmegaConf.select(self.cfg, cfg_item)
+        if 'group' in cfg_item:
+            value = list(value)
+        return value
 
 
 class Widget2ConfigMapper:
     def __init__(self, ui):
         self.ui = ui
+        
+        self.group_config_map: list[tuple[Any, Union[str, tuple[str]]]]=[
+            (self.ui.comboBox_cmap, 'ui.header_panel.cmap.group'),
+            (self.ui.comboBox_cluster_matrix,'ui.cluster.score_matrix.group'),
+            (
+                self.ui.comboBox_sidechain_solver,
+                'ui.config.sidechain_solver.group',
+            ),
+            (self.ui.comboBox_profile_type, ('profile.group','designer.group')),
+            (
+                self.ui.comboBox_profile_type_2,
+                ('profile.group','designer.group')
+            ),
+            (
+                self.ui.comboBox_external_scorer,
+                'designer.group',
+            ),
+
+            ]
         self.widget_config_map = [
             (self.ui.comboBox_cmap, 'ui.header_panel.cmap'),
             (
@@ -35,7 +131,6 @@ class Widget2ConfigMapper:
                 self.ui.doubleSpinBox_surface_cutoff,
                 'ui.prepare.surface_probe_radius',
             ),
-            (self.ui.comboBox_profile_type, 'ui.profile.default'),
             (
                 self.ui.checkBox_reverse_mutant_effect,
                 'ui.mutate.reverse_score',
@@ -70,7 +165,7 @@ class Widget2ConfigMapper:
             ),
             (
                 self.ui.comboBox_cluster_matrix,
-                'ui.cluster.score_matrix',
+                'ui.cluster.score_matrix.default',
             ),
             (self.ui.checkBox_shuffle_clustering, 'ui.cluster.shuffle'),
             (self.ui.spinBox_num_mut_maximum, 'ui.cluster.mut_num_max'),
@@ -88,7 +183,6 @@ class Widget2ConfigMapper:
                 self.ui.checkBox_global_score_policy,
                 'ui.visualize.global_score_policy',
             ),
-            (self.ui.comboBox_profile_type_2, 'ui.profile.default'),
             (
                 self.ui.checkBox_interact_ignore_wt,
                 'ui.interact.interact_ignore_wt',
@@ -129,28 +223,134 @@ class Widget2ConfigMapper:
                 'ui.config.sidechain_solver.default',
             ),
             (
+                self.ui.doubleSpinBox_sidechain_solver_radius,
+                'ui.config.sidechain_solver.repack_radius',
+            ),
+            (
                 self.ui.comboBox_sidechain_solver_model,
                 'ui.config.sidechain_solver.model',
             ),
+            # inputs:
+            ## header
+            (
+                self.ui.comboBox_design_molecule,
+                'ui.header_panel.input.molecule',
+            ),
+            (self.ui.comboBox_chain_id, 'ui.header_panel.input.chain_id'),
+            (self.ui.spinBox_nproc, 'ui.header_panel.nproc'),
+            # prepare
+            (
+                self.ui.lineEdit_output_pse_pocket,
+                'ui.prepare.input.pocket.to_pse',
+            ),
+            (self.ui.comboBox_ligand_sel, 'ui.prepare.input.pocket.substrate'),
+            (
+                self.ui.comboBox_cofactor_sel,
+                'ui.prepare.input.pocket.cofactor',
+            ),
+            (
+                self.ui.lineEdit_output_pse_surface,
+                'ui.prepare.input.surface.to_pse',
+            ),
+            (
+                self.ui.comboBox_surface_exclusion,
+                'ui.prepare.input.surface.exclusion',
+            ),
+            # mutate
+            (self.ui.lineEdit_output_pse_mutate, 'ui.mutate.input.to_pse'),
+            (self.ui.lineEdit_input_csv, 'ui.mutate.input.profile'),
+            (self.ui.comboBox_profile_type, 'ui.mutate.input.profile_type'),
+            (self.ui.lineEdit_design_case, 'ui.mutate.input.design_case'),
+            (
+                self.ui.lineEdit_input_customized_indices,
+                'ui.mutate.input.residue_ids',
+            ),
+            # evaluate
+            (
+                self.ui.lineEdit_output_mut_table,
+                'ui.evaluate.input.to_mutant_txt',
+            ),
+            (
+                self.ui.checkBox_rock_pymol,
+                'ui.evaluate.rock',
+            ),
+            (
+                self.ui.checkBox_show_wt,
+                'ui.evaluate.show_wt',
+            ),
+            (
+                self.ui.checkBox_reverse_mutant_effect_2,
+                'ui.evaluate.reverse_score',
+            ),
+            # cluster
+            (
+                self.ui.lineEdit_input_mut_table,
+                'ui.cluster.input.from_mutant_txt',
+            ),
+            # visualize
+            (
+                self.ui.lineEdit_output_pse_visualize,
+                'ui.visualize.input.to_pse',
+            ),
+            (
+                self.ui.lineEdit_input_mut_table_csv,
+                'ui.visualize.input.from_mutant_txt',
+            ),
+            (self.ui.lineEdit_input_csv_2, 'ui.visualize.input.profile'),
+            (
+                self.ui.comboBox_profile_type_2,
+                'ui.visualize.input.profile_type',
+            ),
+            (self.ui.lineEdit_group_name, 'ui.visualize.input.group_name'),
+            (self.ui.comboBox_best_leaf, 'ui.visualize.input.best_leaf'),
+            (self.ui.comboBox_totalscore, 'ui.visualize.input.totalscore'),
+            (
+                self.ui.lineEdit_multi_design_mutant_table,
+                'ui.visualize.input.multi_design.to_mutant_txt',
+            ),
+            # interact
+            (
+                self.ui.lineEdit_input_gremlin_mtx,
+                'ui.interact.input.gremlin_pkl',
+            ),
+            (
+                self.ui.lineEdit_output_mutant_table,
+                'ui.interact.input.to_mutant_txt',
+            ),
+            # socket
+            (self.ui.lineEdit_ws_server_key, 'ui.socket.input.key'),
+            (
+                self.ui.lineEdit_ws_server_url_to_connect,
+                'ui.socket.input.hostname',
+            ),
+            # # foot
+            # (self.ui.lineEdit_ws_server_key, 'ui.footer_panel.progressbar'),
         ]
 
-        self.widget2config_dict = self._widget2config()
-        self.config2widget_dict = self._config2widget()
+    @property
+    def all_widgets(self) -> tuple[QtWidgets.QWidget]:
+        return [w2c_pair[0] for w2c_pair in self.widget_config_map]
 
-    def _widget2config(self) -> immutabledict:
+    @property
+    def all_cfg_items(self) -> tuple[DictConfig]:
+        return [w2c_pair[1] for w2c_pair in self.widget_config_map]
+
+    @property
+    def widget2config_dict(self) -> immutabledict:
         return immutabledict({i: j for (i, j) in self.widget_config_map})
 
-    def _config2widget(self) -> immutabledict:
+    @property
+    def config2widget_dict(self) -> immutabledict:
         return immutabledict({j: i for (i, j) in self.widget_config_map})
 
     def _find_config_item(self, ui_element):
-        config_item = self.widget2config_dict[ui_element]
-        print(f'{ui_element} -> {config_item}')
+        config_item = self.widget2config_dict.get(ui_element)
+        # print(f'{ui_element} -> {config_item}')
         return config_item
 
-    def _find_widget_item(self, config_item: str):
-        ui_element = self.config2widget_dict[config_item]
-        print(f'{config_item} -> {ui_element}')
+    def _find_widget(self, config_item: str):
+        ui_element = self.config2widget_dict.get(config_item)
+        # print(f'{config_item} -> {ui_element}')
         return ui_element
 
 

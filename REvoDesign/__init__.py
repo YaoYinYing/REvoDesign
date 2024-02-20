@@ -3,6 +3,7 @@ import os
 import time
 import traceback
 from typing import Iterable, Union
+from immutabledict import immutabledict
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -10,9 +11,14 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 
 # using partial module to reduce duplicate code.
 from functools import partial
+from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 
 from REvoDesign.tools.logger import logging
-from REvoDesign.application.ui_driver import Widget2ConfigMapper, Widget2Widget
+from REvoDesign.application.ui_driver import (
+    Widget2ConfigMapper,
+    Widget2Widget,
+    ConfigBus,
+)
 
 from REvoDesign.tools.post_installed import (
     reload_config_file,
@@ -46,6 +52,7 @@ from REvoDesign.tools.utils import (
 )
 
 from REvoDesign.tools.customized_widgets import (
+    get_widget_value,
     hold_trigger_button,
     getExistingDirectory,
     set_widget_value,
@@ -77,6 +84,8 @@ from REvoDesign.tools.mutant_tools import (
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+
+REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 
 class REvoDesignPlugin:
@@ -146,17 +155,24 @@ class REvoDesignPlugin:
 
         from pymol.Qt.utils import loadUi
 
+        # load ui elements
         self.ui = loadUi(
             self.ui_file, main_window
         )  # Store the UI form for later access
+
+        # create a bus btw cfg<---> ui
+        self.bus = ConfigBus(ui=self.ui, config=self.cfg)
+        self.bus.fill_widget_with_cfg_group()
 
         from REvoDesign.tools.customized_widgets import set_window_font
 
         set_window_font(main_window)
 
         # mapping ui widgets <--> cfg.elements
-        self.widget_config_mapper = Widget2ConfigMapper(ui=self.ui)
-        self.widget_config_map = self.widget_config_mapper.widget2config_dict
+        self.widget_config_mapper: Widget2ConfigMapper = self.bus.w2c
+        self.widget_config_map: immutabledict = (
+            self.widget_config_mapper.widget2config_dict
+        )
 
         # Set up Menu
 
@@ -166,13 +182,13 @@ class REvoDesignPlugin:
 
         self.ui.actionReconfigure.triggered.connect(self.reload_configurations)
         self.ui.actionSave_Configurations.triggered.connect(
-            self.save_configuration_from_ui
+            partial(save_configuration, self.bus.cfg)
         )
 
         self.ui.actionSource_Code.triggered.connect(
             partial(
                 QtGui.QDesktopServices.openUrl,
-                QtCore.QUrl("https://github.com/YaoYinYing/REvoDesign"),
+                QtCore.QUrl(REPO_URL),
             )
         )
 
@@ -194,8 +210,6 @@ class REvoDesignPlugin:
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
             partial(
                 self.set_design_sequence,
-                self.ui.comboBox_design_molecule,
-                self.ui.comboBox_chain_id,
             )
         )
 
@@ -203,7 +217,6 @@ class REvoDesignPlugin:
         self.ui.actionCheck_PyMOL_session.triggered.connect(
             partial(
                 self.reload_molecule_info,
-                self.ui.comboBox_design_molecule,
             )
         )
 
@@ -211,20 +224,18 @@ class REvoDesignPlugin:
         self.ui.comboBox_design_molecule.currentIndexChanged.connect(
             partial(
                 self.update_chain_id,
-                self.ui.comboBox_design_molecule,
-                self.ui.comboBox_chain_id,
             )
         )
 
         # set up nproc
-        set_widget_value(self.ui.spinBox_nproc, (1, os.cpu_count()))
-        set_widget_value(self.ui.spinBox_nproc, os.cpu_count())
+        self.bus.set_widget_value('ui.header_panel.nproc', (1, os.cpu_count()))
+        self.bus.set_widget_value('ui.header_panel.nproc', os.cpu_count())
 
         # color map
         import matplotlib
 
-        set_widget_value(
-            self.ui.comboBox_cmap,
+        self.bus.set_widget_value(
+            'ui.header_panel.cmap',
             {
                 _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
                 for _cmap in matplotlib.colormaps()
@@ -233,41 +244,7 @@ class REvoDesignPlugin:
 
         # Tab Client
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
-            partial(
-                self.setup_pssm_gremlin_calculator,
-            )
-        )
-
-        self.pssm_gremlin_calculator.setup_url(
-            self.ui.lineEdit_pssm_gremlin_url,
-            self.ui.lineEdit_pssm_gremlin_user,
-            self.ui.lineEdit_pssm_gremlin_passwd,
-        )
-
-        self.ui.lineEdit_pssm_gremlin_url.textChanged.connect(
-            partial(
-                self.pssm_gremlin_calculator.setup_url,
-                self.ui.lineEdit_pssm_gremlin_url,
-                self.ui.lineEdit_pssm_gremlin_user,
-                self.ui.lineEdit_pssm_gremlin_passwd,
-            )
-        )
-        self.ui.lineEdit_pssm_gremlin_user.textChanged.connect(
-            partial(
-                self.pssm_gremlin_calculator.setup_url,
-                self.ui.lineEdit_pssm_gremlin_url,
-                self.ui.lineEdit_pssm_gremlin_user,
-                self.ui.lineEdit_pssm_gremlin_passwd,
-            )
-        )
-
-        self.ui.lineEdit_pssm_gremlin_passwd.textChanged.connect(
-            partial(
-                self.pssm_gremlin_calculator.setup_url,
-                self.ui.lineEdit_pssm_gremlin_url,
-                self.ui.lineEdit_pssm_gremlin_user,
-                self.ui.lineEdit_pssm_gremlin_passwd,
-            )
+            self.setup_pssm_gremlin_calculator,
         )
 
         self.ui.pushButton_submit_pssm_gremlin_job.clicked.connect(
@@ -298,20 +275,14 @@ class REvoDesignPlugin:
         )
 
         # Set up general arguments
-        # Tab `Determine`
+        # Tab `Prepare`
 
         self.ui.pushButton_open_output_pse_pocket.clicked.connect(
-            partial(
-                self.save_as_a_session,
-                self.ui.lineEdit_output_pse_pocket,
-            )
+            partial(self.save_as_a_session, 'ui.prepare.input.pocket.to_pse')
         )
 
         self.ui.pushButton_open_output_pse_surface.clicked.connect(
-            partial(
-                self.save_as_a_session,
-                self.ui.lineEdit_output_pse_surface,
-            )
+            partial(self.save_as_a_session, 'ui.prepare.input.surface.to_pse')
         )
 
         self.ui.pushButton_run_surface_refresh.clicked.connect(
@@ -339,11 +310,7 @@ class REvoDesignPlugin:
         )
 
         self.ui.comboBox_design_molecule.currentIndexChanged.connect(
-            partial(
-                self.reload_determine_tab_setup,
-                self.ui.comboBox_ligand_sel,
-                self.ui.comboBox_cofactor_sel,
-            )
+            self.reload_determine_tab_setup,
         )
 
         # Connect run buttons
@@ -358,23 +325,15 @@ class REvoDesignPlugin:
         )
 
         # Tab `Mutate`
-        set_widget_value(
-            self.ui.comboBox_profile_type,
-            list(self.cfg.ui.profile.group)
-            + list(self.cfg.ui.profile.designer),
-        )
 
         self.ui.pushButton_open_output_pse_mutate.clicked.connect(
-            partial(
-                self.save_as_a_session,
-                self.ui.lineEdit_output_pse_mutate,
-            )
+            partial(self.save_as_a_session, 'ui.mutate.input.to_pse')
         )
 
         self.ui.pushButton_open_customized_indices.clicked.connect(
             partial(
                 self.open_input_filepath,
-                self.ui.lineEdit_input_customized_indices,
+                'ui.mutate.input.residue_ids',
                 [TXT_FileExt, AnyFileExt],
             )
         )
@@ -382,7 +341,7 @@ class REvoDesignPlugin:
         self.ui.pushButton_open_input_csv.clicked.connect(
             partial(
                 self.open_input_filepath,
-                self.ui.lineEdit_input_csv,
+                'ui.mutate.input.profile',
                 [PSSM_FileExt, AnyFileExt, CompressedFileExt],
             )
         )
@@ -390,8 +349,8 @@ class REvoDesignPlugin:
         self.ui.lineEdit_input_csv.textChanged.connect(
             partial(
                 self.determine_profile_format,
-                self.ui.lineEdit_input_csv,
-                self.ui.comboBox_profile_type,
+                'ui.mutate.input.profile',
+                'ui.mutate.input.profile_type',
             )
         )
 
@@ -414,7 +373,7 @@ class REvoDesignPlugin:
         # Tab `Evaluate`
         self.ui.pushButton_open_mut_table.clicked.connect(
             partial(
-                self.open_mutant_table, self.ui.lineEdit_output_mut_table, 'w'
+                self.open_mutant_table, 'ui.evaluate.input.to_mutant_txt', 'w'
             )
         )
 
@@ -434,7 +393,7 @@ class REvoDesignPlugin:
         )
 
         self.ui.checkBox_rock_pymol.stateChanged.connect(
-            partial(self.set_pymol_session_rock, self.ui.checkBox_rock_pymol)
+            self.set_pymol_session_rock
         )
 
         self.ui.pushButton_reinitialize_mutant_choosing.clicked.connect(
@@ -446,10 +405,8 @@ class REvoDesignPlugin:
                 self.ui.pushButton_accept_this_mutant,
                 self.ui.lcdNumber_total_mutant,
                 self.ui.lcdNumber_selected_mutant,
-                self.ui.lineEdit_output_mut_table,
                 self.ui.progressBar,
                 self.ui.comboBox_group_ids,
-                self.ui.checkBox_show_wt,
             )
         )
 
@@ -458,7 +415,6 @@ class REvoDesignPlugin:
                 self.jump_to_the_best_mutant,
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
-                self.ui.checkBox_reverse_mutant_effect_2,
             )
         )
 
@@ -483,7 +439,6 @@ class REvoDesignPlugin:
                 self.jump_to_a_mutant,
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
-                self.ui.checkBox_show_wt,
                 self.ui.progressBar,
             )
         )
@@ -493,7 +448,6 @@ class REvoDesignPlugin:
                 self.find_all_best_mutants,
                 self.ui.comboBox_group_ids,
                 self.ui.comboBox_mutant_ids,
-                self.ui.checkBox_reverse_mutant_effect_2,
                 self.ui.lcdNumber_selected_mutant,
             )
         )
@@ -502,14 +456,14 @@ class REvoDesignPlugin:
 
         self.ui.pushButton_open_mut_table_2.clicked.connect(
             partial(
-                self.open_mutant_table, self.ui.lineEdit_input_mut_table, 'r'
+                self.open_mutant_table, 'ui.cluster.input.from_mutant_txt', 'r'
             )
         )
 
         from Bio.Align import substitution_matrices
 
-        set_widget_value(
-            self.ui.comboBox_cluster_matrix,
+        self.bus.set_widget_value(
+            'ui.cluster.score_matrix.default',
             [
                 mtx
                 for mtx in os.listdir(
@@ -533,11 +487,6 @@ class REvoDesignPlugin:
         self.ui.pushButton_run_cluster.clicked.connect(self.run_clustering)
 
         # Tab Visualize
-        set_widget_value(
-            self.ui.comboBox_profile_type_2,
-            list(self.cfg.ui.profile.group)
-            + list(self.cfg.ui.profile.designer),
-        )
 
         self.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
@@ -567,23 +516,23 @@ class REvoDesignPlugin:
         self.ui.pushButton_save_this_mutant_table.clicked.connect(
             partial(
                 self.save_visualizing_mutant_tree,
-                self.ui.lineEdit_input_mut_table_csv,
-                self.ui.lineEdit_group_name,
+                'ui.visualize.input.from_mutant_txt',
+                'ui.visualize.input.group_name',
             )
         )
 
         self.ui.lineEdit_input_csv_2.textChanged.connect(
             partial(
                 self.determine_profile_format,
-                self.ui.lineEdit_input_csv_2,
-                self.ui.comboBox_profile_type_2,
+                'ui.visualize.input.profile',
+                'ui.visualize.input.profile_type',
             )
         )
 
         self.ui.pushButton_open_input_csv_2.clicked.connect(
             partial(
                 self.open_input_filepath,
-                self.ui.lineEdit_input_csv_2,
+                'ui.visualize.input.profile',
                 [PSSM_FileExt, AnyFileExt, CompressedFileExt],
             )
         )
@@ -591,29 +540,24 @@ class REvoDesignPlugin:
         self.ui.pushButton_open_mut_table_csv.clicked.connect(
             partial(
                 self.open_mutant_table,
-                self.ui.lineEdit_input_mut_table_csv,
+                'ui.visualize.input.from_mutant_txt',
                 'r',
             )
         )
 
         self.ui.lineEdit_input_mut_table_csv.textChanged.connect(
-            partial(
-                self.update_mutant_table_columns,
-                self.ui.lineEdit_input_mut_table_csv,
-                self.ui.comboBox_best_leaf,
-                self.ui.comboBox_totalscore,
-            )
+            self.update_mutant_table_columns,
         )
 
         self.ui.pushButton_open_output_pse_visualize.clicked.connect(
             partial(
                 self.save_as_a_session,
-                self.ui.lineEdit_output_pse_visualize,
+                'ui.visualize.input.to_pse',
             )
         )
 
-        set_widget_value(self.ui.comboBox_best_leaf, 'best_leaf')
-        set_widget_value(self.ui.comboBox_totalscore, 'totalscore')
+        self.bus.set_widget_value('ui.visualize.input.best_leaf', 'best_leaf')
+        self.bus.set_widget_value('ui.visualize.input.totalscore', 'totalscore')
 
         self.ui.pushButton_run_visualizing.clicked.connect(
             self.visualize_mutants
@@ -645,7 +589,7 @@ class REvoDesignPlugin:
         self.ui.pushButton_open_mut_table_csv_2.clicked.connect(
             partial(
                 self.open_mutant_table,
-                self.ui.lineEdit_multi_design_mutant_table,
+                'ui.visualize.input.multi_design.to_mutant_txt',
                 'w',
             )
         )
@@ -685,14 +629,14 @@ class REvoDesignPlugin:
         # Tab Interact
 
         set_widget_value(
-            self.ui.comboBox_external_scorer,
-            [''] + list(self.cfg.ui.profile.designer),
+            self.bus.get_widget('ui.interact.use_external_scorer'),
+            [''] + self.bus.get_value('designer.group'),
         )
 
         self.ui.pushButton_open_gremlin_mtx.clicked.connect(
             partial(
                 self.open_input_filepath,
-                self.ui.lineEdit_input_gremlin_mtx,
+                'ui.interact.input.gremlin_pkl',
                 [PickleObjectFileExt, AnyFileExt],
             )
         )
@@ -707,7 +651,7 @@ class REvoDesignPlugin:
         self.ui.pushButton_open_save_mutant_table.clicked.connect(
             partial(
                 self.open_mutant_table,
-                self.ui.lineEdit_output_mutant_table,
+                'ui.interact.input.to_mutant_txt',
                 'w',
             )
         )
@@ -754,7 +698,7 @@ class REvoDesignPlugin:
         )
 
         # Tab Config
-        set_widget_value(
+        self.bus.set_widget_value(
             self.ui.comboBox_sidechain_solver,
             list(self.cfg.ui.config.sidechain_solver.group),
         )
@@ -769,16 +713,20 @@ class REvoDesignPlugin:
         )
 
         self.refresh_ui_from_new_configuration()
+        # register widget change events to update cfg items
+        self.bus.register_widget_changes_to_cfg()
 
         return main_window
 
     def set_design_sequence(
         self,
-        comboBox_design_molecule: QtWidgets.QComboBox,
-        comboBox_chain_id: QtWidgets.QComboBox,
     ):
-        design_molecule = comboBox_design_molecule.currentText()
-        design_chain = comboBox_chain_id.currentText()
+        design_molecule = self.bus.get_widget_value(
+            'ui.header_panel.input.molecule'
+        )
+        design_chain = self.bus.get_widget_value(
+            'ui.header_panel.input.chain_id'
+        )
 
         if design_molecule and design_chain:
             self.design_molecule = design_molecule
@@ -836,13 +784,13 @@ class REvoDesignPlugin:
             return filename
 
     # A universal and versatile function for input file path browsing.
-    def open_input_filepath(self, lineEdit_input, exts=[AnyFileExt]):
+    def open_input_filepath(self, cfg_input: str, exts=[AnyFileExt]):
         input_fn = self.browse_filename(mode='r', exts=exts)
         if input_fn:
-            set_widget_value(lineEdit_input, input_fn)
+            self.bus.set_widget_value(cfg_input, input_fn)
             return input_fn
 
-    def reload_molecule_info(self, comboBox_molecule):
+    def reload_molecule_info(self):
         import tempfile
 
         self.temperal_session = tempfile.mktemp(suffix=".pse")
@@ -876,16 +824,18 @@ class REvoDesignPlugin:
                 cmd.alter('all', 'alt=""')
                 cmd.save(self.temperal_session)
 
-        set_widget_value(comboBox_molecule, find_design_molecules)
+        self.bus.set_widget_value(
+            'ui.header_panel.input.molecule', find_design_molecules
+        )
 
-    def save_as_a_session(self, lineEdit_structure_session):
+    def save_as_a_session(self, cfg_to_pse: str):
         output_pse_fn = self.browse_filename(
             mode='w', exts=[SessionFileExt, AnyFileExt]
         )
 
         if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
             logging.info(f"Output file is set as {output_pse_fn}")
-            set_widget_value(lineEdit_structure_session, output_pse_fn)
+            self.bus.set_widget_value(cfg_to_pse, output_pse_fn)
         else:
             logging.warning(f"Invalid output path: {output_pse_fn}.")
 
@@ -898,9 +848,9 @@ class REvoDesignPlugin:
             _fp = fp.text()
             logging.info(f'Checking file path: {_fp}')
             if not dirname_does_exist(_fp):
-                logging.warning(
-                    f'The parent dirname of `{_fp}` is not valid. Keep design buttoms locked!'
-                )
+                # logging.warning(
+                #     f'The parent dirname of `{_fp}` is not valid. Keep design buttoms locked!'
+                # )
                 button_unlocked = False
                 return
             else:
@@ -916,8 +866,8 @@ class REvoDesignPlugin:
             for button in buttons_to_release:
                 button.setEnabled(False)
 
-    def update_chain_id(self, comboBox_molecule, comboBox_chain_id):
-        molecule = comboBox_molecule.currentText()
+    def update_chain_id(self):
+        molecule = self.bus.get_widget_value('ui.header_panel.input.molecule')
         if not molecule:
             logging.warning(f'No available designable molecule!')
             return
@@ -931,17 +881,21 @@ class REvoDesignPlugin:
             for chain_id in chain_ids
         }
         if chain_ids:
-            set_widget_value(comboBox_chain_id, chain_ids)
-            set_widget_value(comboBox_chain_id, chain_ids[0])
+            self.bus.set_widget_value(
+                'ui.header_panel.input.chain_id', chain_ids
+            )
+            self.bus.set_widget_value(
+                'ui.header_panel.input.chain_id', chain_ids[0]
+            )
 
-    def open_mutant_table(self, lineEdit_mutant_table, mode='r'):
+    def open_mutant_table(self, cfg_mutant_table: str, mode='r'):
         if mode == 'r':
             input_mut_txt_fn = self.open_input_filepath(
-                lineEdit_mutant_table,
+                cfg_mutant_table,
                 [MutableFileExt, AnyFileExt, CompressedFileExt],
             )
             if input_mut_txt_fn:
-                set_widget_value(lineEdit_mutant_table, input_mut_txt_fn)
+                self.bus.set_widget_value(cfg_mutant_table, input_mut_txt_fn)
             else:
                 logging.warning(
                     f'Could not open file for reading: {input_mut_txt_fn}'
@@ -954,7 +908,7 @@ class REvoDesignPlugin:
                 os.path.dirname(output_mut_txt_fn)
             ):
                 logging.info(f"Output file is set as {output_mut_txt_fn}")
-                set_widget_value(lineEdit_mutant_table, output_mut_txt_fn)
+                self.bus.set_widget_value(cfg_mutant_table, output_mut_txt_fn)
             else:
                 logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
         else:
@@ -965,40 +919,22 @@ class REvoDesignPlugin:
             '\n'.join(mutant_list) if mutant_list else ''
         )
 
-    def determine_profile_format(
-        self, lineEdit_input_profile, comboBox_profile_format
+    def save_mutant_choices(
+        self, cfg_output_mut_txt:str, mutant_tree: MutantTree
     ):
-        profile_fp = os.path.abspath(lineEdit_input_profile.text())
-        if not os.path.exists(profile_fp):
-            return None
-
-        profile_bn = os.path.basename(profile_fp)
-        if profile_bn.endswith('.csv'):
-            profile_format = 'CSV'
-        elif profile_bn.endswith('.txt'):
-            profile_format = 'TSV'
-        elif profile_bn.endswith('.pssm') or profile_bn.endswith(
-            'ascii_mtx_file'
-        ):
-            profile_format = 'PSSM'
-
-        set_widget_value(comboBox_profile_format, profile_format)
-
-    def save_mutant_choices(self, lineEdit_output_mut_txt, mutant_tree: MutantTree):
         if not mutant_tree:
             logging.error(f"No Mutant tree is given!")
             return
-    
+
         if mutant_tree.empty:
             logging.warning(f'mutant tree is empty. save nothing.')
             return
 
-        
         mutants_to_save = mutant_tree.all_mutant_ids
         logging.info(f"saving: {mutants_to_save}")
 
         # TODO mutant_choices function
-        output_mut_txt_fn = lineEdit_output_mut_txt.text()
+        output_mut_txt_fn = self.bus.get_value(cfg_output_mut_txt)
         output_mut_txt_dir = os.path.dirname(output_mut_txt_fn)
         if not os.path.exists(output_mut_txt_dir):
             logging.warning(
@@ -1049,8 +985,8 @@ class REvoDesignPlugin:
             output_mut_txt_ckp, [mt for mt in mutants_to_save]
         )
 
-    def set_pymol_session_rock(self, checkBox_rock_pymol):
-        cmd.set('rock', checkBox_rock_pymol.isChecked())
+    def set_pymol_session_rock(self):
+        cmd.set('rock', self.bus.get_value('ui.evaluate.rock'))
 
     def center_design_area(self, mutant_id):
         if self.mutant_tree_pssm and mutant_id:
@@ -1110,6 +1046,8 @@ class REvoDesignPlugin:
         logging.debug(
             f'Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}'
         )
+        if not isinstance(self.pssm_gremlin_calculator, PSSMGremlinCalculator):
+            self.pssm_gremlin_calculator = PSSMGremlinCalculator()
 
         if molecule and chain_id and sequence:
             self.pssm_gremlin_calculator.setup_calculator(
@@ -1118,14 +1056,40 @@ class REvoDesignPlugin:
                 chain_id=chain_id,
                 sequence=sequence,
             )
+        self.pssm_gremlin_calculator.url = self.bus.get_value(
+            'ui.client.pssm_gremlin_url'
+        )
+        self.pssm_gremlin_calculator.user = self.bus.get_value(
+            'ui.client.pssm_gremlin_user'
+        )
+        self.pssm_gremlin_calculator.password = self.bus.get_value(
+            'ui.client.pssm_gremlin_passwd'
+        )
+        if (
+            self.pssm_gremlin_calculator.user
+            and self.pssm_gremlin_calculator.password
+        ):
+            from requests.auth import HTTPBasicAuth
+
+            self.pssm_gremlin_calculator.auth = HTTPBasicAuth(
+                self.pssm_gremlin_calculator.user,
+                self.pssm_gremlin_calculator.password,
+            )
+        else:
+            self.pssm_gremlin_calculator.auth = None
 
     # Tab `Determine`
 
     def reload_determine_tab_setup(
         self,
-        comboBox_ligand_sel,
-        comboBox_cofactor_sel,
     ):
+        comboBox_ligand_sel = self.bus.get_widget(
+            'ui.prepare.input.pocket.substrate'
+        )
+        comboBox_cofactor_sel = self.bus.get_widget(
+            'ui.prepare.input.pocket.cofactor'
+        )
+
         # Setup pocket determination arguments
         small_molecules = find_small_molecules_in_protein(self.design_molecule)
         if small_molecules:
@@ -1142,14 +1106,17 @@ class REvoDesignPlugin:
     def update_surface_exclusion(self):
         exclusion_list = fetch_exclusion_expressions()
 
-        set_widget_value(self.ui.comboBox_surface_exclusion, exclusion_list)
-        self.ui.comboBox_surface_exclusion.setCurrentIndex(
-            0
-        ) if exclusion_list else 0
+        self.bus.set_widget_value(
+            'ui.prepare.input.surface.exclusion', exclusion_list
+        )
+        if exclusion_list:
+            self.bus.get_widget(
+                'ui.prepare.input.surface.exclusion'
+            ).setCurrentIndex(0)
 
     def run_chain_interface_detection(self):
-        molecule = self.design_molecule
-        radius = self.ui.doubleSpinBox_interface_cutoff.value()
+        molecule = self.bus.get_value('ui.header_panel.input.molecule')
+        radius = self.bus.get_value('ui.prepare.chain_dist')
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         if not chain_ids or len(chain_ids) <= 1:
             return
@@ -1162,10 +1129,10 @@ class REvoDesignPlugin:
 
     def run_surface_detection(self):
         input_file = self.temperal_session
-        output_file = self.ui.lineEdit_output_pse_surface.text()
+        output_file = self.bus.get_value('ui.prepare.input.surface.to_pse')
 
-        exclusion = self.ui.comboBox_surface_exclusion.currentText()
-        cutoff = float(self.ui.doubleSpinBox_surface_cutoff.value())
+        exclusion = self.bus.get_value('ui.prepare.input.surface.exclusion')
+        cutoff = float(self.bus.get_value('ui.prepare.surface_probe_radius'))
         do_show_surf_CA = True
 
         from REvoDesign.structure.SurfaceFinder import SurfaceFinder
@@ -1185,11 +1152,11 @@ class REvoDesignPlugin:
 
     def run_pocket_detection(self):
         input_file = self.temperal_session
-        output_file = self.ui.lineEdit_output_pse_pocket.text()
-        ligand = self.ui.comboBox_ligand_sel.currentText()
-        cofactor = self.ui.comboBox_cofactor_sel.currentText()
-        ligand_radius = self.ui.doubleSpinBox_ligand_radius.value()
-        cofactor_radius = self.ui.doubleSpinBox_cofactor_radius.value()
+        output_file = self.bus.get_value('ui.prepare.input.pocket.to_pse')
+        ligand = self.bus.get_value('ui.prepare.input.pocket.substrate')
+        cofactor = self.bus.get_value('ui.prepare.input.pocket.cofactor')
+        ligand_radius = self.bus.get_value('ui.prepare.ligand_radius')
+        cofactor_radius = self.bus.get_value('ui.prepare.cofactor_radius')
 
         from REvoDesign.structure.PocketSearcher import PocketSearcher
 
@@ -1210,55 +1177,81 @@ class REvoDesignPlugin:
         pocketsearcher.search_pockets()
 
     # Tab `Mutate`
+    
+
+    def determine_profile_format(self,
+            cfg_input_profile: str, cfg_profile_format: str
+        ):
+            profile_fp = os.path.abspath(self.bus.get_value(cfg_input_profile))
+            if not os.path.exists(profile_fp):
+                return None
+
+            profile_bn = os.path.basename(profile_fp)
+            if profile_bn.endswith('.csv'):
+                profile_format = 'CSV'
+            elif profile_bn.endswith('.txt'):
+                profile_format = 'TSV'
+            elif profile_bn.endswith('.pssm') or profile_bn.endswith(
+                'ascii_mtx_file'
+            ):
+                profile_format = 'PSSM'
+
+            self.bus.set_widget_value(cfg_profile_format, profile_format)
 
     def run_mutant_loading_from_profile(self):
         self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
 
         try:
-            design_profile = self.ui.lineEdit_input_csv.text()
-            design_profile_format = self.ui.comboBox_profile_type.currentText()
-            preffered = self.ui.lineEdit_preffer_substitution.text().upper()
-            rejected = self.ui.lineEdit_reject_substitution.text().upper()
+            design_profile = self.bus.get_value('ui.mutate.input.profile')
+            design_profile_format = self.bus.get_value(
+                'ui.mutate.input.profile_type'
+            )
+            preffered = self.bus.get_value('ui.mutate.accept')
+            rejected = self.bus.get_value('ui.mutate.reject')
 
-            temperature = self.ui.doubleSpinBox_designer_temperature.value()
-            num_designs = self.ui.spinBox_designer_num_samples.value()
-            batch = self.ui.spinBox_designer_batch.value()
+            temperature = self.bus.get_value('ui.mutate.designer.temperature')
+            num_designs = self.bus.get_value('ui.mutate.designer.num_sample')
+            batch = self.bus.get_value('ui.mutate.designer.batch')
             homooligomeric = (
                 self.ui.checkBox_designer_homooligomeric.isChecked()
             )
-            deduplicate_designs = (
-                self.ui.checkBox_deduplicate_designs.isChecked()
+            deduplicate_designs = self.bus.get_value(
+                'ui.mutate.designer.deduplicate_designs'
             )
-            randomized_sample = (
-                self.ui.checkBox_randomized_sampling.isChecked()
+            randomized_sample = self.bus.get_value(
+                'ui.mutate.designer.enable_randomized_sampling'
             )
-            randomized_sample_num = self.ui.spinBox_randomized_sampling.value()
+            randomized_sample_num = self.bus.get_value(
+                'ui.mutate.designer.randomized_sampling'
+            )
 
-            design_case = self.ui.lineEdit_design_case.text()
-            custom_indices_fp = (
-                self.ui.lineEdit_input_customized_indices.text()
+            design_case = self.bus.get_value('ui.mutate.input.design_case')
+            custom_indices_fp = self.bus.get_value(
+                'ui.mutate.input.residue_ids'
             )
             cutoff = [
-                float(self.ui.lineEdit_score_minima.text()),
-                float(self.ui.lineEdit_score_maxima.text()),
+                float(self.bus.get_value('ui.mutate.min_score')),
+                float(self.bus.get_value('ui.mutate.max_score')),
             ]
-            reversed_mutant_effect = (
-                self.ui.checkBox_reverse_mutant_effect.isChecked()
+            reversed_mutant_effect = self.bus.get_value(
+                'ui.mutate.reverse_score'
             )
-            output_pse = self.ui.lineEdit_output_pse_mutate.text()
-            nproc = self.ui.spinBox_nproc.value()
+            output_pse = self.bus.get_value('ui.mutate.input.to_pse')
+            nproc = self.bus.get_value('ui.header_panel.nproc')
 
             cmap = cmap_reverser(
-                cmap=self.ui.comboBox_cmap.currentText(),
+                cmap=self.bus.get_value('ui.header_panel.cmap'),
                 reverse=reversed_mutant_effect,
             )
 
-            sidechain_solver = self.ui.comboBox_sidechain_solver.currentText()
-            sidechain_solver_radius = (
-                self.ui.doubleSpinBox_sidechain_solver_radius.value()
+            sidechain_solver = self.bus.get_value(
+                'ui.config.sidechain_solver.default'
             )
-            sidechain_solver_model = (
-                self.ui.comboBox_sidechain_solver_model.currentText()
+            sidechain_solver_radius = self.bus.get_value(
+                'ui.config.sidechain_solver.repack_radius'
+            )
+            sidechain_solver_model = self.bus.get_value(
+                'ui.config.sidechain_solver.model'
             )
 
             progressbar = self.ui.progressBar
@@ -1365,7 +1358,7 @@ class REvoDesignPlugin:
             )
 
     # Tab `Evaluate`
-    def activate_focused(self, checkBox_show_wt):
+    def activate_focused(self):
         molecule = self.design_molecule
         chain_id = self.design_chain_id
 
@@ -1391,7 +1384,7 @@ class REvoDesignPlugin:
                 f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA) and not hydrogen',
             )
             cmd.hide('cartoon', f'{self.mutant_tree_pssm.current_mutant_id}')
-            if checkBox_show_wt.isChecked() and resi:
+            if self.bus.get_value('ui.evaluate.show_wt') and resi:
                 cmd.show(
                     'lines',
                     f'{molecule} and c. {chain_id} and i. {resi} and (sidechain or n. CA) and not hydrogens',
@@ -1472,14 +1465,13 @@ class REvoDesignPlugin:
         )
 
         self.save_mutant_choices(
-            self.ui.lineEdit_output_mut_table, self.mutant_tree_pssm_selected
+            'ui.evaluate.input.to_mutant_txt', self.mutant_tree_pssm_selected
         )
 
     def walk_mutant_groups(
         self,
         walk_to_next,
         progressBar_mutant_choosing,
-        checkBox_show_wt,
     ):
         comboBox_group_ids = self.ui.comboBox_group_ids
         comboBox_mutant_ids = self.ui.comboBox_mutant_ids
@@ -1515,7 +1507,7 @@ class REvoDesignPlugin:
         if comboBox_mutant_ids.currentText() != current_mutant_id:
             set_widget_value(comboBox_mutant_ids, current_mutant_id)
 
-        self.activate_focused(checkBox_show_wt)
+        self.activate_focused()
         logging.info(
             f'Walked to the {"next" if walk_to_next else "previous"} mutant {current_mutant_id}.'
         )
@@ -1562,7 +1554,6 @@ class REvoDesignPlugin:
         self,
         comboBox_group_ids,
         comboBox_mutant_ids,
-        checkBox_show_wt,
         progressBar_mutant_choosing,
     ):
         branch_id = comboBox_group_ids.currentText()
@@ -1591,7 +1582,7 @@ class REvoDesignPlugin:
         logging.info(f'Jump to {mutant_id} as required.')
         self.mutant_tree_pssm.current_mutant_id = mutant_id
 
-        self.activate_focused(checkBox_show_wt)
+        self.activate_focused()
 
         # update progress bar
         progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
@@ -1606,7 +1597,6 @@ class REvoDesignPlugin:
         self,
         comboBox_group_ids,
         comboBox_mutant_ids,
-        checkBox_reverse_mutant_effect,
     ):
         if self.mutant_tree_pssm.empty:
             return
@@ -1616,7 +1606,7 @@ class REvoDesignPlugin:
         best_mutant_id = (
             self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
                 branch_id=branch_id,
-                reversed=checkBox_reverse_mutant_effect.isChecked(),
+                reversed=self.bus.get_value('ui.evaluate.reverse_score'),
             )
         )
         logging.info(f'Jump to the best hit of {branch_id}: {best_mutant_id}')
@@ -1627,8 +1617,6 @@ class REvoDesignPlugin:
         self,
         comboBox_group_ids,
         comboBox_mutant_ids,
-        checkBox_reverse_mutant_effect,
-        lcdNumber_selected_mutant,
     ):
         if self.mutant_tree_pssm.empty:
             logging.error(
@@ -1665,7 +1653,7 @@ class REvoDesignPlugin:
             best_mutant_id = (
                 self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
                     branch_id=branch_id,
-                    reversed=checkBox_reverse_mutant_effect.isChecked(),
+                    reversed=self.bus.get_value('ui.evaluate.reverse_score'),
                 )
             )
             logging.info(
@@ -1734,11 +1722,12 @@ class REvoDesignPlugin:
         pushButton_accept_this_mutant,
         lcdNumber_total_mutant,
         lcdNumber_selected_mutant,
-        lineEdit_output_mut_txt,
         progressBar_mutant_choosing,
         comboBox_group_ids,
-        checkBox_show_wt,
     ):
+        lineEdit_output_mut_txt = self.bus.get_widget(
+            'ui.evaluate.input.to_mutant_txt'
+        )
         self.mutant_tree_pssm = existed_mutant_tree(
             sequences=self.designable_sequences, enabled_only=0
         )
@@ -1775,7 +1764,7 @@ class REvoDesignPlugin:
             comboBox_group_ids, self.mutant_tree_pssm.all_mutant_branch_ids[0]
         )
 
-        self.activate_focused(checkBox_show_wt)
+        self.activate_focused()
 
         # show the current branch and mutant
         cmd.enable(self.mutant_tree_pssm.current_mutant_id)
@@ -1816,7 +1805,6 @@ class REvoDesignPlugin:
                 self.walk_mutant_groups,
                 True,
                 progressBar_mutant_choosing,
-                checkBox_show_wt,
             )
         )
 
@@ -1825,7 +1813,6 @@ class REvoDesignPlugin:
                 self.walk_mutant_groups,
                 False,
                 progressBar_mutant_choosing,
-                checkBox_show_wt,
             )
         )
 
@@ -1935,11 +1922,8 @@ class REvoDesignPlugin:
 
     def update_mutant_table_columns(
         self,
-        lineEdit_input_mut_table_csv,
-        comboBox_best_leaf,
-        comboBox_totalscore,
     ):
-        mut_table_fp = lineEdit_input_mut_table_csv.text()
+        mut_table_fp = self.bus.get_value('ui.visualize.input.from_mutant_txt')
         if not os.path.exists(mut_table_fp):
             logging.warning(f'Mutant Table path is not valid: {mut_table_fp}')
             return
@@ -1954,6 +1938,13 @@ class REvoDesignPlugin:
                 )
                 return
             else:
+                comboBox_best_leaf = self.bus.get_widget(
+                    'ui.visualize.input.best_leaf'
+                )
+                comboBox_totalscore = self.bus.get_widget(
+                    'ui.visualize.input.totalscore'
+                )
+
                 # set cols to combo boxes
                 for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
                     set_widget_value(comboBox, mut_table_cols)
@@ -1964,12 +1955,11 @@ class REvoDesignPlugin:
                     set_widget_value(comboBox_totalscore, mut_table_cols[-1])
 
     def save_visualizing_mutant_tree(
-        self, lineEdit_mutant_table_fp, lineEdit_group_name
+        self, cfg_mutant_table_fp, cfg_group_name
     ):
-        lineEdit_mutant_table_fp = lineEdit_mutant_table_fp
-        group_name = lineEdit_group_name.text()
+        group_name = self.bus.get_value(cfg_group_name)
 
-        mutant_table_fp = lineEdit_mutant_table_fp.text()
+        mutant_table_fp = self.bus.get_value(cfg_mutant_table_fp)
 
         if not os.path.exists(mutant_table_fp):
             logging.warning(
@@ -1993,7 +1983,7 @@ class REvoDesignPlugin:
         logging.info(f'Saving mutant table to {mutant_table_fp} ...')
 
         self.save_mutant_choices(
-            lineEdit_mutant_table_fp,
+            cfg_mutant_table_fp,
             self.visualizing_mutant_tree,
         )
 
@@ -2306,9 +2296,13 @@ class REvoDesignPlugin:
         from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
 
         with hold_trigger_button(trigger_button):
-            gremlin_mrf_fp = self.ui.lineEdit_input_gremlin_mtx.text()
+            gremlin_mrf_fp = self.bus.get_value(
+                'ui.interact.input.gremlin_pkl'
+            )
 
-            topN_gremlin_candidates = self.ui.spinBox_gremlin_topN.value()
+            topN_gremlin_candidates = self.bus.get_value(
+                'ui.interact.topN_pairs'
+            )
 
             if (not self.design_molecule) or (not self.design_chain_id):
                 logging.error(
@@ -2702,7 +2696,7 @@ class REvoDesignPlugin:
                 )
 
         self.save_mutant_choices(
-            self.ui.lineEdit_output_mutant_table,
+            'ui.interact.input.to_mutant_txt',
             self.mutant_tree_coevolved,
         )
 
@@ -3060,7 +3054,7 @@ class REvoDesignPlugin:
             or not self.design_chain_id
             or not self.design_sequence
         ):
-            self.reload_molecule_info(self.ui.comboBox_design_molecule)
+            self.reload_molecule_info()
 
         self.ws_client.design_molecule = self.design_molecule
         self.ws_client.design_chain_id = self.design_chain_id
@@ -3142,17 +3136,3 @@ class REvoDesignPlugin:
             raise ValueError('Reconfiguration failed.')
         for widget, config_item in self.widget_config_map.items():
             set_widget_value(widget, OmegaConf.select(self.cfg, config_item))
-
-    def save_configuration_from_ui(self):
-        from REvoDesign.tools.customized_widgets import get_widget_value
-
-        # print(self.widget_config_mapper.widget2config_dict)
-        for (
-            widget,
-            config_item,
-        ) in self.widget_config_mapper.widget2config_dict.items():
-            value = get_widget_value(widget=widget)
-            logging.debug(f'Save {config_item}: {value}')
-            OmegaConf.update(self.cfg, config_item, value)
-
-        save_configuration(new_cfg=self.cfg)

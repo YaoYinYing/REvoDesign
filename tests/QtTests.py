@@ -82,6 +82,8 @@ class TestWorker:
             'MACBOOKPRO': bool(os.environ.get('PROTEIN_DESIGN_KIT')),
         }
 
+        self.in_ci_runner= (self.in_which_runner.get('CIRCLECI') or self.in_which_runner.get('GITHUB'))
+
     def _fetch_pdb(self):
         try:
             molecules = cmd.get_names()
@@ -129,7 +131,6 @@ class TestWorker:
         self.qtbot.wait(100)
 
         self.revo_design_plugin.reload_molecule_info(
-            self.revo_design_plugin.ui.comboBox_design_molecule
         )
         self.check_molecule_after_loaded()
 
@@ -227,6 +228,8 @@ class TestWorker:
         widget: QtWidgets.QWidget,
         basename: str = 'default',
     ):
+        if self.in_ci_runner:
+            return 
         png_file = self.qtbot.screenshot(widget=widget)
         moved_file = os.rename(
             png_file, os.path.join(self.SCREENSHOT_DIR, f'{basename}.png')
@@ -240,6 +243,8 @@ class TestWorker:
         use_ray: bool = False,
         spells: str = None,
     ):
+        if self.in_ci_runner:
+            return 
         if spells:
             cmd.do(spells)
         png_file = os.path.join(self.PYMOL_PNG_DIR, f'{basename}.png')
