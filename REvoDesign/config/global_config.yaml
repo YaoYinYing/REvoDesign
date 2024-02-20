@@ -9,7 +9,6 @@ ui:
       molecule: ''
       chain_id: ''
     cmap: 
-      group: ''
       default: bwr_r
     nproc: 6
   # footer_panel: 

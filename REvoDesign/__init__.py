@@ -217,6 +217,8 @@ class REvoDesignPlugin:
         self.bus.set_widget_value('ui.header_panel.nproc', max_proc)
         self.bus.set_value('ui.header_panel.nproc', max_proc)
 
+        
+
         # color map
         import matplotlib
 
@@ -229,10 +231,13 @@ class REvoDesignPlugin:
             'ui.header_panel.cmap.default',
             cmap_group,
         )
-        self.bus.set_widget_value(
-            'ui.header_panel.cmap.default',
-            self.bus.get_widget('ui.header_panel.cmap.default'),
-        )
+        
+        #set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
+        # self.bus.set_widget_value(
+        #     'ui.header_panel.cmap.default',
+        #     'bwr_r',
+        # )
+        self.bus.restore_widget_value('ui.header_panel.cmap.default')
 
         # Tab Client
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
@@ -1940,7 +1945,7 @@ class REvoDesignPlugin:
                     'ui.visualize.reverse_score'
                 )
                 cmap = cmap_reverser(
-                    cmap=self.bus.get_value('ui.header_panel.cmap.group'),
+                    cmap=self.bus.get_value('ui.header_panel.cmap.default'),
                     reverse=reversed_mutant_effect,
                 )
 
@@ -2107,9 +2112,7 @@ class REvoDesignPlugin:
             spinBox_maximal_multi_design_variant_num.value()
         )
 
-        self.multi_mutagenesis_designer.cmap = (
-            self.ui.comboBox_cmap.currentText()
-        )
+        self.multi_mutagenesis_designer.cmap = self.bus.get_value('ui.header_panel.cmap.default')
 
         self.multi_mutagenesis_designer.maximal_mutant_num = (
             spinBox_maximal_mutant_num.value()
@@ -3071,11 +3074,15 @@ class REvoDesignPlugin:
     def reload_configurations(self):
         if self.bus:
             logging.warning(f'Reconfiguring with changes...')
+            reconfigure=True
         else:
             logging.warning(f'Configuration initialized.')
+            reconfigure=False
         # create a bus btw cfg<---> ui
         self.bus = ConfigBus(ui=self.ui)
-        self.bus.fill_widget_with_cfg_group()
+        if not reconfigure:
+            self.bus.fill_widget_with_cfg_group()
+
         # mapping ui widgets <--> cfg.elements
         self.widget_config_map: immutabledict = self.bus.w2c.widget2config_dict
         self.refresh_ui_from_new_configuration()

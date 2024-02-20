@@ -72,6 +72,12 @@ class ConfigBus:
     def set_widget_value(self, cfg_item: str, value):
         set_widget_value(widget=self.get_widget(cfg_item), value=value)
 
+    def restore_widget_value(self, cfg_item: str):
+        self.set_widget_value(
+            cfg_item,
+            self.get_widget(cfg_item),
+        )
+
     def get_cfg_item(self, widget: QtWidgets.QWidget) -> DictConfig:
         assert widget in self.w2c.all_widgets
         return self.w2c._find_config_item(widget)
@@ -135,8 +141,8 @@ class Widget2ConfigMapper:
         self.ui = ui
 
         self.group_config_map: list[tuple[Any, Union[str, tuple[str]]]] = [
-            (self.ui.comboBox_cmap, 'ui.header_panel.cmap.group'),
-            (self.ui.comboBox_cluster_matrix, 'ui.cluster.score_matrix.group'),
+            #(self.ui.comboBox_cmap, 'ui.header_panel.cmap.group'),
+            #(self.ui.comboBox_cluster_matrix, 'ui.cluster.score_matrix.group'),
             (
                 self.ui.comboBox_sidechain_solver,
                 'ui.config.sidechain_solver.group',
