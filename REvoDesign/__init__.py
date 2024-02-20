@@ -234,12 +234,14 @@ class REvoDesignPlugin:
         # color map
         import matplotlib
 
+        cmap_group = {
+            _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
+            for _cmap in matplotlib.colormaps()
+        }
+
         self.bus.set_widget_value(
             'ui.header_panel.cmap',
-            {
-                _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
-                for _cmap in matplotlib.colormaps()
-            },
+            cmap_group,
         )
 
         # Tab Client
@@ -291,21 +293,17 @@ class REvoDesignPlugin:
 
         self.ui.lineEdit_output_pse_surface.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [self.ui.lineEdit_output_pse_surface],
-                [
-                    self.ui.pushButton_run_surface_detection,
-                ],
+                self.bus.fp_lock,
+                'ui.prepare.input.surface.to_pse',
+                self.ui.pushButton_run_surface_detection,
             )
         )
 
         self.ui.lineEdit_output_pse_pocket.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [self.ui.lineEdit_output_pse_pocket],
-                [
-                    self.ui.pushButton_run_pocket_detection,
-                ],
+                self.bus.fp_lock,
+                'ui.prepare.input.pocket.to_pse',
+                self.ui.pushButton_run_pocket_detection,
             )
         )
 
@@ -356,13 +354,9 @@ class REvoDesignPlugin:
 
         self.ui.lineEdit_output_pse_mutate.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_output_pse_mutate,
-                ],
-                [
-                    self.ui.pushButton_run_PSSM_to_pse,
-                ],
+                self.bus.fp_lock,
+                'ui.mutate.input.to_pse',
+                self.ui.pushButton_run_PSSM_to_pse,
             )
         )
 
@@ -379,10 +373,8 @@ class REvoDesignPlugin:
 
         self.ui.lineEdit_output_mut_table.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_output_mut_table,
-                ],
+                self.bus.fp_lock,
+                'ui.evaluate.input.to_mutant_txt',
                 [
                     self.ui.pushButton_previous_mutant,
                     self.ui.pushButton_reject_this_mutant,
@@ -413,43 +405,23 @@ class REvoDesignPlugin:
         self.ui.pushButton_goto_best_hit_in_group.clicked.connect(
             partial(
                 self.jump_to_the_best_mutant,
-                self.ui.comboBox_group_ids,
-                self.ui.comboBox_mutant_ids,
             )
         )
 
         self.ui.pushButton_load_mutant_choice_checkpoint.clicked.connect(
-            partial(
-                self.recover_mutant_choices_from_checkpoint,
-                self.ui.lcdNumber_selected_mutant,
-            )
+            self.recover_mutant_choices_from_checkpoint,
         )
 
         self.ui.comboBox_group_ids.currentTextChanged.connect(
-            partial(
-                self.jump_to_branch,
-                self.ui.comboBox_group_ids,
-                self.ui.comboBox_mutant_ids,
-                self.ui.progressBar,
-            )
+            self.jump_to_branch,
         )
 
         self.ui.comboBox_mutant_ids.currentTextChanged.connect(
-            partial(
-                self.jump_to_a_mutant,
-                self.ui.comboBox_group_ids,
-                self.ui.comboBox_mutant_ids,
-                self.ui.progressBar,
-            )
+            self.jump_to_a_mutant,
         )
 
         self.ui.pushButton_choose_lucky_mutant.clicked.connect(
-            partial(
-                self.find_all_best_mutants,
-                self.ui.comboBox_group_ids,
-                self.ui.comboBox_mutant_ids,
-                self.ui.lcdNumber_selected_mutant,
-            )
+            self.find_all_best_mutants,
         )
 
         # Tab `Cluster`
@@ -474,13 +446,9 @@ class REvoDesignPlugin:
 
         self.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_input_mut_table,
-                ],
-                [
-                    self.ui.pushButton_run_cluster,
-                ],
+                self.bus.fp_lock,
+                'ui.cluster.input.from_mutant_txt',
+                self.ui.pushButton_run_cluster,
             )
         )
 
@@ -490,22 +458,16 @@ class REvoDesignPlugin:
 
         self.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_output_pse_visualize,
-                ],
-                [
-                    self.ui.pushButton_run_visualizing,
-                ],
+                self.bus.fp_lock,
+                'ui.visualize.input.to_pse',
+                self.ui.pushButton_run_visualizing,
             )
         )
 
         self.ui.lineEdit_input_mut_table_csv.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_input_mut_table_csv,
-                ],
+                self.bus.fp_lock,
+                'ui.visualize.input.from_mutant_txt',
                 [
                     self.ui.pushButton_save_this_mutant_table,
                     self.ui.pushButton_reduce_this_session,
@@ -557,7 +519,9 @@ class REvoDesignPlugin:
         )
 
         self.bus.set_widget_value('ui.visualize.input.best_leaf', 'best_leaf')
-        self.bus.set_widget_value('ui.visualize.input.totalscore', 'totalscore')
+        self.bus.set_widget_value(
+            'ui.visualize.input.totalscore', 'totalscore'
+        )
 
         self.ui.pushButton_run_visualizing.clicked.connect(
             self.visualize_mutants
@@ -575,10 +539,8 @@ class REvoDesignPlugin:
         # Multi-Design
         self.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
             partial(
-                self.release_run_button_if_lineEdit_fp_is_valid,
-                [
-                    self.ui.lineEdit_multi_design_mutant_table,
-                ],
+                self.bus.fp_lock,
+                'ui.visualize.input.multi_design.to_mutant_txt',
                 [
                     self.ui.pushButton_multi_design_export_mutants_from_table,
                     self.ui.pushButton_run_multi_design,
@@ -664,13 +626,10 @@ class REvoDesignPlugin:
         )
 
         # Tab socket
-
         self.generate_ws_server_key(self.ui.lineEdit_ws_server_key)
 
         self.ui.pushButton_ws_generate_randomized_key.clicked.connect(
-            partial(
-                self.generate_ws_server_key, self.ui.lineEdit_ws_server_key
-            )
+            self.generate_ws_server_key
         )
 
         # Connect the partial function to the stateChanged signal
@@ -839,33 +798,6 @@ class REvoDesignPlugin:
         else:
             logging.warning(f"Invalid output path: {output_pse_fn}.")
 
-    def release_run_button_if_lineEdit_fp_is_valid(
-        self, lineEdits_fp, buttons_to_release
-    ):
-        button_unlocked = True
-
-        for fp in lineEdits_fp:
-            _fp = fp.text()
-            logging.info(f'Checking file path: {_fp}')
-            if not dirname_does_exist(_fp):
-                # logging.warning(
-                #     f'The parent dirname of `{_fp}` is not valid. Keep design buttoms locked!'
-                # )
-                button_unlocked = False
-                return
-            else:
-                if not filepath_does_exists(_fp):
-                    logging.warning(f'The file `{_fp}` is not valid.')
-                else:
-                    logging.info(f'The file `{_fp}` is valid.')
-
-        if button_unlocked:
-            for button in buttons_to_release:
-                button.setEnabled(True)
-        else:
-            for button in buttons_to_release:
-                button.setEnabled(False)
-
     def update_chain_id(self):
         molecule = self.bus.get_widget_value('ui.header_panel.input.molecule')
         if not molecule:
@@ -920,7 +852,7 @@ class REvoDesignPlugin:
         )
 
     def save_mutant_choices(
-        self, cfg_output_mut_txt:str, mutant_tree: MutantTree
+        self, cfg_output_mut_txt: str, mutant_tree: MutantTree
     ):
         if not mutant_tree:
             logging.error(f"No Mutant tree is given!")
@@ -1036,8 +968,8 @@ class REvoDesignPlugin:
 
     # Tab Client
     def setup_pssm_gremlin_calculator(self):
-        molecule = self.design_molecule
-        chain_id = self.design_chain_id
+        molecule = self.bus.get_value('ui.header_panel.input.molecule')
+        chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
         sequence = self.designable_sequences[self.design_chain_id]
 
         if (not molecule) or (not chain_id) or (not sequence):
@@ -1083,25 +1015,15 @@ class REvoDesignPlugin:
     def reload_determine_tab_setup(
         self,
     ):
-        comboBox_ligand_sel = self.bus.get_widget(
-            'ui.prepare.input.pocket.substrate'
-        )
-        comboBox_cofactor_sel = self.bus.get_widget(
-            'ui.prepare.input.pocket.cofactor'
-        )
-
         # Setup pocket determination arguments
         small_molecules = find_small_molecules_in_protein(self.design_molecule)
         if small_molecules:
-            set_widget_value(comboBox_ligand_sel, small_molecules)
-            comboBox_ligand_sel.setCurrentIndex(len(small_molecules))
-
-            set_widget_value(comboBox_cofactor_sel, small_molecules)
-
-            if len(small_molecules) >= 2:
-                comboBox_cofactor_sel.setCurrentIndex(len(small_molecules) - 1)
-            else:
-                comboBox_cofactor_sel.setCurrentIndex(0)
+            self.bus.set_widget_value(
+                'ui.prepare.input.pocket.substrate', small_molecules
+            )
+            self.bus.set_widget_value(
+                'ui.prepare.input.pocket.cofactor', small_molecules
+            )
 
     def update_surface_exclusion(self):
         exclusion_list = fetch_exclusion_expressions()
@@ -1177,172 +1099,174 @@ class REvoDesignPlugin:
         pocketsearcher.search_pockets()
 
     # Tab `Mutate`
-    
+    def determine_profile_format(
+        self, cfg_input_profile: str, cfg_profile_format: str
+    ):
+        profile_fp = os.path.abspath(self.bus.get_value(cfg_input_profile))
+        if not os.path.exists(profile_fp):
+            return None
 
-    def determine_profile_format(self,
-            cfg_input_profile: str, cfg_profile_format: str
+        profile_bn = os.path.basename(profile_fp)
+        if profile_bn.endswith('.csv'):
+            profile_format = 'CSV'
+        elif profile_bn.endswith('.txt'):
+            profile_format = 'TSV'
+        elif profile_bn.endswith('.pssm') or profile_bn.endswith(
+            'ascii_mtx_file'
         ):
-            profile_fp = os.path.abspath(self.bus.get_value(cfg_input_profile))
-            if not os.path.exists(profile_fp):
-                return None
+            profile_format = 'PSSM'
 
-            profile_bn = os.path.basename(profile_fp)
-            if profile_bn.endswith('.csv'):
-                profile_format = 'CSV'
-            elif profile_bn.endswith('.txt'):
-                profile_format = 'TSV'
-            elif profile_bn.endswith('.pssm') or profile_bn.endswith(
-                'ascii_mtx_file'
-            ):
-                profile_format = 'PSSM'
-
-            self.bus.set_widget_value(cfg_profile_format, profile_format)
+        self.bus.set_widget_value(cfg_profile_format, profile_format)
 
     def run_mutant_loading_from_profile(self):
-        self.ui.pushButton_run_PSSM_to_pse.setEnabled(False)
+        trigger_button = self.ui.pushButton_run_PSSM_to_pse
 
-        try:
-            design_profile = self.bus.get_value('ui.mutate.input.profile')
-            design_profile_format = self.bus.get_value(
-                'ui.mutate.input.profile_type'
-            )
-            preffered = self.bus.get_value('ui.mutate.accept')
-            rejected = self.bus.get_value('ui.mutate.reject')
+        with hold_trigger_button(trigger_button):
 
-            temperature = self.bus.get_value('ui.mutate.designer.temperature')
-            num_designs = self.bus.get_value('ui.mutate.designer.num_sample')
-            batch = self.bus.get_value('ui.mutate.designer.batch')
-            homooligomeric = (
-                self.ui.checkBox_designer_homooligomeric.isChecked()
-            )
-            deduplicate_designs = self.bus.get_value(
-                'ui.mutate.designer.deduplicate_designs'
-            )
-            randomized_sample = self.bus.get_value(
-                'ui.mutate.designer.enable_randomized_sampling'
-            )
-            randomized_sample_num = self.bus.get_value(
-                'ui.mutate.designer.randomized_sampling'
-            )
+            try:
+                design_profile = self.bus.get_value('ui.mutate.input.profile')
+                design_profile_format = self.bus.get_value(
+                    'ui.mutate.input.profile_type'
+                )
+                preffered = self.bus.get_value('ui.mutate.accept')
+                rejected = self.bus.get_value('ui.mutate.reject')
 
-            design_case = self.bus.get_value('ui.mutate.input.design_case')
-            custom_indices_fp = self.bus.get_value(
-                'ui.mutate.input.residue_ids'
-            )
-            cutoff = [
-                float(self.bus.get_value('ui.mutate.min_score')),
-                float(self.bus.get_value('ui.mutate.max_score')),
-            ]
-            reversed_mutant_effect = self.bus.get_value(
-                'ui.mutate.reverse_score'
-            )
-            output_pse = self.bus.get_value('ui.mutate.input.to_pse')
-            nproc = self.bus.get_value('ui.header_panel.nproc')
-
-            cmap = cmap_reverser(
-                cmap=self.bus.get_value('ui.header_panel.cmap'),
-                reverse=reversed_mutant_effect,
-            )
-
-            sidechain_solver = self.bus.get_value(
-                'ui.config.sidechain_solver.default'
-            )
-            sidechain_solver_radius = self.bus.get_value(
-                'ui.config.sidechain_solver.repack_radius'
-            )
-            sidechain_solver_model = self.bus.get_value(
-                'ui.config.sidechain_solver.model'
-            )
-
-            progressbar = self.ui.progressBar
-
-            if is_a_REvoDesign_session():
-                logging.warning(
-                    'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
-                    'In order to keep the session\'s feature, you should always create seperate sessions according to '
-                    'your dataset and merge them manually in PyMOL window.'
+                temperature = self.bus.get_value(
+                    'ui.mutate.designer.temperature'
+                )
+                num_designs = self.bus.get_value(
+                    'ui.mutate.designer.num_sample'
+                )
+                batch = self.bus.get_value('ui.mutate.designer.batch')
+                homooligomeric = self.bus.get_value(
+                    'ui.mutate.designer.homooligomeric'
+                )
+                deduplicate_designs = self.bus.get_value(
+                    'ui.mutate.designer.deduplicate_designs'
+                )
+                randomized_sample = self.bus.get_value(
+                    'ui.mutate.designer.enable_randomized_sampling'
+                )
+                randomized_sample_num = self.bus.get_value(
+                    'ui.mutate.designer.randomized_sampling'
                 )
 
-            input_file = make_temperal_input_pdb(
-                molecule=self.design_molecule,
-                format='pdb',
-                wd=os.path.join(self.PWD, 'temperal_pdb'),
-                reload=False,
-            )
-
-            from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
-
-            design = REvoDesigner(design_profile)
-            design.input_pse = input_file
-            design.output_pse = output_pse
-            design.input_profile_format = design_profile_format
-
-            design.molecule = self.design_molecule
-            design.chain_id = self.design_chain_id
-            design.sequence = self.design_sequence
-            design.pwd = self.PWD
-            design.design_case = design_case
-
-            design.external_designer_temperature = temperature
-            design.external_designer_num_samples = num_designs
-            design.batch = batch
-            design.homooligomeric = homooligomeric
-            design.deduplicate_designs = deduplicate_designs
-            design.randomized_sample = randomized_sample
-            design.randomized_sample_num = randomized_sample_num
-
-            design.sidechain_solver = sidechain_solver
-            design.sidechain_solver_radius = sidechain_solver_radius
-            design.sidechain_solver_model = sidechain_solver_model
-
-            design.preffered_substitutions = preffered
-            design.reject_aa = rejected
-            design.nproc = nproc
-            design.cmap = cmap
-            design.create_full_pdb = False
-
-            from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-            if design_profile_format in EXTERNAL_DESIGNERS.keys():
-                design.design_protein_using_external_designer(
-                    custom_indices_fp=custom_indices_fp,
-                    progress_bar=progressbar,
+                design_case = self.bus.get_value('ui.mutate.input.design_case')
+                custom_indices_fp = self.bus.get_value(
+                    'ui.mutate.input.residue_ids'
                 )
-            else:
-                (
-                    mutation_json_fp,
-                    mutation_png_fp,
-                ) = design.setup_profile_design(
-                    custom_indices_fp=custom_indices_fp,
-                    cutoff=cutoff,
+                cutoff = [
+                    float(self.bus.get_value('ui.mutate.min_score')),
+                    float(self.bus.get_value('ui.mutate.max_score')),
+                ]
+                reversed_mutant_effect = self.bus.get_value(
+                    'ui.mutate.reverse_score'
+                )
+                output_pse = self.bus.get_value('ui.mutate.input.to_pse')
+                nproc = self.bus.get_value('ui.header_panel.nproc')
+
+                cmap = cmap_reverser(
+                    cmap=self.bus.get_value('ui.header_panel.cmap'),
+                    reverse=reversed_mutant_effect,
                 )
 
-                design.load_mutants_to_pymol_session(
-                    mutant_json=mutation_json_fp,
-                    progress_bar=progressbar,
+                sidechain_solver = self.bus.get_value(
+                    'ui.config.sidechain_solver.default'
+                )
+                sidechain_solver_radius = self.bus.get_value(
+                    'ui.config.sidechain_solver.repack_radius'
+                )
+                sidechain_solver_model = self.bus.get_value(
+                    'ui.config.sidechain_solver.model'
                 )
 
-            assert design.output_pse and dirname_does_exist(
-                design.output_pse
-            ), f'No output PyMOL session is created.'
+                progressbar = self.ui.progressBar
 
-            cmd.load(design.output_pse, partial=2)
+                if is_a_REvoDesign_session():
+                    logging.warning(
+                        'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
+                        'In order to keep the session\'s feature, you should always create seperate sessions according to '
+                        'your dataset and merge them manually in PyMOL window.'
+                    )
 
-            cmd.center(self.design_molecule)
-            cmd.set('surface_color', 'gray70')
-            cmd.set('cartoon_color', 'gray70')
-            cmd.set('surface_cavity_mode', 4)
-            cmd.set('transparency', 0.6)
-            cmd.set(
-                'cartoon_cylindrical_helices',
-            )
-            cmd.set('cartoon_transparency', 0.3)
-            cmd.save(output_pse)
+                input_file = make_temperal_input_pdb(
+                    molecule=self.design_molecule,
+                    format='pdb',
+                    wd=os.path.join(self.PWD, 'temperal_pdb'),
+                    reload=False,
+                )
 
-        except Exception:
-            traceback.print_exc()
-        finally:
-            self.ui.pushButton_run_PSSM_to_pse.setEnabled(True)
+                from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
+
+                design = REvoDesigner(design_profile)
+                design.input_pse = input_file
+                design.output_pse = output_pse
+                design.input_profile_format = design_profile_format
+
+                design.molecule = self.design_molecule
+                design.chain_id = self.design_chain_id
+                design.sequence = self.design_sequence
+                design.pwd = self.PWD
+                design.design_case = design_case
+
+                design.external_designer_temperature = temperature
+                design.external_designer_num_samples = num_designs
+                design.batch = batch
+                design.homooligomeric = homooligomeric
+                design.deduplicate_designs = deduplicate_designs
+                design.randomized_sample = randomized_sample
+                design.randomized_sample_num = randomized_sample_num
+
+                design.sidechain_solver = sidechain_solver
+                design.sidechain_solver_radius = sidechain_solver_radius
+                design.sidechain_solver_model = sidechain_solver_model
+
+                design.preffered_substitutions = preffered
+                design.reject_aa = rejected
+                design.nproc = nproc
+                design.cmap = cmap
+                design.create_full_pdb = False
+
+                from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+
+                if design_profile_format in EXTERNAL_DESIGNERS.keys():
+                    design.design_protein_using_external_designer(
+                        custom_indices_fp=custom_indices_fp,
+                        progress_bar=progressbar,
+                    )
+                else:
+                    (
+                        mutation_json_fp,
+                        mutation_png_fp,
+                    ) = design.setup_profile_design(
+                        custom_indices_fp=custom_indices_fp,
+                        cutoff=cutoff,
+                    )
+
+                    design.load_mutants_to_pymol_session(
+                        mutant_json=mutation_json_fp,
+                        progress_bar=progressbar,
+                    )
+
+                assert design.output_pse and dirname_does_exist(
+                    design.output_pse
+                ), f'No output PyMOL session is created.'
+
+                cmd.load(design.output_pse, partial=2)
+
+                cmd.center(self.design_molecule)
+                cmd.set('surface_color', 'gray70')
+                cmd.set('cartoon_color', 'gray70')
+                cmd.set('surface_cavity_mode', 4)
+                cmd.set('transparency', 0.6)
+                cmd.set(
+                    'cartoon_cylindrical_helices',
+                )
+                cmd.set('cartoon_transparency', 0.3)
+                cmd.save(output_pse)
+
+            except Exception:
+                traceback.print_exc()
 
         if (
             self.ws_server
@@ -1514,10 +1438,12 @@ class REvoDesignPlugin:
 
     def jump_to_branch(
         self,
-        comboBox_group_ids,
-        comboBox_mutant_ids,
-        progressBar_mutant_choosing,
     ):
+
+        comboBox_group_ids = self.ui.comboBox_group_ids
+        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
+        progressBar_mutant_choosing = self.ui.progressBar
+
         branch = comboBox_group_ids.currentText()
         if not branch:
             logging.warning(f'Branch id is empty or null, skipped.')
@@ -1552,10 +1478,11 @@ class REvoDesignPlugin:
     # end of mutant switching machanism. This step will do focusing, centering, progress bar updating.
     def jump_to_a_mutant(
         self,
-        comboBox_group_ids,
-        comboBox_mutant_ids,
-        progressBar_mutant_choosing,
     ):
+        comboBox_group_ids = self.ui.comboBox_group_ids
+        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
+        progressBar_mutant_choosing = self.ui.progressBar
+
         branch_id = comboBox_group_ids.currentText()
         mutant_id = comboBox_mutant_ids.currentText()
 
@@ -1595,9 +1522,10 @@ class REvoDesignPlugin:
 
     def jump_to_the_best_mutant(
         self,
-        comboBox_group_ids,
-        comboBox_mutant_ids,
     ):
+
+        comboBox_group_ids = (self.ui.comboBox_group_ids,)
+        comboBox_mutant_ids = (self.ui.comboBox_mutant_ids,)
         if self.mutant_tree_pssm.empty:
             return
 
@@ -1615,9 +1543,9 @@ class REvoDesignPlugin:
 
     def find_all_best_mutants(
         self,
-        comboBox_group_ids,
-        comboBox_mutant_ids,
     ):
+        comboBox_group_ids = self.ui.comboBox_group_ids
+        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
         if self.mutant_tree_pssm.empty:
             logging.error(
                 f'No available mutant tree. Please reinitialize it before picking mutants.'
@@ -1679,8 +1607,9 @@ class REvoDesignPlugin:
         return _mutant_obj is not None
 
     def recover_mutant_choices_from_checkpoint(
-        self, lcdNumber_selected_mutant
+        self,
     ):
+        lcdNumber_selected_mutant = self.ui.lcdNumber_selected_mutant
         mutant_choice_checkpoint_fn = self.browse_filename(
             mode='r', exts=[MutableFileExt, AnyFileExt]
         )
@@ -1824,19 +1753,21 @@ class REvoDesignPlugin:
         from REvoDesign.clusters.combine_positions import Combinations
         from REvoDesign.clusters.cluster_sequence import Clustering
 
-        input_mutant_table = self.ui.lineEdit_input_mut_table.text()
-
-        cluster_batch_size = self.ui.spinBox_cluster_batchsize.value()
-        cluster_number = self.ui.spinBox_num_cluster.value()
-        min_mut_num = self.ui.spinBox_num_mut_minimun.value()
-        max_mut_num = self.ui.spinBox_num_mut_maximum.value()
-        cluster_substitution_matrix = (
-            self.ui.comboBox_cluster_matrix.currentText()
+        input_mutant_table = self.bus.get_value(
+            'ui.cluster.input.from_mutant_txt'
         )
 
-        shuffle_variant = self.ui.checkBox_shuffle_clustering.isChecked()
+        cluster_batch_size = self.bus.get_value('ui.cluster.batch_size')
+        cluster_number = self.bus.get_value('ui.cluster.num_cluster')
+        min_mut_num = self.bus.get_value('ui.cluster.mut_num_min')
+        max_mut_num = self.bus.get_value('ui.cluster.mut_num_max')
+        cluster_substitution_matrix = self.bus.get_value(
+            'ui.cluster.score_matrix.default'
+        )
 
-        nproc = self.ui.spinBox_nproc.value()
+        shuffle_variant = self.bus.get_value('ui.cluster.shuffle')
+
+        nproc = self.bus.get_value('ui.header_panel.nproc')
 
         # output space
         plot_space = self.ui.stackedWidget
@@ -1989,37 +1920,45 @@ class REvoDesignPlugin:
 
     def visualize_mutants(self):
         trigger_button = self.ui.pushButton_run_visualizing
-        input_mut_table_csv = self.ui.lineEdit_input_mut_table_csv.text()
-
-        output_pse = self.ui.lineEdit_output_pse_visualize.text()
-        best_leaf = self.ui.comboBox_best_leaf.currentText()
-        totalscore = self.ui.comboBox_totalscore.currentText()
-        nproc = self.ui.spinBox_nproc.value()
-        group_name = self.ui.lineEdit_group_name.text()
-
-        sidechain_solver = self.ui.comboBox_sidechain_solver.currentText()
-        sidechain_solver_radius = (
-            self.ui.doubleSpinBox_sidechain_solver_radius.value()
-        )
-        sidechain_solver_model = (
-            self.ui.comboBox_sidechain_solver_model.currentText()
+        input_mut_table_csv = self.bus.get_value(
+            'ui.visualize.input.from_mutant_txt'
         )
 
-        use_global_scores = self.ui.checkBox_global_score_policy.isChecked()
+        output_pse = self.bus.get_value('ui.visualize.input.to_pse')
+        best_leaf = self.bus.get_value('ui.visualize.input.best_leaf')
+        totalscore = self.bus.get_value('ui.visualize.input.totalscore')
+        nproc = self.bus.get_value('ui.header_panel.nproc')
+        group_name = self.bus.get_value('ui.visualize.input.group_name')
+
+        sidechain_solver = self.bus.get_value(
+            'ui.config.sidechain_solver.default'
+        )
+        sidechain_solver_radius = self.bus.get_value(
+            'ui.config.sidechain_solver.repack_radius'
+        )
+        sidechain_solver_model = self.bus.get_value(
+            'ui.config.sidechain_solver.model'
+        )
+
+        use_global_scores = self.bus.get_value(
+            'ui.visualize.global_score_policy'
+        )
 
         with hold_trigger_button(trigger_button):
             try:
-                reversed_mutant_effect = (
-                    self.ui.checkBox_reverse_mutant_effect_3.isChecked()
+                reversed_mutant_effect = self.bus.get_value(
+                    'ui.visualize.reverse_score'
                 )
                 cmap = cmap_reverser(
-                    cmap=self.ui.comboBox_cmap.currentText(),
+                    cmap=self.bus.get_value('ui.header_panel.cmap.group'),
                     reverse=reversed_mutant_effect,
                 )
 
-                design_profile = self.ui.lineEdit_input_csv_2.text()
-                design_profile_format = (
-                    self.ui.comboBox_profile_type_2.currentText()
+                design_profile = self.bus.get_value(
+                    'ui.visualize.input.profile'
+                )
+                design_profile_format = self.bus.get_value(
+                    'ui.visualize.input.profile_type'
                 )
 
                 progressBar_visualize_mutants = self.ui.progressBar
@@ -2376,7 +2315,7 @@ class REvoDesignPlugin:
 
     def run_gremlin_tool(self):
         progress_bar = self.ui.progressBar
-        max_interact_dist = self.ui.doubleSpinBox_max_interact_dist.value()
+        max_interact_dist = self.bus.get_value('ui.interact.max_interact_dist')
 
         self.plot_w_fps = {}
 
@@ -2554,9 +2493,11 @@ class REvoDesignPlugin:
         progress_bar,
         walk_to_next=True,
     ):
-        checkBox_ignore_wt = self.ui.checkBox_interact_ignore_wt
-        doubleSpinBox_max_interact_dist = (
-            self.ui.doubleSpinBox_max_interact_dist
+        checkBox_ignore_wt = self.bus.get_value(
+            'ui.interact.interact_ignore_wt'
+        )
+        doubleSpinBox_max_interact_dist = self.bus.get_value(
+            'ui.interact.max_interact_dist'
         )
 
         lineEdit_current_pair = self.ui.lineEdit_current_pair
@@ -2779,15 +2720,16 @@ class REvoDesignPlugin:
             self.ui.lineEdit_current_pair_mut_score
         )
 
-        comboBox_external_scorer = self.ui.comboBox_external_scorer
-        external_scorer = comboBox_external_scorer.currentText()
+        external_scorer = self.bus.get_value('ui.interact.use_external_scorer')
 
-        sidechain_solver = self.ui.comboBox_sidechain_solver.currentText()
-        sidechain_solver_radius = (
-            self.ui.doubleSpinBox_sidechain_solver_radius.value()
+        sidechain_solver = self.bus.get_value(
+            'ui.config.sidechain_solver.default'
         )
-        sidechain_solver_model = (
-            self.ui.comboBox_sidechain_solver_model.currentText()
+        sidechain_solver_radius = self.bus.get_value(
+            'ui.config.sidechain_solver.repack_radius'
+        )
+        sidechain_solver_model = self.bus.get_value(
+            'ui.config.sidechain_solver.model'
         )
 
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
@@ -2924,7 +2866,7 @@ class REvoDesignPlugin:
             logging.info(f'Picked mutant: {mutant} ')
 
             color = get_color(
-                self.ui.comboBox_cmap.currentText(),
+                self.bus.get_value('ui.header_panel.cmap'),
                 mut_score,
                 min_score,
                 max_score,
@@ -2951,19 +2893,20 @@ class REvoDesignPlugin:
                 )
             )
 
-    def generate_ws_server_key(self, lineEdit_ws_server_key):
+    def generate_ws_server_key(self):
         key = generate_strong_password(length=32)
         if key:
-            set_widget_value(lineEdit_ws_server_key, key)
+            self.bus.set_widget_value('ui.socket.input.key', key)
 
     def setup_ws_server(self):
         self.ws_server.setup_ws_server(
-            checkBox_ws_broadcast_view=self.ui.checkBox_ws_broadcast_view,
-            checkBox_ws_duplex_mode=self.ui.checkBox_ws_duplex_mode,
-            checkBox_ws_server_use_key=self.ui.checkBox_ws_server_use_key,
-            lineEdit_ws_server_key=self.ui.lineEdit_ws_server_key,
-            spinBox_ws_server_port=self.ui.spinBox_ws_server_port,
-            doubleSpinBox_ws_view_broadcast_interval=self.ui.doubleSpinBox_ws_view_broadcast_interval,
+            ws_broadcast_view=self.bus.get_value('ui.socket.broadcast.view'),
+            ws_server_use_key=self.bus.get_value('ui.socket.use_key'),
+            ws_server_key=self.bus.get_value('ui.socket.input.key'),
+            ws_server_port=self.bus.get_value('ui.socket.server_port'),
+            ws_view_broadcast_interval=self.bus.get_value(
+                'ui.socket.broadcast.interval'
+            ),
             treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
         )
 
@@ -2972,13 +2915,14 @@ class REvoDesignPlugin:
             logging.warning(f'Server is not in service.')
             return
 
-        self.ws_server.view_broadcast_enabled = (
-            self.ui.checkBox_ws_broadcast_view.isChecked()
+        self.ws_server.view_broadcast_enabled = self.bus.get_value(
+            'ui.socket.broadcast.view'
         )
-        self.ws_server.view_broadcast_interval = (
-            self.ui.doubleSpinBox_ws_view_broadcast_interval.value()
+        self.ws_server.view_broadcast_interval = self.bus.get_value(
+            'ui.socket.broadcast.interval'
         )
-        if self.ui.checkBox_ws_broadcast_view.isChecked():
+
+        if self.ws_server.view_broadcast_interval:
             if not self.ws_server.clients:
                 logging.warning(
                     'Server has no client, ignore view updating. Do nothing.'
@@ -3003,7 +2947,7 @@ class REvoDesignPlugin:
             logging.warning('Start broadcasting view.')
             return
 
-        if not self.ui.checkBox_ws_broadcast_view.isChecked():
+        if not self.ws_server.view_broadcast_interval:
             if not self.ws_server.view_broadcast_on_air:
                 logging.warning(
                     'Server is not broadcasting view changes. Do nothing.'
@@ -3025,7 +2969,7 @@ class REvoDesignPlugin:
 
                 self.ws_server = REvoDesignWebSocketServer()
 
-            if self.ui.checkBox_ws_server_mode.isChecked():
+            if self.bus.get_value('ui.socket.server_mode'):
                 if not self.ws_server or not self.ws_server.is_running:
                     self.setup_ws_server()
                 else:
@@ -3059,16 +3003,26 @@ class REvoDesignPlugin:
         self.ws_client.design_molecule = self.design_molecule
         self.ws_client.design_chain_id = self.design_chain_id
         self.ws_client.design_sequence = self.design_sequence
-        self.ws_client.cmap = self.ui.comboBox_cmap.currentText()
-        self.ws_client.nproc = self.ui.spinBox_nproc.value()
+        self.ws_client.cmap = self.bus.get_value('ui.header_panel.cmap')
+        self.ws_client.nproc = self.bus.get_value('ui.header_panel.nproc')
         self.ws_client.progress_bar = self.ui.progressBar
 
         self.ws_client.setup_ws_client(
-            lineEdit_ws_server_url_to_connect=self.ui.lineEdit_ws_server_url_to_connect,
-            spinBox_ws_server_port_to_connect=self.ui.spinBox_ws_server_port,
-            lineEdit_ws_server_key_to_connect=self.ui.lineEdit_ws_server_key,
-            checkBox_ws_receive_view_broadcast=self.ui.checkBox_ws_recieve_view_broadcast,
-            checkBox_ws_receive_mutagenesis_broadcast=self.ui.checkBox_ws_recieve_mutagenesis_broadcast,
+            lineEdit_ws_server_url_to_connect=self.bus.get_value(
+                'ui.socket.input.hostname'
+            ),
+            spinBox_ws_server_port_to_connect=self.bus.get_value(
+                'ui.socket.server_port'
+            ),
+            lineEdit_ws_server_key_to_connect=self.bus.get_value(
+                'ui.socket.input.key'
+            ),
+            checkBox_ws_receive_view_broadcast=self.bus.get_value(
+                'ui.socket.receive.view'
+            ),
+            checkBox_ws_receive_mutagenesis_broadcast=self.bus.get_value(
+                'ui.socket.receive.mutagenesis'
+            ),
             treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
         )
 
@@ -3077,8 +3031,8 @@ class REvoDesignPlugin:
             logging.warning(f'Client is not connected')
             return
 
-        self.ws_client.receive_view_broadcast = (
-            self.ui.checkBox_ws_recieve_view_broadcast.isChecked()
+        self.ws_client.receive_view_broadcast = self.bus.get_value(
+            'ui.socket.receive.view'
         )
 
     def toggle_ws_client_connection(self, connect=True):
@@ -3119,17 +3073,11 @@ class REvoDesignPlugin:
 
     def reload_configurations(self):
         if self.cfg:
-            old_cfg = self.cfg.__deepcopy__()
-            self.cfg = None
-        else:
-            old_cfg = None
-        self.cfg = reload_config_file()
-        if old_cfg:
-            logging.warning(f'Reconfigured with changes.')
-            self.refresh_ui_from_new_configuration()
+            logging.warning(f'Reconfiguring with changes...')
         else:
             logging.warning(f'Configuration initialized.')
-        return
+        self.cfg = reload_config_file()
+        self.refresh_ui_from_new_configuration()
 
     def refresh_ui_from_new_configuration(self):
         if not self.cfg:

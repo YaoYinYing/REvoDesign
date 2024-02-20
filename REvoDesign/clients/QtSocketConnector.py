@@ -6,7 +6,6 @@ import socket
 import time
 import traceback
 from typing import Union
-from pymol.Qt import QtWidgets
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
 from REvoDesign.tools.logger import logging as logger
 
@@ -388,12 +387,11 @@ class REvoDesignWebSocketServer:
 
     def setup_ws_server(
         self,
-        checkBox_ws_duplex_mode,
-        spinBox_ws_server_port,
-        checkBox_ws_server_use_key,
-        lineEdit_ws_server_key,
-        checkBox_ws_broadcast_view,
-        doubleSpinBox_ws_view_broadcast_interval,
+        ws_server_port,
+        ws_server_use_key,
+        ws_server_key,
+        ws_broadcast_view,
+        ws_view_broadcast_interval,
         treeWidget_ws_peers,
     ):
         """
@@ -407,12 +405,12 @@ class REvoDesignWebSocketServer:
         """
         from REvoDesign.tools.system_tools import CLIENT_INFO
 
-        self.use_authentication = checkBox_ws_server_use_key.isChecked()
-        self.authentication_key = lineEdit_ws_server_key.text()
+        self.use_authentication = ws_server_use_key
+        self.authentication_key = ws_server_key
         if self.use_authentication and not self.authentication_key:
             raise ValueError('Key for authentication is empty!')
 
-        requested_port = spinBox_ws_server_port.value()
+        requested_port = ws_server_port
 
         if not requested_port:
             raise ValueError(f'Port {requested_port} is not valid')
@@ -424,10 +422,8 @@ class REvoDesignWebSocketServer:
 
         self.port = requested_port
 
-        self.do_broadcast_view = checkBox_ws_broadcast_view.isChecked()
-        self.view_broadcast_interval = (
-            doubleSpinBox_ws_view_broadcast_interval.value()
-        )
+        self.do_broadcast_view = ws_broadcast_view
+        self.view_broadcast_interval = ws_view_broadcast_interval
         logging.info(
             f'Server is reconfigured! \n ' f'Key: {self.authentication_key}\n'
         )

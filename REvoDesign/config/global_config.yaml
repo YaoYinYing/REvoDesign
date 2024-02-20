@@ -51,6 +51,7 @@ ui:
       enable_randomized_sampling: False
       randomized_sampling: 3
       deduplicate_designs: True
+      homooligomeric: False
 
   evaluate:
     input:
@@ -70,6 +71,7 @@ ui:
       default: PAM30
     batch_size: 100
     shuffle: True
+    
   
   visualize:
     input:
@@ -106,6 +108,7 @@ ui:
     max_interact_dist: 20.0
     interact_ignore_wt: False
     use_external_scorer: 
+    reverse_score: False
   
   client:
     pssm_gremlin_url: https://revodesign.yaoyy.moe/

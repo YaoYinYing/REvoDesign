@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Any, Iterable, Union
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
@@ -9,6 +9,8 @@ from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
 from functools import partial
+from REvoDesign.tools.logger import logging
+from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 
 class ConfigBus:
@@ -18,16 +20,15 @@ class ConfigBus:
         self.w2c = Widget2ConfigMapper(ui=self.ui)
 
     def fill_widget_with_cfg_group(self):
-        
+
         for i, widget, group_cfgs in enumerate(self.w2c.group_config_map):
-            group_values=[]
+            group_values = []
 
             if isinstance(group_cfgs, str):
-                group_cfgs=tuple([group_cfgs])
+                group_cfgs = tuple([group_cfgs])
             for j in enumerate(group_cfgs):
                 group_values.extend(self.get_value(j))
             set_widget_value(widget, group_values)
-
 
     def update_cfg_item_from_widget(self, widget: QtWidgets.QWidget):
         cfg_item = self.w2c.widget2config_dict.get(widget)
@@ -66,8 +67,6 @@ class ConfigBus:
     def set_widget_value(self, cfg_item: str, value):
         set_widget_value(widget=self.get_widget(cfg_item), value=value)
 
-    
-
     def get_cfg_item(self, widget: QtWidgets.QWidget) -> DictConfig:
         assert widget in self.w2c.all_widgets
         return self.w2c._find_config_item(widget)
@@ -77,30 +76,60 @@ class ConfigBus:
         if 'group' in cfg_item:
             value = list(value)
         return value
+    
+    def fp_lock(self,cfg_fps:Union[list, tuple, str], buttons_to_release:Union[list, tuple, Any]):
+        button_unlocked = True
+        if  isinstance(cfg_fps, str):
+            cfg_fps=tuple([cfg_fps])
+        if not isinstance(buttons_to_release, Iterable):
+            buttons_to_release=[buttons_to_release]
+
+
+        for cfg_fp in cfg_fps:
+            _fp = self.get_value(cfg_fp)
+            logging.info(f'Checking file path: {_fp}')
+            if not dirname_does_exist(_fp):
+                button_unlocked = False
+                break
+            else:
+                if not filepath_does_exists(_fp):
+                    logging.warning(f'The file `{_fp}` is not valid.')
+                else:
+                    logging.info(f'The file `{_fp}` is valid.')
+
+        if button_unlocked:
+            for button in buttons_to_release:
+                button.setEnabled(True)
+        else:
+            for button in buttons_to_release:
+                button.setEnabled(False)
+
 
 
 class Widget2ConfigMapper:
     def __init__(self, ui):
         self.ui = ui
-        
-        self.group_config_map: list[tuple[Any, Union[str, tuple[str]]]]=[
+
+        self.group_config_map: list[tuple[Any, Union[str, tuple[str]]]] = [
             (self.ui.comboBox_cmap, 'ui.header_panel.cmap.group'),
-            (self.ui.comboBox_cluster_matrix,'ui.cluster.score_matrix.group'),
+            (self.ui.comboBox_cluster_matrix, 'ui.cluster.score_matrix.group'),
             (
                 self.ui.comboBox_sidechain_solver,
                 'ui.config.sidechain_solver.group',
             ),
-            (self.ui.comboBox_profile_type, ('profile.group','designer.group')),
+            (
+                self.ui.comboBox_profile_type,
+                ('profile.group', 'designer.group'),
+            ),
             (
                 self.ui.comboBox_profile_type_2,
-                ('profile.group','designer.group')
+                ('profile.group', 'designer.group'),
             ),
             (
                 self.ui.comboBox_external_scorer,
                 'designer.group',
             ),
-
-            ]
+        ]
         self.widget_config_map = [
             (self.ui.comboBox_cmap, 'ui.header_panel.cmap'),
             (
@@ -152,6 +181,10 @@ class Widget2ConfigMapper:
                 'ui.mutate.designer.deduplicate_designs',
             ),
             (
+                self.ui.checkBox_designer_homooligomeric,
+                'ui.mutate.designer.homooligomeric',
+            ),
+            (
                 self.ui.spinBox_designer_batch,
                 'ui.mutate.designer.batch',
             ),
@@ -200,6 +233,7 @@ class Widget2ConfigMapper:
                 self.ui.lineEdit_ws_server_url_to_connect,
                 'ui.socket.server_url',
             ),
+            (self.ui.checkBox_ws_server_mode, 'ui.socket.server_mode'),
             (self.ui.spinBox_ws_server_port, 'ui.socket.server_port'),
             (self.ui.checkBox_ws_server_use_key, 'ui.socket.use_key'),
             (
