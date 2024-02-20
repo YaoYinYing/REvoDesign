@@ -20,8 +20,6 @@ from REvoDesign.application.ui_driver import (
 )
 
 from REvoDesign.tools.post_installed import (
-    reload_config_file,
-    REVODESIGN_CONFIG_FILE,
     save_configuration,
 )
 
@@ -98,9 +96,9 @@ class REvoDesignPlugin:
 
         self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign-PyMOL.ui')
 
-        self.cfg = None
-
         self.widget2widget = Widget2Widget()
+        self.bus = None
+        self.widget_config_map = None
 
         self.designable_sequences = {}
         self.design_molecule = ''
@@ -114,7 +112,11 @@ class REvoDesignPlugin:
         self.gremlin_tool = None
         self.gremlin_external_scorer = None
 
-        self.pssm_gremlin_calculator = None
+        from REvoDesign.clients.PSSM_GREMLIN_client import (
+            PSSMGremlinCalculator,
+        )
+
+        self.pssm_gremlin_calculator = PSSMGremlinCalculator()
 
         self.multi_mutagenesis_designer = None
 
@@ -154,16 +156,11 @@ class REvoDesignPlugin:
         )  # Store the UI form for later access
 
         # create a bus btw cfg<---> ui
-        self.bus = ConfigBus(ui=self.ui, config=self.cfg)
-        self.bus.fill_widget_with_cfg_group()
+        self.reload_configurations()
 
         from REvoDesign.tools.customized_widgets import set_window_font
 
         set_window_font(main_window)
-
-        # mapping ui widgets <--> cfg.elements
-        self.widget_config_map: immutabledict = self.bus.w2c.widget2config_dict
-        self.reload_configurations()
 
         # Set up Menu
 
@@ -173,7 +170,7 @@ class REvoDesignPlugin:
 
         self.ui.actionReconfigure.triggered.connect(self.reload_configurations)
         self.ui.actionSave_Configurations.triggered.connect(
-            partial(save_configuration, self.bus.cfg)
+            self.save_configuration_from_ui
         )
 
         self.ui.actionSource_Code.triggered.connect(
@@ -223,8 +220,6 @@ class REvoDesignPlugin:
             _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
             for _cmap in matplotlib.colormaps()
         }
-
-        self.bus.set_value('ui.header_panel.cmap.group', cmap_group)
 
         self.bus.set_widget_value(
             'ui.header_panel.cmap.default',
@@ -578,11 +573,6 @@ class REvoDesignPlugin:
 
         # Tab Interact
 
-        set_widget_value(
-            self.bus.get_widget('ui.interact.use_external_scorer'),
-            [''] + self.bus.get_value('designer.group'),
-        )
-
         self.ui.pushButton_open_gremlin_mtx.clicked.connect(
             partial(
                 self.open_input_filepath,
@@ -614,7 +604,7 @@ class REvoDesignPlugin:
         )
 
         # Tab socket
-        self.generate_ws_server_key(self.ui.lineEdit_ws_server_key)
+        self.generate_ws_server_key()
 
         self.ui.pushButton_ws_generate_randomized_key.clicked.connect(
             self.generate_ws_server_key
@@ -646,15 +636,15 @@ class REvoDesignPlugin:
 
         # Tab Config
         self.bus.set_widget_value(
-            self.ui.comboBox_sidechain_solver,
-            list(self.cfg.ui.config.sidechain_solver.group),
+            'ui.config.sidechain_solver.default',
+            list(self.bus.cfg.ui.config.sidechain_solver.group),
         )
 
         self.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
             partial(
                 refresh_widget_while_another_changed,
-                self.ui.comboBox_sidechain_solver,
-                self.ui.comboBox_sidechain_solver_model,
+                self.bus.get_widget('ui.config.sidechain_solver.default'),
+                self.bus.get_widget('ui.config.sidechain_solver.model'),
                 self.widget2widget.sidechain_solver2model,
             )
         )
@@ -1026,7 +1016,7 @@ class REvoDesignPlugin:
 
     def run_chain_interface_detection(self):
         molecule = self.bus.get_value('ui.header_panel.input.molecule')
-        radius = self.bus.get_value('ui.prepare.chain_dist')
+        radius = self.bus.get_value('ui.prepare.chain_dist', float)
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         if not chain_ids or len(chain_ids) <= 1:
             return
@@ -1042,7 +1032,7 @@ class REvoDesignPlugin:
         output_file = self.bus.get_value('ui.prepare.input.surface.to_pse')
 
         exclusion = self.bus.get_value('ui.prepare.input.surface.exclusion')
-        cutoff = float(self.bus.get_value('ui.prepare.surface_probe_radius'))
+        cutoff = self.bus.get_value('ui.prepare.surface_probe_radius', float)
         do_show_surf_CA = True
 
         from REvoDesign.structure.SurfaceFinder import SurfaceFinder
@@ -1065,8 +1055,10 @@ class REvoDesignPlugin:
         output_file = self.bus.get_value('ui.prepare.input.pocket.to_pse')
         ligand = self.bus.get_value('ui.prepare.input.pocket.substrate')
         cofactor = self.bus.get_value('ui.prepare.input.pocket.cofactor')
-        ligand_radius = self.bus.get_value('ui.prepare.ligand_radius')
-        cofactor_radius = self.bus.get_value('ui.prepare.cofactor_radius')
+        ligand_radius = self.bus.get_value('ui.prepare.ligand_radius', float)
+        cofactor_radius = self.bus.get_value(
+            'ui.prepare.cofactor_radius', float
+        )
 
         from REvoDesign.structure.PocketSearcher import PocketSearcher
 
@@ -1103,6 +1095,8 @@ class REvoDesignPlugin:
             'ascii_mtx_file'
         ):
             profile_format = 'PSSM'
+        else:
+            return
 
         self.bus.set_widget_value(cfg_profile_format, profile_format)
 
@@ -1119,12 +1113,12 @@ class REvoDesignPlugin:
                 rejected = self.bus.get_value('ui.mutate.reject')
 
                 temperature = self.bus.get_value(
-                    'ui.mutate.designer.temperature'
+                    'ui.mutate.designer.temperature', float
                 )
                 num_designs = self.bus.get_value(
-                    'ui.mutate.designer.num_sample'
+                    'ui.mutate.designer.num_sample', int
                 )
-                batch = self.bus.get_value('ui.mutate.designer.batch')
+                batch = self.bus.get_value('ui.mutate.designer.batch', int)
                 homooligomeric = self.bus.get_value(
                     'ui.mutate.designer.homooligomeric'
                 )
@@ -1135,22 +1129,21 @@ class REvoDesignPlugin:
                     'ui.mutate.designer.enable_randomized_sampling'
                 )
                 randomized_sample_num = self.bus.get_value(
-                    'ui.mutate.designer.randomized_sampling'
+                    'ui.mutate.designer.randomized_sampling', int
                 )
-
                 design_case = self.bus.get_value('ui.mutate.input.design_case')
                 custom_indices_fp = self.bus.get_value(
                     'ui.mutate.input.residue_ids'
                 )
                 cutoff = [
-                    float(self.bus.get_value('ui.mutate.min_score')),
-                    float(self.bus.get_value('ui.mutate.max_score')),
+                    (self.bus.get_value('ui.mutate.min_score', float)),
+                    (self.bus.get_value('ui.mutate.max_score', float)),
                 ]
                 reversed_mutant_effect = self.bus.get_value(
                     'ui.mutate.reverse_score'
                 )
                 output_pse = self.bus.get_value('ui.mutate.input.to_pse')
-                nproc = self.bus.get_value('ui.header_panel.nproc')
+                nproc = self.bus.get_value('ui.header_panel.nproc', int)
 
                 cmap = cmap_reverser(
                     cmap=self.bus.get_value('ui.header_panel.cmap.default'),
@@ -1161,7 +1154,7 @@ class REvoDesignPlugin:
                     'ui.config.sidechain_solver.default'
                 )
                 sidechain_solver_radius = self.bus.get_value(
-                    'ui.config.sidechain_solver.repack_radius'
+                    'ui.config.sidechain_solver.repack_radius', float
                 )
                 sidechain_solver_model = self.bus.get_value(
                     'ui.config.sidechain_solver.model'
@@ -1742,17 +1735,17 @@ class REvoDesignPlugin:
             'ui.cluster.input.from_mutant_txt'
         )
 
-        cluster_batch_size = self.bus.get_value('ui.cluster.batch_size')
-        cluster_number = self.bus.get_value('ui.cluster.num_cluster')
-        min_mut_num = self.bus.get_value('ui.cluster.mut_num_min')
-        max_mut_num = self.bus.get_value('ui.cluster.mut_num_max')
+        cluster_batch_size = self.bus.get_value('ui.cluster.batch_size', int)
+        cluster_number = self.bus.get_value('ui.cluster.num_cluster', int)
+        min_mut_num = self.bus.get_value('ui.cluster.mut_num_min', int)
+        max_mut_num = self.bus.get_value('ui.cluster.mut_num_max', int)
         cluster_substitution_matrix = self.bus.get_value(
             'ui.cluster.score_matrix.default'
         )
 
         shuffle_variant = self.bus.get_value('ui.cluster.shuffle')
 
-        nproc = self.bus.get_value('ui.header_panel.nproc')
+        nproc = self.bus.get_value('ui.header_panel.nproc', int)
 
         # output space
         plot_space = self.ui.stackedWidget
@@ -1912,14 +1905,14 @@ class REvoDesignPlugin:
         output_pse = self.bus.get_value('ui.visualize.input.to_pse')
         best_leaf = self.bus.get_value('ui.visualize.input.best_leaf')
         totalscore = self.bus.get_value('ui.visualize.input.totalscore')
-        nproc = self.bus.get_value('ui.header_panel.nproc')
+        nproc = self.bus.get_value('ui.header_panel.nproc', int)
         group_name = self.bus.get_value('ui.visualize.input.group_name')
 
         sidechain_solver = self.bus.get_value(
             'ui.config.sidechain_solver.default'
         )
         sidechain_solver_radius = self.bus.get_value(
-            'ui.config.sidechain_solver.repack_radius'
+            'ui.config.sidechain_solver.repack_radius', int
         )
         sidechain_solver_model = self.bus.get_value(
             'ui.config.sidechain_solver.model'
@@ -2225,9 +2218,8 @@ class REvoDesignPlugin:
             )
 
             topN_gremlin_candidates = self.bus.get_value(
-                'ui.interact.topN_pairs'
+                'ui.interact.topN_pairs', int
             )
-
             if (not self.design_molecule) or (not self.design_chain_id):
                 logging.error(
                     f'Molecule Info not complete. \n\tmolecule: {self.design_molecule}\n\tchain: {self.design_chain_id}.'
@@ -2302,7 +2294,9 @@ class REvoDesignPlugin:
         trigger_button = self.ui.pushButton_run_interact_scan
 
         progress_bar = self.ui.progressBar
-        max_interact_dist = self.bus.get_value('ui.interact.max_interact_dist')
+        max_interact_dist = self.bus.get_value(
+            'ui.interact.max_interact_dist', float
+        )
 
         self.plot_w_fps = {}
         with hold_trigger_button(trigger_button):
@@ -2484,11 +2478,9 @@ class REvoDesignPlugin:
         progress_bar,
         walk_to_next=True,
     ):
-        checkBox_ignore_wt = self.bus.get_value(
-            'ui.interact.interact_ignore_wt'
-        )
-        doubleSpinBox_max_interact_dist = self.bus.get_value(
-            'ui.interact.max_interact_dist'
+        ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
+        max_interact_dist = self.bus.get_value(
+            'ui.interact.max_interact_dist', float
         )
 
         lineEdit_current_pair = self.ui.lineEdit_current_pair
@@ -2564,7 +2556,7 @@ class REvoDesignPlugin:
                 button_matrix.min_value,
                 button_matrix.max_value,
                 wt_info,
-                checkBox_ignore_wt.isChecked(),
+                ignore_wt.isChecked(),
             )
         )
         self.ui.gridLayout_interact_pairs.addWidget(button_matrix)
@@ -2582,11 +2574,11 @@ class REvoDesignPlugin:
         set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
         if (
-            doubleSpinBox_max_interact_dist.value()
-            and spatial_distance > doubleSpinBox_max_interact_dist.value()
+            max_interact_dist.value()
+            and spatial_distance > max_interact_dist.value()
         ):
             logging.warning(
-                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {doubleSpinBox_max_interact_dist.value()}'
+                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist.value()}'
             )
             set_widget_value(lineEdit_current_pair, 'Out of range.')
             # To disable the QbuttonMatrix:
@@ -2717,7 +2709,7 @@ class REvoDesignPlugin:
             'ui.config.sidechain_solver.default'
         )
         sidechain_solver_radius = self.bus.get_value(
-            'ui.config.sidechain_solver.repack_radius'
+            'ui.config.sidechain_solver.repack_radius', float
         )
         sidechain_solver_model = self.bus.get_value(
             'ui.config.sidechain_solver.model'
@@ -2894,9 +2886,9 @@ class REvoDesignPlugin:
             ws_broadcast_view=self.bus.get_value('ui.socket.broadcast.view'),
             ws_server_use_key=self.bus.get_value('ui.socket.use_key'),
             ws_server_key=self.bus.get_value('ui.socket.input.key'),
-            ws_server_port=self.bus.get_value('ui.socket.server_port'),
-            ws_view_broadcast_interval=self.bus.get_value(
-                'ui.socket.broadcast.interval'
+            ws_server_port=(self.bus.get_value('ui.socket.server_port', int)),
+            ws_view_broadcast_interval=(
+                self.bus.get_value('ui.socket.broadcast.interval', float)
             ),
             treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
         )
@@ -2910,7 +2902,7 @@ class REvoDesignPlugin:
             'ui.socket.broadcast.view'
         )
         self.ws_server.view_broadcast_interval = self.bus.get_value(
-            'ui.socket.broadcast.interval'
+            'ui.socket.broadcast.interval', float
         )
 
         if self.ws_server.view_broadcast_interval:
@@ -3004,8 +2996,8 @@ class REvoDesignPlugin:
             lineEdit_ws_server_url_to_connect=self.bus.get_value(
                 'ui.socket.input.hostname'
             ),
-            spinBox_ws_server_port_to_connect=self.bus.get_value(
-                'ui.socket.server_port'
+            spinBox_ws_server_port_to_connect=(
+                self.bus.get_value('ui.socket.server_port', int)
             ),
             lineEdit_ws_server_key_to_connect=self.bus.get_value(
                 'ui.socket.input.key'
@@ -3065,15 +3057,33 @@ class REvoDesignPlugin:
         self.ws_client.close_connection()
 
     def reload_configurations(self):
-        if self.cfg:
+        if self.bus:
             logging.warning(f'Reconfiguring with changes...')
         else:
             logging.warning(f'Configuration initialized.')
-        self.cfg = reload_config_file()
+        # create a bus btw cfg<---> ui
+        self.bus = ConfigBus(ui=self.ui)
+        self.bus.fill_widget_with_cfg_group()
+        # mapping ui widgets <--> cfg.elements
+        self.widget_config_map: immutabledict = self.bus.w2c.widget2config_dict
         self.refresh_ui_from_new_configuration()
 
     def refresh_ui_from_new_configuration(self):
-        if not self.cfg:
-            raise ValueError('Reconfiguration failed.')
         for widget, config_item in self.widget_config_map.items():
-            set_widget_value(widget, OmegaConf.select(self.cfg, config_item))
+            set_widget_value(
+                widget, OmegaConf.select(self.bus.cfg, config_item)
+            )
+
+    def save_configuration_from_ui(self):
+        from REvoDesign.tools.customized_widgets import get_widget_value
+
+        # print(self.widget_config_mapper.widget2config_dict)
+        for (
+            widget,
+            config_item,
+        ) in self.bus.w2c.widget2config_dict.items():
+            value = get_widget_value(widget=widget)
+            logging.debug(f'Save {config_item}: {value}')
+            OmegaConf.update(self.bus.cfg, config_item, value)
+
+        save_configuration(new_cfg=self.bus.cfg)

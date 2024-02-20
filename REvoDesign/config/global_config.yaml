@@ -12,7 +12,7 @@ ui:
       group: 
       default:
         bwr_r
-    nproc: 
+    nproc: 1
   # footer_panel: 
   #   progressbar:
   prepare:
@@ -165,6 +165,7 @@ profile:
     - Pythia-ddG
 designer:
   group:
+    - 
     - ProteinMPNN
 
 

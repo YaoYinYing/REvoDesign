@@ -54,7 +54,7 @@ class MutantVisualizer:
         self.group_name = 'default_group'
         self.sequence = ''
         self.profile = ''
-        self.profile_format = self.REVODESIGN_CONFIG.ui.profile.default
+        self.profile_format = self.REVODESIGN_CONFIG.ui.mutate.input.profile
         self.scorer = None
         self.sidechain_solver = 'Dunbrack Rotamer Library'
         self.sidechain_solver_radius = 0

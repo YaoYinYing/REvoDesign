@@ -52,6 +52,7 @@ def save_configuration(
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
     cfg_save_fp = os.path.join(cfg_save_dir, f'{config_name}.yaml')
     OmegaConf.save(new_cfg, cfg_save_fp)
+    print('Saved configuration.')
     return
 
 

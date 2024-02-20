@@ -10,13 +10,14 @@ from REvoDesign.tools.customized_widgets import (
 )
 from functools import partial
 from REvoDesign.tools.logger import logging
+from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 
 class ConfigBus:
-    def __init__(self, ui: QtWidgets.QWidget, config: DictConfig):
+    def __init__(self, ui: QtWidgets.QWidget):
         self.ui = ui
-        self.cfg = config
+        self.cfg = reload_config_file()
         self.w2c = Widget2ConfigMapper(ui=self.ui)
 
     def fill_widget_with_cfg_group(self):
@@ -25,9 +26,13 @@ class ConfigBus:
 
             if isinstance(group_cfgs, str):
                 group_cfgs = tuple([group_cfgs])
-            for j in enumerate(group_cfgs):
-                group_values.extend(self.get_value(j))
-            set_widget_value(widget, group_values)
+            for j, group_cfg in enumerate(group_cfgs):
+                values = self.get_value(group_cfg)
+                if not values:
+                    continue
+                group_values.extend(values)
+            if group_values:
+                set_widget_value(widget, group_values)
 
     def update_cfg_item_from_widget(self, widget: QtWidgets.QWidget):
         cfg_item = self.w2c.widget2config_dict.get(widget)
@@ -56,7 +61,9 @@ class ConfigBus:
                 widget.stateChanged.connect(self._widget_link(widget))
 
     def get_widget(self, cfg_item: str) -> QtWidgets.QWidget:
-        assert cfg_item in self.w2c.all_cfg_items
+        assert (
+            cfg_item in self.w2c.all_cfg_items
+        ), f'Invalid cfg item: {cfg_item}'
         return self.w2c._find_widget(cfg_item)
 
     def get_widget_value(self, cfg_item: str):
@@ -69,44 +76,56 @@ class ConfigBus:
         assert widget in self.w2c.all_widgets
         return self.w2c._find_config_item(widget)
 
-    def get_value(self, cfg_item: str) -> Union[Any, list[Any]]:
+    def get_value(self, cfg_item: str, typing=None) -> Union[Any, list[Any]]:
         value = OmegaConf.select(self.cfg, cfg_item)
-        if 'group' in cfg_item:
+        if value is None:
+            value = bool(value)
+        if typing == str:
+            return str(value)
+        elif typing == float:
+            return float(value)
+        elif typing == int:
+            return int(value)
+        
+        if 'group' in cfg_item and value:
             value = list(value)
         return value
 
     def set_value(self, cfg_item: str, value):
-        OmegaConf.update(self.cfg, cfg_item, value)
+        if value is not None:
+            OmegaConf.update(self.cfg, cfg_item, value)
+
+    def toggle_buttons(self, buttons:Iterable, set_enabled: bool = False):
+        for button in buttons:
+            button.setEnabled(set_enabled)
 
     def fp_lock(
         self,
         cfg_fps: Union[list, tuple, str],
         buttons_to_release: Union[list, tuple, Any],
     ):
-        button_unlocked = True
+        
         if isinstance(cfg_fps, str):
             cfg_fps = tuple([cfg_fps])
-        if not isinstance(buttons_to_release, Iterable):
+
+        if not isinstance(buttons_to_release, (list, tuple)):
             buttons_to_release = [buttons_to_release]
+
+        self.toggle_buttons(buttons=buttons_to_release, set_enabled=False)
 
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
             logging.info(f'Checking file path: {_fp}')
             if not dirname_does_exist(_fp):
-                button_unlocked = False
-                break
+                logging.warning(f'The dirname of `{_fp}` is not valid.')
+                return
             else:
                 if not filepath_does_exists(_fp):
                     logging.warning(f'The file `{_fp}` is not valid.')
                 else:
                     logging.info(f'The file `{_fp}` is valid.')
 
-        if button_unlocked:
-            for button in buttons_to_release:
-                button.setEnabled(True)
-        else:
-            for button in buttons_to_release:
-                button.setEnabled(False)
+        self.toggle_buttons(buttons=buttons_to_release, set_enabled=True)
 
 
 class Widget2ConfigMapper:
@@ -369,7 +388,7 @@ class Widget2ConfigMapper:
         return [w2c_pair[0] for w2c_pair in self.widget_config_map]
 
     @property
-    def all_cfg_items(self) -> tuple[DictConfig]:
+    def all_cfg_items(self) -> tuple[str]:
         return [w2c_pair[1] for w2c_pair in self.widget_config_map]
 
     @property
