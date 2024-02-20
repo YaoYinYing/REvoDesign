@@ -654,19 +654,19 @@ class TestMutantTree(absltest.TestCase):
 
 class TestPSSMGremlinCalculator(absltest.TestCase):
     def setUp(self):
+        from requests.auth import HTTPBasicAuth
         self.calculator = PSSMGremlinCalculator()
-        # Mock QLineEdit objects
-        lineEdit_url = MagicMock(text=lambda: 'https://revodesign.yaoyy.moe/')
-
         user = os.environ['REVODESIGN_USERS']
-        lineEdit_user = MagicMock(text=lambda: user)
 
         password = os.environ['REVODESIGN_SERVER_PASS']
-        lineEdit_password = MagicMock(text=lambda: password)
 
-        self.calculator.setup_url(
-            lineEdit_url, lineEdit_user, lineEdit_password
-        )
+        self.calculator.url='https://revodesign.yaoyy.moe/'
+        self.calculator.user=user
+        self.calculator.password=password
+        self.calculator.auth = HTTPBasicAuth(
+                self.calculator.user,
+                self.calculator.password
+            )
 
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES

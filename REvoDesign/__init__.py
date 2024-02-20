@@ -2290,6 +2290,7 @@ class REvoDesignPlugin:
                 progress_bar=progress_bar,
                 mrf_path=gremlin_mrf_fp,
             )
+            
 
             pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
 
@@ -2314,172 +2315,175 @@ class REvoDesignPlugin:
                 )
 
     def run_gremlin_tool(self):
+        trigger_button=self.ui.pushButton_run_interact_scan
+
         progress_bar = self.ui.progressBar
         max_interact_dist = self.bus.get_value('ui.interact.max_interact_dist')
 
         self.plot_w_fps = {}
+        with hold_trigger_button(trigger_button):
 
-        if any_posision_has_been_selected():
-            logging.info(f'One vs All mode.')
-            self.gremlin_tool_a2a_mode = False
-            resi = int(cmd.get_model('sele and n. CA').atom[0].resi)
-            logging.info(f'{resi} is selected.')
+            if any_posision_has_been_selected():
+                logging.info(f'One vs All mode.')
+                self.gremlin_tool_a2a_mode = False
+                resi = int(cmd.get_model('sele and n. CA').atom[0].resi)
+                logging.info(f'{resi} is selected.')
 
-            self.gremlin_workpath = os.path.join(
-                self.PWD, 'gremlin_co_evolved_pairs', f'resi_{resi}'
-            )
-            os.makedirs(self.gremlin_workpath, exist_ok=True)
-            self.gremlin_tool.pwd = self.gremlin_workpath
-
-            self.plot_w_fps = run_worker_thread_with_progress(
-                self.gremlin_tool.analyze_coevolving_pairs_for_i,
-                progress_bar=progress_bar,
-                i=resi - 1,
-            )
-
-            if not self.plot_w_fps:
-                logging.warning(
-                    f'No Available co-evolutionary signal against {resi}'
+                self.gremlin_workpath = os.path.join(
+                    self.PWD, 'gremlin_co_evolved_pairs', f'resi_{resi}'
                 )
-                # early return if no data.
-                return
+                os.makedirs(self.gremlin_workpath, exist_ok=True)
+                self.gremlin_tool.pwd = self.gremlin_workpath
 
-            logging.info(
-                f'Found {len(self.plot_w_fps.keys())} pairs against {resi}.'
-            )
-
-            self.renumber_plot_w_fps()
-
-        else:
-            logging.info(
-                f'No selection `sele` is picked, use All vs All mode.'
-            )
-            self.gremlin_tool_a2a_mode = True
-
-            self.gremlin_workpath = os.path.join(
-                self.PWD, 'gremlin_co_evolved_pairs', 'all_vs_all'
-            )
-            os.makedirs(self.gremlin_workpath, exist_ok=True)
-            self.gremlin_tool.pwd = self.gremlin_workpath
-
-            self.plot_w_fps = run_worker_thread_with_progress(
-                self.gremlin_tool.plot_w_in_batch, progress_bar=progress_bar
-            )
-
-            if not self.plot_w_fps:
-                logging.warning(
-                    f'No Available co-evolutionary signal in global'
+                self.plot_w_fps = run_worker_thread_with_progress(
+                    self.gremlin_tool.analyze_coevolving_pairs_for_i,
+                    progress_bar=progress_bar,
+                    i=resi - 1,
                 )
-                # early return if no data.
-                return
 
-            logging.info(
-                f'Found {len(self.plot_w_fps.keys())} pairs in global'
-            )
+                if not self.plot_w_fps:
+                    logging.warning(
+                        f'No Available co-evolutionary signal against {resi}'
+                    )
+                    # early return if no data.
+                    return
 
-        logging.debug(self.plot_w_fps)
-
-        # visualize co-evolved pair in pymol UI
-        min_gremlin_score = min(
-            [
-                min(
-                    [self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()]
-                ),
-                0,
-            ]
-        )
-        max_gremlin_score = max(
-            [self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()]
-        )
-
-        ce_object_name = cmd.get_unused_name(
-            f"ce_pairs_{self.design_molecule}_{self.design_chain_id}"
-        )
-
-        cmd.create(
-            ce_object_name,
-            f'{self.design_molecule} and c. {self.design_chain_id} and n. CA',
-        )
-        cmd.hide('cartoon', ce_object_name)
-        cmd.hide('surface', ce_object_name)
-        i_out_of_range = []
-        for i, pair_resi in self.plot_w_fps.items():
-            logging.debug(pair_resi)
-
-            spatial_distance = cmd.get_distance(
-                atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][0]+1} and n. CA',
-                atom2=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][1]+1} and n. CA',
-            )
-            cmd.bond(
-                f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][0]+1} and n. CA',
-                f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][1]+1} and n. CA',
-            )
-            cmd.set(
-                'stick_radius',
-                rescale_number(
-                    pair_resi[0][-1],
-                    min_value=min_gremlin_score,
-                    max_value=max_gremlin_score,
-                ),
-                f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
-            )
-            if spatial_distance > max_interact_dist:
                 logging.info(
-                    f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}'
+                    f'Found {len(self.plot_w_fps.keys())} pairs against {resi}.'
                 )
-                i_out_of_range.append(i)
-                cmd.set(
-                    'stick_color',
-                    'salmon',
-                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
-                )
+
+                self.renumber_plot_w_fps()
+
             else:
-                cmd.set(
-                    'stick_color',
-                    'marine',
-                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                logging.info(
+                    f'No selection `sele` is picked, use All vs All mode.'
+                )
+                self.gremlin_tool_a2a_mode = True
+
+                self.gremlin_workpath = os.path.join(
+                    self.PWD, 'gremlin_co_evolved_pairs', 'all_vs_all'
+                )
+                os.makedirs(self.gremlin_workpath, exist_ok=True)
+                self.gremlin_tool.pwd = self.gremlin_workpath
+
+                self.plot_w_fps = run_worker_thread_with_progress(
+                    self.gremlin_tool.plot_w_in_batch, progress_bar=progress_bar
                 )
 
-        cmd.show('sticks', ce_object_name)
-        cmd.set('stick_use_shader', 0)
-        cmd.set('stick_round_nub', 0)
-        cmd.set('stick_color', 'gray70', ce_object_name)
+                if not self.plot_w_fps:
+                    logging.warning(
+                        f'No Available co-evolutionary signal in global'
+                    )
+                    # early return if no data.
+                    return
 
-        # remove pairs that distal
-        for i in i_out_of_range:
-            logging.info(
-                f'Pair {self.plot_w_fps[i][0][2]}-{self.plot_w_fps[i][0][3]} will be removed:  out of range.'
+                logging.info(
+                    f'Found {len(self.plot_w_fps.keys())} pairs in global'
+                )
+
+            logging.debug(self.plot_w_fps)
+
+            # visualize co-evolved pair in pymol UI
+            min_gremlin_score = min(
+                [
+                    min(
+                        [self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()]
+                    ),
+                    0,
+                ]
             )
-            self.plot_w_fps.pop(i)
+            max_gremlin_score = max(
+                [self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()]
+            )
 
-        if i_out_of_range:
-            self.renumber_plot_w_fps()
+            ce_object_name = cmd.get_unused_name(
+                f"ce_pairs_{self.design_molecule}_{self.design_chain_id}"
+            )
 
-        try:
-            self.ui.pushButton_previous.clicked.disconnect()
-            self.ui.pushButton_next.clicked.disconnect()
-        except:
-            pass
+            cmd.create(
+                ce_object_name,
+                f'{self.design_molecule} and c. {self.design_chain_id} and n. CA',
+            )
+            cmd.hide('cartoon', ce_object_name)
+            cmd.hide('surface', ce_object_name)
+            i_out_of_range = []
+            for i, pair_resi in self.plot_w_fps.items():
+                logging.debug(pair_resi)
 
-        self.ui.pushButton_previous.clicked.connect(
-            partial(self.load_co_evolving_pairs, progress_bar, False)
-        )
+                spatial_distance = cmd.get_distance(
+                    atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][0]+1} and n. CA',
+                    atom2=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][1]+1} and n. CA',
+                )
+                cmd.bond(
+                    f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][0]+1} and n. CA',
+                    f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][1]+1} and n. CA',
+                )
+                cmd.set(
+                    'stick_radius',
+                    rescale_number(
+                        pair_resi[0][-1],
+                        min_value=min_gremlin_score,
+                        max_value=max_gremlin_score,
+                    ),
+                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                )
+                if spatial_distance > max_interact_dist:
+                    logging.info(
+                        f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}'
+                    )
+                    i_out_of_range.append(i)
+                    cmd.set(
+                        'stick_color',
+                        'salmon',
+                        f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                    )
+                else:
+                    cmd.set(
+                        'stick_color',
+                        'marine',
+                        f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                    )
 
-        self.ui.pushButton_next.clicked.connect(
-            partial(self.load_co_evolving_pairs, progress_bar, True)
-        )
+            cmd.show('sticks', ce_object_name)
+            cmd.set('stick_use_shader', 0)
+            cmd.set('stick_round_nub', 0)
+            cmd.set('stick_color', 'gray70', ce_object_name)
 
-        # intitialize
-        set_widget_value(progress_bar, [0, len(self.plot_w_fps.keys())])
-        self.current_gremlin_co_evoving_pair_index = -1
+            # remove pairs that distal
+            for i in i_out_of_range:
+                logging.info(
+                    f'Pair {self.plot_w_fps[i][0][2]}-{self.plot_w_fps[i][0][3]} will be removed:  out of range.'
+                )
+                self.plot_w_fps.pop(i)
 
-        self.current_gremlin_co_evoving_pair_mutant_id = ''
-        self.last_gremlin_co_evoving_pair_mutant_id = ''
+            if i_out_of_range:
+                self.renumber_plot_w_fps()
 
-        self.current_gremlin_co_evoving_pair_group_id = ''
-        self.last_gremlin_co_evoving_pair_group_id = ''
+            try:
+                self.ui.pushButton_previous.clicked.disconnect()
+                self.ui.pushButton_next.clicked.disconnect()
+            except:
+                pass
 
-        self.load_co_evolving_pairs(progress_bar)
+            self.ui.pushButton_previous.clicked.connect(
+                partial(self.load_co_evolving_pairs, progress_bar, False)
+            )
+
+            self.ui.pushButton_next.clicked.connect(
+                partial(self.load_co_evolving_pairs, progress_bar, True)
+            )
+
+            # intitialize
+            set_widget_value(progress_bar, [0, len(self.plot_w_fps.keys())])
+            self.current_gremlin_co_evoving_pair_index = -1
+
+            self.current_gremlin_co_evoving_pair_mutant_id = ''
+            self.last_gremlin_co_evoving_pair_mutant_id = ''
+
+            self.current_gremlin_co_evoving_pair_group_id = ''
+            self.last_gremlin_co_evoving_pair_group_id = ''
+
+            self.load_co_evolving_pairs(progress_bar)
 
     def renumber_plot_w_fps(self):
         logging.info('Renumbering anaysis results.')

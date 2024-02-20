@@ -77,6 +77,7 @@ class ConfigBus:
             value = list(value)
         return value
     
+    
     def fp_lock(self,cfg_fps:Union[list, tuple, str], buttons_to_release:Union[list, tuple, Any]):
         button_unlocked = True
         if  isinstance(cfg_fps, str):
