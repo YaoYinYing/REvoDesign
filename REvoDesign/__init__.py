@@ -210,8 +210,12 @@ class REvoDesignPlugin:
         )
 
         # set up nproc
-        self.bus.set_widget_value('ui.header_panel.nproc', (1, os.cpu_count()))
-        self.bus.set_widget_value('ui.header_panel.nproc', os.cpu_count())
+        from REvoDesign.tools.system_tools import CLIENT_INFO
+
+        max_proc = CLIENT_INFO().nproc
+        self.bus.set_widget_value('ui.header_panel.nproc', (1, max_proc))
+        self.bus.set_widget_value('ui.header_panel.nproc', max_proc)
+        self.bus.set_value('ui.header_panel.nproc', max_proc)
 
         # color map
         import matplotlib
@@ -224,6 +228,10 @@ class REvoDesignPlugin:
         self.bus.set_widget_value(
             'ui.header_panel.cmap.default',
             cmap_group,
+        )
+        self.bus.set_widget_value(
+            'ui.header_panel.cmap.default',
+            self.bus.get_widget('ui.header_panel.cmap.default'),
         )
 
         # Tab Client
@@ -649,7 +657,6 @@ class REvoDesignPlugin:
             )
         )
 
-        self.refresh_ui_from_new_configuration()
         # register widget change events to update cfg items
         self.bus.register_widget_changes_to_cfg()
 
@@ -1082,7 +1089,12 @@ class REvoDesignPlugin:
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
     ):
-        profile_fp = os.path.abspath(self.bus.get_value(cfg_input_profile))
+        _fp = self.bus.get_value(cfg_input_profile)
+        if _fp == 'None' or not _fp:
+            return None
+
+        profile_fp = os.path.abspath(_fp)
+
         if not os.path.exists(profile_fp):
             return None
 
@@ -1502,8 +1514,8 @@ class REvoDesignPlugin:
     def jump_to_the_best_mutant(
         self,
     ):
-        comboBox_group_ids = (self.ui.comboBox_group_ids,)
-        comboBox_mutant_ids = (self.ui.comboBox_mutant_ids,)
+        comboBox_group_ids = self.ui.comboBox_group_ids
+        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
         if self.mutant_tree_pssm.empty:
             return
 

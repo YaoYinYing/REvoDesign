@@ -6,25 +6,24 @@
 ui:
   header_panel: 
     input: 
-      molecule:
-      chain_id:
+      molecule: ''
+      chain_id: ''
     cmap: 
-      group: 
-      default:
-        bwr_r
-    nproc: 1
+      group: ''
+      default: bwr_r
+    nproc: 6
   # footer_panel: 
   #   progressbar:
   prepare:
     input:
       pocket:
-        substrate:
-        cofactor:
-        to_pse:
+        substrate: ''
+        cofactor: ''
+        to_pse: ''
         
-      surface:
-        to_pse:
-        exclusion:
+      surface: 
+        to_pse: ''
+        exclusion: ''
 
     ligand_radius: 8.0
     cofactor_radius: 7.0
@@ -36,8 +35,8 @@ ui:
     input:
       profile:
       profile_type: PSSM
-      residue_ids:
-      to_pse:
+      residue_ids: ''
+      to_pse: ''
       design_case: default
     min_score: -2
     max_score: 10
@@ -55,14 +54,14 @@ ui:
 
   evaluate:
     input:
-      to_mutant_txt:
+      to_mutant_txt: ''
     rock: False
     show_wt: True
     reverse_score: False
 
   cluster:
     input:
-      from_mutant_txt:
+      from_mutant_txt: ''
     mut_num_min: 1
     mut_num_max: 1
     num_cluster: 15
@@ -75,16 +74,16 @@ ui:
   
   visualize:
     input:
-      from_mutant_txt:
-      to_pse:
-      profile: 
+      from_mutant_txt: ''
+      to_pse: ''
+      profile: ''
       profile_type: PSSM
       group_name: default
-      best_leaf:
-      totalscore:
+      best_leaf: ''
+      totalscore: ''
 
       multi_design:
-        to_mutant_txt:
+        to_mutant_txt: ''
     
     global_score_policy: True
     reverse_score: False
@@ -101,8 +100,8 @@ ui:
 
   interact:
     input:
-      gremlin_pkl:
-      to_mutant_txt:
+      gremlin_pkl: ''
+      to_mutant_txt: ''
 
     topN_pairs: 100
     max_interact_dist: 20.0
@@ -117,8 +116,8 @@ ui:
   
   socket: 
     input:
-      key:
-      hostname:
+      key: ''
+      hostname: ''
 
     server_mode: False
     server_url: localhost

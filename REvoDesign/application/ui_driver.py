@@ -78,15 +78,18 @@ class ConfigBus:
 
     def get_value(self, cfg_item: str, typing=None) -> Union[Any, list[Any]]:
         value = OmegaConf.select(self.cfg, cfg_item)
-        if value is None:
-            value = bool(value)
+        if value is None and typing == Union[str, None]:
+            value = ''
+        if value is None and typing == Union[int, float]:
+            value = 0
+
         if typing == str:
             return str(value)
         elif typing == float:
             return float(value)
         elif typing == int:
             return int(value)
-        
+
         if 'group' in cfg_item and value:
             value = list(value)
         return value
@@ -95,7 +98,7 @@ class ConfigBus:
         if value is not None:
             OmegaConf.update(self.cfg, cfg_item, value)
 
-    def toggle_buttons(self, buttons:Iterable, set_enabled: bool = False):
+    def toggle_buttons(self, buttons: Iterable, set_enabled: bool = False):
         for button in buttons:
             button.setEnabled(set_enabled)
 
@@ -104,7 +107,6 @@ class ConfigBus:
         cfg_fps: Union[list, tuple, str],
         buttons_to_release: Union[list, tuple, Any],
     ):
-        
         if isinstance(cfg_fps, str):
             cfg_fps = tuple([cfg_fps])
 
@@ -116,7 +118,7 @@ class ConfigBus:
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
             logging.info(f'Checking file path: {_fp}')
-            if not dirname_does_exist(_fp):
+            if not _fp or not dirname_does_exist(_fp):
                 logging.warning(f'The dirname of `{_fp}` is not valid.')
                 return
             else:

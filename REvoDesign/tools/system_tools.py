@@ -51,6 +51,7 @@ class CLIENT_INFO:
     qt_ver: str = None
     OS_TYPE: str = None
     is_translated_arm_mac: bool = None
+    nproc: int = 4
 
     def __post_init__(self):
         import os
@@ -77,6 +78,10 @@ class CLIENT_INFO:
         self.python_version: str = platform.python_version()
         self.OS_TYPE: str = get_system_info(os_info=self.OS_INFO)
         self.is_translated_arm_mac: bool = 'Rosetta' in self.OS_TYPE
+        try:
+            self.nproc = os.cpu_count()
+        except Exception as e:
+            logging.error(f'Failed to fetch CPU count: {e}')
 
         try:
             self.ip = socket.gethostbyname_ex(socket.gethostname())[2]
