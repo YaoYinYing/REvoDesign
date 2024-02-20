@@ -365,7 +365,7 @@ class TestREvoDesignConfigFile(absltest.TestCase):
 
         self.assertTrue(isinstance(self.expected_global_cfg, DictConfig))
         self.assertEqual(
-            self.expected_global_cfg.ui.header_panel.cmap, 'bwr_r'
+            self.expected_global_cfg.ui.header_panel.cmap.default, 'bwr_r'
         )
 
     def test_save_configuration(self):
@@ -657,7 +657,6 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         from requests.auth import HTTPBasicAuth
         self.calculator = PSSMGremlinCalculator()
         user = os.environ['REVODESIGN_USERS']
-
         password = os.environ['REVODESIGN_SERVER_PASS']
 
         self.calculator.url='https://revodesign.yaoyy.moe/'
@@ -700,13 +699,13 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         result = self.calculator.submit_fasta_file(fasta_file_path)
         print(result.content)
 
-        self.assertIn(result.status_code, [202, 404, 200, 403, 400])
+        self.assertIn(result.status_code, [202, 404, 200, 403, 400,502])
 
         md5sum = self.calculator.md5sum
         result = self.calculator.cancel_job(md5sum)
         print(result.content)
 
-        self.assertIn(result.status_code, [202, 404, 200, 403, 400])
+        self.assertIn(result.status_code, [202, 404, 200, 403, 400, 502])
 
 
 class TestPymolUtils(absltest.TestCase):

@@ -15,7 +15,6 @@ from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 
 from REvoDesign.tools.logger import logging
 from REvoDesign.application.ui_driver import (
-    Widget2ConfigMapper,
     Widget2Widget,
     ConfigBus,
 )
@@ -42,7 +41,6 @@ from REvoDesign.common.file_extensions import (
 
 from REvoDesign.tools.utils import (
     dirname_does_exist,
-    filepath_does_exists,
     extract_archive,
     generate_strong_password,
     run_worker_thread_with_progress,
@@ -101,7 +99,6 @@ class REvoDesignPlugin:
         self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign-PyMOL.ui')
 
         self.cfg = None
-        self.reload_configurations()
 
         self.widget2widget = Widget2Widget()
 
@@ -117,11 +114,7 @@ class REvoDesignPlugin:
         self.gremlin_tool = None
         self.gremlin_external_scorer = None
 
-        from REvoDesign.clients.PSSM_GREMLIN_client import (
-            PSSMGremlinCalculator,
-        )
-
-        self.pssm_gremlin_calculator = PSSMGremlinCalculator()
+        self.pssm_gremlin_calculator = None
 
         self.multi_mutagenesis_designer = None
 
@@ -169,10 +162,8 @@ class REvoDesignPlugin:
         set_window_font(main_window)
 
         # mapping ui widgets <--> cfg.elements
-        self.widget_config_mapper: Widget2ConfigMapper = self.bus.w2c
-        self.widget_config_map: immutabledict = (
-            self.widget_config_mapper.widget2config_dict
-        )
+        self.widget_config_map: immutabledict = self.bus.w2c.widget2config_dict
+        self.reload_configurations()
 
         # Set up Menu
 
@@ -208,23 +199,17 @@ class REvoDesignPlugin:
 
         # Set up general input
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
-            partial(
-                self.set_design_sequence,
-            )
+            self.set_design_sequence,
         )
 
         # read session from PyMOL. If it is empty, load one.
         self.ui.actionCheck_PyMOL_session.triggered.connect(
-            partial(
-                self.reload_molecule_info,
-            )
+            self.reload_molecule_info,
         )
 
         # Update chain id
         self.ui.comboBox_design_molecule.currentIndexChanged.connect(
-            partial(
-                self.update_chain_id,
-            )
+            self.update_chain_id,
         )
 
         # set up nproc
@@ -239,8 +224,10 @@ class REvoDesignPlugin:
             for _cmap in matplotlib.colormaps()
         }
 
+        self.bus.set_value('ui.header_panel.cmap.group', cmap_group)
+
         self.bus.set_widget_value(
-            'ui.header_panel.cmap',
+            'ui.header_panel.cmap.default',
             cmap_group,
         )
 
@@ -403,9 +390,7 @@ class REvoDesignPlugin:
         )
 
         self.ui.pushButton_goto_best_hit_in_group.clicked.connect(
-            partial(
-                self.jump_to_the_best_mutant,
-            )
+            self.jump_to_the_best_mutant,
         )
 
         self.ui.pushButton_load_mutant_choice_checkpoint.clicked.connect(
@@ -434,14 +419,17 @@ class REvoDesignPlugin:
 
         from Bio.Align import substitution_matrices
 
+        score_matrix = [
+            mtx
+            for mtx in os.listdir(
+                os.path.join(substitution_matrices.__path__[0], 'data')
+            )
+        ]
+
+        self.bus.set_value('ui.cluster.score_matrix.group', score_matrix)
+
         self.bus.set_widget_value(
-            'ui.cluster.score_matrix.default',
-            [
-                mtx
-                for mtx in os.listdir(
-                    os.path.join(substitution_matrices.__path__[0], 'data')
-                )
-            ],
+            'ui.cluster.score_matrix.default', score_matrix
         )
 
         self.ui.lineEdit_input_mut_table.textChanged.connect(
@@ -1122,7 +1110,6 @@ class REvoDesignPlugin:
         trigger_button = self.ui.pushButton_run_PSSM_to_pse
 
         with hold_trigger_button(trigger_button):
-
             try:
                 design_profile = self.bus.get_value('ui.mutate.input.profile')
                 design_profile_format = self.bus.get_value(
@@ -1166,7 +1153,7 @@ class REvoDesignPlugin:
                 nproc = self.bus.get_value('ui.header_panel.nproc')
 
                 cmap = cmap_reverser(
-                    cmap=self.bus.get_value('ui.header_panel.cmap'),
+                    cmap=self.bus.get_value('ui.header_panel.cmap.default'),
                     reverse=reversed_mutant_effect,
                 )
 
@@ -1439,7 +1426,6 @@ class REvoDesignPlugin:
     def jump_to_branch(
         self,
     ):
-
         comboBox_group_ids = self.ui.comboBox_group_ids
         comboBox_mutant_ids = self.ui.comboBox_mutant_ids
         progressBar_mutant_choosing = self.ui.progressBar
@@ -1523,7 +1509,6 @@ class REvoDesignPlugin:
     def jump_to_the_best_mutant(
         self,
     ):
-
         comboBox_group_ids = (self.ui.comboBox_group_ids,)
         comboBox_mutant_ids = (self.ui.comboBox_mutant_ids,)
         if self.mutant_tree_pssm.empty:
@@ -2290,7 +2275,6 @@ class REvoDesignPlugin:
                 progress_bar=progress_bar,
                 mrf_path=gremlin_mrf_fp,
             )
-            
 
             pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
 
@@ -2315,14 +2299,13 @@ class REvoDesignPlugin:
                 )
 
     def run_gremlin_tool(self):
-        trigger_button=self.ui.pushButton_run_interact_scan
+        trigger_button = self.ui.pushButton_run_interact_scan
 
         progress_bar = self.ui.progressBar
         max_interact_dist = self.bus.get_value('ui.interact.max_interact_dist')
 
         self.plot_w_fps = {}
         with hold_trigger_button(trigger_button):
-
             if any_posision_has_been_selected():
                 logging.info(f'One vs All mode.')
                 self.gremlin_tool_a2a_mode = False
@@ -2367,7 +2350,8 @@ class REvoDesignPlugin:
                 self.gremlin_tool.pwd = self.gremlin_workpath
 
                 self.plot_w_fps = run_worker_thread_with_progress(
-                    self.gremlin_tool.plot_w_in_batch, progress_bar=progress_bar
+                    self.gremlin_tool.plot_w_in_batch,
+                    progress_bar=progress_bar,
                 )
 
                 if not self.plot_w_fps:
@@ -2387,7 +2371,10 @@ class REvoDesignPlugin:
             min_gremlin_score = min(
                 [
                     min(
-                        [self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()]
+                        [
+                            self.plot_w_fps[i][0][-1]
+                            for i in self.plot_w_fps.keys()
+                        ]
                     ),
                     0,
                 ]
@@ -2870,7 +2857,7 @@ class REvoDesignPlugin:
             logging.info(f'Picked mutant: {mutant} ')
 
             color = get_color(
-                self.bus.get_value('ui.header_panel.cmap'),
+                self.bus.get_value('ui.header_panel.cmap.default'),
                 mut_score,
                 min_score,
                 max_score,
@@ -3007,7 +2994,9 @@ class REvoDesignPlugin:
         self.ws_client.design_molecule = self.design_molecule
         self.ws_client.design_chain_id = self.design_chain_id
         self.ws_client.design_sequence = self.design_sequence
-        self.ws_client.cmap = self.bus.get_value('ui.header_panel.cmap')
+        self.ws_client.cmap = self.bus.get_value(
+            'ui.header_panel.cmap.default'
+        )
         self.ws_client.nproc = self.bus.get_value('ui.header_panel.nproc')
         self.ws_client.progress_bar = self.ui.progressBar
 

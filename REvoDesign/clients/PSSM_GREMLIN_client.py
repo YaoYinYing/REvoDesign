@@ -5,6 +5,7 @@ import requests
 from REvoDesign.tools.logger import logging as logger
 
 from requests.auth import HTTPBasicAuth
+
 logging = logger.getChild(__name__)
 
 from REvoDesign.tools.client_tools import check_response_code
@@ -12,13 +13,11 @@ from REvoDesign.tools.client_tools import check_response_code
 
 class PSSMGremlinCalculator:
     def __init__(self):
-        self.url=''
-        self.user=''
-        self.password=''
-        self.auth:Union[HTTPBasicAuth,None]=None
+        self.url = ''
+        self.user = ''
+        self.password = ''
+        self.auth: Union[HTTPBasicAuth, None] = None
         pass
-
-        
 
     def setup_calculator(
         self, working_directory, molecule, chain_id, sequence

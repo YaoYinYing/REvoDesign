@@ -20,8 +20,7 @@ class ConfigBus:
         self.w2c = Widget2ConfigMapper(ui=self.ui)
 
     def fill_widget_with_cfg_group(self):
-
-        for i, widget, group_cfgs in enumerate(self.w2c.group_config_map):
+        for i, (widget, group_cfgs) in enumerate(self.w2c.group_config_map):
             group_values = []
 
             if isinstance(group_cfgs, str):
@@ -40,7 +39,6 @@ class ConfigBus:
 
     def register_widget_changes_to_cfg(self):
         for widget in self.w2c.all_widgets:
-
             if isinstance(
                 widget,
                 (
@@ -76,15 +74,20 @@ class ConfigBus:
         if 'group' in cfg_item:
             value = list(value)
         return value
-    
-    
-    def fp_lock(self,cfg_fps:Union[list, tuple, str], buttons_to_release:Union[list, tuple, Any]):
-        button_unlocked = True
-        if  isinstance(cfg_fps, str):
-            cfg_fps=tuple([cfg_fps])
-        if not isinstance(buttons_to_release, Iterable):
-            buttons_to_release=[buttons_to_release]
 
+    def set_value(self, cfg_item: str, value):
+        OmegaConf.update(self.cfg, cfg_item, value)
+
+    def fp_lock(
+        self,
+        cfg_fps: Union[list, tuple, str],
+        buttons_to_release: Union[list, tuple, Any],
+    ):
+        button_unlocked = True
+        if isinstance(cfg_fps, str):
+            cfg_fps = tuple([cfg_fps])
+        if not isinstance(buttons_to_release, Iterable):
+            buttons_to_release = [buttons_to_release]
 
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
@@ -104,7 +107,6 @@ class ConfigBus:
         else:
             for button in buttons_to_release:
                 button.setEnabled(False)
-
 
 
 class Widget2ConfigMapper:
@@ -132,7 +134,7 @@ class Widget2ConfigMapper:
             ),
         ]
         self.widget_config_map = [
-            (self.ui.comboBox_cmap, 'ui.header_panel.cmap'),
+            (self.ui.comboBox_cmap, 'ui.header_panel.cmap.default'),
             (
                 self.ui.lineEdit_pssm_gremlin_url,
                 'ui.client.pssm_gremlin_url',
