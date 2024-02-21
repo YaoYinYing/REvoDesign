@@ -217,28 +217,6 @@ class REvoDesignPlugin:
         self.bus.set_widget_value('ui.header_panel.nproc', max_proc)
         self.bus.set_value('ui.header_panel.nproc', max_proc)
 
-        
-
-        # color map
-        import matplotlib
-
-        cmap_group = {
-            _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
-            for _cmap in matplotlib.colormaps()
-        }
-
-        self.bus.set_widget_value(
-            'ui.header_panel.cmap.default',
-            cmap_group,
-        )
-        
-        #set_widget_value(self.ui.comboBox_cmap, 'bwr_r')
-        # self.bus.set_widget_value(
-        #     'ui.header_panel.cmap.default',
-        #     'bwr_r',
-        # )
-        self.bus.restore_widget_value('ui.header_panel.cmap.default')
-
         # Tab Client
         self.ui.comboBox_chain_id.currentIndexChanged.connect(
             self.setup_pssm_gremlin_calculator,
@@ -423,21 +401,6 @@ class REvoDesignPlugin:
             partial(
                 self.open_mutant_table, 'ui.cluster.input.from_mutant_txt', 'r'
             )
-        )
-
-        from Bio.Align import substitution_matrices
-
-        score_matrix = [
-            mtx
-            for mtx in os.listdir(
-                os.path.join(substitution_matrices.__path__[0], 'data')
-            )
-        ]
-
-        self.bus.set_value('ui.cluster.score_matrix.group', score_matrix)
-
-        self.bus.set_widget_value(
-            'ui.cluster.score_matrix.default', score_matrix
         )
 
         self.ui.lineEdit_input_mut_table.textChanged.connect(
@@ -648,10 +611,6 @@ class REvoDesignPlugin:
         )
 
         # Tab Config
-        self.bus.set_widget_value(
-            'ui.config.sidechain_solver.default',
-            list(self.bus.cfg.ui.config.sidechain_solver.group),
-        )
 
         self.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
             partial(
@@ -2112,7 +2071,9 @@ class REvoDesignPlugin:
             spinBox_maximal_multi_design_variant_num.value()
         )
 
-        self.multi_mutagenesis_designer.cmap = self.bus.get_value('ui.header_panel.cmap.default')
+        self.multi_mutagenesis_designer.cmap = self.bus.get_value(
+            'ui.header_panel.cmap.default'
+        )
 
         self.multi_mutagenesis_designer.maximal_mutant_num = (
             spinBox_maximal_mutant_num.value()
@@ -3074,14 +3035,14 @@ class REvoDesignPlugin:
     def reload_configurations(self):
         if self.bus:
             logging.warning(f'Reconfiguring with changes...')
-            reconfigure=True
+            reconfigure = True
         else:
             logging.warning(f'Configuration initialized.')
-            reconfigure=False
+            reconfigure = False
         # create a bus btw cfg<---> ui
         self.bus = ConfigBus(ui=self.ui)
         if not reconfigure:
-            self.bus.fill_widget_with_cfg_group()
+            self.bus.initialize_widget_with_cfg_group()
 
         # mapping ui widgets <--> cfg.elements
         self.widget_config_map: immutabledict = self.bus.w2c.widget2config_dict
@@ -3093,16 +3054,16 @@ class REvoDesignPlugin:
                 widget, OmegaConf.select(self.bus.cfg, config_item)
             )
 
-    def save_configuration_from_ui(self):
-        from REvoDesign.tools.customized_widgets import get_widget_value
+    def save_configuration_from_ui(self, experiment: str = None):
+        # from REvoDesign.tools.customized_widgets import get_widget_value
 
         # print(self.widget_config_mapper.widget2config_dict)
-        for (
-            widget,
-            config_item,
-        ) in self.bus.w2c.widget2config_dict.items():
-            value = get_widget_value(widget=widget)
-            logging.debug(f'Save {config_item}: {value}')
-            OmegaConf.update(self.bus.cfg, config_item, value)
+        # for (
+        #     widget,
+        #     config_item,
+        # ) in self.bus.w2c.widget2config_dict.items():
+        #     value = get_widget_value(widget=widget)
+        #     logging.debug(f'Save {config_item}: {value}')
+        #     OmegaConf.update(self.bus.cfg, config_item, value)
 
-        save_configuration(new_cfg=self.bus.cfg)
+        save_configuration(new_cfg=self.bus.cfg, config_name=experiment)

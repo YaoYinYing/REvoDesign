@@ -5,6 +5,7 @@ from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
 
 from REvoDesign.tools.customized_widgets import (
+    create_cmap_icon,
     get_widget_value,
     set_widget_value,
 )
@@ -20,19 +21,42 @@ class ConfigBus:
         self.cfg = reload_config_file()
         self.w2c = Widget2ConfigMapper(ui=self.ui)
 
-    def fill_widget_with_cfg_group(self):
+    def initialize_widget_with_cfg_group(self):
         for i, (widget, group_cfgs) in enumerate(self.w2c.group_config_map):
             group_values = []
 
-            if isinstance(group_cfgs, str):
+            if isinstance(group_cfgs, str) or callable(group_cfgs):
                 group_cfgs = tuple([group_cfgs])
+
             for j, group_cfg in enumerate(group_cfgs):
-                values = self.get_value(group_cfg)
+                if callable(group_cfg):
+                    values = group_cfg()
+                else:
+                    values = self.get_value(group_cfg)
+
                 if not values:
                     continue
-                group_values.extend(values)
-            if group_values:
-                set_widget_value(widget, group_values)
+
+                if isinstance(values, list):
+                    group_values.extend(values)
+                elif isinstance(values, dict) and not group_values:
+                    group_values = values.copy()
+                elif isinstance(values, dict) and group_values:
+                    if isinstance(group_values, list):
+                        raise TypeError(
+                            f'{group_cfg} returns a dict while group_values is a list'
+                        )
+                    else:
+                        group_values.update(values)
+
+            if not group_values:
+                continue
+
+            set_widget_value(widget, group_values)
+
+            default_cfg_item = self.w2c._find_config_item(ui_element=widget)
+            if default_cfg_item:
+                self.restore_widget_value(default_cfg_item)
 
     def update_cfg_item_from_widget(self, widget: QtWidgets.QWidget):
         cfg_item = self.w2c.widget2config_dict.get(widget)
@@ -73,9 +97,8 @@ class ConfigBus:
         set_widget_value(widget=self.get_widget(cfg_item), value=value)
 
     def restore_widget_value(self, cfg_item: str):
-        self.set_widget_value(
-            cfg_item,
-            self.get_widget(cfg_item),
+        set_widget_value(
+            widget=self.get_widget(cfg_item), value=self.get_value(cfg_item)
         )
 
     def get_cfg_item(self, widget: QtWidgets.QWidget) -> DictConfig:
@@ -141,8 +164,11 @@ class Widget2ConfigMapper:
         self.ui = ui
 
         self.group_config_map: list[tuple[Any, Union[str, tuple[str]]]] = [
-            #(self.ui.comboBox_cmap, 'ui.header_panel.cmap.group'),
-            #(self.ui.comboBox_cluster_matrix, 'ui.cluster.score_matrix.group'),
+            (self.ui.comboBox_cmap, CallableGroupValues.ColorMap),
+            (
+                self.ui.comboBox_cluster_matrix,
+                CallableGroupValues.score_matrix,
+            ),
             (
                 self.ui.comboBox_sidechain_solver,
                 'ui.config.sidechain_solver.group',
@@ -428,3 +454,30 @@ class Widget2Widget:
         'DLPacker': [''],
         'Dunbrack Rotamer Library': [''],
     }
+
+
+class CallableGroupValues:
+    @staticmethod
+    def score_matrix() -> list:
+        from Bio.Align import substitution_matrices
+        import os
+
+        score_matrix = [
+            mtx
+            for mtx in os.listdir(
+                os.path.join(substitution_matrices.__path__[0], 'data')
+            )
+        ]
+        return score_matrix
+
+    @staticmethod
+    def ColorMap() -> dict:
+        # color map
+        import matplotlib
+        from pymol.Qt import QtGui
+
+        cmap_group = {
+            _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
+            for _cmap in matplotlib.colormaps()
+        }
+        return cmap_group

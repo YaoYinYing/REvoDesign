@@ -65,7 +65,7 @@ ui:
     mut_num_max: 1
     num_cluster: 15
     score_matrix: 
-      group:
+      group: 
       default: PAM30
     batch_size: 100
     shuffle: True
@@ -105,7 +105,7 @@ ui:
     topN_pairs: 100
     max_interact_dist: 20.0
     interact_ignore_wt: False
-    use_external_scorer: 
+    use_external_scorer: ''
     reverse_score: False
   
   client:
@@ -143,11 +143,11 @@ ui:
         - PIPPack
       default: DLPacker
 
-      model: 
+      model: ''
       repack_radius: 0.0
 
       pippack:
-        model_names:
+        model_names: 
           group:
             - pippack_model_1
             - pippack_model_2
@@ -163,7 +163,7 @@ profile:
     - Pythia-ddG
 designer:
   group:
-    - 
+    - ''
     - ProteinMPNN
 
 
