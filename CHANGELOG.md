@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 
+- CircleCI runner
+- UI Driver for better configuration experiences
+  - `ConfigBus`
+  - `CallableGroupValues`
+  - more mapping in `Widget2ConfigMapper`
+- configuration:
+  - detailed inputs as a single experiment for future uses.
+- `CLIENT_INFO.nproc`
+- `TestWorker`: 
+  - `in_which_runner`: use variables to check ci runners
+  - `in_ci_runner`: bool check of tester env. if in ci runners, skip pymol rays and screenshots. 
+  - `do_typing` for typing text into `lineEdit`
+- `Makefile`: `make prepare-test` for testing env prep
+
+
+### Changed
+- moving main file from `__init__.py` to `REvoDesign.py`
+- `save_configuration`: `config_name: Union[str, None] = None` argument
+
+### Fixed
+- `DLPacker` use `pip-installable-cpu` branch
+- reduced test scale on pocket residues
+
+### Removed
+- `PSSMGremlinCalculator`: `setup_url`
+- `QtWidget` object passings as arguments.
+- `get_widget_value`: `QtWidgets.QComboBox`'s `currentIndex()`
+- `REvoDesignPlugin.cfg`, use `REvoDesignPlugin.bus.cfg` from `ConfigBus`
+
 ## [1.4.3] - 2024-02-17
 
 ### Added
