@@ -158,6 +158,9 @@ class ConfigBus:
 
         self.toggle_buttons(buttons=buttons_to_release, set_enabled=True)
 
+    def button(self, id: str):
+        return self.w2c.run_buttons.get(id)
+
 
 class Widget2ConfigMapper:
     def __init__(self, ui):
@@ -186,6 +189,53 @@ class Widget2ConfigMapper:
                 'designer.group',
             ),
         ]
+        self.run_buttons: dict[str, Any] = {
+            'submit_pssm_gremlin_job': self.ui.pushButton_submit_pssm_gremlin_job,
+            'cancel_pssm_gremlin_job': self.ui.pushButton_cancel_pssm_gremlin_job,
+            'download_pssm_gremlin_job': self.ui.pushButton_download_pssm_gremlin_job,
+            'open_output_pse_pocket': self.ui.pushButton_open_output_pse_pocket,
+            'open_output_pse_surface': self.ui.pushButton_open_output_pse_surface,
+            'run_surface_refresh': self.ui.pushButton_run_surface_refresh,
+            'dump_interfaces': self.ui.pushButton_dump_interfaces,
+            'run_surface_detection': self.ui.pushButton_run_surface_detection,
+            'run_pocket_detection': self.ui.pushButton_run_pocket_detection,
+            'open_output_pse_mutate': self.ui.pushButton_open_output_pse_mutate,
+            'open_customized_indices': self.ui.pushButton_open_customized_indices,
+            'open_input_csv': self.ui.pushButton_open_input_csv,
+            'run_PSSM_to_pse': self.ui.pushButton_run_PSSM_to_pse,
+            'open_mut_table': self.ui.pushButton_open_mut_table,
+            'reinitialize_mutant_choosing': self.ui.pushButton_reinitialize_mutant_choosing,
+            'goto_best_hit_in_group': self.ui.pushButton_goto_best_hit_in_group,
+            'load_mutant_choice_checkpoint': self.ui.pushButton_load_mutant_choice_checkpoint,
+            'choose_lucky_mutant': self.ui.pushButton_choose_lucky_mutant,
+            'open_mut_table_2': self.ui.pushButton_open_mut_table_2,
+            'run_cluster': self.ui.pushButton_run_cluster,
+            'save_this_mutant_table': self.ui.pushButton_save_this_mutant_table,
+            'open_input_csv_2': self.ui.pushButton_open_input_csv_2,
+            'open_mut_table_csv': self.ui.pushButton_open_mut_table_csv,
+            'open_output_pse_visualize': self.ui.pushButton_open_output_pse_visualize,
+            'run_visualizing': self.ui.pushButton_run_visualizing,
+            'reduce_this_session': self.ui.pushButton_reduce_this_session,
+            'open_mut_table_csv_2': self.ui.pushButton_open_mut_table_csv_2,
+            'multi_design_initialize': self.ui.pushButton_multi_design_initialize,
+            'multi_design_start_new_design': self.ui.pushButton_multi_design_start_new_design,
+            'multi_design_left': self.ui.pushButton_multi_design_left,
+            'multi_design_right': self.ui.pushButton_multi_design_right,
+            'multi_design_end_this_design': self.ui.pushButton_multi_design_end_this_design,
+            'multi_design_export_mutants_from_table': self.ui.pushButton_multi_design_export_mutants_from_table,
+            'run_multi_design': self.ui.pushButton_run_multi_design,
+            'open_gremlin_mtx': self.ui.pushButton_open_gremlin_mtx,
+            'reinitialize_interact': self.ui.pushButton_reinitialize_interact,
+            'run_interact_scan': self.ui.pushButton_run_interact_scan,
+            'open_save_mutant_table': self.ui.pushButton_open_save_mutant_table,
+            'interact_reject': self.ui.pushButton_interact_reject,
+            'interact_accept': self.ui.pushButton_interact_accept,
+            'ws_generate_randomized_key': self.ui.pushButton_ws_generate_randomized_key,
+            'ws_connect_to_server': self.ui.pushButton_ws_connect_to_server,
+            'ws_disconnect_from_server': self.ui.pushButton_ws_disconnect_from_server,
+            'previous': self.ui.pushButton_previous,
+            'next': self.ui.pushButton_next,
+        }
         self.widget_config_map = [
             (self.ui.comboBox_cmap, 'ui.header_panel.cmap.default'),
             (

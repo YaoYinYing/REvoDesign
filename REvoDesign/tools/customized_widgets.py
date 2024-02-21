@@ -351,9 +351,7 @@ def get_widget_value(widget):
     - QComboBox: Returns the current text or the userData of the current item if any.
     - QLineEdit: Returns the current text as str.
     - QProgressBar: Returns the current value as int.
-    - QLCDNumber: Returns the displayed value as str.
     - QCheckBox: Returns the checked state as bool.
-    - QStackedWidget, QGridLayout: These are not typically used for value retrieval and thus not supported here.
 
     Raises:
     - ValueError: If the widget type is not supported for value retrieval.
@@ -368,11 +366,6 @@ def get_widget_value(widget):
         return widget.text()
     elif isinstance(widget, QtWidgets.QProgressBar):
         return widget.value()
-    elif isinstance(widget, QtWidgets.QLCDNumber):
-        # Assuming the display value is always numeric
-        return (
-            widget.value()
-        )  # This method might need to be adjusted based on how values are displayed
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
     else:

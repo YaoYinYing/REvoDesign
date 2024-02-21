@@ -2,7 +2,6 @@ import asyncio
 import os
 import time
 import traceback
-from typing import Iterable, Union
 from immutabledict import immutabledict
 from omegaconf import OmegaConf
 from pymol import cmd
@@ -48,14 +47,12 @@ from REvoDesign.tools.utils import (
 )
 
 from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
     hold_trigger_button,
     getExistingDirectory,
     set_widget_value,
     QbuttonMatrix,
     proceed_with_comfirm_msg_box,
     getOpenFileNameWithExt,
-    create_cmap_icon,
     refresh_widget_while_another_changed,
 )
 
@@ -70,7 +67,6 @@ from REvoDesign.tools.pymol_utils import (
     make_temperal_input_pdb,
     is_a_REvoDesign_session,
     any_posision_has_been_selected,
-    PYMOL_VERSION,
 )
 
 from REvoDesign.tools.mutant_tools import (
@@ -222,7 +218,7 @@ class REvoDesignPlugin:
             self.setup_pssm_gremlin_calculator,
         )
 
-        self.ui.pushButton_submit_pssm_gremlin_job.clicked.connect(
+        self.bus.button['submit_pssm_gremlin_job'].clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
@@ -231,7 +227,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_cancel_pssm_gremlin_job.clicked.connect(
+        self.bus.button['cancel_pssm_gremlin_job'].clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
@@ -240,7 +236,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_download_pssm_gremlin_job.clicked.connect(
+        self.bus.button['download_pssm_gremlin_job'].clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
@@ -252,15 +248,15 @@ class REvoDesignPlugin:
         # Set up general arguments
         # Tab `Prepare`
 
-        self.ui.pushButton_open_output_pse_pocket.clicked.connect(
+        self.bus.button['open_output_pse_pocket'].clicked.connect(
             partial(self.save_as_a_session, 'ui.prepare.input.pocket.to_pse')
         )
 
-        self.ui.pushButton_open_output_pse_surface.clicked.connect(
+        self.bus.button['open_output_pse_surface'].clicked.connect(
             partial(self.save_as_a_session, 'ui.prepare.input.surface.to_pse')
         )
 
-        self.ui.pushButton_run_surface_refresh.clicked.connect(
+        self.bus.button['run_surface_refresh'].clicked.connect(
             self.update_surface_exclusion
         )
 
@@ -268,7 +264,7 @@ class REvoDesignPlugin:
             partial(
                 self.bus.fp_lock,
                 'ui.prepare.input.surface.to_pse',
-                self.ui.pushButton_run_surface_detection,
+                self.bus.button['run_surface_detection'],
             )
         )
 
@@ -276,7 +272,7 @@ class REvoDesignPlugin:
             partial(
                 self.bus.fp_lock,
                 'ui.prepare.input.pocket.to_pse',
-                self.ui.pushButton_run_pocket_detection,
+                self.bus.button['run_pocket_detection'],
             )
         )
 
@@ -285,23 +281,23 @@ class REvoDesignPlugin:
         )
 
         # Connect run buttons
-        self.ui.pushButton_dump_interfaces.clicked.connect(
+        self.bus.button['dump_interfaces'].clicked.connect(
             self.run_chain_interface_detection
         )
-        self.ui.pushButton_run_surface_detection.clicked.connect(
+        self.bus.button['run_surface_detection'].clicked.connect(
             self.run_surface_detection
         )
-        self.ui.pushButton_run_pocket_detection.clicked.connect(
+        self.bus.button['run_pocket_detection'].clicked.connect(
             self.run_pocket_detection
         )
 
         # Tab `Mutate`
 
-        self.ui.pushButton_open_output_pse_mutate.clicked.connect(
+        self.bus.button['open_output_pse_mutate'].clicked.connect(
             partial(self.save_as_a_session, 'ui.mutate.input.to_pse')
         )
 
-        self.ui.pushButton_open_customized_indices.clicked.connect(
+        self.bus.button['open_customized_indices'].clicked.connect(
             partial(
                 self.open_input_filepath,
                 'ui.mutate.input.residue_ids',
@@ -309,7 +305,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_open_input_csv.clicked.connect(
+        self.bus.button['open_input_csv'].clicked.connect(
             partial(
                 self.open_input_filepath,
                 'ui.mutate.input.profile',
@@ -329,16 +325,16 @@ class REvoDesignPlugin:
             partial(
                 self.bus.fp_lock,
                 'ui.mutate.input.to_pse',
-                self.ui.pushButton_run_PSSM_to_pse,
+                self.bus.button['run_PSSM_to_pse'],
             )
         )
 
-        self.ui.pushButton_run_PSSM_to_pse.clicked.connect(
+        self.bus.button['run_PSSM_to_pse'].clicked.connect(
             self.run_mutant_loading_from_profile
         )
 
         # Tab `Evaluate`
-        self.ui.pushButton_open_mut_table.clicked.connect(
+        self.bus.button['open_mut_table'].clicked.connect(
             partial(
                 self.open_mutant_table, 'ui.evaluate.input.to_mutant_txt', 'w'
             )
@@ -349,10 +345,10 @@ class REvoDesignPlugin:
                 self.bus.fp_lock,
                 'ui.evaluate.input.to_mutant_txt',
                 [
-                    self.ui.pushButton_previous_mutant,
-                    self.ui.pushButton_reject_this_mutant,
-                    self.ui.pushButton_next_mutant,
-                    self.ui.pushButton_accept_this_mutant,
+                    self.bus.button['previous_mutant'],
+                    self.bus.button['reject_this_mutant'],
+                    self.bus.button['next_mutant'],
+                    self.bus.button['accept_this_mutant'],
                 ],
             )
         )
@@ -361,13 +357,13 @@ class REvoDesignPlugin:
             self.set_pymol_session_rock
         )
 
-        self.ui.pushButton_reinitialize_mutant_choosing.clicked.connect(
+        self.bus.button['reinitialize_mutant_choosing'].clicked.connect(
             partial(
                 self.initialize_design_candidates,
-                self.ui.pushButton_previous_mutant,
-                self.ui.pushButton_next_mutant,
-                self.ui.pushButton_reject_this_mutant,
-                self.ui.pushButton_accept_this_mutant,
+                self.bus.button['previous_mutant'],
+                self.bus.button['next_mutant'],
+                self.bus.button['reject_this_mutant'],
+                self.bus.button['accept_this_mutant'],
                 self.ui.lcdNumber_total_mutant,
                 self.ui.lcdNumber_selected_mutant,
                 self.ui.progressBar,
@@ -375,11 +371,11 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_goto_best_hit_in_group.clicked.connect(
+        self.bus.button['goto_best_hit_in_group'].clicked.connect(
             self.jump_to_the_best_mutant,
         )
 
-        self.ui.pushButton_load_mutant_choice_checkpoint.clicked.connect(
+        self.bus.button['load_mutant_choice_checkpoint'].clicked.connect(
             self.recover_mutant_choices_from_checkpoint,
         )
 
@@ -391,13 +387,13 @@ class REvoDesignPlugin:
             self.jump_to_a_mutant,
         )
 
-        self.ui.pushButton_choose_lucky_mutant.clicked.connect(
+        self.bus.button['choose_lucky_mutant'].clicked.connect(
             self.find_all_best_mutants,
         )
 
         # Tab `Cluster`
 
-        self.ui.pushButton_open_mut_table_2.clicked.connect(
+        self.bus.button['open_mut_table_2'].clicked.connect(
             partial(
                 self.open_mutant_table, 'ui.cluster.input.from_mutant_txt', 'r'
             )
@@ -407,11 +403,11 @@ class REvoDesignPlugin:
             partial(
                 self.bus.fp_lock,
                 'ui.cluster.input.from_mutant_txt',
-                self.ui.pushButton_run_cluster,
+                self.bus.button['run_cluster'],
             )
         )
 
-        self.ui.pushButton_run_cluster.clicked.connect(self.run_clustering)
+        self.bus.button['run_cluster'].clicked.connect(self.run_clustering)
 
         # Tab Visualize
 
@@ -419,7 +415,7 @@ class REvoDesignPlugin:
             partial(
                 self.bus.fp_lock,
                 'ui.visualize.input.to_pse',
-                self.ui.pushButton_run_visualizing,
+                self.bus.button['run_visualizing'],
             )
         )
 
@@ -428,13 +424,13 @@ class REvoDesignPlugin:
                 self.bus.fp_lock,
                 'ui.visualize.input.from_mutant_txt',
                 [
-                    self.ui.pushButton_save_this_mutant_table,
-                    self.ui.pushButton_reduce_this_session,
+                    self.bus.button['save_this_mutant_table'],
+                    self.bus.button['reduce_this_session'],
                 ],
             )
         )
 
-        self.ui.pushButton_save_this_mutant_table.clicked.connect(
+        self.bus.button['save_this_mutant_table'].clicked.connect(
             partial(
                 self.save_visualizing_mutant_tree,
                 'ui.visualize.input.from_mutant_txt',
@@ -450,7 +446,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_open_input_csv_2.clicked.connect(
+        self.bus.button['open_input_csv_2'].clicked.connect(
             partial(
                 self.open_input_filepath,
                 'ui.visualize.input.profile',
@@ -458,7 +454,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_open_mut_table_csv.clicked.connect(
+        self.bus.button['open_mut_table_csv'].clicked.connect(
             partial(
                 self.open_mutant_table,
                 'ui.visualize.input.from_mutant_txt',
@@ -470,7 +466,7 @@ class REvoDesignPlugin:
             self.update_mutant_table_columns,
         )
 
-        self.ui.pushButton_open_output_pse_visualize.clicked.connect(
+        self.bus.button['open_output_pse_visualize'].clicked.connect(
             partial(
                 self.save_as_a_session,
                 'ui.visualize.input.to_pse',
@@ -482,11 +478,11 @@ class REvoDesignPlugin:
             'ui.visualize.input.totalscore', 'totalscore'
         )
 
-        self.ui.pushButton_run_visualizing.clicked.connect(
+        self.bus.button['run_visualizing'].clicked.connect(
             self.visualize_mutants
         )
 
-        self.ui.pushButton_reduce_this_session.clicked.connect(
+        self.bus.button['reduce_this_session'].clicked.connect(
             partial(
                 self.reduce_current_session,
                 session=None,
@@ -501,13 +497,13 @@ class REvoDesignPlugin:
                 self.bus.fp_lock,
                 'ui.visualize.input.multi_design.to_mutant_txt',
                 [
-                    self.ui.pushButton_multi_design_export_mutants_from_table,
-                    self.ui.pushButton_run_multi_design,
+                    self.bus.button['multi_design_export_mutants_from_table'],
+                    self.bus.button['run_multi_design'],
                 ],
             )
         )
 
-        self.ui.pushButton_open_mut_table_csv_2.clicked.connect(
+        self.bus.button['open_mut_table_csv_2'].clicked.connect(
             partial(
                 self.open_mutant_table,
                 'ui.visualize.input.multi_design.to_mutant_txt',
@@ -515,31 +511,31 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_multi_design_initialize.clicked.connect(
+        self.bus.button['multi_design_initialize'].clicked.connect(
             self.multi_mutagenesis_design_initialize
         )
 
-        self.ui.pushButton_multi_design_start_new_design.clicked.connect(
+        self.bus.button['multi_design_start_new_design'].clicked.connect(
             self.multi_mutagenesis_design_start
         )
 
-        self.ui.pushButton_multi_design_left.clicked.connect(
+        self.bus.button['multi_design_left'].clicked.connect(
             self.multi_mutagenesis_design_undo_picking
         )
 
-        self.ui.pushButton_multi_design_right.clicked.connect(
+        self.bus.button['multi_design_right'].clicked.connect(
             self.multi_mutagenesis_design_pick_next_mut
         )
 
-        self.ui.pushButton_multi_design_end_this_design.clicked.connect(
+        self.bus.button['multi_design_end_this_design'].clicked.connect(
             self.multi_mutagenesis_design_stop_design
         )
 
-        self.ui.pushButton_multi_design_export_mutants_from_table.clicked.connect(
-            self.multi_mutagenesis_design_save_design
-        )
+        self.bus.button[
+            'multi_design_export_mutants_from_table'
+        ].clicked.connect(self.multi_mutagenesis_design_save_design)
 
-        self.ui.pushButton_run_multi_design.clicked.connect(
+        self.bus.button['run_multi_design'].clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_auto,
@@ -549,7 +545,7 @@ class REvoDesignPlugin:
 
         # Tab Interact
 
-        self.ui.pushButton_open_gremlin_mtx.clicked.connect(
+        self.bus.button['open_gremlin_mtx'].clicked.connect(
             partial(
                 self.open_input_filepath,
                 'ui.interact.input.gremlin_pkl',
@@ -557,14 +553,14 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_reinitialize_interact.clicked.connect(
+        self.bus.button['reinitialize_interact'].clicked.connect(
             self.load_gremlin_mrf
         )
-        self.ui.pushButton_run_interact_scan.clicked.connect(
+        self.bus.button['run_interact_scan'].clicked.connect(
             self.run_gremlin_tool
         )
 
-        self.ui.pushButton_open_save_mutant_table.clicked.connect(
+        self.bus.button['open_save_mutant_table'].clicked.connect(
             partial(
                 self.open_mutant_table,
                 'ui.interact.input.to_mutant_txt',
@@ -572,17 +568,17 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.pushButton_interact_reject.clicked.connect(
+        self.bus.button['interact_reject'].clicked.connect(
             self.coevoled_mutant_decision, False
         )
-        self.ui.pushButton_interact_accept.clicked.connect(
+        self.bus.button['interact_accept'].clicked.connect(
             self.coevoled_mutant_decision, True
         )
 
         # Tab socket
         self.generate_ws_server_key()
 
-        self.ui.pushButton_ws_generate_randomized_key.clicked.connect(
+        self.bus.button['ws_generate_randomized_key'].clicked.connect(
             self.generate_ws_server_key
         )
 
@@ -591,11 +587,11 @@ class REvoDesignPlugin:
             self.toggle_ws_server_mode
         )
 
-        self.ui.pushButton_ws_connect_to_server.clicked.connect(
+        self.bus.button['ws_connect_to_server'].clicked.connect(
             partial(self.toggle_ws_client_connection, True)
         )
 
-        self.ui.pushButton_ws_disconnect_from_server.clicked.connect(
+        self.bus.button['ws_disconnect_from_server'].clicked.connect(
             partial(self.toggle_ws_client_connection, False)
         )
 
@@ -960,7 +956,6 @@ class REvoDesignPlugin:
             self.pssm_gremlin_calculator.auth = None
 
     # Tab `Determine`
-
     def reload_determine_tab_setup(
         self,
     ):
@@ -1048,6 +1043,7 @@ class REvoDesignPlugin:
 
         pocketsearcher.save_dir = f'{self.PWD}/pockets/'
         pocketsearcher.search_pockets()
+    
 
     # Tab `Mutate`
     def determine_profile_format(
@@ -1077,7 +1073,7 @@ class REvoDesignPlugin:
         self.bus.set_widget_value(cfg_profile_format, profile_format)
 
     def run_mutant_loading_from_profile(self):
-        trigger_button = self.ui.pushButton_run_PSSM_to_pse
+        trigger_button = self.bus.button['run_PSSM_to_pse']
 
         with hold_trigger_button(trigger_button):
             try:
@@ -1701,7 +1697,7 @@ class REvoDesignPlugin:
 
     # combination and clustering
     def run_clustering(self):
-        trigger_button = self.ui.pushButton_run_cluster
+        trigger_button = self.bus.button['run_cluster']
 
         # lazy module loading to fasten plugin initializing
         from REvoDesign.clusters.combine_positions import Combinations
@@ -1873,7 +1869,7 @@ class REvoDesignPlugin:
         )
 
     def visualize_mutants(self):
-        trigger_button = self.ui.pushButton_run_visualizing
+        trigger_button = self.bus.button['run_visualizing']
         input_mut_table_csv = self.bus.get_value(
             'ui.visualize.input.from_mutant_txt'
         )
@@ -2155,7 +2151,7 @@ class REvoDesignPlugin:
         )
 
     def multi_mutagenesis_design_auto(self):
-        trigger_button = self.ui.pushButton_run_multi_design
+        trigger_button = self.bus.button['run_multi_design']
         self.refresh_multi_mutagenesis_designer_parameters()
 
         maximal_multi_design_variant_num = (
@@ -2185,7 +2181,7 @@ class REvoDesignPlugin:
     def load_gremlin_mrf(
         self,
     ):
-        trigger_button = self.ui.pushButton_reinitialize_interact
+        trigger_button = self.bus.button['reinitialize_interact']
         from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
 
         with hold_trigger_button(trigger_button):
@@ -2208,7 +2204,7 @@ class REvoDesignPlugin:
                 )
                 return
 
-            pushButton_run_interact_scan = self.ui.pushButton_run_interact_scan
+            pushButton_run_interact_scan = self.bus.button['run_interact_scan']
             gridLayout_interact_pairs = self.ui.gridLayout_interact_pairs
 
             # reset design info
@@ -2267,7 +2263,7 @@ class REvoDesignPlugin:
                 )
 
     def run_gremlin_tool(self):
-        trigger_button = self.ui.pushButton_run_interact_scan
+        trigger_button = self.bus.button['run_interact_scan']
 
         progress_bar = self.ui.progressBar
         max_interact_dist = self.bus.get_value(
@@ -2417,16 +2413,16 @@ class REvoDesignPlugin:
                 self.renumber_plot_w_fps()
 
             try:
-                self.ui.pushButton_previous.clicked.disconnect()
-                self.ui.pushButton_next.clicked.disconnect()
+                self.bus.button['previous'].clicked.disconnect()
+                self.bus.button['next'].clicked.disconnect()
             except:
                 pass
 
-            self.ui.pushButton_previous.clicked.connect(
+            self.bus.button['previous'].clicked.connect(
                 partial(self.load_co_evolving_pairs, progress_bar, False)
             )
 
-            self.ui.pushButton_next.clicked.connect(
+            self.bus.button['next'].clicked.connect(
                 partial(self.load_co_evolving_pairs, progress_bar, True)
             )
 
