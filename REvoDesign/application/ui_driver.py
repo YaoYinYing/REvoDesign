@@ -1,12 +1,193 @@
 from dataclasses import dataclass
+from typing import Any, Iterable, Union
 from immutabledict import immutabledict
+from omegaconf import DictConfig, OmegaConf
+from pymol.Qt import QtWidgets
+
+from REvoDesign.tools.customized_widgets import (
+    create_cmap_icon,
+    get_widget_value,
+    set_widget_value,
+)
+from functools import partial
+from REvoDesign.tools.logger import logging
+from REvoDesign.tools.post_installed import reload_config_file
+from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
+
+
+class ConfigBus:
+    def __init__(self, ui: QtWidgets.QWidget):
+        self.ui = ui
+        self.cfg = reload_config_file()
+        self.w2c = Widget2ConfigMapper(ui=self.ui)
+
+    def initialize_widget_with_cfg_group(self):
+        for i, (widget, group_cfgs) in enumerate(self.w2c.group_config_map):
+            group_values = []
+
+            if isinstance(group_cfgs, str) or callable(group_cfgs):
+                group_cfgs = tuple([group_cfgs])
+
+            for j, group_cfg in enumerate(group_cfgs):
+                if callable(group_cfg):
+                    values = group_cfg()
+                else:
+                    values = self.get_value(group_cfg)
+
+                if not values:
+                    continue
+
+                if isinstance(values, list):
+                    group_values.extend(values)
+                elif isinstance(values, dict) and not group_values:
+                    group_values = values.copy()
+                elif isinstance(values, dict) and group_values:
+                    if isinstance(group_values, list):
+                        raise TypeError(
+                            f'{group_cfg} returns a dict while group_values is a list'
+                        )
+                    else:
+                        group_values.update(values)
+
+            if not group_values:
+                continue
+
+            set_widget_value(widget, group_values)
+
+            default_cfg_item = self.w2c._find_config_item(ui_element=widget)
+            if default_cfg_item:
+                self.restore_widget_value(default_cfg_item)
+
+    def update_cfg_item_from_widget(self, widget: QtWidgets.QWidget):
+        cfg_item = self.w2c.widget2config_dict.get(widget)
+        value = get_widget_value(widget=widget)
+        OmegaConf.update(self.cfg, cfg_item, value)
+
+    def _widget_link(self, widget: QtWidgets.QWidget):
+        return partial(self.update_cfg_item_from_widget, widget)
+
+    def register_widget_changes_to_cfg(self):
+        for widget in self.w2c.all_widgets:
+            if isinstance(
+                widget,
+                (
+                    QtWidgets.QDoubleSpinBox,
+                    QtWidgets.QSpinBox,
+                    QtWidgets.QProgressBar,
+                ),
+            ):
+                widget.valueChanged.connect(self._widget_link(widget))
+            elif isinstance(widget, QtWidgets.QComboBox):
+                widget.currentTextChanged.connect(self._widget_link(widget))
+            elif isinstance(widget, QtWidgets.QLineEdit):
+                widget.textChanged.connect(self._widget_link(widget))
+            elif isinstance(widget, QtWidgets.QCheckBox):
+                widget.stateChanged.connect(self._widget_link(widget))
+
+    def get_widget(self, cfg_item: str) -> QtWidgets.QWidget:
+        assert (
+            cfg_item in self.w2c.all_cfg_items
+        ), f'Invalid cfg item: {cfg_item}'
+        return self.w2c._find_widget(cfg_item)
+
+    def get_widget_value(self, cfg_item: str):
+        return get_widget_value(widget=self.get_widget(cfg_item))
+
+    def set_widget_value(self, cfg_item: str, value):
+        set_widget_value(widget=self.get_widget(cfg_item), value=value)
+
+    def restore_widget_value(self, cfg_item: str):
+        set_widget_value(
+            widget=self.get_widget(cfg_item), value=self.get_value(cfg_item)
+        )
+
+    def get_cfg_item(self, widget: QtWidgets.QWidget) -> DictConfig:
+        assert widget in self.w2c.all_widgets
+        return self.w2c._find_config_item(widget)
+
+    def get_value(self, cfg_item: str, typing=None) -> Union[Any, list[Any]]:
+        value = OmegaConf.select(self.cfg, cfg_item)
+        if value is None and typing == Union[str, None]:
+            value = ''
+        if value is None and typing == Union[int, float]:
+            value = 0
+
+        if typing == str:
+            return str(value)
+        elif typing == float:
+            return float(value)
+        elif typing == int:
+            return int(value)
+
+        if 'group' in cfg_item and value:
+            value = list(value)
+        return value
+
+    def set_value(self, cfg_item: str, value):
+        if value is not None:
+            OmegaConf.update(self.cfg, cfg_item, value)
+
+    def toggle_buttons(self, buttons: Iterable, set_enabled: bool = False):
+        for button in buttons:
+            button.setEnabled(set_enabled)
+
+    def fp_lock(
+        self,
+        cfg_fps: Union[list, tuple, str],
+        buttons_to_release: Union[list, tuple, Any],
+    ):
+        if isinstance(cfg_fps, str):
+            cfg_fps = tuple([cfg_fps])
+
+        if not isinstance(buttons_to_release, (list, tuple)):
+            buttons_to_release = [buttons_to_release]
+
+        self.toggle_buttons(buttons=buttons_to_release, set_enabled=False)
+
+        for cfg_fp in cfg_fps:
+            _fp = self.get_value(cfg_fp)
+            logging.info(f'Checking file path: {_fp}')
+            if not _fp or not dirname_does_exist(_fp):
+                logging.warning(f'The dirname of `{_fp}` is not valid.')
+                return
+            else:
+                if not filepath_does_exists(_fp):
+                    logging.warning(f'The file `{_fp}` is not valid.')
+                else:
+                    logging.info(f'The file `{_fp}` is valid.')
+
+        self.toggle_buttons(buttons=buttons_to_release, set_enabled=True)
 
 
 class Widget2ConfigMapper:
     def __init__(self, ui):
         self.ui = ui
+
+        self.group_config_map: list[tuple[Any, Union[str, tuple[str]]]] = [
+            (self.ui.comboBox_cmap, CallableGroupValues.ColorMap),
+            (
+                self.ui.comboBox_cluster_matrix,
+                CallableGroupValues.score_matrix,
+            ),
+            (
+                self.ui.comboBox_sidechain_solver,
+                'ui.config.sidechain_solver.group',
+            ),
+            (
+                self.ui.comboBox_profile_type,
+                ('profile.group', 'designer.group'),
+            ),
+            (
+                self.ui.comboBox_profile_type_2,
+                ('profile.group', 'designer.group'),
+            ),
+            (
+                self.ui.comboBox_external_scorer,
+                'designer.group',
+            ),
+        ]
         self.widget_config_map = [
-            (self.ui.comboBox_cmap, 'ui.header_panel.cmap'),
+            (self.ui.comboBox_cmap, 'ui.header_panel.cmap.default'),
             (
                 self.ui.lineEdit_pssm_gremlin_url,
                 'ui.client.pssm_gremlin_url',
@@ -35,7 +216,6 @@ class Widget2ConfigMapper:
                 self.ui.doubleSpinBox_surface_cutoff,
                 'ui.prepare.surface_probe_radius',
             ),
-            (self.ui.comboBox_profile_type, 'ui.profile.default'),
             (
                 self.ui.checkBox_reverse_mutant_effect,
                 'ui.mutate.reverse_score',
@@ -57,6 +237,10 @@ class Widget2ConfigMapper:
                 'ui.mutate.designer.deduplicate_designs',
             ),
             (
+                self.ui.checkBox_designer_homooligomeric,
+                'ui.mutate.designer.homooligomeric',
+            ),
+            (
                 self.ui.spinBox_designer_batch,
                 'ui.mutate.designer.batch',
             ),
@@ -70,7 +254,7 @@ class Widget2ConfigMapper:
             ),
             (
                 self.ui.comboBox_cluster_matrix,
-                'ui.cluster.score_matrix',
+                'ui.cluster.score_matrix.default',
             ),
             (self.ui.checkBox_shuffle_clustering, 'ui.cluster.shuffle'),
             (self.ui.spinBox_num_mut_maximum, 'ui.cluster.mut_num_max'),
@@ -88,7 +272,6 @@ class Widget2ConfigMapper:
                 self.ui.checkBox_global_score_policy,
                 'ui.visualize.global_score_policy',
             ),
-            (self.ui.comboBox_profile_type_2, 'ui.profile.default'),
             (
                 self.ui.checkBox_interact_ignore_wt,
                 'ui.interact.interact_ignore_wt',
@@ -106,6 +289,7 @@ class Widget2ConfigMapper:
                 self.ui.lineEdit_ws_server_url_to_connect,
                 'ui.socket.server_url',
             ),
+            (self.ui.checkBox_ws_server_mode, 'ui.socket.server_mode'),
             (self.ui.spinBox_ws_server_port, 'ui.socket.server_port'),
             (self.ui.checkBox_ws_server_use_key, 'ui.socket.use_key'),
             (
@@ -129,28 +313,134 @@ class Widget2ConfigMapper:
                 'ui.config.sidechain_solver.default',
             ),
             (
+                self.ui.doubleSpinBox_sidechain_solver_radius,
+                'ui.config.sidechain_solver.repack_radius',
+            ),
+            (
                 self.ui.comboBox_sidechain_solver_model,
                 'ui.config.sidechain_solver.model',
             ),
+            # inputs:
+            ## header
+            (
+                self.ui.comboBox_design_molecule,
+                'ui.header_panel.input.molecule',
+            ),
+            (self.ui.comboBox_chain_id, 'ui.header_panel.input.chain_id'),
+            (self.ui.spinBox_nproc, 'ui.header_panel.nproc'),
+            # prepare
+            (
+                self.ui.lineEdit_output_pse_pocket,
+                'ui.prepare.input.pocket.to_pse',
+            ),
+            (self.ui.comboBox_ligand_sel, 'ui.prepare.input.pocket.substrate'),
+            (
+                self.ui.comboBox_cofactor_sel,
+                'ui.prepare.input.pocket.cofactor',
+            ),
+            (
+                self.ui.lineEdit_output_pse_surface,
+                'ui.prepare.input.surface.to_pse',
+            ),
+            (
+                self.ui.comboBox_surface_exclusion,
+                'ui.prepare.input.surface.exclusion',
+            ),
+            # mutate
+            (self.ui.lineEdit_output_pse_mutate, 'ui.mutate.input.to_pse'),
+            (self.ui.lineEdit_input_csv, 'ui.mutate.input.profile'),
+            (self.ui.comboBox_profile_type, 'ui.mutate.input.profile_type'),
+            (self.ui.lineEdit_design_case, 'ui.mutate.input.design_case'),
+            (
+                self.ui.lineEdit_input_customized_indices,
+                'ui.mutate.input.residue_ids',
+            ),
+            # evaluate
+            (
+                self.ui.lineEdit_output_mut_table,
+                'ui.evaluate.input.to_mutant_txt',
+            ),
+            (
+                self.ui.checkBox_rock_pymol,
+                'ui.evaluate.rock',
+            ),
+            (
+                self.ui.checkBox_show_wt,
+                'ui.evaluate.show_wt',
+            ),
+            (
+                self.ui.checkBox_reverse_mutant_effect_2,
+                'ui.evaluate.reverse_score',
+            ),
+            # cluster
+            (
+                self.ui.lineEdit_input_mut_table,
+                'ui.cluster.input.from_mutant_txt',
+            ),
+            # visualize
+            (
+                self.ui.lineEdit_output_pse_visualize,
+                'ui.visualize.input.to_pse',
+            ),
+            (
+                self.ui.lineEdit_input_mut_table_csv,
+                'ui.visualize.input.from_mutant_txt',
+            ),
+            (self.ui.lineEdit_input_csv_2, 'ui.visualize.input.profile'),
+            (
+                self.ui.comboBox_profile_type_2,
+                'ui.visualize.input.profile_type',
+            ),
+            (self.ui.lineEdit_group_name, 'ui.visualize.input.group_name'),
+            (self.ui.comboBox_best_leaf, 'ui.visualize.input.best_leaf'),
+            (self.ui.comboBox_totalscore, 'ui.visualize.input.totalscore'),
+            (
+                self.ui.lineEdit_multi_design_mutant_table,
+                'ui.visualize.input.multi_design.to_mutant_txt',
+            ),
+            # interact
+            (
+                self.ui.lineEdit_input_gremlin_mtx,
+                'ui.interact.input.gremlin_pkl',
+            ),
+            (
+                self.ui.lineEdit_output_mutant_table,
+                'ui.interact.input.to_mutant_txt',
+            ),
+            # socket
+            (self.ui.lineEdit_ws_server_key, 'ui.socket.input.key'),
+            (
+                self.ui.lineEdit_ws_server_url_to_connect,
+                'ui.socket.input.hostname',
+            ),
+            # # foot
+            # (self.ui.lineEdit_ws_server_key, 'ui.footer_panel.progressbar'),
         ]
 
-        self.widget2config_dict = self._widget2config()
-        self.config2widget_dict = self._config2widget()
+    @property
+    def all_widgets(self) -> tuple[QtWidgets.QWidget]:
+        return [w2c_pair[0] for w2c_pair in self.widget_config_map]
 
-    def _widget2config(self) -> immutabledict:
+    @property
+    def all_cfg_items(self) -> tuple[str]:
+        return [w2c_pair[1] for w2c_pair in self.widget_config_map]
+
+    @property
+    def widget2config_dict(self) -> immutabledict:
         return immutabledict({i: j for (i, j) in self.widget_config_map})
 
-    def _config2widget(self) -> immutabledict:
+    @property
+    def config2widget_dict(self) -> immutabledict:
         return immutabledict({j: i for (i, j) in self.widget_config_map})
 
     def _find_config_item(self, ui_element):
-        config_item = self.widget2config_dict[ui_element]
-        print(f'{ui_element} -> {config_item}')
+        config_item = self.widget2config_dict.get(ui_element)
+        # print(f'{ui_element} -> {config_item}')
         return config_item
 
-    def _find_widget_item(self, config_item: str):
-        ui_element = self.config2widget_dict[config_item]
-        print(f'{config_item} -> {ui_element}')
+    def _find_widget(self, config_item: str):
+        ui_element = self.config2widget_dict.get(config_item)
+        # print(f'{config_item} -> {ui_element}')
         return ui_element
 
 
@@ -164,3 +454,30 @@ class Widget2Widget:
         'DLPacker': [''],
         'Dunbrack Rotamer Library': [''],
     }
+
+
+class CallableGroupValues:
+    @staticmethod
+    def score_matrix() -> list:
+        from Bio.Align import substitution_matrices
+        import os
+
+        score_matrix = [
+            mtx
+            for mtx in os.listdir(
+                os.path.join(substitution_matrices.__path__[0], 'data')
+            )
+        ]
+        return score_matrix
+
+    @staticmethod
+    def ColorMap() -> dict:
+        # color map
+        import matplotlib
+        from pymol.Qt import QtGui
+
+        cmap_group = {
+            _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
+            for _cmap in matplotlib.colormaps()
+        }
+        return cmap_group

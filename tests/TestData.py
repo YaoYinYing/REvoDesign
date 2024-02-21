@@ -59,9 +59,9 @@ class TestData:
     ddg_design_case: str = 'ddg.surf'
 
     # pocket design
-    pocket_pssm_residues: str = '103,104,105,108'
-    pocket_pssm_min_score: str = '-10'
-    pocket_pssm_max_score: str = '15'
+    pocket_pssm_residues: str = '103,104,105'
+    pocket_pssm_min_score: str = '-3'
+    pocket_pssm_max_score: str = '0'
     pocket_pssm_score_reversed: bool = False
     pocket_pssm_design_case: str = 'pssm.pkt'
     pocket_pssm_reject: str = 'PC'

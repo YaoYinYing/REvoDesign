@@ -4,6 +4,8 @@
 ![python-version](https://img.shields.io/badge/python-3.9_%7C_3.10_%7C_3.11-green?logo=python)
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main.svg?style=svg&circle-token=5f78acfbe0dd8e334384b23515857bd4996ca7a1)](https://dl.circleci.com/status-badge/redirect/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main)
+
+
 ## Introduction
 
 Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
@@ -108,3 +110,6 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 
 
 Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from **REvoDesign** toolkit's support resources.
+
+---
+[![CircleCI](https://dl.circleci.com/insights-snapshot/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/main/test/badge.svg?window=30d&circle-token=465c8a4e66021ab11dd31f920a60a452b09a4cb8)](https://app.circleci.com/insights/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/workflows/test/overview?branch=main&reporting-window=last-30-days&insights-snapshot=true)

@@ -5,13 +5,38 @@
 
 ui:
   header_panel: 
-    cmap: bwr_r
+    input: 
+      molecule: ''
+      chain_id: ''
+    cmap: 
+      default: bwr_r
+    nproc: 6
+  # footer_panel: 
+  #   progressbar:
   prepare:
+    input:
+      pocket:
+        substrate: ''
+        cofactor: ''
+        to_pse: ''
+        
+      surface: 
+        to_pse: ''
+        exclusion: ''
+
     ligand_radius: 8.0
     cofactor_radius: 7.0
     chain_dist: 3.0
     surface_probe_radius: 15.0
+
+
   mutate:
+    input:
+      profile: ''
+      profile_type: PSSM
+      residue_ids: ''
+      to_pse: ''
+      design_case: default
     min_score: -2
     max_score: 10
     reject: PC
@@ -24,15 +49,41 @@ ui:
       enable_randomized_sampling: False
       randomized_sampling: 3
       deduplicate_designs: True
+      homooligomeric: False
+
+  evaluate:
+    input:
+      to_mutant_txt: ''
+    rock: False
+    show_wt: True
+    reverse_score: False
+
   cluster:
+    input:
+      from_mutant_txt: ''
     mut_num_min: 1
     mut_num_max: 1
     num_cluster: 15
-    score_matrix: PAM30
+    score_matrix: 
+      group: 
+      default: PAM30
     batch_size: 100
     shuffle: True
+    
   
   visualize:
+    input:
+      from_mutant_txt: ''
+      to_pse: ''
+      profile: ''
+      profile_type: PSSM
+      group_name: default
+      best_leaf: ''
+      totalscore: ''
+
+      multi_design:
+        to_mutant_txt: ''
+    
     global_score_policy: True
     reverse_score: False
     multi_design:
@@ -45,11 +96,17 @@ ui:
       color_by_scores: True
     full_pdb: False
 
+
   interact:
+    input:
+      gremlin_pkl: ''
+      to_mutant_txt: ''
+
     topN_pairs: 100
     max_interact_dist: 20.0
     interact_ignore_wt: False
-    use_external_scorer: 
+    use_external_scorer: ''
+    reverse_score: False
   
   client:
     pssm_gremlin_url: https://revodesign.yaoyy.moe/
@@ -57,6 +114,10 @@ ui:
     pssm_gremlin_passwd: 1234567
   
   socket: 
+    input:
+      key: ''
+      hostname: ''
+
     server_mode: False
     server_url: localhost
     server_port: 63189
@@ -72,16 +133,7 @@ ui:
       mutagenesis: True
       view: False
 
-  profile:
-    group:
-      - PSSM
-      - CSV
-      - TSV
-      - Pythia-ddG
-    designer:
-      - ProteinMPNN
 
-    default: PSSM
 
   config: 
     sidechain_solver:
@@ -91,17 +143,29 @@ ui:
         - PIPPack
       default: DLPacker
 
-      model: 
+      model: ''
       repack_radius: 0.0
 
       pippack:
-        model_names:
+        model_names: 
           group:
             - pippack_model_1
             - pippack_model_2
             - pippack_model_3
             - ensemble
           default: ensemble
+
+profile:
+  group:
+    - PSSM
+    - CSV
+    - TSV
+    - Pythia-ddG
+designer:
+  group:
+    - ''
+    - ProteinMPNN
+
 
 log:
   version: 1

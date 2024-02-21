@@ -28,22 +28,22 @@ class Mutant:
 
     def __empty__(self) -> bool:
         return not bool(self.mutant_info)
-    
+
     @property
     def wt_sequences(self) -> Dict[str, str]:
         return self._wt_sequences
-    
+
     @wt_sequences.setter
-    def wt_sequences(self, new_wt_sequences:Dict[str, str]):
-        self._wt_sequences=new_wt_sequences
-    
+    def wt_sequences(self, new_wt_sequences: Dict[str, str]):
+        self._wt_sequences = new_wt_sequences
+
     @property
     def mutant_description(self) -> str:
         return self._mutant_description
-    
+
     @mutant_description.setter
     def mutant_description(self, new_description: str):
-        self._mutant_description=new_description
+        self._mutant_description = new_description
 
     @property
     def full_mutant_id(self) -> str:

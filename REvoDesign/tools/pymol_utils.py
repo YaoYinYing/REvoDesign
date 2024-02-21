@@ -533,10 +533,9 @@ cmd.extend("mutate", mutate)
 
 
 def any_posision_has_been_selected():
-    return bool(
-        [
-            x
-            for x in cmd.get_names(type='selections', enabled_only=1)
-            if x == 'sele'
-        ]
-    )
+    selected_positions = [
+        x
+        for x in cmd.get_names(type='selections', enabled_only=1)
+        if x == 'sele'
+    ]
+    return bool(selected_positions)

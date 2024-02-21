@@ -363,13 +363,7 @@ def get_widget_value(widget):
     ):
         return widget.value()
     elif isinstance(widget, QtWidgets.QComboBox):
-        current_index = widget.currentIndex()
-        # Check if userData is used for items
-        user_data = widget.itemData(current_index)
-        if user_data is not None:
-            return user_data
-        else:
-            return widget.currentText()
+        return widget.currentText()
     elif isinstance(widget, QtWidgets.QLineEdit):
         return widget.text()
     elif isinstance(widget, QtWidgets.QProgressBar):

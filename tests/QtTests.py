@@ -82,6 +82,8 @@ class TestWorker:
             'MACBOOKPRO': bool(os.environ.get('PROTEIN_DESIGN_KIT')),
         }
 
+        self.in_ci_runner= (self.in_which_runner.get('CIRCLECI') or self.in_which_runner.get('GITHUB'))
+
     def _fetch_pdb(self):
         try:
             molecules = cmd.get_names()
@@ -129,13 +131,17 @@ class TestWorker:
         self.qtbot.wait(100)
 
         self.revo_design_plugin.reload_molecule_info(
-            self.revo_design_plugin.ui.comboBox_design_molecule
         )
         self.check_molecule_after_loaded()
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
         for t in range(times):
             self.qtbot.mouseClick(widget, self.CURSOR)
+    
+    def do_typing(self, widget: QtWidgets.QWidget,text: str):
+        set_widget_value(widget=widget, value='')
+        self.qtbot.keyClicks(widget, text)
+
 
     def _navigate_to_tab(
         self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
@@ -227,6 +233,8 @@ class TestWorker:
         widget: QtWidgets.QWidget,
         basename: str = 'default',
     ):
+        if self.in_ci_runner:
+            return 
         png_file = self.qtbot.screenshot(widget=widget)
         moved_file = os.rename(
             png_file, os.path.join(self.SCREENSHOT_DIR, f'{basename}.png')
@@ -240,6 +248,8 @@ class TestWorker:
         use_ray: bool = False,
         spells: str = None,
     ):
+        if self.in_ci_runner:
+            return 
         if spells:
             cmd.do(spells)
         png_file = os.path.join(self.PYMOL_PNG_DIR, f'{basename}.png')
@@ -332,20 +342,24 @@ class TestREvoDesignPlugin_TabPrepare:
         WORKER.load_session_and_check(from_rcsb=True)
         WORKER.go_to_tab(tab_name='prepare')
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.comboBox_ligand_sel,
             WORKER.test_data.substrate,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.comboBox_cofactor_sel,
             WORKER.test_data.cofactor,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_pse_pocket,
             WORKER.test_data.pocket_pse,
         )
 
         qtbot.wait(100)
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=WORKER.method_name(),
+        )
         WORKER.click(
             widget=revo_design_plugin.ui.pushButton_run_pocket_detection,
         )
@@ -371,10 +385,7 @@ class TestREvoDesignPlugin_TabPrepare:
             design_shell_residue_ids = ds_fr.read().strip()
             assert design_shell_residue_ids
 
-        WORKER.save_screenshot(
-            widget=revo_design_plugin.window,
-            basename=WORKER.method_name(),
-        )
+        
         WORKER.save_pymol_png(basename=WORKER.method_name())
 
     def test_surface(
@@ -397,7 +408,7 @@ class TestREvoDesignPlugin_TabPrepare:
 
         KeyDataDuringTests.hetatm_pocket_sele = hetatm_residues
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.comboBox_surface_exclusion, hetatm_residues
         )
 
@@ -406,7 +417,7 @@ class TestREvoDesignPlugin_TabPrepare:
             WORKER.test_data.suface_probe,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_pse_surface,
             WORKER.test_data.surface_pse,
         )
@@ -477,35 +488,35 @@ class TestREvoDesignPlugin_TabMutate:
 
         KeyDataDuringTests.pssm_file = pssm_file
 
-        set_widget_value(revo_design_plugin.ui.lineEdit_input_csv, pssm_file)
-        set_widget_value(
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_csv, pssm_file)
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_input_customized_indices,
             KeyDataDuringTests.surface_file,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_pse_mutate,
             WORKER.test_data.entro_design_pse,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_score_minima,
             WORKER.test_data.entropy_min_score,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_score_maxima,
             WORKER.test_data.entropy_max_score,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_reject_substitution,
             WORKER.test_data.entropy_reject,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_preffer_substitution,
             WORKER.test_data.entropy_accept,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_design_case,
             WORKER.test_data.entropy_design_case,
         )
@@ -534,20 +545,20 @@ class TestREvoDesignPlugin_TabMutate:
             revo_design_plugin.ui.comboBox_profile_type,
             WORKER.test_data.mpnn_profile_type,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_input_customized_indices,
             WORKER.test_data.mpnn_surface_residues,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_pse_mutate,
             WORKER.test_data.mpnn_design_pse,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_reject_substitution,
             WORKER.test_data.mpnn_reject,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_preffer_substitution,
             WORKER.test_data.mpnn_accept,
         )
@@ -557,7 +568,7 @@ class TestREvoDesignPlugin_TabMutate:
             WORKER.test_data.mpnn_score_reversed,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_design_case,
             WORKER.test_data.mpnn_design_case,
         )
@@ -605,37 +616,37 @@ class TestREvoDesignPlugin_TabMutate:
             md5=WORKER.test_data.PYTHIA_DDG_CSV_MD5,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.comboBox_profile_type,
             WORKER.test_data.ddg_profile_type_local,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_input_csv, local_ddg_file
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_input_customized_indices,
             WORKER.test_data.ddg_surface_residues,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_pse_mutate,
             WORKER.test_data.ddg_design_non_biolib_pse,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_score_minima,
             WORKER.test_data.ddg_min_score,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_score_maxima,
             WORKER.test_data.ddg_max_score,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_reject_substitution,
             WORKER.test_data.pocket_pssm_reject,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_preffer_substitution,
             '',
         )
@@ -645,7 +656,7 @@ class TestREvoDesignPlugin_TabMutate:
             WORKER.test_data.ddg_score_reversed,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_design_case,
             WORKER.test_data.ddg_design_case,
         )
@@ -755,36 +766,36 @@ class TestREvoDesignPlugin_TabMutate:
 
         KeyDataDuringTests.pssm_file = pssm_file
 
-        set_widget_value(revo_design_plugin.ui.lineEdit_input_csv, pssm_file)
-        set_widget_value(
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_csv, pssm_file)
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_input_customized_indices,
             WORKER.test_data.pocket_pssm_residues,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_pse_mutate,
             WORKER.test_data.pocket_design_pse,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_score_minima,
             WORKER.test_data.pocket_pssm_min_score,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_score_maxima,
             WORKER.test_data.pocket_pssm_max_score,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_reject_substitution,
             WORKER.test_data.pocket_pssm_reject,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_preffer_substitution,
             WORKER.test_data.pocket_pssm_accept,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_design_case,
             WORKER.test_data.pocket_pssm_design_case,
         )
@@ -818,7 +829,7 @@ class TestREvoDesignPlugin_TabEvaluate:
             mutagenesis_dir, 'evaluate_pssm_ent_surf.besthits.mut.txt'
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_mut_table, mutant_file
         )
         set_widget_value(revo_design_plugin.ui.checkBox_show_wt, True)
@@ -866,7 +877,7 @@ class TestREvoDesignPlugin_TabEvaluate:
             mutagenesis_dir, 'evaluate_pssm_ent_surf.mannual.mut.txt'
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_mut_table, mutant_file
         )
         set_widget_value(revo_design_plugin.ui.checkBox_show_wt, True)
@@ -980,20 +991,20 @@ class TestREvoDesignPlugin_TabConfig:
             revo_design_plugin.ui.comboBox_profile_type,
             WORKER.test_data.mpnn_profile_type,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_input_customized_indices,
             WORKER.test_data.mpnn_surface_residues,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_output_pse_mutate,
             WORKER.test_data.pippack_pse,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_reject_substitution,
             WORKER.test_data.mpnn_reject,
         )
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_preffer_substitution,
             WORKER.test_data.mpnn_accept,
         )
@@ -1003,7 +1014,7 @@ class TestREvoDesignPlugin_TabConfig:
             WORKER.test_data.mpnn_score_reversed,
         )
 
-        set_widget_value(
+        WORKER.do_typing(
             revo_design_plugin.ui.lineEdit_design_case,
             WORKER.test_data.mpnn_design_case,
         )

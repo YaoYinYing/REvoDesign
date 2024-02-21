@@ -1,7 +1,10 @@
 import os
 import hashlib
+from typing import Union
 import requests
 from REvoDesign.tools.logger import logging as logger
+
+from requests.auth import HTTPBasicAuth
 
 logging = logger.getChild(__name__)
 
@@ -10,18 +13,11 @@ from REvoDesign.tools.client_tools import check_response_code
 
 class PSSMGremlinCalculator:
     def __init__(self):
+        self.url = ''
+        self.user = ''
+        self.password = ''
+        self.auth: Union[HTTPBasicAuth, None] = None
         pass
-
-    def setup_url(self, lineEdit_url, lineEdit_user, lineEdit_password):
-        self.url = str(lineEdit_url.text())
-        self.user = str(lineEdit_user.text())
-        self.password = str(lineEdit_password.text())
-        if self.user and self.password:
-            from requests.auth import HTTPBasicAuth
-
-            self.auth = HTTPBasicAuth(self.user, self.password)
-        else:
-            self.auth = None
 
     def setup_calculator(
         self, working_directory, molecule, chain_id, sequence

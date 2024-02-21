@@ -57,12 +57,12 @@ class PIPPack_worker:
         **kwargs,
     ):
         new_obj_name = mutant_obj.short_mutant_id
-        
+
         mutant_sequence = [
-                [
-                    seq.replace('X', '')
-                    for seq in mutant_obj.mutant_sequences.values()
-                ]
+            [
+                seq.replace('X', '')
+                for seq in mutant_obj.mutant_sequences.values()
+            ]
         ]
         logging.debug(mutant_obj)
         logging.debug(f'Mutated: {mutant_obj.mutant_sequences}')

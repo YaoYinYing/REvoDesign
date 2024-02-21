@@ -494,8 +494,7 @@ class REvoDesigner:
 
         mutant_tree = {
             self.design_case: {
-                mut_obj.short_mutant_id: mut_obj
-                for mut_obj in mutant_objs
+                mut_obj.short_mutant_id: mut_obj for mut_obj in mutant_objs
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)

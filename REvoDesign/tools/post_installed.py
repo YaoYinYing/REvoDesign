@@ -3,7 +3,7 @@ import importlib
 import os
 import hydra
 from omegaconf import DictConfig, OmegaConf
-from typing import Any
+from typing import Any, Union
 import glob
 import shutil
 
@@ -47,11 +47,14 @@ def reload_config_file(config_name: str = 'global_config') -> DictConfig:
 
 
 def save_configuration(
-    new_cfg: DictConfig, config_name: str = 'global_config'
+    new_cfg: DictConfig, config_name: Union[str, None] = None
 ):
+    if not config_name:
+        config_name = 'global_config'
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
     cfg_save_fp = os.path.join(cfg_save_dir, f'{config_name}.yaml')
     OmegaConf.save(new_cfg, cfg_save_fp)
+    print('Saved configuration.')
     return
 
 
