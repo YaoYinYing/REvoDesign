@@ -32,7 +32,7 @@ ui:
 
   mutate:
     input:
-      profile:
+      profile: ''
       profile_type: PSSM
       residue_ids: ''
       to_pse: ''
