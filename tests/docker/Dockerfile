@@ -21,18 +21,21 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-
-RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml \
-    && conda create --name REvoDesign python=${PYTHON_VERSION} -y \
+# pymol
+RUN conda create --name REvoDesign python=${PYTHON_VERSION} -y \
     && source activate REvoDesign \
     && conda install -c conda-forge pymol-open-source -y \
+    && conda clean --all --force-pkgs-dirs --yes 
+
+# red envs
+RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml \
     && cd /tmp/${FAKE_PACKAGE} \
     && touch  /tmp/${FAKE_PACKAGE}/README.md \
     && touch  /tmp/${FAKE_PACKAGE}/${FAKE_PACKAGE}/__init__.py \
+    && source activate REvoDesign \
     && make install \
     && make prepare-test \
     && python -m pip cache purge \
-    && conda clean --all --force-pkgs-dirs --yes \
     && rm -fr /tmp/${FAKE_PACKAGE}
 
 CMD ["/bin/bash"]
