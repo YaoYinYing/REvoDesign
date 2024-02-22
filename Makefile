@@ -25,6 +25,11 @@ setup-ubuntu:
 	sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
 	/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
 
+setup-display:
+	Xvfb :99 -screen 0 1280x1024x24 &
+	fluxbox &
+	sleep 3
+
 # only for unittest on runner or local machine.
 install:
 	python -m pip install ".[full,unittest]" -U

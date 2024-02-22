@@ -1,0 +1,56 @@
+name: Docker Image for Unittests
+
+on:
+  push:
+    paths:
+      - 'tests/docker/Dockerfile' # Monitor the entire 'docker' directory
+      - '.github/workflows/docker-image-test.yml' # monitor the main workflow script. enable it again if in necessary maintainances.
+
+    branches:
+      - main
+      - test-image
+    
+env: 
+  docker_image_id: revodesign-test-image
+jobs:
+  build-docker-test-image:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: 
+          - ubuntu-latest
+        python-version: 
+          - "3.9"
+          # - "3.10"
+          # - "3.11"
+    runs-on: ${{ matrix.os }}
+    
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Set environment variable with current date
+      run: |
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        echo "DATE: ${{ env.DATE }}"
+
+    - name: Build Docker image
+      run: |
+        cd server/
+        docker build --build-arg  --build-arg PYTHON_VERSION='${{ matrix.python-version }}' -f tests/docker/Dockerfile -t ${{ env.docker_image_id }} .
+        cd ..
+
+    - name: Tag Docker image with date and latest
+      run: |
+        docker tag ${{ env.docker_image_id }} yaoyinying/${{ env.docker_image_id }}:py${{ matrix.python-version }}-${{ env.DATE }}
+        docker tag ${{ env.docker_image_id }} yaoyinying/${{ env.docker_image_id }}:py${{ matrix.python-version }}
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKER_GITHUB_REPO_SECRET }}" | docker login -u yaoyinying --password-stdin
+
+        
+    - name: Push Docker image
+      run: |
+        docker push yaoyinying/${{ env.docker_image_id }}:py${{ matrix.python-version }}-${{ env.DATE }}
+        docker push yaoyinying/${{ env.docker_image_id }}:py${{ matrix.python-version }}
