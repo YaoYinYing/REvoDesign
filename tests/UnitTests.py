@@ -283,7 +283,7 @@ class TestSurfaceFinder(absltest.TestCase):
 
         self.expected_residue_filename = os.path.join(
             'surface_residue_records',
-            f'{self.expected_moelecule}_residues_cutoff_{self.cutoff}.txt',
+            f'{self.expected_moelecule}_residues_cutoff_{self.cutoff:.1f}.txt',
         )
 
     def test_process_surface_residues(self):
