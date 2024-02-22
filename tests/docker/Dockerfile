@@ -28,6 +28,7 @@ RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml 
     && conda install -c conda-forge pymol-open-source -y \
     && cd /tmp/${FAKE_PACKAGE} \
     && touch  /tmp/${FAKE_PACKAGE}/README.md \
+    && touch  /tmp/${FAKE_PACKAGE}/${FAKE_PACKAGE}/__init__py \
     && make install \
     && make prepare-test \
     && python -m pip cache purge \
