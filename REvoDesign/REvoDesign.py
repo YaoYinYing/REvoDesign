@@ -3072,15 +3072,4 @@ class REvoDesignPlugin:
             )
 
     def save_configuration_from_ui(self, experiment: str = None):
-        # from REvoDesign.tools.customized_widgets import get_widget_value
-
-        # print(self.widget_config_mapper.widget2config_dict)
-        # for (
-        #     widget,
-        #     config_item,
-        # ) in self.bus.w2c.widget2config_dict.items():
-        #     value = get_widget_value(widget=widget)
-        #     logging.debug(f'Save {config_item}: {value}')
-        #     OmegaConf.update(self.bus.cfg, config_item, value)
-
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)

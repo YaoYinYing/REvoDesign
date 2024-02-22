@@ -236,6 +236,7 @@ class TestPocketSearcher(absltest.TestCase):
             input_pse=self.input_pdb_file,
             output_pse=self.expected_pocket_pse,
             molecule=self.expected_moelecule,
+            chain_id=self.chain_id,
             ligand=self.ligand,
             cofactor=self.cofactor,
             cofactor_radius = self.cofactor_radius,
