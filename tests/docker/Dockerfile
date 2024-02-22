@@ -30,6 +30,7 @@ RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml 
     && touch  /tmp/${FAKE_PACKAGE}/README.md \
     && make install \
     && make prepare-test \
+    && python -m pip cache purge \
     && conda clean --all --force-pkgs-dirs --yes \
     && rm -fr /tmp/${FAKE_PACKAGE}
 
