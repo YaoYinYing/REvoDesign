@@ -35,7 +35,7 @@ reinstall:
 
 
 prepare-test:
-	python -m pip install pytest pytest-cov PyQt5 coverage -q
+	python -m pip install pytest pytest-cov coverage -q
 
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
