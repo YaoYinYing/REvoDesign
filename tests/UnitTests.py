@@ -233,8 +233,8 @@ class TestPocketSearcher(absltest.TestCase):
         Test if the search_pockets method correctly identifies pockets and saves the records.
         """
         pocket_seacher = PocketSearcher(
-            input_file=self.input_pdb_file,
-            output_file=self.expected_pocket_pse,
+            input_pse=self.input_pdb_file,
+            output_pse=self.expected_pocket_pse,
             molecule=self.expected_moelecule,
             ligand=self.ligand
         )

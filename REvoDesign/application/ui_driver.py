@@ -129,20 +129,20 @@ class ConfigBus:
 
     def toggle_buttons(self, buttons: Iterable, set_enabled: bool = False):
         for button in buttons:
-            button.setEnabled(set_enabled)
+            self.button(button).setEnabled(set_enabled)
 
     def fp_lock(
         self,
         cfg_fps: Union[list, tuple, str],
-        buttons_to_release: Union[list, tuple, Any],
+        buttons_id_to_release: Union[list, tuple, Any],
     ):
         if isinstance(cfg_fps, str):
             cfg_fps = tuple([cfg_fps])
 
-        if not isinstance(buttons_to_release, (list, tuple)):
-            buttons_to_release = [buttons_to_release]
+        if not isinstance(buttons_id_to_release, (list, tuple)):
+            buttons_id_to_release = [buttons_id_to_release]
 
-        self.toggle_buttons(buttons=buttons_to_release, set_enabled=False)
+        self.toggle_buttons(buttons=buttons_id_to_release, set_enabled=False)
 
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
@@ -156,10 +156,11 @@ class ConfigBus:
                 else:
                     logging.info(f'The file `{_fp}` is valid.')
 
-        self.toggle_buttons(buttons=buttons_to_release, set_enabled=True)
+        self.toggle_buttons(buttons=buttons_id_to_release, set_enabled=True)
 
     def button(self, id: str):
-        return self.w2c.run_buttons.get(id)
+        assert id in self.w2c.run_buttons
+        return self.w2c.run_buttons[id]
 
 
 class Widget2ConfigMapper:
@@ -208,6 +209,10 @@ class Widget2ConfigMapper:
             'goto_best_hit_in_group': self.ui.pushButton_goto_best_hit_in_group,
             'load_mutant_choice_checkpoint': self.ui.pushButton_load_mutant_choice_checkpoint,
             'choose_lucky_mutant': self.ui.pushButton_choose_lucky_mutant,
+            'previous_mutant': self.ui.pushButton_previous_mutant,
+            'next_mutant': self.ui.pushButton_next_mutant,
+            'reject_this_mutant': self.ui.pushButton_reject_this_mutant,
+            'accept_this_mutant': self.ui.pushButton_accept_this_mutant,
             'open_mut_table_2': self.ui.pushButton_open_mut_table_2,
             'run_cluster': self.ui.pushButton_run_cluster,
             'save_this_mutant_table': self.ui.pushButton_save_this_mutant_table,

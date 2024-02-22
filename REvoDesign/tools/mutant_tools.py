@@ -7,6 +7,8 @@ from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
+from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
 
@@ -455,6 +457,7 @@ def quick_mutagenesis(
     chain_id: str,
     sequence: str,
     nproc: int,
+    sidechain_solver: SidechainSolver,
     progress_bar=None,
 ):
     """
@@ -492,7 +495,7 @@ def quick_mutagenesis(
 
     input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
     visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-    cfg: DictConfig = visualizer.REVODESIGN_CONFIG
+    cfg: DictConfig = reload_config_file()
 
     visualizer.nproc = nproc
     visualizer.parallel_run = nproc > 1
@@ -501,16 +504,10 @@ def quick_mutagenesis(
 
     visualizer.full = cfg.ui.visualize.full_pdb
     visualizer.cmap = cfg.ui.header_panel.cmap
-    visualizer.sidechain_solver = cfg.ui.config.sidechain_solver.default
-    visualizer.sidechain_solver_model = cfg.ui.config.sidechain_solver.model
-    visualizer.sidechain_solver_radius = (
-        cfg.ui.config.sidechain_solver.repack_radius
-    )
+    visualizer.sidechain_solver = sidechain_solver
 
     visualizer.min_score = min(score_list)
     visualizer.max_score = max(score_list)
-
-    visualizer.setup_side_chain_solver()
 
     for group_id in mutant_tree.all_mutant_branch_ids:
         visualizer.group_name = group_id

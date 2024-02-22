@@ -1,7 +1,9 @@
 from __future__ import print_function
 from pymol import cmd
 import os
+from REvoDesign.common.RunnerConfig import SurfaceFinderConfig
 from REvoDesign.tools.logger import logging as logger
+from attrs import define
 
 logging = logger.getChild(__name__)
 
@@ -105,18 +107,10 @@ cmd.extend("findSurfaceAtoms", findSurfaceAtoms)
 cmd.extend("findSurfaceResidues", findSurfaceResidues)
 
 
-class SurfaceFinder:
-    def __init__(self, input_file, output_file, molecule, chain_id):
-        self.input_file = input_file
-        self.output_file = output_file
-        self.molecule = molecule
-        self.chain_id = chain_id
-        self.exclude_residue_selection = ''
-        self.cutoff = 15
-        self.do_show_surf_CA = True
-
+@define(kw_only=True)
+class SurfaceFinder(SurfaceFinderConfig):
     def process_surface_residues(self):
-        cmd.save(self.input_file)
+        cmd.save(self.input_pse)
         logging.debug(
             f'exclude_residue_selection = {self.exclude_residue_selection}'
         )
@@ -203,4 +197,4 @@ class SurfaceFinder:
         if self.do_show_surf_CA:
             cmd.hide('spheres', f'{ner_ca_selection} or {er_ca_selection}')
 
-        cmd.save(self.output_file)
+        cmd.save(self.output_pse)

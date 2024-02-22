@@ -1,26 +1,16 @@
 from pymol import cmd
 import os
+from attrs import define
+from REvoDesign.common.RunnerConfig import PocketSearcherConfig
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
 
 
-class PocketSearcher:
-    def __init__(self, input_file, output_file, molecule, ligand):
-        self.input_file = input_file
-        self.output_file = output_file
-
-        self.molecule = molecule
-        self.chain_id = 'A'
-
-        self.save_dir = ''
-        self.ligand = ligand
-        self.ligand_radius = 6
-        self.cofactor = ''
-        self.cofactor_radius = 7
-
+@define(kw_only=True)
+class PocketSearcher(PocketSearcherConfig):
     def search_pockets(self):
-        cmd.load(self.input_file)
+        cmd.load(self.input_pse)
 
         hetatm_pocket_id = cmd.get_unused_name(
             f'pkt_hetatm_{self.ligand_radius}_'
@@ -84,4 +74,4 @@ class PocketSearcher:
                 f.write(','.join(map(str, resi)))
 
         # Save the session
-        cmd.save(self.output_file)
+        cmd.save(self.output_pse)

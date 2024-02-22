@@ -48,6 +48,7 @@ class DLPacker_worker:
         - pdb_file: Path to the PDB file
         """
         self.pdb_file = pdb_file
+        self.reconstruct_area_radius = 0
 
     def reconstruct(self):
         """
@@ -68,8 +69,6 @@ class DLPacker_worker:
     def run_mutate(
         self,
         mutant_obj: Mutant,
-        reconstruct_area_radius: int = -1,
-        relax_order: str = 'sequence',
         **kwargs,
     ):
         """
@@ -108,11 +107,11 @@ class DLPacker_worker:
 
         reconstruct_area = self._get_reconstruct_area(
             mutant_obj=mutant_obj,
-            reconstruct_area_radius=reconstruct_area_radius,
+            reconstruct_area_radius=self.reconstruct_area_radius,
         )
         self.dlpacker_worker.reconstruct_region(
             targets=reconstruct_area,
-            order=relax_order,
+            order='natoms' if self.reconstruct_area_radius > 0 else 'sequence',
             output_filename=temp_pdb_path,
         )
 

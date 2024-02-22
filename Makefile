@@ -31,7 +31,7 @@ install:
 
 reinstall:
 	make clean
-	python -m pip install . -U
+	make black;rm -r /Users/yyy/.REvoDesign/config/; pip install . -U
 
 
 prepare-test:

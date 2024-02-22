@@ -32,7 +32,7 @@ class TestData:
     exclusion_prefix: str = 'pkt_hetatm_'
 
     # surface design
-    entropy_min_score: str = '-2'
+    entropy_min_score: str = '3'
     entropy_max_score: str = '20'
     entropy_score_reversed: bool = False
     entropy_design_case: str = 'pssm.ent.surf'
@@ -60,7 +60,7 @@ class TestData:
 
     # pocket design
     pocket_pssm_residues: str = '103,104,105'
-    pocket_pssm_min_score: str = '-3'
+    pocket_pssm_min_score: str = '-2'
     pocket_pssm_max_score: str = '0'
     pocket_pssm_score_reversed: bool = False
     pocket_pssm_design_case: str = 'pssm.pkt'
