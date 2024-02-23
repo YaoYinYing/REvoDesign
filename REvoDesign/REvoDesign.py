@@ -1070,7 +1070,6 @@ class REvoDesignPlugin:
     def initialize_design_candidates(
         self,
     ):
-        
         self.evaluator = Evalutator(
             bus=self.bus,
             design_molecule=self.design_molecule,

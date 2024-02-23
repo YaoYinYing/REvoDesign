@@ -446,7 +446,9 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
             for mutant_id in cmd.get_object_list(f'({group_id})')
             if not enabled_only or not is_hidden_object(selection=mutant_id)
         }
-        for group_id in cmd.get_names(type='group_objects', enabled_only=enabled_only)
+        for group_id in cmd.get_names(
+            type='group_objects', enabled_only=enabled_only
+        )
         if not group_id.startswith('multi_design')
     }
     return MutantTree(_mutant_tree)
