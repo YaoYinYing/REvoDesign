@@ -819,9 +819,11 @@ class TestREvoDesignPlugin_TabEvaluate:
         self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
     ):
         WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
-        WORKER.load_session_and_check(
-            customized_session=WORKER.test_data.entro_design_pse
+        pse_path = WORKER.download_file(
+            url=WORKER.test_data.EVALUATION_PSE_URL,
+            md5=WORKER.test_data.EVALUATION_PSE_MD5,
         )
+        WORKER.load_session_and_check(customized_session=pse_path)
         WORKER.go_to_tab(tab_name='evaluate')
 
         mutagenesis_dir = os.path.abspath('mutagenese')
@@ -852,7 +854,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         )
         WORKER.save_pymol_png(basename=WORKER.method_name())
 
-        assert not revo_design_plugin.mutant_tree_pssm_selected.empty
+        assert not revo_design_plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
             picked_mutants = mr.read().strip().split('\n')
 
@@ -860,16 +862,18 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         assert picked_mutants
         assert len(picked_mutants) == len(
-            revo_design_plugin.mutant_tree_pssm_selected.all_mutant_objects
+            revo_design_plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
 
     def test_evaluate_pssm_ent_surf_mannual_pick(
         self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
     ):
         WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
-        WORKER.load_session_and_check(
-            customized_session=WORKER.test_data.entro_design_pse
+        pse_path = WORKER.download_file(
+            url=WORKER.test_data.EVALUATION_PSE_URL,
+            md5=WORKER.test_data.EVALUATION_PSE_MD5,
         )
+        WORKER.load_session_and_check(customized_session=pse_path)
         WORKER.go_to_tab(tab_name='evaluate')
 
         mutagenesis_dir = os.path.abspath('mutagenese')
@@ -909,7 +913,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         )
         WORKER.save_pymol_png(basename=WORKER.method_name())
 
-        assert not revo_design_plugin.mutant_tree_pssm_selected.empty
+        assert not revo_design_plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
             picked_mutants = mr.read().strip().split('\n')
 
@@ -917,7 +921,7 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         assert picked_mutants
         assert len(picked_mutants) == len(
-            revo_design_plugin.mutant_tree_pssm_selected.all_mutant_objects
+            revo_design_plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
 
 

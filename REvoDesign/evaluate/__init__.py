@@ -8,6 +8,7 @@ from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
 from REvoDesign.common.file_extensions import AnyFileExt, MutableFileExt
 from REvoDesign.tools.customized_widgets import (
+    get_widget_value,
     proceed_with_comfirm_msg_box,
     set_widget_value,
 )
@@ -16,6 +17,7 @@ from REvoDesign.tools.logger import logging as logger
 from REvoDesign.tools.mutant_tools import (
     existed_mutant_tree,
     extract_mutant_from_pymol_object,
+    save_mutant_choices,
 )
 
 logging = logger.getChild(__name__)
@@ -142,7 +144,8 @@ class Evalutator(EvalutatorConfig):
         )
 
         save_mutant_choices(
-            self.bus.get_value('ui.evaluate.input.to_mutant_txt'), self.mutant_tree_pssm_selected
+            self.bus.get_value('ui.evaluate.input.to_mutant_txt'),
+            self.mutant_tree_pssm_selected,
         )
 
     def walk_mutant_groups(
@@ -170,7 +173,7 @@ class Evalutator(EvalutatorConfig):
         )
 
         # feedback on two comboboxes
-        if comboBox_group_ids.currentText() != current_branch_id:
+        if get_widget_value(comboBox_group_ids) != current_branch_id:
             set_widget_value(comboBox_group_ids, current_branch_id)
             set_widget_value(
                 comboBox_mutant_ids,
@@ -181,7 +184,7 @@ class Evalutator(EvalutatorConfig):
                 ),
             )
 
-        if comboBox_mutant_ids.currentText() != current_mutant_id:
+        if get_widget_value(comboBox_mutant_ids) != current_mutant_id:
             set_widget_value(comboBox_mutant_ids, current_mutant_id)
 
         self.activate_focused()
@@ -196,7 +199,7 @@ class Evalutator(EvalutatorConfig):
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         progressBar_mutant_choosing = self.bus.ui.progressBar
 
-        branch = comboBox_group_ids.currentText()
+        branch = get_widget_value(comboBox_group_ids)
         if not branch:
             logging.warning(f'Branch id is empty or null, skipped.')
             return
@@ -240,8 +243,8 @@ class Evalutator(EvalutatorConfig):
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         progressBar_mutant_choosing = self.bus.ui.progressBar
 
-        branch_id = comboBox_group_ids.currentText()
-        mutant_id = comboBox_mutant_ids.currentText()
+        branch_id = get_widget_value(comboBox_group_ids)
+        mutant_id = get_widget_value(comboBox_mutant_ids)
 
         if self.mutant_tree_candidates.empty:
             return
@@ -285,7 +288,7 @@ class Evalutator(EvalutatorConfig):
         if self.mutant_tree_candidates.empty:
             return
 
-        branch_id = comboBox_group_ids.currentText()
+        branch_id = get_widget_value(comboBox_group_ids)
 
         best_mutant_id = (
             self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
@@ -324,8 +327,8 @@ class Evalutator(EvalutatorConfig):
                 logging.warning(f'Cancelled.')
                 return
 
-        original_branch_id = comboBox_group_ids.currentText()
-        original_mutant_id = comboBox_mutant_ids.currentText()
+        original_branch_id = get_widget_value(comboBox_group_ids)
+        original_mutant_id = get_widget_value(comboBox_mutant_ids)
 
         self.mutant_tree_pssm_selected = MutantTree({})
 
@@ -412,7 +415,7 @@ class Evalutator(EvalutatorConfig):
             'ui.evaluate.input.to_mutant_txt'
         )
         self.mutant_tree_candidates = existed_mutant_tree(
-            sequences=self.designable_sequences, enabled_only=0
+            sequences=self.designable_sequences, enabled_only=False
         )
         if self.mutant_tree_candidates.empty:
             logging.error(f'This sesion may not contain an mutant tree.')

@@ -106,7 +106,7 @@ class REvoDesignPlugin:
         self.gremlin_tool = None
         self.gremlin_external_scorer = None
         self.sidechain_solver = None
-        self.evaluator: Evalutator = Evalutator()
+        self.evaluator: Evalutator = None
 
         from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
@@ -164,7 +164,9 @@ class REvoDesignPlugin:
             self.set_working_directory
         )
 
-        self.bus.ui.actionReconfigure.triggered.connect(self.reload_configurations)
+        self.bus.ui.actionReconfigure.triggered.connect(
+            self.reload_configurations
+        )
         self.bus.ui.actionSave_Configurations.triggered.connect(
             self.save_configuration_from_ui
         )
@@ -354,7 +356,7 @@ class REvoDesignPlugin:
         )
 
         self.bus.ui.checkBox_rock_pymol.stateChanged.connect(
-            self.evaluator.set_pymol_session_rock
+            self.set_pymol_session_rock
         )
 
         self.bus.button('reinitialize_mutant_choosing').clicked.connect(
@@ -362,7 +364,7 @@ class REvoDesignPlugin:
         )
 
         self.bus.button('goto_best_hit_in_group').clicked.connect(
-            self.evaluator.jump_to_the_best_mutant,
+            self.jump_to_the_best_mutant,
         )
 
         self.bus.button('load_mutant_choice_checkpoint').clicked.connect(
@@ -370,15 +372,15 @@ class REvoDesignPlugin:
         )
 
         self.bus.ui.comboBox_group_ids.currentTextChanged.connect(
-            self.evaluator.jump_to_branch,
+            self.jump_to_branch,
         )
 
         self.bus.ui.comboBox_mutant_ids.currentTextChanged.connect(
-            self.evaluator.jump_to_a_mutant,
+            self.jump_to_a_mutant,
         )
 
         self.bus.button('choose_lucky_mutant').clicked.connect(
-            self.evaluator.find_all_best_mutants,
+            self.find_all_best_mutants,
         )
 
         # Tab `Cluster`
@@ -1060,10 +1062,15 @@ class REvoDesignPlugin:
             )
 
     # Tab `Evaluate`
+    def set_pymol_session_rock(self):
+        if not self.evaluator:
+            return
+        self.evaluator.set_pymol_session_rock()
 
     def initialize_design_candidates(
         self,
     ):
+        
         self.evaluator = Evalutator(
             bus=self.bus,
             design_molecule=self.design_molecule,
@@ -1075,6 +1082,8 @@ class REvoDesignPlugin:
         self.evaluator.initialize_design_candidates()
 
     def recover_mutant_choices_from_checkpoint(self):
+        if not self.evaluator:
+            return
         mutant_choice_checkpoint_fn = self.browse_filename(
             mode='r', exts=[MutableFileExt, AnyFileExt]
         )
@@ -1082,6 +1091,26 @@ class REvoDesignPlugin:
         self.evaluator.recover_mutant_choices_from_checkpoint(
             mutant_choice_checkpoint_fn
         )
+
+    def jump_to_the_best_mutant(self):
+        if not self.evaluator:
+            return
+        self.evaluator.jump_to_the_best_mutant()
+
+    def jump_to_branch(self):
+        if not self.evaluator:
+            return
+        self.evaluator.jump_to_branch()
+
+    def jump_to_a_mutant(self):
+        if not self.evaluator:
+            return
+        self.evaluator.jump_to_a_mutant()
+
+    def find_all_best_mutants(self):
+        if not self.evaluator:
+            return
+        self.evaluator.find_all_best_mutants()
 
     # combination and clustering
     def run_clustering(self):
@@ -1341,7 +1370,9 @@ class REvoDesignPlugin:
         doubleSpinBox_minmal_mutant_distance = (
             self.bus.ui.doubleSpinBox_minmal_mutant_distance
         )
-        checkBox_multi_design_bond_CA = self.bus.ui.checkBox_multi_design_bond_CA
+        checkBox_multi_design_bond_CA = (
+            self.bus.ui.checkBox_multi_design_bond_CA
+        )
         checkBox_multi_design_check_sidechain_orientations = (
             self.bus.ui.checkBox_multi_design_check_sidechain_orientations
         )
@@ -1514,7 +1545,9 @@ class REvoDesignPlugin:
                 self.bus.ui.lineEdit_current_pair_mut_score
             )
             lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
-            lineEdit_current_pair_score = self.bus.ui.lineEdit_current_pair_score
+            lineEdit_current_pair_score = (
+                self.bus.ui.lineEdit_current_pair_score
+            )
 
             for lineEdit in [
                 lineEdit_current_pair,
@@ -1800,7 +1833,9 @@ class REvoDesignPlugin:
         ]
 
         # Clear the existing widgets from gridLayout_interact_pairs
-        for i in reversed(range(self.bus.ui.gridLayout_interact_pairs.count())):
+        for i in reversed(
+            range(self.bus.ui.gridLayout_interact_pairs.count())
+        ):
             widget = self.bus.ui.gridLayout_interact_pairs.itemAt(i).widget()
             if widget is not None:
                 widget.deleteLater()
@@ -1969,7 +2004,9 @@ class REvoDesignPlugin:
 
         from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
-        lineEdit_current_pair_wt_score = self.bus.ui.lineEdit_current_pair_wt_score
+        lineEdit_current_pair_wt_score = (
+            self.bus.ui.lineEdit_current_pair_wt_score
+        )
         lineEdit_current_pair_mut_score = (
             self.bus.ui.lineEdit_current_pair_mut_score
         )
