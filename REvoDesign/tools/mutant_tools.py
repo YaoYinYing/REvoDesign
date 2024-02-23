@@ -507,7 +507,7 @@ def quick_mutagenesis(
 
     visualizer.full = cfg.ui.visualize.full_pdb
     visualizer.cmap = cfg.ui.header_panel.cmap
-    visualizer.sidechain_solver = sidechain_solver
+    visualizer.mutate_runner = sidechain_solver.mutate_runner
 
     visualizer.min_score = min(score_list)
     visualizer.max_score = max(score_list)
