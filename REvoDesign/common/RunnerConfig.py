@@ -7,4 +7,3 @@ class REvoDesignRunnerConfig:
     chain_id: str = field(converter=str)
     input_pse: str = field(converter=str)
     output_pse: str = field(converter=str)
-

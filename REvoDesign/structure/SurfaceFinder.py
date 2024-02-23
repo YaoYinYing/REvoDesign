@@ -3,7 +3,7 @@ from pymol import cmd
 import os
 from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
 from REvoDesign.tools.logger import logging as logger
-from attrs import define,field
+from attrs import define, field
 
 logging = logger.getChild(__name__)
 
@@ -11,6 +11,8 @@ logging = logger.getChild(__name__)
 This is a slightly modified version of the code on: 
 http://pymolwiki.org/index.php/FindSurfaceResidues
 '''
+
+
 @define(kw_only=True)
 class SurfaceFinderConfig(REvoDesignRunnerConfig):
     exclude_residue_selection: str = field(converter=str, default='')

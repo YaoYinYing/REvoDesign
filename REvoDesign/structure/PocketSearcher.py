@@ -1,10 +1,11 @@
 from pymol import cmd
 import os
-from attrs import define,field
+from attrs import define, field
 from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
+
 
 @define(kw_only=True)
 class PocketSearcherConfig(REvoDesignRunnerConfig):
@@ -13,6 +14,7 @@ class PocketSearcherConfig(REvoDesignRunnerConfig):
     ligand_radius: float = field(converter=float, default=6)
     cofactor: str = field(converter=str, default='')
     cofactor_radius: float = field(converter=float, default=7)
+
 
 @define(kw_only=True)
 class PocketSearcher(PocketSearcherConfig):

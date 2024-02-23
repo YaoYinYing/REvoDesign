@@ -5,7 +5,6 @@ import time
 import re
 from typing import Union
 from REvoDesign.sidechain_solver import (
-    SidechainSolver,
     PyMOL_mutate,
     DLPacker_worker,
     PIPPack_worker,
@@ -65,8 +64,7 @@ class REvoDesigner:
         self.deduplicate_designs = False
         self.randomized_sample = False
         self.randomized_sample_num = 10
-        self.sidechain_solver: SidechainSolver = None
-        self.mutant_runner: Union[
+        self.mutate_runner: Union[
             PyMOL_mutate, DLPacker_worker, PIPPack_worker
         ] = None
 
@@ -610,8 +608,7 @@ class REvoDesigner:
         self.visualizer.nproc = self.nproc
         self.visualizer.parallel_run = self.nproc > 1
         self.visualizer.input_session = self.input_pse
-        self.visualizer.sidechain_solver = self.sidechain_solver
-        self.visualizer.mutant_runner = self.mutant_runner
+        self.visualizer.mutate_runner = self.mutate_runner
 
         if (
             self.external_designer

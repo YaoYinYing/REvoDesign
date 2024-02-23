@@ -11,6 +11,7 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 # using partial module to reduce duplicate code.
 from functools import partial
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
+
 from REvoDesign.sidechain_solver import (
     SidechainSolver,
     PyMOL_mutate,
@@ -113,7 +114,6 @@ class REvoDesignPlugin:
         self.gremlin_tool = None
         self.gremlin_external_scorer = None
         self.sidechain_solver = None
-        self.mutant_runner = None
 
         from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
@@ -618,8 +618,12 @@ class REvoDesignPlugin:
         self.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
             partial(
                 refresh_widget_while_another_changed,
-                self.bus.get_widget('ui.config.sidechain_solver.default'),
-                self.bus.get_widget('ui.config.sidechain_solver.model'),
+                self.bus.get_widget_from_cfg_item(
+                    'ui.config.sidechain_solver.default'
+                ),
+                self.bus.get_widget_from_cfg_item(
+                    'ui.config.sidechain_solver.model'
+                ),
                 self.widget2widget.sidechain_solver2model,
             )
         )
@@ -983,7 +987,7 @@ class REvoDesignPlugin:
             'ui.prepare.input.surface.exclusion', exclusion_list
         )
         if exclusion_list:
-            self.bus.get_widget(
+            self.bus.get_widget_from_cfg_item(
                 'ui.prepare.input.surface.exclusion'
             ).setCurrentIndex(0)
 
@@ -1059,10 +1063,24 @@ class REvoDesignPlugin:
         sidechain_solver_model = self.bus.get_value(
             'ui.config.sidechain_solver.model'
         )
+        available_sidechain_solvers = list(
+            self.bus.get_value('ui.config.sidechain_solver.group')
+        )
+        if not self.sidechain_solver:
+            self.sidechain_solver = SidechainSolver(
+                molecule=self.design_molecule,
+                chain_id=self.design_chain_id,
+                sidechain_solver_name=sidechain_solver_name,
+                sidechain_solver_radius=sidechain_solver_radius,
+                sidechain_solver_model=sidechain_solver_model,
+                available_sidechain_solvers=available_sidechain_solvers,
+            )
+            self.sidechain_solver.setup()
+            return
 
         if not (
-            self.sidechain_solver
-            and self.mutant_runner
+            self.sidechain_solver.molecule == self.design_molecule
+            and self.sidechain_solver.chain_id == self.design_chain_id
             and self.sidechain_solver.sidechain_solver_name
             == sidechain_solver_name
             and self.sidechain_solver.sidechain_solver_radius
@@ -1070,28 +1088,13 @@ class REvoDesignPlugin:
             and self.sidechain_solver.sidechain_solver_model
             == sidechain_solver_model
         ):
-            self.sidechain_solver = SidechainSolver(
+            self.sidechain_solver.refresh(
                 molecule=self.design_molecule,
                 chain_id=self.design_chain_id,
                 sidechain_solver_name=sidechain_solver_name,
                 sidechain_solver_radius=sidechain_solver_radius,
                 sidechain_solver_model=sidechain_solver_model,
-                available_sidechain_solvers=list(
-                    self.bus.get_value('ui.config.sidechain_solver.group')
-                ),
             )
-
-            self.mutant_runner = run_worker_thread_with_progress(
-                worker_function=self.sidechain_solver.setup
-            )
-            assert isinstance(
-                self.mutant_runner,
-                (
-                    PyMOL_mutate,
-                    DLPacker_worker,
-                    PIPPack_worker,
-                ),
-            ), f'mutant runner is invalid.'
 
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
@@ -1120,154 +1123,37 @@ class REvoDesignPlugin:
         self.bus.set_widget_value(cfg_profile_format, profile_format)
 
     def run_mutant_loading_from_profile(self):
+        from REvoDesign.phylogenetics import MutateWorker
+
+        
+
         trigger_button = self.bus.button('run_PSSM_to_pse')
+        
 
         with hold_trigger_button(trigger_button):
-            try:
-                design_profile = self.bus.get_value('ui.mutate.input.profile')
-                design_profile_format = self.bus.get_value(
-                    'ui.mutate.input.profile_type'
-                )
-                preffered = self.bus.get_value('ui.mutate.accept')
-                rejected = self.bus.get_value('ui.mutate.reject')
+            run_worker_thread_with_progress(self.refresh_sidechainsolver)
+            assert self.sidechain_solver and isinstance(self.sidechain_solver, SidechainSolver), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
 
-                temperature = self.bus.get_value(
-                    'ui.mutate.designer.temperature', float
-                )
-                num_designs = self.bus.get_value(
-                    'ui.mutate.designer.num_sample', int
-                )
-                batch = self.bus.get_value('ui.mutate.designer.batch', int)
-                homooligomeric = self.bus.get_value(
-                    'ui.mutate.designer.homooligomeric'
-                )
-                deduplicate_designs = self.bus.get_value(
-                    'ui.mutate.designer.deduplicate_designs'
-                )
-                randomized_sample = self.bus.get_value(
-                    'ui.mutate.designer.enable_randomized_sampling'
-                )
-                randomized_sample_num = self.bus.get_value(
-                    'ui.mutate.designer.randomized_sampling', int
-                )
-                design_case = self.bus.get_value('ui.mutate.input.design_case')
-                custom_indices_fp = self.bus.get_value(
-                    'ui.mutate.input.residue_ids'
-                )
-                cutoff = [
-                    (self.bus.get_value('ui.mutate.min_score', float)),
-                    (self.bus.get_value('ui.mutate.max_score', float)),
-                ]
-                reversed_mutant_effect = self.bus.get_value(
-                    'ui.mutate.reverse_score'
-                )
-                output_pse = self.bus.get_value('ui.mutate.input.to_pse')
-                nproc = self.bus.get_value('ui.header_panel.nproc', int)
-
-                cmap = cmap_reverser(
-                    cmap=self.bus.get_value('ui.header_panel.cmap.default'),
-                    reverse=reversed_mutant_effect,
-                )
-
-                progressbar = self.ui.progressBar
-
-                if is_a_REvoDesign_session():
-                    logging.warning(
-                        'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
-                        'In order to keep the session\'s feature, you should always create seperate sessions according to '
-                        'your dataset and merge them manually in PyMOL window.'
-                    )
-
-                input_pse = make_temperal_input_pdb(
-                    molecule=self.design_molecule,
-                    format='pdb',
-                    wd=os.path.join(self.PWD, 'temperal_pdb'),
-                    reload=False,
-                )
-
-                # reinstiatate sidechain solver if required
-                self.refresh_sidechainsolver()
-
-                from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
-
-                design = REvoDesigner(design_profile)
-                design.input_pse = input_pse
-                design.output_pse = output_pse
-                design.input_profile_format = design_profile_format
-
-                design.molecule = self.design_molecule
-                design.chain_id = self.design_chain_id
-                design.sequence = self.design_sequence
-                design.pwd = self.PWD
-                design.design_case = design_case
-
-                design.external_designer_temperature = temperature
-                design.external_designer_num_samples = num_designs
-                design.batch = batch
-                design.homooligomeric = homooligomeric
-                design.deduplicate_designs = deduplicate_designs
-                design.randomized_sample = randomized_sample
-                design.randomized_sample_num = randomized_sample_num
-
-                design.sidechain_solver = self.sidechain_solver
-                design.mutant_runner = self.mutant_runner
-
-                design.preffered_substitutions = preffered
-                design.reject_aa = rejected
-                design.nproc = nproc
-                design.cmap = cmap
-                design.create_full_pdb = False
-
-                from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-                if design_profile_format in EXTERNAL_DESIGNERS.keys():
-                    design.design_protein_using_external_designer(
-                        custom_indices_fp=custom_indices_fp,
-                        progress_bar=progressbar,
-                    )
-                else:
-                    (
-                        mutation_json_fp,
-                        mutation_png_fp,
-                    ) = design.setup_profile_design(
-                        custom_indices_fp=custom_indices_fp,
-                        cutoff=cutoff,
-                    )
-
-                    design.load_mutants_to_pymol_session(
-                        mutant_json=mutation_json_fp,
-                        progress_bar=progressbar,
-                    )
-
-                assert design.output_pse and dirname_does_exist(
-                    design.output_pse
-                ), f'No output PyMOL session is created.'
-
-                cmd.load(design.output_pse, partial=2)
-
-                cmd.center(self.design_molecule)
-                cmd.set('surface_color', 'gray70')
-                cmd.set('cartoon_color', 'gray70')
-                cmd.set('surface_cavity_mode', 4)
-                cmd.set('transparency', 0.6)
-                cmd.set(
-                    'cartoon_cylindrical_helices',
-                )
-                cmd.set('cartoon_transparency', 0.3)
-                cmd.save(output_pse)
-
-            except Exception:
-                traceback.print_exc()
+            worker = MutateWorker(
+                bus=self.bus,
+                design_molecule=self.design_molecule,
+                design_chain_id=self.design_chain_id,
+                design_sequence=self.design_sequence,
+                sidechain_solver=self.sidechain_solver,
+                PWD=self.PWD,
+            )
+            
+            worker.run_mutant_loading_from_profile()
 
         if (
             self.ws_server
             and self.ws_server.is_running
-            and design.mutant_tree
-            and not design.mutant_tree.empty
+            and worker.design.mutant_tree
+            and not worker.design.mutant_tree.empty
         ):
             asyncio.run(
                 self.ws_broadcast_from_server(
-                    data=design.mutant_tree,
+                    data=worker.design.mutant_tree,
                     data_type='MutantTree',
                 )
             )
@@ -1643,7 +1529,7 @@ class REvoDesignPlugin:
         progressBar_mutant_choosing,
         comboBox_group_ids,
     ):
-        lineEdit_output_mut_txt = self.bus.get_widget(
+        lineEdit_output_mut_txt = self.bus.get_widget_from_cfg_item(
             'ui.evaluate.input.to_mutant_txt'
         )
         self.mutant_tree_pssm = existed_mutant_tree(
@@ -1858,10 +1744,10 @@ class REvoDesignPlugin:
                 )
                 return
             else:
-                comboBox_best_leaf = self.bus.get_widget(
+                comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
                     'ui.visualize.input.best_leaf'
                 )
-                comboBox_totalscore = self.bus.get_widget(
+                comboBox_totalscore = self.bus.get_widget_from_cfg_item(
                     'ui.visualize.input.totalscore'
                 )
 
@@ -1943,7 +1829,7 @@ class REvoDesignPlugin:
                 progressBar_visualize_mutants = self.ui.progressBar
 
                 # reinstiatate sidechain solver if required
-                self.refresh_sidechainsolver()
+                run_worker_thread_with_progress(self.refresh_sidechainsolver)
 
                 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
@@ -1985,8 +1871,7 @@ class REvoDesignPlugin:
                 visualizer.group_name = group_name
                 visualizer.cmap = cmap
 
-                visualizer.sidechain_solver = self.sidechain_solver
-                visualizer.mutant_runner = self.mutant_runner
+                visualizer.mutate_runner = self.sidechain_solver.mutate_runner
 
                 visualizer.run_with_progressbar(
                     progress_bar=progressBar_visualize_mutants
@@ -2707,7 +2592,7 @@ class REvoDesignPlugin:
 
         external_scorer = self.bus.get_value('ui.interact.use_external_scorer')
 
-        self.refresh_sidechainsolver()
+        run_worker_thread_with_progress(self.refresh_sidechainsolver)
 
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
@@ -2743,8 +2628,7 @@ class REvoDesignPlugin:
         visualizer.sequence = self.design_sequence
         alphabet = self.gremlin_tool.alphabet
 
-        visualizer.sidechain_solver = self.sidechain_solver
-        visualizer.mutant_runner = self.mutant_runner
+        visualizer.mutate_runner = self.sidechain_solver.mutate_runner
 
         visualizer.group_name = '_vs_'.join(
             [wt.replace('_', '') for wt in wt_info[-3:-1]]
@@ -3001,7 +2885,7 @@ class REvoDesignPlugin:
             ),
             treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
         )
-        self.refresh_sidechainsolver()
+        run_worker_thread_with_progress(self.refresh_sidechainsolver)
         self.ws_client.sidechain_solver = self.sidechain_solver
 
     def update_ws_client_view_update_options(self):
@@ -3061,12 +2945,15 @@ class REvoDesignPlugin:
         if not reconfigure:
             self.bus.initialize_widget_with_cfg_group()
 
-        # mapping ui widgets <--> cfg.elements
-        self.widget_config_map: immutabledict = self.bus.w2c.widget2config_dict
         self.refresh_ui_from_new_configuration()
 
     def refresh_ui_from_new_configuration(self):
-        for widget, config_item in self.widget_config_map.items():
+        for (
+            widget_id,
+            config_item,
+        ) in self.bus.w2c.widget_id2config_dict.items():
+            widget = self.bus.get_widget_from_id(widget_id=widget_id)
+            # print(f'Updating from cfg: {config_item} -> {widget_id} ->{widget}')
             set_widget_value(
                 widget, OmegaConf.select(self.bus.cfg, config_item)
             )

@@ -8,7 +8,6 @@ from Bio import SeqIO
 from pymol import cmd
 import matplotlib
 from REvoDesign.sidechain_solver import (
-    SidechainSolver,
     PyMOL_mutate,
     DLPacker_worker,
     PIPPack_worker,
@@ -55,8 +54,7 @@ class MutantVisualizer:
         self.profile = ''
         self.profile_format: str = 'PSSM'
         self.scorer = None
-        self.sidechain_solver: SidechainSolver = None
-        self.mutant_runner: Union[
+        self.mutate_runner: Union[
             PyMOL_mutate, DLPacker_worker, PIPPack_worker
         ] = None
 
@@ -132,12 +130,10 @@ class MutantVisualizer:
             for mut_info in mutant_obj.mutant_info
         ]
 
-        if not self.sidechain_solver:
-            raise RuntimeError(f'no sidechain solver is instantiated yet.')
-        if not self.mutant_runner:
-            self.mutant_runner = self.sidechain_solver.setup()
+        if not self.mutate_runner:
+            raise RuntimeError(f'no mutate runner is instantiated yet.')
 
-        temp_mutant_pdb_path = self.mutant_runner.run_mutate(
+        temp_mutant_pdb_path = self.mutate_runner.run_mutate(
             mutant_obj=mutant_obj,
             in_place=in_place,
         )
