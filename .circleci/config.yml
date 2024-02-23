@@ -10,31 +10,21 @@ jobs:
         type: string
         default: "3.9"
     docker:
-      - image: continuumio/miniconda3
+      - image: yaoyinying/revodesign-test-image:py<< parameters.python-version >>
     environment:
       DISPLAY: ':99.0'
     steps:
       - checkout
       
       - run:
-          name: Apt installs
-          command: |
-            apt-get update
-            apt-get install -y build-essential make sudo xvfb fluxbox curl
-
-      - run:
           name: Start Display
           command: |
-            Xvfb :99 -screen 0 1280x1024x24 &
-            fluxbox &
-            sleep 3
+            make setup-display
 
       - run:
           name: Setup Environment for << parameters.python-version >>
           command: |
-            conda create --name REvoDesign python=<< parameters.python-version >> -y
             source activate REvoDesign
-            conda install -c conda-forge pymol-open-source -y
 
       - run:
           name: Install REvoDesign
@@ -42,12 +32,10 @@ jobs:
             source activate REvoDesign
             make install
 
-
       - run:
           name: Run Unit Tests
           command: |
             source activate REvoDesign
-            make prepare-test
             make all-test
 
       - run:
