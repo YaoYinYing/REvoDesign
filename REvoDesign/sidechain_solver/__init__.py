@@ -91,3 +91,4 @@ class SidechainSolver(SidechainSolverConfig):
             self.sidechain_solver_radius == sidechain_solver_radius
             self.sidechain_solver_model == sidechain_solver_model
             return self.setup()
+        

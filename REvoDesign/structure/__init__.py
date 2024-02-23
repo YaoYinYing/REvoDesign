@@ -1,4 +1,7 @@
+from attrs import define, field
 from REvoDesign.structure.SurfaceFinder import SurfaceFinder
-from REvoDesign.common.RunnerConfig import SurfaceFinderConfig
+from REvoDesign.structure.PocketSearcher import PocketSearcher
 
-__all__ = ['SurfaceFinder', 'SurfaceFinderConfig']
+__all__ = ['SurfaceFinder', 'PocketSearcher']
+
+

@@ -1,9 +1,9 @@
 from __future__ import print_function
 from pymol import cmd
 import os
-from REvoDesign.common.RunnerConfig import SurfaceFinderConfig
+from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
 from REvoDesign.tools.logger import logging as logger
-from attrs import define
+from attrs import define,field
 
 logging = logger.getChild(__name__)
 
@@ -11,6 +11,11 @@ logging = logger.getChild(__name__)
 This is a slightly modified version of the code on: 
 http://pymolwiki.org/index.php/FindSurfaceResidues
 '''
+@define(kw_only=True)
+class SurfaceFinderConfig(REvoDesignRunnerConfig):
+    exclude_residue_selection: str = field(converter=str, default='')
+    cutoff: float = field(converter=float, default=15)
+    do_show_surf_CA: bool = field(converter=bool, default=True)
 
 
 def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):

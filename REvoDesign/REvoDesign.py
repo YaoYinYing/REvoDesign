@@ -1032,7 +1032,7 @@ class REvoDesignPlugin:
             'ui.prepare.cofactor_radius', float
         )
 
-        from REvoDesign.structure.PocketSearcher import PocketSearcher
+        from REvoDesign.structure import PocketSearcher
 
         pocketsearcher = PocketSearcher(
             input_pse=input_pse,
