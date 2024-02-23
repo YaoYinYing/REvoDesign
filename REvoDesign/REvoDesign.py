@@ -1125,11 +1125,8 @@ class REvoDesignPlugin:
     def run_mutant_loading_from_profile(self):
         from REvoDesign.phylogenetics import MutateWorker
 
-        
-
         trigger_button = self.bus.button('run_PSSM_to_pse')
-        
-
+    
         with hold_trigger_button(trigger_button):
             run_worker_thread_with_progress(self.refresh_sidechainsolver)
             assert self.sidechain_solver and isinstance(self.sidechain_solver, SidechainSolver), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
@@ -1795,113 +1792,33 @@ class REvoDesignPlugin:
 
     def visualize_mutants(self):
         trigger_button = self.bus.button('run_visualizing')
-        input_mut_table_csv = self.bus.get_value(
-            'ui.visualize.input.from_mutant_txt'
-        )
-
-        output_pse = self.bus.get_value('ui.visualize.input.to_pse')
-        best_leaf = self.bus.get_value('ui.visualize.input.best_leaf')
-        totalscore = self.bus.get_value('ui.visualize.input.totalscore')
-        nproc = self.bus.get_value('ui.header_panel.nproc', int)
-        group_name = self.bus.get_value('ui.visualize.input.group_name')
-
-        use_global_scores = self.bus.get_value(
-            'ui.visualize.global_score_policy'
-        )
+        from REvoDesign.phylogenetics import VisualizingWorker
 
         with hold_trigger_button(trigger_button):
-            try:
-                reversed_mutant_effect = self.bus.get_value(
-                    'ui.visualize.reverse_score'
-                )
-                cmap = cmap_reverser(
-                    cmap=self.bus.get_value('ui.header_panel.cmap.default'),
-                    reverse=reversed_mutant_effect,
-                )
 
-                design_profile = self.bus.get_value(
-                    'ui.visualize.input.profile'
-                )
-                design_profile_format = self.bus.get_value(
-                    'ui.visualize.input.profile_type'
-                )
+            # reinstiatate sidechain solver if required
+            run_worker_thread_with_progress(self.refresh_sidechainsolver)
+            assert self.sidechain_solver and isinstance(self.sidechain_solver, SidechainSolver), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
 
-                progressBar_visualize_mutants = self.ui.progressBar
-
-                # reinstiatate sidechain solver if required
-                run_worker_thread_with_progress(self.refresh_sidechainsolver)
-
-                from REvoDesign.common.MutantVisualizer import MutantVisualizer
-
-                visualizer = MutantVisualizer(
-                    molecule=self.design_molecule,
-                    chain_id=self.design_chain_id,
-                )
-                visualizer.mutfile = input_mut_table_csv
-                visualizer.input_session = make_temperal_input_pdb(
-                    molecule=self.design_molecule,
-                    wd=os.path.join(
-                        os.path.dirname(output_pse), 'temperal_pdb'
-                    ),
-                    reload=False,
-                )
-                visualizer.nproc = nproc
-                visualizer.parallel_run = nproc > 1
-                visualizer.sequence = self.design_sequence
-
-                visualizer.consider_global_score_from_profile = (
-                    use_global_scores
-                )
-
-                visualizer.profile_scoring_df = None
-                visualizer.consider_global_score_from_profile = False
-
-                visualizer.profile_scoring_df = visualizer.parse_profile(
-                    profile_fp=design_profile,
-                    profile_format=design_profile_format,
-                )
-
-                if best_leaf:
-                    visualizer.key_col = best_leaf
-                if totalscore:
-                    visualizer.score_col = totalscore
-
-                visualizer.save_session = output_pse
-                visualizer.full = False
-                visualizer.group_name = group_name
-                visualizer.cmap = cmap
-
-                visualizer.mutate_runner = self.sidechain_solver.mutate_runner
-
-                visualizer.run_with_progressbar(
-                    progress_bar=progressBar_visualize_mutants
-                )
-
-                cmd.load(visualizer.save_session, partial=2)
-                cmd.center(self.design_molecule)
-                cmd.set('surface_color', 'gray70')
-                cmd.set('cartoon_color', 'gray70')
-                cmd.set('surface_cavity_mode', 4)
-                cmd.set('transparency', 0.6)
-                cmd.set(
-                    'cartoon_cylindrical_helices',
-                )
-                cmd.set('cartoon_transparency', 0.3)
-                cmd.save(output_pse)
-
-            except Exception:
-                logging.error('Error while running the visualization: ')
-                traceback.print_exc()
+            worker = VisualizingWorker(
+                bus=self.bus,
+                design_molecule=self.design_molecule,
+                design_chain_id=self.design_chain_id,
+                design_sequence=self.design_sequence,
+                sidechain_solver=self.sidechain_solver,
+                PWD=self.PWD,
+            )
+            worker.visualize_mutants()
 
         if (
             self.ws_server
             and self.ws_server.is_running
-            and visualizer.mutant_tree
-            and not visualizer.mutant_tree.empty
+            and worker.visualizer.mutant_tree
+            and not worker.visualizer.mutant_tree.empty
         ):
             asyncio.run(
                 self.ws_broadcast_from_server(
-                    data=visualizer.mutant_tree,
+                    data=worker.visualizer.mutant_tree,
                     data_type='MutantTree',
                 )
             )

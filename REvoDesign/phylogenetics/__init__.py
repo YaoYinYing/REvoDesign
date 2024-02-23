@@ -8,7 +8,7 @@ from REvoDesign.tools.pymol_utils import (
     is_a_REvoDesign_session,
     make_temperal_input_pdb,
 )
-from REvoDesign.tools.utils import cmap_reverser, dirname_does_exist
+from REvoDesign.tools.utils import cmap_reverser, dirname_does_exist, run_worker_thread_with_progress
 from dataclasses import dataclass
 from pymol import cmd
 
@@ -159,4 +159,101 @@ class MutateWorker(MutateWorkerConfig):
             cmd.save(output_pse)
 
         except Exception:
+            traceback.print_exc()
+
+
+class VisualizingWorker(MutateWorkerConfig):
+    def visualize_mutants(self):
+        input_mut_table_csv = self.bus.get_value(
+            'ui.visualize.input.from_mutant_txt'
+        )
+
+        output_pse = self.bus.get_value('ui.visualize.input.to_pse')
+        best_leaf = self.bus.get_value('ui.visualize.input.best_leaf')
+        totalscore = self.bus.get_value('ui.visualize.input.totalscore')
+        nproc = self.bus.get_value('ui.header_panel.nproc', int)
+        group_name = self.bus.get_value('ui.visualize.input.group_name')
+
+        use_global_scores = self.bus.get_value(
+            'ui.visualize.global_score_policy'
+        )
+
+        try:
+            reversed_mutant_effect = self.bus.get_value(
+                'ui.visualize.reverse_score'
+            )
+            cmap = cmap_reverser(
+                cmap=self.bus.get_value('ui.header_panel.cmap.default'),
+                reverse=reversed_mutant_effect,
+            )
+
+            design_profile = self.bus.get_value(
+                'ui.visualize.input.profile'
+            )
+            design_profile_format = self.bus.get_value(
+                'ui.visualize.input.profile_type'
+            )
+
+            progressBar_visualize_mutants = self.bus.ui.progressBar
+
+            from REvoDesign.common.MutantVisualizer import MutantVisualizer
+
+            self.visualizer = MutantVisualizer(
+                molecule=self.design_molecule,
+                chain_id=self.design_chain_id,
+            )
+            self.visualizer.mutfile = input_mut_table_csv
+            self.visualizer.input_session = make_temperal_input_pdb(
+                molecule=self.design_molecule,
+                wd=os.path.join(
+                    os.path.dirname(output_pse), 'temperal_pdb'
+                ),
+                reload=False,
+            )
+            self.visualizer.nproc = nproc
+            self.visualizer.parallel_run = nproc > 1
+            self.visualizer.sequence = self.design_sequence
+
+            self.visualizer.consider_global_score_from_profile = (
+                use_global_scores
+            )
+
+            self.visualizer.profile_scoring_df = None
+            self.visualizer.consider_global_score_from_profile = False
+
+            self.visualizer.profile_scoring_df = self.visualizer.parse_profile(
+                profile_fp=design_profile,
+                profile_format=design_profile_format,
+            )
+
+            if best_leaf:
+                self.visualizer.key_col = best_leaf
+            if totalscore:
+                self.visualizer.score_col = totalscore
+
+            self.visualizer.save_session = output_pse
+            self.visualizer.full = False
+            self.visualizer.group_name = group_name
+            self.visualizer.cmap = cmap
+
+            self.visualizer.mutate_runner = self.sidechain_solver.mutate_runner
+
+            self.visualizer.run_with_progressbar(
+                progress_bar=progressBar_visualize_mutants
+            )
+
+            cmd.load(self.visualizer.save_session, partial=2)
+            cmd.center(self.design_molecule)
+            cmd.set('surface_color', 'gray70')
+            cmd.set('cartoon_color', 'gray70')
+            cmd.set('surface_cavity_mode', 4)
+            cmd.set('transparency', 0.6)
+            cmd.set(
+                'cartoon_cylindrical_helices',
+            )
+            cmd.set('cartoon_transparency', 0.3)
+            cmd.save(output_pse)
+
+        except Exception:
+            logging.error('Error while running the visualization: ')
             traceback.print_exc()
