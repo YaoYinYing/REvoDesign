@@ -8,7 +8,11 @@ from REvoDesign.tools.pymol_utils import (
     is_a_REvoDesign_session,
     make_temperal_input_pdb,
 )
-from REvoDesign.tools.utils import cmap_reverser, dirname_does_exist, run_worker_thread_with_progress
+from REvoDesign.tools.utils import (
+    cmap_reverser,
+    dirname_does_exist,
+    run_worker_thread_with_progress,
+)
 from dataclasses import dataclass
 from pymol import cmd
 
@@ -187,9 +191,7 @@ class VisualizingWorker(MutateWorkerConfig):
                 reverse=reversed_mutant_effect,
             )
 
-            design_profile = self.bus.get_value(
-                'ui.visualize.input.profile'
-            )
+            design_profile = self.bus.get_value('ui.visualize.input.profile')
             design_profile_format = self.bus.get_value(
                 'ui.visualize.input.profile_type'
             )
@@ -205,9 +207,7 @@ class VisualizingWorker(MutateWorkerConfig):
             self.visualizer.mutfile = input_mut_table_csv
             self.visualizer.input_session = make_temperal_input_pdb(
                 molecule=self.design_molecule,
-                wd=os.path.join(
-                    os.path.dirname(output_pse), 'temperal_pdb'
-                ),
+                wd=os.path.join(os.path.dirname(output_pse), 'temperal_pdb'),
                 reload=False,
             )
             self.visualizer.nproc = nproc

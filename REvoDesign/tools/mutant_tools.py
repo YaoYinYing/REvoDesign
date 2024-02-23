@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 
 from omegaconf import DictConfig
 from REvoDesign.common.Mutant import Mutant
@@ -538,3 +539,63 @@ def quick_mutagenesis(
     )
     cmd.load(session_merger.save_session, partial=2)
     return
+
+
+def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
+    if not mutant_tree:
+        logging.error(f"No Mutant tree is given!")
+        return
+
+    if mutant_tree.empty:
+        logging.warning(f'mutant tree is empty. save nothing.')
+        return
+
+    mutants_to_save = mutant_tree.all_mutant_ids
+    logging.info(f"saving: {mutants_to_save}")
+
+    # TODO mutant_choices function
+    output_mut_txt_dir = os.path.dirname(output_mut_txt_fn)
+    if not os.path.exists(output_mut_txt_dir):
+        logging.warning(
+            f'Parent dir for mutant table does NOT exist! {output_mut_txt_dir}'
+        )
+        # os.makedirs(output_mut_txt_dir,exist_ok=True)
+        logging.warning(f'Skip saving mutant file.')
+        return
+
+    if os.path.exists(output_mut_txt_fn):
+        logging.warning(
+            f'Mutant table exists and will be overriden! {output_mut_txt_fn}'
+        )
+        write_input_mutant_table(
+            output_mut_txt_fn,
+            [mt.full_mutant_id for mt in mutant_tree.all_mutant_objects],
+        )
+
+    else:
+        logging.info(f'Mutant table is created at {output_mut_txt_fn}')
+        write_input_mutant_table(
+            output_mut_txt_fn,
+            [mt.full_mutant_id for mt in mutant_tree.all_mutant_objects],
+        )
+
+    output_mut_txt_dir_ckp = os.path.join(
+        output_mut_txt_dir, f'./checkpoints/'
+    )
+    os.makedirs(output_mut_txt_dir_ckp, exist_ok=True)
+
+    output_mut_txt_bn_ckp = f'ckp_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.{os.path.basename(output_mut_txt_fn)}'
+    output_mut_txt_ckp = os.path.join(
+        output_mut_txt_dir_ckp, output_mut_txt_bn_ckp
+    )
+
+    logging.info(f'Saving checkpoint: {output_mut_txt_ckp}')
+    write_input_mutant_table(
+        output_mut_txt_ckp, [mt for mt in mutants_to_save]
+    )
+
+
+def write_input_mutant_table(output_mut_txt_fn, mutant_list):
+    open(output_mut_txt_fn, 'w').write(
+        '\n'.join(mutant_list) if mutant_list else ''
+    )

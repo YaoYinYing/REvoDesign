@@ -11,12 +11,10 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 # using partial module to reduce duplicate code.
 from functools import partial
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
+from REvoDesign.evaluate import Evalutator
 
 from REvoDesign.sidechain_solver import (
     SidechainSolver,
-    PyMOL_mutate,
-    DLPacker_worker,
-    PIPPack_worker,
 )
 from REvoDesign.tools.logger import logging
 from REvoDesign.application.ui_driver import (
@@ -43,12 +41,10 @@ from REvoDesign.common.file_extensions import (
 
 
 from REvoDesign.tools.utils import (
-    dirname_does_exist,
     extract_archive,
     generate_strong_password,
     run_worker_thread_with_progress,
     get_color,
-    cmap_reverser,
     rescale_number,
 )
 
@@ -70,8 +66,6 @@ from REvoDesign.tools.pymol_utils import (
     find_design_molecules,
     find_small_molecules_in_protein,
     get_molecule_sequence,
-    make_temperal_input_pdb,
-    is_a_REvoDesign_session,
     any_posision_has_been_selected,
 )
 
@@ -79,6 +73,7 @@ from REvoDesign.tools.mutant_tools import (
     existed_mutant_tree,
     extract_mutant_from_pymol_object,
     extract_mutants_from_mutant_id,
+    save_mutant_choices,
 )
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
@@ -100,20 +95,18 @@ class REvoDesignPlugin:
 
         self.widget2widget = Widget2Widget()
         self.bus = None
-        self.widget_config_map = None
 
         self.designable_sequences = {}
         self.design_molecule = ''
         self.design_chain_id = ''
         self.design_sequence = ''
 
-        self.mutant_tree_pssm = MutantTree({})
-        self.mutant_tree_pssm_selected = MutantTree({})
         self.mutant_tree_coevolved = MutantTree({})
 
         self.gremlin_tool = None
         self.gremlin_external_scorer = None
         self.sidechain_solver = None
+        self.evaluator: Evalutator = Evalutator()
 
         from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
@@ -167,16 +160,16 @@ class REvoDesignPlugin:
 
         # Set up Menu
 
-        self.ui.actionSet_Working_Directory.triggered.connect(
+        self.bus.ui.actionSet_Working_Directory.triggered.connect(
             self.set_working_directory
         )
 
-        self.ui.actionReconfigure.triggered.connect(self.reload_configurations)
-        self.ui.actionSave_Configurations.triggered.connect(
+        self.bus.ui.actionReconfigure.triggered.connect(self.reload_configurations)
+        self.bus.ui.actionSave_Configurations.triggered.connect(
             self.save_configuration_from_ui
         )
 
-        self.ui.actionSource_Code.triggered.connect(
+        self.bus.ui.actionSource_Code.triggered.connect(
             partial(
                 QtGui.QDesktopServices.openUrl,
                 QtCore.QUrl(REPO_URL),
@@ -195,20 +188,20 @@ class REvoDesignPlugin:
             self.ws_server = None
             self.ws_client = None
             # hide tab_socket if websockets is not available.
-            self.ui.tabWidget.setTabVisible(7, False)
+            self.bus.ui.tabWidget.setTabVisible(7, False)
 
         # Set up general input
-        self.ui.comboBox_chain_id.currentIndexChanged.connect(
+        self.bus.ui.comboBox_chain_id.currentIndexChanged.connect(
             self.set_design_sequence,
         )
 
         # read session from PyMOL. If it is empty, load one.
-        self.ui.actionCheck_PyMOL_session.triggered.connect(
+        self.bus.ui.actionCheck_PyMOL_session.triggered.connect(
             self.reload_molecule_info,
         )
 
         # Update chain id
-        self.ui.comboBox_design_molecule.currentIndexChanged.connect(
+        self.bus.ui.comboBox_design_molecule.currentIndexChanged.connect(
             self.update_chain_id,
         )
 
@@ -221,7 +214,7 @@ class REvoDesignPlugin:
         self.bus.set_value('ui.header_panel.nproc', max_proc)
 
         # Tab Client
-        self.ui.comboBox_chain_id.currentIndexChanged.connect(
+        self.bus.ui.comboBox_chain_id.currentIndexChanged.connect(
             self.setup_pssm_gremlin_calculator,
         )
 
@@ -230,7 +223,7 @@ class REvoDesignPlugin:
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
                 opt='submit',
-                progress_bar=self.ui.progressBar,
+                progress_bar=self.bus.ui.progressBar,
             )
         )
 
@@ -239,7 +232,7 @@ class REvoDesignPlugin:
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
                 opt='cancel',
-                progress_bar=self.ui.progressBar,
+                progress_bar=self.bus.ui.progressBar,
             )
         )
 
@@ -248,7 +241,7 @@ class REvoDesignPlugin:
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_remote_pssm_gremlin_calc,
                 opt='download',
-                progress_bar=self.ui.progressBar,
+                progress_bar=self.bus.ui.progressBar,
             )
         )
 
@@ -267,7 +260,7 @@ class REvoDesignPlugin:
             self.update_surface_exclusion
         )
 
-        self.ui.lineEdit_output_pse_surface.textChanged.connect(
+        self.bus.ui.lineEdit_output_pse_surface.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.prepare.input.surface.to_pse',
@@ -275,7 +268,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_output_pse_pocket.textChanged.connect(
+        self.bus.ui.lineEdit_output_pse_pocket.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.prepare.input.pocket.to_pse',
@@ -283,7 +276,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.comboBox_design_molecule.currentIndexChanged.connect(
+        self.bus.ui.comboBox_design_molecule.currentIndexChanged.connect(
             self.reload_determine_tab_setup,
         )
 
@@ -320,7 +313,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_input_csv.textChanged.connect(
+        self.bus.ui.lineEdit_input_csv.textChanged.connect(
             partial(
                 self.determine_profile_format,
                 'ui.mutate.input.profile',
@@ -328,7 +321,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_output_pse_mutate.textChanged.connect(
+        self.bus.ui.lineEdit_output_pse_mutate.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.mutate.input.to_pse',
@@ -347,7 +340,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_output_mut_table.textChanged.connect(
+        self.bus.ui.lineEdit_output_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.evaluate.input.to_mutant_txt',
@@ -360,42 +353,32 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.checkBox_rock_pymol.stateChanged.connect(
-            self.set_pymol_session_rock
+        self.bus.ui.checkBox_rock_pymol.stateChanged.connect(
+            self.evaluator.set_pymol_session_rock
         )
 
         self.bus.button('reinitialize_mutant_choosing').clicked.connect(
-            partial(
-                self.initialize_design_candidates,
-                self.bus.button('previous_mutant'),
-                self.bus.button('next_mutant'),
-                self.bus.button('reject_this_mutant'),
-                self.bus.button('accept_this_mutant'),
-                self.ui.lcdNumber_total_mutant,
-                self.ui.lcdNumber_selected_mutant,
-                self.ui.progressBar,
-                self.ui.comboBox_group_ids,
-            )
+            self.initialize_design_candidates,
         )
 
         self.bus.button('goto_best_hit_in_group').clicked.connect(
-            self.jump_to_the_best_mutant,
+            self.evaluator.jump_to_the_best_mutant,
         )
 
         self.bus.button('load_mutant_choice_checkpoint').clicked.connect(
             self.recover_mutant_choices_from_checkpoint,
         )
 
-        self.ui.comboBox_group_ids.currentTextChanged.connect(
-            self.jump_to_branch,
+        self.bus.ui.comboBox_group_ids.currentTextChanged.connect(
+            self.evaluator.jump_to_branch,
         )
 
-        self.ui.comboBox_mutant_ids.currentTextChanged.connect(
-            self.jump_to_a_mutant,
+        self.bus.ui.comboBox_mutant_ids.currentTextChanged.connect(
+            self.evaluator.jump_to_a_mutant,
         )
 
         self.bus.button('choose_lucky_mutant').clicked.connect(
-            self.find_all_best_mutants,
+            self.evaluator.find_all_best_mutants,
         )
 
         # Tab `Cluster`
@@ -406,7 +389,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_input_mut_table.textChanged.connect(
+        self.bus.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.cluster.input.from_mutant_txt',
@@ -418,7 +401,7 @@ class REvoDesignPlugin:
 
         # Tab Visualize
 
-        self.ui.lineEdit_output_pse_visualize.textChanged.connect(
+        self.bus.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.visualize.input.to_pse',
@@ -426,7 +409,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_input_mut_table_csv.textChanged.connect(
+        self.bus.ui.lineEdit_input_mut_table_csv.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.visualize.input.from_mutant_txt',
@@ -445,7 +428,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_input_csv_2.textChanged.connect(
+        self.bus.ui.lineEdit_input_csv_2.textChanged.connect(
             partial(
                 self.determine_profile_format,
                 'ui.visualize.input.profile',
@@ -469,7 +452,7 @@ class REvoDesignPlugin:
             )
         )
 
-        self.ui.lineEdit_input_mut_table_csv.textChanged.connect(
+        self.bus.ui.lineEdit_input_mut_table_csv.textChanged.connect(
             self.update_mutant_table_columns,
         )
 
@@ -499,7 +482,7 @@ class REvoDesignPlugin:
         )
 
         # Multi-Design
-        self.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
+        self.bus.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
                 'ui.visualize.input.multi_design.to_mutant_txt',
@@ -546,7 +529,7 @@ class REvoDesignPlugin:
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_auto,
-                progress_bar=self.ui.progressBar,
+                progress_bar=self.bus.ui.progressBar,
             )
         )
 
@@ -590,7 +573,7 @@ class REvoDesignPlugin:
         )
 
         # Connect the partial function to the stateChanged signal
-        self.ui.checkBox_ws_server_mode.stateChanged.connect(
+        self.bus.ui.checkBox_ws_server_mode.stateChanged.connect(
             self.toggle_ws_server_mode
         )
 
@@ -602,20 +585,20 @@ class REvoDesignPlugin:
             partial(self.toggle_ws_client_connection, False)
         )
 
-        self.ui.checkBox_ws_broadcast_view.stateChanged.connect(
+        self.bus.ui.checkBox_ws_broadcast_view.stateChanged.connect(
             self.update_ws_server_view_update_options
         )
-        self.ui.doubleSpinBox_ws_view_broadcast_interval.valueChanged.connect(
+        self.bus.ui.doubleSpinBox_ws_view_broadcast_interval.valueChanged.connect(
             self.update_ws_server_view_update_options
         )
 
-        self.ui.checkBox_ws_recieve_view_broadcast.stateChanged.connect(
+        self.bus.ui.checkBox_ws_recieve_view_broadcast.stateChanged.connect(
             self.update_ws_client_view_update_options
         )
 
         # Tab Config
 
-        self.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
+        self.bus.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
             partial(
                 refresh_widget_while_another_changed,
                 self.bus.get_widget_from_cfg_item(
@@ -801,87 +784,6 @@ class REvoDesignPlugin:
                 logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
         else:
             logging.warning(f'Unknown mode {mode} ! Aborded.')
-
-    def write_input_mutant_table(self, output_mut_txt_fn, mutant_list):
-        open(output_mut_txt_fn, 'w').write(
-            '\n'.join(mutant_list) if mutant_list else ''
-        )
-
-    def save_mutant_choices(
-        self, cfg_output_mut_txt: str, mutant_tree: MutantTree
-    ):
-        if not mutant_tree:
-            logging.error(f"No Mutant tree is given!")
-            return
-
-        if mutant_tree.empty:
-            logging.warning(f'mutant tree is empty. save nothing.')
-            return
-
-        mutants_to_save = mutant_tree.all_mutant_ids
-        logging.info(f"saving: {mutants_to_save}")
-
-        # TODO mutant_choices function
-        output_mut_txt_fn = self.bus.get_value(cfg_output_mut_txt)
-        output_mut_txt_dir = os.path.dirname(output_mut_txt_fn)
-        if not os.path.exists(output_mut_txt_dir):
-            logging.warning(
-                f'Parent dir for mutant table does NOT exist! {output_mut_txt_dir}'
-            )
-            # os.makedirs(output_mut_txt_dir,exist_ok=True)
-            logging.warning(f'Skip saving mutant file.')
-            return
-
-        if os.path.exists(output_mut_txt_fn):
-            logging.warning(
-                f'Mutant table exists and will be overriden! {output_mut_txt_fn}'
-            )
-            self.write_input_mutant_table(
-                output_mut_txt_fn,
-                [
-                    extract_mutant_from_pymol_object(
-                        pymol_object=mt, sequences=self.designable_sequences
-                    ).full_mutant_id
-                    for mt in mutants_to_save
-                ],
-            )
-
-        else:
-            logging.info(f'Mutant table is created at {output_mut_txt_fn}')
-            self.write_input_mutant_table(
-                output_mut_txt_fn,
-                [
-                    extract_mutant_from_pymol_object(
-                        pymol_object=mt, sequences=self.designable_sequences
-                    ).full_mutant_id
-                    for mt in mutants_to_save
-                ],
-            )
-
-        output_mut_txt_dir_ckp = os.path.join(
-            output_mut_txt_dir, f'{self.PWD}/checkpoints/'
-        )
-        os.makedirs(output_mut_txt_dir_ckp, exist_ok=True)
-
-        output_mut_txt_bn_ckp = f'ckp_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.{os.path.basename(output_mut_txt_fn)}'
-        output_mut_txt_ckp = os.path.join(
-            output_mut_txt_dir_ckp, output_mut_txt_bn_ckp
-        )
-
-        logging.info(f'Saving checkpoint: {output_mut_txt_ckp}')
-        self.write_input_mutant_table(
-            output_mut_txt_ckp, [mt for mt in mutants_to_save]
-        )
-
-    def set_pymol_session_rock(self):
-        cmd.set('rock', self.bus.get_value('ui.evaluate.rock'))
-
-    def center_design_area(self, mutant_id):
-        if self.mutant_tree_pssm and mutant_id:
-            logging.debug(f'Centering design area: {mutant_id}')
-            cmd.center(mutant_id)
-        else:
-            logging.debug(f'Giving up centering design area: {mutant_id}')
 
     def find_session_path(self) -> str:
         session_path: str = cmd.get('session_file')
@@ -1126,10 +1028,12 @@ class REvoDesignPlugin:
         from REvoDesign.phylogenetics import MutateWorker
 
         trigger_button = self.bus.button('run_PSSM_to_pse')
-    
+
         with hold_trigger_button(trigger_button):
             run_worker_thread_with_progress(self.refresh_sidechainsolver)
-            assert self.sidechain_solver and isinstance(self.sidechain_solver, SidechainSolver), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
+            assert self.sidechain_solver and isinstance(
+                self.sidechain_solver, SidechainSolver
+            ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
 
             worker = MutateWorker(
                 bus=self.bus,
@@ -1139,7 +1043,7 @@ class REvoDesignPlugin:
                 sidechain_solver=self.sidechain_solver,
                 PWD=self.PWD,
             )
-            
+
             worker.run_mutant_loading_from_profile()
 
         if (
@@ -1156,465 +1060,27 @@ class REvoDesignPlugin:
             )
 
     # Tab `Evaluate`
-    def activate_focused(self):
-        molecule = self.design_molecule
-        chain_id = self.design_chain_id
 
-        logging.debug(
-            f'Current Mutant ID: {self.mutant_tree_pssm.current_mutant_id}'
-        )
-
-        if molecule and chain_id:
-            mut_obj = extract_mutant_from_pymol_object(
-                pymol_object=self.mutant_tree_pssm.current_mutant_id,
-                sequences=self.designable_sequences,
-            )
-            resi = mut_obj.mutant_info[0]['position']
-
-        if self.mutant_tree_pssm.current_mutant_id:
-            cmd.enable(self.mutant_tree_pssm.current_mutant_id)
-            cmd.show(
-                'mesh',
-                f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA)',
-            )
-            cmd.show(
-                'sticks',
-                f'{self.mutant_tree_pssm.current_mutant_id} and (sidechain or n. CA) and not hydrogen',
-            )
-            cmd.hide('cartoon', f'{self.mutant_tree_pssm.current_mutant_id}')
-            if self.bus.get_value('ui.evaluate.show_wt') and resi:
-                cmd.show(
-                    'lines',
-                    f'{molecule} and c. {chain_id} and i. {resi} and (sidechain or n. CA) and not hydrogens',
-                )
-
-        all_enabled_mutant_ids = cmd.get_names('nongroup_objects', 1)
-
-        all_enabled_mutants_in_current_group = [
-            mutant
-            for mutant in cmd.get_object_list(
-                f'({self.mutant_tree_pssm.current_branch_id})'
-            )
-            if mutant != self.mutant_tree_pssm.current_mutant_id
-            and mutant in all_enabled_mutant_ids
-        ]
-
-        for mutant in all_enabled_mutants_in_current_group:
-            cmd.disable(mutant)
-
-        other_opened_group = [
-            group
-            for group in cmd.get_names('group_objects', 1)
-            if group != self.mutant_tree_pssm.current_branch_id
-        ]
-
-        for group_id in other_opened_group:
-            cmd.disable(group_id)
-            cmd.group(group_id, action='close')
-
-        # expand group object if activated
-        if self.mutant_tree_pssm.current_branch_id:
-            cmd.enable(self.mutant_tree_pssm.current_branch_id)
-            cmd.group(self.mutant_tree_pssm.current_branch_id, action='open')
-
-        self.center_design_area(self.mutant_tree_pssm.current_mutant_id)
-
-    def mutant_decision(self, decision_to_accept: bool):
-        lcdNumber_selected_mutant = self.ui.lcdNumber_selected_mutant
-        if not self.is_this_pymol_object_a_mutant(
-            self.mutant_tree_pssm.current_mutant_id
-        ):
-            logging.warning(
-                f'Ingoring non mutant {self.mutant_tree_pssm.current_mutant_id}'
-            )
-            return
-
-        logging.debug(
-            f'{"Accepting" if decision_to_accept else "Rejecting"} mutant {self.mutant_tree_pssm.current_mutant_id}'
-        )
-
-        if decision_to_accept:
-            self.mutant_tree_pssm_selected.add_mutant_to_branch(
-                branch=self.mutant_tree_pssm.current_branch_id,
-                mutant=self.mutant_tree_pssm.current_mutant_id,
-                mutant_info=self.mutant_tree_pssm.mutant_tree[
-                    self.mutant_tree_pssm.current_branch_id
-                ][self.mutant_tree_pssm.current_mutant_id],
-            )
-
-        else:
-            if (
-                self.mutant_tree_pssm.current_branch_id
-                not in self.mutant_tree_pssm_selected.all_mutant_branch_ids
-            ):
-                logging.warning(
-                    f'{self.mutant_tree_pssm.current_branch_id} does not exist. skipped'
-                )
-                return
-
-            self.mutant_tree_pssm_selected.remove_mutant_from_branch(
-                branch=self.mutant_tree_pssm.current_branch_id,
-                mutant=self.mutant_tree_pssm.current_mutant_id,
-            )
-
-        set_widget_value(
-            lcdNumber_selected_mutant,
-            len(self.mutant_tree_pssm_selected.all_mutant_ids),
-        )
-
-        self.save_mutant_choices(
-            'ui.evaluate.input.to_mutant_txt', self.mutant_tree_pssm_selected
-        )
-
-    def walk_mutant_groups(
-        self,
-        walk_to_next,
-        progressBar_mutant_choosing,
-    ):
-        comboBox_group_ids = self.ui.comboBox_group_ids
-        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
-
-        # self.mutant_tree_pssm.walk_the_mutants(walk_to_next_one=walk_to_next)
-
-        (
-            current_branch_id,
-            current_mutant_id,
-        ) = self.mutant_tree_pssm._walk_the_mutants(
-            walk_to_next_one=walk_to_next
-        )
-
-        set_widget_value(
-            progressBar_mutant_choosing,
-            self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
-                current_mutant_id
-            ),
-        )
-
-        # feedback on two comboboxes
-        if comboBox_group_ids.currentText() != current_branch_id:
-            set_widget_value(comboBox_group_ids, current_branch_id)
-            set_widget_value(
-                comboBox_mutant_ids,
-                list(
-                    self.mutant_tree_pssm.get_a_branch(
-                        branch_id=self.mutant_tree_pssm.current_branch_id
-                    ).keys()
-                ),
-            )
-
-        if comboBox_mutant_ids.currentText() != current_mutant_id:
-            set_widget_value(comboBox_mutant_ids, current_mutant_id)
-
-        self.activate_focused()
-        logging.info(
-            f'Walked to the {"next" if walk_to_next else "previous"} mutant {current_mutant_id}.'
-        )
-
-    def jump_to_branch(
+    def initialize_design_candidates(
         self,
     ):
-        comboBox_group_ids = self.ui.comboBox_group_ids
-        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
-        progressBar_mutant_choosing = self.ui.progressBar
-
-        branch = comboBox_group_ids.currentText()
-        if not branch:
-            logging.warning(f'Branch id is empty or null, skipped.')
-            return
-        elif not self.mutant_tree_pssm:
-            logging.error(f'Mutant tree is invalid.')
-            return
-        else:
-            logging.info(f'Jump to {branch} as required.')
-            self.mutant_tree_pssm.jump_to_branch(branch_id=branch)
-
-            progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
-                self.mutant_tree_pssm.current_mutant_id
-            )
-            logging.info(
-                f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
-            )
-            set_widget_value(progressBar_mutant_choosing, progress)
-
-            # Setting mutant ids to candidates box
-            set_widget_value(
-                comboBox_mutant_ids,
-                list(
-                    self.mutant_tree_pssm.get_a_branch(branch_id=branch).keys()
-                ),
-            )
-            set_widget_value(
-                comboBox_mutant_ids, self.mutant_tree_pssm.current_mutant_id
-            )
-            return
-
-    # end of mutant switching machanism. This step will do focusing, centering, progress bar updating.
-    def jump_to_a_mutant(
-        self,
-    ):
-        comboBox_group_ids = self.ui.comboBox_group_ids
-        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
-        progressBar_mutant_choosing = self.ui.progressBar
-
-        branch_id = comboBox_group_ids.currentText()
-        mutant_id = comboBox_mutant_ids.currentText()
-
-        if self.mutant_tree_pssm.empty:
-            return
-
-        if (not branch_id) or (not mutant_id):
-            return
-
-        if branch_id not in self.mutant_tree_pssm.all_mutant_branch_ids:
-            return
-
-        if mutant_id not in self.mutant_tree_pssm.get_a_branch(
-            branch_id=branch_id
-        ):
-            logging.error(
-                f'Mutant ID {branch_id} is not belong to this branch {self.mutant_tree_pssm.current_branch_id}.'
-            )
-            return
-
-        if branch_id != self.mutant_tree_pssm.current_branch_id:
-            self.mutant_tree_pssm.current_branch_id = branch_id
-
-        logging.info(f'Jump to {mutant_id} as required.')
-        self.mutant_tree_pssm.current_mutant_id = mutant_id
-
-        self.activate_focused()
-
-        # update progress bar
-        progress = self.mutant_tree_pssm.get_mutant_index_in_all_mutants(
-            self.mutant_tree_pssm.current_mutant_id
+        self.evaluator = Evalutator(
+            bus=self.bus,
+            design_molecule=self.design_molecule,
+            design_chain_id=self.design_chain_id,
+            design_sequence=self.design_sequence,
+            designable_sequences=self.designable_sequences,
         )
-        logging.info(
-            f'Progressbar set to {progress}: {self.mutant_tree_pssm.current_mutant_id}'
-        )
-        set_widget_value(progressBar_mutant_choosing, progress)
 
-    def jump_to_the_best_mutant(
-        self,
-    ):
-        comboBox_group_ids = self.ui.comboBox_group_ids
-        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
-        if self.mutant_tree_pssm.empty:
-            return
+        self.evaluator.initialize_design_candidates()
 
-        branch_id = comboBox_group_ids.currentText()
-
-        best_mutant_id = (
-            self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
-                branch_id=branch_id,
-                reversed=self.bus.get_value('ui.evaluate.reverse_score'),
-            )
-        )
-        logging.info(f'Jump to the best hit of {branch_id}: {best_mutant_id}')
-
-        set_widget_value(comboBox_mutant_ids, best_mutant_id)
-
-    def find_all_best_mutants(
-        self,
-    ):
-        comboBox_group_ids = self.ui.comboBox_group_ids
-        comboBox_mutant_ids = self.ui.comboBox_mutant_ids
-        if self.mutant_tree_pssm.empty:
-            logging.error(
-                f'No available mutant tree. Please reinitialize it before picking mutants.'
-            )
-            return
-
-        if not self.mutant_tree_pssm_selected.empty:
-            logging.warning(
-                f'Your current mutant selection will be overrided!'
-            )
-
-            # Ask whether to overide
-            confirmed = proceed_with_comfirm_msg_box(
-                title="Override existed mutant table choices?",
-                description=f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
-                    Are you really sure? ",
-            )
-
-            if not confirmed:
-                logging.warning(f'Cancelled.')
-                return
-
-        original_branch_id = comboBox_group_ids.currentText()
-        original_mutant_id = comboBox_mutant_ids.currentText()
-
-        self.mutant_tree_pssm_selected = MutantTree({})
-
-        for branch_id in self.mutant_tree_pssm.all_mutant_branch_ids:
-            logging.info(f'Jump to {branch_id} as required.')
-
-            set_widget_value(comboBox_group_ids, branch_id)
-
-            best_mutant_id = (
-                self.mutant_tree_pssm._jump_to_the_best_mutant_in_branch(
-                    branch_id=branch_id,
-                    reversed=self.bus.get_value('ui.evaluate.reverse_score'),
-                )
-            )
-            logging.info(
-                f'Jump to the best hit of {branch_id}: {best_mutant_id}'
-            )
-            set_widget_value(comboBox_mutant_ids, best_mutant_id)
-
-            self.mutant_decision(decision_to_accept=True)
-            logging.info(
-                f'Best hit of {self.mutant_tree_pssm.current_mutant_id} accepted.'
-            )
-        # set back orignal values befor clicking this button
-        set_widget_value(comboBox_group_ids, original_branch_id)
-        set_widget_value(comboBox_mutant_ids, original_mutant_id)
-
-        logging.info('Done.')
-
-    # basic function that works for mutant_tree instantiation
-    def is_this_pymol_object_a_mutant(self, mutant):
-        _mutant_obj = extract_mutant_from_pymol_object(
-            pymol_object=mutant, sequences=self.designable_sequences
-        )
-        return _mutant_obj is not None
-
-    def recover_mutant_choices_from_checkpoint(
-        self,
-    ):
-        lcdNumber_selected_mutant = self.ui.lcdNumber_selected_mutant
+    def recover_mutant_choices_from_checkpoint(self):
         mutant_choice_checkpoint_fn = self.browse_filename(
             mode='r', exts=[MutableFileExt, AnyFileExt]
         )
 
-        if not mutant_choice_checkpoint_fn:
-            logging.warning("Cancelled.")
-            return
-
-        if not os.path.exists(mutant_choice_checkpoint_fn):
-            logging.warning(
-                f"Invalid checkpoint file: {mutant_choice_checkpoint_fn}."
-            )
-            return
-
-        mutants_from_checkpoint = (
-            open(mutant_choice_checkpoint_fn, 'r').read().strip().split('\n')
-        )
-
-        self.mutant_tree_pssm_selected = (
-            self.mutant_tree_pssm.create_mutant_tree_from_list(
-                mutants_from_checkpoint
-            )
-        )
-        logging.info(
-            f'Recover mutants from checkpoint: {mutant_choice_checkpoint_fn}'
-        )
-        logging.info(mutants_from_checkpoint)
-
-        set_widget_value(
-            lcdNumber_selected_mutant,
-            len(self.mutant_tree_pssm_selected.all_mutant_ids),
-        )
-
-    def initialize_design_candidates(
-        self,
-        pushButton_previous_mutant,
-        pushButton_next_mutant,
-        pushButton_reject_this_mutant,
-        pushButton_accept_this_mutant,
-        lcdNumber_total_mutant,
-        lcdNumber_selected_mutant,
-        progressBar_mutant_choosing,
-        comboBox_group_ids,
-    ):
-        lineEdit_output_mut_txt = self.bus.get_widget_from_cfg_item(
-            'ui.evaluate.input.to_mutant_txt'
-        )
-        self.mutant_tree_pssm = existed_mutant_tree(
-            sequences=self.designable_sequences, enabled_only=0
-        )
-        if self.mutant_tree_pssm.empty:
-            logging.error(f'This sesion may not contain an mutant tree.')
-            return None
-
-        self.mutant_tree_pssm_selected = MutantTree({})
-
-        # if mutant tree is available, disable the input box for saving.
-
-        lineEdit_output_mut_txt.setEnabled(not self.mutant_tree_pssm.empty)
-
-        if not self.mutant_tree_pssm:
-            logging.warning(
-                'Could not initialize mutant tree! This session may not be a REvoDesign session!'
-            )
-            return
-
-        # clean the view
-        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_branch_ids))
-        cmd.hide('sticks', ' or '.join(self.mutant_tree_pssm.all_mutant_ids))
-        cmd.disable(' or '.join(self.mutant_tree_pssm.all_mutant_ids))
-
-        set_widget_value(
-            progressBar_mutant_choosing,
-            [0, len(self.mutant_tree_pssm.all_mutant_ids)],
-        )
-
-        set_widget_value(
-            comboBox_group_ids, self.mutant_tree_pssm.all_mutant_branch_ids
-        )
-        set_widget_value(
-            comboBox_group_ids, self.mutant_tree_pssm.all_mutant_branch_ids[0]
-        )
-
-        self.activate_focused()
-
-        # show the current branch and mutant
-        cmd.enable(self.mutant_tree_pssm.current_mutant_id)
-        cmd.enable(self.mutant_tree_pssm.current_branch_id)
-
-        set_widget_value(
-            lcdNumber_total_mutant, len(self.mutant_tree_pssm.all_mutant_ids)
-        )
-        set_widget_value(
-            lcdNumber_selected_mutant,
-            len(self.mutant_tree_pssm_selected.all_mutant_ids),
-        )
-
-        # initialize mutant walking
-
-        # set state changes to pushbuttons accroding to the mutant tree
-        for pushButton in [
-            pushButton_previous_mutant,
-            pushButton_next_mutant,
-            pushButton_reject_this_mutant,
-            pushButton_accept_this_mutant,
-        ]:
-            try:
-                pushButton.clicked.disconnect()
-            except:
-                pass
-            pushButton.setEnabled(bool(not self.mutant_tree_pssm.empty))
-
-        pushButton_accept_this_mutant.clicked.connect(
-            partial(self.mutant_decision, True)
-        )
-        pushButton_reject_this_mutant.clicked.connect(
-            partial(self.mutant_decision, False)
-        )
-
-        pushButton_next_mutant.clicked.connect(
-            partial(
-                self.walk_mutant_groups,
-                True,
-                progressBar_mutant_choosing,
-            )
-        )
-
-        pushButton_previous_mutant.clicked.connect(
-            partial(
-                self.walk_mutant_groups,
-                False,
-                progressBar_mutant_choosing,
-            )
+        self.evaluator.recover_mutant_choices_from_checkpoint(
+            mutant_choice_checkpoint_fn
         )
 
     # combination and clustering
@@ -1642,8 +1108,8 @@ class REvoDesignPlugin:
         nproc = self.bus.get_value('ui.header_panel.nproc', int)
 
         # output space
-        plot_space = self.ui.stackedWidget
-        progressbar = self.ui.progressBar
+        plot_space = self.bus.ui.stackedWidget
+        progressbar = self.bus.ui.progressBar
 
         input_fasta_file = (
             f'{self.PWD}/{self.design_molecule}_{self.design_chain_id}.fasta'
@@ -1785,8 +1251,8 @@ class REvoDesignPlugin:
 
         logging.info(f'Saving mutant table to {mutant_table_fp} ...')
 
-        self.save_mutant_choices(
-            cfg_mutant_table_fp,
+        save_mutant_choices(
+            self.bus.get_value(cfg_mutant_table_fp),
             self.visualizing_mutant_tree,
         )
 
@@ -1795,10 +1261,11 @@ class REvoDesignPlugin:
         from REvoDesign.phylogenetics import VisualizingWorker
 
         with hold_trigger_button(trigger_button):
-
             # reinstiatate sidechain solver if required
             run_worker_thread_with_progress(self.refresh_sidechainsolver)
-            assert self.sidechain_solver and isinstance(self.sidechain_solver, SidechainSolver), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
+            assert self.sidechain_solver and isinstance(
+                self.sidechain_solver, SidechainSolver
+            ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
 
             worker = VisualizingWorker(
                 bus=self.bus,
@@ -1870,26 +1337,26 @@ class REvoDesignPlugin:
     def refresh_multi_mutagenesis_designer_parameters(self):
         if not self.multi_mutagenesis_designer:
             return
-        spinBox_maximal_mutant_num = self.ui.spinBox_maximal_mutant_num
+        spinBox_maximal_mutant_num = self.bus.ui.spinBox_maximal_mutant_num
         doubleSpinBox_minmal_mutant_distance = (
-            self.ui.doubleSpinBox_minmal_mutant_distance
+            self.bus.ui.doubleSpinBox_minmal_mutant_distance
         )
-        checkBox_multi_design_bond_CA = self.ui.checkBox_multi_design_bond_CA
+        checkBox_multi_design_bond_CA = self.bus.ui.checkBox_multi_design_bond_CA
         checkBox_multi_design_check_sidechain_orientations = (
-            self.ui.checkBox_multi_design_check_sidechain_orientations
+            self.bus.ui.checkBox_multi_design_check_sidechain_orientations
         )
-        comboBox_profile_type_2 = self.ui.comboBox_profile_type_2
+        comboBox_profile_type_2 = self.bus.ui.comboBox_profile_type_2
         spinBox_maximal_multi_design_variant_num = (
-            self.ui.spinBox_maximal_multi_design_variant_num
+            self.bus.ui.spinBox_maximal_multi_design_variant_num
         )
         checkBox_multi_design_use_external_scorer = (
-            self.ui.checkBox_multi_design_use_external_scorer
+            self.bus.ui.checkBox_multi_design_use_external_scorer
         )
         checkBox_multi_design_color_by_scores = (
-            self.ui.checkBox_multi_design_color_by_scores
+            self.bus.ui.checkBox_multi_design_color_by_scores
         )
         checkBox_reverse_mutant_effect_3 = (
-            self.ui.checkBox_reverse_mutant_effect_3
+            self.bus.ui.checkBox_reverse_mutant_effect_3
         )
 
         self.multi_mutagenesis_designer.scorer = (
@@ -1977,7 +1444,7 @@ class REvoDesignPlugin:
             return
         self.refresh_multi_mutagenesis_designer_parameters()
 
-        mut_table_csv = self.ui.lineEdit_multi_design_mutant_table.text()
+        mut_table_csv = self.bus.ui.lineEdit_multi_design_mutant_table.text()
         self.multi_mutagenesis_designer.export_designed_variant(
             save_mutant_table=mut_table_csv
         )
@@ -2037,17 +1504,17 @@ class REvoDesignPlugin:
                 return
 
             pushButton_run_interact_scan = self.bus.button('run_interact_scan')
-            gridLayout_interact_pairs = self.ui.gridLayout_interact_pairs
+            gridLayout_interact_pairs = self.bus.ui.gridLayout_interact_pairs
 
             # reset design info
             lineEdit_current_pair_wt_score = (
-                self.ui.lineEdit_current_pair_wt_score
+                self.bus.ui.lineEdit_current_pair_wt_score
             )
             lineEdit_current_pair_mut_score = (
-                self.ui.lineEdit_current_pair_mut_score
+                self.bus.ui.lineEdit_current_pair_mut_score
             )
-            lineEdit_current_pair = self.ui.lineEdit_current_pair
-            lineEdit_current_pair_score = self.ui.lineEdit_current_pair_score
+            lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
+            lineEdit_current_pair_score = self.bus.ui.lineEdit_current_pair_score
 
             for lineEdit in [
                 lineEdit_current_pair,
@@ -2057,7 +1524,7 @@ class REvoDesignPlugin:
             ]:
                 set_widget_value(lineEdit, '')
 
-            progress_bar = self.ui.progressBar
+            progress_bar = self.bus.ui.progressBar
 
             # Reinitialize Gremlin mutant tree
             self.mutant_tree_coevolved = MutantTree({})
@@ -2097,7 +1564,7 @@ class REvoDesignPlugin:
     def run_gremlin_tool(self):
         trigger_button = self.bus.button('run_interact_scan')
 
-        progress_bar = self.ui.progressBar
+        progress_bar = self.bus.ui.progressBar
         max_interact_dist = self.bus.get_value(
             'ui.interact.max_interact_dist', float
         )
@@ -2287,8 +1754,8 @@ class REvoDesignPlugin:
             'ui.interact.max_interact_dist', float
         )
 
-        lineEdit_current_pair = self.ui.lineEdit_current_pair
-        lineEdit_current_pair_score = self.ui.lineEdit_current_pair_score
+        lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
+        lineEdit_current_pair_score = self.bus.ui.lineEdit_current_pair_score
 
         if not self.design_chain_id or not self.design_molecule:
             logging.error(f'No available molecule or chain id.')
@@ -2333,8 +1800,8 @@ class REvoDesignPlugin:
         ]
 
         # Clear the existing widgets from gridLayout_interact_pairs
-        for i in reversed(range(self.ui.gridLayout_interact_pairs.count())):
-            widget = self.ui.gridLayout_interact_pairs.itemAt(i).widget()
+        for i in reversed(range(self.bus.ui.gridLayout_interact_pairs.count())):
+            widget = self.bus.ui.gridLayout_interact_pairs.itemAt(i).widget()
             if widget is not None:
                 widget.deleteLater()
 
@@ -2363,7 +1830,7 @@ class REvoDesignPlugin:
                 ignore_wt.isChecked(),
             )
         )
-        self.ui.gridLayout_interact_pairs.addWidget(button_matrix)
+        self.bus.ui.gridLayout_interact_pairs.addWidget(button_matrix)
 
         spatial_distance = cmd.get_distance(
             atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {button_matrix.pos_i+1} and n. CA',
@@ -2423,8 +1890,8 @@ class REvoDesignPlugin:
                     self.current_gremlin_co_evoving_pair_mutant_id,
                 )
 
-        self.save_mutant_choices(
-            'ui.interact.input.to_mutant_txt',
+        save_mutant_choices(
+            self.bus.get_value('ui.interact.input.to_mutant_txt'),
             self.mutant_tree_coevolved,
         )
 
@@ -2502,9 +1969,9 @@ class REvoDesignPlugin:
 
         from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
-        lineEdit_current_pair_wt_score = self.ui.lineEdit_current_pair_wt_score
+        lineEdit_current_pair_wt_score = self.bus.ui.lineEdit_current_pair_wt_score
         lineEdit_current_pair_mut_score = (
-            self.ui.lineEdit_current_pair_mut_score
+            self.bus.ui.lineEdit_current_pair_mut_score
         )
 
         external_scorer = self.bus.get_value('ui.interact.use_external_scorer')
@@ -2529,7 +1996,7 @@ class REvoDesignPlugin:
                 run_worker_thread_with_progress(
                     worker_function=self.gremlin_external_scorer.initialize,
                     ignore_missing=bool('X' in self.design_sequence),
-                    progress_bar=self.ui.progressBar,
+                    progress_bar=self.bus.ui.progressBar,
                 )
 
         else:
@@ -2682,7 +2149,7 @@ class REvoDesignPlugin:
             ws_view_broadcast_interval=(
                 self.bus.get_value('ui.socket.broadcast.interval', float)
             ),
-            treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
+            treeWidget_ws_peers=self.bus.ui.treeWidget_ws_peers,
         )
 
     def update_ws_server_view_update_options(self):
@@ -2782,7 +2249,7 @@ class REvoDesignPlugin:
             'ui.header_panel.cmap.default'
         )
         self.ws_client.nproc = self.bus.get_value('ui.header_panel.nproc')
-        self.ws_client.progress_bar = self.ui.progressBar
+        self.ws_client.progress_bar = self.bus.ui.progressBar
 
         self.ws_client.setup_ws_client(
             lineEdit_ws_server_url_to_connect=self.bus.get_value(
@@ -2800,7 +2267,7 @@ class REvoDesignPlugin:
             checkBox_ws_receive_mutagenesis_broadcast=self.bus.get_value(
                 'ui.socket.receive.mutagenesis'
             ),
-            treeWidget_ws_peers=self.ui.treeWidget_ws_peers,
+            treeWidget_ws_peers=self.bus.ui.treeWidget_ws_peers,
         )
         run_worker_thread_with_progress(self.refresh_sidechainsolver)
         self.ws_client.sidechain_solver = self.sidechain_solver
