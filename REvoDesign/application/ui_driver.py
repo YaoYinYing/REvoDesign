@@ -93,24 +93,10 @@ class ConfigBus:
                 )
 
     def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
-        assert (
-            widget_id in self.w2c.all_widget_ids
-        ), f'Invalid widget_id: {widget_id}'
-        widget = self.ui.findChild(
-            self.get_widget_typing(widget_id=widget_id), widget_id
-        )
-        assert isinstance(widget, QtWidgets.QWidget)
-        return widget
+        return self.w2c.widget_id2widget_map.get(widget_id)
 
     def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:
-        assert (
-            cfg_item in self.w2c.all_cfg_items
-        ), f'Invalid cfg item: {cfg_item}'
-        widget_id = self.w2c._find_widget_id(cfg_item)
-        widget = self.get_widget_from_id(widget_id=widget_id)
-        # print(f'Got widget_id: {widget_id} {widget} from {cfg_item}')
-        assert not isinstance(widget, str)
-        return widget
+        return self.w2c.config2widget_map.get(cfg_item)
 
     def get_widget_value(self, cfg_item: str):
         return get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
@@ -127,8 +113,7 @@ class ConfigBus:
         set_widget_value(widget=widget, value=value)
 
     def get_cfg_item(self, widget_id: str) -> str:
-        assert widget_id in self.w2c.all_widget_ids
-        return self.w2c._find_config_item(widget_id)
+        return self.w2c.widget_id2config_dict.get(widget_id)
 
     def get_value(self, cfg_item: str, typing=None) -> Union[Any, list[Any]]:
         value = OmegaConf.select(self.cfg, cfg_item)
@@ -188,21 +173,6 @@ class ConfigBus:
         # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
         return self.ui.findChild(QtWidgets.QPushButton, f"pushButton_{id}")
 
-    def get_widget_typing(self, widget_id: str):
-        if widget_id.startswith('pushButton'):
-            return QtWidgets.QPushButton
-        if widget_id.startswith('lineEdit'):
-            return QtWidgets.QLineEdit
-        if widget_id.startswith('comboBox'):
-            return QtWidgets.QComboBox
-        if widget_id.startswith('spinBox'):
-            return QtWidgets.QSpinBox
-        if widget_id.startswith('doubleSpinBox'):
-            return QtWidgets.QDoubleSpinBox
-        if widget_id.startswith('checkBox'):
-            return QtWidgets.QCheckBox
-        raise NotImplementedError(f'widget {widget_id} is not supported yet.')
-
 
 class PushButtons:
     button_ids: list[str] = [
@@ -258,102 +228,148 @@ class PushButtons:
     ]
 
 
+@dataclass
 class Config2WidgetIds:
-    c2wi: dict[str, str] = {
-        'ui.header_panel.cmap.default': 'comboBox_cmap',
-        'ui.client.pssm_gremlin_url': 'lineEdit_pssm_gremlin_url',
-        'ui.client.pssm_gremlin_user': 'lineEdit_pssm_gremlin_user',
-        'ui.client.pssm_gremlin_passwd': 'lineEdit_pssm_gremlin_passwd',
-        'ui.prepare.cofactor_radius': 'doubleSpinBox_cofactor_radius',
-        'ui.prepare.ligand_radius': 'doubleSpinBox_ligand_radius',
-        'ui.prepare.chain_dist': 'doubleSpinBox_interface_cutoff',
-        'ui.prepare.surface_probe_radius': 'doubleSpinBox_surface_cutoff',
-        'ui.mutate.reverse_score': 'checkBox_reverse_mutant_effect',
-        'ui.mutate.max_score': 'lineEdit_score_maxima',
-        'ui.mutate.min_score': 'lineEdit_score_minima',
-        'ui.mutate.reject': 'lineEdit_reject_substitution',
-        'ui.mutate.accept': 'lineEdit_preffer_substitution',
-        'ui.mutate.designer.randomized_sampling': 'spinBox_randomized_sampling',
-        'ui.mutate.designer.enable_randomized_sampling': 'checkBox_randomized_sampling',
-        'ui.mutate.designer.deduplicate_designs': 'checkBox_deduplicate_designs',
-        'ui.mutate.designer.homooligomeric': 'checkBox_designer_homooligomeric',
-        'ui.mutate.designer.batch': 'spinBox_designer_batch',
-        'ui.mutate.designer.num_sample': 'spinBox_designer_num_samples',
-        'ui.mutate.designer.temperature': 'doubleSpinBox_designer_temperature',
-        'ui.cluster.score_matrix.default': 'comboBox_cluster_matrix',
-        'ui.cluster.shuffle': 'checkBox_shuffle_clustering',
-        'ui.cluster.mut_num_max': 'spinBox_num_mut_maximum',
-        'ui.cluster.mut_num_min': 'spinBox_num_mut_minimun',
-        'ui.cluster.num_cluster': 'spinBox_num_cluster',
-        'ui.cluster.batch_size': 'spinBox_cluster_batchsize',
-        'ui.visualize.reverse_score': 'checkBox_reverse_mutant_effect_3',
-        'ui.visualize.global_score_policy': 'checkBox_global_score_policy',
-        'ui.interact.interact_ignore_wt': 'checkBox_interact_ignore_wt',
-        'ui.interact.topN_pairs': 'spinBox_gremlin_topN',
-        'ui.interact.max_interact_dist': 'doubleSpinBox_max_interact_dist',
-        'ui.interact.use_external_scorer': 'comboBox_external_scorer',
-        'ui.socket.server_url': 'lineEdit_ws_server_url_to_connect',
-        'ui.socket.server_mode': 'checkBox_ws_server_mode',
-        'ui.socket.server_port': 'spinBox_ws_server_port',
-        'ui.socket.use_key': 'checkBox_ws_server_use_key',
-        'ui.socket.broadcast.interval': 'doubleSpinBox_ws_view_broadcast_interval',
-        'ui.socket.broadcast.view': 'checkBox_ws_broadcast_view',
-        'ui.socket.receive.mutagenesis': 'checkBox_ws_recieve_mutagenesis_broadcast',
-        'ui.socket.receive.view': 'checkBox_ws_recieve_view_broadcast',
-        'ui.config.sidechain_solver.default': 'comboBox_sidechain_solver',
-        'ui.config.sidechain_solver.repack_radius': 'doubleSpinBox_sidechain_solver_radius',
-        'ui.config.sidechain_solver.model': 'comboBox_sidechain_solver_model',
-        'ui.header_panel.input.molecule': 'comboBox_design_molecule',
-        'ui.header_panel.input.chain_id': 'comboBox_chain_id',
-        'ui.header_panel.nproc': 'spinBox_nproc',
-        'ui.prepare.input.pocket.to_pse': 'lineEdit_output_pse_pocket',
-        'ui.prepare.input.pocket.substrate': 'comboBox_ligand_sel',
-        'ui.prepare.input.pocket.cofactor': 'comboBox_cofactor_sel',
-        'ui.prepare.input.surface.to_pse': 'lineEdit_output_pse_surface',
-        'ui.prepare.input.surface.exclusion': 'comboBox_surface_exclusion',
-        'ui.mutate.input.to_pse': 'lineEdit_output_pse_mutate',
-        'ui.mutate.input.profile': 'lineEdit_input_csv',
-        'ui.mutate.input.profile_type': 'comboBox_profile_type',
-        'ui.mutate.input.design_case': 'lineEdit_design_case',
-        'ui.mutate.input.residue_ids': 'lineEdit_input_customized_indices',
-        'ui.evaluate.input.to_mutant_txt': 'lineEdit_output_mut_table',
-        'ui.evaluate.rock': 'checkBox_rock_pymol',
-        'ui.evaluate.show_wt': 'checkBox_show_wt',
-        'ui.evaluate.reverse_score': 'checkBox_reverse_mutant_effect_2',
-        'ui.cluster.input.from_mutant_txt': 'lineEdit_input_mut_table',
-        'ui.visualize.input.to_pse': 'lineEdit_output_pse_visualize',
-        'ui.visualize.input.from_mutant_txt': 'lineEdit_input_mut_table_csv',
-        'ui.visualize.input.profile': 'lineEdit_input_csv_2',
-        'ui.visualize.input.profile_type': 'comboBox_profile_type_2',
-        'ui.visualize.input.group_name': 'lineEdit_group_name',
-        'ui.visualize.input.best_leaf': 'comboBox_best_leaf',
-        'ui.visualize.input.totalscore': 'comboBox_totalscore',
-        'ui.visualize.input.multi_design.to_mutant_txt': 'lineEdit_multi_design_mutant_table',
-        'ui.interact.input.gremlin_pkl': 'lineEdit_input_gremlin_mtx',
-        'ui.interact.input.to_mutant_txt': 'lineEdit_output_mutant_table',
-        'ui.socket.input.key': 'lineEdit_ws_server_key',
-        'ui.socket.input.hostname': 'lineEdit_ws_server_url_to_connect',
-    }
+    wi_types: immutabledict = immutabledict({
+        'pushButton': QtWidgets.QPushButton,
+        'lineEdit': QtWidgets.QLineEdit,
+        'comboBox': QtWidgets.QComboBox,
+        'spinBox': QtWidgets.QSpinBox,
+        'doubleSpinBox': QtWidgets.QDoubleSpinBox,
+        'checkBox': QtWidgets.QCheckBox,
+    })
+
+    c2wi: immutabledict[str, str] = immutabledict(
+        {
+            'ui.header_panel.cmap.default': 'comboBox_cmap',
+            'ui.client.pssm_gremlin_url': 'lineEdit_pssm_gremlin_url',
+            'ui.client.pssm_gremlin_user': 'lineEdit_pssm_gremlin_user',
+            'ui.client.pssm_gremlin_passwd': 'lineEdit_pssm_gremlin_passwd',
+            'ui.prepare.cofactor_radius': 'doubleSpinBox_cofactor_radius',
+            'ui.prepare.ligand_radius': 'doubleSpinBox_ligand_radius',
+            'ui.prepare.chain_dist': 'doubleSpinBox_interface_cutoff',
+            'ui.prepare.surface_probe_radius': 'doubleSpinBox_surface_cutoff',
+            'ui.mutate.reverse_score': 'checkBox_reverse_mutant_effect',
+            'ui.mutate.max_score': 'lineEdit_score_maxima',
+            'ui.mutate.min_score': 'lineEdit_score_minima',
+            'ui.mutate.reject': 'lineEdit_reject_substitution',
+            'ui.mutate.accept': 'lineEdit_preffer_substitution',
+            'ui.mutate.designer.randomized_sampling': 'spinBox_randomized_sampling',
+            'ui.mutate.designer.enable_randomized_sampling': 'checkBox_randomized_sampling',
+            'ui.mutate.designer.deduplicate_designs': 'checkBox_deduplicate_designs',
+            'ui.mutate.designer.homooligomeric': 'checkBox_designer_homooligomeric',
+            'ui.mutate.designer.batch': 'spinBox_designer_batch',
+            'ui.mutate.designer.num_sample': 'spinBox_designer_num_samples',
+            'ui.mutate.designer.temperature': 'doubleSpinBox_designer_temperature',
+            'ui.cluster.score_matrix.default': 'comboBox_cluster_matrix',
+            'ui.cluster.shuffle': 'checkBox_shuffle_clustering',
+            'ui.cluster.mut_num_max': 'spinBox_num_mut_maximum',
+            'ui.cluster.mut_num_min': 'spinBox_num_mut_minimun',
+            'ui.cluster.num_cluster': 'spinBox_num_cluster',
+            'ui.cluster.batch_size': 'spinBox_cluster_batchsize',
+            'ui.visualize.reverse_score': 'checkBox_reverse_mutant_effect_3',
+            'ui.visualize.global_score_policy': 'checkBox_global_score_policy',
+            'ui.interact.interact_ignore_wt': 'checkBox_interact_ignore_wt',
+            'ui.interact.topN_pairs': 'spinBox_gremlin_topN',
+            'ui.interact.max_interact_dist': 'doubleSpinBox_max_interact_dist',
+            'ui.interact.use_external_scorer': 'comboBox_external_scorer',
+            'ui.socket.server_url': 'lineEdit_ws_server_url_to_connect',
+            'ui.socket.server_mode': 'checkBox_ws_server_mode',
+            'ui.socket.server_port': 'spinBox_ws_server_port',
+            'ui.socket.use_key': 'checkBox_ws_server_use_key',
+            'ui.socket.broadcast.interval': 'doubleSpinBox_ws_view_broadcast_interval',
+            'ui.socket.broadcast.view': 'checkBox_ws_broadcast_view',
+            'ui.socket.receive.mutagenesis': 'checkBox_ws_recieve_mutagenesis_broadcast',
+            'ui.socket.receive.view': 'checkBox_ws_recieve_view_broadcast',
+            'ui.config.sidechain_solver.default': 'comboBox_sidechain_solver',
+            'ui.config.sidechain_solver.repack_radius': 'doubleSpinBox_sidechain_solver_radius',
+            'ui.config.sidechain_solver.model': 'comboBox_sidechain_solver_model',
+            'ui.header_panel.input.molecule': 'comboBox_design_molecule',
+            'ui.header_panel.input.chain_id': 'comboBox_chain_id',
+            'ui.header_panel.nproc': 'spinBox_nproc',
+            'ui.prepare.input.pocket.to_pse': 'lineEdit_output_pse_pocket',
+            'ui.prepare.input.pocket.substrate': 'comboBox_ligand_sel',
+            'ui.prepare.input.pocket.cofactor': 'comboBox_cofactor_sel',
+            'ui.prepare.input.surface.to_pse': 'lineEdit_output_pse_surface',
+            'ui.prepare.input.surface.exclusion': 'comboBox_surface_exclusion',
+            'ui.mutate.input.to_pse': 'lineEdit_output_pse_mutate',
+            'ui.mutate.input.profile': 'lineEdit_input_csv',
+            'ui.mutate.input.profile_type': 'comboBox_profile_type',
+            'ui.mutate.input.design_case': 'lineEdit_design_case',
+            'ui.mutate.input.residue_ids': 'lineEdit_input_customized_indices',
+            'ui.evaluate.input.to_mutant_txt': 'lineEdit_output_mut_table',
+            'ui.evaluate.rock': 'checkBox_rock_pymol',
+            'ui.evaluate.show_wt': 'checkBox_show_wt',
+            'ui.evaluate.reverse_score': 'checkBox_reverse_mutant_effect_2',
+            'ui.cluster.input.from_mutant_txt': 'lineEdit_input_mut_table',
+            'ui.visualize.input.to_pse': 'lineEdit_output_pse_visualize',
+            'ui.visualize.input.from_mutant_txt': 'lineEdit_input_mut_table_csv',
+            'ui.visualize.input.profile': 'lineEdit_input_csv_2',
+            'ui.visualize.input.profile_type': 'comboBox_profile_type_2',
+            'ui.visualize.input.group_name': 'lineEdit_group_name',
+            'ui.visualize.input.best_leaf': 'comboBox_best_leaf',
+            'ui.visualize.input.totalscore': 'comboBox_totalscore',
+            'ui.visualize.input.multi_design.to_mutant_txt': 'lineEdit_multi_design_mutant_table',
+            'ui.interact.input.gremlin_pkl': 'lineEdit_input_gremlin_mtx',
+            'ui.interact.input.to_mutant_txt': 'lineEdit_output_mutant_table',
+            'ui.socket.input.key': 'lineEdit_ws_server_key',
+            'ui.socket.input.hostname': 'lineEdit_ws_server_url_to_connect',
+        }
+    )
+
+    def get_widget_typing(self, widget_id: str):
+        widget_type = widget_id.split('_')[0]
+        if widget_type not in self.wi_types:
+            raise NotImplementedError(
+                f'widget {widget_id} is not supported yet.'
+            )
+        return self.wi_types.get(widget_type)
 
 
 class Widget2ConfigMapper:
     def __init__(self, ui):
         self.ui = ui
 
-        self.group_config_map: dict[str, tuple[Union[str, Any]]] = {
-            'comboBox_cmap': (CallableGroupValues.ColorMap,),
-            'comboBox_cluster_matrix': (CallableGroupValues.score_matrix,),
-            'comboBox_sidechain_solver': ('ui.config.sidechain_solver.group',),
-            'comboBox_profile_type': (
-                'profile.group',
-                'designer.group',
-            ),
-            'comboBox_profile_type_2': ('profile.group', 'designer.group'),
-            'comboBox_external_scorer': ('designer.group',),
-        }
+        self.group_config_map: immutabledict[str, tuple[Union[str, Any]]] = (
+            immutabledict(
+                {
+                    'comboBox_cmap': (CallableGroupValues.ColorMap,),
+                    'comboBox_cluster_matrix': (
+                        CallableGroupValues.score_matrix,
+                    ),
+                    'comboBox_sidechain_solver': (
+                        'ui.config.sidechain_solver.group',
+                    ),
+                    'comboBox_profile_type': (
+                        'profile.group',
+                        'designer.group',
+                    ),
+                    'comboBox_profile_type_2': (
+                        'profile.group',
+                        'designer.group',
+                    ),
+                    'comboBox_external_scorer': ('designer.group',),
+                }
+            )
+        )
 
         self.run_buttons: list[str] = PushButtons().button_ids
-        self.config_widget_id_map: dict[str] = Config2WidgetIds().c2wi
+        self.c2wi = Config2WidgetIds()
+        self.config_widget_id_map: immutabledict = immutabledict(
+            self.c2wi.c2wi
+        )
+        self.config2widget_map: immutabledict = immutabledict(
+            {
+                c: self.get_widget_from_id(wi)
+                for c, wi in self.config_widget_id_map.items()
+            }
+        )
+        self.widget_id2widget_map: immutabledict = immutabledict(
+            {
+                self._find_widget_id(c): w
+                for c, w in self.config2widget_map.items()
+            }
+        )
 
     @property
     def all_widget_ids(self) -> tuple[str]:
@@ -369,17 +385,23 @@ class Widget2ConfigMapper:
             {v: k for k, v in self.config_widget_id_map.items()}
         )
 
-    @property
-    def config2widget_id_dict(self) -> immutabledict:
-        return immutabledict(self.config_widget_id_map)
-
     def _find_config_item(self, widget_id):
         config_item = self.widget_id2config_dict.get(widget_id)
         return config_item
 
     def _find_widget_id(self, config_item: str):
-        widget_id = self.config2widget_id_dict.get(config_item)
+        widget_id = self.config_widget_id_map.get(config_item)
         return widget_id
+
+    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
+        assert (
+            widget_id in self.all_widget_ids
+        ), f'Invalid widget_id: {widget_id}'
+        widget = self.ui.findChild(
+            self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
+        )
+        assert isinstance(widget, QtWidgets.QWidget)
+        return widget
 
 
 @dataclass
