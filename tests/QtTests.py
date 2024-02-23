@@ -82,7 +82,9 @@ class TestWorker:
             'MACBOOKPRO': bool(os.environ.get('PROTEIN_DESIGN_KIT')),
         }
 
-        self.in_ci_runner= (self.in_which_runner.get('CIRCLECI') or self.in_which_runner.get('GITHUB'))
+        self.in_ci_runner = self.in_which_runner.get(
+            'CIRCLECI'
+        ) or self.in_which_runner.get('GITHUB')
 
     def _fetch_pdb(self):
         try:
@@ -130,18 +132,17 @@ class TestWorker:
 
         self.qtbot.wait(100)
 
-        self.revo_design_plugin.reload_molecule_info(
-        )
+        self.revo_design_plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
         for t in range(times):
             self.qtbot.mouseClick(widget, self.CURSOR)
-    
-    def do_typing(self, widget: QtWidgets.QWidget,text: str):
+        return self
+
+    def do_typing(self, widget: QtWidgets.QWidget, text: str):
         set_widget_value(widget=widget, value='')
         self.qtbot.keyClicks(widget, text)
-
 
     def _navigate_to_tab(
         self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
@@ -234,7 +235,7 @@ class TestWorker:
         basename: str = 'default',
     ):
         if self.in_ci_runner:
-            return 
+            return
         png_file = self.qtbot.screenshot(widget=widget)
         moved_file = os.rename(
             png_file, os.path.join(self.SCREENSHOT_DIR, f'{basename}.png')
@@ -249,7 +250,7 @@ class TestWorker:
         spells: str = None,
     ):
         if self.in_ci_runner:
-            return 
+            return
         if spells:
             cmd.do(spells)
         png_file = os.path.join(self.PYMOL_PNG_DIR, f'{basename}.png')
@@ -385,7 +386,6 @@ class TestREvoDesignPlugin_TabPrepare:
             design_shell_residue_ids = ds_fr.read().strip()
             assert design_shell_residue_ids
 
-        
         WORKER.save_pymol_png(basename=WORKER.method_name())
 
     def test_surface(
@@ -819,9 +819,11 @@ class TestREvoDesignPlugin_TabEvaluate:
         self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
     ):
         WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
-        WORKER.load_session_and_check(
-            customized_session=WORKER.test_data.entro_design_pse
+        pse_path = WORKER.download_file(
+            url=WORKER.test_data.EVALUATION_PSE_URL,
+            md5=WORKER.test_data.EVALUATION_PSE_MD5,
         )
+        WORKER.load_session_and_check(customized_session=pse_path)
         WORKER.go_to_tab(tab_name='evaluate')
 
         mutagenesis_dir = os.path.abspath('mutagenese')
@@ -852,7 +854,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         )
         WORKER.save_pymol_png(basename=WORKER.method_name())
 
-        assert not revo_design_plugin.mutant_tree_pssm_selected.empty
+        assert not revo_design_plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
             picked_mutants = mr.read().strip().split('\n')
 
@@ -860,16 +862,18 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         assert picked_mutants
         assert len(picked_mutants) == len(
-            revo_design_plugin.mutant_tree_pssm_selected.all_mutant_objects
+            revo_design_plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
 
     def test_evaluate_pssm_ent_surf_mannual_pick(
         self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
     ):
         WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
-        WORKER.load_session_and_check(
-            customized_session=WORKER.test_data.entro_design_pse
+        pse_path = WORKER.download_file(
+            url=WORKER.test_data.EVALUATION_PSE_URL,
+            md5=WORKER.test_data.EVALUATION_PSE_MD5,
         )
+        WORKER.load_session_and_check(customized_session=pse_path)
         WORKER.go_to_tab(tab_name='evaluate')
 
         mutagenesis_dir = os.path.abspath('mutagenese')
@@ -886,49 +890,22 @@ class TestREvoDesignPlugin_TabEvaluate:
             revo_design_plugin.ui.checkBox_reverse_mutant_effect_2,
             WORKER.test_data.entropy_score_reversed,
         )
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_reinitialize_mutant_choosing
-        )
+        _init = revo_design_plugin.ui.pushButton_reinitialize_mutant_choosing
+        _next = revo_design_plugin.ui.pushButton_next_mutant
+        _last = revo_design_plugin.ui.pushButton_previous_mutant
+        _acp = revo_design_plugin.ui.pushButton_accept_this_mutant
+        _rjct = revo_design_plugin.ui.pushButton_reject_this_mutant
+        _bsh = revo_design_plugin.ui.pushButton_goto_best_hit_in_group
 
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_next_mutant, times=2
-        )
+        WORKER.click(_init).click(_next, 2).click(_acp)
 
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_accept_this_mutant
-        )
+        WORKER.click(_next, 3).click(_acp)
 
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_next_mutant, times=3
-        )
+        WORKER.click(_next, 2).click(_acp)
 
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_accept_this_mutant
-        )
+        WORKER.click(_next, 5).click(_bsh).click(_acp)
 
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_next_mutant, times=2
-        )
-
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_accept_this_mutant
-        )
-
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_next_mutant, times=5
-        )
-
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_goto_best_hit_in_group
-        )
-
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_accept_this_mutant
-        )
-
-        WORKER.click(
-            widget=revo_design_plugin.ui.pushButton_next_mutant, times=2
-        )
+        WORKER.click(_next, 2)
 
         WORKER.save_screenshot(
             widget=revo_design_plugin.window,
@@ -936,7 +913,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         )
         WORKER.save_pymol_png(basename=WORKER.method_name())
 
-        assert not revo_design_plugin.mutant_tree_pssm_selected.empty
+        assert not revo_design_plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
             picked_mutants = mr.read().strip().split('\n')
 
@@ -944,7 +921,7 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         assert picked_mutants
         assert len(picked_mutants) == len(
-            revo_design_plugin.mutant_tree_pssm_selected.all_mutant_objects
+            revo_design_plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
 
 

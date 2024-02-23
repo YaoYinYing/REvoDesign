@@ -532,6 +532,8 @@ class REvoDesignWebSocketClient:
         self.progress_bar = None
         self.treeWidget_ws_peers = None
 
+        self.sidechain_solver = None
+
     def setup_ws_client(
         self,
         lineEdit_ws_server_url_to_connect,
@@ -741,12 +743,16 @@ class REvoDesignWebSocketClient:
     def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
 
+        if not self.sidechain_solver:
+            raise RuntimeError('Sidechain Solver is not instantialized.')
+
         quick_mutagenesis(
             mutant_tree=mutant_tree,
             molecule=self.design_molecule,
             chain_id=self.design_chain_id,
             sequence=self.design_sequence,
             nproc=self.nproc,
+            sidechain_solver=self.sidechain_solver,
         )
 
     def error(self, error_code):

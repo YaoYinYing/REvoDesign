@@ -3,6 +3,12 @@ import json
 import hashlib
 import time
 import re
+from typing import Union
+from REvoDesign.sidechain_solver import (
+    PyMOL_mutate,
+    DLPacker_worker,
+    PIPPack_worker,
+)
 
 from REvoDesign.tools.logger import logging as logger
 from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
@@ -44,6 +50,8 @@ class REvoDesigner:
     def __init__(self, input_profile):
         self.input_pse = ''
         self.output_pse = ''
+        self.molecule = ''
+        self.chain_id = 'A'
 
         self.input_profile = input_profile
         self.input_profile_format = 'PSSM'
@@ -56,13 +64,10 @@ class REvoDesigner:
         self.deduplicate_designs = False
         self.randomized_sample = False
         self.randomized_sample_num = 10
+        self.mutate_runner: Union[
+            PyMOL_mutate, DLPacker_worker, PIPPack_worker
+        ] = None
 
-        self.sidechain_solver = 'Dunbrack Rotamer Library'
-        self.sidechain_solver_radius = 0
-        self.sidechain_solver_model = ''
-
-        self.molecule = ''
-        self.chain_id = 'A'
         self.pwd = '.'
         self.sequence = ''
 
@@ -603,10 +608,7 @@ class REvoDesigner:
         self.visualizer.nproc = self.nproc
         self.visualizer.parallel_run = self.nproc > 1
         self.visualizer.input_session = self.input_pse
-
-        self.visualizer.sidechain_solver = self.sidechain_solver
-        self.visualizer.sidechain_solver_radius = self.sidechain_solver_radius
-        self.visualizer.sidechain_solver_model = self.sidechain_solver_model
+        self.visualizer.mutate_runner = self.mutate_runner
 
         if (
             self.external_designer
@@ -622,8 +624,6 @@ class REvoDesigner:
         else:
             self.visualizer.min_score = -self.max_abs_profile
             self.visualizer.max_score = self.max_abs_profile
-
-        self.visualizer.setup_side_chain_solver()
 
     def run_mutagenesis_via_mutant_visualizer(self, group_id, progress_bar):
         """

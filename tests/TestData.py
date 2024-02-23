@@ -23,6 +23,8 @@ class TestData:
 
     PYTHIA_DDG_CSV_URL:str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_pred_mask.csv'
     PYTHIA_DDG_CSV_MD5: str ='md5:982eda8c8056c388d9741407dea8e750'
+
+    
     # pocket
     substrate: str = 'CPZ'
     cofactor: str = 'HEM'
@@ -32,7 +34,7 @@ class TestData:
     exclusion_prefix: str = 'pkt_hetatm_'
 
     # surface design
-    entropy_min_score: str = '-2'
+    entropy_min_score: str = '3'
     entropy_max_score: str = '20'
     entropy_score_reversed: bool = False
     entropy_design_case: str = 'pssm.ent.surf'
@@ -60,7 +62,7 @@ class TestData:
 
     # pocket design
     pocket_pssm_residues: str = '103,104,105'
-    pocket_pssm_min_score: str = '-3'
+    pocket_pssm_min_score: str = '-2'
     pocket_pssm_max_score: str = '0'
     pocket_pssm_score_reversed: bool = False
     pocket_pssm_design_case: str = 'pssm.pkt'
@@ -69,6 +71,9 @@ class TestData:
 
     entropy_to_ddg_score_reversed: bool = True
     entropy_to_ddg_group_id: str = 'surf.pssm.ddg'
+
+    EVALUATION_PSE_URL:str ='https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze'
+    EVALUATION_PSE_MD5:str ='md5:225128f0958ad622de9af6b485de5e86'
 
     @property
     def pocket_pse(self):

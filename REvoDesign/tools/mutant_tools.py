@@ -1,12 +1,15 @@
 import os
 import re
 import json
+import time
 
 from omegaconf import DictConfig
 from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
+from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
 
@@ -443,7 +446,9 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
             for mutant_id in cmd.get_object_list(f'({group_id})')
             if not enabled_only or not is_hidden_object(selection=mutant_id)
         }
-        for group_id in cmd.get_names(type='group_objects', enabled_only=1)
+        for group_id in cmd.get_names(
+            type='group_objects', enabled_only=enabled_only
+        )
         if not group_id.startswith('multi_design')
     }
     return MutantTree(_mutant_tree)
@@ -455,6 +460,7 @@ def quick_mutagenesis(
     chain_id: str,
     sequence: str,
     nproc: int,
+    sidechain_solver: SidechainSolver,
     progress_bar=None,
 ):
     """
@@ -492,7 +498,7 @@ def quick_mutagenesis(
 
     input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
     visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-    cfg: DictConfig = visualizer.REVODESIGN_CONFIG
+    cfg: DictConfig = reload_config_file()
 
     visualizer.nproc = nproc
     visualizer.parallel_run = nproc > 1
@@ -501,16 +507,10 @@ def quick_mutagenesis(
 
     visualizer.full = cfg.ui.visualize.full_pdb
     visualizer.cmap = cfg.ui.header_panel.cmap
-    visualizer.sidechain_solver = cfg.ui.config.sidechain_solver.default
-    visualizer.sidechain_solver_model = cfg.ui.config.sidechain_solver.model
-    visualizer.sidechain_solver_radius = (
-        cfg.ui.config.sidechain_solver.repack_radius
-    )
+    visualizer.sidechain_solver = sidechain_solver
 
     visualizer.min_score = min(score_list)
     visualizer.max_score = max(score_list)
-
-    visualizer.setup_side_chain_solver()
 
     for group_id in mutant_tree.all_mutant_branch_ids:
         visualizer.group_name = group_id
@@ -541,3 +541,63 @@ def quick_mutagenesis(
     )
     cmd.load(session_merger.save_session, partial=2)
     return
+
+
+def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
+    if not mutant_tree:
+        logging.error(f"No Mutant tree is given!")
+        return
+
+    if mutant_tree.empty:
+        logging.warning(f'mutant tree is empty. save nothing.')
+        return
+
+    mutants_to_save = mutant_tree.all_mutant_ids
+    logging.info(f"saving: {mutants_to_save}")
+
+    # TODO mutant_choices function
+    output_mut_txt_dir = os.path.dirname(output_mut_txt_fn)
+    if not os.path.exists(output_mut_txt_dir):
+        logging.warning(
+            f'Parent dir for mutant table does NOT exist! {output_mut_txt_dir}'
+        )
+        # os.makedirs(output_mut_txt_dir,exist_ok=True)
+        logging.warning(f'Skip saving mutant file.')
+        return
+
+    if os.path.exists(output_mut_txt_fn):
+        logging.warning(
+            f'Mutant table exists and will be overriden! {output_mut_txt_fn}'
+        )
+        write_input_mutant_table(
+            output_mut_txt_fn,
+            [mt.full_mutant_id for mt in mutant_tree.all_mutant_objects],
+        )
+
+    else:
+        logging.info(f'Mutant table is created at {output_mut_txt_fn}')
+        write_input_mutant_table(
+            output_mut_txt_fn,
+            [mt.full_mutant_id for mt in mutant_tree.all_mutant_objects],
+        )
+
+    output_mut_txt_dir_ckp = os.path.join(
+        output_mut_txt_dir, f'./checkpoints/'
+    )
+    os.makedirs(output_mut_txt_dir_ckp, exist_ok=True)
+
+    output_mut_txt_bn_ckp = f'ckp_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.{os.path.basename(output_mut_txt_fn)}'
+    output_mut_txt_ckp = os.path.join(
+        output_mut_txt_dir_ckp, output_mut_txt_bn_ckp
+    )
+
+    logging.info(f'Saving checkpoint: {output_mut_txt_ckp}')
+    write_input_mutant_table(
+        output_mut_txt_ckp, [mt for mt in mutants_to_save]
+    )
+
+
+def write_input_mutant_table(output_mut_txt_fn, mutant_list):
+    open(output_mut_txt_fn, 'w').write(
+        '\n'.join(mutant_list) if mutant_list else ''
+    )

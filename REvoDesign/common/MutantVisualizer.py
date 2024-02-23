@@ -1,26 +1,25 @@
 import os
 import time
 import tempfile
+from typing import Union
 import pandas as pd
 
 from Bio import SeqIO
 from pymol import cmd
 import matplotlib
+from REvoDesign.sidechain_solver import (
+    PyMOL_mutate,
+    DLPacker_worker,
+    PIPPack_worker,
+)
 
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
 
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 matplotlib.use('Agg')
-
-from REvoDesign.tools.post_installed import (
-    reload_config_file,
-    WITH_DEPENDENCIES,
-)
-from omegaconf import DictConfig
 
 from REvoDesign.common.Mutant import Mutant
 
@@ -39,7 +38,6 @@ from REvoDesign.tools.mutant_tools import (
 
 class MutantVisualizer:
     def __init__(self, molecule, chain_id):
-        self.REVODESIGN_CONFIG: DictConfig = reload_config_file()
         self.molecule = molecule
         self.chain_id = chain_id
         self.mutfile = ''
@@ -54,18 +52,12 @@ class MutantVisualizer:
         self.group_name = 'default_group'
         self.sequence = ''
         self.profile = ''
-        self.profile_format = self.REVODESIGN_CONFIG.ui.mutate.input.profile
+        self.profile_format: str = 'PSSM'
         self.scorer = None
-        self.sidechain_solver = 'Dunbrack Rotamer Library'
-        self.sidechain_solver_radius = 0
-        self.sidechain_solver_model = ''
-        self.mutate_runner = None
+        self.mutate_runner: Union[
+            PyMOL_mutate, DLPacker_worker, PIPPack_worker
+        ] = None
 
-        # this should be set via the following:
-        # visualizer=MutantVisualizer(molecule=molecule,chain_id=chainid)
-        # visualizer.profile_scoring_df=visualizer.parse_profile(
-        #         profile_fp=design_profile,
-        #         profile_format=design_profile_format)
         self.profile_scoring_df = None
 
         self.min_score = 0.5
@@ -76,74 +68,6 @@ class MutantVisualizer:
         self.mutant_tree = MutantTree({})
 
         self.consider_global_score_from_profile = False
-
-    def setup_side_chain_solver(self):
-        if not self.sidechain_solver or self.sidechain_solver not in list(
-            self.REVODESIGN_CONFIG.ui.config.sidechain_solver.group
-        ):
-            logging.error(
-                f'Sidechain solver is not available: {self.sidechain_solver}'
-            )
-            return
-
-        input_pdb = make_temperal_input_pdb(
-            molecule=self.molecule, chain_id=self.chain_id, reload=False
-        )
-        if self.sidechain_solver == 'Dunbrack Rotamer Library':
-            if (
-                not self.mutate_runner
-                or not self.mutate_runner.__class__.__name__ == 'PyMOL_mutate'
-            ):
-                from REvoDesign.sidechain_solver.DunbrackRotamerLib import (
-                    PyMOL_mutate,
-                )
-
-                self.mutate_runner = PyMOL_mutate(
-                    molecule=self.molecule, input_session=input_pdb
-                )
-
-        elif self.sidechain_solver == 'DLPacker':
-            if not WITH_DEPENDENCIES.DLPACKER:
-                logging.error(
-                    'DLPacker is not available in your installation. Aborded..'
-                )
-                return
-            if (
-                not self.mutate_runner
-                or not self.mutate_runner.__class__.__name__
-                == 'DLPacker_worker'
-            ):
-                from REvoDesign.sidechain_solver.DLPacker import (
-                    DLPacker_worker,
-                )
-
-                self.mutate_runner = DLPacker_worker(pdb_file=input_pdb)
-                # logging.warning(
-                #     'Cannot use DLPacker in parallel mutagenesis. nproc will be set to'
-                # )
-                # self.nproc = 1
-        elif self.sidechain_solver == 'PIPPack':
-            if not WITH_DEPENDENCIES.PIPPACK:
-                logging.error(
-                    'PIPPack is not available in your installation. Aborded..'
-                )
-                return
-            if (
-                not self.mutate_runner
-                or not self.mutate_runner.__class__.__name__
-                == 'PIPPack_worker'
-            ):
-                from REvoDesign.sidechain_solver.PIPPack import (
-                    PIPPack_worker,
-                )
-
-                self.mutate_runner = PIPPack_worker(
-                    pdb_file=input_pdb, use_model=self.sidechain_solver_model
-                )
-
-        # setup more sidechain solvers here ...
-
-        logging.info(f'Using {self.sidechain_solver} as sidechain solver.')
 
     def process_mutant(self, mutant_obj: Mutant):
         """
@@ -207,14 +131,10 @@ class MutantVisualizer:
         ]
 
         if not self.mutate_runner:
-            self.setup_side_chain_solver()
+            raise RuntimeError(f'no mutate runner is instantiated yet.')
 
         temp_mutant_pdb_path = self.mutate_runner.run_mutate(
             mutant_obj=mutant_obj,
-            reconstruct_area_radius=self.sidechain_solver_radius,
-            relax_order='natoms'
-            if self.sidechain_solver_radius > 0
-            else 'sequence',
             in_place=in_place,
         )
 
