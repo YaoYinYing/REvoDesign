@@ -16,12 +16,40 @@ from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 
 class ConfigBus:
+    """
+    This class is responsible for handling the configuration and interaction between the UI widgets and the application's configuration settings.
+
+    Attributes:
+        ui (QtWidgets.QWidget): The main UI widget of the application.
+        cfg (OmegaConf): The application's configuration settings.
+        w2c (Widget2ConfigMapper): A mapper object that maps UI widgets to configuration settings.
+        buttons (dict): A dictionary of UI buttons.
+
+    Methods:
+        initialize_widget_with_cfg_group(): Initializes UI widgets with their corresponding configuration settings.
+        update_cfg_item_from_widget(widget_id: str): Updates a configuration setting based on the value of a UI widget.
+        register_widget_changes_to_cfg(): Registers UI widget changes to update the configuration settings.
+        get_widget_from_id(widget_id: str): Retrieves a UI widget based on its ID.
+        get_widget_from_cfg_item(cfg_item: str): Retrieves a UI widget based on its corresponding configuration item.
+        get_widget_value(cfg_item: str): Retrieves the value of a UI widget based on its corresponding configuration item.
+        set_widget_value(cfg_item: str, value): Sets the value of a UI widget based on its corresponding configuration item.
+        restore_widget_value(cfg_item: str): Restores the value of a UI widget to its default configuration setting.
+        get_cfg_item(widget_id: str): Retrieves the configuration item corresponding to a UI widget ID.
+        get_value(cfg_item: str, typing=None): Retrieves the value of a configuration item, with optional type casting.
+        set_value(cfg_item: str, value): Sets the value of a configuration item.
+        toggle_buttons(buttons: Iterable, set_enabled: bool = False): Toggles the enabled state of a list of buttons.
+        fp_lock(cfg_fps: Union[list, tuple, str], buttons_id_to_release: Union[list, tuple, str]): Locks or unlocks buttons based on the existence of file paths in the configuration.
+        button(id: str): Retrieves a button widget based on its ID.
+    """
     def __init__(self, ui: QtWidgets.QWidget):
         self.ui = ui
         self.cfg = reload_config_file()
         self.w2c = Widget2ConfigMapper(ui=self.ui)
+        self.buttons=self.w2c.buttons
 
     def initialize_widget_with_cfg_group(self):
+        # Initializes UI widgets with their corresponding configuration settings.
+        
         for widget_id, group_cfgs in self.w2c.group_config_map.items():
             group_values = []
             widget = self.get_widget_from_id(widget_id=widget_id)
@@ -58,6 +86,8 @@ class ConfigBus:
                 self.restore_widget_value(default_cfg_item)
 
     def update_cfg_item_from_widget(self, widget_id: str):
+        # Updates a configuration setting based on the value of a UI widget.
+        
         cfg_item = self.w2c.widget_id2config_dict.get(widget_id)
         widget = self.get_widget_from_id(widget_id=widget_id)
         if not cfg_item:
@@ -67,9 +97,12 @@ class ConfigBus:
         OmegaConf.update(self.cfg, cfg_item, value)
 
     def _widget_link(self, widget_id: str):
+        
+        
         return partial(self.update_cfg_item_from_widget, widget_id)
 
     def register_widget_changes_to_cfg(self):
+        # Registers UI widget changes to update the configuration settings.
         for widget_id in self.w2c.all_widget_ids:
             widget = self.get_widget_from_id(widget_id=widget_id)
             if isinstance(
@@ -93,29 +126,37 @@ class ConfigBus:
                 )
 
     def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
+        # Retrieves a UI widget based on its ID.
+        
         return self.w2c.widget_id2widget_map.get(widget_id)
 
     def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:
+        # Retrieves a UI widget based on its corresponding configuration item.
         return self.w2c.config2widget_map.get(cfg_item)
 
     def get_widget_value(self, cfg_item: str):
+        # Retrieves the value of a UI widget based on its corresponding configuration item.
         return get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
 
     def set_widget_value(self, cfg_item: str, value):
+        # Sets the value of a UI widget based on its corresponding configuration item.
         set_widget_value(
             widget=self.get_widget_from_cfg_item(cfg_item), value=value
         )
 
     def restore_widget_value(self, cfg_item: str):
+        # Restores the value of a UI widget to its default configuration setting.
         widget = self.get_widget_from_cfg_item(cfg_item)
         value = self.get_value(cfg_item)
         # print(f'restoring: {cfg_item}: {value} to {widget}')
         set_widget_value(widget=widget, value=value)
 
     def get_cfg_item(self, widget_id: str) -> str:
+        # Retrieves the configuration item corresponding to a UI widget ID.
         return self.w2c.widget_id2config_dict.get(widget_id)
 
     def get_value(self, cfg_item: str, typing=None) -> Union[Any, list[Any]]:
+        # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
         if value is None and typing == Union[str, None]:
             value = ''
@@ -134,25 +175,28 @@ class ConfigBus:
         return value
 
     def set_value(self, cfg_item: str, value):
+        # Sets the value of a configuration item.
         if value is not None:
             OmegaConf.update(self.cfg, cfg_item, value)
 
-    def toggle_buttons(self, buttons: Iterable, set_enabled: bool = False):
-        for button in buttons:
-            self.button(button).setEnabled(set_enabled)
+    def toggle_buttons(self, buttons_ids: Iterable, set_enabled: bool = False):
+        # Toggles the enabled state of a list of buttons.
+        for button_id in buttons_ids:
+            self.w2c.buttons.get(button_id).setEnabled(set_enabled)
 
     def fp_lock(
         self,
         cfg_fps: Union[list, tuple, str],
-        buttons_id_to_release: Union[list, tuple, Any],
+        buttons_id_to_release: Union[list, tuple, str],
     ):
+        # Locks or unlocks buttons based on the existence of file paths in the configuration.
         if isinstance(cfg_fps, str):
             cfg_fps = tuple([cfg_fps])
 
         if not isinstance(buttons_id_to_release, (list, tuple)):
             buttons_id_to_release = [buttons_id_to_release]
 
-        self.toggle_buttons(buttons=buttons_id_to_release, set_enabled=False)
+        self.toggle_buttons(buttons_ids=buttons_id_to_release, set_enabled=False)
 
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
@@ -166,15 +210,21 @@ class ConfigBus:
                 else:
                     logging.info(f'The file `{_fp}` is valid.')
 
-        self.toggle_buttons(buttons=buttons_id_to_release, set_enabled=True)
+        self.toggle_buttons(buttons_ids=buttons_id_to_release, set_enabled=True)
 
     def button(self, id: str):
-        assert id in self.w2c.run_buttons
-        # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
-        return self.ui.findChild(QtWidgets.QPushButton, f"pushButton_{id}")
+        # Retrieves a button widget based on its ID.
+        assert id in self.w2c.run_button_ids
+        return self.w2c.buttons.get(id)
 
 
 class PushButtons:
+    """
+    A class to define the IDs of push buttons used in the application.
+
+    Attributes:
+        button_ids (list[str]): A list of button IDs.
+    """
     button_ids: list[str] = [
         'submit_pssm_gremlin_job',
         'cancel_pssm_gremlin_job',
@@ -230,15 +280,29 @@ class PushButtons:
 
 @dataclass
 class Config2WidgetIds:
-    wi_types: immutabledict = immutabledict({
-        'pushButton': QtWidgets.QPushButton,
-        'lineEdit': QtWidgets.QLineEdit,
-        'comboBox': QtWidgets.QComboBox,
-        'spinBox': QtWidgets.QSpinBox,
-        'doubleSpinBox': QtWidgets.QDoubleSpinBox,
-        'checkBox': QtWidgets.QCheckBox,
-    })
+    """
+    This class defines the mappings between configuration items and widget IDs, as well as the widget types.
 
+    Attributes:
+        wi_types (immutabledict): A mapping of widget type names to their corresponding Qt widget classes.
+        c2wi (immutabledict[str, str]): A mapping of configuration item keys to widget IDs.
+
+    Methods:
+        get_widget_typing(widget_id: str): Returns the Qt widget class corresponding to the given widget ID.
+    """
+    
+    wi_types: immutabledict = immutabledict(
+        {
+            'pushButton': QtWidgets.QPushButton,
+            'lineEdit': QtWidgets.QLineEdit,
+            'comboBox': QtWidgets.QComboBox,
+            'spinBox': QtWidgets.QSpinBox,
+            'doubleSpinBox': QtWidgets.QDoubleSpinBox,
+            'checkBox': QtWidgets.QCheckBox,
+        }
+    )
+    
+    
     c2wi: immutabledict[str, str] = immutabledict(
         {
             'ui.header_panel.cmap.default': 'comboBox_cmap',
@@ -318,6 +382,15 @@ class Config2WidgetIds:
     )
 
     def get_widget_typing(self, widget_id: str):
+        """
+        Returns the Qt widget class corresponding to the given widget ID.
+
+        Args:
+            widget_id (str): The ID of the widget.
+
+        Returns:
+            QtWidgets.QWidget: The corresponding Qt widget class.
+        """
         widget_type = widget_id.split('_')[0]
         if widget_type not in self.wi_types:
             raise NotImplementedError(
@@ -327,6 +400,25 @@ class Config2WidgetIds:
 
 
 class Widget2ConfigMapper:
+    """
+    This class maps UI widgets to configuration settings and provides methods to interact with these mappings.
+
+    Attributes:
+        ui (QtWidgets.QWidget): The main UI widget of the application.
+        group_config_map (immutabledict[str, tuple[Union[str, Any]]]): A mapping of widget IDs to configuration items or callable functions.
+        run_button_ids (tuple[str]): A tuple of IDs for buttons that trigger actions.
+        buttons (immutabledict): A mapping of button IDs to button widgets.
+        c2wi (Config2WidgetIds): An instance of the Config2WidgetIds class.
+        config_widget_id_map (immutabledict): A mapping of configuration items to widget IDs.
+        config2widget_map (immutabledict): A mapping of configuration items to widget widgets.
+        widget_id2widget_map (immutabledict): A mapping of widget IDs to widget widgets.
+
+    Methods:
+        get_button_from_id(button_id): Retrieves a button widget based on its ID.
+        get_widget_from_id(widget_id): Retrieves a widget based on its ID.
+        _find_config_item(widget_id): Finds the configuration item corresponding to a widget ID.
+        _find_widget_id(config_item): Finds the widget ID corresponding to a configuration item.
+    """
     def __init__(self, ui):
         self.ui = ui
 
@@ -353,7 +445,13 @@ class Widget2ConfigMapper:
             )
         )
 
-        self.run_buttons: list[str] = PushButtons().button_ids
+        self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
+        self.buttons: immutabledict = immutabledict(
+            {
+                button_id: self.get_button_from_id(button_id=button_id)
+                for button_id in self.run_button_ids
+            }
+        )
         self.c2wi = Config2WidgetIds()
         self.config_widget_id_map: immutabledict = immutabledict(
             self.c2wi.c2wi
@@ -369,6 +467,12 @@ class Widget2ConfigMapper:
                 self._find_widget_id(c): w
                 for c, w in self.config2widget_map.items()
             }
+        )
+
+    def get_button_from_id(self, button_id):
+        # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
+        return self.ui.findChild(
+            QtWidgets.QPushButton, f"pushButton_{button_id}"
         )
 
     @property
@@ -394,9 +498,7 @@ class Widget2ConfigMapper:
         return widget_id
 
     def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
-        assert (
-            widget_id in self.all_widget_ids
-        ), f'Invalid widget_id: {widget_id}'
+        
         widget = self.ui.findChild(
             self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
         )
@@ -406,6 +508,12 @@ class Widget2ConfigMapper:
 
 @dataclass
 class Widget2Widget:
+    """
+    This class defines mappings between different UI widgets for interaction purposes.
+
+    Attributes:
+        sidechain_solver2model (dict): A mapping of sidechain solver options to their corresponding model options.
+    """
     sidechain_solver2model = {
         'PIPPack': [
             'ui.config.sidechain_solver.pippack.model_names.group',
@@ -417,6 +525,13 @@ class Widget2Widget:
 
 
 class CallableGroupValues:
+    """
+    This class provides static methods to generate dynamic values for group configuration items.
+
+    Methods:
+        score_matrix(): Returns a list of available score matrices.
+        ColorMap(): Returns a dictionary of available color maps.
+    """
     @staticmethod
     def score_matrix() -> list:
         from Bio.Align import substitution_matrices
