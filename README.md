@@ -1,6 +1,7 @@
 ![logo](https://raw.githubusercontent.com/YaoYinYing/artworks/main/DALL%C2%B7E%202024-01-22%2018.09.07%20-%20A%20sleek%20logo%20design%20with%20a%20human%20pilot%20dressed%20in%20yellow-pink%20uniform%20and%20a%20robot%20co-pilot%20in%20blue%2C%20both%20exhibiting%20friendly%20smiles.%20Abstract%20style.%20T.png)
 [![Unit Tests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests.yml)
 [![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
+[![Docker Image for Unittests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml)
 ![python-version](https://img.shields.io/badge/python-3.9_%7C_3.10_%7C_3.11-green?logo=python)
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main.svg?style=svg&circle-token=5f78acfbe0dd8e334384b23515857bd4996ca7a1)](https://dl.circleci.com/status-badge/redirect/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main)
