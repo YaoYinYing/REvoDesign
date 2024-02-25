@@ -300,6 +300,7 @@ class KeyDataDuringTests:
     design_shell_file: str = None
     surface_file: str = None
     pssm_file: str = None
+    mutant_file: str =None
 
 
 class TestREvoDesignPlugin:
@@ -864,6 +865,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         assert len(picked_mutants) == len(
             revo_design_plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
+        KeyDataDuringTests.mutant_file=mutant_file
 
     def test_evaluate_pssm_ent_surf_mannual_pick(
         self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
@@ -905,6 +907,8 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         WORKER.click(_next, 5).click(_bsh).click(_acp)
 
+        assert int(get_widget_value(revo_design_plugin.ui.lcdNumber_selected_mutant))==4
+
         WORKER.click(_next, 2)
 
         WORKER.save_screenshot(
@@ -922,6 +926,35 @@ class TestREvoDesignPlugin_TabEvaluate:
         assert picked_mutants
         assert len(picked_mutants) == len(
             revo_design_plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
+        )
+        
+
+@pytest.mark.usefixtures("qtbot")
+class TestREvoDesignPlugin_TabCluster:
+    def test_cluster(
+        self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
+    ):
+        WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
+        WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='cluster')
+        
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table, KeyDataDuringTests.mutant_file)
+        
+        set_widget_value(revo_design_plugin.ui.spinBox_num_cluster, WORKER.test_data.cluster_num)
+        set_widget_value(revo_design_plugin.ui.spinBox_num_mut_minimun, WORKER.test_data.cluster_min)
+        set_widget_value(revo_design_plugin.ui.spinBox_num_mut_maximum, WORKER.test_data.cluster_max)
+        set_widget_value(revo_design_plugin.ui.spinBox_cluster_batchsize, WORKER.test_data.cluster_batch)
+        set_widget_value(revo_design_plugin.ui.checkBox_shuffle_clustering, WORKER.test_data.cluster_shuffle)
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_before_run',
+        )
+        WORKER.click(revo_design_plugin.ui.pushButton_run_cluster)
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_after_run',
         )
 
 

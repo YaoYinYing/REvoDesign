@@ -46,15 +46,11 @@ test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/UnitTests.py
-	cp $(TESTDIR)/.coverage* .
-	rm -r $(TESTDIR)
 
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/QtTests.py;
-	cp $(TESTDIR)/.coverage* .
-	rm -r $(TESTDIR)
 
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version

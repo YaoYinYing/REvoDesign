@@ -75,6 +75,15 @@ class TestData:
     EVALUATION_PSE_URL:str ='https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze'
     EVALUATION_PSE_MD5:str ='md5:225128f0958ad622de9af6b485de5e86'
 
+
+    # cluster
+    cluster_num: int= 5
+    cluster_batch:int=100
+    cluster_min: int=1
+    cluster_max: int=1
+    cluster_shuffle: bool=True
+
+
     @property
     def pocket_pse(self):
         return f'{self.test_data_repo}/analysis/1SUO.xtal.pocket.pze'

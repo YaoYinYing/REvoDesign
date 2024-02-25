@@ -1153,8 +1153,7 @@ class REvoDesignPlugin:
         trigger_button = self.bus.button('run_cluster')
 
         # lazy module loading to fasten plugin initializing
-        from REvoDesign.clusters.combine_positions import Combinations
-        from REvoDesign.clusters.cluster_sequence import Clustering
+        from REvoDesign.clusters import ClusterRunner
 
         input_mutant_table = self.bus.get_value(
             'ui.cluster.input.from_mutant_txt'
@@ -1172,59 +1171,24 @@ class REvoDesignPlugin:
 
         nproc = self.bus.get_value('ui.header_panel.nproc', int)
 
-        # output space
-        plot_space = self.bus.ui.stackedWidget
-        progressbar = self.bus.ui.progressBar
-
-        input_fasta_file = (
-            f'{self.PWD}/{self.design_molecule}_{self.design_chain_id}.fasta'
+        worker = ClusterRunner(
+            bus=self.bus,
+            design_molecule=self.design_molecule,
+            design_chain_id=self.design_chain_id,
+            design_sequence=self.design_sequence,
+            PWD=self.PWD,
+            cluster_batch_size=cluster_batch_size,
+            cluster_number=cluster_number,
+            min_mut_num=min_mut_num,
+            max_mut_num=max_mut_num,
+            cluster_substitution_matrix=cluster_substitution_matrix,
+            shuffle_variant=shuffle_variant,
+            nproc=nproc,
+            input_mutant_table=input_mutant_table,
         )
-        open(input_fasta_file, 'w').write(
-            f'>{self.design_molecule}_{self.design_chain_id}\n{self.design_sequence}'
-        )
-        logging.info(f'Sequence file is saved as {input_fasta_file}')
-
-        # output files
-        cluster_outputs = {}
 
         with hold_trigger_button(trigger_button):
-            for num_mut in range(min_mut_num, max_mut_num + 1):
-                # combination
-                combinations = Combinations()
-                combinations.fastasequence = self.design_sequence
-                combinations.chain_id = self.design_chain_id
-                combinations.fastafile = input_fasta_file
-                combinations.inputfile = input_mutant_table
-                combinations.combi = num_mut
-                combinations.path = self.PWD
-                combinations.processors = nproc
-
-                # expected design combination file
-
-                combinations.run_combinations()
-                expected_design_combinations = (
-                    combinations.expected_output_fasta
-                )
-
-                # clustering
-
-                clustering = Clustering(fastafile=expected_design_combinations)
-                clustering.batch_size = cluster_batch_size
-                clustering.num_proc = nproc
-                clustering.num_clusters = cluster_number
-                clustering.shuffle_variant = shuffle_variant
-                clustering.substitution_matrix = cluster_substitution_matrix
-                clustering._save_dir = self.PWD
-
-                clustering.initialize_aligner()
-
-                clustering.run_clustering(progressbar=progressbar)
-                cluster_outputs.update({num_mut: clustering.cluster_output_fp})
-
-            cluster_imgs = [
-                _cluster['score'] for _, _cluster in cluster_outputs.items()
-            ]
-            set_widget_value(plot_space, cluster_imgs)
+            worker.run_clustering()
 
     # Tab Visualize
 
