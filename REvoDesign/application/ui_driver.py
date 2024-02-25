@@ -203,7 +203,6 @@ class ConfigBus:
             _fp = self.get_value(cfg_fp)
             logging.info(f'Checking file path: {_fp}')
             if not _fp or not dirname_does_exist(_fp):
-                logging.warning(f'The dirname of `{_fp}` is not valid.')
                 return
             else:
                 if not filepath_does_exists(_fp):

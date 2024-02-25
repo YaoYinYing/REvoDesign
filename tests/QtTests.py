@@ -301,6 +301,7 @@ class KeyDataDuringTests:
     surface_file: str = None
     pssm_file: str = None
     mutant_file: str =None
+    ddg_file: str = None
 
 
 class TestREvoDesignPlugin:
@@ -616,6 +617,8 @@ class TestREvoDesignPlugin_TabMutate:
             url=WORKER.test_data.PYTHIA_DDG_CSV_URL,
             md5=WORKER.test_data.PYTHIA_DDG_CSV_MD5,
         )
+
+        KeyDataDuringTests.ddg_file=local_ddg_file
 
         WORKER.do_typing(
             revo_design_plugin.ui.comboBox_profile_type,
@@ -956,6 +959,80 @@ class TestREvoDesignPlugin_TabCluster:
             widget=revo_design_plugin.window,
             basename=f'{WORKER.method_name()}_after_run',
         )
+        
+        for mut_num in range(WORKER.test_data.cluster_min,WORKER.test_data.cluster_max+1):
+            dir=f'{WORKER.test_data.molecule}_{WORKER.test_data.chain_id}_{os.path.basename(KeyDataDuringTests.mutant_file).replace(".txt","")}_designs_{mut_num}'
+            assert os.path.exists(dir)
+            assert all([os.path.exists(os.path.join(dir, f'c.{c}.fasta')) for c in range(WORKER.test_data.cluster_num)])
+            assert os.path.exists(os.path.join(dir, 'cluster_centers_stochastic.fasta'))
+
+
+@pytest.mark.usefixtures("qtbot")
+class TestREvoDesignPlugin_TabVisualize:
+    def test_visualize_pssm_ddg(
+        self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
+    ):
+        WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
+        WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='visualize')
+
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.mutant_file)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_output_pse_visualize, WORKER.test_data.visualize_1_pse)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_csv_2, KeyDataDuringTests.ddg_file)
+        set_widget_value(revo_design_plugin.ui.comboBox_profile_type_2, WORKER.test_data.visualize_1_profile_type)
+
+        set_widget_value(revo_design_plugin.ui.checkBox_global_score_policy, WORKER.test_data.visualize_1_use_global_score)
+        set_widget_value(revo_design_plugin.ui.checkBox_reverse_mutant_effect_3, WORKER.test_data.visualize_1_score_reversed)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_group_name, WORKER.test_data.visualize_1_design_case)
+        
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_before_run',
+        )
+
+        WORKER.click(revo_design_plugin.ui.pushButton_run_visualizing)
+
+        WORKER.save_pymol_png(basename=WORKER.method_name())
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_after_run',
+        )
+
+        assert os.path.exists(WORKER.test_data.visualize_1_pse)
+        WORKER.check_existed_mutant_tree()
+
+    def test_visualize_pssm_mpnn(
+        self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
+    ):
+        WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
+        WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='visualize')
+
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.mutant_file)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_output_pse_visualize, WORKER.test_data.visualize_2_pse)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_csv_2, '')
+        set_widget_value(revo_design_plugin.ui.comboBox_profile_type_2, WORKER.test_data.visualize_2_profile_type)
+
+        set_widget_value(revo_design_plugin.ui.checkBox_global_score_policy, WORKER.test_data.visualize_2_use_global_score)
+        set_widget_value(revo_design_plugin.ui.checkBox_reverse_mutant_effect_3, WORKER.test_data.visualize_2_score_reversed)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_group_name, WORKER.test_data.visualize_2_design_case)
+        
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_before_run',
+        )
+
+        WORKER.click(revo_design_plugin.ui.pushButton_run_visualizing)
+        WORKER.save_pymol_png(basename=WORKER.method_name())
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_after_run',
+        )
+
+        assert os.path.exists(WORKER.test_data.visualize_2_pse)
+        WORKER.check_existed_mutant_tree()
 
 
 @pytest.mark.usefixtures("qtbot")

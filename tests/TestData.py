@@ -21,6 +21,7 @@ class TestData:
     PSSM_GREMLIN_DATA_URL:str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip'
     PSSM_GREMLIN_DATA_MD5:str = 'md5:5fc8ab8f657051ae8117a678924ac471'
 
+
     PYTHIA_DDG_CSV_URL:str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_pred_mask.csv'
     PYTHIA_DDG_CSV_MD5: str ='md5:982eda8c8056c388d9741407dea8e750'
 
@@ -29,9 +30,18 @@ class TestData:
     substrate: str = 'CPZ'
     cofactor: str = 'HEM'
 
+    @property
+    def pocket_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.pocket.pze'
+    
     # surface
     suface_probe: float = 30  # ONLY for faster testing!
     exclusion_prefix: str = 'pkt_hetatm_'
+
+    @property
+    def surface_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.pze'
+
 
     # surface design
     entropy_min_score: str = '3'
@@ -40,6 +50,11 @@ class TestData:
     entropy_design_case: str = 'pssm.ent.surf'
     entropy_reject: str = 'PC'
     entropy_accept: str = 'E:DATY K:RATY N:ATY Q:EDATY'
+
+    @property
+    def entro_design_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.pze'
+
 
     mpnn_profile_type: str = 'ProteinMPNN'
     mpnn_surface_residues: str = '37,38,39,40,43,44,45,46,48'
@@ -52,6 +67,11 @@ class TestData:
     mpnn_reject: str = 'PC'
     mpnn_accept: str = 'DDDDEENQHRKKK'
 
+    @property
+    def mpnn_design_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.mpnn.pze'
+
+
     ddg_profile_type_biolib: str = 'Pythia-ddG'
     ddg_profile_type_local: str = 'CSV'
     ddg_surface_residues: str = '37,38,39,40'
@@ -59,55 +79,6 @@ class TestData:
     ddg_max_score: str = '0.3'
     ddg_score_reversed: bool = True
     ddg_design_case: str = 'ddg.surf'
-
-    # pocket design
-    pocket_pssm_residues: str = '103,104,105'
-    pocket_pssm_min_score: str = '-2'
-    pocket_pssm_max_score: str = '0'
-    pocket_pssm_score_reversed: bool = False
-    pocket_pssm_design_case: str = 'pssm.pkt'
-    pocket_pssm_reject: str = 'PC'
-    pocket_pssm_accept: str = ''
-
-    entropy_to_ddg_score_reversed: bool = True
-    entropy_to_ddg_group_id: str = 'surf.pssm.ddg'
-
-    EVALUATION_PSE_URL:str ='https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze'
-    EVALUATION_PSE_MD5:str ='md5:225128f0958ad622de9af6b485de5e86'
-
-
-    # cluster
-    cluster_num: int= 5
-    cluster_batch:int=100
-    cluster_min: int=1
-    cluster_max: int=1
-    cluster_shuffle: bool=True
-
-
-    @property
-    def pocket_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.pocket.pze'
-
-    @property
-    def surface_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.pze'
-
-    # mutate: PSSM entropy
-    @property
-    def PSSM_file(self):
-        return f'{self.test_data_repo}/expanded_compressed_files/pssm_msa/1SUO_A_ascii_mtx_file'
-
-    @property
-    def surface_file(self):
-        return f'{self.test_data_repo}/surface_residue_records/residues_cutoff_15.0.txt'
-
-    @property
-    def entro_design_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.pze'
-
-    @property
-    def mpnn_design_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.mpnn.pze'
 
     @property
     def ddg_design_pse(self):
@@ -118,11 +89,60 @@ class TestData:
         return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.local.pze'
 
 
+    # pocket design
+    pocket_pssm_residues: str = '103,104,105'
+    pocket_pssm_min_score: str = '-2'
+    pocket_pssm_max_score: str = '0'
+    pocket_pssm_score_reversed: bool = False
+    pocket_pssm_design_case: str = 'pssm.pkt'
+    pocket_pssm_reject: str = 'PC'
+    pocket_pssm_accept: str = ''
+
     @property
     def pocket_design_pse(self):
         return (
             f'{self.test_data_repo}/analysis/1SUO.xtal.pocket.pssm.pze'
         )
+
+    entropy_to_ddg_score_reversed: bool = True
+    entropy_to_ddg_group_id: str = 'surf.pssm.ddg'
+
+    EVALUATION_PSE_URL:str ='https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze'
+    EVALUATION_PSE_MD5:str ='md5:225128f0958ad622de9af6b485de5e86'
+
+
+    # cluster
+    cluster_num: int= 10
+    cluster_batch:int=100
+    cluster_min: int=1
+    cluster_max: int=2
+    cluster_shuffle: bool=True
+
+
+    # visualize
+    # 1. PSSM-ddg
+    # 2. PSSM-MPNN
+    
+    visualize_1_profile_type: str='CSV'
+    visualize_1_score_reversed: bool = True
+    visualize_1_design_case: str = 'pssm.ent.ddg'
+    visualize_1_use_global_score:bool=True
+
+    @property
+    def visualize_1_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_1_design_case}.pze'
+
+    
+    visualize_2_profile_type: str='ProteinMPNN'
+    visualize_2_score_reversed: bool = True
+    visualize_2_design_case: str = 'pssm.ent.mpnn'
+    visualize_2_use_global_score:bool=True
+
+    @property
+    def visualize_2_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_2_design_case}.pze'
+
+
 
     @property
     def entropy_best_hits(self):

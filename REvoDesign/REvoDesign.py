@@ -65,9 +65,11 @@ from REvoDesign.tools.pymol_utils import (
 )
 
 from REvoDesign.tools.mutant_tools import (
+    determine_profile_type,
     existed_mutant_tree,
     extract_mutant_from_pymol_object,
     extract_mutants_from_mutant_id,
+    get_mutant_table_columns,
     save_mutant_choices,
 )
 
@@ -1048,16 +1050,8 @@ class REvoDesignPlugin:
         if not os.path.exists(profile_fp):
             return None
 
-        profile_bn = os.path.basename(profile_fp)
-        if profile_bn.endswith('.csv'):
-            profile_format = 'CSV'
-        elif profile_bn.endswith('.txt'):
-            profile_format = 'TSV'
-        elif profile_bn.endswith('.pssm') or profile_bn.endswith(
-            'ascii_mtx_file'
-        ):
-            profile_format = 'PSSM'
-        else:
+        profile_format= determine_profile_type(profile_fp=profile_fp)
+        if not profile_format:
             return
 
         self.bus.set_widget_value(cfg_profile_format, profile_format)
@@ -1078,6 +1072,7 @@ class REvoDesignPlugin:
                 design_molecule=self.design_molecule,
                 design_chain_id=self.design_chain_id,
                 design_sequence=self.design_sequence,
+                designable_sequences=self.designable_sequences,
                 sidechain_solver=self.sidechain_solver,
                 PWD=self.PWD,
             )
@@ -1192,34 +1187,6 @@ class REvoDesignPlugin:
 
     # Tab Visualize
 
-    def get_mutant_table_columns(self, mutfile):
-        import pandas as pd
-
-        table_extensions = [
-            f'.{ext}' for ext, _ in FileExtentions.MutableFileExt.items()
-        ]
-
-        if not any(
-            [True for ext in table_extensions if mutfile.lower().endswith(ext)]
-        ):
-            return None
-
-        elif mutfile.lower().endswith('.txt'):
-            return None
-
-        elif mutfile.lower().endswith('.csv'):
-            mutation_data = pd.read_csv(mutfile)
-
-        elif mutfile.lower().endswith('.tsv'):
-            mutation_data = pd.read_fwf(mutfile)
-
-        elif mutfile.lower().endswith('.xlsx') or mutfile.lower().endswith(
-            '.xls'
-        ):
-            mutation_data = pd.read_excel(mutfile)
-
-        return list(mutation_data.columns)
-
     def update_mutant_table_columns(
         self,
     ):
@@ -1227,36 +1194,37 @@ class REvoDesignPlugin:
         if not os.path.exists(mut_table_fp):
             logging.warning(f'Mutant Table path is not valid: {mut_table_fp}')
             return
-        else:
-            mut_table_cols = self.get_mutant_table_columns(
-                mutfile=mut_table_fp
+    
+        mut_table_cols = get_mutant_table_columns(
+            mutfile=mut_table_fp
+        )
+
+        if not mut_table_cols:
+            logging.warning(
+                f'Mutant Table column names is not valid: {mut_table_cols}'
             )
+            return
+        
+        comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
+            'ui.visualize.input.best_leaf'
+        )
+        comboBox_totalscore = self.bus.get_widget_from_cfg_item(
+            'ui.visualize.input.totalscore'
+        )
 
-            if not mut_table_cols:
-                logging.warning(
-                    f'Mutant Table column names is not valid: {mut_table_cols}'
-                )
-                return
-            else:
-                comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
-                    'ui.visualize.input.best_leaf'
-                )
-                comboBox_totalscore = self.bus.get_widget_from_cfg_item(
-                    'ui.visualize.input.totalscore'
-                )
+        # set cols to combo boxes
+        for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
+            set_widget_value(comboBox, mut_table_cols)
 
-                # set cols to combo boxes
-                for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
-                    set_widget_value(comboBox, mut_table_cols)
-
-                # set default col value
-                if len(mut_table_cols) > 1:
-                    set_widget_value(comboBox_best_leaf, mut_table_cols[0])
-                    set_widget_value(comboBox_totalscore, mut_table_cols[-1])
+        # set default col value
+        if len(mut_table_cols) > 1:
+            set_widget_value(comboBox_best_leaf, mut_table_cols[0])
+            set_widget_value(comboBox_totalscore, mut_table_cols[-1])
 
     def save_visualizing_mutant_tree(
         self, cfg_mutant_table_fp, cfg_group_name
     ):
+        
         group_name = self.bus.get_value(cfg_group_name)
 
         mutant_table_fp = self.bus.get_value(cfg_mutant_table_fp)
@@ -1303,6 +1271,7 @@ class REvoDesignPlugin:
                 design_molecule=self.design_molecule,
                 design_chain_id=self.design_chain_id,
                 design_sequence=self.design_sequence,
+                designable_sequences=self.designable_sequences,
                 sidechain_solver=self.sidechain_solver,
                 PWD=self.PWD,
             )
