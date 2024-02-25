@@ -269,19 +269,18 @@ class TestWorker:
         cmd.png(png_file, dpi=dpi, ray=use_ray)
 
 
-def wait_for_file(
-    qtbot: qtbot.QtBot, file: str, interval: str = 100, timeout: float = 61.0
-) -> Union[bool, None]:
-    started_moment = time.perf_counter()
-    while True:
-        qtbot.wait(interval)
-        if os.path.exists(file):
-            return True
-        check_moment = time.perf_counter()
-        if check_moment - started_moment > timeout:
-            raise TimeoutError(
-                f'File {file} is not available within timeout limit ({timeout} sec).'
-            )
+    def wait_for_file( self, file: str, interval: str = 100, timeout: float = 61.0
+    ) -> Union[bool, None]:
+        started_moment = time.perf_counter()
+        while True:
+            self.qtbot.wait(interval)
+            if os.path.exists(file):
+                return True
+            check_moment = time.perf_counter()
+            if check_moment - started_moment > timeout:
+                raise TimeoutError(
+                    f'File {file} is not available within timeout limit ({timeout} sec).'
+                )
 
 
 @pytest.fixture(scope="session")
@@ -314,6 +313,7 @@ class KeyDataDuringTests:
     pssm_file: str = None
     gremlin_pkl_fp:str =None
     mutant_file: str =None
+    minimum_mutant_file: str=None
     ddg_file: str = None
 
 
@@ -943,6 +943,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         assert len(picked_mutants) == len(
             revo_design_plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
+        KeyDataDuringTests.minimum_mutant_file=mutant_file
         
 
 @pytest.mark.usefixtures("qtbot")
@@ -994,7 +995,7 @@ class TestREvoDesignPlugin_TabVisualize:
         )
         WORKER.go_to_tab(tab_name='visualize')
 
-        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.mutant_file)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.minimum_mutant_file)
         WORKER.do_typing(revo_design_plugin.ui.lineEdit_output_pse_visualize, WORKER.test_data.visualize_1_pse)
         WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_csv_2, KeyDataDuringTests.ddg_file)
         set_widget_value(revo_design_plugin.ui.comboBox_profile_type_2, WORKER.test_data.visualize_1_profile_type)
@@ -1032,7 +1033,7 @@ class TestREvoDesignPlugin_TabVisualize:
         )
         WORKER.go_to_tab(tab_name='visualize')
 
-        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.mutant_file)
+        WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.minimum_mutant_file)
         WORKER.do_typing(revo_design_plugin.ui.lineEdit_output_pse_visualize, WORKER.test_data.visualize_2_pse)
         WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_csv_2, '')
         set_widget_value(revo_design_plugin.ui.comboBox_profile_type_2, WORKER.test_data.visualize_2_profile_type)
@@ -1193,13 +1194,14 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.click(revo_design_plugin.ui.pushButton_reinitialize_interact)
 
+        # assert os.path.exists(WORKER.test_data.visualize_2_pse)
+
+        WORKER.wait_for_file(file=f'{WORKER.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=10)
+
         WORKER.save_screenshot(
             widget=revo_design_plugin.window,
             basename=f'{WORKER.method_name()}_after_init',
         )
-
-        # assert os.path.exists(WORKER.test_data.visualize_2_pse)
-        WORKER.check_existed_mutant_tree()
 
         WORKER.click(revo_design_plugin.ui.pushButton_run_interact_scan)
 
@@ -1210,21 +1212,31 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_interact_pairs')
 
-        col,row=5,16
-        WORKER.click(revo_design_plugin.bus.w2c.get_button_from_id(f'{col}_vs{row}',prefix='matrixButton'))
-
         WORKER.save_screenshot(
             widget=revo_design_plugin.window,
-            basename=f'{WORKER.method_name()}_pick_{col}_{row}',
+            basename=f'{WORKER.method_name()}_pair_0',
+        )
+        WORKER.click(_next,2)
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_pair_2',
         )
 
-        WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{col}_{row}')
-        WORKER.check_existed_mutant_tree()
+        for row,col in [(6,1,), (3,13)]:
+            WORKER.click(revo_design_plugin.bus.w2c.get_button_from_id(f'{col}_vs{row}',prefix='matrixButton'))
 
-        cmd.orient(WORKER.mutant_tree.all_mutant_objects[0].short_mutant_id)
-        
-        WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{col}_{row}_orient')
-        WORKER.click(_accp)
+            WORKER.save_screenshot(
+                widget=revo_design_plugin.window,
+                basename=f'{WORKER.method_name()}_pick_{col}_{row}',
+            )
+
+            WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{col}_{row}')
+            WORKER.check_existed_mutant_tree()
+
+            cmd.orient(WORKER.mutant_tree.all_mutant_objects[0].short_mutant_id)
+            
+            WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{col}_{row}_orient')
+            WORKER.click(_accp)
 
         cmd.orient(WORKER.test_data.molecule)
 

@@ -1830,7 +1830,7 @@ class REvoDesignPlugin:
                 button_matrix.min_value,
                 button_matrix.max_value,
                 wt_info,
-                ignore_wt.isChecked(),
+                ignore_wt,
             )
         )
         self.bus.ui.gridLayout_interact_pairs.addWidget(button_matrix)
