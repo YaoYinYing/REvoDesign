@@ -283,7 +283,7 @@ class TestWorker:
                 )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def app():
     # Initialize the QApplication instance required for the plugin GUI
     app = QtWidgets.QApplication.instance()
@@ -292,7 +292,7 @@ def app():
     return app
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def revo_design_plugin(qtbot, app):
     # Create and return an instance of the REvoDesignPlugin
     plugin = REvoDesignPlugin()
