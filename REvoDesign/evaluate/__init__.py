@@ -6,7 +6,6 @@ from REvoDesign.application.ui_driver import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
 
 from pymol import cmd
-from REvoDesign.common.file_extensions import AnyFileExt, MutableFileExt
 from REvoDesign.tools.customized_widgets import (
     get_widget_value,
     proceed_with_comfirm_msg_box,

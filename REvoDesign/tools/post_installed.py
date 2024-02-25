@@ -58,6 +58,17 @@ def save_configuration(
     return
 
 
+def experiment_config():
+    experiments_dir = os.path.join(
+        os.path.dirname(REVODESIGN_CONFIG_FILE), 'experiments'
+    )
+    os.makedirs(experiments_dir, exist_ok=True)
+    return experiments_dir
+
+
+EXPERIMENTS_CONFIG_DIR = experiment_config()
+
+
 # def save_to_config_file(cfg:DictConfig, drop_groups: bool = True) -> None:
 
 
