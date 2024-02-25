@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 
 from REvoDesign.application.ui_driver import ConfigBus
-from REvoDesign.tools.customized_widgets import hold_trigger_button, set_widget_value
+from REvoDesign.tools.customized_widgets import (
+    hold_trigger_button,
+    set_widget_value,
+)
 
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
+
 
 @dataclass
 class ClusterRunnerConfig:
@@ -14,26 +18,22 @@ class ClusterRunnerConfig:
     design_chain_id: str = None
     design_sequence: str = None
     PWD: str = None
-    cluster_batch_size: int =100
-    cluster_number: int =15
-    min_mut_num: int =1
-    max_mut_num: int =1
-    cluster_substitution_matrix: str= 'PAM30'
-    shuffle_variant:bool= False
-    nproc:int=10
-    input_mutant_table: str= None
+    cluster_batch_size: int = 100
+    cluster_number: int = 15
+    min_mut_num: int = 1
+    max_mut_num: int = 1
+    cluster_substitution_matrix: str = 'PAM30'
+    shuffle_variant: bool = False
+    nproc: int = 10
+    input_mutant_table: str = None
 
 
 class ClusterRunner(ClusterRunnerConfig):
-# combination and clustering
+    # combination and clustering
     def run_clustering(self):
-
-
         # lazy module loading to fasten plugin initializing
         from REvoDesign.clusters.combine_positions import Combinations
         from REvoDesign.clusters.cluster_sequence import Clustering
-
-        
 
         # output space
         self.plot_space = self.bus.ui.stackedWidget
@@ -50,7 +50,6 @@ class ClusterRunner(ClusterRunnerConfig):
         # output files
         cluster_outputs = {}
 
-
         for num_mut in range(self.min_mut_num, self.max_mut_num + 1):
             # combination
             combinations = Combinations()
@@ -65,9 +64,7 @@ class ClusterRunner(ClusterRunnerConfig):
             # expected design combination file
 
             combinations.run_combinations()
-            expected_design_combinations = (
-                combinations.expected_output_fasta
-            )
+            expected_design_combinations = combinations.expected_output_fasta
 
             # clustering
 

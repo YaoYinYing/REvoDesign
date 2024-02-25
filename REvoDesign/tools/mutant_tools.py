@@ -611,13 +611,12 @@ def determine_profile_type(profile_fp):
         return 'CSV'
     elif profile_bn.endswith('.txt'):
         return 'TSV'
-    elif profile_bn.endswith('.pssm') or profile_bn.endswith(
-        'ascii_mtx_file'
-    ):
+    elif profile_bn.endswith('.pssm') or profile_bn.endswith('ascii_mtx_file'):
         return 'PSSM'
     else:
         return
-    
+
+
 def get_mutant_table_columns(mutfile):
     import pandas as pd
 
@@ -639,9 +638,7 @@ def get_mutant_table_columns(mutfile):
     elif mutfile.lower().endswith('.tsv'):
         mutation_data = pd.read_fwf(mutfile)
 
-    elif mutfile.lower().endswith('.xlsx') or mutfile.lower().endswith(
-        '.xls'
-    ):
+    elif mutfile.lower().endswith('.xlsx') or mutfile.lower().endswith('.xls'):
         mutation_data = pd.read_excel(mutfile)
 
     return list(mutation_data.columns)

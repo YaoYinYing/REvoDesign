@@ -1050,7 +1050,7 @@ class REvoDesignPlugin:
         if not os.path.exists(profile_fp):
             return None
 
-        profile_format= determine_profile_type(profile_fp=profile_fp)
+        profile_format = determine_profile_type(profile_fp=profile_fp)
         if not profile_format:
             return
 
@@ -1194,17 +1194,15 @@ class REvoDesignPlugin:
         if not os.path.exists(mut_table_fp):
             logging.warning(f'Mutant Table path is not valid: {mut_table_fp}')
             return
-    
-        mut_table_cols = get_mutant_table_columns(
-            mutfile=mut_table_fp
-        )
+
+        mut_table_cols = get_mutant_table_columns(mutfile=mut_table_fp)
 
         if not mut_table_cols:
             logging.warning(
                 f'Mutant Table column names is not valid: {mut_table_cols}'
             )
             return
-        
+
         comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
             'ui.visualize.input.best_leaf'
         )
@@ -1224,7 +1222,6 @@ class REvoDesignPlugin:
     def save_visualizing_mutant_tree(
         self, cfg_mutant_table_fp, cfg_group_name
     ):
-        
         group_name = self.bus.get_value(cfg_group_name)
 
         mutant_table_fp = self.bus.get_value(cfg_mutant_table_fp)

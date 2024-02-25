@@ -65,7 +65,7 @@ class MutantVisualizer:
 
         self.min_score_profile = 0
         self.max_score_profile = 0
-        self.mutant_tree:MutantTree = MutantTree({})
+        self.mutant_tree: MutantTree = MutantTree({})
 
         self.consider_global_score_from_profile = False
 
@@ -463,8 +463,6 @@ class MutantVisualizer:
             raise ValueError(
                 "Invalid file format. Only CSV, FASTA and TXT formats are supported."
             )
-        
-        
 
         # Check if the key_col exists in the dataframe
         if self.key_col not in mutation_data.columns:
@@ -498,11 +496,12 @@ class MutantVisualizer:
                 _sequence = variant_obj.get_mutant_sequence_single_chain(
                     chain_id=self.chain_id
                 )
+                _sequence = _sequence.replace('X', '')
+
                 _score = self.scorer.scorer(sequence=_sequence)
                 logging.debug(
                     f'Reading profile score for scorcer {type(self.scorer)}: {_score}'
                 )
-                
 
             # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
             # so we have to igore it here.
