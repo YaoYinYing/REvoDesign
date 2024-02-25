@@ -170,7 +170,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
                 )
 
                 button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
-
+                button.setObjectName(f'matrixButton_{col}_vs{row}')
                 button.setSizePolicy(size_policy)
                 button.setStyleSheet(
                     f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''}"

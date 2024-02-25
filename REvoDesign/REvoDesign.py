@@ -1848,11 +1848,11 @@ class REvoDesignPlugin:
         set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
         if (
-            max_interact_dist.value()
-            and spatial_distance > max_interact_dist.value()
+            max_interact_dist
+            and spatial_distance > max_interact_dist
         ):
             logging.warning(
-                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist.value()}'
+                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist}'
             )
             set_widget_value(lineEdit_current_pair, 'Out of range.')
             # To disable the QbuttonMatrix:

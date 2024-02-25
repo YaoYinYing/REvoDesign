@@ -140,9 +140,21 @@ class TestWorker:
             self.qtbot.mouseClick(widget, self.CURSOR)
         return self
 
-    def do_typing(self, widget: QtWidgets.QWidget, text: str):
+    def do_typing(self, widget: QtWidgets.QWidget, text: str, strict_mode:bool=False):
         set_widget_value(widget=widget, value='')
-        self.qtbot.keyClicks(widget, text)
+
+
+        # if text is short enough or in strict mode
+        # type one after another
+        if (len(text) < 10) or strict_mode:
+            self.qtbot.keyClicks(widget, text)
+            return
+        # otherwise,
+        # only type the last character to trigger hook connected to this widget
+        _tex, _t=text[:-1], text[-1]
+        set_widget_value(widget=widget, value=_tex)
+        self.qtbot.keyClicks(widget, _t)
+        
 
     def _navigate_to_tab(
         self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
@@ -210,11 +222,11 @@ class TestWorker:
         from REvoDesign.common.MutantTree import MutantTree
         from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
-        mutant_tree: MutantTree = existed_mutant_tree(
+        self.mutant_tree: MutantTree = existed_mutant_tree(
             sequences=self.revo_design_plugin.designable_sequences
         )
 
-        assert not mutant_tree.empty
+        assert not self.mutant_tree.empty
 
     def method_name(self):
         import sys
@@ -300,6 +312,7 @@ class KeyDataDuringTests:
     design_shell_file: str = None
     surface_file: str = None
     pssm_file: str = None
+    gremlin_pkl_fp:str =None
     mutant_file: str =None
     ddg_file: str = None
 
@@ -974,6 +987,11 @@ class TestREvoDesignPlugin_TabVisualize:
     ):
         WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            revo_design_plugin.ui.comboBox_sidechain_solver, 'PIPPack'
+        )
         WORKER.go_to_tab(tab_name='visualize')
 
         WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.mutant_file)
@@ -1007,6 +1025,11 @@ class TestREvoDesignPlugin_TabVisualize:
     ):
         WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            revo_design_plugin.ui.comboBox_sidechain_solver, 'PIPPack'
+        )
         WORKER.go_to_tab(tab_name='visualize')
 
         WORKER.do_typing(revo_design_plugin.ui.lineEdit_input_mut_table_csv, KeyDataDuringTests.mutant_file)
@@ -1136,6 +1159,86 @@ class TestREvoDesignPlugin_TabConfig:
         WORKER.save_pymol_png(basename=WORKER.method_name())
 
         WORKER.check_existed_mutant_tree()
+
+
+@pytest.mark.usefixtures("qtbot")
+class TestREvoDesignPlugin_TabInteract:
+    def test_gremlin_all2all(
+        self, qtbot: qtbot.QtBot, revo_design_plugin: REvoDesignPlugin
+    ):
+        WORKER = TestWorker(revo_design_plugin=revo_design_plugin, qtbot=qtbot)
+        WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='interact')
+
+        # buttons
+        _next=revo_design_plugin.ui.pushButton_next
+        _prev=revo_design_plugin.ui.pushButton_previous
+
+        _accp=revo_design_plugin.ui.pushButton_interact_accept
+        _rjct=revo_design_plugin.ui.pushButton_interact_reject
+
+        gremlin_pkl_fp=os.path.join(WORKER.EXPANDED_DIR,'gremlin_res',f'{WORKER.test_data.molecule}_{WORKER.test_data.chain_id}.i90c75_aln.GREMLIN.mrf.pkl')
+
+        set_widget_value(revo_design_plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp)
+        KeyDataDuringTests.gremlin_pkl_fp=gremlin_pkl_fp
+
+        mutfile=os.path.join('mutagenese','gremlin_a2a.mut.txt')
+
+        set_widget_value(revo_design_plugin.ui.lineEdit_output_mutant_table,mutfile )
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_before_init',
+        )
+
+        WORKER.click(revo_design_plugin.ui.pushButton_reinitialize_interact)
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_after_init',
+        )
+
+        # assert os.path.exists(WORKER.test_data.visualize_2_pse)
+        WORKER.check_existed_mutant_tree()
+
+        WORKER.click(revo_design_plugin.ui.pushButton_run_interact_scan)
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_after_scan',
+        )
+
+        WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_interact_pairs')
+
+        col,row=5,16
+        WORKER.click(revo_design_plugin.bus.w2c.get_button_from_id(f'{col}_vs{row}',prefix='matrixButton'))
+
+        WORKER.save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_pick_{col}_{row}',
+        )
+
+        WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{col}_{row}')
+        WORKER.check_existed_mutant_tree()
+
+        cmd.orient(WORKER.mutant_tree.all_mutant_objects[0].short_mutant_id)
+        
+        WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{col}_{row}_orient')
+        WORKER.click(_accp)
+
+        cmd.orient(WORKER.test_data.molecule)
+
+        WORKER.click(_next,2).save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_next_2',
+        )
+
+        WORKER.click(_prev,7).save_screenshot(
+            widget=revo_design_plugin.window,
+            basename=f'{WORKER.method_name()}_prev_7',
+        )
+
+
 
 
 if __name__ == '__main__' or __name__ == 'pymol':
