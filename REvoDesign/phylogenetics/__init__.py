@@ -178,7 +178,7 @@ class VisualizingWorker(MutateWorkerConfig):
         best_leaf = self.bus.get_value('ui.visualize.input.best_leaf')
         totalscore = self.bus.get_value('ui.visualize.input.totalscore')
         nproc = self.bus.get_value('ui.header_panel.nproc', int)
-        group_name = self.bus.get_value('ui.visualize.input.group_name')
+        group_name = self.bus.get_value('ui.visualize.input.group_name',str)
 
         use_global_scores = self.bus.get_value(
             'ui.visualize.global_score_policy'

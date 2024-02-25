@@ -169,7 +169,7 @@ class ConfigBus:
         elif typing == int:
             return int(value)
 
-        if 'group' in cfg_item and value:
+        if cfg_item.endswith('group') and value:
             value = list(value)
         return value
 
