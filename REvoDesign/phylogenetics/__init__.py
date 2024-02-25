@@ -4,6 +4,7 @@ from REvoDesign.application.ui_driver import ConfigBus
 from REvoDesign.sidechain_solver import (
     SidechainSolver,
 )
+
 from REvoDesign.tools.pymol_utils import (
     is_a_REvoDesign_session,
     make_temperal_input_pdb,
@@ -11,10 +12,10 @@ from REvoDesign.tools.pymol_utils import (
 from REvoDesign.tools.utils import (
     cmap_reverser,
     dirname_does_exist,
-    run_worker_thread_with_progress,
 )
 from dataclasses import dataclass
 from pymol import cmd
+
 
 from REvoDesign.tools.logger import logging as logger
 
@@ -27,6 +28,7 @@ class MutateWorkerConfig:
     design_molecule: str
     design_chain_id: str
     design_sequence: str
+    designable_sequences: dict[str, str]
     PWD: str
     sidechain_solver: SidechainSolver
 
@@ -176,7 +178,7 @@ class VisualizingWorker(MutateWorkerConfig):
         best_leaf = self.bus.get_value('ui.visualize.input.best_leaf')
         totalscore = self.bus.get_value('ui.visualize.input.totalscore')
         nproc = self.bus.get_value('ui.header_panel.nproc', int)
-        group_name = self.bus.get_value('ui.visualize.input.group_name')
+        group_name = self.bus.get_value('ui.visualize.input.group_name', str)
 
         use_global_scores = self.bus.get_value(
             'ui.visualize.global_score_policy'
@@ -225,6 +227,8 @@ class VisualizingWorker(MutateWorkerConfig):
                 profile_fp=design_profile,
                 profile_format=design_profile_format,
             )
+
+            # logging.warning(f'{self.visualizer.profile_scoring_df}')
 
             if best_leaf:
                 self.visualizer.key_col = best_leaf

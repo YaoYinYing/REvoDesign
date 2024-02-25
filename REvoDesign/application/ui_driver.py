@@ -41,15 +41,16 @@ class ConfigBus:
         fp_lock(cfg_fps: Union[list, tuple, str], buttons_id_to_release: Union[list, tuple, str]): Locks or unlocks buttons based on the existence of file paths in the configuration.
         button(id: str): Retrieves a button widget based on its ID.
     """
+
     def __init__(self, ui: QtWidgets.QWidget):
         self.ui = ui
         self.cfg = reload_config_file()
         self.w2c = Widget2ConfigMapper(ui=self.ui)
-        self.buttons=self.w2c.buttons
+        self.buttons = self.w2c.buttons
 
     def initialize_widget_with_cfg_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
-        
+
         for widget_id, group_cfgs in self.w2c.group_config_map.items():
             group_values = []
             widget = self.get_widget_from_id(widget_id=widget_id)
@@ -87,7 +88,7 @@ class ConfigBus:
 
     def update_cfg_item_from_widget(self, widget_id: str):
         # Updates a configuration setting based on the value of a UI widget.
-        
+
         cfg_item = self.w2c.widget_id2config_dict.get(widget_id)
         widget = self.get_widget_from_id(widget_id=widget_id)
         if not cfg_item:
@@ -97,8 +98,6 @@ class ConfigBus:
         OmegaConf.update(self.cfg, cfg_item, value)
 
     def _widget_link(self, widget_id: str):
-        
-        
         return partial(self.update_cfg_item_from_widget, widget_id)
 
     def register_widget_changes_to_cfg(self):
@@ -127,7 +126,7 @@ class ConfigBus:
 
     def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
         # Retrieves a UI widget based on its ID.
-        
+
         return self.w2c.widget_id2widget_map.get(widget_id)
 
     def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:
@@ -170,7 +169,7 @@ class ConfigBus:
         elif typing == int:
             return int(value)
 
-        if 'group' in cfg_item and value:
+        if cfg_item.endswith('group') and value:
             value = list(value)
         return value
 
@@ -196,13 +195,14 @@ class ConfigBus:
         if not isinstance(buttons_id_to_release, (list, tuple)):
             buttons_id_to_release = [buttons_id_to_release]
 
-        self.toggle_buttons(buttons_ids=buttons_id_to_release, set_enabled=False)
+        self.toggle_buttons(
+            buttons_ids=buttons_id_to_release, set_enabled=False
+        )
 
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
             logging.info(f'Checking file path: {_fp}')
             if not _fp or not dirname_does_exist(_fp):
-                logging.warning(f'The dirname of `{_fp}` is not valid.')
                 return
             else:
                 if not filepath_does_exists(_fp):
@@ -210,7 +210,9 @@ class ConfigBus:
                 else:
                     logging.info(f'The file `{_fp}` is valid.')
 
-        self.toggle_buttons(buttons_ids=buttons_id_to_release, set_enabled=True)
+        self.toggle_buttons(
+            buttons_ids=buttons_id_to_release, set_enabled=True
+        )
 
     def button(self, id: str):
         # Retrieves a button widget based on its ID.
@@ -218,6 +220,7 @@ class ConfigBus:
         return self.w2c.buttons.get(id)
 
 
+@dataclass(frozen=True)
 class PushButtons:
     """
     A class to define the IDs of push buttons used in the application.
@@ -225,7 +228,8 @@ class PushButtons:
     Attributes:
         button_ids (list[str]): A list of button IDs.
     """
-    button_ids: list[str] = [
+
+    button_ids: tuple[str] = (
         'submit_pssm_gremlin_job',
         'cancel_pssm_gremlin_job',
         'download_pssm_gremlin_job',
@@ -275,10 +279,10 @@ class PushButtons:
         'ws_disconnect_from_server',
         'previous',
         'next',
-    ]
+    )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Config2WidgetIds:
     """
     This class defines the mappings between configuration items and widget IDs, as well as the widget types.
@@ -290,7 +294,7 @@ class Config2WidgetIds:
     Methods:
         get_widget_typing(widget_id: str): Returns the Qt widget class corresponding to the given widget ID.
     """
-    
+
     wi_types: immutabledict = immutabledict(
         {
             'pushButton': QtWidgets.QPushButton,
@@ -301,8 +305,7 @@ class Config2WidgetIds:
             'checkBox': QtWidgets.QCheckBox,
         }
     )
-    
-    
+
     c2wi: immutabledict[str, str] = immutabledict(
         {
             'ui.header_panel.cmap.default': 'comboBox_cmap',
@@ -419,30 +422,29 @@ class Widget2ConfigMapper:
         _find_config_item(widget_id): Finds the configuration item corresponding to a widget ID.
         _find_widget_id(config_item): Finds the widget ID corresponding to a configuration item.
     """
+
     def __init__(self, ui):
         self.ui = ui
 
-        self.group_config_map: immutabledict[str, tuple[Union[str, Any]]] = (
-            immutabledict(
-                {
-                    'comboBox_cmap': (CallableGroupValues.ColorMap,),
-                    'comboBox_cluster_matrix': (
-                        CallableGroupValues.score_matrix,
-                    ),
-                    'comboBox_sidechain_solver': (
-                        'ui.config.sidechain_solver.group',
-                    ),
-                    'comboBox_profile_type': (
-                        'profile.group',
-                        'designer.group',
-                    ),
-                    'comboBox_profile_type_2': (
-                        'profile.group',
-                        'designer.group',
-                    ),
-                    'comboBox_external_scorer': ('designer.group',),
-                }
-            )
+        self.group_config_map: immutabledict[
+            str, tuple[Union[str, Any]]
+        ] = immutabledict(
+            {
+                'comboBox_cmap': (CallableGroupValues.ColorMap,),
+                'comboBox_cluster_matrix': (CallableGroupValues.score_matrix,),
+                'comboBox_sidechain_solver': (
+                    'ui.config.sidechain_solver.group',
+                ),
+                'comboBox_profile_type': (
+                    'profile.group',
+                    'designer.group',
+                ),
+                'comboBox_profile_type_2': (
+                    'profile.group',
+                    'designer.group',
+                ),
+                'comboBox_external_scorer': ('designer.group',),
+            }
         )
 
         self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
@@ -498,7 +500,6 @@ class Widget2ConfigMapper:
         return widget_id
 
     def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
-        
         widget = self.ui.findChild(
             self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
         )
@@ -506,7 +507,7 @@ class Widget2ConfigMapper:
         return widget
 
 
-@dataclass
+@dataclass(frozen=True)
 class Widget2Widget:
     """
     This class defines mappings between different UI widgets for interaction purposes.
@@ -514,14 +515,17 @@ class Widget2Widget:
     Attributes:
         sidechain_solver2model (dict): A mapping of sidechain solver options to their corresponding model options.
     """
-    sidechain_solver2model = {
-        'PIPPack': [
-            'ui.config.sidechain_solver.pippack.model_names.group',
-            'ui.config.sidechain_solver.pippack.model_names.default',
-        ],
-        'DLPacker': [''],
-        'Dunbrack Rotamer Library': [''],
-    }
+
+    sidechain_solver2model: immutabledict = immutabledict(
+        {
+            'PIPPack': [
+                'ui.config.sidechain_solver.pippack.model_names.group',
+                'ui.config.sidechain_solver.pippack.model_names.default',
+            ],
+            'DLPacker': [''],
+            'Dunbrack Rotamer Library': [''],
+        }
+    )
 
 
 class CallableGroupValues:
@@ -532,6 +536,7 @@ class CallableGroupValues:
         score_matrix(): Returns a list of available score matrices.
         ColorMap(): Returns a dictionary of available color maps.
     """
+
     @staticmethod
     def score_matrix() -> list:
         from Bio.Align import substitution_matrices

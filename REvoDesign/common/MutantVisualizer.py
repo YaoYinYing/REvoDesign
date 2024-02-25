@@ -65,7 +65,7 @@ class MutantVisualizer:
 
         self.min_score_profile = 0
         self.max_score_profile = 0
-        self.mutant_tree = MutantTree({})
+        self.mutant_tree: MutantTree = MutantTree({})
 
         self.consider_global_score_from_profile = False
 
@@ -484,7 +484,7 @@ class MutantVisualizer:
             )
 
             # skip None variant (failed to be parsed)
-            if not variant_obj.__empty__():
+            if variant_obj.empty:
                 continue
 
             _variant_info = variant_obj.mutant_info
@@ -496,6 +496,8 @@ class MutantVisualizer:
                 _sequence = variant_obj.get_mutant_sequence_single_chain(
                     chain_id=self.chain_id
                 )
+                _sequence = _sequence.replace('X', '')
+
                 _score = self.scorer.scorer(sequence=_sequence)
                 logging.debug(
                     f'Reading profile score for scorcer {type(self.scorer)}: {_score}'
@@ -512,7 +514,7 @@ class MutantVisualizer:
                     _variant_info[0]['mut_res'],
                     str(int(_variant_info[0]['position']) - 1),
                 ]
-                logging.debug(
+                logging.warning(
                     f'Reading profile score for variant {variant_obj.short_mutant_id}: {_score}'
                 )
 

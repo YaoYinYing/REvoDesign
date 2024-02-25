@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added 
+- Unit Test docker image for CircleCI
+- Experiments loading and saving powered by Hydra: `post_installed.experiment_config`
+- UI driver:
+  - `PushButtons` for button ids
+  - `Config2WidgetIds` for config and widget ids
+  - `Widget2ConfigMapper`:
+    - `run_button_ids`
+    - `buttons`
+    - `config_widget_id_map`
+    - `config2widget_map`
+    - `widget_id2widget_map`
+    - `get_button_from_id`
+- `ClusterRunnerConfig` -- `ClusterRunner`
+- `REvoDesigner`:
+  - `mutate_runner`
+- `MutateWorkerConfig`, `MutateWorker`, `VisualizingWorker`
+- `SidechainSolverConfig`, `SidechainSolver` 
+- Qt Test:
+  - test cases:
+    - `TestREvoDesignPlugin_TabCluster`
+    - `TestREvoDesignPlugin_TabVisualize`
+  - `TestWorker.click`: return self so that a series of clicking can be done in one liner calls
+- `TestData`: more test data
+
+### Changed
+- `REvoDesignFileExtentions` to handle file extentions. Immunable dataclass
+- UI driver:
+  - `Widget2ConfigMapper`: Immunable changes
+- `Mutant.__empty__` -> `Mutant.empty` as a property
+- Most code of Tab Evalutate -> `Evalutator`
+- move to mutant tools:
+  - `save_mutant_choices`
+  - `write_input_mutant_table`
+  - `determine_profile_type`
+  - `get_mutant_table_columns`
+  
+
+### Fixed
+- arguments in `DLPacker_worker`
+- test cases in `UnitTests`
+
+### Removed
+- `MutantVisualizer`:
+  - `sidechain_solver*`
+  - `REVODESIGN_CONFIG`
+- `REvoDesigner`:
+  - `sidechain_solver*`
+- use `PocketSearcherConfig` to control `PocketSearcher`
+- use `SurfaceFinderConfig` to control `SurfaceFinder`
+
 
 ## [1.5.0-beta] - 2024-02-21
 

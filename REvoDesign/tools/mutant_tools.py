@@ -12,7 +12,9 @@ from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
-
+from REvoDesign.common.FileExtentions import (
+    REvoDesignFileExtentions as FileExtentions,
+)
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
@@ -601,3 +603,42 @@ def write_input_mutant_table(output_mut_txt_fn, mutant_list):
     open(output_mut_txt_fn, 'w').write(
         '\n'.join(mutant_list) if mutant_list else ''
     )
+
+
+def determine_profile_type(profile_fp):
+    profile_bn = os.path.basename(profile_fp)
+    if profile_bn.endswith('.csv'):
+        return 'CSV'
+    elif profile_bn.endswith('.txt'):
+        return 'TSV'
+    elif profile_bn.endswith('.pssm') or profile_bn.endswith('ascii_mtx_file'):
+        return 'PSSM'
+    else:
+        return
+
+
+def get_mutant_table_columns(mutfile):
+    import pandas as pd
+
+    table_extensions = [
+        f'.{ext}' for ext, _ in FileExtentions.MutableFileExt.items()
+    ]
+
+    if not any(
+        [True for ext in table_extensions if mutfile.lower().endswith(ext)]
+    ):
+        return None
+
+    elif mutfile.lower().endswith('.txt'):
+        return None
+
+    elif mutfile.lower().endswith('.csv'):
+        mutation_data = pd.read_csv(mutfile)
+
+    elif mutfile.lower().endswith('.tsv'):
+        mutation_data = pd.read_fwf(mutfile)
+
+    elif mutfile.lower().endswith('.xlsx') or mutfile.lower().endswith('.xls'):
+        mutation_data = pd.read_excel(mutfile)
+
+    return list(mutation_data.columns)

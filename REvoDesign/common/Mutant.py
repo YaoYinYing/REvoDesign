@@ -26,7 +26,8 @@ class Mutant:
     def __str__(self):
         return f"Mutant Info: {self.mutant_info}, Mutant Score: {self.mutant_score}"
 
-    def __empty__(self) -> bool:
+    @property
+    def empty(self) -> bool:
         return not bool(self.mutant_info)
 
     @property

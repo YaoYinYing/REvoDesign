@@ -4593,12 +4593,20 @@
     <property name="title">
      <string>REvoDesign</string>
     </property>
+    <widget class="QMenu" name="menuExperiment">
+     <property name="title">
+      <string>Experiment</string>
+     </property>
+     <addaction name="action_LoadExperiment"/>
+     <addaction name="action_Save_to_Experiment"/>
+    </widget>
     <addaction name="actionCheck_PyMOL_session"/>
     <addaction name="actionSet_Working_Directory"/>
     <addaction name="separator"/>
     <addaction name="actionReconfigure"/>
     <addaction name="actionSave_Configurations"/>
     <addaction name="actionLoad_Demo"/>
+    <addaction name="menuExperiment"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -4679,6 +4687,16 @@
   <action name="actionLoad_Demo">
    <property name="text">
     <string>Load Demo</string>
+   </property>
+  </action>
+  <action name="action_LoadExperiment">
+   <property name="text">
+    <string>Load</string>
+   </property>
+  </action>
+  <action name="action_Save_to_Experiment">
+   <property name="text">
+    <string>Save to ...</string>
    </property>
   </action>
  </widget>

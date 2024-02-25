@@ -23,20 +23,15 @@ from REvoDesign.application.ui_driver import (
 )
 
 from REvoDesign.tools.post_installed import (
+    EXPERIMENTS_CONFIG_DIR,
+    reload_config_file,
     save_configuration,
 )
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.common.file_extensions import (
-    SessionFileExt,
-    PDB_FileExt,
-    PSSM_FileExt,
-    MutableFileExt,
-    TXT_FileExt,
-    AnyFileExt,
-    CompressedFileExt,
-    PickleObjectFileExt,
+from REvoDesign.common.FileExtentions import (
+    REvoDesignFileExtentions as FileExtentions,
 )
 
 
@@ -70,9 +65,11 @@ from REvoDesign.tools.pymol_utils import (
 )
 
 from REvoDesign.tools.mutant_tools import (
+    determine_profile_type,
     existed_mutant_tree,
     extract_mutant_from_pymol_object,
     extract_mutants_from_mutant_id,
+    get_mutant_table_columns,
     save_mutant_choices,
 )
 
@@ -169,6 +166,14 @@ class REvoDesignPlugin:
         )
         self.bus.ui.actionSave_Configurations.triggered.connect(
             self.save_configuration_from_ui
+        )
+
+        self.bus.ui.action_LoadExperiment.triggered.connect(
+            partial(self.load_and_save_experiment, mode='r')
+        )
+
+        self.bus.ui.action_Save_to_Experiment.triggered.connect(
+            partial(self.load_and_save_experiment, mode='w')
         )
 
         self.bus.ui.actionSource_Code.triggered.connect(
@@ -303,7 +308,7 @@ class REvoDesignPlugin:
             partial(
                 self.open_input_psepath,
                 'ui.mutate.input.residue_ids',
-                [TXT_FileExt, AnyFileExt],
+                [FileExtentions.TXT_FileExt, FileExtentions.AnyFileExt],
             )
         )
 
@@ -311,7 +316,11 @@ class REvoDesignPlugin:
             partial(
                 self.open_input_psepath,
                 'ui.mutate.input.profile',
-                [PSSM_FileExt, AnyFileExt, CompressedFileExt],
+                [
+                    FileExtentions.PSSM_FileExt,
+                    FileExtentions.AnyFileExt,
+                    FileExtentions.CompressedFileExt,
+                ],
             )
         )
 
@@ -442,7 +451,11 @@ class REvoDesignPlugin:
             partial(
                 self.open_input_psepath,
                 'ui.visualize.input.profile',
-                [PSSM_FileExt, AnyFileExt, CompressedFileExt],
+                [
+                    FileExtentions.PSSM_FileExt,
+                    FileExtentions.AnyFileExt,
+                    FileExtentions.CompressedFileExt,
+                ],
             )
         )
 
@@ -541,7 +554,10 @@ class REvoDesignPlugin:
             partial(
                 self.open_input_psepath,
                 'ui.interact.input.gremlin_pkl',
-                [PickleObjectFileExt, AnyFileExt],
+                [
+                    FileExtentions.PickleObjectFileExt,
+                    FileExtentions.AnyFileExt,
+                ],
             )
         )
 
@@ -637,7 +653,7 @@ class REvoDesignPlugin:
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
-    def browse_filename(self, mode='r', exts=[AnyFileExt]):
+    def browse_filename(self, mode='r', exts=[FileExtentions.AnyFileExt]):
         from pymol.Qt.utils import getSaveFileNameWithExt
 
         filter_strings = ';;'.join(
@@ -662,7 +678,7 @@ class REvoDesignPlugin:
             # Check if the selected file is a compressed archive
             is_compressed = [
                 True
-                for ext_, _ in CompressedFileExt.items()
+                for ext_, _ in FileExtentions.CompressedFileExt.items()
                 if filename.endswith(ext_)
             ]
             if any(is_compressed):
@@ -684,7 +700,9 @@ class REvoDesignPlugin:
             return filename
 
     # A universal and versatile function for input file path browsing.
-    def open_input_psepath(self, cfg_input: str, exts=[AnyFileExt]):
+    def open_input_psepath(
+        self, cfg_input: str, exts=[FileExtentions.AnyFileExt]
+    ):
         input_fn = self.browse_filename(mode='r', exts=exts)
         if input_fn:
             self.bus.set_widget_value(cfg_input, input_fn)
@@ -708,7 +726,12 @@ class REvoDesignPlugin:
                             Please load one PDB/PSE/PZE!'
             )
             new_session_file = self.browse_filename(
-                mode='r', exts=[SessionFileExt, PDB_FileExt, AnyFileExt]
+                mode='r',
+                exts=[
+                    FileExtentions.SessionFileExt,
+                    FileExtentions.PDB_FileExt,
+                    FileExtentions.AnyFileExt,
+                ],
             )
             if not new_session_file:
                 logging.error(f'Abored recognizing sessions from input.')
@@ -730,7 +753,8 @@ class REvoDesignPlugin:
 
     def save_as_a_session(self, cfg_to_pse: str):
         output_pse_fn = self.browse_filename(
-            mode='w', exts=[SessionFileExt, AnyFileExt]
+            mode='w',
+            exts=[FileExtentions.SessionFileExt, FileExtentions.AnyFileExt],
         )
 
         if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
@@ -765,7 +789,11 @@ class REvoDesignPlugin:
         if mode == 'r':
             input_mut_txt_fn = self.open_input_psepath(
                 cfg_mutant_table,
-                [MutableFileExt, AnyFileExt, CompressedFileExt],
+                [
+                    FileExtentions.MutableFileExt,
+                    FileExtentions.AnyFileExt,
+                    FileExtentions.CompressedFileExt,
+                ],
             )
             if input_mut_txt_fn:
                 self.bus.set_widget_value(cfg_mutant_table, input_mut_txt_fn)
@@ -775,7 +803,11 @@ class REvoDesignPlugin:
                 )
         elif mode == 'w':
             output_mut_txt_fn = self.browse_filename(
-                mode=mode, exts=[MutableFileExt, AnyFileExt]
+                mode=mode,
+                exts=[
+                    FileExtentions.MutableFileExt,
+                    FileExtentions.AnyFileExt,
+                ],
             )
             if output_mut_txt_fn and os.path.exists(
                 os.path.dirname(output_mut_txt_fn)
@@ -794,13 +826,17 @@ class REvoDesignPlugin:
             logging.warning(
                 'Session not found, please use a new session path to save.'
             )
-            return self.browse_filename(mode='w', exts=[SessionFileExt])
+            return self.browse_filename(
+                mode='w', exts=[FileExtentions.SessionFileExt]
+            )
 
         if not os.path.exists(session_path):
             logging.warning(
                 'Invalid session file path, please use a new session path to save.'
             )
-            return self.browse_filename(mode='w', exts=[SessionFileExt])
+            return self.browse_filename(
+                mode='w', exts=[FileExtentions.SessionFileExt]
+            )
 
         if os.path.basename(session_path).startswith(
             'tmp'
@@ -808,7 +844,9 @@ class REvoDesignPlugin:
             logging.warning(
                 f'Found temperal session path: {session_path}, please use a new session path to save.'
             )
-            return self.browse_filename(mode='w', exts=[SessionFileExt])
+            return self.browse_filename(
+                mode='w', exts=[FileExtentions.SessionFileExt]
+            )
 
         return session_path
 
@@ -1012,16 +1050,8 @@ class REvoDesignPlugin:
         if not os.path.exists(profile_fp):
             return None
 
-        profile_bn = os.path.basename(profile_fp)
-        if profile_bn.endswith('.csv'):
-            profile_format = 'CSV'
-        elif profile_bn.endswith('.txt'):
-            profile_format = 'TSV'
-        elif profile_bn.endswith('.pssm') or profile_bn.endswith(
-            'ascii_mtx_file'
-        ):
-            profile_format = 'PSSM'
-        else:
+        profile_format = determine_profile_type(profile_fp=profile_fp)
+        if not profile_format:
             return
 
         self.bus.set_widget_value(cfg_profile_format, profile_format)
@@ -1042,6 +1072,7 @@ class REvoDesignPlugin:
                 design_molecule=self.design_molecule,
                 design_chain_id=self.design_chain_id,
                 design_sequence=self.design_sequence,
+                designable_sequences=self.designable_sequences,
                 sidechain_solver=self.sidechain_solver,
                 PWD=self.PWD,
             )
@@ -1084,7 +1115,8 @@ class REvoDesignPlugin:
         if not self.evaluator:
             return
         mutant_choice_checkpoint_fn = self.browse_filename(
-            mode='r', exts=[MutableFileExt, AnyFileExt]
+            mode='r',
+            exts=[FileExtentions.MutableFileExt, FileExtentions.AnyFileExt],
         )
 
         self.evaluator.recover_mutant_choices_from_checkpoint(
@@ -1116,8 +1148,7 @@ class REvoDesignPlugin:
         trigger_button = self.bus.button('run_cluster')
 
         # lazy module loading to fasten plugin initializing
-        from REvoDesign.clusters.combine_positions import Combinations
-        from REvoDesign.clusters.cluster_sequence import Clustering
+        from REvoDesign.clusters import ClusterRunner
 
         input_mutant_table = self.bus.get_value(
             'ui.cluster.input.from_mutant_txt'
@@ -1135,87 +1166,26 @@ class REvoDesignPlugin:
 
         nproc = self.bus.get_value('ui.header_panel.nproc', int)
 
-        # output space
-        plot_space = self.bus.ui.stackedWidget
-        progressbar = self.bus.ui.progressBar
-
-        input_fasta_file = (
-            f'{self.PWD}/{self.design_molecule}_{self.design_chain_id}.fasta'
+        worker = ClusterRunner(
+            bus=self.bus,
+            design_molecule=self.design_molecule,
+            design_chain_id=self.design_chain_id,
+            design_sequence=self.design_sequence,
+            PWD=self.PWD,
+            cluster_batch_size=cluster_batch_size,
+            cluster_number=cluster_number,
+            min_mut_num=min_mut_num,
+            max_mut_num=max_mut_num,
+            cluster_substitution_matrix=cluster_substitution_matrix,
+            shuffle_variant=shuffle_variant,
+            nproc=nproc,
+            input_mutant_table=input_mutant_table,
         )
-        open(input_fasta_file, 'w').write(
-            f'>{self.design_molecule}_{self.design_chain_id}\n{self.design_sequence}'
-        )
-        logging.info(f'Sequence file is saved as {input_fasta_file}')
-
-        # output files
-        cluster_outputs = {}
 
         with hold_trigger_button(trigger_button):
-            for num_mut in range(min_mut_num, max_mut_num + 1):
-                # combination
-                combinations = Combinations()
-                combinations.fastasequence = self.design_sequence
-                combinations.chain_id = self.design_chain_id
-                combinations.fastafile = input_fasta_file
-                combinations.inputfile = input_mutant_table
-                combinations.combi = num_mut
-                combinations.path = self.PWD
-                combinations.processors = nproc
-
-                # expected design combination file
-
-                combinations.run_combinations()
-                expected_design_combinations = (
-                    combinations.expected_output_fasta
-                )
-
-                # clustering
-
-                clustering = Clustering(fastafile=expected_design_combinations)
-                clustering.batch_size = cluster_batch_size
-                clustering.num_proc = nproc
-                clustering.num_clusters = cluster_number
-                clustering.shuffle_variant = shuffle_variant
-                clustering.substitution_matrix = cluster_substitution_matrix
-                clustering._save_dir = self.PWD
-
-                clustering.initialize_aligner()
-
-                clustering.run_clustering(progressbar=progressbar)
-                cluster_outputs.update({num_mut: clustering.cluster_output_fp})
-
-            cluster_imgs = [
-                _cluster['score'] for _, _cluster in cluster_outputs.items()
-            ]
-            set_widget_value(plot_space, cluster_imgs)
+            worker.run_clustering()
 
     # Tab Visualize
-
-    def get_mutant_table_columns(self, mutfile):
-        import pandas as pd
-
-        table_extensions = [f'.{ext}' for ext, _ in MutableFileExt.items()]
-
-        if not any(
-            [True for ext in table_extensions if mutfile.lower().endswith(ext)]
-        ):
-            return None
-
-        elif mutfile.lower().endswith('.txt'):
-            return None
-
-        elif mutfile.lower().endswith('.csv'):
-            mutation_data = pd.read_csv(mutfile)
-
-        elif mutfile.lower().endswith('.tsv'):
-            mutation_data = pd.read_fwf(mutfile)
-
-        elif mutfile.lower().endswith('.xlsx') or mutfile.lower().endswith(
-            '.xls'
-        ):
-            mutation_data = pd.read_excel(mutfile)
-
-        return list(mutation_data.columns)
 
     def update_mutant_table_columns(
         self,
@@ -1224,32 +1194,30 @@ class REvoDesignPlugin:
         if not os.path.exists(mut_table_fp):
             logging.warning(f'Mutant Table path is not valid: {mut_table_fp}')
             return
-        else:
-            mut_table_cols = self.get_mutant_table_columns(
-                mutfile=mut_table_fp
+
+        mut_table_cols = get_mutant_table_columns(mutfile=mut_table_fp)
+
+        if not mut_table_cols:
+            logging.warning(
+                f'Mutant Table column names is not valid: {mut_table_cols}'
             )
+            return
 
-            if not mut_table_cols:
-                logging.warning(
-                    f'Mutant Table column names is not valid: {mut_table_cols}'
-                )
-                return
-            else:
-                comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
-                    'ui.visualize.input.best_leaf'
-                )
-                comboBox_totalscore = self.bus.get_widget_from_cfg_item(
-                    'ui.visualize.input.totalscore'
-                )
+        comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
+            'ui.visualize.input.best_leaf'
+        )
+        comboBox_totalscore = self.bus.get_widget_from_cfg_item(
+            'ui.visualize.input.totalscore'
+        )
 
-                # set cols to combo boxes
-                for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
-                    set_widget_value(comboBox, mut_table_cols)
+        # set cols to combo boxes
+        for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
+            set_widget_value(comboBox, mut_table_cols)
 
-                # set default col value
-                if len(mut_table_cols) > 1:
-                    set_widget_value(comboBox_best_leaf, mut_table_cols[0])
-                    set_widget_value(comboBox_totalscore, mut_table_cols[-1])
+        # set default col value
+        if len(mut_table_cols) > 1:
+            set_widget_value(comboBox_best_leaf, mut_table_cols[0])
+            set_widget_value(comboBox_totalscore, mut_table_cols[-1])
 
     def save_visualizing_mutant_tree(
         self, cfg_mutant_table_fp, cfg_group_name
@@ -1300,6 +1268,7 @@ class REvoDesignPlugin:
                 design_molecule=self.design_molecule,
                 design_chain_id=self.design_chain_id,
                 design_sequence=self.design_sequence,
+                designable_sequences=self.designable_sequences,
                 sidechain_solver=self.sidechain_solver,
                 PWD=self.PWD,
             )
@@ -1346,7 +1315,7 @@ class REvoDesignPlugin:
 
                 if not confirmed:
                     session = self.browse_filename(
-                        mode='w', exts=[SessionFileExt]
+                        mode='w', exts=[FileExtentions.SessionFileExt]
                     )
 
                 if not session:
@@ -2353,17 +2322,35 @@ class REvoDesignPlugin:
             return
         self.ws_client.close_connection()
 
-    def reload_configurations(self):
+    def reload_configurations(self, experiment: str = None):
         if self.bus:
             logging.warning(f'Reconfiguring with changes...')
             reconfigure = True
         else:
             logging.warning(f'Configuration initialized.')
             reconfigure = False
-        # create a bus btw cfg<---> ui
-        self.bus = ConfigBus(ui=self.ui)
+
         if not reconfigure:
+            # while booting
+            # create a bus btw cfg<---> ui
+            self.bus = ConfigBus(ui=self.ui)
             self.bus.initialize_widget_with_cfg_group()
+
+        elif experiment:
+            # while loading experiment
+            expected_experiment_config = f'{experiment}.yaml'
+
+            if os.path.exists(
+                os.path.join(
+                    EXPERIMENTS_CONFIG_DIR, expected_experiment_config
+                )
+            ):
+                self.bus.cfg = reload_config_file(
+                    config_name=f'experiments/{experiment}'
+                )['experiments']
+        else:
+            # simply reload from default config, discard unsaved.
+            self.bus.cfg = reload_config_file()
 
         self.refresh_ui_from_new_configuration()
 
@@ -2380,3 +2367,36 @@ class REvoDesignPlugin:
 
     def save_configuration_from_ui(self, experiment: str = None):
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
+
+    def load_and_save_experiment(self, mode='r'):
+        import shutil
+
+        if not (mode == 'r' or mode == 'w'):
+            return
+        new_cfg_file = self.browse_filename(
+            mode=mode,
+            exts=[FileExtentions.ConfigFileExt, FileExtentions.AnyFileExt],
+        )
+        if not new_cfg_file:
+            return
+        new_cfg_base_name: str = os.path.basename(new_cfg_file)
+        new_cfg_prefix = new_cfg_base_name.replace('.yaml', '')
+        experiment_file = os.path.join(
+            EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
+        )
+        if mode == 'r':
+            # copy cfg to experiment dir so that hydra can access it
+            shutil.copy(new_cfg_file, experiment_file)
+            self.reload_configurations(experiment=new_cfg_prefix)
+            logging.warning(
+                f'Load config from {new_cfg_file}, backup at {experiment_file}'
+            )
+        else:
+            self.save_configuration_from_ui(
+                experiment=f'experiments/{new_cfg_prefix}'
+            )
+            # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
+            shutil.copy(experiment_file, new_cfg_file)
+            logging.warning(
+                f'saved config at {new_cfg_file}, backup at {experiment_file}'
+            )

@@ -227,10 +227,10 @@ class MutantTree:
         Usage:
         tree.add_mutant_to_branch('branch_id', 'mutant_id', mutant_info)
         """
-        if branch not in self.mutant_tree.keys():
+        if branch not in self.all_mutant_branch_ids:
             self.mutant_tree[branch] = {}
 
-        if mutant in self.mutant_tree[branch].keys():
+        if mutant in self.get_a_branch(branch_id=branch):
             print(f'Mutant {mutant} already exists and will be updated.')
 
         self.mutant_tree[branch].update({mutant: mutant_info})

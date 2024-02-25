@@ -351,6 +351,7 @@ def get_widget_value(widget):
     - QComboBox: Returns the current text or the userData of the current item if any.
     - QLineEdit: Returns the current text as str.
     - QProgressBar: Returns the current value as int.
+    - QLCDNumber: Returns the current value as float.
     - QCheckBox: Returns the checked state as bool.
 
     Raises:
@@ -366,6 +367,8 @@ def get_widget_value(widget):
         return widget.text()
     elif isinstance(widget, QtWidgets.QProgressBar):
         return widget.value()
+    elif isinstance(widget, QtWidgets.QLCDNumber):
+        return float(widget.value())
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
     else:
