@@ -42,7 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `write_input_mutant_table`
   - `determine_profile_type`
   - `get_mutant_table_columns`
-  
+- use `PocketSearcherConfig` to control `PocketSearcher`
+- use `SurfaceFinderConfig` to control `SurfaceFinder`
+
 
 ### Fixed
 - arguments in `DLPacker_worker`
@@ -54,8 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `REVODESIGN_CONFIG`
 - `REvoDesigner`:
   - `sidechain_solver*`
-- use `PocketSearcherConfig` to control `PocketSearcher`
-- use `SurfaceFinderConfig` to control `SurfaceFinder`
 
 
 ## [1.5.0-beta] - 2024-02-21
