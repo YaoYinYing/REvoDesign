@@ -60,7 +60,7 @@ jax = ["colabdesign"]
 torch = ["PIPPack"]
 tf = ["DLPacker"]
 
-unittest = [ "absl-py", "pooch", "pytest-qt"]
+unittest = [ "absl-py", "pooch", "pytest-qt", "psutil"]
 
 full = ["colabdesign", "DLPacker", "PIPPack"]
 

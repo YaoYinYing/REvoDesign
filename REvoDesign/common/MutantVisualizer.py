@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 import tempfile
@@ -615,6 +616,7 @@ class MutantVisualizer:
             self.mutagenesis_sessions = [
                 session_path for session_path in self.results if session_path
             ]
+            gc.collect()
         else:
             if progress_bar:
                 progress_bar.setRange(0, len(self.mutagenesis_tasks))

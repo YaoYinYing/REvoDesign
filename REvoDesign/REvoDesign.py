@@ -1,8 +1,6 @@
 import asyncio
 import os
-import time
 import traceback
-from immutabledict import immutabledict
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -134,6 +132,9 @@ class REvoDesignPlugin:
             self.window = self.make_window()
         self.window.show()
 
+    def __del__(self):
+        logging.warning('REvoDesign is quit.')
+        
     # main function that makes the plugin window
     def make_window(self):
         logging.debug(

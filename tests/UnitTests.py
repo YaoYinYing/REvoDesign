@@ -847,6 +847,7 @@ class TestPymolUtils(absltest.TestCase):
 
     def test_any_posision_has_been_selected(self):
         cmd.select('sele', 'i. 45')
+        cmd.enable('sele')
         self.assertTrue(any_posision_has_been_selected())
         cmd.disable('sele')
         self.assertFalse(any_posision_has_been_selected())
