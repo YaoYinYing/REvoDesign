@@ -348,8 +348,12 @@ class TestWorker:
 @pytest.fixture
 def WORKER(qtbot:qtbot.QtBot,plugin,request,):
     w=TestWorker(qtbot,plugin)
+    def final_action():
+        w.performace_report()
+        w.plugin.reinitialize()
+        gc.collect()
     yield w
-    request.addfinalizer(w.performace_report)
+    request.addfinalizer(final_action)
     
 
 

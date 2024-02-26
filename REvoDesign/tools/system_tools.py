@@ -1,5 +1,4 @@
-from dataclasses import asdict, dataclass
-import os
+from dataclasses import dataclass
 import platform
 
 from REvoDesign.tools.logger import logging as logger

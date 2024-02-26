@@ -121,8 +121,18 @@ class REvoDesignPlugin:
             self.window = self.make_window()
         self.window.show()
 
+    def reinitialize(self):
+        self.gremlin_worker = None
+        self.sidechain_solver = None
+        self.evaluator: Evalutator = None
+
+
+
     def __del__(self):
-        logging.warning('REvoDesign is quit.')
+        self.reinitialize()
+        logging.warning('REvoDesign is shutting down.')
+        if self.window:
+            self.window=None
 
     # main function that makes the plugin window
     def make_window(self):
@@ -957,6 +967,7 @@ class REvoDesignPlugin:
         )
 
         surfacefinder.process_surface_residues()
+        surfacefinder=None
 
     def run_pocket_detection(self):
         input_pse = self.temperal_session
@@ -983,6 +994,7 @@ class REvoDesignPlugin:
         )
 
         pocketsearcher.search_pockets()
+        pocketsearcher=None
 
     # Tab `Mutate`
     def refresh_sidechainsolver(self):
@@ -1081,6 +1093,7 @@ class REvoDesignPlugin:
                     data_type='MutantTree',
                 )
             )
+        worker=None
 
     # Tab `Evaluate`
     def set_pymol_session_rock(self):
@@ -1174,6 +1187,8 @@ class REvoDesignPlugin:
 
         with hold_trigger_button(trigger_button):
             worker.run_clustering()
+
+        worker=None
 
     # Tab Visualize
 
@@ -1276,6 +1291,8 @@ class REvoDesignPlugin:
                     data_type='MutantTree',
                 )
             )
+        
+        worker=None
 
     def reduce_current_session(
         self, session=None, reduce_disabled=False, overwrite=False
