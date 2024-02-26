@@ -94,7 +94,7 @@ class Mutant:
         """
         self._wt_score = value
 
-    def get_mutant_sequence_single_chain(self, chain_id: str) -> str:
+    def get_mutant_sequence_single_chain(self, chain_id: str, ignore_missing=False) -> str:
         if chain_id not in self.wt_sequences:
             raise ValueError(
                 f'Chain {chain_id} does not exist in wt sequence.'
@@ -118,6 +118,12 @@ class Mutant:
                     f"WT residue at position {pos} does not match mutant info."
                 )
             sequence[pos - 1] = mutant['mut_res']
+        
+        if ignore_missing:
+            while True:
+                if not 'X' in sequence:
+                    break
+                sequence.remove('X')
 
         return ''.join(sequence)
 
