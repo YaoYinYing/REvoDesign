@@ -1502,7 +1502,7 @@ class REvoDesignPlugin:
                 self.refresh_sidechainsolver,
                 progress_bar=self.bus.ui.progressBar,
             )
-            self.gremlin_worker=self.sidechain_solver
+            self.gremlin_worker.sidechain_solver=self.sidechain_solver
             self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):
