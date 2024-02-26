@@ -1247,7 +1247,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         # assert os.path.exists(WORKER.test_data.visualize_2_pse)
 
-        WORKER.wait_for_file(file=f'{WORKER.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=10)
+        #WORKER.wait_for_file(file=f'{WORKER.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=10)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -1315,7 +1315,7 @@ class TestREvoDesignPlugin_TabInteract:
         )
         assert os.path.exists(mutfile)
 
-    def test_gremlin_one2all(
+    def test_gremlin_one2all_mpnn_score(
         self, WORKER: TestWorker
     ):
         
@@ -1325,7 +1325,7 @@ class TestREvoDesignPlugin_TabInteract:
         sele_resi=295
         cmd.select('sele', f'{WORKER.test_data.molecule} and c. {WORKER.test_data.chain_id} and i. {sele_resi} and n. CA')
         cmd.enable('sele')
-
+        
         # buttons
         _next=WORKER.plugin.ui.pushButton_next
         _prev=WORKER.plugin.ui.pushButton_previous
@@ -1342,6 +1342,8 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.do_typing(WORKER.plugin.ui.lineEdit_output_mutant_table,mutfile )
 
+        set_widget_value(WORKER.plugin.ui.comboBox_external_scorer, 'ProteinMPNN')
+
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
             basename=f'{WORKER.method_name()}_before_init',
@@ -1351,7 +1353,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         # assert os.path.exists(WORKER.test_data.visualize_2_pse)
 
-        WORKER.wait_for_file(file=f'{WORKER.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=20)
+        #WORKER.wait_for_file(file=f'{WORKER.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=20)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,

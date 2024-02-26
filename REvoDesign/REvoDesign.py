@@ -134,7 +134,7 @@ class REvoDesignPlugin:
 
     def __del__(self):
         logging.warning('REvoDesign is quit.')
-        
+
     # main function that makes the plugin window
     def make_window(self):
         logging.debug(
@@ -578,10 +578,10 @@ class REvoDesignPlugin:
         )
 
         self.bus.button('interact_reject').clicked.connect(
-            self.coevoled_mutant_decision, False
+            partial(self.coevoled_mutant_decision, False)
         )
         self.bus.button('interact_accept').clicked.connect(
-            self.coevoled_mutant_decision, True
+            partial(self.coevoled_mutant_decision, True)
         )
 
         # Tab socket
@@ -1848,10 +1848,7 @@ class REvoDesignPlugin:
 
         set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
 
-        if (
-            max_interact_dist
-            and spatial_distance > max_interact_dist
-        ):
+        if max_interact_dist and spatial_distance > max_interact_dist:
             logging.warning(
                 f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist}'
             )
@@ -2122,7 +2119,12 @@ class REvoDesignPlugin:
 
             logging.info(f" Visualizing {mutant}: {color}")
 
-            visualizer.create_mutagenesis_objects(mutant_obj, color)
+            run_worker_thread_with_progress(
+                worker_function=visualizer.create_mutagenesis_objects,
+                mutant_obj=mutant_obj,
+                color=color,
+                progress_bar=self.bus.ui.progressBar,
+            )
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)
 
