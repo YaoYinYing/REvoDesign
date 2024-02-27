@@ -1,6 +1,6 @@
 import os
 import tempfile
-from DLPacker.dlpacker import DLPacker
+
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.logger import logging as logger
 
@@ -52,7 +52,6 @@ class DLPacker_worker:
         self.reconstruct_area_radius = 0
 
         
-        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
 
     def reconstruct(self):
         """
@@ -61,7 +60,8 @@ class DLPacker_worker:
         Returns:
         - Path to the temporally relaxed PDB file
         """
-        
+        from DLPacker.dlpacker import DLPacker
+        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         temperal_relaxed_pdb = tempfile.mktemp(suffix=".pdb")
         self.dlpacker_worker.reconstruct_protein(
             order='sequence', output_filename=temperal_relaxed_pdb
@@ -85,6 +85,8 @@ class DLPacker_worker:
         - Path to the mutated PDB file
         """
         from Bio.Data import IUPACData
+        from DLPacker.dlpacker import DLPacker
+        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         new_obj_name = mutant_obj.short_mutant_id
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_dlp')
