@@ -5,6 +5,8 @@ import glob
 from typing import Union
 from immutabledict import immutabledict
 import psutil
+
+from REvoDesign.tools.post_installed import EXPERIMENTS_CONFIG_DIR
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 import time
 from pymol import cmd, util, CmdException
@@ -47,7 +49,8 @@ for sub_dirs in [
     'analysis',
     'surface_residue_records',
     'mutagenese',
-    'performance'
+    'performance',
+    'experiments'
 ]:
     os.makedirs(sub_dirs, exist_ok=True)
 
@@ -78,6 +81,7 @@ class TestWorker:
         self, qtbot: qtbot.QtBot, plugin:REvoDesignPlugin
     ):
         from REvoDesign.tools.system_tools import CLIENT_INFO
+        self.test_id='default'
         self.qtbot = qtbot
         self.plugin = plugin
         self.qtbot.addWidget(
@@ -115,6 +119,9 @@ class TestWorker:
             os.path.abspath('.'), 'pymol_screenshots'
         )
         os.makedirs(self.PYMOL_PNG_DIR, exist_ok=True)
+
+        self.EXPERIMENT_DIR = os.path.join(os.path.abspath('.'),'experiments')
+        os.makedirs(self.EXPERIMENT_DIR, exist_ok=True)
 
         # determine which runner carries this test
         self.in_which_runner: dict[str, bool] = {
@@ -175,6 +182,28 @@ class TestWorker:
 
         self.plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
+
+    def save_new_experiment(self, experiment_name:str=None):
+        import shutil
+        if not experiment_name:
+            experiment_name = self.test_id
+
+        new_cfg_file = os.path.join(self.EXPERIMENT_DIR, f'{experiment_name}.yaml')
+        new_cfg_base_name: str = os.path.basename(new_cfg_file)
+        new_cfg_prefix = experiment_name
+        experiment_file = os.path.join(
+            EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
+        )
+    
+        self.plugin.save_configuration_from_ui(
+            experiment=f'experiments/{new_cfg_prefix}'
+        )
+        # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
+        shutil.copy(experiment_file, new_cfg_file)
+        print(
+            f'saved config at {new_cfg_file}, backup at {experiment_file}'
+        )
+
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
         for t in range(times):
@@ -361,11 +390,12 @@ class TestREvoDesignPlugin:
     def test_plugin_gui_visibility(
         self, WORKER: TestWorker
     ):
+        WORKER.test_id=WORKER.method_name()
         # Check if the main window of the plugin is visible
         assert WORKER.plugin.window.isVisible()
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
         for tab in WORKER.tab_widget_mapping.keys():
             WORKER.go_to_tab(tab_name=tab)
@@ -379,20 +409,21 @@ class TestREvoDesignPlugin_TabPrepare:
     def test_load_molecule(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check(from_rcsb=True)
         WORKER.go_to_tab(tab_name='prepare')
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
+        WORKER.save_new_experiment()
 
     def test_pocket(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check(from_rcsb=True)
         WORKER.go_to_tab(tab_name='prepare')
 
@@ -412,7 +443,7 @@ class TestREvoDesignPlugin_TabPrepare:
         WORKER.qtbot.wait(100)
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
         WORKER.click(
             widget=WORKER.plugin.ui.pushButton_run_pocket_detection,
@@ -439,13 +470,14 @@ class TestREvoDesignPlugin_TabPrepare:
             design_shell_residue_ids = ds_fr.read().strip()
             assert design_shell_residue_ids
 
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
+        WORKER.save_new_experiment()
         
 
     def test_surface(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='prepare')
 
@@ -509,10 +541,10 @@ class TestREvoDesignPlugin_TabPrepare:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
-        
+        WORKER.save_pymol_png(basename=WORKER.test_id)
+        WORKER.save_new_experiment()
 
 
 
@@ -520,7 +552,7 @@ class TestREvoDesignPlugin_TabMutate:
     def test_pssm_ent_surf(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='mutate')
 
@@ -579,21 +611,23 @@ class TestREvoDesignPlugin_TabMutate:
         if os.path.exists(WORKER.test_data.entro_design_pse):
             os.remove(WORKER.test_data.entro_design_pse)
 
+        WORKER.save_new_experiment()
         WORKER.click(widget=WORKER.plugin.ui.pushButton_run_PSSM_to_pse)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         WORKER.check_existed_mutant_tree()
+        
         
 
     def test_mpnn_surf(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='mutate')
 
@@ -650,13 +684,14 @@ class TestREvoDesignPlugin_TabMutate:
         if os.path.exists(WORKER.test_data.mpnn_design_pse):
             os.remove(WORKER.test_data.mpnn_design_pse)
 
+        WORKER.save_new_experiment()
         WORKER.click(widget=WORKER.plugin.ui.pushButton_run_PSSM_to_pse)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         WORKER.check_existed_mutant_tree()
         
@@ -664,7 +699,7 @@ class TestREvoDesignPlugin_TabMutate:
     def test_ddg_surf_non_biolib_calling(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='mutate')
 
@@ -723,13 +758,15 @@ class TestREvoDesignPlugin_TabMutate:
         if os.path.exists(WORKER.test_data.ddg_design_pse):
             os.remove(WORKER.test_data.ddg_design_case)
 
+        WORKER.save_new_experiment()
+
         WORKER.click(widget=WORKER.plugin.ui.pushButton_run_PSSM_to_pse)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         WORKER.check_existed_mutant_tree()
         
@@ -790,7 +827,7 @@ class TestREvoDesignPlugin_TabMutate:
 
     #     WORKER.save_screenshot(
     #         widget=WORKER.plugin.window,
-    #         basename=WORKER.method_name(),
+    #         basename=WORKER.test_id,
     #     )
 
     #     pythia_results = [
@@ -798,12 +835,12 @@ class TestREvoDesignPlugin_TabMutate:
     #     ]
     #     if pythia_results:
     #         WORKER.check_existed_mutant_tree()
-    #         WORKER.save_pymol_png(basename=WORKER.method_name())
+    #         WORKER.save_pymol_png(basename=WORKER.test_id)
 
     def test_pssm_pocket_design_dunbrack(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='config')
 
@@ -868,14 +905,15 @@ class TestREvoDesignPlugin_TabMutate:
         if os.path.exists(WORKER.test_data.pocket_design_pse):
             os.remove(WORKER.test_data.pocket_design_pse)
 
+        WORKER.save_new_experiment()
         WORKER.click(widget=WORKER.plugin.ui.pushButton_run_PSSM_to_pse)
         WORKER.check_existed_mutant_tree()
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
         
 
 
@@ -884,7 +922,7 @@ class TestREvoDesignPlugin_TabEvaluate:
     def test_evaluate_pssm_ent_surf_best_hits(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         pse_path = WORKER.download_file(
             url=WORKER.test_data.EVALUATION_PSE_URL,
             md5=WORKER.test_data.EVALUATION_PSE_MD5,
@@ -916,9 +954,9 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         assert not WORKER.plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
@@ -931,12 +969,13 @@ class TestREvoDesignPlugin_TabEvaluate:
             WORKER.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
         KeyDataDuringTests.mutant_file=mutant_file
+        WORKER.save_new_experiment()
         
 
     def test_evaluate_pssm_ent_surf_mannual_pick(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         pse_path = WORKER.download_file(
             url=WORKER.test_data.EVALUATION_PSE_URL,
             md5=WORKER.test_data.EVALUATION_PSE_MD5,
@@ -979,9 +1018,9 @@ class TestREvoDesignPlugin_TabEvaluate:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         assert not WORKER.plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
@@ -994,7 +1033,7 @@ class TestREvoDesignPlugin_TabEvaluate:
             WORKER.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
         KeyDataDuringTests.minimum_mutant_file=mutant_file
-        
+        WORKER.save_new_experiment()
         
 
 
@@ -1002,7 +1041,7 @@ class TestREvoDesignPlugin_TabCluster:
     def test_cluster(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='cluster')
         
@@ -1016,13 +1055,14 @@ class TestREvoDesignPlugin_TabCluster:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_before_run',
+            basename=f'{WORKER.test_id}_before_run',
         )
+        WORKER.save_new_experiment()
         WORKER.click(WORKER.plugin.ui.pushButton_run_cluster)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_after_run',
+            basename=f'{WORKER.test_id}_after_run',
         )
         
         for mut_num in range(WORKER.test_data.cluster_min,WORKER.test_data.cluster_max+1):
@@ -1038,7 +1078,7 @@ class TestREvoDesignPlugin_TabVisualize:
     def test_visualize_pssm_ddg(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='config')
 
@@ -1058,16 +1098,16 @@ class TestREvoDesignPlugin_TabVisualize:
         
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_before_run',
+            basename=f'{WORKER.test_id}_before_run',
         )
-
+        WORKER.save_new_experiment()
         WORKER.click(WORKER.plugin.ui.pushButton_run_visualizing)
 
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_after_run',
+            basename=f'{WORKER.test_id}_after_run',
         )
 
         assert os.path.exists(WORKER.test_data.visualize_1_pse)
@@ -1077,7 +1117,7 @@ class TestREvoDesignPlugin_TabVisualize:
     def test_visualize_pssm_mpnn(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='config')
 
@@ -1097,15 +1137,16 @@ class TestREvoDesignPlugin_TabVisualize:
         
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_before_run',
+            basename=f'{WORKER.test_id}_before_run',
         )
 
+        WORKER.save_new_experiment()
         WORKER.click(WORKER.plugin.ui.pushButton_run_visualizing)
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_after_run',
+            basename=f'{WORKER.test_id}_after_run',
         )
 
         assert os.path.exists(WORKER.test_data.visualize_2_pse)
@@ -1118,7 +1159,7 @@ class TestREvoDesignPlugin_TabConfig:
     def test_use_pippack_mpnn_design(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='config')
 
@@ -1145,9 +1186,9 @@ class TestREvoDesignPlugin_TabConfig:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_use_PIPPack_model_1',
+            basename=f'{WORKER.test_id}_use_PIPPack_model_1',
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         # back to tab mutate and run mpnn redesign, saved as another file
         WORKER.go_to_tab(tab_name='mutate')
@@ -1205,13 +1246,14 @@ class TestREvoDesignPlugin_TabConfig:
         if os.path.exists(WORKER.test_data.pippack_pse):
             os.remove(WORKER.test_data.pippack_pse)
 
+        WORKER.save_new_experiment()
         WORKER.click(widget=WORKER.plugin.ui.pushButton_run_PSSM_to_pse)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=WORKER.method_name(),
+            basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.method_name())
+        WORKER.save_pymol_png(basename=WORKER.test_id)
 
         WORKER.check_existed_mutant_tree()
         
@@ -1222,7 +1264,7 @@ class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_all2all(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='interact')
 
@@ -1244,7 +1286,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_before_init',
+            basename=f'{WORKER.test_id}_before_init',
         )
 
         WORKER.click(WORKER.plugin.ui.pushButton_reinitialize_interact)
@@ -1255,8 +1297,9 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_after_init',
+            basename=f'{WORKER.test_id}_after_init',
         )
+        WORKER.save_new_experiment()
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
@@ -1264,10 +1307,10 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_after_scan',
+            basename=f'{WORKER.test_id}_after_scan',
         )
 
-        WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_interact_pairs')
+        WORKER.save_pymol_png(basename=f'{WORKER.test_id}_interact_pairs')
 
         ce_links=[sel for sel in cmd.get_names(type='selections')if sel.startswith('ce_pairs')]
         for sel in ce_links:
@@ -1275,7 +1318,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_pair_0',
+            basename=f'{WORKER.test_id}_pair_0',
         )
 
         a2a_dir='gremlin_co_evolved_pairs/all_vs_all'
@@ -1287,7 +1330,7 @@ class TestREvoDesignPlugin_TabInteract:
         WORKER.click(_next,2)
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_pair_2',
+            basename=f'{WORKER.test_id}_pair_2',
         )
 
         for row,col in [(6,1,), (3,13)]:
@@ -1295,34 +1338,34 @@ class TestREvoDesignPlugin_TabInteract:
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
-                basename=f'{WORKER.method_name()}_pick_{row}_{col}',
+                basename=f'{WORKER.test_id}_pick_{row}_{col}',
             )
 
-            WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{row}_{col}')
+            WORKER.save_pymol_png(basename=f'{WORKER.test_id}_pick_{row}_{col}')
             WORKER.check_existed_mutant_tree()
 
             cmd.orient(WORKER.mutant_tree.all_mutant_objects[0].short_mutant_id)
             
-            WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{row}_{col}_orient')
+            WORKER.save_pymol_png(basename=f'{WORKER.test_id}_pick_{row}_{col}_orient')
             WORKER.click(_accp)
 
         cmd.orient(WORKER.test_data.molecule)
 
         WORKER.click(_next,2).save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_next_2',
+            basename=f'{WORKER.test_id}_next_2',
         )
 
         WORKER.click(_prev,7).save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_prev_7',
+            basename=f'{WORKER.test_id}_prev_7',
         )
         assert os.path.exists(mutfile)
 
     def test_gremlin_one2all_mpnn_score(
         self, WORKER: TestWorker
     ):
-        
+        WORKER.test_id=WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='interact')
 
@@ -1350,7 +1393,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_before_init',
+            basename=f'{WORKER.test_id}_before_init',
         )
 
         WORKER.click(WORKER.plugin.ui.pushButton_reinitialize_interact)
@@ -1359,9 +1402,10 @@ class TestREvoDesignPlugin_TabInteract:
 
         #WORKER.wait_for_file(file=f'{WORKER.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=20)
 
+        WORKER.save_new_experiment()
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_after_init',
+            basename=f'{WORKER.test_id}_after_init',
         )
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
@@ -1370,10 +1414,10 @@ class TestREvoDesignPlugin_TabInteract:
         
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_after_scan',
+            basename=f'{WORKER.test_id}_after_scan',
         )
 
-        WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_interact_pairs')
+        WORKER.save_pymol_png(basename=f'{WORKER.test_id}_interact_pairs')
 
         ce_links=[sel for sel in cmd.get_names(type='selections')if sel.startswith('ce_pairs')]
         for sel in ce_links:
@@ -1381,7 +1425,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_pair_0',
+            basename=f'{WORKER.test_id}_pair_0',
         )
 
         o2a_dir=f'gremlin_co_evolved_pairs/resi_{sele_resi}'
@@ -1393,7 +1437,7 @@ class TestREvoDesignPlugin_TabInteract:
         WORKER.click(_next,1)
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_pair_1',
+            basename=f'{WORKER.test_id}_pair_1',
         )
 
         for row,col in [(0,19,), (9,0)]:
@@ -1401,27 +1445,27 @@ class TestREvoDesignPlugin_TabInteract:
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
-                basename=f'{WORKER.method_name()}_pick_{row}_{col}',
+                basename=f'{WORKER.test_id}_pick_{row}_{col}',
             )
 
-            WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{row}_{col}')
+            WORKER.save_pymol_png(basename=f'{WORKER.test_id}_pick_{row}_{col}')
             WORKER.check_existed_mutant_tree()
 
             cmd.orient(WORKER.mutant_tree.all_mutant_objects[0].short_mutant_id)
             
-            WORKER.save_pymol_png(basename=f'{WORKER.method_name()}_pick_{row}_{col}_orient')
+            WORKER.save_pymol_png(basename=f'{WORKER.test_id}_pick_{row}_{col}_orient')
             WORKER.click(_accp)
 
         cmd.orient(WORKER.test_data.molecule)
 
         WORKER.click(_next,2).save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_next_2',
+            basename=f'{WORKER.test_id}_next_2',
         )
 
         WORKER.click(_prev,7).save_screenshot(
             widget=WORKER.plugin.window,
-            basename=f'{WORKER.method_name()}_prev_7',
+            basename=f'{WORKER.test_id}_prev_7',
         )
         assert os.path.exists(mutfile)
         

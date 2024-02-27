@@ -41,6 +41,7 @@ class PyMOL_mutate:
         - Path to the mutated PDB file
         """
         from Bio.Data import IUPACData
+
         new_obj_name = mutant_obj.short_mutant_id
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')

@@ -278,15 +278,17 @@ class VisualizingWorker(MutateWorkerConfig):
             logging.error('Error while running the visualization: ')
             traceback.print_exc()
 
+
 @dataclass
 class GREMLIN_AnalyserConfig(MutateWorkerConfig):
-    ws_server: REvoDesignWebSocketServer=None
+    ws_server: REvoDesignWebSocketServer = None
+
 
 class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
     def load_gremlin_mrf(
         self,
     ):
-        self.gremlin_external_scorer=None
+        self.gremlin_external_scorer = None
         gremlin_mrf_fp = self.bus.get_value('ui.interact.input.gremlin_pkl')
 
         topN_gremlin_candidates = self.bus.get_value(
@@ -829,7 +831,7 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
             matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
             if not self.gremlin_external_scorer
             else self.gremlin_external_scorer.scorer(
-                sequence=self.design_sequence.replace('X','')
+                sequence=self.design_sequence.replace('X', '')
             )
         )
 
@@ -880,7 +882,7 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
             if not self.gremlin_external_scorer
             else self.gremlin_external_scorer.scorer(
                 sequence=mutant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.design_chain_id,ignore_missing=True
+                    chain_id=self.design_chain_id, ignore_missing=True
                 )
             )
         )
@@ -923,16 +925,21 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         self.current_gremlin_co_evoving_pair_mutant_id = mutant
         self.activate_focused_interaction()
 
-        mutant_tree = MutantTree({
-                visualizer.group_name: {mutant_obj.short_mutant_id: mutant_obj}
-            })
-        
+        mutant_tree = MutantTree(
+            {visualizer.group_name: {mutant_obj.short_mutant_id: mutant_obj}}
+        )
+
         self.to_broadcaster(mutant_tree)
 
-    def to_broadcaster(self,mutant_tree:MutantTree):
-        if self.ws_server and self.ws_server.is_running and not mutant_tree.empty:
-            asyncio.run(self.ws_server.broadcast_object(
+    def to_broadcaster(self, mutant_tree: MutantTree):
+        if (
+            self.ws_server
+            and self.ws_server.is_running
+            and not mutant_tree.empty
+        ):
+            asyncio.run(
+                self.ws_server.broadcast_object(
                     data=mutant_tree,
                     data_type='MutantTree',
-                ))
-
+                )
+            )

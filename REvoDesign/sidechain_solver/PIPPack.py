@@ -22,6 +22,7 @@ class PIPPack_worker:
 
     def __init__(self, pdb_file: str, use_model: str = 'ensemble'):
         from pippack import PIPPack
+
         """
         Initialize DLPacker_worker with a PDB file.
 

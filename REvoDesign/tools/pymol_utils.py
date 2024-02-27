@@ -447,6 +447,7 @@ def extract_smiles_from_chain(
 ):
     from rdkit import Chem
     from rdkit.Chem import MolToSmiles
+
     """
     Function: extract_smiles_from_chain
     Usage: smiles_string = extract_smiles_from_chain(molecule, chain_id=None, segment_id=None)
