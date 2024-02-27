@@ -50,6 +50,9 @@ class DLPacker_worker:
         self.pdb_file = pdb_file
         self.reconstruct_area_radius = 0
 
+        from DLPacker.dlpacker import DLPacker
+        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
+
     def reconstruct(self):
         """
         Reconstruct the protein using DLPacker.
@@ -57,9 +60,7 @@ class DLPacker_worker:
         Returns:
         - Path to the temporally relaxed PDB file
         """
-        from DLPacker.dlpacker import DLPacker
-
-        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
+        
         temperal_relaxed_pdb = tempfile.mktemp(suffix=".pdb")
         self.dlpacker_worker.reconstruct_protein(
             order='sequence', output_filename=temperal_relaxed_pdb
@@ -82,10 +83,7 @@ class DLPacker_worker:
         Returns:
         - Path to the mutated PDB file
         """
-        from DLPacker.dlpacker import DLPacker
         from Bio.Data import IUPACData
-
-        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         new_obj_name = mutant_obj.short_mutant_id
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_dlp')
@@ -155,3 +153,4 @@ class DLPacker_worker:
             reconstruct_area = list(set(reconstruct_area))
 
         return reconstruct_area
+    

@@ -1233,7 +1233,7 @@ class TestREvoDesignPlugin_TabInteract:
         _accp=WORKER.plugin.ui.pushButton_interact_accept
         _rjct=WORKER.plugin.ui.pushButton_interact_reject
 
-        gremlin_pkl_fp=os.path.join(WORKER.EXPANDED_DIR,'gremlin_res',f'{WORKER.test_data.molecule}_{WORKER.test_data.chain_id}.i90c75_aln.GREMLIN.mrf.pkl')
+        gremlin_pkl_fp=os.path.join(WORKER.EXPANDED_DIR,'gremlin_res',f'{WORKER.test_data.molecule}_{WORKER.test_data.chain_id}_PSSM_GREMLIN_results',f'{WORKER.test_data.molecule}_{WORKER.test_data.chain_id}.i90c75_aln.GREMLIN.mrf.pkl')
 
         set_widget_value(WORKER.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp)
         KeyDataDuringTests.gremlin_pkl_fp=gremlin_pkl_fp
