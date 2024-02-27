@@ -1,5 +1,6 @@
 import os
 import tempfile
+from DLPacker.dlpacker import DLPacker
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.logger import logging as logger
 
@@ -50,7 +51,7 @@ class DLPacker_worker:
         self.pdb_file = pdb_file
         self.reconstruct_area_radius = 0
 
-        from DLPacker.dlpacker import DLPacker
+        
         self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
 
     def reconstruct(self):
