@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import os
 import traceback
 from omegaconf import OmegaConf
@@ -19,6 +20,8 @@ from REvoDesign.application.ui_driver import (
     Widget2Widget,
     ConfigBus,
 )
+
+from REvoDesign.__version__ import __version__
 
 from REvoDesign.tools.post_installed import (
     EXPERIMENTS_CONFIG_DIR,
@@ -42,6 +45,7 @@ from REvoDesign.tools.customized_widgets import (
     getExistingDirectory,
     set_widget_value,
     proceed_with_comfirm_msg_box,
+    notify_box,
     getOpenFileNameWithExt,
     refresh_widget_while_another_changed,
 )
@@ -125,6 +129,9 @@ class REvoDesignPlugin:
         self.gremlin_worker = None
         self.sidechain_solver = None
         self.evaluator: Evalutator = None
+        gc.collect()
+        self.reload_configurations()
+        
 
     def __del__(self):
         self.reinitialize()
@@ -174,10 +181,21 @@ class REvoDesignPlugin:
             partial(self.load_and_save_experiment, mode='w')
         )
 
+        self.bus.ui.actionReinitialize.triggered.connect(
+            self.reinitialize
+        )
+
         self.bus.ui.actionSource_Code.triggered.connect(
             partial(
                 QtGui.QDesktopServices.openUrl,
                 QtCore.QUrl(REPO_URL),
+            )
+        )
+        self.bus.ui.actionVersion.triggered.connect(
+            partial(
+                notify_box,
+                title='About',
+                message=f'REvoDesign v.{__version__}\n Src: {REPO_URL}' 
             )
         )
 

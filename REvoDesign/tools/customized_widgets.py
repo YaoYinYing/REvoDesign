@@ -538,6 +538,18 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
 
+def notify_box(title:str='', message:str='',):
+    # A notify message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setStandardButtons(
+        QtWidgets.QMessageBox.Ok
+    )
+
+    msg.exec_()
+
 def proceed_with_comfirm_msg_box(title='', description=''):
     """
     Function: proceed_with_confirm_msg_box
