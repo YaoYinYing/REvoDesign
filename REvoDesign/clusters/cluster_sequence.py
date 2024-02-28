@@ -8,9 +8,8 @@ import time
 
 import pandas as pd
 from Bio import SeqIO
-from Bio.Align import PairwiseAligner
-from Bio.Align import substitution_matrices
-from joblib import parallel_backend
+
+
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
@@ -20,11 +19,10 @@ import matplotlib
 
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
-from sklearn.cluster import AgglomerativeClustering
-from sklearn.neighbors import NearestCentroid
+
 
 from REvoDesign.tools.utils import refresh_window, minibatches_generator
-from REvoDesign.tools.customized_widgets import ParallelExecutor
+
 
 
 class Clustering:
@@ -54,6 +52,9 @@ class Clustering:
         self.cluster_output_fp = {}
 
     def initialize_aligner(self):
+        from Bio.Align import PairwiseAligner
+        from Bio.Align import substitution_matrices
+
         # Add other instance variables here
         self.aligner = PairwiseAligner(
             mode='global',
@@ -116,6 +117,11 @@ class Clustering:
         return results  # Store the results for further processing
 
     def set_and_write_clusters(self, progressbar):
+        from sklearn.cluster import AgglomerativeClustering
+        from sklearn.neighbors import NearestCentroid
+        from REvoDesign.tools.customized_widgets import ParallelExecutor
+        from joblib import parallel_backend
+
         handle = open(self.fastafile, "r")
         self.records = list(SeqIO.parse(handle, "fasta"))
         if self.shuffle_variant:

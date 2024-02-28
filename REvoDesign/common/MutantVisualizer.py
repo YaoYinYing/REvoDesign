@@ -1,3 +1,4 @@
+import gc
 import os
 import time
 import tempfile
@@ -494,9 +495,8 @@ class MutantVisualizer:
             # external scorer stays highest priority.
             if self.scorer:
                 _sequence = variant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.chain_id
+                    chain_id=self.chain_id, ignore_missing=True
                 )
-                _sequence = _sequence.replace('X', '')
 
                 _score = self.scorer.scorer(sequence=_sequence)
                 logging.debug(
@@ -615,6 +615,7 @@ class MutantVisualizer:
             self.mutagenesis_sessions = [
                 session_path for session_path in self.results if session_path
             ]
+            gc.collect()
         else:
             if progress_bar:
                 progress_bar.setRange(0, len(self.mutagenesis_tasks))

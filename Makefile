@@ -47,6 +47,16 @@ test:
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/UnitTests.py
 
+memray:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR);memray run --native -m pytest  ../tests/QtTests.py;
+
+memray-live:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR);memray run --live -m pytest  ../tests/QtTests.py;
+
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)

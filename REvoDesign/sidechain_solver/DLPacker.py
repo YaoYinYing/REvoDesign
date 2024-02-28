@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.logger import logging as logger
 
@@ -82,8 +83,8 @@ class DLPacker_worker:
         Returns:
         - Path to the mutated PDB file
         """
-        from DLPacker.dlpacker import DLPacker
         from Bio.Data import IUPACData
+        from DLPacker.dlpacker import DLPacker
 
         self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         new_obj_name = mutant_obj.short_mutant_id

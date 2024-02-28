@@ -7,7 +7,6 @@ import time
 from REvoDesign.tools.customized_widgets import (
     WorkerThread,
     refresh_window,
-    set_widget_value,
 )
 from REvoDesign.tools.logger import logging as logger
 

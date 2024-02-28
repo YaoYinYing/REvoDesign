@@ -471,10 +471,10 @@ class Widget2ConfigMapper:
             }
         )
 
-    def get_button_from_id(self, button_id):
+    def get_button_from_id(self, button_id, prefix='pushButton'):
         # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
         return self.ui.findChild(
-            QtWidgets.QPushButton, f"pushButton_{button_id}"
+            QtWidgets.QPushButton, f"{prefix}_{button_id}"
         )
 
     @property

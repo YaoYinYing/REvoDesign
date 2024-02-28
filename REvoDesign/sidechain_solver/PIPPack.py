@@ -1,13 +1,12 @@
 import glob
 import os
 
-from omegaconf import DictConfig, OmegaConf
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
 
 import tempfile
-from pippack import PIPPack
+
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.post_installed import reload_config_file, set_cache_dir
@@ -22,6 +21,8 @@ class PIPPack_worker:
     """
 
     def __init__(self, pdb_file: str, use_model: str = 'ensemble'):
+        from pippack import PIPPack
+
         """
         Initialize DLPacker_worker with a PDB file.
 

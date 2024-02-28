@@ -1,8 +1,7 @@
 import asyncio
+import gc
 import os
-import time
 import traceback
-from immutabledict import immutabledict
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -22,14 +21,14 @@ from REvoDesign.application.ui_driver import (
     ConfigBus,
 )
 
+from REvoDesign.__version__ import __version__
+
 from REvoDesign.tools.post_installed import (
     EXPERIMENTS_CONFIG_DIR,
     reload_config_file,
     save_configuration,
 )
 
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.FileExtentions import (
     REvoDesignFileExtentions as FileExtentions,
 )
@@ -39,16 +38,14 @@ from REvoDesign.tools.utils import (
     extract_archive,
     generate_strong_password,
     run_worker_thread_with_progress,
-    get_color,
-    rescale_number,
 )
 
 from REvoDesign.tools.customized_widgets import (
     hold_trigger_button,
     getExistingDirectory,
     set_widget_value,
-    QbuttonMatrix,
     proceed_with_comfirm_msg_box,
+    notify_box,
     getOpenFileNameWithExt,
     refresh_widget_while_another_changed,
 )
@@ -61,14 +58,11 @@ from REvoDesign.tools.pymol_utils import (
     find_design_molecules,
     find_small_molecules_in_protein,
     get_molecule_sequence,
-    any_posision_has_been_selected,
 )
 
 from REvoDesign.tools.mutant_tools import (
     determine_profile_type,
     existed_mutant_tree,
-    extract_mutant_from_pymol_object,
-    extract_mutants_from_mutant_id,
     get_mutant_table_columns,
     save_mutant_choices,
 )
@@ -98,10 +92,7 @@ class REvoDesignPlugin:
         self.design_chain_id = ''
         self.design_sequence = ''
 
-        self.mutant_tree_coevolved = MutantTree({})
-
-        self.gremlin_tool = None
-        self.gremlin_external_scorer = None
+        self.gremlin_worker = None
         self.sidechain_solver = None
         self.evaluator: Evalutator = None
 
@@ -133,6 +124,20 @@ class REvoDesignPlugin:
         if self.window is None:
             self.window = self.make_window()
         self.window.show()
+
+    def reinitialize(self):
+        self.gremlin_worker = None
+        self.sidechain_solver = None
+        self.evaluator: Evalutator = None
+        gc.collect()
+        self.reload_configurations()
+        
+
+    def __del__(self):
+        self.reinitialize()
+        logging.warning('REvoDesign is shutting down.')
+        if self.window:
+            self.window = None
 
     # main function that makes the plugin window
     def make_window(self):
@@ -176,10 +181,21 @@ class REvoDesignPlugin:
             partial(self.load_and_save_experiment, mode='w')
         )
 
+        self.bus.ui.actionReinitialize.triggered.connect(
+            self.reinitialize
+        )
+
         self.bus.ui.actionSource_Code.triggered.connect(
             partial(
                 QtGui.QDesktopServices.openUrl,
                 QtCore.QUrl(REPO_URL),
+            )
+        )
+        self.bus.ui.actionVersion.triggered.connect(
+            partial(
+                notify_box,
+                title='About',
+                message=f'REvoDesign v.{__version__}\n Src: {REPO_URL}' 
             )
         )
 
@@ -577,10 +593,10 @@ class REvoDesignPlugin:
         )
 
         self.bus.button('interact_reject').clicked.connect(
-            self.coevoled_mutant_decision, False
+            partial(self.coevoled_mutant_decision, False)
         )
         self.bus.button('interact_accept').clicked.connect(
-            self.coevoled_mutant_decision, True
+            partial(self.coevoled_mutant_decision, True)
         )
 
         # Tab socket
@@ -967,6 +983,7 @@ class REvoDesignPlugin:
         )
 
         surfacefinder.process_surface_residues()
+        surfacefinder = None
 
     def run_pocket_detection(self):
         input_pse = self.temperal_session
@@ -993,6 +1010,7 @@ class REvoDesignPlugin:
         )
 
         pocketsearcher.search_pockets()
+        pocketsearcher = None
 
     # Tab `Mutate`
     def refresh_sidechainsolver(self):
@@ -1091,6 +1109,7 @@ class REvoDesignPlugin:
                     data_type='MutantTree',
                 )
             )
+        worker = None
 
     # Tab `Evaluate`
     def set_pymol_session_rock(self):
@@ -1184,6 +1203,8 @@ class REvoDesignPlugin:
 
         with hold_trigger_button(trigger_button):
             worker.run_clustering()
+
+        worker = None
 
     # Tab Visualize
 
@@ -1286,6 +1307,8 @@ class REvoDesignPlugin:
                     data_type='MutantTree',
                 )
             )
+
+        worker = None
 
     def reduce_current_session(
         self, session=None, reduce_disabled=False, overwrite=False
@@ -1480,665 +1503,47 @@ class REvoDesignPlugin:
         self,
     ):
         trigger_button = self.bus.button('reinitialize_interact')
-        from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
 
         with hold_trigger_button(trigger_button):
-            gremlin_mrf_fp = self.bus.get_value(
-                'ui.interact.input.gremlin_pkl'
-            )
-
-            topN_gremlin_candidates = self.bus.get_value(
-                'ui.interact.topN_pairs', int
-            )
-            if (not self.design_molecule) or (not self.design_chain_id):
-                logging.error(
-                    f'Molecule Info not complete. \n\tmolecule: {self.design_molecule}\n\tchain: {self.design_chain_id}.'
-                )
-                return
-
-            if not os.path.exists(gremlin_mrf_fp):
-                logging.error(
-                    "Could not run GREMLIN tools. Please check your configuration"
-                )
-                return
-
-            pushButton_run_interact_scan = self.bus.button('run_interact_scan')
-            gridLayout_interact_pairs = self.bus.ui.gridLayout_interact_pairs
-
-            # reset design info
-            lineEdit_current_pair_wt_score = (
-                self.bus.ui.lineEdit_current_pair_wt_score
-            )
-            lineEdit_current_pair_mut_score = (
-                self.bus.ui.lineEdit_current_pair_mut_score
-            )
-            lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
-            lineEdit_current_pair_score = (
-                self.bus.ui.lineEdit_current_pair_score
-            )
-
-            for lineEdit in [
-                lineEdit_current_pair,
-                lineEdit_current_pair_score,
-                lineEdit_current_pair_wt_score,
-                lineEdit_current_pair_mut_score,
-            ]:
-                set_widget_value(lineEdit, '')
-
-            progress_bar = self.bus.ui.progressBar
-
-            # Reinitialize Gremlin mutant tree
-            self.mutant_tree_coevolved = MutantTree({})
-
-            self.gremlin_tool = GREMLIN_Tools(molecule=self.design_molecule)
-
-            self.gremlin_tool.sequence = self.design_sequence
-
             run_worker_thread_with_progress(
-                self.gremlin_tool.load_msa_and_mrf,
-                progress_bar=progress_bar,
-                mrf_path=gremlin_mrf_fp,
+                self.refresh_sidechainsolver,
+                progress_bar=self.bus.ui.progressBar,
             )
 
-            pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
+            from REvoDesign.phylogenetics import GREMLIN_Analyser
 
-            if not self.gremlin_tool:
-                logging.error(
-                    f'Failed to create gremlin tool object. Please check the inputs.'
-                )
-
-                return
-
-            self.gremlin_tool.pwd = self.PWD
-            self.gremlin_tool.topN = topN_gremlin_candidates
-
-            self.gremlin_tool.get_to_coevolving_pairs()
-            plot_mtx_fp = self.gremlin_tool.plot_mtx()
-
-            try:
-                set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
-            except AttributeError:
-                logging.info(
-                    f'Work Space is cleaned. Click once again to reinitialize. '
-                )
+            self.gremlin_worker = GREMLIN_Analyser(
+                bus=self.bus,
+                design_molecule=self.design_molecule,
+                design_chain_id=self.design_chain_id,
+                design_sequence=self.design_sequence,
+                designable_sequences=self.designable_sequences,
+                PWD=self.PWD,
+                sidechain_solver=self.sidechain_solver,
+                ws_server=self.ws_server,
+            )
+            self.gremlin_worker.load_gremlin_mrf()
 
     def run_gremlin_tool(self):
+        if not self.gremlin_worker:
+            return
+
         trigger_button = self.bus.button('run_interact_scan')
 
-        progress_bar = self.bus.ui.progressBar
-        max_interact_dist = self.bus.get_value(
-            'ui.interact.max_interact_dist', float
-        )
-
-        self.plot_w_fps = {}
         with hold_trigger_button(trigger_button):
-            if any_posision_has_been_selected():
-                logging.info(f'One vs All mode.')
-                self.gremlin_tool_a2a_mode = False
-                resi = int(cmd.get_model('sele and n. CA').atom[0].resi)
-                logging.info(f'{resi} is selected.')
-
-                self.gremlin_workpath = os.path.join(
-                    self.PWD, 'gremlin_co_evolved_pairs', f'resi_{resi}'
-                )
-                os.makedirs(self.gremlin_workpath, exist_ok=True)
-                self.gremlin_tool.pwd = self.gremlin_workpath
-
-                self.plot_w_fps = run_worker_thread_with_progress(
-                    self.gremlin_tool.analyze_coevolving_pairs_for_i,
-                    progress_bar=progress_bar,
-                    i=resi - 1,
-                )
-
-                if not self.plot_w_fps:
-                    logging.warning(
-                        f'No Available co-evolutionary signal against {resi}'
-                    )
-                    # early return if no data.
-                    return
-
-                logging.info(
-                    f'Found {len(self.plot_w_fps.keys())} pairs against {resi}.'
-                )
-
-                self.renumber_plot_w_fps()
-
-            else:
-                logging.info(
-                    f'No selection `sele` is picked, use All vs All mode.'
-                )
-                self.gremlin_tool_a2a_mode = True
-
-                self.gremlin_workpath = os.path.join(
-                    self.PWD, 'gremlin_co_evolved_pairs', 'all_vs_all'
-                )
-                os.makedirs(self.gremlin_workpath, exist_ok=True)
-                self.gremlin_tool.pwd = self.gremlin_workpath
-
-                self.plot_w_fps = run_worker_thread_with_progress(
-                    self.gremlin_tool.plot_w_in_batch,
-                    progress_bar=progress_bar,
-                )
-
-                if not self.plot_w_fps:
-                    logging.warning(
-                        f'No Available co-evolutionary signal in global'
-                    )
-                    # early return if no data.
-                    return
-
-                logging.info(
-                    f'Found {len(self.plot_w_fps.keys())} pairs in global'
-                )
-
-            logging.debug(self.plot_w_fps)
-
-            # visualize co-evolved pair in pymol UI
-            min_gremlin_score = min(
-                [
-                    min(
-                        [
-                            self.plot_w_fps[i][0][-1]
-                            for i in self.plot_w_fps.keys()
-                        ]
-                    ),
-                    0,
-                ]
+            run_worker_thread_with_progress(
+                self.refresh_sidechainsolver,
+                progress_bar=self.bus.ui.progressBar,
             )
-            max_gremlin_score = max(
-                [self.plot_w_fps[i][0][-1] for i in self.plot_w_fps.keys()]
-            )
-
-            ce_object_name = cmd.get_unused_name(
-                f"ce_pairs_{self.design_molecule}_{self.design_chain_id}"
-            )
-
-            cmd.create(
-                ce_object_name,
-                f'{self.design_molecule} and c. {self.design_chain_id} and n. CA',
-            )
-            cmd.hide('cartoon', ce_object_name)
-            cmd.hide('surface', ce_object_name)
-            i_out_of_range = []
-            for i, pair_resi in self.plot_w_fps.items():
-                logging.debug(pair_resi)
-
-                spatial_distance = cmd.get_distance(
-                    atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][0]+1} and n. CA',
-                    atom2=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][1]+1} and n. CA',
-                )
-                cmd.bond(
-                    f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][0]+1} and n. CA',
-                    f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][1]+1} and n. CA',
-                )
-                cmd.set(
-                    'stick_radius',
-                    rescale_number(
-                        pair_resi[0][-1],
-                        min_value=min_gremlin_score,
-                        max_value=max_gremlin_score,
-                    ),
-                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
-                )
-                if spatial_distance > max_interact_dist:
-                    logging.info(
-                        f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}'
-                    )
-                    i_out_of_range.append(i)
-                    cmd.set(
-                        'stick_color',
-                        'salmon',
-                        f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
-                    )
-                else:
-                    cmd.set(
-                        'stick_color',
-                        'marine',
-                        f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
-                    )
-
-            cmd.show('sticks', ce_object_name)
-            cmd.set('stick_use_shader', 0)
-            cmd.set('stick_round_nub', 0)
-            cmd.set('stick_color', 'gray70', ce_object_name)
-
-            # remove pairs that distal
-            for i in i_out_of_range:
-                logging.info(
-                    f'Pair {self.plot_w_fps[i][0][2]}-{self.plot_w_fps[i][0][3]} will be removed:  out of range.'
-                )
-                self.plot_w_fps.pop(i)
-
-            if i_out_of_range:
-                self.renumber_plot_w_fps()
-
-            try:
-                self.bus.button('previous').clicked.disconnect()
-                self.bus.button('next').clicked.disconnect()
-            except:
-                pass
-
-            self.bus.button('previous').clicked.connect(
-                partial(self.load_co_evolving_pairs, progress_bar, False)
-            )
-
-            self.bus.button('next').clicked.connect(
-                partial(self.load_co_evolving_pairs, progress_bar, True)
-            )
-
-            # intitialize
-            set_widget_value(progress_bar, [0, len(self.plot_w_fps.keys())])
-            self.current_gremlin_co_evoving_pair_index = -1
-
-            self.current_gremlin_co_evoving_pair_mutant_id = ''
-            self.last_gremlin_co_evoving_pair_mutant_id = ''
-
-            self.current_gremlin_co_evoving_pair_group_id = ''
-            self.last_gremlin_co_evoving_pair_group_id = ''
-
-            self.load_co_evolving_pairs(progress_bar)
-
-    def renumber_plot_w_fps(self):
-        logging.info('Renumbering anaysis results.')
-        new_plot_w_fps = {}
-        for new_idx, data in enumerate(self.plot_w_fps.values()):
-            new_plot_w_fps[new_idx] = data
-        self.plot_w_fps = new_plot_w_fps
-
-    def load_co_evolving_pairs(
-        self,
-        progress_bar,
-        walk_to_next=True,
-    ):
-        ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
-        max_interact_dist = self.bus.get_value(
-            'ui.interact.max_interact_dist', float
-        )
-
-        lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
-        lineEdit_current_pair_score = self.bus.ui.lineEdit_current_pair_score
-
-        if not self.design_chain_id or not self.design_molecule:
-            logging.error(f'No available molecule or chain id.')
-            return
-
-        if walk_to_next:
-            if self.current_gremlin_co_evoving_pair_index == -1:
-                logging.info('Initialized.')
-                self.current_gremlin_co_evoving_pair_index = 0
-            elif (
-                self.current_gremlin_co_evoving_pair_index
-                == len(self.plot_w_fps.keys()) - 1
-            ):
-                logging.info(
-                    "Co-vary pairs are already reach the last one, returning to the first."
-                )
-                self.current_gremlin_co_evoving_pair_index = 0
-            else:
-                self.current_gremlin_co_evoving_pair_index += 1
-        else:
-            if self.current_gremlin_co_evoving_pair_index == -1:
-                logging.info('Initialized.')
-                self.current_gremlin_co_evoving_pair_index = (
-                    len(self.plot_w_fps.keys()) - 1
-                )
-            elif self.current_gremlin_co_evoving_pair_index == 0:
-                logging.info(
-                    "Co-vary pairs are already reach the first one, returning to the last."
-                )
-                self.current_gremlin_co_evoving_pair_index = (
-                    len(self.plot_w_fps.keys()) - 1
-                )
-            else:
-                self.current_gremlin_co_evoving_pair_index -= 1
-
-        set_widget_value(
-            progress_bar, self.current_gremlin_co_evoving_pair_index
-        )
-
-        (wt_info, csv_fp, plot_fp) = self.plot_w_fps[
-            self.current_gremlin_co_evoving_pair_index
-        ]
-
-        # Clear the existing widgets from gridLayout_interact_pairs
-        for i in reversed(
-            range(self.bus.ui.gridLayout_interact_pairs.count())
-        ):
-            widget = self.bus.ui.gridLayout_interact_pairs.itemAt(i).widget()
-            if widget is not None:
-                widget.deleteLater()
-
-        button_matrix = QbuttonMatrix(csv_fp)
-        button_matrix.sequence = self.gremlin_tool.sequence
-
-        [i, j, i_aa, j_aa, zscore] = wt_info
-
-        if i < j:
-            button_matrix.pos_i, button_matrix.pos_j = i, j
-        else:
-            button_matrix.pos_i, button_matrix.pos_j = j, i
-
-        button_matrix.pos_i, button_matrix.pos_j, i_aa, j_aa, zscore = wt_info
-
-        button_matrix.init_ui()
-
-        button_matrix.report_axes_signal.connect(
-            lambda row, col: self.mutate_with_gridbuttons(
-                row,
-                col,
-                button_matrix.matrix,
-                button_matrix.min_value,
-                button_matrix.max_value,
-                wt_info,
-                ignore_wt.isChecked(),
-            )
-        )
-        self.bus.ui.gridLayout_interact_pairs.addWidget(button_matrix)
-
-        spatial_distance = cmd.get_distance(
-            atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {button_matrix.pos_i+1} and n. CA',
-            atom2=f'{self.design_molecule} and c. {self.design_chain_id} and i. {button_matrix.pos_j+1} and n. CA',
-        )
-
-        set_widget_value(
-            lineEdit_current_pair,
-            f'{i_aa.replace("_","")}-{j_aa.replace("_","")}, {spatial_distance:.1f} Å',
-        )
-
-        set_widget_value(lineEdit_current_pair_score, f'{zscore:.2f}')
-
-        if (
-            max_interact_dist.value()
-            and spatial_distance > max_interact_dist.value()
-        ):
-            logging.warning(
-                f'Resi {button_matrix.pos_i+1} is {spatial_distance:.2f} Å away from {button_matrix.pos_j+1}, out of distance {max_interact_dist.value()}'
-            )
-            set_widget_value(lineEdit_current_pair, 'Out of range.')
-            # To disable the QbuttonMatrix:
-            button_matrix.setEnabled(False)
-        else:
-            # To enable the QbuttonMatrix:
-            button_matrix.setEnabled(True)
+            self.gremlin_worker.sidechain_solver = self.sidechain_solver
+            self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):
-        logging.debug(
-            f'{"Accepting" if decision_to_accept else "Rejecting"}  co-evolved mutant {self.current_gremlin_co_evoving_pair_mutant_id}'
-        )
-
-        if decision_to_accept:
-            cmd.enable(self.current_gremlin_co_evoving_pair_mutant_id)
-
-            self.mutant_tree_coevolved.add_mutant_to_branch(
-                self.current_gremlin_co_evoving_pair_group_id,
-                self.current_gremlin_co_evoving_pair_mutant_id,
-                extract_mutant_from_pymol_object(
-                    pymol_object=self.current_gremlin_co_evoving_pair_mutant_id,
-                    sequences=self.designable_sequences,
-                ),
-            )
-        else:
-            cmd.disable(self.current_gremlin_co_evoving_pair_mutant_id)
-            if (
-                self.current_gremlin_co_evoving_pair_mutant_id
-                not in self.mutant_tree_coevolved.all_mutant_ids
-            ):
-                logging.warning(
-                    f'{self.current_gremlin_co_evoving_pair_mutant_id} has not been accepted yet. Skipped.'
-                )
-                return
-            else:
-                self.mutant_tree_coevolved.remove_mutant_from_branch(
-                    self.current_gremlin_co_evoving_pair_group_id,
-                    self.current_gremlin_co_evoving_pair_mutant_id,
-                )
-
-        save_mutant_choices(
-            self.bus.get_value('ui.interact.input.to_mutant_txt'),
-            self.mutant_tree_coevolved,
-        )
-
-    def activate_focused_interaction(self):
-        if (
-            self.current_gremlin_co_evoving_pair_mutant_id
-            == self.last_gremlin_co_evoving_pair_mutant_id
-        ):
+        if not self.gremlin_worker:
             return
-
-        if self.current_gremlin_co_evoving_pair_mutant_id:
-            cmd.enable(self.current_gremlin_co_evoving_pair_mutant_id)
-            cmd.show(
-                'sticks',
-                f'{self.current_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA) and not hydrogen',
-            )
-            cmd.show(
-                'mesh',
-                f'{self.current_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA)',
-            )
-            cmd.hide(
-                'cartoon', f'{self.current_gremlin_co_evoving_pair_mutant_id}'
-            )
-        if self.last_gremlin_co_evoving_pair_mutant_id:
-            cmd.disable(self.last_gremlin_co_evoving_pair_mutant_id)
-            cmd.hide(
-                'mesh',
-                f'{self.last_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA)',
-            )
-            cmd.hide(
-                'sticks',
-                f'{self.last_gremlin_co_evoving_pair_mutant_id} and (sidechain or n. CA) and not hydrogen',
-            )
-            cmd.hide(
-                'cartoon', f'{self.current_gremlin_co_evoving_pair_mutant_id}'
-            )
-
-        # close group object if deactivated
-        if (
-            self.last_gremlin_co_evoving_pair_group_id != ''
-            and self.current_gremlin_co_evoving_pair_group_id
-            != self.last_gremlin_co_evoving_pair_group_id
-        ):
-            cmd.disable(self.last_gremlin_co_evoving_pair_group_id)
-            cmd.group(
-                self.last_gremlin_co_evoving_pair_group_id, action='close'
-            )
-
-        # expand group object if activated
-        if (
-            self.current_gremlin_co_evoving_pair_group_id
-            and self.last_gremlin_co_evoving_pair_group_id
-            != self.current_gremlin_co_evoving_pair_group_id
-        ):
-            cmd.enable(self.current_gremlin_co_evoving_pair_group_id)
-            cmd.group(
-                self.current_gremlin_co_evoving_pair_group_id, action='open'
-            )
-
-        cmd.center(self.current_gremlin_co_evoving_pair_mutant_id)
-
-    def mutate_with_gridbuttons(
-        self,
-        col,
-        row,
-        matrix,
-        min_score,
-        max_score,
-        wt_info,
-        ignore_wt=False,
-    ):
-        import matplotlib
-
-        matplotlib.use('Agg')
-
-        from REvoDesign.common.MutantVisualizer import MutantVisualizer
-
-        lineEdit_current_pair_wt_score = (
-            self.bus.ui.lineEdit_current_pair_wt_score
+        self.gremlin_worker.coevoled_mutant_decision(
+            decision_to_accept=decision_to_accept
         )
-        lineEdit_current_pair_mut_score = (
-            self.bus.ui.lineEdit_current_pair_mut_score
-        )
-
-        external_scorer = self.bus.get_value('ui.interact.use_external_scorer')
-
-        run_worker_thread_with_progress(self.refresh_sidechainsolver)
-
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-        if external_scorer and external_scorer in EXTERNAL_DESIGNERS:
-            magician = EXTERNAL_DESIGNERS[external_scorer]
-            if (
-                not self.gremlin_external_scorer  # non-scorer is set
-                or magician.__name__  # scorer is switched to another
-                != self.gremlin_external_scorer.__class__.__name__
-            ):
-                logging.info(
-                    f'Pre-heating {external_scorer} ... This could take a while ...'
-                )
-                self.gremlin_external_scorer = magician(
-                    molecule=self.design_molecule
-                )
-                run_worker_thread_with_progress(
-                    worker_function=self.gremlin_external_scorer.initialize,
-                    ignore_missing=bool('X' in self.design_sequence),
-                    progress_bar=self.bus.ui.progressBar,
-                )
-
-        else:
-            if self.gremlin_external_scorer:
-                logging.info(
-                    f'Cooling down {self.gremlin_external_scorer.__class__.__name__} ...'
-                )
-            self.gremlin_external_scorer = None
-
-        visualizer = MutantVisualizer(
-            molecule=self.design_molecule, chain_id=self.design_chain_id
-        )
-        visualizer.sequence = self.design_sequence
-        alphabet = self.gremlin_tool.alphabet
-
-        visualizer.mutate_runner = self.sidechain_solver.mutate_runner
-
-        visualizer.group_name = '_vs_'.join(
-            [wt.replace('_', '') for wt in wt_info[-3:-1]]
-        )
-        if self.current_gremlin_co_evoving_pair_group_id:
-            self.last_gremlin_co_evoving_pair_group_id = (
-                self.current_gremlin_co_evoving_pair_group_id
-            )
-
-        self.current_gremlin_co_evoving_pair_group_id = visualizer.group_name
-
-        [i, j, i_aa, j_aa, zscore] = wt_info
-
-        # aa from wt
-        wt_A = i_aa.split('_')[0]  # in column
-        wt_B = j_aa.split('_')[0]  # in row
-
-        wt_score = (
-            matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
-            if not self.gremlin_external_scorer
-            else self.gremlin_external_scorer.scorer(
-                sequence=self.design_sequence
-            )
-        )
-
-        if i > j:
-            j, i = i, j
-            j_aa, i_aa = i_aa, j_aa
-            col, row = row, col
-
-        # aa from clicked button, mutant
-        mut_A = alphabet[col]
-        mut_B = alphabet[row]
-
-        _mutant = []
-
-        if self.current_gremlin_co_evoving_pair_mutant_id:
-            self.last_gremlin_co_evoving_pair_mutant_id = (
-                self.current_gremlin_co_evoving_pair_mutant_id
-            )
-
-        for mut, idx, wt in zip([mut_A, mut_B], [i + 1, j + 1], [wt_A, wt_B]):
-            _ = f'{self.design_chain_id}{wt}{idx}{mut}'
-            if wt == mut and ignore_wt:
-                logging.debug(f'Ignore WT to WT mutagenese {_}')
-
-            elif mut == '-':
-                logging.info(f'Igore deletion {_}')
-            else:
-                logging.debug(f'Adding mutagenesis {_}')
-                _mutant.append(_)
-
-        if not _mutant:
-            logging.info(
-                'No mutagenesis will be performed since the picked pair is a wt-wt pair'
-            )
-            return
-
-        mutant = '_'.join(_mutant)
-
-        mutant_obj: Mutant = extract_mutants_from_mutant_id(
-            mutant_string=mutant,
-            sequences=self.designable_sequences,
-        )
-
-        mutant_obj.wt_sequences = self.designable_sequences
-
-        mut_score = (
-            matrix[col][row]
-            if not self.gremlin_external_scorer
-            else self.gremlin_external_scorer.scorer(
-                sequence=mutant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.design_chain_id
-                )
-            )
-        )
-        mutant_obj.mutant_score = mut_score
-
-        set_widget_value(lineEdit_current_pair_wt_score, f'{wt_score:.3f}')
-        set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.3f}')
-
-        # update mutant id from Mutant object.
-        mutant = mutant_obj.short_mutant_id
-
-        if mutant in cmd.get_names(
-            type='nongroup_objects',
-            enabled_only=0,
-        ):
-            logging.info(
-                f'Picked mutant: {mutant} already exists. Do nothing.'
-            )
-        else:
-            logging.info(f'Picked mutant: {mutant} ')
-
-            color = get_color(
-                self.bus.get_value('ui.header_panel.cmap.default'),
-                mut_score,
-                min_score,
-                max_score,
-            )
-
-            logging.info(f" Visualizing {mutant}: {color}")
-
-            visualizer.create_mutagenesis_objects(mutant_obj, color)
-            cmd.hide('everything', 'hydrogens and polymer.protein')
-            cmd.hide('cartoon', mutant)
-
-        self.current_gremlin_co_evoving_pair_mutant_id = mutant
-        self.activate_focused_interaction()
-
-        if self.ws_server and self.ws_server.is_running and mutant_obj:
-            mutant_tree = {
-                visualizer.group_name: {mutant_obj.short_mutant_id: mutant_obj}
-            }
-
-            asyncio.run(
-                self.ws_broadcast_from_server(
-                    data=MutantTree(mutant_tree=mutant_tree),
-                    data_type='MutantTree',
-                )
-            )
 
     def generate_ws_server_key(self):
         key = generate_strong_password(length=32)

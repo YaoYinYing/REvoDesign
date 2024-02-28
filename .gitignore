@@ -36,3 +36,5 @@ tmp-test-dir-with-unique-name/*
 tests/downloaded/*
 tests/expanded_compressed_files/*
 .coverage.*
+tmp-test-dir-with-unique-name.zip
+tests/performance/*

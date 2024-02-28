@@ -1,11 +1,8 @@
 from pymol import cmd
 import os
-from rdkit import Chem
-from rdkit.Chem import MolToSmiles
+
 from pymol import get_version_message
-
 from REvoDesign.tools.utils import suppress_print
-
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
@@ -448,6 +445,9 @@ def make_temperal_input_pdb(
 def extract_smiles_from_chain(
     molecule, chain_id=None, segment_id=None, resn=None, selection=None
 ):
+    from rdkit import Chem
+    from rdkit.Chem import MolToSmiles
+
     """
     Function: extract_smiles_from_chain
     Usage: smiles_string = extract_smiles_from_chain(molecule, chain_id=None, segment_id=None)

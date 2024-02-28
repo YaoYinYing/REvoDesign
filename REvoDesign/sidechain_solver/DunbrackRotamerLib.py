@@ -3,8 +3,6 @@ import tempfile
 from REvoDesign.tools.pymol_utils import mutate
 from pymol import cmd
 from REvoDesign.common.Mutant import Mutant
-from Bio.Data import IUPACData
-
 from REvoDesign.tools.logger import logging as logger
 
 logging = logger.getChild(__name__)
@@ -42,6 +40,8 @@ class PyMOL_mutate:
         Returns:
         - Path to the mutated PDB file
         """
+        from Bio.Data import IUPACData
+
         new_obj_name = mutant_obj.short_mutant_id
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_')

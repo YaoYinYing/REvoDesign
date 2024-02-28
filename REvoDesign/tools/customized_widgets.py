@@ -170,7 +170,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
                 )
 
                 button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
-
+                button.setObjectName(f'matrixButton_{row}_vs{col}')
                 button.setSizePolicy(size_policy)
                 button.setStyleSheet(
                     f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''}"
@@ -537,6 +537,18 @@ class WorkerThread(QtCore.QThread):
     def interrupt(self):
         self.interrupt_signal.emit()
 
+
+def notify_box(title:str='', message:str='',):
+    # A notify message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setStandardButtons(
+        QtWidgets.QMessageBox.Ok
+    )
+
+    msg.exec_()
 
 def proceed_with_comfirm_msg_box(title='', description=''):
     """

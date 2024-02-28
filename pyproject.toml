@@ -54,13 +54,14 @@ PIPPack = {git = "https://github.com/YaoYinYing/PIPPack", branch = 'pip-installa
 absl-py = { version = ">=1.4.0", optional= true}
 pooch = {version = "^1.8.0", optional =true}
 pytest-qt = {version = "^4.4.0", optional = true}
+memray="^1.11.0"
 
 [tool.poetry.extras]
 jax = ["colabdesign"]
 torch = ["PIPPack"]
 tf = ["DLPacker"]
 
-unittest = [ "absl-py", "pooch", "pytest-qt"]
+unittest = [ "absl-py", "pooch", "pytest-qt", "psutil","memray"]
 
 full = ["colabdesign", "DLPacker", "PIPPack"]
 
