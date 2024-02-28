@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `Memray` for memory profiling: `https://bloomberg.github.io/memray/overview.html`
+- garbage collection
+- `Mutant.get_mutant_sequence_single_chain`: `ignore_missing` argument
+- `notify_box` for `About` Message box notifications
+- `TestWorker`:
+  - `test_id`
+  - `run_time`
+  - `EXPERIMENT_DIR`
+  - `save_new_experiment`
+  - `sleep`
+- `Widget2ConfigMapper.get_button_from_id`: `prefix` argument
+
+
+### Changed
+- Move Gremlin tool to `REvoDesign/phylogenetics`
+
+### Removed
+- `REvoDesignPlugin.mutant_tree_coevolved`
+- `REvoDesignPlugin.gremlin_tool`
+- `REvoDesignPlugin.gremlin_external_scorer`
 
 ## [1.5.0] - 2024-02-25
 ### Added 
