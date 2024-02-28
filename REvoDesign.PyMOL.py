@@ -9,6 +9,7 @@ Date    : Sept 2023
 REvoDesign -- Makes enzyme redesign tasks easier to all.
 '''
 
+from functools import partial
 import time
 from typing import Iterable, Union
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -16,7 +17,6 @@ import traceback
 import urllib.request
 import json
 import os
-import asyncio
 
 
 print(f'REvoDesign entrypoint is located at {os.path.dirname(__file__)}')
@@ -32,11 +32,13 @@ REPO_URL: str = 'https://github.com/YaoYinYing/REvoDesign'
 AVAILABLE_EXTRAS: list = ['', 'tf', 'torch', 'jax', 'full', 'unittest']
 
 
-# translated UI Dialog from UI file
+# translated UI Dialog from UI file\
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(544, 390)
+        Dialog.resize(543, 402)
+        Dialog.setMinimumSize(QtCore.QSize(543, 0))
+        Dialog.setMaximumSize(QtCore.QSize(543, 16777215))
         self.groupBox = QtWidgets.QGroupBox(Dialog)
         self.groupBox.setGeometry(QtCore.QRect(10, 70, 521, 101))
         sizePolicy = QtWidgets.QSizePolicy(
@@ -51,7 +53,7 @@ class Ui_Dialog(object):
         self.groupBox.setObjectName("groupBox")
         self.horizontalLayoutWidget_2 = QtWidgets.QWidget(self.groupBox)
         self.horizontalLayoutWidget_2.setGeometry(
-            QtCore.QRect(10, 30, 501, 61)
+            QtCore.QRect(10, 30, 501, 64)
         )
         self.horizontalLayoutWidget_2.setObjectName("horizontalLayoutWidget_2")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(
@@ -135,32 +137,20 @@ class Ui_Dialog(object):
         self.pushButton_install.setSizePolicy(sizePolicy)
         self.pushButton_install.setObjectName("pushButton_install")
         self.verticalLayout_2.addWidget(self.pushButton_install)
-        self.progressBar = QtWidgets.QProgressBar(
+        self.pushButton_remove = QtWidgets.QPushButton(
             self.horizontalLayoutWidget_2
         )
         sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
         )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(
-            self.progressBar.sizePolicy().hasHeightForWidth()
+            self.pushButton_remove.sizePolicy().hasHeightForWidth()
         )
-        self.progressBar.setSizePolicy(sizePolicy)
-        self.progressBar.setMinimumSize(QtCore.QSize(0, 0))
-        self.progressBar.setSizeIncrement(QtCore.QSize(0, 0))
-        self.progressBar.setBaseSize(QtCore.QSize(0, 0))
-        font = QtGui.QFont()
-        font.setPointSize(3)
-        self.progressBar.setFont(font)
-        self.progressBar.setProperty("value", 0)
-        self.progressBar.setAlignment(
-            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop
-        )
-        self.progressBar.setOrientation(QtCore.Qt.Horizontal)
-        self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
-        self.progressBar.setObjectName("progressBar")
-        self.verticalLayout_2.addWidget(self.progressBar)
+        self.pushButton_remove.setSizePolicy(sizePolicy)
+        self.pushButton_remove.setObjectName("pushButton_remove")
+        self.verticalLayout_2.addWidget(self.pushButton_remove)
         self.horizontalLayout_2.addLayout(self.verticalLayout_2)
         self.groupBox_2 = QtWidgets.QGroupBox(Dialog)
         self.groupBox_2.setGeometry(QtCore.QRect(10, 170, 521, 101))
@@ -362,6 +352,30 @@ class Ui_Dialog(object):
         self.lineEdit_mirror_url.setObjectName("lineEdit_mirror_url")
         self.horizontalLayout_10.addWidget(self.lineEdit_mirror_url)
         self.verticalLayout_5.addLayout(self.horizontalLayout_10)
+        self.progressBar = QtWidgets.QProgressBar(Dialog)
+        self.progressBar.setGeometry(QtCore.QRect(10, 370, 521, 20))
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+        )
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.progressBar.sizePolicy().hasHeightForWidth()
+        )
+        self.progressBar.setSizePolicy(sizePolicy)
+        self.progressBar.setMinimumSize(QtCore.QSize(0, 0))
+        self.progressBar.setSizeIncrement(QtCore.QSize(0, 0))
+        self.progressBar.setBaseSize(QtCore.QSize(0, 0))
+        font = QtGui.QFont()
+        font.setPointSize(3)
+        self.progressBar.setFont(font)
+        self.progressBar.setProperty("value", 0)
+        self.progressBar.setAlignment(
+            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop
+        )
+        self.progressBar.setOrientation(QtCore.Qt.Horizontal)
+        self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
+        self.progressBar.setObjectName("progressBar")
 
         self.retranslateUi(Dialog)
         self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled)  # type: ignore
@@ -404,6 +418,7 @@ class Ui_Dialog(object):
         )
         self.pushButton_open.setText(_translate("Dialog", "..."))
         self.pushButton_install.setText(_translate("Dialog", "Install"))
+        self.pushButton_remove.setText(_translate("Dialog", "Remove"))
         self.groupBox_2.setTitle(_translate("Dialog", "Options:"))
         self.label.setText(_translate("Dialog", "Extras:"))
         self.checkBox_verbose.setText(_translate("Dialog", "Verbose"))
@@ -445,6 +460,14 @@ class REvoDesignInstaller:
         self.ui.setupUi(Dialog=dialog)
         self.ui.pushButton_open.clicked.connect(self.open_files)
         self.ui.pushButton_install.clicked.connect(self.install)
+        self.ui.pushButton_remove.clicked.connect(
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=install_via_pip,
+                uninstall=True,
+                progress_bar=self.ui.progressBar,
+            )
+        )
 
         set_widget_value(self.ui.comboBox_extras, AVAILABLE_EXTRAS)
         return dialog
@@ -782,8 +805,65 @@ def refresh_window():
     QtWidgets.QApplication.processEvents()
 
 
+def solve_installation_config(source, git_url, git_tag, extras):
+    package_string = f"REvoDesign{f'[{extras}]' if extras and extras in AVAILABLE_EXTRAS else ''}"
+
+    # with github url and tag
+    if source and source.startswith('https://'):
+        package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
+        return package_string
+
+    # with git repo clone and tag
+    elif source.startswith('file://'):
+        dir = git_url.replace('file://', '')
+        if not os.path.exists(os.path.join(dir, '.git')):
+            raise FileNotFoundError(
+                f'Git dir not found: {os.path.join(dir, ".git")}'
+            )
+        package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
+        return package_string
+
+    # with unzipped code dir
+    elif os.path.exists(source) and os.path.isdir(source):
+        if not os.path.exists(os.path.join(source, 'pyproject.toml')):
+            raise FileNotFoundError(
+                f'{source} is not a directory containing pyproject.toml'
+            )
+        if git_tag:
+            raise ValueError('unzipped code directory can not have a tag!')
+        if source.endswith('/'):
+            source = source[:-1]
+        package_string = f"{source}{f'[{extras}]'if extras else ''}"
+        return package_string
+
+    # with zipped code archive
+    elif os.path.exists(source) and os.path.isfile(source):
+        if git_tag:
+            raise ValueError('zipped file can not have a tag!')
+
+        if source.endswith('.zip'):
+            package_string = f"{source}{f'[{extras}]'if extras else ''}"
+        elif source.endswith('.tar.gz'):
+            package_string = f"{source}{f'[{extras}]'if extras else ''}"
+        else:
+            raise FileNotFoundError(
+                f'{source} is neither a zipped file nor a tar.gz file!'
+            )
+
+        return package_string
+
+    else:
+        raise ValueError(f'Unknown installation source {source}!')
+
+
 def install_via_pip(
-    source=REPO_URL, upgrade=0, vebose=1, extras='', proxy='', mirror=''
+    source=REPO_URL,
+    upgrade=0,
+    vebose=1,
+    extras='',
+    proxy='',
+    mirror='',
+    uninstall=False,
 ):
     def get_source_and_tag(source):
         git_dir = source.split('@')[0]
@@ -803,76 +883,46 @@ def install_via_pip(
     )
     python_exe = os.path.realpath(sys.executable)
 
-    # use default source
-    if not source:
-        source = REPO_URL
-
-    git_url, git_tag = get_source_and_tag(source=source)
-    package_string = f"REvoDesign{f'[{extras}]' if extras and extras in AVAILABLE_EXTRAS else ''}"
-
-    # with github url and tag
-    if source and source.startswith('https://'):
-        package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
-
-    # with git repo clone and tag
-    elif source.startswith('file://'):
-        dir = git_url.replace('file://', '')
-        if not os.path.exists(os.path.join(dir, '.git')):
-            raise FileNotFoundError(
-                f'Git dir not found: {os.path.join(dir, ".git")}'
-            )
-        package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
-
-    # with unzipped code dir
-    elif os.path.exists(source) and os.path.isdir(source):
-        if not os.path.exists(os.path.join(source, 'pyproject.toml')):
-            raise FileNotFoundError(
-                f'{source} is not a directory containing pyproject.toml'
-            )
-        if git_tag:
-            raise ValueError('unzipped code directory can not have a tag!')
-        if source.endswith('/'):
-            source = source[:-1]
-        package_string = f"{source}{f'[{extras}]'if extras else ''}"
-
-    # with zipped code archive
-    elif os.path.exists(source) and os.path.isfile(source):
-        if git_tag:
-            raise ValueError('zipped file can not have a tag!')
-
-        if source.endswith('.zip'):
-            package_string = f"{source}{f'[{extras}]'if extras else ''}"
-        elif source.endswith('.tar.gz'):
-            package_string = f"{source}{f'[{extras}]'if extras else ''}"
-        else:
-            raise FileNotFoundError(
-                f'{source} is neither a zipped file nor a tar.gz file!'
-            )
-
-    else:
-        raise ValueError(f'Unknown installation source {source}!')
-
     # run installation via pip
     subprocess.run([python_exe, '-m', 'ensurepip'])
 
-    pip_cmd = [
-        python_exe,
-        '-m',
-        'pip',
-        'install',
-        f"{package_string}",
-    ]
+    if uninstall:
+        pip_cmd = [
+            python_exe,
+            '-m',
+            'pip',
+            'uninstall',
+            '-y',
+            'REvoDesign',
+        ]
+    else:
+        # use default source
+        if not source:
+            source = REPO_URL
 
-    if upgrade:
-        pip_cmd.append('--upgrade')
+        git_url, git_tag = get_source_and_tag(source=source)
 
-    if proxy:
-        print(f'using proxy: {proxy}')
-        pip_cmd.extend(['--proxy', proxy])
+        package_string = solve_installation_config(
+            source=source, git_url=git_url, git_tag=git_tag, extras=extras
+        )
+        pip_cmd = [
+            python_exe,
+            '-m',
+            'pip',
+            'install',
+            f"{package_string}",
+        ]
 
-    if mirror:
-        print(f'using mirror from {mirror}')
-        pip_cmd.extend(['-i', mirror])
+        if upgrade:
+            pip_cmd.append('--upgrade')
+
+        if proxy:
+            print(f'using proxy: {proxy}')
+            pip_cmd.extend(['--proxy', proxy])
+
+        if mirror:
+            print(f'using mirror from {mirror}')
+            pip_cmd.extend(['-i', mirror])
 
     print(pip_cmd)
 
