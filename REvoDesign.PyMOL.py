@@ -478,7 +478,6 @@ class REvoDesignInstaller:
             cmd = ['conda', 'install', '-y', 'git']
         else:
             notify_box(
-                title='Git is missing',
                 message='Git is required to install REvoDesign. Please install Git first.',
             )
             return
@@ -499,9 +498,7 @@ class REvoDesignInstaller:
             and git_install_std.returncode == 0
             and self.git_installed()
         ):
-            notify_box(
-                title='Git installed', message=f'Git installed successfully.'
-            )
+            notify_box(message=f'Git installed successfully.')
         else:
             try:
                 stdout, stderr = git_install_std.stdout.decode(
@@ -509,11 +506,9 @@ class REvoDesignInstaller:
                 ), git_install_std.stderr.decode('utf-8')
             except UnicodeDecodeError as e:
                 notify_box(
-                    title='Git not installed',
                     message=f'Git not installed.\n {e}',
                 )
             notify_box(
-                title='Git not installed',
                 message=f'Git not installed.\n {stdout}\n {stderr}',
             )
 
@@ -618,7 +613,6 @@ class REvoDesignInstaller:
             )
 
             notify_box(
-                title='Uninstalled',
                 message='REvoDesign is removed successfully. Bye-bye.',
             )
 
@@ -705,8 +699,7 @@ class REvoDesignInstaller:
             )
             if installed:
                 notify_box(
-                    title='Installation succeeded',
-                    message='If this is an upgrade, please restart PyMOL for it to take effect.',
+                    message='Installation succeeded. \nIf this is an upgrade, please restart PyMOL for it to take effect.',
                 )
 
 
@@ -907,13 +900,11 @@ def refresh_window():
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
 def notify_box(
-    title: str = 'INFO',
     message: str = '',
 ):
     # A notify message.
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Information)
-    msg.setWindowTitle(title)
     msg.setText(message)
     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
