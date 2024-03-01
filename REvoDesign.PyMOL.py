@@ -10,6 +10,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all.
 '''
 
 from functools import partial
+import subprocess
 import time
 from typing import Iterable, Union
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -444,6 +445,47 @@ class Ui_Dialog(object):
 class REvoDesignInstaller:
     def __init__(self):
         self.dialog = None
+    
+    @staticmethod
+    def run_command(cmd):
+        result = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+        return result
+
+    def fetch_git(self):
+        import platform,shutil
+
+        if self.git_installed():
+            return
+        
+        uname_info=platform.uname()
+        if uname_info.system == "Windows" and  uname_info.release == "11":
+            cmd=["winget", "install", "--id", "Git.Git", "-e", "--source winget"]
+        elif shutil.which('conda') is not None:
+            cmd=['conda','install','-y','git']
+        else:
+            notify_box(title='Git is missing', message='Git is required to install REvoDesign. Please install Git first.')
+            return
+        
+        confirmed=proceed_with_comfirm_msg_box(title='Install Git?', description=f'Do you want to install git first?\n command:\n {" ".join(cmd)}')
+        if confirmed:
+            git_install_std=run_worker_thread_with_progress(worker_function=self.run_command, cmd=cmd, progress_bar=self.ui.progressBar)
+        
+        if git_install_std and git_install_std.returncode == 0 and self.git_installed():
+            notify_box(title='Git installed', message=f'Git installed successfully.')
+        else:
+            try:
+                stdout,stderr= git_install_std.stdout.decode('utf-8'), git_install_std.stderr.decode('utf-8')
+            except UnicodeDecodeError as e:
+                notify_box(title='Git not installed', message=f'Git not installed.\n {e}')
+            notify_box(title='Git not installed', message=f'Git not installed.\n {stdout}\n {stderr}')
+        
+    def git_installed(self) -> bool:
+        import shutil
+        return shutil.which("git") is not None
 
     def run_plugin_gui(self):
         if self.dialog is None:
@@ -476,6 +518,8 @@ class REvoDesignInstaller:
         set_widget_value(
             self.ui.comboBox_version, get_github_repo_tags(repo_url=REPO_URL)
         )
+
+
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
     def getExistingDirectory(self):
@@ -599,7 +643,8 @@ class REvoDesignInstaller:
 
         if not install_source:
             raise ValueError('Installation configuration is failed. Aborded. ')
-
+        
+        self.fetch_git()
         run_worker_thread_with_progress(
             worker_function=install_via_pip,
             progress_bar=self.ui.progressBar,
@@ -805,6 +850,48 @@ def refresh_window():
     QtWidgets.QApplication.processEvents()
 
 
+def notify_box(title:str='', message:str='',):
+    # A notify message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setStandardButtons(
+        QtWidgets.QMessageBox.Ok
+    )
+
+    msg.exec_()
+
+def proceed_with_comfirm_msg_box(title='', description=''):
+    """
+    Function: proceed_with_confirm_msg_box
+    Usage: result = proceed_with_confirm_msg_box(title='', description='')
+
+    This function displays a confirmation message box with a title and description,
+    allowing the user to proceed or cancel.
+
+    Args:
+    - title (str): Title of the confirmation box (default is empty)
+    - description (str): Description displayed in the confirmation box (default is empty)
+
+    Returns:
+    - bool: True if 'Yes' is selected, False otherwise
+    """
+    # A confirmation message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setWindowTitle(title)
+    msg.setText(description)
+    msg.setStandardButtons(
+        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+    )
+    result = msg.exec_()
+
+    return result == QtWidgets.QMessageBox.Yes
+
+
+
+
 def solve_installation_config(source, git_url, git_tag, extras):
     package_string = f"REvoDesign{f'[{extras}]' if extras and extras in AVAILABLE_EXTRAS else ''}"
 
@@ -947,6 +1034,7 @@ def install_via_pip(
         )
 
 
+
 # entrypoint of PyMOL plugin
 def __init_plugin__(app=None):
     '''
@@ -971,3 +1059,4 @@ def __init_plugin__(app=None):
         from pymol import cmd
 
         cmd.extend('install_REvoDesign_via_pip', install_via_pip)
+
