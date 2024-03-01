@@ -9,12 +9,12 @@ Date    : Sept 2023
 REvoDesign -- Makes enzyme redesign tasks easier to all.
 '''
 
-from functools import partial
+from contextlib import contextmanager
+import subprocess
 import time
-from typing import Iterable, Union
+from typing import Iterable
 from pymol.Qt import QtCore, QtGui, QtWidgets
 import traceback
-import urllib.request
 import json
 import os
 
@@ -445,6 +445,84 @@ class REvoDesignInstaller:
     def __init__(self):
         self.dialog = None
 
+    @staticmethod
+    def run_command(cmd):
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        return result
+
+    def fetch_git(self):
+        import platform, shutil
+
+        if self.git_installed():
+            return
+
+        uname_info = platform.uname()
+        print(uname_info)
+        if shutil.which('conda') is not None:
+            cmd = ['conda', 'install', '-y', 'git']
+        elif (
+            uname_info.system == "Windows"
+            and shutil.which('winget') is not None
+        ):
+            cmd = [
+                "winget",
+                "install",
+                "--id",
+                "Git.Git",
+                "-e",
+                "--source",
+                "winget",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+            ]
+        else:
+            notify_box(
+                message='Git is required to install REvoDesign. Please install Git first.',
+            )
+            return
+
+        confirmed = proceed_with_comfirm_msg_box(
+            title='Install Git?',
+            description=f'Do you want to install git first?\n command:\n {" ".join(cmd)}',
+        )
+        if not confirmed:
+            notify_box(message='Git installation is cancelled.')
+            return
+        
+        git_install_std = run_worker_thread_with_progress(
+            worker_function=self.run_command,
+            cmd=cmd,
+            progress_bar=self.ui.progressBar,
+        )
+
+        if (
+            git_install_std
+            and git_install_std.returncode == 0
+            and self.git_installed()
+        ):
+            notify_box(message=f'Git installed successfully.')
+        else:
+            try:
+                stdout, stderr = git_install_std.stdout.decode(
+                    'utf-8'
+                ), git_install_std.stderr.decode('utf-8')
+            except UnicodeDecodeError as e:
+                notify_box(
+                    message=f'Git not installed.\n {e}',
+                )
+            notify_box(
+                message=f'Git not installed.\n {stdout}\n {stderr}',
+            )
+
+    def git_installed(self) -> bool:
+        import shutil
+
+        return shutil.which("git") is not None
+
     def run_plugin_gui(self):
         if self.dialog is None:
             self.dialog = self.make_window()
@@ -460,14 +538,7 @@ class REvoDesignInstaller:
         self.ui.setupUi(Dialog=dialog)
         self.ui.pushButton_open.clicked.connect(self.open_files)
         self.ui.pushButton_install.clicked.connect(self.install)
-        self.ui.pushButton_remove.clicked.connect(
-            partial(
-                run_worker_thread_with_progress,
-                worker_function=install_via_pip,
-                uninstall=True,
-                progress_bar=self.ui.progressBar,
-            )
-        )
+        self.ui.pushButton_remove.clicked.connect(self.uninstall)
 
         set_widget_value(self.ui.comboBox_extras, AVAILABLE_EXTRAS)
         return dialog
@@ -530,6 +601,26 @@ class REvoDesignInstaller:
             )
             if file and os.path.exists(file):
                 set_widget_value(self.ui.lineEdit_local, file)
+
+    def uninstall(self):
+        import importlib
+
+        installed = importlib.util.find_spec('REvoDesign') is not None
+
+        if not installed:
+            notify_box(message='REvoDesign is not installed.')
+            return
+
+        with hold_trigger_button(self.ui.pushButton_remove):
+            run_worker_thread_with_progress(
+                worker_function=install_via_pip,
+                uninstall=True,
+                progress_bar=self.ui.progressBar,
+            )
+
+            notify_box(
+                message='REvoDesign is removed successfully. Bye-bye.',
+            )
 
     def install(self):
         # sources
@@ -600,16 +691,22 @@ class REvoDesignInstaller:
         if not install_source:
             raise ValueError('Installation configuration is failed. Aborded. ')
 
-        run_worker_thread_with_progress(
-            worker_function=install_via_pip,
-            progress_bar=self.ui.progressBar,
-            source=install_source,
-            upgrade=upgrade,
-            vebose=verbose,
-            extras=extras,
-            proxy=proxy_url if (use_proxy and proxy_url) else '',
-            mirror=mirror_url if (use_mirror and mirror_url) else '',
-        )
+        with hold_trigger_button(self.ui.pushButton_install):
+            self.fetch_git()
+            installed = run_worker_thread_with_progress(
+                worker_function=install_via_pip,
+                progress_bar=self.ui.progressBar,
+                source=install_source,
+                upgrade=upgrade,
+                vebose=verbose,
+                extras=extras,
+                proxy=proxy_url if (use_proxy and proxy_url) else '',
+                mirror=mirror_url if (use_mirror and mirror_url) else '',
+            )
+            if installed:
+                notify_box(
+                    message='Installation succeeded. \nIf this is an upgrade, please restart PyMOL for it to take effect.',
+                )
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
@@ -711,6 +808,8 @@ def get_github_repo_tags(repo_url) -> list[str]:
     Returns:
         list: A list of tag names for the repository.
     """
+    import urllib.request
+
     # Extract the owner and repo name from the URL
     parts = repo_url.split("/")
     owner = parts[-2]
@@ -803,6 +902,66 @@ def set_widget_value(widget, value):
 # a copy from `REvoDesign/tools/customized_widgets.py`
 def refresh_window():
     QtWidgets.QApplication.processEvents()
+
+
+# a copy from `REvoDesign/tools/customized_widgets.py`
+def notify_box(
+    message: str = '',
+):
+    # A notify message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Information)
+    msg.setText(message)
+    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+
+    msg.exec_()
+
+
+# a copy from `REvoDesign/tools/customized_widgets.py`
+def proceed_with_comfirm_msg_box(title='', description=''):
+    """
+    Function: proceed_with_confirm_msg_box
+    Usage: result = proceed_with_confirm_msg_box(title='', description='')
+
+    This function displays a confirmation message box with a title and description,
+    allowing the user to proceed or cancel.
+
+    Args:
+    - title (str): Title of the confirmation box (default is empty)
+    - description (str): Description displayed in the confirmation box (default is empty)
+
+    Returns:
+    - bool: True if 'Yes' is selected, False otherwise
+    """
+    # A confirmation message.
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg.setWindowTitle(title)
+    msg.setText(description)
+    msg.setStandardButtons(
+        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+    )
+    result = msg.exec_()
+
+    return result == QtWidgets.QMessageBox.Yes
+
+
+# a copy from `REvoDesign/tools/customized_widgets.py`
+@contextmanager
+def hold_trigger_button(button):
+    """
+    A context manager for holding and releasing a trigger button.
+
+    Usage:
+        with hold_trigger_button(button):
+            # Code block where the button is held (disabled)
+            # The button will be automatically released (enabled) at the end of the block
+    """
+    try:
+        button.setEnabled(False)
+        yield
+    finally:
+        button.setEnabled(True)
 
 
 def solve_installation_config(source, git_url, git_tag, extras):
@@ -932,19 +1091,17 @@ def install_via_pip(
         stderr=subprocess.PIPE,
     )
     if result.returncode != 0:
-        print(f'Installation failed: {source}')
+        print(f'Installation failed: {source} \n')
         if vebose:
             print(f'stdout: {result.stdout.decode()}')
             print(f'stderr: {result.stderr.decode()}')
     else:
         print(
-            f'Installation succeeded: {source}',
+            f'Installation succeeded: {source}.\nIf this is an upgrade, please restart PyMOL for it to take effect.',
         )
         if vebose:
             print(f'stdout: {result.stdout.decode()}')
-        print(
-            'If this is an upgrade, please restart PyMOL for it to take effect.'
-        )
+    return result.returncode == 0
 
 
 # entrypoint of PyMOL plugin
