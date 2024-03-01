@@ -472,7 +472,8 @@ class REvoDesignInstaller:
                 "--id",
                 "Git.Git",
                 "-e",
-                "--source winget",
+                "--source",
+                "winget",
             ]
         elif shutil.which('conda') is not None:
             cmd = ['conda', 'install', '-y', 'git']
