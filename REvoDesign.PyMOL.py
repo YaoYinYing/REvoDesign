@@ -462,7 +462,9 @@ class REvoDesignInstaller:
 
         uname_info = platform.uname()
         print(uname_info)
-        if (
+        if shutil.which('conda') is not None:
+            cmd = ['conda', 'install', '-y', 'git']
+        elif (
             uname_info.system == "Windows"
             and shutil.which('winget') is not None
         ):
@@ -477,8 +479,6 @@ class REvoDesignInstaller:
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             ]
-        elif shutil.which('conda') is not None:
-            cmd = ['conda', 'install', '-y', 'git']
         else:
             notify_box(
                 message='Git is required to install REvoDesign. Please install Git first.',
