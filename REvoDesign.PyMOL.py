@@ -474,6 +474,8 @@ class REvoDesignInstaller:
                 "-e",
                 "--source",
                 "winget",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
             ]
         elif shutil.which('conda') is not None:
             cmd = ['conda', 'install', '-y', 'git']
@@ -487,12 +489,15 @@ class REvoDesignInstaller:
             title='Install Git?',
             description=f'Do you want to install git first?\n command:\n {" ".join(cmd)}',
         )
-        if confirmed:
-            git_install_std = run_worker_thread_with_progress(
-                worker_function=self.run_command,
-                cmd=cmd,
-                progress_bar=self.ui.progressBar,
-            )
+        if not confirmed:
+            notify_box(message='Git installation is cancelled.')
+            return
+        
+        git_install_std = run_worker_thread_with_progress(
+            worker_function=self.run_command,
+            cmd=cmd,
+            progress_bar=self.ui.progressBar,
+        )
 
         if (
             git_install_std
