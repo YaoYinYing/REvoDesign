@@ -12,7 +12,7 @@ from functools import partial
 from REvoDesign.tools.logger import setup_logging
 
 logger = setup_logging()
-logging=logger.getChild(__name__)
+logging = logger.getChild(__name__)
 
 from REvoDesign.application.ui_driver import (
     Widget2Widget,
@@ -114,11 +114,21 @@ class REvoDesignPlugin:
             self.teamwork_enabled = False
 
     def fix_wd(self):
-        pwd_0=os.getcwd()
-        pwd_2=os.path.dirname(cmd.get('session_file')) if not is_empty_session() else None
+        pwd_0 = os.getcwd()
+        pwd_2 = (
+            os.path.dirname(cmd.get('session_file'))
+            if not is_empty_session()
+            else None
+        )
 
         # set session file's path if the rest is HOME, usually when a pse or pdb is opened to call PyMOL
-        if pwd_2 and all([os.path.abspath(pwd) == os.path.abspath(os.path.expanduser('~')) for pwd in [pwd_0]]):
+        if pwd_2 and all(
+            [
+                os.path.abspath(pwd)
+                == os.path.abspath(os.path.expanduser('~'))
+                for pwd in [pwd_0]
+            ]
+        ):
             self.set_working_directory(pwd_2)
             return
 
@@ -129,13 +139,13 @@ class REvoDesignPlugin:
                 self.set_working_directory(pwd)
                 return
 
-    def set_working_directory(self,dir=None):
+    def set_working_directory(self, dir=None):
         # if dir is specified yet same as the PWD, return silently.
         if dir and os.path.abspath(dir) == os.path.abspath(self.PWD):
             return
 
         if dir and os.path.exists(dir):
-            self.PWD=dir
+            self.PWD = dir
         else:
             self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
@@ -144,8 +154,7 @@ class REvoDesignPlugin:
         global logging
 
         logger = setup_logging()
-        logging=logger.getChild(__name__)
-        
+        logging = logger.getChild(__name__)
 
     def run_plugin_gui(self):
         if self.window is None:
@@ -1118,7 +1127,8 @@ class REvoDesignPlugin:
         with hold_trigger_button(trigger_button):
             run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,)
+                progress_bar=self.bus.ui.progressBar,
+            )
             assert self.sidechain_solver and isinstance(
                 self.sidechain_solver, SidechainSolver
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
@@ -1324,7 +1334,8 @@ class REvoDesignPlugin:
             # reinstiatate sidechain solver if required
             run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,)
+                progress_bar=self.bus.ui.progressBar,
+            )
             assert self.sidechain_solver and isinstance(
                 self.sidechain_solver, SidechainSolver
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
@@ -1726,7 +1737,8 @@ class REvoDesignPlugin:
         )
         run_worker_thread_with_progress(
             self.refresh_sidechainsolver,
-            progress_bar=self.bus.ui.progressBar,)
+            progress_bar=self.bus.ui.progressBar,
+        )
         self.ws_client.sidechain_solver = self.sidechain_solver
 
     def update_ws_client_view_update_options(self):

@@ -334,10 +334,10 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         self.gremlin_tool.sequence = self.design_sequence
 
         run_worker_thread_with_progress(
-                worker_function=self.gremlin_tool.load_msa_and_mrf,
-                mrf_path=gremlin_mrf_fp,
-                progress_bar=self.bus.ui.progressBar,
-            )
+            worker_function=self.gremlin_tool.load_msa_and_mrf,
+            mrf_path=gremlin_mrf_fp,
+            progress_bar=self.bus.ui.progressBar,
+        )
 
         pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
 
