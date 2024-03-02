@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 
-from REvoDesign.application.ui_driver import ConfigBus
+from REvoDesign import ConfigBus
 from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 @dataclass

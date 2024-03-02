@@ -2,11 +2,11 @@ import os
 import hashlib
 from typing import Union
 import requests
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
 from requests.auth import HTTPBasicAuth
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 from REvoDesign.tools.client_tools import check_response_code
 
@@ -96,6 +96,7 @@ class PSSMGremlinCalculator:
             stream=True,
             allow_redirects=False,
             auth=self.auth,
+            timeout=600,
         )
 
         if response.status_code == 302:  # Redirection status code
@@ -110,6 +111,7 @@ class PSSMGremlinCalculator:
             f'{self.url}/{redirected_url}',
             stream=True,
             auth=self.auth,
+            timeout=600,
         )
 
         if response.status_code == 200:

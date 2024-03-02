@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import partial
 import os
 
-from REvoDesign.application.ui_driver import ConfigBus
+from REvoDesign import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
 
 from pymol import cmd
@@ -12,14 +12,14 @@ from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 from REvoDesign.tools.mutant_tools import (
     existed_mutant_tree,
     extract_mutant_from_pymol_object,
     save_mutant_choices,
 )
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 @dataclass

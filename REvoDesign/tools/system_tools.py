@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 import platform
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 def get_system_info(os_info: platform.uname_result):

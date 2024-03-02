@@ -3,9 +3,9 @@ import tempfile
 from REvoDesign.tools.pymol_utils import mutate
 from pymol import cmd
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 class PyMOL_mutate:

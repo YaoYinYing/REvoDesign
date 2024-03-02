@@ -7,6 +7,8 @@ from typing import Any, Union
 import glob
 import shutil
 
+from REvoDesign import REVODESIGN_CONFIG_FILE
+
 
 def set_REvoDesign_config_file():
     template_config_dir = os.path.join(
@@ -31,12 +33,6 @@ def set_REvoDesign_config_file():
     main_config_file = os.path.join(config_dir, 'global_config.yaml')
     print(f'Main config: {main_config_file}')
     return main_config_file
-
-
-REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()
-hydra.initialize_config_dir(
-    version_base=None, config_dir=os.path.dirname(REVODESIGN_CONFIG_FILE)
-)
 
 
 def reload_config_file(config_name: str = 'global_config') -> DictConfig:
@@ -64,9 +60,6 @@ def experiment_config():
     )
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
-
-
-EXPERIMENTS_CONFIG_DIR = experiment_config()
 
 
 def set_cache_dir() -> str:

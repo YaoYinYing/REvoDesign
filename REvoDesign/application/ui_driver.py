@@ -10,11 +10,11 @@ from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
 from functools import partial
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
-from REvoDesign.tools.post_installed import reload_config_file
+from REvoDesign import reload_config_file
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 
@@ -47,7 +47,7 @@ class ConfigBus:
 
     def __init__(self, ui: QtWidgets.QWidget):
         self.ui = ui
-        self.cfg = reload_config_file()
+        self.cfg:DictConfig = reload_config_file()
         self.w2c = Widget2ConfigMapper(ui=self.ui)
         self.buttons = self.w2c.buttons
 

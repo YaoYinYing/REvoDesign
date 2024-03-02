@@ -2,7 +2,7 @@ import asyncio
 from functools import partial
 import os
 import traceback
-from REvoDesign.application.ui_driver import ConfigBus
+from REvoDesign import ConfigBus
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
@@ -33,9 +33,9 @@ from dataclasses import dataclass
 from pymol import cmd
 
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 @dataclass
