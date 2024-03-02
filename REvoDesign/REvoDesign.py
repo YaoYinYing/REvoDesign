@@ -11,7 +11,8 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 from functools import partial
 from REvoDesign.tools.logger import setup_logging
 
-logging = setup_logging()
+logger = setup_logging()
+logging=logger.getChild(__name__)
 
 from REvoDesign.application.ui_driver import (
     Widget2Widget,
@@ -112,16 +113,45 @@ class REvoDesignPlugin:
             traceback.print_exc()
             self.teamwork_enabled = False
 
-    def set_working_directory(self):
-        self.PWD = getExistingDirectory()
+    def fix_wd(self):
+        pwd_0=os.getcwd()
+        pwd_2=os.path.dirname(cmd.get('session_file')) if not is_empty_session() else None
+
+        # set session file's path if the rest is HOME, usually when a pse or pdb is opened to call PyMOL
+        if pwd_2 and all([os.path.abspath(pwd) == os.path.abspath(os.path.expanduser('~')) for pwd in [pwd_0]]):
+            self.set_working_directory(pwd_2)
+            return
+
+        # otherwise, use the wd from PyMOL lauching, usually when PyMOL is called from command line with
+        # an emtpy session or pdb/pse loading
+        for pwd in [pwd_0]:
+            if pwd and os.path.exists(pwd):
+                self.set_working_directory(pwd)
+                return
+
+    def set_working_directory(self,dir=None):
+        # if dir is specified yet same as the PWD, return silently.
+        if dir and os.path.abspath(dir) == os.path.abspath(self.PWD):
+            return
+
+        if dir and os.path.exists(dir):
+            self.PWD=dir
+        else:
+            self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
+
+        global logger
         global logging
-        logging = setup_logging()
+
+        logger = setup_logging()
+        logging=logger.getChild(__name__)
+        
 
     def run_plugin_gui(self):
         if self.window is None:
             self.window = self.make_window()
         self.window.show()
+        self.fix_wd()
 
     def reinitialize(self):
         self.gremlin_worker = None
