@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import os
 from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 from REvoDesign.tools.post_installed import reload_config_file
 
 logging = logger.getChild(__name__)
@@ -395,7 +395,47 @@ def refresh_widget_while_another_changed(
             set_widget_value(widget=target_widget, value=target_data)
 
 
-class ParallelExecutor(QtCore.QThread):
+class ParallelExecutor:
+    def __init__(
+        self,
+        func,
+        args,
+        n_jobs,
+        backend='auto',
+        verbose=0,
+    ):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.n_jobs = n_jobs
+
+        os_type = CLIENT_INFO.OS_TYPE
+        # guessing backend according to OS
+        if not backend == 'auto':
+            self.backend = backend
+        else:
+            if os_type == 'Windows' or os_type == 'Darwin_Rosetta':
+                self.backend = 'multiprocessing'
+            else:
+                self.backend = 'loky'
+
+        self.verbose = verbose
+        logging.debug(
+            f"Parallel Executor initialized with backend {backend}: {self.backend}"
+        )
+
+    def run(self):
+        from joblib import Parallel, delayed
+
+        logging.info(f'Workload in this run: {len(self.args)}')
+        self.results = Parallel(
+            n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose
+        )(delayed(self.func)(*arg) for arg in self.args)
+
+        return self.results
+
+
+class QtParallelExecutor(QtCore.QThread):
 
     '''
     USAGE:
@@ -538,17 +578,19 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
 
-def notify_box(title:str='', message:str='',):
+def notify_box(
+    title: str = '',
+    message: str = '',
+):
     # A notify message.
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
     msg.setText(message)
-    msg.setStandardButtons(
-        QtWidgets.QMessageBox.Ok
-    )
+    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
     msg.exec_()
+
 
 def proceed_with_comfirm_msg_box(title='', description=''):
     """

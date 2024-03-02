@@ -14,7 +14,7 @@ from REvoDesign.sidechain_solver import (
     PIPPack_worker,
 )
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 
@@ -27,7 +27,6 @@ from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.utils import (
     get_color,
     run_command,
-    run_worker_thread_with_progress,
 )
 
 
@@ -59,7 +58,7 @@ class MutantVisualizer:
             PyMOL_mutate, DLPacker_worker, PIPPack_worker
         ] = None
 
-        self.profile_scoring_df = None
+        self.profile_scoring_df: Union[None, pd.DataFrame] = None
 
         self.min_score = 0.5
         self.max_score = 0.5
@@ -237,9 +236,8 @@ class MutantVisualizer:
                     os.path.abspath('.'), 'pythia'
                 )
                 os.makedirs(ddg_runner.work_dir, exist_ok=True)
-                df_path = run_worker_thread_with_progress(
-                    worker_function=ddg_runner.predict
-                )
+                df_path = ddg_runner.predict()
+
                 if not df_path:
                     logging.error('Oops! error occurs during pythia running!')
                     return
@@ -407,12 +405,9 @@ class MutantVisualizer:
         df = df.T
         return df
 
-    def run_with_progressbar(self, progress_bar):
+    def run(self):
         """
-        Runs mutation tasks using a progress bar.
-
-        Args:
-        - progress_bar: Progress bar object to track the mutation progress.
+        Runs mutation tasks.
 
         Reads mutation data from different file formats (CSV, TXT, FASTA) and performs mutation-related operations.
         Calculates scores for mutants and adds them to the mutant tree.
@@ -551,31 +546,26 @@ class MutantVisualizer:
             self.min_score = min(score_list)
             self.max_score = max(score_list)
 
-        self.run_mutagenesis_tasks(progress_bar=progress_bar)
+        self.run_mutagenesis_tasks()
 
-    def run_mutagenesis_tasks(self, progress_bar=None):
+    def run_mutagenesis_tasks(self):
         """
-        Runs mutagenesis tasks based on the MutantTree and updates progress using the provided progress bar.
+        Runs mutagenesis tasks based on the MutantTree.
 
         Args:
         - self: Instance of the class containing the method.
-        - progress_bar: Progress bar widget to display the progress of mutagenesis tasks.
 
         Notes:
         - This method initiates and manages the execution of mutagenesis tasks using parallel processing if self.parallel_run is True.
-        - It updates the provided progress_bar to display the progress of mutagenesis tasks.
         - The method uses multiprocessing for parallel execution of tasks.
         - If parallel_run is True:
             - It initializes a ParallelExecutor with specified parameters and starts the execution.
-            - Continuously refreshes the window to show progress until execution is finished.
             - Handles the results obtained from parallel execution.
         - If parallel_run is False:
             - Executes mutagenesis tasks sequentially without parallel processing.
-            - Updates the progress bar and executes the tasks one by one.
         - After executing mutagenesis tasks, it performs merging sessions via command line.
         """
         from REvoDesign.tools.customized_widgets import (
-            refresh_window,
             ParallelExecutor,
         )
 
@@ -584,9 +574,6 @@ class MutantVisualizer:
             [variant] for variant in self.mutant_tree.all_mutant_objects
         ]
 
-        if progress_bar:
-            progress_bar.setRange(0, 0)
-
         if self.parallel_run:
             parallel_executor = ParallelExecutor(
                 self.process_mutant,
@@ -594,19 +581,7 @@ class MutantVisualizer:
                 n_jobs=self.nproc,
             )
 
-            parallel_executor.start()
-
-            while not parallel_executor.isFinished():
-                # logging.info(f'Running ....')
-                refresh_window()
-                time.sleep(0.001)
-
-            if progress_bar:
-                progress_bar.setRange(0, len(self.mutant_tree.all_mutant_ids))
-            if progress_bar:
-                progress_bar.setValue(len(self.mutant_tree.all_mutant_ids))
-
-            self.results = parallel_executor.handle_result()
+            self.results = parallel_executor.run()
 
             logging.info("Merging all sessions .... This may take a while ...")
 
@@ -617,28 +592,13 @@ class MutantVisualizer:
             ]
             gc.collect()
         else:
-            if progress_bar:
-                progress_bar.setRange(0, len(self.mutagenesis_tasks))
             self.mutagenesis_sessions = []
             for mutagenesis_task in self.mutagenesis_tasks:
                 self.mutagenesis_sessions.append(
                     self.process_mutant(*mutagenesis_task)
                 )
 
-                # https://www.jianshu.com/p/38562df9e65d
-                # refresh UI if calculation is not done.
-                refresh_window()
-                if progress_bar:
-                    progress_bar.setValue(progress_bar.value() + 1)
-
-            if progress_bar:
-                progress_bar.setValue(len(self.mutagenesis_tasks))
-
-        if progress_bar:
-            progress_bar.setRange(0, 0)
         self.merge_sessions_via_commandline()
-        if progress_bar:
-            progress_bar.setRange(0, 1)
 
     def merge_sessions_via_commandline(self):
         '''

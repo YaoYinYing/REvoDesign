@@ -1,7 +1,7 @@
 import os
 import biolib
 import traceback
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

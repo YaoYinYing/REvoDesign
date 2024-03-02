@@ -2,11 +2,10 @@ from dataclasses import dataclass
 
 from REvoDesign.application.ui_driver import ConfigBus
 from REvoDesign.tools.customized_widgets import (
-    hold_trigger_button,
     set_widget_value,
 )
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

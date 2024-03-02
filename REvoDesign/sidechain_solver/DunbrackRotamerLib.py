@@ -3,7 +3,7 @@ import tempfile
 from REvoDesign.tools.pymol_utils import mutate
 from pymol import cmd
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

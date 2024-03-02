@@ -10,7 +10,10 @@ from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
 from functools import partial
-from REvoDesign.tools.logger import logging
+from REvoDesign.REvoDesign import logging as logger
+
+logging = logger.getChild(__name__)
+
 from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 

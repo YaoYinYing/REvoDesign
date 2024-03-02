@@ -210,6 +210,3 @@ def setup_logging() -> python_logging.Logger:
     os.makedirs(notebook_dir, exist_ok=True)
     logger = setup_logging_from_dictconfig(log_config=cfg.log)
     return logger
-
-
-logging: python_logging.Logger = setup_logging()

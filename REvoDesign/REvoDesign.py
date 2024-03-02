@@ -9,20 +9,17 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 
 # using partial module to reduce duplicate code.
 from functools import partial
-from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
-from REvoDesign.evaluate import Evalutator
+from REvoDesign.tools.logger import setup_logging
 
-from REvoDesign.sidechain_solver import (
-    SidechainSolver,
-)
-from REvoDesign.tools.logger import logging
+logger = setup_logging()
+logging=logger.getChild(__name__)
+
 from REvoDesign.application.ui_driver import (
     Widget2Widget,
     ConfigBus,
 )
 
 from REvoDesign.__version__ import __version__
-
 from REvoDesign.tools.post_installed import (
     EXPERIMENTS_CONFIG_DIR,
     reload_config_file,
@@ -94,7 +91,7 @@ class REvoDesignPlugin:
 
         self.gremlin_worker = None
         self.sidechain_solver = None
-        self.evaluator: Evalutator = None
+        self.evaluator = None
 
         from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
@@ -116,22 +113,52 @@ class REvoDesignPlugin:
             traceback.print_exc()
             self.teamwork_enabled = False
 
-    def set_working_directory(self):
-        self.PWD = getExistingDirectory()
+    def fix_wd(self):
+        pwd_0=os.getcwd()
+        pwd_2=os.path.dirname(cmd.get('session_file')) if not is_empty_session() else None
+
+        # set session file's path if the rest is HOME, usually when a pse or pdb is opened to call PyMOL
+        if pwd_2 and all([os.path.abspath(pwd) == os.path.abspath(os.path.expanduser('~')) for pwd in [pwd_0]]):
+            self.set_working_directory(pwd_2)
+            return
+
+        # otherwise, use the wd from PyMOL lauching, usually when PyMOL is called from command line with
+        # an emtpy session or pdb/pse loading
+        for pwd in [pwd_0]:
+            if pwd and os.path.exists(pwd):
+                self.set_working_directory(pwd)
+                return
+
+    def set_working_directory(self,dir=None):
+        # if dir is specified yet same as the PWD, return silently.
+        if dir and os.path.abspath(dir) == os.path.abspath(self.PWD):
+            return
+
+        if dir and os.path.exists(dir):
+            self.PWD=dir
+        else:
+            self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
+
+        global logger
+        global logging
+
+        logger = setup_logging()
+        logging=logger.getChild(__name__)
+        
 
     def run_plugin_gui(self):
         if self.window is None:
             self.window = self.make_window()
         self.window.show()
+        self.fix_wd()
 
     def reinitialize(self):
         self.gremlin_worker = None
         self.sidechain_solver = None
-        self.evaluator: Evalutator = None
+        self.evaluator = None
         gc.collect()
         self.reload_configurations()
-        
 
     def __del__(self):
         self.reinitialize()
@@ -181,9 +208,7 @@ class REvoDesignPlugin:
             partial(self.load_and_save_experiment, mode='w')
         )
 
-        self.bus.ui.actionReinitialize.triggered.connect(
-            self.reinitialize
-        )
+        self.bus.ui.actionReinitialize.triggered.connect(self.reinitialize)
 
         self.bus.ui.actionSource_Code.triggered.connect(
             partial(
@@ -195,7 +220,7 @@ class REvoDesignPlugin:
             partial(
                 notify_box,
                 title='About',
-                message=f'REvoDesign v.{__version__}\n Src: {REPO_URL}' 
+                message=f'REvoDesign v.{__version__}\n Src: {REPO_URL}',
             )
         )
 
@@ -882,6 +907,10 @@ class REvoDesignPlugin:
 
     # Tab Client
     def setup_pssm_gremlin_calculator(self):
+        from REvoDesign.clients.PSSM_GREMLIN_client import (
+            PSSMGremlinCalculator,
+        )
+
         molecule = self.bus.get_value('ui.header_panel.input.molecule')
         chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
         sequence = self.designable_sequences[self.design_chain_id]
@@ -1014,6 +1043,10 @@ class REvoDesignPlugin:
 
     # Tab `Mutate`
     def refresh_sidechainsolver(self):
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
+
         sidechain_solver_name = self.bus.get_value(
             'ui.config.sidechain_solver.default'
         )
@@ -1076,11 +1109,16 @@ class REvoDesignPlugin:
 
     def run_mutant_loading_from_profile(self):
         from REvoDesign.phylogenetics import MutateWorker
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
 
         trigger_button = self.bus.button('run_PSSM_to_pse')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(self.refresh_sidechainsolver)
+            run_worker_thread_with_progress(
+                self.refresh_sidechainsolver,
+                progress_bar=self.bus.ui.progressBar,)
             assert self.sidechain_solver and isinstance(
                 self.sidechain_solver, SidechainSolver
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
@@ -1120,6 +1158,8 @@ class REvoDesignPlugin:
     def initialize_design_candidates(
         self,
     ):
+        from REvoDesign.evaluate import Evalutator
+
         self.evaluator = Evalutator(
             bus=self.bus,
             design_molecule=self.design_molecule,
@@ -1276,10 +1316,15 @@ class REvoDesignPlugin:
     def visualize_mutants(self):
         trigger_button = self.bus.button('run_visualizing')
         from REvoDesign.phylogenetics import VisualizingWorker
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
 
         with hold_trigger_button(trigger_button):
             # reinstiatate sidechain solver if required
-            run_worker_thread_with_progress(self.refresh_sidechainsolver)
+            run_worker_thread_with_progress(
+                self.refresh_sidechainsolver,
+                progress_bar=self.bus.ui.progressBar,)
             assert self.sidechain_solver and isinstance(
                 self.sidechain_solver, SidechainSolver
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
@@ -1679,7 +1724,9 @@ class REvoDesignPlugin:
             ),
             treeWidget_ws_peers=self.bus.ui.treeWidget_ws_peers,
         )
-        run_worker_thread_with_progress(self.refresh_sidechainsolver)
+        run_worker_thread_with_progress(
+            self.refresh_sidechainsolver,
+            progress_bar=self.bus.ui.progressBar,)
         self.ws_client.sidechain_solver = self.sidechain_solver
 
     def update_ws_client_view_update_options(self):
