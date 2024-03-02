@@ -3,6 +3,7 @@ import os
 import random
 import string
 import time
+import traceback
 
 from REvoDesign.tools.customized_widgets import (
     WorkerThread,

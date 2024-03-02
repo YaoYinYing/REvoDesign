@@ -118,7 +118,7 @@ class Clustering:
     def set_and_write_clusters(self, progressbar):
         from sklearn.cluster import AgglomerativeClustering
         from sklearn.neighbors import NearestCentroid
-        from REvoDesign.tools.customized_widgets import ParallelExecutor
+        from REvoDesign.tools.customized_widgets import QtParallelExecutor
         from joblib import parallel_backend
 
         handle = open(self.fastafile, "r")
@@ -189,7 +189,7 @@ class Clustering:
                     ]
 
                     # parallel executor
-                    parallel_executor = ParallelExecutor(
+                    parallel_executor = QtParallelExecutor(
                         self.global_alignment, args_list, self.num_proc - 1
                     )
 

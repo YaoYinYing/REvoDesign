@@ -58,7 +58,7 @@ class MutantVisualizer:
             PyMOL_mutate, DLPacker_worker, PIPPack_worker
         ] = None
 
-        self.profile_scoring_df = None
+        self.profile_scoring_df: Union[None, pd.DataFrame] = None
 
         self.min_score = 0.5
         self.max_score = 0.5
@@ -581,12 +581,7 @@ class MutantVisualizer:
                 n_jobs=self.nproc,
             )
 
-            parallel_executor.start()
-
-            while not parallel_executor.isFinished():
-                time.sleep(0.001)
-
-            self.results = parallel_executor.handle_result()
+            self.results = parallel_executor.run()
 
             logging.info("Merging all sessions .... This may take a while ...")
 
@@ -602,7 +597,6 @@ class MutantVisualizer:
                 self.mutagenesis_sessions.append(
                     self.process_mutant(*mutagenesis_task)
                 )
-
 
         self.merge_sessions_via_commandline()
 

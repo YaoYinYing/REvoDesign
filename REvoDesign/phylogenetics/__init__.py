@@ -143,8 +143,10 @@ class MutateWorker(MutateWorkerConfig):
             from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
             if design_profile_format in EXTERNAL_DESIGNERS.keys():
-                self.design.design_protein_using_external_designer(
+                run_worker_thread_with_progress(
+                    worker_function=self.design.design_protein_using_external_designer,
                     custom_indices_fp=custom_indices_fp,
+                    progress_bar=self.bus.ui.progressBar,
                 )
             else:
                 (
@@ -155,8 +157,10 @@ class MutateWorker(MutateWorkerConfig):
                     cutoff=cutoff,
                 )
 
-                self.design.load_mutants_to_pymol_session(
+                run_worker_thread_with_progress(
+                    worker_function=self.design.load_mutants_to_pymol_session,
                     mutant_json=mutation_json_fp,
+                    progress_bar=self.bus.ui.progressBar,
                 )
 
             assert self.design.output_pse and dirname_does_exist(
@@ -210,8 +214,6 @@ class VisualizingWorker(MutateWorkerConfig):
                 'ui.visualize.input.profile_type'
             )
 
-            progressBar_visualize_mutants = self.bus.ui.progressBar
-
             from REvoDesign.common.MutantVisualizer import MutantVisualizer
 
             self.visualizer = MutantVisualizer(
@@ -254,7 +256,10 @@ class VisualizingWorker(MutateWorkerConfig):
 
             self.visualizer.mutate_runner = self.sidechain_solver.mutate_runner
 
-            self.visualizer.run()
+            run_worker_thread_with_progress(
+                worker_function=self.visualizer.run,
+                progress_bar=self.bus.ui.progressBar,
+            )
 
             cmd.load(self.visualizer.save_session, partial=2)
             cmd.center(self.design_molecule)
@@ -321,7 +326,6 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         ]:
             set_widget_value(lineEdit, '')
 
-
         # Reinitialize Gremlin mutant tree
         self.mutant_tree_coevolved = MutantTree({})
 
@@ -329,9 +333,11 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
 
         self.gremlin_tool.sequence = self.design_sequence
 
-        self.gremlin_tool.load_msa_and_mrf(
-            mrf_path=gremlin_mrf_fp,
-        )
+        run_worker_thread_with_progress(
+                worker_function=self.gremlin_tool.load_msa_and_mrf,
+                mrf_path=gremlin_mrf_fp,
+                progress_bar=self.bus.ui.progressBar,
+            )
 
         pushButton_run_interact_scan.setEnabled(bool(self.gremlin_tool))
 
@@ -374,8 +380,10 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
 
-            self.plot_w_fps = self.gremlin_tool.analyze_coevolving_pairs_for_i(
+            self.plot_w_fps = run_worker_thread_with_progress(
+                worker_function=self.gremlin_tool.analyze_coevolving_pairs_for_i,
                 i=resi - 1,
+                progress_bar=self.bus.ui.progressBar,
             )
 
             if not self.plot_w_fps:

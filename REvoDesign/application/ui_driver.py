@@ -11,6 +11,7 @@ from REvoDesign.tools.customized_widgets import (
 )
 from functools import partial
 from REvoDesign.REvoDesign import logging as logger
+
 logging = logger.getChild(__name__)
 
 from REvoDesign.tools.post_installed import reload_config_file

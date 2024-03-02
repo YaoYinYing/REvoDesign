@@ -1086,7 +1086,9 @@ class REvoDesignPlugin:
         trigger_button = self.bus.button('run_PSSM_to_pse')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(self.refresh_sidechainsolver)
+            run_worker_thread_with_progress(
+                self.refresh_sidechainsolver,
+                progress_bar=self.bus.ui.progressBar,)
             assert self.sidechain_solver and isinstance(
                 self.sidechain_solver, SidechainSolver
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
@@ -1101,9 +1103,7 @@ class REvoDesignPlugin:
                 PWD=self.PWD,
             )
 
-            run_worker_thread_with_progress(
-                worker_function=worker.run_mutant_loading_from_profile,
-                progress_bar=self.bus.ui.progressBar)
+            worker.run_mutant_loading_from_profile()
 
         if (
             self.ws_server
@@ -1292,7 +1292,9 @@ class REvoDesignPlugin:
 
         with hold_trigger_button(trigger_button):
             # reinstiatate sidechain solver if required
-            run_worker_thread_with_progress(self.refresh_sidechainsolver)
+            run_worker_thread_with_progress(
+                self.refresh_sidechainsolver,
+                progress_bar=self.bus.ui.progressBar,)
             assert self.sidechain_solver and isinstance(
                 self.sidechain_solver, SidechainSolver
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
@@ -1535,9 +1537,7 @@ class REvoDesignPlugin:
                 sidechain_solver=self.sidechain_solver,
                 ws_server=self.ws_server,
             )
-            run_worker_thread_with_progress(
-            worker_function=self.gremlin_worker.load_gremlin_mrf,
-            progress_bar=self.bus.ui.progressBar)
+            self.gremlin_worker.load_gremlin_mrf()
 
     def run_gremlin_tool(self):
         if not self.gremlin_worker:
@@ -1551,9 +1551,7 @@ class REvoDesignPlugin:
                 progress_bar=self.bus.ui.progressBar,
             )
             self.gremlin_worker.sidechain_solver = self.sidechain_solver
-            run_worker_thread_with_progress(
-                worker_function=self.gremlin_worker.run_gremlin_tool,
-                progress_bar=self.bus.ui.progressBar,)
+            self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):
         if not self.gremlin_worker:
@@ -1696,7 +1694,9 @@ class REvoDesignPlugin:
             ),
             treeWidget_ws_peers=self.bus.ui.treeWidget_ws_peers,
         )
-        run_worker_thread_with_progress(self.refresh_sidechainsolver)
+        run_worker_thread_with_progress(
+            self.refresh_sidechainsolver,
+            progress_bar=self.bus.ui.progressBar,)
         self.ws_client.sidechain_solver = self.sidechain_solver
 
     def update_ws_client_view_update_options(self):

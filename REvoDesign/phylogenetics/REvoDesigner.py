@@ -11,9 +11,10 @@ from REvoDesign.sidechain_solver import (
 )
 
 from REvoDesign.REvoDesign import logging as logger
-from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
 
 logging = logger.getChild(__name__)
+
+from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
 
 import matplotlib
 import collections
