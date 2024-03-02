@@ -9,20 +9,16 @@ from pymol.Qt import QtCore, QtGui, QtWidgets
 
 # using partial module to reduce duplicate code.
 from functools import partial
-from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
-from REvoDesign.evaluate import Evalutator
+from REvoDesign.tools.logger import setup_logging
 
-from REvoDesign.sidechain_solver import (
-    SidechainSolver,
-)
-from REvoDesign.tools.logger import logging
+logging = setup_logging()
+
 from REvoDesign.application.ui_driver import (
     Widget2Widget,
     ConfigBus,
 )
 
 from REvoDesign.__version__ import __version__
-
 from REvoDesign.tools.post_installed import (
     EXPERIMENTS_CONFIG_DIR,
     reload_config_file,
@@ -94,7 +90,7 @@ class REvoDesignPlugin:
 
         self.gremlin_worker = None
         self.sidechain_solver = None
-        self.evaluator: Evalutator = None
+        self.evaluator = None
 
         from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
@@ -119,6 +115,8 @@ class REvoDesignPlugin:
     def set_working_directory(self):
         self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
+        global logging
+        logging = setup_logging()
 
     def run_plugin_gui(self):
         if self.window is None:
@@ -128,10 +126,9 @@ class REvoDesignPlugin:
     def reinitialize(self):
         self.gremlin_worker = None
         self.sidechain_solver = None
-        self.evaluator: Evalutator = None
+        self.evaluator = None
         gc.collect()
         self.reload_configurations()
-        
 
     def __del__(self):
         self.reinitialize()
@@ -181,9 +178,7 @@ class REvoDesignPlugin:
             partial(self.load_and_save_experiment, mode='w')
         )
 
-        self.bus.ui.actionReinitialize.triggered.connect(
-            self.reinitialize
-        )
+        self.bus.ui.actionReinitialize.triggered.connect(self.reinitialize)
 
         self.bus.ui.actionSource_Code.triggered.connect(
             partial(
@@ -195,7 +190,7 @@ class REvoDesignPlugin:
             partial(
                 notify_box,
                 title='About',
-                message=f'REvoDesign v.{__version__}\n Src: {REPO_URL}' 
+                message=f'REvoDesign v.{__version__}\n Src: {REPO_URL}',
             )
         )
 
@@ -882,6 +877,10 @@ class REvoDesignPlugin:
 
     # Tab Client
     def setup_pssm_gremlin_calculator(self):
+        from REvoDesign.clients.PSSM_GREMLIN_client import (
+            PSSMGremlinCalculator,
+        )
+
         molecule = self.bus.get_value('ui.header_panel.input.molecule')
         chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
         sequence = self.designable_sequences[self.design_chain_id]
@@ -1014,6 +1013,10 @@ class REvoDesignPlugin:
 
     # Tab `Mutate`
     def refresh_sidechainsolver(self):
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
+
         sidechain_solver_name = self.bus.get_value(
             'ui.config.sidechain_solver.default'
         )
@@ -1076,6 +1079,9 @@ class REvoDesignPlugin:
 
     def run_mutant_loading_from_profile(self):
         from REvoDesign.phylogenetics import MutateWorker
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
 
         trigger_button = self.bus.button('run_PSSM_to_pse')
 
@@ -1095,7 +1101,9 @@ class REvoDesignPlugin:
                 PWD=self.PWD,
             )
 
-            worker.run_mutant_loading_from_profile()
+            run_worker_thread_with_progress(
+                worker_function=worker.run_mutant_loading_from_profile,
+                progress_bar=self.bus.ui.progressBar)
 
         if (
             self.ws_server
@@ -1120,6 +1128,8 @@ class REvoDesignPlugin:
     def initialize_design_candidates(
         self,
     ):
+        from REvoDesign.evaluate import Evalutator
+
         self.evaluator = Evalutator(
             bus=self.bus,
             design_molecule=self.design_molecule,
@@ -1276,6 +1286,9 @@ class REvoDesignPlugin:
     def visualize_mutants(self):
         trigger_button = self.bus.button('run_visualizing')
         from REvoDesign.phylogenetics import VisualizingWorker
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
 
         with hold_trigger_button(trigger_button):
             # reinstiatate sidechain solver if required
@@ -1522,7 +1535,9 @@ class REvoDesignPlugin:
                 sidechain_solver=self.sidechain_solver,
                 ws_server=self.ws_server,
             )
-            self.gremlin_worker.load_gremlin_mrf()
+            run_worker_thread_with_progress(
+            worker_function=self.gremlin_worker.load_gremlin_mrf,
+            progress_bar=self.bus.ui.progressBar)
 
     def run_gremlin_tool(self):
         if not self.gremlin_worker:
@@ -1536,7 +1551,9 @@ class REvoDesignPlugin:
                 progress_bar=self.bus.ui.progressBar,
             )
             self.gremlin_worker.sidechain_solver = self.sidechain_solver
-            self.gremlin_worker.run_gremlin_tool()
+            run_worker_thread_with_progress(
+                worker_function=self.gremlin_worker.run_gremlin_tool,
+                progress_bar=self.bus.ui.progressBar,)
 
     def coevoled_mutant_decision(self, decision_to_accept):
         if not self.gremlin_worker:

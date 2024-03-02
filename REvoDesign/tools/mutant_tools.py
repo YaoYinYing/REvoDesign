@@ -15,7 +15,7 @@ from REvoDesign.tools.utils import filepath_does_exists
 from REvoDesign.common.FileExtentions import (
     REvoDesignFileExtentions as FileExtentions,
 )
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

@@ -2,7 +2,7 @@ import os
 import hashlib
 from typing import Union
 import requests
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 from requests.auth import HTTPBasicAuth
 

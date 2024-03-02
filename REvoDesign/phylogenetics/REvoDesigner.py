@@ -10,7 +10,7 @@ from REvoDesign.sidechain_solver import (
     PIPPack_worker,
 )
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
 
 logging = logger.getChild(__name__)
@@ -27,7 +27,6 @@ matplotlib.use('Agg')
 import matplotlib.pylab as plt
 from REvoDesign.tools.utils import (
     random_deduplicate,
-    run_worker_thread_with_progress,
 )
 
 
@@ -390,15 +389,12 @@ class REvoDesigner:
             # elif .....
             return
 
-    def design_protein_using_external_designer(
-        self, custom_indices_fp, progress_bar
-    ):
+    def design_protein_using_external_designer(self, custom_indices_fp):
         """
         Design protein using an external designer.
 
         Args:
         - custom_indices_fp: File path to custom indices.
-        - progress_bar: Progress bar for displaying progress.
 
         Notes:
         - Initiates the protein design process using an external designer.
@@ -411,10 +407,8 @@ class REvoDesigner:
             f'Starting {self.input_profile_format}, this may take a while.'
         )
 
-        run_worker_thread_with_progress(
-            worker_function=self.setup_external_designer,
+        self.setup_external_designer(
             custom_indices_str=custom_indices_str,
-            progress_bar=progress_bar,
         )
 
         if not self.external_designer:
@@ -436,12 +430,10 @@ class REvoDesigner:
             'depending on your molecule size, sampling batch and design number that you required.'
         )
 
-        designs = run_worker_thread_with_progress(
-            worker_function=self.external_designer.designer,
+        designs = self.external_designer.designer(
             num=self.external_designer_num_samples,
             batch=self.batch,
             temperature=self.external_designer_temperature,
-            progress_bar=progress_bar,
         )
 
         logging.info('Design is done. Parsing the results...')
@@ -509,7 +501,7 @@ class REvoDesigner:
             self.setup_visualizer()
 
         external_design_session = self.run_mutagenesis_via_mutant_visualizer(
-            group_id=self.design_case, progress_bar=progress_bar
+            group_id=self.design_case
         )
 
         logging.warning(f'Saving at {external_design_session}')
@@ -519,10 +511,9 @@ class REvoDesigner:
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
         session_merger.mutagenesis_sessions = [external_design_session]
-        run_worker_thread_with_progress(
-            session_merger.merge_sessions_via_commandline,
-            progress_bar=progress_bar,
-        )
+
+        session_merger.merge_sessions_via_commandline()
+
         self.output_pse = session_merger.save_session
 
         logging.info("Done.")
@@ -625,14 +616,13 @@ class REvoDesigner:
             self.visualizer.min_score = -self.max_abs_profile
             self.visualizer.max_score = self.max_abs_profile
 
-    def run_mutagenesis_via_mutant_visualizer(self, group_id, progress_bar):
+    def run_mutagenesis_via_mutant_visualizer(self, group_id):
         """
         Runs mutagenesis using MutantVisualizer based on specified parameters.
 
         Args:
         - self: Instance of the class containing the method.
         - group_id: Identifier for the group of mutations.
-        - progress_bar: Progress bar widget to display the progress.
 
         Returns:
         - str: File path of the saved session after mutagenesis.
@@ -658,20 +648,18 @@ class REvoDesigner:
         self.visualizer.mutant_tree = MutantTree(
             {group_id: self.mutant_tree.get_a_branch(branch_id=group_id)}
         )
-        self.visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
+        self.visualizer.run_mutagenesis_tasks()
         return self.visualizer.save_session
 
     def load_mutants_to_pymol_session(
         self,
         mutant_json,
-        progress_bar,
     ):
         """
         Load mutants to PyMOL session for visualization.
 
         Args:
         - mutant_json: JSON file containing mutant information.
-        - progress_bar: Progress bar for displaying progress.
 
         Notes:
         - Loads mutants into PyMOL session for visualization.
@@ -731,7 +719,7 @@ class REvoDesigner:
         for branch_id in self.mutant_tree.all_mutant_branch_ids:
             logging.info(f'Creating mutagenesis for {branch_id}')
             result_session = self.run_mutagenesis_via_mutant_visualizer(
-                group_id=branch_id, progress_bar=progress_bar
+                group_id=branch_id,
             )
             self.results.append(result_session)
 
@@ -740,8 +728,6 @@ class REvoDesigner:
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
         session_merger.mutagenesis_sessions = self.results
-        run_worker_thread_with_progress(
-            session_merger.merge_sessions_via_commandline,
-            progress_bar=progress_bar,
-        )
+        session_merger.merge_sessions_via_commandline()
+
         self.output_pse = session_merger.save_session

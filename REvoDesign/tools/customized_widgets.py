@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import os
 from typing import Union
 from pymol.Qt import QtWidgets, QtGui, QtCore
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 from REvoDesign.tools.post_installed import reload_config_file
 
 logging = logger.getChild(__name__)
@@ -538,17 +538,19 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
 
-def notify_box(title:str='', message:str='',):
+def notify_box(
+    title: str = '',
+    message: str = '',
+):
     # A notify message.
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
     msg.setText(message)
-    msg.setStandardButtons(
-        QtWidgets.QMessageBox.Ok
-    )
+    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
     msg.exec_()
+
 
 def proceed_with_comfirm_msg_box(title='', description=''):
     """

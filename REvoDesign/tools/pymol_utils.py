@@ -3,7 +3,7 @@ import os
 
 from pymol import get_version_message
 from REvoDesign.tools.utils import suppress_print
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

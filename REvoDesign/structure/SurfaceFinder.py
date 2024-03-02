@@ -2,7 +2,7 @@ from __future__ import print_function
 from pymol import cmd
 import os
 from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 from attrs import define, field
 
 logging = logger.getChild(__name__)

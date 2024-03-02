@@ -7,7 +7,7 @@ import time
 import traceback
 from typing import Union
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

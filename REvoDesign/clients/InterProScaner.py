@@ -9,7 +9,7 @@ import platform
 import time
 import requests
 from lxml import etree
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

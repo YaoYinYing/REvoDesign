@@ -12,7 +12,7 @@ from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 from REvoDesign.tools.mutant_tools import (
     existed_mutant_tree,
     extract_mutant_from_pymol_object,

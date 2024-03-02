@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import platform
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 

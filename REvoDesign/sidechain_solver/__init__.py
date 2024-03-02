@@ -7,7 +7,7 @@ from REvoDesign.sidechain_solver.PIPPack import PIPPack_worker
 from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 
 logging = logger.getChild(__name__)

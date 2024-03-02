@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from pymol import cmd
 
 
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 logging = logger.getChild(__name__)
 
@@ -147,7 +147,6 @@ class MutateWorker(MutateWorkerConfig):
             if design_profile_format in EXTERNAL_DESIGNERS.keys():
                 self.design.design_protein_using_external_designer(
                     custom_indices_fp=custom_indices_fp,
-                    progress_bar=progressbar,
                 )
             else:
                 (
@@ -160,7 +159,6 @@ class MutateWorker(MutateWorkerConfig):
 
                 self.design.load_mutants_to_pymol_session(
                     mutant_json=mutation_json_fp,
-                    progress_bar=progressbar,
                 )
 
             assert self.design.output_pse and dirname_does_exist(
@@ -258,9 +256,7 @@ class VisualizingWorker(MutateWorkerConfig):
 
             self.visualizer.mutate_runner = self.sidechain_solver.mutate_runner
 
-            self.visualizer.run_with_progressbar(
-                progress_bar=progressBar_visualize_mutants
-            )
+            self.visualizer.run()
 
             cmd.load(self.visualizer.save_session, partial=2)
             cmd.center(self.design_molecule)
@@ -327,7 +323,6 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         ]:
             set_widget_value(lineEdit, '')
 
-        progress_bar = self.bus.ui.progressBar
 
         # Reinitialize Gremlin mutant tree
         self.mutant_tree_coevolved = MutantTree({})
@@ -336,9 +331,7 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
 
         self.gremlin_tool.sequence = self.design_sequence
 
-        run_worker_thread_with_progress(
-            self.gremlin_tool.load_msa_and_mrf,
-            progress_bar=progress_bar,
+        self.gremlin_tool.load_msa_and_mrf(
             mrf_path=gremlin_mrf_fp,
         )
 
@@ -383,9 +376,7 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
 
-            self.plot_w_fps = run_worker_thread_with_progress(
-                self.gremlin_tool.analyze_coevolving_pairs_for_i,
-                progress_bar=self.bus.ui.progressBar,
+            self.plot_w_fps = self.gremlin_tool.analyze_coevolving_pairs_for_i(
                 i=resi - 1,
             )
 
@@ -414,10 +405,7 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
 
-            self.plot_w_fps = run_worker_thread_with_progress(
-                self.gremlin_tool.plot_w_in_batch,
-                progress_bar=self.bus.ui.progressBar,
-            )
+            self.plot_w_fps = self.gremlin_tool.plot_w_in_batch()
 
             if not self.plot_w_fps:
                 logging.warning(

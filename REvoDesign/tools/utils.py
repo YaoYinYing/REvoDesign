@@ -8,7 +8,7 @@ from REvoDesign.tools.customized_widgets import (
     WorkerThread,
     refresh_window,
 )
-from REvoDesign.tools.logger import logging as logger
+from REvoDesign.REvoDesign import logging as logger
 
 from pymol.Qt import QtWidgets
 

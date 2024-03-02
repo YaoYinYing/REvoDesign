@@ -69,9 +69,6 @@ def experiment_config():
 EXPERIMENTS_CONFIG_DIR = experiment_config()
 
 
-# def save_to_config_file(cfg:DictConfig, drop_groups: bool = True) -> None:
-
-
 def set_cache_dir() -> str:
     cfg: DictConfig = reload_config_file()
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
