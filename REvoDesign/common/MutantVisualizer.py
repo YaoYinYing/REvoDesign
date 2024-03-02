@@ -566,7 +566,6 @@ class MutantVisualizer:
         - After executing mutagenesis tasks, it performs merging sessions via command line.
         """
         from REvoDesign.tools.customized_widgets import (
-            refresh_window,
             ParallelExecutor,
         )
 
@@ -585,8 +584,6 @@ class MutantVisualizer:
             parallel_executor.start()
 
             while not parallel_executor.isFinished():
-                # logging.info(f'Running ....')
-                refresh_window()
                 time.sleep(0.001)
 
             self.results = parallel_executor.handle_result()
@@ -606,8 +603,6 @@ class MutantVisualizer:
                     self.process_mutant(*mutagenesis_task)
                 )
 
-                # https://www.jianshu.com/p/38562df9e65d
-                # refresh UI if calculation is not done.
 
         self.merge_sessions_via_commandline()
 

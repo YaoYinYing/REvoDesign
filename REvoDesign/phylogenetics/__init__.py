@@ -97,8 +97,6 @@ class MutateWorker(MutateWorkerConfig):
                 reverse=reversed_mutant_effect,
             )
 
-            progressbar = self.bus.ui.progressBar
-
             if is_a_REvoDesign_session():
                 logging.warning(
                     'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
