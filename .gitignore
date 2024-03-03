@@ -40,3 +40,4 @@ tmp-test-dir-with-unique-name.zip
 tests/performance/*
 packages.dot
 classes.dot
+/image/svg

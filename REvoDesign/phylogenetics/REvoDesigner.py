@@ -14,7 +14,7 @@ from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
 
-from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
+from REvoDesign import WITH_DEPENDENCIES
 
 import matplotlib
 import collections

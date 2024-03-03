@@ -5,6 +5,8 @@ PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJEC
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
+PYREVERSE_DIR=image/svg
+PYREVERSE_ARGS=../$(PROJECT)
 
 help:
 	@echo "Commands:"
@@ -78,6 +80,11 @@ tag:
 
 black:
 	black $(CHECK_STYLE)
+
+reverse:
+	mkdir -p $(PYREVERSE_DIR)
+	cd $(PYREVERSE_DIR); pyreverse $(PROJECT); dot -Tsvg classes.dot > classes.svg; dot -Tsvg packages.dot > packages.svg
+	
 
 black-check:
 	black --check $(CHECK_STYLE)
