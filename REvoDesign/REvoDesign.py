@@ -14,10 +14,10 @@ from REvoDesign import __version__
 from REvoDesign import (
     reload_config_file,
     save_configuration,
-    Widget2Widget, 
+    Widget2Widget,
     ConfigBus,
     EXPERIMENTS_CONFIG_DIR,
-    FileExtentions
+    FileExtentions,
 )
 
 

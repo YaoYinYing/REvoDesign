@@ -10,7 +10,7 @@ from REvoDesign.tools.post_installed import (
     WITH_DEPENDENCIES,
     reload_config_file,
     set_cache_dir,
-    save_configuration
+    save_configuration,
 )
 
 # 2. initialize config file
@@ -24,10 +24,11 @@ EXPERIMENTS_CONFIG_DIR = experiment_config()
 
 # 3. initialize logging config and root logger
 from REvoDesign.tools.logger import setup_logging
+
 root_logger = setup_logging()
 
 # 4. import UI bus
-from REvoDesign import (
+from REvoDesign.application.ui_driver import (
     Widget2Widget,
     ConfigBus,
 )
@@ -49,5 +50,6 @@ __all__ = [
     'REvoDesignPlugin',
     'Widget2Widget',
     'ConfigBus',
-    'WITH_DEPENDENCIES','FileExtentions'
+    'WITH_DEPENDENCIES',
+    'FileExtentions',
 ]

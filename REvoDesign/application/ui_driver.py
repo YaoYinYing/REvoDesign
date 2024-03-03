@@ -47,7 +47,7 @@ class ConfigBus:
 
     def __init__(self, ui: QtWidgets.QWidget):
         self.ui = ui
-        self.cfg:DictConfig = reload_config_file()
+        self.cfg: DictConfig = reload_config_file()
         self.w2c = Widget2ConfigMapper(ui=self.ui)
         self.buttons = self.w2c.buttons
 
