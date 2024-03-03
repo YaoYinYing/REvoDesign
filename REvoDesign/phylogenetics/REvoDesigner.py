@@ -10,9 +10,9 @@ from REvoDesign.sidechain_solver import (
     PIPPack_worker,
 )
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
 
@@ -157,13 +157,13 @@ class REvoDesigner:
 
         plt.colorbar(pcm).minorticks_on()
 
-        for pos in range(0, len(sequence)):
-            for a in range(len(self.profile_alphabet)):
-                if al_a[a] == sequence[pos]:
+        for pos, aa in enumerate(sequence):
+            for a_idx, _ in enumerate(self.profile_alphabet):
+                if al_a[a_idx] == aa:
                     plt.text(
                         pos,
-                        a,
-                        al_a[a],
+                        a_idx,
+                        al_a[a_idx],
                         ha="center",
                         va="center",
                         color="k",
@@ -314,7 +314,7 @@ class REvoDesigner:
         """
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
-        if not self.input_profile_format in EXTERNAL_DESIGNERS.keys():
+        if not self.input_profile_format in EXTERNAL_DESIGNERS:
             logging.error(
                 f'External design {self.input_profile_format} is not registed in `ExternalDesigners.py`'
             )
@@ -349,7 +349,7 @@ class REvoDesigner:
             self.external_designer_temperature
             and self.external_designer_num_samples
         ):
-            logging.error(f'Missing input for external designer')
+            logging.error('Missing input for external designer')
             return
 
         magician = EXTERNAL_DESIGNERS[self.input_profile_format]
@@ -444,7 +444,7 @@ class REvoDesigner:
 
         counter_1 = collections.Counter(designs['seq'])
 
-        if any([counter_1.get(seq) > 1 for seq in designs['seq']]):
+        if any(counter_1.get(seq) > 1 for seq in designs['seq']):
             logging.warning(
                 f'Designs from {self.input_profile_format} contains duplicated items.'
             )

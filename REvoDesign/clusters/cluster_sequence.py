@@ -1,5 +1,4 @@
 import decimal
-import glob
 import itertools
 import os
 import pathlib
@@ -10,9 +9,9 @@ import pandas as pd
 from Bio import SeqIO
 
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 import matplotlib
@@ -291,10 +290,10 @@ class Clustering:
         self.cluster_output_fp['cluster_centers'] = cluster_centers_fp
 
         self.cluster_output_fp['branches'] = []
-        for i in range(0, len(cluster)):
+        for i, item in enumerate(cluster):
             sub_cluster_branches = f"{self.save_dir}/c.{str(i)}.fasta"
             output_handle = open(sub_cluster_branches, "w")
-            SeqIO.write(cluster[i], output_handle, "fasta")
+            SeqIO.write(item, output_handle, "fasta")
             output_handle.close()
             self.cluster_output_fp['branches'].append(sub_cluster_branches)
         df_score = pd.DataFrame(self.scores)

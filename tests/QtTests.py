@@ -1,27 +1,32 @@
 from dataclasses import dataclass
 import gc
 import os
+import time
 import glob
 from typing import Union
+
+os.environ['PYTEST_QT_API'] = 'pyqt5'
+
+import pytest
+
 from immutabledict import immutabledict
 import psutil
-
-from REvoDesign.tools.post_installed import EXPERIMENTS_CONFIG_DIR
-os.environ['PYTEST_QT_API'] = 'pyqt5'
-import time
-from pymol import cmd, util, CmdException
-import pytest
 from pytestqt import qtbot
 
-from pymol.Qt import QtWidgets, QtCore, QtGui
-from tests.TestData import TestData
 
-from REvoDesign import REvoDesignPlugin
+
+from pymol import cmd, util, CmdException
+from pymol.Qt import QtWidgets, QtCore, QtGui
+
+from REvoDesign import REvoDesignPlugin,EXPERIMENTS_CONFIG_DIR
 
 from REvoDesign.tools.customized_widgets import (
     get_widget_value,
     set_widget_value,
 )
+
+from tests.TestData import TestData
+
 
 TEST_DIR = os.path.abspath('.')
 os.makedirs(TEST_DIR, exist_ok=True)

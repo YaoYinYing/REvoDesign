@@ -2,9 +2,9 @@ from pymol import cmd
 import os
 from attrs import define, field
 from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 @define(kw_only=True)

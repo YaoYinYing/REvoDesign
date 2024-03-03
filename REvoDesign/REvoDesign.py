@@ -2,32 +2,22 @@ import asyncio
 import gc
 import os
 import traceback
+
+# using partial module to reduce duplicate code.
+from functools import partial
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
 
-
-# using partial module to reduce duplicate code.
-from functools import partial
-from REvoDesign.tools.logger import setup_logging
-
-logger = setup_logging()
-logging = logger.getChild(__name__)
-
-from REvoDesign.application.ui_driver import (
-    Widget2Widget,
-    ConfigBus,
-)
-
-from REvoDesign.__version__ import __version__
-from REvoDesign.tools.post_installed import (
-    EXPERIMENTS_CONFIG_DIR,
+from REvoDesign import root_logger
+from REvoDesign import __version__
+from REvoDesign import (
     reload_config_file,
     save_configuration,
-)
-
-from REvoDesign.common.FileExtentions import (
-    REvoDesignFileExtentions as FileExtentions,
+    Widget2Widget,
+    ConfigBus,
+    EXPERIMENTS_CONFIG_DIR,
+    FileExtentions,
 )
 
 
@@ -66,7 +56,11 @@ from REvoDesign.tools.mutant_tools import (
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
 
+
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
+
+
+logging = root_logger.getChild(__name__)
 
 
 class REvoDesignPlugin:
@@ -150,12 +144,6 @@ class REvoDesignPlugin:
             self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
 
-        global logger
-        global logging
-
-        logger = setup_logging()
-        logging = logger.getChild(__name__)
-
     def run_plugin_gui(self):
         if self.window is None:
             self.window = self.make_window()
@@ -170,7 +158,7 @@ class REvoDesignPlugin:
         self.reload_configurations()
 
     def __del__(self):
-        self.reinitialize()
+        # self.reinitialize()
         logging.warning('REvoDesign is shutting down.')
         if self.window:
             self.window = None
@@ -1157,7 +1145,7 @@ class REvoDesignPlugin:
                     data_type='MutantTree',
                 )
             )
-        worker = None
+        del worker
 
     # Tab `Evaluate`
     def set_pymol_session_rock(self):
@@ -1254,7 +1242,7 @@ class REvoDesignPlugin:
         with hold_trigger_button(trigger_button):
             worker.run_clustering()
 
-        worker = None
+        del worker
 
     # Tab Visualize
 
@@ -1364,7 +1352,7 @@ class REvoDesignPlugin:
                 )
             )
 
-        worker = None
+        del worker
 
     def reduce_current_session(
         self, session=None, reduce_disabled=False, overwrite=False

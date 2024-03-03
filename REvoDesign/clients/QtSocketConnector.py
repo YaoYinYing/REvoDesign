@@ -7,9 +7,10 @@ import time
 import traceback
 from typing import Union
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
+from REvoDesign.tools.utils import run_worker_thread_with_progress
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
@@ -463,7 +464,7 @@ class REvoDesignWebSocketServer:
         Returns:
         bool: True if broadcast is enabled, False otherwise.
         """
-        return self.view_broadcast_enabled == True
+        return self.view_broadcast_enabled
 
     def broadcast_view(self):
         """
@@ -474,12 +475,17 @@ class REvoDesignWebSocketServer:
         """
         last_view = cmd.get_view()
         while True:
-            for t in range(int(self.check_broadcast_interval() // 0.001)):
-                time.sleep(0.001)
-                refresh_window()
+            run_worker_thread_with_progress(
+                worker_function=time.sleep,
+                seconds=self.check_broadcast_interval(),
+            )
 
             view_data = cmd.get_view()
             if view_data == last_view:
+                # external sleep if view is not changed.
+                run_worker_thread_with_progress(
+                    worker_function=time.sleep, seconds=1
+                )
                 continue
             if not self.check_broadcast_enabled_flag():
                 return
@@ -611,7 +617,7 @@ class REvoDesignWebSocketClient:
                 user_tree={}, treeWidget_ws_peers=self.treeWidget_ws_peers
             )
 
-        except:
+        except Exception:
             traceback.print_exc()
             logging.error('Client disconnection failed.')
 
@@ -659,8 +665,6 @@ class REvoDesignWebSocketClient:
             logging.warning('Uncomplete data object is discarded.')
             return
 
-        from REvoDesign.tools.utils import run_worker_thread_with_progress
-
         deserialized_object = self.deserialize_object(
             data['data'], data['data_type']
         )
@@ -693,9 +697,8 @@ class REvoDesignWebSocketClient:
             return
 
         # process ViewUpdates
-        if (
-            data['data_type'] == 'ViewUpdate'
-            and type(deserialized_object) == tuple
+        if data['data_type'] == 'ViewUpdate' and isinstance(
+            deserialized_object, tuple
         ):
             if not self.receive_view_broadcast:
                 logging.warning(f'View update is disabled.')
@@ -705,9 +708,8 @@ class REvoDesignWebSocketClient:
             cmd.set_view(deserialized_object)
             return
 
-        if (
-            data['data_type'] == 'UserTree'
-            and type(deserialized_object) == dict
+        if data['data_type'] == 'UserTree' and isinstance(
+            deserialized_object, dict
         ):
             refresh_tree_widget(
                 user_tree=deserialized_object,
@@ -715,7 +717,9 @@ class REvoDesignWebSocketClient:
             )
             return
 
-        if data['data_type'] == 'UUID' and type(deserialized_object) == str:
+        if data['data_type'] == 'UUID' and isinstance(
+            deserialized_object, str
+        ):
             logging.info(f'Get a new UUID: {deserialized_object}')
             self.uuid = deserialized_object
             return

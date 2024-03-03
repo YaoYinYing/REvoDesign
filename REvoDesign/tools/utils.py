@@ -9,11 +9,11 @@ from REvoDesign.tools.customized_widgets import (
     WorkerThread,
     refresh_window,
 )
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
 from pymol.Qt import QtWidgets
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 def run_command(excutable='python', command_list=[]):

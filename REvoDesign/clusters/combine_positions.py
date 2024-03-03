@@ -1,4 +1,3 @@
-from itertools import *
 import os
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
@@ -42,14 +41,14 @@ class GenerateVariantsinFastafile:
         :return: fastafile with mutation inserted
         '''
         # print "Input to method: ", position, native, newmutation, newfasta
-        for aa in range(len(self.fastaseq)):
+        for aa_idx, aa in enumerate(self.fastaseq):
             # print aa, position-1
-            if aa == position - 1:
+            if aa_idx == position - 1:
                 # print self.fastaseq[0:position-1]
                 # print newmutation
                 # print self.fastaseq[position:]
                 # print("WT,POS,AA: ",self.fastaseq[aa],aa,native,self.fastaseq[aa] == native)
-                assert self.fastaseq[aa] == native
+                assert aa == native
                 newfasta = (
                     newfasta[0 : position - 1]
                     + newmutation
@@ -69,10 +68,10 @@ class GenerateVariantsinFastafile:
         :return: fastafile with mutation inserted
         '''
         newfasta = fastasequence
-        for aa in range(len(fastasequence)):
-            if aa == position - 1:
+        for aa_idx, aa in enumerate(fastasequence):
+            if aa_idx == position - 1:
                 # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
-                assert fastasequence[aa] == native
+                assert aa == native
                 newfasta = (
                     newfasta[0 : position - 1]
                     + newmutation

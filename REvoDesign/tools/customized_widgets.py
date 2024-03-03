@@ -1,16 +1,15 @@
-from contextlib import contextmanager
 import os
-from typing import Union
+from contextlib import contextmanager
+from collections.abc import Iterable
+from omegaconf import OmegaConf
 from pymol.Qt import QtWidgets, QtGui, QtCore
-from REvoDesign.REvoDesign import logging as logger
-from REvoDesign.tools.post_installed import reload_config_file
 
-logging = logger.getChild(__name__)
+from REvoDesign import root_logger
+from REvoDesign import reload_config_file
+
+logging = root_logger.getChild(__name__)
 
 from REvoDesign.tools.system_tools import CLIENT_INFO
-
-from collections.abc import Iterable
-from omegaconf import DictConfig, OmegaConf
 
 PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 
@@ -487,7 +486,7 @@ class QtParallelExecutor(QtCore.QThread):
         self.func = func
         self.args = args
         self.n_jobs = n_jobs
-        self.executor = ParallelExecutor(func, args, n_jobs,backend, verbose)
+        self.executor = ParallelExecutor(func, args, n_jobs, backend, verbose)
 
     def run(self):
         self.results = self.executor.run()

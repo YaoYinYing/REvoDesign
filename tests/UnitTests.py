@@ -18,7 +18,8 @@ from typing import List, Dict, Union, Any
 from dataclasses import dataclass
 from collections.abc import MutableMapping
 from hashlib import sha256
-from REvoDesign.application.ui_driver import Widget2ConfigMapper, Widget2Widget
+from REvoDesign import REVODESIGN_CONFIG_FILE, WITH_DEPENDENCIES, Widget2Widget
+from REvoDesign.application.ui_driver import Widget2ConfigMapper
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 
 from REvoDesign.structure.PocketSearcher import PocketSearcher
@@ -39,15 +40,13 @@ from REvoDesign.tools.mutant_tools import (
     shorter_range,
 )
 
-from REvoDesign.tools.post_installed import (
-    REVODESIGN_CONFIG_FILE,
-    ConfigConverter,
+from REvoDesign import (
     reload_config_file,
     save_configuration,
     set_REvoDesign_config_file,
     set_cache_dir,
-    WITH_DEPENDENCIES
 )
+from REvoDesign.tools.post_installed import ConfigConverter
 from REvoDesign.tools.pymol_utils import (
     any_posision_has_been_selected,
     find_all_protein_chain_ids_in_protein,
@@ -239,12 +238,10 @@ class TestPocketSearcher(absltest.TestCase):
             chain_id=self.chain_id,
             ligand=self.ligand,
             cofactor=self.cofactor,
-            cofactor_radius = self.cofactor_radius,
-            ligand_radius = self.ligand_radius,
-            save_dir = os.path.dirname(self.expected_pocket_pse)
-
+            cofactor_radius=self.cofactor_radius,
+            ligand_radius=self.ligand_radius,
+            save_dir=os.path.dirname(self.expected_pocket_pse),
         )
-
 
         pocket_seacher.search_pockets()
         self.assertTrue(os.path.isfile(self.expected_pocket_pse))
@@ -292,8 +289,8 @@ class TestSurfaceFinder(absltest.TestCase):
             output_pse=self.expected_surface_pse,
             molecule=self.expected_moelecule,
             chain_id=self.chain_id,
-            cutoff = self.cutoff,
-            do_show_surf_CA=True
+            cutoff=self.cutoff,
+            do_show_surf_CA=True,
         )
         surface_finder.process_surface_residues()
         self.assertTrue(os.path.isfile(self.expected_surface_pse))
@@ -659,17 +656,17 @@ class TestMutantTree(absltest.TestCase):
 class TestPSSMGremlinCalculator(absltest.TestCase):
     def setUp(self):
         from requests.auth import HTTPBasicAuth
+
         self.calculator = PSSMGremlinCalculator()
         user = os.environ['REVODESIGN_USERS']
         password = os.environ['REVODESIGN_SERVER_PASS']
 
-        self.calculator.url='https://revodesign.yaoyy.moe/'
-        self.calculator.user=user
-        self.calculator.password=password
+        self.calculator.url = 'https://revodesign.yaoyy.moe/'
+        self.calculator.user = user
+        self.calculator.password = password
         self.calculator.auth = HTTPBasicAuth(
-                self.calculator.user,
-                self.calculator.password
-            )
+            self.calculator.user, self.calculator.password
+        )
 
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES
@@ -703,7 +700,7 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         result = self.calculator.submit_fasta_file(fasta_file_path)
         print(result.content)
 
-        self.assertIn(result.status_code, [202, 404, 200, 403, 400,502])
+        self.assertIn(result.status_code, [202, 404, 200, 403, 400, 502])
 
         md5sum = self.calculator.md5sum
         result = self.calculator.cancel_job(md5sum)

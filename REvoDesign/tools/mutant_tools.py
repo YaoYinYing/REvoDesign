@@ -12,12 +12,11 @@ from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
-from REvoDesign.common.FileExtentions import (
-    REvoDesignFileExtentions as FileExtentions,
-)
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import FileExtentions
 
-logging = logger.getChild(__name__)
+from REvoDesign import root_logger
+
+logging = root_logger.getChild(__name__)
 
 # Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
 # It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.
@@ -526,7 +525,7 @@ def quick_mutagenesis(
             {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
         )
 
-        visualizer.run_mutagenesis_tasks(progress_bar=progress_bar)
+        visualizer.run_mutagenesis_tasks()
         results.append(visualizer.save_session)
 
     # call MutantVisualizer for merge sessions

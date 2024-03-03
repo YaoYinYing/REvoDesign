@@ -4,13 +4,13 @@ from attrs import define, field
 from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
 from REvoDesign.sidechain_solver.DunbrackRotamerLib import PyMOL_mutate
 from REvoDesign.sidechain_solver.PIPPack import PIPPack_worker
-from REvoDesign.tools.post_installed import WITH_DEPENDENCIES
+from REvoDesign import WITH_DEPENDENCIES
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 __all__ = [
     'SidechainSolver',

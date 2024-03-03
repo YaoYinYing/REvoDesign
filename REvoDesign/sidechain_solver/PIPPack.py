@@ -1,15 +1,13 @@
-import glob
 import os
-
-from REvoDesign.REvoDesign import logging as logger
-
-logging = logger.getChild(__name__)
-
 import tempfile
+
+from REvoDesign import root_logger
+
+logging = root_logger.getChild(__name__)
 
 
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.tools.post_installed import reload_config_file, set_cache_dir
+from REvoDesign import reload_config_file, set_cache_dir
 
 
 class PIPPack_worker:

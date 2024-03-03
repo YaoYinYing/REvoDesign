@@ -8,7 +8,7 @@ import queue
 from typing import Union
 from typing_extensions import override
 from omegaconf import DictConfig
-from REvoDesign.tools.post_installed import reload_config_file
+from REvoDesign import reload_config_file
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",

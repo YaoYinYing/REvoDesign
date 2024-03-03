@@ -14,9 +14,9 @@ from REvoDesign.sidechain_solver import (
     PIPPack_worker,
 )
 
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 from REvoDesign.common.MutantTree import MutantTree
 

@@ -3,9 +3,9 @@ import os
 
 from pymol import get_version_message
 from REvoDesign.tools.utils import suppress_print
-from REvoDesign.REvoDesign import logging as logger
+from REvoDesign import root_logger
 
-logging = logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 PYMOL_VERSION = cmd.get_version()[0]
 PYMOL_BUILD = get_version_message()

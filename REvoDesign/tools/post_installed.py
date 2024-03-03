@@ -33,12 +33,6 @@ def set_REvoDesign_config_file():
     return main_config_file
 
 
-REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()
-hydra.initialize_config_dir(
-    version_base=None, config_dir=os.path.dirname(REVODESIGN_CONFIG_FILE)
-)
-
-
 def reload_config_file(config_name: str = 'global_config') -> DictConfig:
     return hydra.compose(
         config_name=config_name,
@@ -49,6 +43,8 @@ def reload_config_file(config_name: str = 'global_config') -> DictConfig:
 def save_configuration(
     new_cfg: DictConfig, config_name: Union[str, None] = None
 ):
+    from REvoDesign import REVODESIGN_CONFIG_FILE
+
     if not config_name:
         config_name = 'global_config'
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
@@ -59,14 +55,13 @@ def save_configuration(
 
 
 def experiment_config():
+    from REvoDesign import REVODESIGN_CONFIG_FILE
+
     experiments_dir = os.path.join(
         os.path.dirname(REVODESIGN_CONFIG_FILE), 'experiments'
     )
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
-
-
-EXPERIMENTS_CONFIG_DIR = experiment_config()
 
 
 def set_cache_dir() -> str:
