@@ -111,9 +111,12 @@ def find_all_protein_chain_ids_in_protein(sele):
     if not sele:
         return
     # return a list of chain IDs that assigned to a protein molecule
+
+    chain_ids = [chain_id for chain_id in cmd.get_chains(sele) if chain_id]
+
     return [
         chain_id
-        for chain_id in cmd.get_chains(sele)
+        for chain_id in chain_ids
         if is_polymer_protein(f'( {sele} and c. {chain_id} )')
     ]
 
@@ -160,8 +163,8 @@ def is_distal_residue_pair(
     Ca_distance = cmd.get_distance(atom1=Ca_atom_1, atom2=Ca_atom_2)
 
     # Check if either of the residues is glycine or not using sidechain angle
-    if any([resn == 'G' for resn in [resn_1, resn_2]]) or (
-        not use_sidechain_angle
+    if (not use_sidechain_angle) or any(
+        resn == 'G' for resn in [resn_1, resn_2]
     ):
         return Ca_distance > minimal_distance
     else:
