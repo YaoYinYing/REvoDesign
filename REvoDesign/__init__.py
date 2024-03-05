@@ -52,4 +52,7 @@ __all__ = [
     'ConfigBus',
     'WITH_DEPENDENCIES',
     'FileExtentions',
+    'reload_config_file',
+    'set_cache_dir',
+    'save_configuration',
 ]

@@ -2,6 +2,7 @@
 PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs
+PYTEST_CASES_PATH=../REvoDesign/tests/cases/
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
@@ -47,27 +48,27 @@ prepare-test:
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/UnitTests.py
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/UnitTests.py
 
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --native -m pytest  ../tests/QtTests.py;
+	cd $(TESTDIR);memray run --native -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
 
 memray-live:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --live -m pytest  ../tests/QtTests.py;
+	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
 
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/QtTests.py;
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py;
 
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) ../tests/QtTests.py ../tests/UnitTests.py;
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py;
 	cp $(TESTDIR)/.coverage* .
 	rm -r $(TESTDIR)
 
