@@ -48,10 +48,12 @@ jobs:
       # https://github.com/tlambert03/setup-qt-libs
       - name: setup Qt headless Display on Ubuntu
         run: |
+          source activate REvoDesign
           make setup-display
 
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
+          source activate REvoDesign
           make install
 
       - name: Full Unit Test on Ubuntu
@@ -60,11 +62,14 @@ jobs:
           REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
 
         run: |
+          source activate REvoDesign
           make prepare-test
           make all-test
       
       - name: Convert coverage report to XML for codecov
-        run: coverage xml
+        run: |
+          source activate REvoDesign
+          coverage xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
