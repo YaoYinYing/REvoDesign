@@ -1,0 +1,9 @@
+{
+    "files": [
+        "Ui_REvoDesign.py",
+        "REvoDesign.ui",
+        "liguist.pro",
+        "language/eng-chs.ts"
+
+    ]
+}

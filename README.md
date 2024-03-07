@@ -14,6 +14,9 @@
 [![Docker Image for Unittests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml)
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main.svg?style=svg&circle-token=5f78acfbe0dd8e334384b23515857bd4996ca7a1)](https://dl.circleci.com/status-badge/redirect/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main)
 ---
+[![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin)
+[![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-test-image?style=social&logo=docker&label=Environment%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-test-image)
+---
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/3583a7e4923d4116931fcbab21492f21)](https://app.codacy.com?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
 

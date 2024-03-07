@@ -1,5 +1,6 @@
 import os
 import glob
+import pytest
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
@@ -617,7 +618,7 @@ class TestREvoDesignPlugin_TabInteract:
         ]:
             WORKER.click(
                 WORKER.plugin.bus.w2c.get_button_from_id(
-                    f'{row}_vs{col}', prefix='matrixButton'
+                    f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
 
@@ -755,7 +756,7 @@ class TestREvoDesignPlugin_TabInteract:
         ]:
             WORKER.click(
                 WORKER.plugin.bus.w2c.get_button_from_id(
-                    f'{col}_vs{row}', prefix='matrixButton'
+                    f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
 

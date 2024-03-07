@@ -63,17 +63,23 @@ REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 logging = root_logger.getChild(__name__)
 
 
-class REvoDesignPlugin:
+class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
         self,
     ):
+        super(REvoDesignPlugin, self).__init__()
         # global reference to avoid garbage collection of our dialog
         self.window = None
 
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
         self.PWD = os.getcwd()
 
-        self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign-PyMOL.ui')
+        self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign.ui')
+        self.language_options = {
+            'English': '',
+            'français': 'eng-fr',
+            '中文': 'eng-chs',
+        }
 
         self.widget2widget = Widget2Widget()
         self.bus = None
@@ -106,6 +112,23 @@ class REvoDesignPlugin:
             )
             traceback.print_exc()
             self.teamwork_enabled = False
+
+    def switchLanguage(self, language):
+        if data := self.language_options.get(language):
+            self.bus.ui.trans.load(
+                os.path.join(
+                    os.path.dirname(__file__), 'UI', 'language', f'{data}.qm'
+                )
+            )
+            logging.info(f'loading {language=}: {data}')
+            QtWidgets.QApplication.instance().installTranslator(
+                self.bus.ui.trans
+            )
+        else:
+            QtWidgets.QApplication.instance().removeTranslator(
+                self.bus.ui.trans
+            )
+        self.bus.ui.retranslateUi(self.window)
 
     def fix_wd(self):
         pwd_0 = os.getcwd()
@@ -172,13 +195,20 @@ class REvoDesignPlugin:
 
         from pymol.Qt.utils import loadUi
 
+        from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
+
         # load ui elements
-        self.ui = loadUi(
-            self.ui_file, main_window
-        )  # Store the UI form for later access
+        # self.ui = loadUi(
+        #     self.ui_file, main_window
+        # )  # Store the UI form for later access
+
+        self.ui = Ui_REvoDesignPyMOL_UI()
+        self.ui.setupUi(main_window)
 
         # create a bus btw cfg<---> ui
         self.reload_configurations()
+
+        self.bus.ui.trans = QtCore.QTranslator(self)
 
         from REvoDesign.tools.customized_widgets import set_window_font
 
@@ -206,6 +236,17 @@ class REvoDesignPlugin:
         )
 
         self.bus.ui.actionReinitialize.triggered.connect(self.reinitialize)
+
+        self.bus.ui.actionEnglish.triggered.connect(
+            partial(self.switchLanguage, 'English')
+        )
+
+        self.bus.ui.actionChinese.triggered.connect(
+            partial(self.switchLanguage, '中文')
+        )
+        self.bus.ui.actionFrench.triggered.connect(
+            partial(self.switchLanguage, 'français')
+        )
 
         self.bus.ui.actionSource_Code.triggered.connect(
             partial(

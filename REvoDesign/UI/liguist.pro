@@ -1,0 +1,1 @@
+TRANSLATIONS += language/eng-chs.ts
