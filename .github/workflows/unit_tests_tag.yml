@@ -1,35 +1,27 @@
-name: Unit Test
+name: Unit Test on tagging
 
 on:
   push:
-    paths:
-      - '.github/workflows/unit_tests.yml' # monitor the main workflow script.
-      - 'tests/*.py' # monitor the unit tests
-      - 'REvoDesign/*' # monitor the REvoDesign project source code
+    tags:        
+      - '*'   
       
-    branches:
-      - main
-      - qt-test
-
 env: 
   conda_env: REvoDesign
 
-
 jobs:
-  Tests:
+  BareTests:
     strategy:
       fail-fast: false
       matrix:
         os: 
           - ubuntu-latest
-          #- macos-14
         python-version: 
-          - "3.9"
-          - "3.10"
+          # - "3.9"
+          # - "3.10"
           - "3.11"
-        # include:
-        #   - os: windows-latest
-        #     python-version: "3.11"
+        include:
+          - os: windows-latest
+            python-version: "3.11"
 
     runs-on: ${{ matrix.os }}
 
@@ -43,13 +35,9 @@ jobs:
         shell: bash -el {0}
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Setting up display
-      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
-      # https://github.com/tlambert03/setup-qt-libs
       - name: setup Qt headless Display on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
@@ -61,7 +49,6 @@ jobs:
       
       - name: Setup Conda on ${{ matrix.os }}
         uses: conda-incubator/setup-miniconda@v3
-        if: matrix.os != 'macos-14'
         with:
             miniforge-variant: Mambaforge
             miniforge-version: latest
@@ -70,16 +57,6 @@ jobs:
             auto-activate-base: false
             python-version: ${{ matrix.python-version }}
       
-      - name: Setup Conda on macos-14
-        uses: conda-incubator/setup-miniconda@v3
-        if: matrix.os == 'macos-14'
-        with:
-            installer-url: https://github.com/conda-forge/miniforge/releases/download/23.11.0-0/Mambaforge-23.11.0-0-MacOSX-arm64.sh
-            auto-update-conda: false
-            activate-environment: ${{ env.conda_env }}
-            auto-activate-base: false
-            python-version: ${{ matrix.python-version }}
-
       - name: Setup PyMOL on ${{ matrix.os }} - py${{ matrix.python-version }}
         run: |
           conda install -c conda-forge pymol-open-source -n ${{ env.conda_env }} -y 
@@ -97,11 +74,14 @@ jobs:
           REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
 
         run: |
+          source activate REvoDesign
           make prepare-test
           make all-test
       
       - name: Convert coverage report to XML for codecov
-        run: coverage xml
+        run: |
+          source activate REvoDesign
+          coverage xml
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4

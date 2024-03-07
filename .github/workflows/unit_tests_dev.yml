@@ -1,0 +1,81 @@
+name: Unit Test in docker
+
+on:
+  push:
+    paths:
+      - '.github/workflows/unit_tests_dev.yml' # monitor the main workflow script.
+      - 'tests/*.py' # monitor the unit tests
+      - 'REvoDesign/*' # monitor the REvoDesign project source code
+      
+    branches:
+      - main
+      - gha-docker
+
+env: 
+  conda_env: REvoDesign
+
+
+jobs:
+  DevTests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: 
+          - ubuntu-latest
+        python-version: 
+          - "3.9"
+          - "3.10"
+          - "3.11"
+
+    runs-on: ${{ matrix.os }}
+    container: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}
+
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+      DISPLAY: ':99.0'
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Setting up display
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
+      # https://github.com/tlambert03/setup-qt-libs
+      - name: setup Qt headless Display on Ubuntu
+        run: |
+          source activate REvoDesign
+          make setup-display
+
+      - name: Install REvoDesign on ${{ matrix.os }}
+        run: |
+          source activate REvoDesign
+          make install
+
+      - name: Full Unit Test on Ubuntu
+        env:
+          REVODESIGN_USERS: ${{ secrets.REVODESIGN_USERS }}
+          REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
+
+        run: |
+          source activate REvoDesign
+          make prepare-test
+          make all-test
+      
+      - name: Convert coverage report to XML for codecov
+        run: |
+          source activate REvoDesign
+          coverage xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          env_vars: OS,PYTHON
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
