@@ -12,13 +12,31 @@ PYREVERSE_ARGS=../$(PROJECT)
 help:
 	@echo "Commands:"
 	@echo ""
-	@echo "  install   install in editable mode"
-	@echo "  test      run the test suite (including doctests) and report coverage"
-	@echo "  format    automatically format the code"
-	@echo "  check     run code style and quality checks"
-	@echo "  lint      run pylint for a deeper (and slower) quality check"
-	@echo "  build     build source and wheel distributions"
-	@echo "  clean     clean up build and generated files"
+	@echo "  help           print this message and exit"
+	@echo "  build          build source and wheel distributions"
+	@echo "  setup-ubuntu   Setup ubuntu display for GitHub Actions"
+	@echo "  setup-display  Setup ubuntu display for CircleCI"
+	@echo "  install        install by pip mode"
+	@echo "  reinstall      reinstall after code changes"
+	@echo "  translate      translate UI"
+	@echo "  prepare-test   run pip to install pytest-related packages"
+	@echo "  test           run the UnitTest suite"
+	@echo "  ui-test        run the QtTest suite"
+	@echo "  all-test       run all tests"
+	@echo "  memray         memoray profile for leakage, saved as html file"
+	@echo "  memray-live	memoray profile for leakage in live mode"
+	@echo "  format         automatically format the code"
+	@echo "  check          run code style and quality checks"
+	@echo "  tag            pin a new tag from package version to github tag"
+	@echo "  black          black format for all python files"
+	@echo "  reverse        run pyreverse for package and methods and create SVGs"
+	@echo "  black-check    "
+	@echo "  license-update license updates for all files"
+	@echo "  license-check  check license for all files"
+	@echo "  flake8	        "
+	@echo "  flake8-lazy    "
+	@echo "  lint           run pylint for a deeper (and slower) quality check"
+	@echo "  clean          clean up build and generated files" 
 	@echo ""
 
 build:
@@ -51,7 +69,6 @@ translate:
 	# release translation file to binarys
 	cd REvoDesign/UI/;lrelease liguist.pro
 
-
 prepare-test:
 	python -m pip install pytest pytest-cov coverage -q
 
@@ -60,15 +77,6 @@ test:
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/UnitTests.py
 
-memray:
-	# Run a tmp folder to make sure the tests are run on the installed version
-	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --native -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
-
-memray-live:
-	# Run a tmp folder to make sure the tests are run on the installed version
-	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
 
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
@@ -81,6 +89,16 @@ all-test:
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
 	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py;
 	cp $(TESTDIR)/.coverage* .
+
+memray:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR);memray run --native -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
+
+memray-live:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
 
 format: license-update black
 

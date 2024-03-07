@@ -5,7 +5,6 @@ on:
     paths:
       - 'tests/docker/Dockerfile' # Monitor the entire 'docker' directory
       - '.github/workflows/docker-image-test.yml' # monitor the main workflow script. enable it again if in necessary maintainances.
-      - 'pyproject.toml'
     branches:
       - main
       - test-image
