@@ -11,9 +11,6 @@ on:
       - './CHANGELOG.md' 
       - './pyproject.toml' 
       - 'REvoDesign/__version__.py'
-    
-    tags-ignore:
-        - '*'
 
     branches:
       - main
