@@ -5,15 +5,11 @@ on:
     tags:        
       - '*'   
       
-    branches:
-      - main
-      - gha-docker
-
 env: 
   conda_env: REvoDesign
 
 jobs:
-  Tests:
+  BareTests:
     strategy:
       fail-fast: false
       matrix:

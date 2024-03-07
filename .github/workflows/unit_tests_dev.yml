@@ -16,7 +16,7 @@ env:
 
 
 jobs:
-  Tests-on-dev:
+  DevTests:
     strategy:
       fail-fast: false
       matrix:
