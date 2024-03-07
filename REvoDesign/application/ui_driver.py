@@ -474,11 +474,54 @@ class Widget2ConfigMapper:
             }
         )
 
-    def get_button_from_id(self, button_id, prefix='pushButton'):
-        # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
-        return self.ui.findChild(
-            QtWidgets.QPushButton, f"{prefix}_{button_id}"
+    def find_child(self, widget_type, name):
+        """
+        Find a child widget in a UI object.
+
+        Args:
+            ui: The UI object where the widget is located.
+            widget_type: The type of the widget (e.g., QtWidgets.QLabel).
+            name: The name of the widget.
+
+        Returns:
+            The found widget, or None if not found.
+        """
+        for attr in dir(self.ui):
+            if (
+                isinstance(getattr(self.ui, attr), widget_type)
+                and attr == name
+            ):
+                logging.debug(f'Found widget with {name=}: {attr=}')
+                return getattr(self.ui, attr)
+
+        layouts = [l for l in dir(self.ui) if 'Layout' in l]
+
+        for layout_name in layouts:
+            layout = getattr(self.ui, layout_name)
+            logging.debug(f'Searching {layout_name=}: {dir(layout)=}')
+            for attr in dir(layout):
+                if (
+                    isinstance(getattr(layout, attr), widget_type)
+                    and attr == name
+                ):
+                    logging.debug(
+                        f'Found widget with {name=}: {attr=} in {layout}: {layout_name=}'
+                    )
+                    return getattr(layout, attr)
+                if hasattr(layout, 'findChild'):
+                    if widget := layout.findChild(widget_type, name):
+                        # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
+                        logging.debug(
+                            f'Found child with {name=} {widget=} in {layout}: {layout_name=}'
+                        )
+                        return widget
+
+        raise ValueError(
+            f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
         )
+
+    def get_button_from_id(self, button_id, prefix='pushButton'):
+        return self.find_child(QtWidgets.QPushButton, f"{prefix}_{button_id}")
 
     @property
     def all_widget_ids(self) -> tuple[str]:
@@ -503,7 +546,7 @@ class Widget2ConfigMapper:
         return widget_id
 
     def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
-        widget = self.ui.findChild(
+        widget = self.find_child(
             self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
         )
         assert isinstance(widget, QtWidgets.QWidget)

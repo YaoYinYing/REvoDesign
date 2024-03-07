@@ -22,7 +22,7 @@ from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
 
-from REvoDesign.tests import TestData
+from REvoDesign.tests import *
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def app():
 
 
 @pytest.fixture
-def plugin(qtbot, app):
+def plugin(qtbot: qtbot.QtBot, app):
     # Create and return an instance of the REvoDesignPlugin
     plugin = REvoDesignPlugin()
     if not plugin.window:

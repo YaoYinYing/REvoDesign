@@ -41,3 +41,5 @@ tests/performance/*
 packages.dot
 classes.dot
 /image/svg
+/wheel
+/tests_dir

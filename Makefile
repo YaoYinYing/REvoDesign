@@ -41,6 +41,16 @@ reinstall:
 	make clean
 	make black;rm -r /Users/yyy/.REvoDesign/config/; pip install . -U
 
+translate:
+	# recompile ui to py
+	pyuic5 REvoDesign/UI/REvoDesign.ui -o REvoDesign/UI/Ui_REvoDesign.py
+	# update translation file
+	lupdate  REvoDesign/UI/REvoDesign.ui -ts REvoDesign/UI/language/eng-chs.ts
+
+
+	# release translation file to binarys
+	cd REvoDesign/UI/;lrelease liguist.pro
+
 
 prepare-test:
 	python -m pip install pytest pytest-cov coverage -q
@@ -68,9 +78,9 @@ ui-test:
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py;
+	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
+	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py;
 	cp $(TESTDIR)/.coverage* .
-	rm -r $(TESTDIR)
 
 format: license-update black
 

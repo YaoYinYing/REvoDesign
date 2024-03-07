@@ -10,13 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - UI tips for installer
 - new Qt-free `ParallelExecutor`
 - `git` setup in installer, via `conda` or `winget`
+- UI Tranlation framework based on Qt Linguist
+- `Widget2ConfigMapper.find_child`
+- `make translate` to rebuild translations
+- `pyreverse`; `make reverse`
+- badges about `Docker Image Size` and `Codacy`
 
 ### Changed
 - global root logger and main logger
 - old `ParallelExecutor` -> `QtParallelExecutor`
+- moving test worker and cases into `REvoDesign/tests`
+- elivate `WITH_DEPENDENCIES` to `REvoDesign`
   
 ### Fixed
 - working directory after window lauched
+- `find_all_protein_chain_ids_in_protein`: empty chain id
+- `TestREvoDesignPlugin_TabInteract`: swapped `col` and `row`
+- Typo in `QbuttonMatrix`: `button.setObjectName(f'matrixButton_{row}_vs_{col}')` missing underscore
 
 ### Removed
 - QtWidgets(`progressBar`) in Designer and Visualiser.

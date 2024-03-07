@@ -4600,6 +4600,14 @@
      <addaction name="action_LoadExperiment"/>
      <addaction name="action_Save_to_Experiment"/>
     </widget>
+    <widget class="QMenu" name="menuLanguage">
+     <property name="title">
+      <string>Language</string>
+     </property>
+     <addaction name="actionEnglish"/>
+     <addaction name="actionChinese"/>
+     <addaction name="actionFrench"/>
+    </widget>
     <addaction name="actionCheck_PyMOL_session"/>
     <addaction name="actionSet_Working_Directory"/>
     <addaction name="separator"/>
@@ -4609,6 +4617,8 @@
     <addaction name="menuExperiment"/>
     <addaction name="separator"/>
     <addaction name="actionReinitialize"/>
+    <addaction name="separator"/>
+    <addaction name="menuLanguage"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -4710,6 +4720,21 @@
   <action name="actionVersion">
    <property name="text">
     <string>Version</string>
+   </property>
+  </action>
+  <action name="actionEnglish">
+   <property name="text">
+    <string>English</string>
+   </property>
+  </action>
+  <action name="actionChinese">
+   <property name="text">
+    <string>Chinese</string>
+   </property>
+  </action>
+  <action name="actionFrench">
+   <property name="text">
+    <string>French</string>
    </property>
   </action>
  </widget>
