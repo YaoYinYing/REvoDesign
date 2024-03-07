@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- GHA test runner:
+  - daily dev: in docker, ubuntu, 3.9-3.11
+  - tag release: bare, ubuntu and windows, 3.9-3.11, 3.11
+  
 ## [1.5.2] - 2024-03-07
 ### Added
 - UI tips for installer
