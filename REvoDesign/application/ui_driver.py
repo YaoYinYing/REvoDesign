@@ -499,6 +499,13 @@ class Widget2ConfigMapper:
         for layout_name in layouts:
             layout = getattr(self.ui, layout_name)
             logging.debug(f'Searching {layout_name=}: {dir(layout)=}')
+            if hasattr(layout, 'findChild'):
+                if widget := layout.findChild(widget_type, name):
+                    # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
+                    logging.debug(
+                        f'Found child with {name=} {widget=} in {layout}: {layout_name=}'
+                    )
+                    return widget
             for attr in dir(layout):
                 if (
                     isinstance(getattr(layout, attr), widget_type)
@@ -508,13 +515,6 @@ class Widget2ConfigMapper:
                         f'Found widget with {name=}: {attr=} in {layout}: {layout_name=}'
                     )
                     return getattr(layout, attr)
-                if hasattr(layout, 'findChild'):
-                    if widget := layout.findChild(widget_type, name):
-                        # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
-                        logging.debug(
-                            f'Found child with {name=} {widget=} in {layout}: {layout_name=}'
-                        )
-                        return widget
 
         raise ValueError(
             f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
