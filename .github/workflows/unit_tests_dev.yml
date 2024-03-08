@@ -10,11 +10,10 @@ on:
     paths-ignore:
       - './CHANGELOG.md' 
       - './pyproject.toml' 
-      - 'REvoDesign/__version__.py'
+    
+    tags-ignore:
+      - '*'
 
-    branches:
-      - main
-      - gha-docker
 
 env: 
   conda_env: REvoDesign
