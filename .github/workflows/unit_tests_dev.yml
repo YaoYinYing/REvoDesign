@@ -5,21 +5,10 @@ on:
     paths:
       - '.github/workflows/unit_tests_dev.yml' # monitor the main workflow script.
       - 'tests/*.py' # monitor the unit tests
-      - 'REvoDesign/application/*' # monitor the REvoDesign project source code
-      - 'REvoDesign/clients/*'
-      - 'REvoDesign/clusters/*'
-      - 'REvoDesign/common/*'
-      - 'REvoDesign/config/*'
-      - 'REvoDesign/evaluate/*'
-      - 'REvoDesign/external_designer/*'
-      - 'REvoDesign/phylogenetics/*'
-      - 'REvoDesign/sidechain_solver/*'
-      - 'REvoDesign/structure/*'
-      - 'REvoDesign/tests/*'
-      - 'REvoDesign/tools/*' 
-      - 'REvoDesign/UI/*'
-      - 'REvoDesign/REvoDesign.py'
-      - 'REvoDesign/__init__.py'
+      - 'REvoDesign/*' # monitor the REvoDesign project source code
+      - '!./CHANGELOG.md' 
+      - '!./pyproject.toml' 
+      - '!REvoDesign/__version__.py'
     
 
 jobs:

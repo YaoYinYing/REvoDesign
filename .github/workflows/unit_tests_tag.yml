@@ -2,6 +2,11 @@ name: Unit Test on tagging
 
 on:
   push:
+    paths:
+      - './CHANGELOG.md' 
+      - './pyproject.toml' 
+      - 'REvoDesign/__version__.py'
+      
     tags:        
       - '*'   
       
