@@ -21,8 +21,6 @@ on:
       - 'REvoDesign/REvoDesign.py'
       - 'REvoDesign/__init__.py'
     
-    tags-ignore:
-      - '*'
 
 jobs:
   DevTests:
