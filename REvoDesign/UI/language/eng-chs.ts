@@ -26,14 +26,14 @@
     <message>
         <location filename="../REvoDesign.ui" line="134"/>
         <source>Substrate/Product molecule. Use PyMOL selection syntax(eg. (LIG or PRD))</source>
-        <translation></translation>
+        <translation>底物或者产物分子。可以使用PyMOL的选择语法，例如`(LIG or PRD)`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="153"/>
         <location filename="../REvoDesign.ui" line="185"/>
         <location filename="../REvoDesign.ui" line="4301"/>
         <source>radius:</source>
-        <translation>半径</translation>
+        <translation type="unfinished">半径：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="169"/>
@@ -48,12 +48,12 @@
     <message>
         <location filename="../REvoDesign.ui" line="229"/>
         <source>Co-factor or co-enzyme, HEM/FAD/NAD, etc. Use PyMOL selection syntax (eg. (HEM or FAD))</source>
-        <translation></translation>
+        <translation>辅因子或者辅酶分子，例如HEM/FAD/NAD。可以使用PyMOL的选择语法，例如`(HEM or FAD)`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="245"/>
         <source>Max distance from ligand to pocket residue.</source>
-        <translation></translation>
+        <translation>底物分子到口袋的最大距离。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="248"/>
@@ -68,7 +68,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="273"/>
         <source>Max distance from cofactor to pocket residue.</source>
-        <translation></translation>
+        <translation>辅因子到口袋的最大距离。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="312"/>
@@ -89,7 +89,7 @@
         <location filename="../REvoDesign.ui" line="763"/>
         <location filename="../REvoDesign.ui" line="2318"/>
         <source>Output session path</source>
-        <translation></translation>
+        <translation>保存PyMOL会话到文件</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="343"/>
@@ -121,7 +121,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="423"/>
         <source>Max distance from chain to chain.</source>
-        <translation></translation>
+        <translation>链和链之间的最大距离。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="465"/>
@@ -141,7 +141,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="509"/>
         <source>Excluded selection. Use PyMOL selection syntax(eg. ((sele_1 and sele_2) or (sele_3 and sele_4)))</source>
-        <translation></translation>
+        <translation>排除PyMOL中的选择对象。可以使用PyMOL的选择语法，如`((sele_1 and sele_2) or (sele_3 and sele_4))`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="535"/>
@@ -285,7 +285,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="1114"/>
         <source>De-duplicated</source>
-        <translation>去掉重复的设计个体。</translation>
+        <translation>去重复</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1135"/>
@@ -297,17 +297,17 @@
         <location filename="../REvoDesign.ui" line="1138"/>
         <location filename="../REvoDesign.ui" line="2077"/>
         <source>Batch:</source>
-        <translation>批量</translation>
+        <translation type="unfinished">批量：</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1172"/>
         <source>Homo-oligomeric binding of design chain_id</source>
-        <translation>同源多聚体绑定。</translation>
+        <translation>同源多聚体绑定到设计到链上。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1175"/>
         <source>Homooligomer</source>
-        <translation>同源多聚体模式。</translation>
+        <translation>同源多聚体模式</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1184"/>
@@ -353,7 +353,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="1291"/>
         <source>Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY`. For external designers: `DNEQKRHHH`. </source>
-        <translation>偏好的替换。对PSSM和CSV：`E:DATY K:RATY`. 对歪脖设计器：`DNEQKRHHH`。</translation>
+        <translation>偏好的替换。对PSSM和CSV：`E:DATY K:RATY`. 对外部设计器：`DNEQKRHHH`。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1310"/>
@@ -450,7 +450,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="1549"/>
         <source>Show WT sidechain for comparing</source>
-        <translation>将野生型的侧脸显示出来用于比较</translation>
+        <translation>将野生型的侧链显示出来用于比较</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1552"/>
@@ -550,7 +550,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="1824"/>
         <source>Find the Best Hit</source>
-        <translation></translation>
+        <translation>选择组内最优</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1827"/>
@@ -1166,7 +1166,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="3922"/>
         <source>Join</source>
-        <translation>加入网络</translation>
+        <translation>加入协作</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3929"/>
@@ -1176,7 +1176,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="3932"/>
         <source>Leave</source>
-        <translation>离开网络</translation>
+        <translation>离开协作</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3951"/>
@@ -1316,7 +1316,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="4288"/>
         <source>Sidechain solver. Default: buildin for Dunbrack rotamer library used by PyMOL </source>
-        <translation>侧脸求解器。默认用DLPacker.</translation>
+        <translation>侧链求解器。默认用DLPacker.</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="4330"/>
@@ -1326,7 +1326,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="4358"/>
         <source>Sidechain solver options. </source>
-        <translation>侧脸求解器选项。</translation>
+        <translation>侧链求解器选项。</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="4377"/>
