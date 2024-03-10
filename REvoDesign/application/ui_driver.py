@@ -157,23 +157,35 @@ class ConfigBus:
         # Retrieves the configuration item corresponding to a UI widget ID.
         return self.w2c.widget_id2config_dict.get(widget_id)
 
-    def get_value(self, cfg_item: str, typing=None) -> Union[Any, list[Any]]:
+    def get_value(
+        self, cfg_item: str, converter=None
+    ) -> Union[Any, list[Any]]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
-        if value is None and typing == Union[str, None]:
-            value = ''
-        if value is None and typing == Union[int, float]:
-            value = 0
 
-        if typing == str:
-            return str(value)
-        elif typing == float:
-            return float(value)
-        elif typing == int:
-            return int(value)
+        # Default conversions for None values
+        default_conversions = {Union[str, None]: '', Union[int, float]: 0}
+        if value is None and converter in default_conversions:
+            value = default_conversions[converter]
 
+        # Handle predefined converters
+        predefined_conversions = {
+            str: lambda v: str(v),
+            float: lambda v: float(v),
+            int: lambda v: int(v),
+            bool: lambda v: bool(v),
+        }
+        if converter in predefined_conversions:
+            value = predefined_conversions[converter](value)
+
+        # Handle custom callable converters
+        elif callable(converter):
+            value = converter(value)
+
+        # Handle list values for groups
         if cfg_item.endswith('group') and value:
             value = list(value)
+
         return value
 
     def set_value(self, cfg_item: str, value):
@@ -383,7 +395,6 @@ class Config2WidgetIds:
             'ui.interact.input.gremlin_pkl': 'lineEdit_input_gremlin_mtx',
             'ui.interact.input.to_mutant_txt': 'lineEdit_output_mutant_table',
             'ui.socket.input.key': 'lineEdit_ws_server_key',
-            'ui.socket.input.hostname': 'lineEdit_ws_server_url_to_connect',
         }
     )
 

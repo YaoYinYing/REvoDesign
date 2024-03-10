@@ -61,7 +61,7 @@ from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 
-logging = root_logger.getChild(__name__)
+logging = None
 
 
 class REvoDesignPlugin(QtWidgets.QWidget):
@@ -87,6 +87,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.gremlin_worker = None
         self.sidechain_solver = None
         self.evaluator = None
+        global logging
+        logging = root_logger.getChild(self.__class__.__name__)
 
         from REvoDesign.clients.PSSM_GREMLIN_client import (
             PSSMGremlinCalculator,
@@ -631,6 +633,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.button('ws_generate_randomized_key').clicked.connect(
             self.generate_ws_server_key
         )
+        self.bus.get_widget_from_cfg_item(
+            'ui.socket.use_key'
+        ).stateChanged.connect(self.generate_ws_server_key)
 
         # Connect the partial function to the stateChanged signal
         self.bus.ui.checkBox_ws_server_mode.stateChanged.connect(
@@ -1043,7 +1048,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         pocketsearcher = None
 
     # Tab `Mutate`
-    def refresh_sidechainsolver(self):
+    def refresh_sidechainsolver(self) -> bool:
         from REvoDesign.sidechain_solver import (
             SidechainSolver,
         )
@@ -1070,7 +1075,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 available_sidechain_solvers=available_sidechain_solvers,
             )
             self.sidechain_solver.setup()
-            return
+            return True
 
         if not (
             self.sidechain_solver.molecule == self.design_molecule
@@ -1089,6 +1094,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 sidechain_solver_radius=sidechain_solver_radius,
                 sidechain_solver_model=sidechain_solver_model,
             )
+            return True
+        return False
 
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
@@ -1131,7 +1138,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 design_chain_id=self.design_chain_id,
                 design_sequence=self.design_sequence,
                 designable_sequences=self.designable_sequences,
-                sidechain_solver=self.sidechain_solver,
+                mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
 
@@ -1338,7 +1345,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 design_chain_id=self.design_chain_id,
                 design_sequence=self.design_sequence,
                 designable_sequences=self.designable_sequences,
-                sidechain_solver=self.sidechain_solver,
+                mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
             worker.visualize_mutants()
@@ -1553,7 +1560,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('reinitialize_interact')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
+            sc_refreshed=run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
                 progress_bar=self.bus.ui.progressBar,
             )
@@ -1567,7 +1574,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 design_sequence=self.design_sequence,
                 designable_sequences=self.designable_sequences,
                 PWD=self.PWD,
-                sidechain_solver=self.sidechain_solver,
+                mutate_runner=self.sidechain_solver.mutate_runner,
                 ws_server=self.ws_server,
             )
             self.gremlin_worker.load_gremlin_mrf()
@@ -1579,11 +1586,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_interact_scan')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
+            sc_refreshed=run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
                 progress_bar=self.bus.ui.progressBar,
             )
-            self.gremlin_worker.sidechain_solver = self.sidechain_solver
+            if sc_refreshed: 
+                self.gremlin_worker.mutate_runner = (
+                self.sidechain_solver.mutate_runner
+            )
             self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):
@@ -1594,11 +1604,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
     def generate_ws_server_key(self):
-        key = generate_strong_password(length=32)
-        if key:
-            self.bus.set_widget_value('ui.socket.input.key', key)
+        use_key = self.bus.get_value('ui.socket.use_key', bool)
+        if not use_key:
+            return
+
+        self.bus.set_widget_value(
+            'ui.socket.input.key', generate_strong_password(length=32)
+        )
 
     def setup_ws_server(self):
+        self.generate_ws_server_key()
         self.ws_server.setup_ws_server(
             ws_broadcast_view=self.bus.get_value('ui.socket.broadcast.view'),
             ws_server_use_key=self.bus.get_value('ui.socket.use_key'),
@@ -1661,6 +1676,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):
+        toggled = self.bus.get_widget_value('ui.socket.server_mode')
+
         try:
             if not self.ws_server:
                 from REvoDesign.clients.QtSocketConnector import (
@@ -1669,20 +1686,23 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
                 self.ws_server = REvoDesignWebSocketServer()
 
-            if self.bus.get_value('ui.socket.server_mode'):
-                if not self.ws_server or not self.ws_server.is_running:
-                    self.setup_ws_server()
-                else:
+            if toggled:
+                if self.ws_server.is_running:
                     logging.warning(
-                        f'Server is already in running state. Do nothing.'
+                        'Server is already in running state. Do nothing.'
                     )
                     return
+
+                else:
+                    logging.info('Server is launching...')
+                    self.setup_ws_server()
+
             else:
                 if not self.ws_server.is_running:
-                    logging.warning(f'Server is already stopped. Do nothing.')
+                    logging.warning('Server is already stopped. Do nothing.')
                     return
                 self.ws_server.stop_server()
-        except:
+        except Exception as e:
             traceback.print_exc()
 
         logging.warning(
@@ -1710,19 +1730,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.ws_client.progress_bar = self.bus.ui.progressBar
 
         self.ws_client.setup_ws_client(
-            lineEdit_ws_server_url_to_connect=self.bus.get_value(
-                'ui.socket.input.hostname'
+            ws_server_url_to_connect=self.bus.get_value(
+                'ui.socket.server_url'
             ),
-            spinBox_ws_server_port_to_connect=(
+            ws_server_port_to_connect=(
                 self.bus.get_value('ui.socket.server_port', int)
             ),
-            lineEdit_ws_server_key_to_connect=self.bus.get_value(
-                'ui.socket.input.key'
-            ),
-            checkBox_ws_receive_view_broadcast=self.bus.get_value(
+            ws_server_key_to_connect=self.bus.get_value('ui.socket.input.key'),
+            ws_receive_view_broadcast=self.bus.get_value(
                 'ui.socket.receive.view'
             ),
-            checkBox_ws_receive_mutagenesis_broadcast=self.bus.get_value(
+            ws_receive_mutagenesis_broadcast=self.bus.get_value(
                 'ui.socket.receive.mutagenesis'
             ),
             treeWidget_ws_peers=self.bus.ui.treeWidget_ws_peers,

@@ -98,7 +98,9 @@ class SidechainSolver(SidechainSolverConfig):
             and self.sidechain_solver_radius == sidechain_solver_radius
             and self.sidechain_solver_model == sidechain_solver_model
         ):
+            self.molecule = molecule
+            self.chain_id = chain_id
             self.sidechain_solver_name == sidechain_solver_name
             self.sidechain_solver_radius == sidechain_solver_radius
             self.sidechain_solver_model == sidechain_solver_model
-            return self.setup()
+            self.setup()

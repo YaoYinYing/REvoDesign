@@ -2,13 +2,16 @@ import asyncio
 from functools import partial
 import os
 import traceback
+from typing import Union
 from REvoDesign import ConfigBus
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
 from REvoDesign.sidechain_solver import (
-    SidechainSolver,
+    PyMOL_mutate,
+    PIPPack_worker,
+    DLPacker_worker,
 )
 from REvoDesign.tools.customized_widgets import QbuttonMatrix, set_widget_value
 from REvoDesign.tools.mutant_tools import (
@@ -46,7 +49,7 @@ class MutateWorkerConfig:
     design_sequence: str
     designable_sequences: dict[str, str]
     PWD: str
-    sidechain_solver: SidechainSolver
+    mutate_runner: Union[PyMOL_mutate, PIPPack_worker, DLPacker_worker]
 
 
 class MutateWorker(MutateWorkerConfig):
@@ -132,7 +135,7 @@ class MutateWorker(MutateWorkerConfig):
             self.design.randomized_sample = randomized_sample
             self.design.randomized_sample_num = randomized_sample_num
 
-            self.design.mutate_runner = self.sidechain_solver.mutate_runner
+            self.design.mutate_runner = self.mutate_runner
 
             self.design.preffered_substitutions = preffered
             self.design.reject_aa = rejected
@@ -254,7 +257,7 @@ class VisualizingWorker(MutateWorkerConfig):
             self.visualizer.group_name = group_name
             self.visualizer.cmap = cmap
 
-            self.visualizer.mutate_runner = self.sidechain_solver.mutate_runner
+            self.visualizer.mutate_runner = self.mutate_runner
 
             run_worker_thread_with_progress(
                 worker_function=self.visualizer.run,
@@ -803,7 +806,7 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         visualizer.sequence = self.design_sequence
         alphabet = self.gremlin_tool.alphabet
 
-        visualizer.mutate_runner = self.sidechain_solver.mutate_runner
+        visualizer.mutate_runner = self.mutate_runner
 
         visualizer.group_name = '_vs_'.join(
             [wt.replace('_', '') for wt in wt_info[-3:-1]]

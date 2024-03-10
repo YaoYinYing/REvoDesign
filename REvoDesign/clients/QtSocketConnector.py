@@ -542,19 +542,19 @@ class REvoDesignWebSocketClient:
 
     def setup_ws_client(
         self,
-        lineEdit_ws_server_url_to_connect,
-        spinBox_ws_server_port_to_connect,
-        lineEdit_ws_server_key_to_connect,
-        checkBox_ws_receive_mutagenesis_broadcast,
-        checkBox_ws_receive_view_broadcast,
+        ws_server_url_to_connect,
+        ws_server_port_to_connect,
+        ws_server_key_to_connect,
+        ws_receive_mutagenesis_broadcast,
+        ws_receive_view_broadcast,
         treeWidget_ws_peers,
     ):
         if not self.design_molecule or not self.design_chain_id:
             raise ValueError('Invalid design molecule/chain ID!')
 
-        self.server_url = lineEdit_ws_server_url_to_connect.text()
+        self.server_url = ws_server_url_to_connect
 
-        server_port = spinBox_ws_server_port_to_connect.value()
+        server_port = ws_server_port_to_connect
         if not server_port:
             raise ValueError(f'Invalid server port {server_port}')
         self.server_port = server_port
@@ -562,13 +562,9 @@ class REvoDesignWebSocketClient:
         if not self.server_url or not self.server_port:
             raise ValueError('Invalid server configurations!')
 
-        self.authentication_key = lineEdit_ws_server_key_to_connect.text()
-        self.receive_mutagenesis_broadcast = (
-            checkBox_ws_receive_mutagenesis_broadcast.isChecked()
-        )
-        self.receive_view_broadcast = (
-            checkBox_ws_receive_view_broadcast.isChecked()
-        )
+        self.authentication_key = ws_server_key_to_connect
+        self.receive_mutagenesis_broadcast = ws_receive_mutagenesis_broadcast
+        self.receive_view_broadcast = ws_receive_view_broadcast
 
         self.treeWidget_ws_peers = treeWidget_ws_peers
 

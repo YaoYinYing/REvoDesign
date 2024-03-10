@@ -116,7 +116,6 @@ ui:
   socket: 
     input:
       key: ''
-      hostname: ''
 
     server_mode: False
     server_url: localhost
