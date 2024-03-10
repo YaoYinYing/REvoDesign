@@ -55,7 +55,7 @@ class CLIENT_INFO:
     def __post_init__(self):
         import os
         import socket
-        from REvoDesign.__version__ import __version__
+        from REvoDesign import VERSION
         from REvoDesign.tools.pymol_utils import PYMOL_VERSION, PYMOL_BUILD
         from REvoDesign.tools.customized_widgets import PYQT_VERSION_STR
 
@@ -71,7 +71,7 @@ class CLIENT_INFO:
         self.os: str = self.OS_INFO.system
         self.os_build: str = self.OS_INFO.version
         self.machine_arch: str = self.OS_INFO.machine
-        self.revodesign_version: str = __version__
+        self.revodesign_version: str = VERSION
         self.pymol_version = PYMOL_VERSION
         self.pymol_build = PYMOL_BUILD
         self.python_version: str = platform.python_version()

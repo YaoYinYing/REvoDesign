@@ -10,7 +10,7 @@ from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
 
 from REvoDesign import root_logger
-from REvoDesign import __version__
+from REvoDesign import VERSION
 from REvoDesign import (
     reload_config_file,
     save_configuration,
@@ -19,6 +19,7 @@ from REvoDesign import (
     EXPERIMENTS_CONFIG_DIR,
     FileExtentions,
 )
+from REvoDesign.application.i18n import LanguageSwitch
 
 
 from REvoDesign.tools.utils import (
@@ -75,12 +76,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.PWD = os.getcwd()
 
         self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign.ui')
-        self.language_options = {
-            'English': '',
-            'français': 'eng-fr',
-            '中文': 'eng-chs',
-        }
-
         self.widget2widget = Widget2Widget()
         self.bus = None
 
@@ -112,23 +107,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
             traceback.print_exc()
             self.teamwork_enabled = False
-
-    def switchLanguage(self, language):
-        if data := self.language_options.get(language):
-            self.bus.ui.trans.load(
-                os.path.join(
-                    os.path.dirname(__file__), 'UI', 'language', f'{data}.qm'
-                )
-            )
-            logging.info(f'loading {language=}: {data}')
-            QtWidgets.QApplication.instance().installTranslator(
-                self.bus.ui.trans
-            )
-        else:
-            QtWidgets.QApplication.instance().removeTranslator(
-                self.bus.ui.trans
-            )
-        self.bus.ui.retranslateUi(self.window)
 
     def fix_wd(self):
         pwd_0 = os.getcwd()
@@ -197,22 +175,19 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
-        # load ui elements
-        # self.ui = loadUi(
-        #     self.ui_file, main_window
-        # )  # Store the UI form for later access
-
         self.ui = Ui_REvoDesignPyMOL_UI()
         self.ui.setupUi(main_window)
 
         # create a bus btw cfg<---> ui
         self.reload_configurations()
 
+        from REvoDesign.application.font import FontSetter
+
+        FontSetter(main_window=main_window)
+
+        # language switch for ui
         self.bus.ui.trans = QtCore.QTranslator(self)
-
-        from REvoDesign.tools.customized_widgets import set_window_font
-
-        set_window_font(main_window)
+        LanguageSwitch(bus=self.bus, window=main_window)
 
         # Set up Menu
 
@@ -237,17 +212,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.bus.ui.actionReinitialize.triggered.connect(self.reinitialize)
 
-        self.bus.ui.actionEnglish.triggered.connect(
-            partial(self.switchLanguage, 'English')
-        )
-
-        self.bus.ui.actionChinese.triggered.connect(
-            partial(self.switchLanguage, '中文')
-        )
-        self.bus.ui.actionFrench.triggered.connect(
-            partial(self.switchLanguage, 'français')
-        )
-
         self.bus.ui.actionSource_Code.triggered.connect(
             partial(
                 QtGui.QDesktopServices.openUrl,
@@ -257,8 +221,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.actionVersion.triggered.connect(
             partial(
                 notify_box,
-                title='About',
-                message=f'REvoDesign v.{__version__}\n Src: {REPO_URL}',
+                message=f'REvoDesign v.{VERSION}\nSrc: {REPO_URL}',
             )
         )
 

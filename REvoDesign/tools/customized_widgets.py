@@ -558,13 +558,11 @@ class WorkerThread(QtCore.QThread):
 
 
 def notify_box(
-    title: str = '',
     message: str = '',
 ):
     # A notify message.
     msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Question)
-    msg.setWindowTitle(title)
+    msg.setIcon(QtWidgets.QMessageBox.Information)
     msg.setText(message)
     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
@@ -597,39 +595,6 @@ def proceed_with_comfirm_msg_box(title='', description=''):
     result = msg.exec_()
 
     return result == QtWidgets.QMessageBox.Yes
-
-
-def set_window_font(main_window):
-    """
-    Function: set_window_font
-    Usage: set_window_font(main_window)
-
-    This function sets the font for the main window based on the operating system.
-
-    Args:
-    - main_window: Reference to the main window object
-
-    Returns:
-    - None
-    """
-    font_families = QtGui.QFontDatabase().families()
-
-    OS_TYPE_FONT_TABLE = {
-        'Windows': ['Microsoft YaHei', 'Century Gothic'],
-        'Linux': ['Nimbus Sans', 'DejaVu Sans'],
-        #'Darwin': ['Chalkboard']
-    }
-
-    _OS_TYPE = CLIENT_INFO.OS_INFO.system
-    if _OS_TYPE not in OS_TYPE_FONT_TABLE:
-        return
-
-    for font_str in OS_TYPE_FONT_TABLE[_OS_TYPE]:
-        if font_str in font_families:
-            font = QtGui.QFont()
-            font.setFamily(font_str)
-            main_window.setFont(font)
-            return
 
 
 def create_cmap_icon(cmap: str):

@@ -4723,16 +4723,25 @@
    </property>
   </action>
   <action name="actionEnglish">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>English</string>
    </property>
   </action>
   <action name="actionChinese">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Chinese</string>
    </property>
   </action>
   <action name="actionFrench">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>French</string>
    </property>

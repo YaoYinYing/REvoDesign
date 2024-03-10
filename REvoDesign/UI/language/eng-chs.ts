@@ -74,7 +74,7 @@
         <location filename="../REvoDesign.ui" line="312"/>
         <location filename="../REvoDesign.ui" line="619"/>
         <source>Detect !</source>
-        <translation></translation>
+        <translation>检测</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="323"/>
@@ -1485,17 +1485,17 @@
         <translation>版本</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4727"/>
+        <location filename="../REvoDesign.ui" line="4730"/>
         <source>English</source>
-        <translation>英文</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4732"/>
+        <location filename="../REvoDesign.ui" line="4738"/>
         <source>Chinese</source>
         <translation>中文</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4737"/>
+        <location filename="../REvoDesign.ui" line="4746"/>
         <source>French</source>
         <translation></translation>
     </message>

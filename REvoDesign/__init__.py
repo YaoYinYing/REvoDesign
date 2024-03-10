@@ -3,6 +3,9 @@ import os
 
 import hydra
 
+# 0. import version info
+from REvoDesign.__version__ import __version__ as VERSION
+
 # 1. import post install module and methods
 from REvoDesign.tools.post_installed import (
     experiment_config,
@@ -38,9 +41,9 @@ from REvoDesign.common.FileExtentions import (
     REvoDesignFileExtentions as FileExtentions,
 )
 
-# 6. import the plugin class and its version info
+# 6. import the plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
-from REvoDesign.__version__ import __version__
+
 
 # 7. enable garbage collection
 gc.enable()
@@ -56,4 +59,5 @@ __all__ = [
     'set_cache_dir',
     'save_configuration',
     'tests',
+    'VERSION',
 ]

@@ -63,6 +63,7 @@ translate:
 	# recompile ui to py
 	pyuic5 REvoDesign/UI/REvoDesign.ui -o REvoDesign/UI/Ui_REvoDesign.py
 	# update translation file
+	lupdate  REvoDesign/UI/REvoDesign.ui -ts REvoDesign/UI/language/eng-eng.ts
 	lupdate  REvoDesign/UI/REvoDesign.ui -ts REvoDesign/UI/language/eng-chs.ts
 
 
