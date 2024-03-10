@@ -6,7 +6,7 @@ on:
       - './CHANGELOG.md' 
       - './pyproject.toml' 
       - 'REvoDesign/__version__.py'
-      
+      - '.github/workflows/unit_tests_tag.yml'
     tags:        
       - '*'   
       
@@ -79,13 +79,11 @@ jobs:
           REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
 
         run: |
-          source activate REvoDesign
           make prepare-test
           make all-test
       
       - name: Convert coverage report to XML for codecov
         run: |
-          source activate REvoDesign
           coverage xml
 
       - name: Upload coverage reports to Codecov

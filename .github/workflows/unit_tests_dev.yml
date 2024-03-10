@@ -6,8 +6,8 @@ on:
       - '.github/workflows/unit_tests_dev.yml' # monitor the main workflow script.
       - 'tests/*.py' # monitor the unit tests
       - 'REvoDesign/*' # monitor the REvoDesign project source code
-      - '!./CHANGELOG.md' 
-      - '!./pyproject.toml' 
+      - '!CHANGELOG.md' 
+      - '!pyproject.toml' 
       - '!REvoDesign/__version__.py'
     
 
