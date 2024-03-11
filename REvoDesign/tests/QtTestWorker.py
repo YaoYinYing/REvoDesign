@@ -209,6 +209,12 @@ class TestWorker:
         print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
+        if isinstance(widget,QtWidgets.QAction):
+            for t in range(times):
+                widget.trigger()
+                self.sleep(100)
+            return self
+        
         for t in range(times):
             self.qtbot.mouseClick(widget, self.CURSOR)
             self.sleep(100)
