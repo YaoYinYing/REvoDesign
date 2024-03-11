@@ -1065,7 +1065,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         available_sidechain_solvers = list(
             self.bus.get_value('ui.config.sidechain_solver.group')
         )
-        if not self.sidechain_solver:
+        if not (
+            self.sidechain_solver
+            and self.sidechain_solver.molecule == self.design_molecule
+            and self.sidechain_solver.chain_id == self.design_chain_id
+            and self.sidechain_solver.sidechain_solver_name
+            == sidechain_solver_name
+            and self.sidechain_solver.sidechain_solver_radius
+            == sidechain_solver_radius
+            and self.sidechain_solver.sidechain_solver_model
+            == sidechain_solver_model
+        ):
             self.sidechain_solver = SidechainSolver(
                 molecule=self.design_molecule,
                 chain_id=self.design_chain_id,
@@ -1077,24 +1087,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.sidechain_solver.setup()
             return True
 
-        if not (
-            self.sidechain_solver.molecule == self.design_molecule
-            and self.sidechain_solver.chain_id == self.design_chain_id
-            and self.sidechain_solver.sidechain_solver_name
-            == sidechain_solver_name
-            and self.sidechain_solver.sidechain_solver_radius
-            == sidechain_solver_radius
-            and self.sidechain_solver.sidechain_solver_model
-            == sidechain_solver_model
-        ):
-            self.sidechain_solver.refresh(
-                molecule=self.design_molecule,
-                chain_id=self.design_chain_id,
-                sidechain_solver_name=sidechain_solver_name,
-                sidechain_solver_radius=sidechain_solver_radius,
-                sidechain_solver_model=sidechain_solver_model,
-            )
-            return True
         return False
 
     def determine_profile_format(
@@ -1560,7 +1552,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('reinitialize_interact')
 
         with hold_trigger_button(trigger_button):
-            sc_refreshed=run_worker_thread_with_progress(
+            sc_refreshed = run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
                 progress_bar=self.bus.ui.progressBar,
             )
@@ -1586,14 +1578,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_interact_scan')
 
         with hold_trigger_button(trigger_button):
-            sc_refreshed=run_worker_thread_with_progress(
+            sc_refreshed = run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
                 progress_bar=self.bus.ui.progressBar,
             )
-            if sc_refreshed: 
+            if sc_refreshed:
                 self.gremlin_worker.mutate_runner = (
-                self.sidechain_solver.mutate_runner
-            )
+                    self.sidechain_solver.mutate_runner
+                )
             self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):

@@ -82,25 +82,3 @@ class SidechainSolver(SidechainSolverConfig):
             raise NotImplementedError
 
         # setup more sidechain solvers here ...
-
-    def refresh(
-        self,
-        molecule,
-        chain_id,
-        sidechain_solver_name,
-        sidechain_solver_radius,
-        sidechain_solver_model,
-    ):
-        if not (
-            self.molecule == molecule
-            and chain_id == chain_id
-            and self.sidechain_solver_name == sidechain_solver_name
-            and self.sidechain_solver_radius == sidechain_solver_radius
-            and self.sidechain_solver_model == sidechain_solver_model
-        ):
-            self.molecule = molecule
-            self.chain_id = chain_id
-            self.sidechain_solver_name == sidechain_solver_name
-            self.sidechain_solver_radius == sidechain_solver_radius
-            self.sidechain_solver_model == sidechain_solver_model
-            self.setup()
