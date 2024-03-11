@@ -7,8 +7,6 @@ on:
       - 'tests/*.py' # monitor the unit tests
       - 'REvoDesign/*' # monitor the REvoDesign project source code
       - '!CHANGELOG.md' 
-      - '!pyproject.toml' 
-      - '!REvoDesign/__version__.py'
     
 
 jobs:
