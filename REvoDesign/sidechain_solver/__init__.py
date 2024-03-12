@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Union
 from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
 from REvoDesign.sidechain_solver.DunbrackRotamerLib import PyMOL_mutate
@@ -20,8 +19,8 @@ __all__ = [
 
 
 class SidechainSolver:
-    def __init__(self, bus):
-        self.bus: ConfigBus = bus
+    def __init__(self):
+        self.bus: ConfigBus = ConfigBus()
         self.mutate_runner: Union[
             PyMOL_mutate, DLPacker_worker, PIPPack_worker, None
         ] = None
@@ -52,7 +51,7 @@ class SidechainSolver:
             in list(self.available_sidechain_solvers)
         ):
             logging.error(
-                f'mutate_runner is not available: {self.mutate_runner}'
+                f'mutate_runner is not available: {self.sidechain_solver_name=}: {self.available_sidechain_solvers=}'
             )
             return
 
@@ -79,7 +78,7 @@ class SidechainSolver:
             self.mutate_runner.reconstruct_area_radius = (
                 self.sidechain_solver_radius
             )
-            return
+            return self
         elif self.sidechain_solver_name == 'PIPPack':
             if not WITH_DEPENDENCIES.PIPPACK:
                 logging.error(
@@ -89,6 +88,7 @@ class SidechainSolver:
             self.mutate_runner = PIPPack_worker(
                 pdb_file=input_pdb, use_model=self.sidechain_solver_model
             )
+            return self
         else:
             raise NotImplementedError
 
@@ -123,8 +123,21 @@ class SidechainSolver:
             self.sidechain_solver_radius,
             self.sidechain_solver_model,
         ]
+        reconfigured = False
+        for _new_cfg, _old_cfg in zip(new_cfgs, old_cfgs):
+            if _new_cfg != _old_cfg:
+                logging.warning(
+                    f'SC solver changed: {_old_cfg=} -> {_new_cfg=}'
+                )
+                reconfigured = True
 
-        return any(
-            _new_cfg != _old_cfg
-            for _new_cfg, _old_cfg in zip(new_cfgs, old_cfgs)
-        )
+        return reconfigured
+
+    def refresh(self) -> bool:
+        if self.cfg_updated:
+            logging.warning(f'Reconfiguring SC solver...')
+            # return a updated
+            return SidechainSolver().setup()
+        else:
+            logging.warning(f'SC solver stays unchanged.')
+            return self

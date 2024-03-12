@@ -189,7 +189,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # language switch for ui
         self.bus.ui.trans = QtCore.QTranslator(self)
-        LanguageSwitch(bus=self.bus, window=main_window)
+        LanguageSwitch(window=main_window)
 
         # Set up Menu
 
@@ -233,8 +233,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 REvoDesignWebSocketClient,
             )
 
-            self.ws_server = REvoDesignWebSocketServer(self.bus)
-            self.ws_client = REvoDesignWebSocketClient(self.bus)
+            self.ws_server = REvoDesignWebSocketServer()
+            self.ws_client = REvoDesignWebSocketClient()
         else:
             self.ws_server = None
             self.ws_client = None
@@ -1042,16 +1042,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             SidechainSolver,
         )
 
-        if not (
-            self.sidechain_solver and not self.sidechain_solver.cfg_updated
-        ):
-            self.sidechain_solver = SidechainSolver(
-                bus=self.bus,
-            )
-            self.sidechain_solver.setup()
-            return True
+        if not self.sidechain_solver:
+            self.sidechain_solver = SidechainSolver().setup()
+            return
 
-        return False
+        self.sidechain_solver = self.sidechain_solver.refresh()
+        return
 
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
@@ -1089,7 +1085,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
 
             worker = MutateWorker(
-                bus=self.bus,
                 mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
@@ -1121,9 +1116,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     ):
         from REvoDesign.evaluate import Evalutator
 
-        self.evaluator = Evalutator(
-            bus=self.bus,
-        )
+        self.evaluator = Evalutator()
 
         self.evaluator.initialize_design_candidates()
 
@@ -1261,7 +1254,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ), f'MutateWorker requires a valid sidechain_solver! {self.sidechain_solver}'
 
             worker = VisualizingWorker(
-                bus=self.bus,
                 mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
@@ -1485,7 +1477,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             from REvoDesign.phylogenetics import GREMLIN_Analyser
 
             self.gremlin_worker = GREMLIN_Analyser(
-                bus=self.bus,
                 PWD=self.PWD,
                 mutate_runner=self.sidechain_solver.mutate_runner,
                 ws_server=self.ws_server,
@@ -1517,7 +1508,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
     def generate_ws_server_key(self):
-        use_key = self.bus.get_value('ui.socket.use_key', bool)
+        use_key = self.bus.get_widget_value('ui.socket.use_key')
         if not use_key:
             return
 
@@ -1536,11 +1527,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
 
         # do changes
-        self.ws_server.view_broadcast_enabled = self.bus.get_value(
+        self.ws_server.view_broadcast_enabled = self.bus.get_widget_value(
             'ui.socket.broadcast.view'
         )
-        self.ws_server.view_broadcast_interval = self.bus.get_value(
-            'ui.socket.broadcast.interval', float
+        self.ws_server.view_broadcast_interval = self.bus.get_widget_value(
+            'ui.socket.broadcast.interval'
         )
 
         # disabled
@@ -1592,7 +1583,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     REvoDesignWebSocketServer,
                 )
 
-                self.ws_server = REvoDesignWebSocketServer(self.bus)
+                self.ws_server = REvoDesignWebSocketServer()
 
             if toggled:
                 if self.ws_server.is_running:
@@ -1633,7 +1624,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             logging.warning(f'Client is not connected')
             return
 
-        self.ws_client.receive_view_broadcast = self.bus.get_value(
+        self.ws_client.receive_view_broadcast = self.bus.get_widget_value(
             'ui.socket.receive.view'
         )
 
@@ -1643,7 +1634,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 REvoDesignWebSocketClient,
             )
 
-            self.ws_client = REvoDesignWebSocketClient(self.bus)
+            self.ws_client = REvoDesignWebSocketClient()
 
         try:
             if connect:
@@ -1684,7 +1675,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not reconfigure:
             # while booting
             # create a bus btw cfg<---> ui
-            self.bus = ConfigBus(ui=self.ui)
+            ConfigBus.initialize(ui=self.ui)
+            self.bus = ConfigBus()
             self.bus.initialize_widget_with_cfg_group()
 
         elif experiment:

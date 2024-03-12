@@ -17,7 +17,6 @@ from pymol import cmd
 
 from REvoDesign.tools.customized_widgets import (
     refresh_tree_widget,
-    refresh_window,
 )
 
 
@@ -59,9 +58,9 @@ class REvoDesignWebSocketServer:
     - is_port_available: Checks if a port is available for use.
     """
 
-    def __init__(self, bus: ConfigBus):
+    def __init__(self):
         super().__init__()
-        self.bus = bus
+        self.bus: ConfigBus = ConfigBus()
         self.clients: dict[dict, None] = {}
         self.waiting_room = set()
         self.server = None  # Initialize server as None
@@ -504,8 +503,8 @@ class REvoDesignWebSocketServer:
 
 
 class REvoDesignWebSocketClient:
-    def __init__(self, bus: ConfigBus):
-        self.bus = bus
+    def __init__(self):
+        self.bus: ConfigBus = ConfigBus()
         self.server_url = 'localhost'
         self.server_port = 7890
         self.authentication_key = None
@@ -648,7 +647,7 @@ class REvoDesignWebSocketClient:
             received_mutant_tree = deserialized_object.__deepcopy__
             diff_mutant_tree = received_mutant_tree.diff_tree_from(
                 existed_mutant_tree(
-                    sequences={self.design_chain_id: self.design_sequence}
+                    sequences=self.bus.get_value('designable_sequences')
                 )
             )
             if self.receive_mutagenesis_broadcast:
@@ -711,14 +710,25 @@ class REvoDesignWebSocketClient:
             # Handle unrecognized data types or return None
             return None
 
+    def get_sidechain_solver(self):
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
+
+        return SidechainSolver().setup()
+
     def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
 
         if not self.sidechain_solver:
-            raise RuntimeError('Sidechain Solver is not instantialized.')
+            logging.warning(
+                "No sidechain_solver is configured. Instantializing..."
+            )
+            self.sidechain_solver = self.get_sidechain_solver()
+
+        self.sidechain_solver = self.sidechain_solver.refresh()
 
         quick_mutagenesis(
-            bus=self.bus,
             mutant_tree=mutant_tree,
             sidechain_solver=self.sidechain_solver,
         )

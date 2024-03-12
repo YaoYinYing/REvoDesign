@@ -456,13 +456,14 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
 
 
 def quick_mutagenesis(
-    bus: ConfigBus,
     mutant_tree: MutantTree,
     sidechain_solver: SidechainSolver,
 ):
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
     from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
     from REvoDesign.tools.utils import run_worker_thread_with_progress
+
+    bus: ConfigBus = ConfigBus()
 
     molecule = bus.get_value('ui.header_panel.input.molecule')
     chain_id = bus.get_value('ui.header_panel.input.chain_id')

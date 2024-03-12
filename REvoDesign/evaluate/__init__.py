@@ -22,8 +22,8 @@ logging = root_logger.getChild(__name__)
 
 
 class Evalutator:
-    def __init__(self, bus):
-        self.bus: ConfigBus = bus
+    def __init__(self):
+        self.bus: ConfigBus = ConfigBus()
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'

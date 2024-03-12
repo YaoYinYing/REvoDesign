@@ -41,8 +41,8 @@ logging = root_logger.getChild(__name__)
 
 
 class MutateWorker:
-    def __init__(self, bus, PWD, mutate_runner):
-        self.bus: ConfigBus = bus
+    def __init__(self, PWD, mutate_runner):
+        self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
         self.mutate_runner: Union[
@@ -197,8 +197,8 @@ class MutateWorker:
 
 
 class VisualizingWorker:
-    def __init__(self, bus, PWD, mutate_runner):
-        self.bus: ConfigBus = bus
+    def __init__(self, PWD, mutate_runner):
+        self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
         self.mutate_runner: Union[
@@ -312,8 +312,8 @@ class VisualizingWorker:
 
 
 class GREMLIN_Analyser:
-    def __init__(self, bus, PWD, mutate_runner, ws_server=None):
-        self.bus: ConfigBus = bus
+    def __init__(self, PWD, mutate_runner, ws_server=None):
+        self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
         self.mutate_runner: Union[
@@ -990,7 +990,7 @@ class GREMLIN_Analyser:
         ):
             asyncio.run(
                 self.ws_server.broadcast_object(
-                    data=mutant_tree,
+                    obj=mutant_tree,
                     data_type='MutantTree',
                 )
             )

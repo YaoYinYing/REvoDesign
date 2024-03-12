@@ -45,11 +45,29 @@ class ConfigBus:
         button(id: str): Retrieves a button widget based on its ID.
     """
 
-    def __init__(self, ui: QtWidgets.QWidget):
-        self.ui = ui
-        self.cfg: DictConfig = reload_config_file()
-        self.w2c = Widget2ConfigMapper(ui=self.ui)
-        self.buttons = self.w2c.buttons
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(ConfigBus, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self, ui=None):
+        if not hasattr(self, 'initialized'):
+            self.ui = ui
+
+            self.cfg: DictConfig = reload_config_file()
+            self.w2c = Widget2ConfigMapper(ui=self.ui)
+            self.buttons = self.w2c.buttons
+            # Mark the instance as initialized to prevent reinitialization
+            self.initialized = True
+
+    @classmethod
+    def initialize(cls, ui):
+        if not cls._instance:
+            cls(ui=ui)
+        else:
+            cls._instance.ui = ui
 
     def initialize_widget_with_cfg_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
