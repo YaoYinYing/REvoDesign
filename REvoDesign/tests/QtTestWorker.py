@@ -15,7 +15,7 @@ from pytestqt import qtbot
 from pymol import cmd, CmdException
 from pymol.Qt import QtWidgets, QtCore, QtGui
 
-from REvoDesign import REvoDesignPlugin, EXPERIMENTS_CONFIG_DIR
+from REvoDesign import ConfigBus, REvoDesignPlugin, EXPERIMENTS_CONFIG_DIR
 
 from REvoDesign.tools.customized_widgets import (
     get_widget_value,
@@ -38,6 +38,7 @@ def app():
 def plugin(qtbot: qtbot.QtBot, app):
     # Create and return an instance of the REvoDesignPlugin
     plugin = REvoDesignPlugin()
+    ConfigBus.reset_instance()
     if not plugin.window:
         plugin.run_plugin_gui()
     qtbot.addWidget(

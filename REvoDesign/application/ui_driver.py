@@ -67,6 +67,10 @@ class ConfigBus:
             self.initialized = True
 
     @classmethod
+    def reset_instance(cls):
+        cls._instance = None
+
+    @classmethod
     def initialize(cls, ui):
         if not cls._instance:
             cls(ui=ui)
