@@ -7,7 +7,10 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 from REvoDesign import root_logger
 
-from REvoDesign.issues.exceptions import DependencyError,PluginNotImplementedError
+from REvoDesign.issues.exceptions import (
+    DependencyError,
+    PluginNotImplementedError,
+)
 
 
 logging = root_logger.getChild(__name__)
@@ -56,7 +59,6 @@ class SidechainSolver:
                 f'sidechain_solver is not available: {self.sidechain_solver_name=}: {self.available_sidechain_solvers=}'
             )
 
-
         logging.info(
             f'Using {self.sidechain_solver_name} as sidechain solver.'
         )
@@ -76,7 +78,6 @@ class SidechainSolver:
                     f'{self.sidechain_solver_name} is not available in your installation. Aborded..'
                 )
 
-
             self.mutate_runner = DLPacker_worker(pdb_file=input_pdb)
             self.mutate_runner.reconstruct_area_radius = (
                 self.sidechain_solver_radius
@@ -91,7 +92,6 @@ class SidechainSolver:
                 pdb_file=input_pdb, use_model=self.sidechain_solver_model
             )
             return self
-        
 
         # setup more sidechain solvers here ...
 
@@ -134,7 +134,7 @@ class SidechainSolver:
 
         return reconfigured
 
-    def refresh(self) -> bool:
+    def refresh(self) -> 'SidechainSolver':
         if self.cfg_updated:
             logging.warning(f'Reconfiguring SC solver...')
             # return a updated

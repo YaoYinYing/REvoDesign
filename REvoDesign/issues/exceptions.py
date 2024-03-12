@@ -1,4 +1,3 @@
-
 class REvoDesignException(Exception):
     """Base class for all exceptions in the REvoDesign application."""
 
@@ -23,10 +22,12 @@ class EnzymeDesignError(REvoDesignException):
 
     pass
 
+
 class DependencyError(REvoDesignException):
     """Exception raised for errors related to uninstalled dependency"""
 
     pass
+
 
 class PluginNotImplementedError(NotImplementedError):
     """Exception raised when the plugin is not implemented"""
