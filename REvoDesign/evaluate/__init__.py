@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from functools import partial
 import os
 
@@ -22,16 +21,23 @@ from REvoDesign.tools.mutant_tools import (
 logging = root_logger.getChild(__name__)
 
 
-@dataclass
-class EvalutatorConfig:
-    bus: ConfigBus = None
-    design_molecule: str = None
-    design_chain_id: str = None
-    design_sequence: str = None
-    designable_sequences: dict[str, str] = None
+class Evalutator:
+    def __init__(self):
+        self.bus: ConfigBus = ConfigBus()
 
+        self.design_molecule: str = self.bus.get_value(
+            'ui.header_panel.input.molecule'
+        )
+        self.design_chain_id: str = self.bus.get_value(
+            'ui.header_panel.input.chain_id'
+        )
+        self.designable_sequences: dict = self.bus.get_value(
+            'designable_sequences'
+        )
+        self.design_sequence: str = self.designable_sequences.get(
+            self.design_chain_id
+        )
 
-class Evalutator(EvalutatorConfig):
     def activate_focused(self):
         molecule = self.design_molecule
         chain_id = self.design_chain_id

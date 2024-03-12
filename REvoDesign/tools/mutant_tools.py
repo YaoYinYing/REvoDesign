@@ -12,7 +12,7 @@ from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
-from REvoDesign import FileExtentions
+from REvoDesign import ConfigBus, FileExtentions
 
 from REvoDesign import root_logger
 
@@ -457,33 +457,21 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
 
 def quick_mutagenesis(
     mutant_tree: MutantTree,
-    molecule: str,
-    chain_id: str,
-    sequence: str,
-    nproc: int,
     sidechain_solver: SidechainSolver,
-    progress_bar=None,
 ):
-    """
-    Function: quick_mutagenesis
-    Usage: quick_mutagenesis(mutant_tree, molecule, chain_id, sequence, cmap, nproc, progress_bar=None)
-
-    This function performs quick mutagenesis tasks using MutantVisualizer from REvoDesign.
-
-    Args:
-    - mutant_tree (MutantTree): MutantTree object containing mutation information
-    - molecule (str): PyMOL selection string of the molecule
-    - chain_id (str): Chain ID of the molecule
-    - sequence (str): Amino acid sequence
-    - nproc (int): Number of processors
-    - progress_bar (object): Progress bar object (default is None)
-
-    Returns:
-    - None
-    """
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
     from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
     from REvoDesign.tools.utils import run_worker_thread_with_progress
+
+    bus: ConfigBus = ConfigBus()
+
+    molecule = bus.get_value('ui.header_panel.input.molecule')
+    chain_id = bus.get_value('ui.header_panel.input.chain_id')
+    designable_sequences: dict = bus.get_value('designable_sequences')
+    sequence: str = designable_sequences.get(chain_id)
+
+    nproc = bus.get_value('ui.header_panel.nproc')
+    progress_bar = bus.ui.progressBar
 
     if mutant_tree.empty:
         logging.warning(f'Mutant tree is empty!')
@@ -499,7 +487,7 @@ def quick_mutagenesis(
 
     input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
     visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-    cfg: DictConfig = reload_config_file()
+    cfg = bus.cfg
 
     visualizer.nproc = nproc
     visualizer.parallel_run = nproc > 1

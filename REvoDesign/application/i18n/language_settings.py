@@ -24,8 +24,8 @@ class LanguageItem:
 
 
 class LanguageSwitch(QtWidgets.QWidget):
-    def __init__(self, bus: ConfigBus, window):
-        self.bus: ConfigBus = bus
+    def __init__(self, window):
+        self.bus: ConfigBus = ConfigBus()
         self.window = window
 
         # language mapping

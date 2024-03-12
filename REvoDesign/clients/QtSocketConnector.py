@@ -7,7 +7,7 @@ import time
 import traceback
 from typing import Union
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
-from REvoDesign import root_logger
+from REvoDesign import ConfigBus, root_logger
 from REvoDesign.tools.utils import run_worker_thread_with_progress
 
 logging = root_logger.getChild(__name__)
@@ -17,7 +17,6 @@ from pymol import cmd
 
 from REvoDesign.tools.customized_widgets import (
     refresh_tree_widget,
-    refresh_window,
 )
 
 
@@ -61,6 +60,7 @@ class REvoDesignWebSocketServer:
 
     def __init__(self):
         super().__init__()
+        self.bus: ConfigBus = ConfigBus()
         self.clients: dict[dict, None] = {}
         self.waiting_room = set()
         self.server = None  # Initialize server as None
@@ -386,32 +386,15 @@ class REvoDesignWebSocketServer:
         pickled_obj = pickle.dumps(obj)
         return base64.b64encode(pickled_obj).decode()
 
-    def setup_ws_server(
-        self,
-        ws_server_port,
-        ws_server_use_key,
-        ws_server_key,
-        ws_broadcast_view,
-        ws_view_broadcast_interval,
-        treeWidget_ws_peers,
-    ):
-        """
-        Sets up the WebSocket server with specified settings.
-
-        Args:
-        (Arguments from previous implementation remain unchanged)
-
-        Returns:
-        None
-        """
+    def setup_ws_server(self):
         from REvoDesign.tools.system_tools import CLIENT_INFO
 
-        self.use_authentication = ws_server_use_key
-        self.authentication_key = ws_server_key
+        self.use_authentication = self.bus.get_value('ui.socket.use_key')
+        self.authentication_key = self.bus.get_value('ui.socket.input.key')
         if self.use_authentication and not self.authentication_key:
             raise ValueError('Key for authentication is empty!')
 
-        requested_port = ws_server_port
+        requested_port = self.bus.get_value('ui.socket.server_port', int)
 
         if not requested_port:
             raise ValueError(f'Port {requested_port} is not valid')
@@ -423,8 +406,10 @@ class REvoDesignWebSocketServer:
 
         self.port = requested_port
 
-        self.do_broadcast_view = ws_broadcast_view
-        self.view_broadcast_interval = ws_view_broadcast_interval
+        self.do_broadcast_view = self.bus.get_value('ui.socket.broadcast.view')
+        self.view_broadcast_interval = self.bus.get_value(
+            'ui.socket.broadcast.interval', float
+        )
         logging.info(
             f'Server is reconfigured! \n ' f'Key: {self.authentication_key}\n'
         )
@@ -446,7 +431,7 @@ class REvoDesignWebSocketServer:
             self.server.acceptError.connect(self.onAcceptError)
             self.server.newConnection.connect(self.onNewConnection)
 
-        self.treeWidget_ws_peers = treeWidget_ws_peers
+        self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
 
     def check_broadcast_interval(self) -> float:
         """
@@ -476,16 +461,15 @@ class REvoDesignWebSocketServer:
         last_view = cmd.get_view()
         while True:
             run_worker_thread_with_progress(
-                worker_function=time.sleep,
-                seconds=self.check_broadcast_interval(),
+                time.sleep,
+                None,
+                self.check_broadcast_interval(),
             )
 
             view_data = cmd.get_view()
             if view_data == last_view:
                 # external sleep if view is not changed.
-                run_worker_thread_with_progress(
-                    worker_function=time.sleep, seconds=1
-                )
+                # run_worker_thread_with_progress(time.sleep, None, 1)
                 continue
             if not self.check_broadcast_enabled_flag():
                 return
@@ -520,41 +504,24 @@ class REvoDesignWebSocketServer:
 
 class REvoDesignWebSocketClient:
     def __init__(self):
+        self.bus: ConfigBus = ConfigBus()
         self.server_url = 'localhost'
         self.server_port = 7890
         self.authentication_key = None
         self.receive_view_broadcast = False
         self.receive_mutagenesis_broadcast = True
-        self.design_molecule = ''
-        self.design_chain_id = ''
-        self.design_sequence = ''
-        # Other initializations...
-        self.cmap = 'bwr_r'
-        self.nproc = 2
 
         self.uuid = ''
         self.connected = False
         self.client = None
-        self.progress_bar = None
         self.treeWidget_ws_peers = None
 
         self.sidechain_solver = None
 
-    def setup_ws_client(
-        self,
-        ws_server_url_to_connect,
-        ws_server_port_to_connect,
-        ws_server_key_to_connect,
-        ws_receive_mutagenesis_broadcast,
-        ws_receive_view_broadcast,
-        treeWidget_ws_peers,
-    ):
-        if not self.design_molecule or not self.design_chain_id:
-            raise ValueError('Invalid design molecule/chain ID!')
+    def setup_ws_client(self):
+        self.server_url = self.bus.get_value('ui.socket.server_url')
 
-        self.server_url = ws_server_url_to_connect
-
-        server_port = ws_server_port_to_connect
+        server_port = self.bus.get_value('ui.socket.server_port', int)
         if not server_port:
             raise ValueError(f'Invalid server port {server_port}')
         self.server_port = server_port
@@ -562,11 +529,15 @@ class REvoDesignWebSocketClient:
         if not self.server_url or not self.server_port:
             raise ValueError('Invalid server configurations!')
 
-        self.authentication_key = ws_server_key_to_connect
-        self.receive_mutagenesis_broadcast = ws_receive_mutagenesis_broadcast
-        self.receive_view_broadcast = ws_receive_view_broadcast
+        self.authentication_key = self.bus.get_value('ui.socket.input.key')
+        self.receive_mutagenesis_broadcast = self.bus.get_value(
+            'ui.socket.receive.mutagenesis'
+        )
+        self.receive_view_broadcast = self.bus.get_value(
+            'ui.socket.receive.view'
+        )
 
-        self.treeWidget_ws_peers = treeWidget_ws_peers
+        self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
 
         logging.info(
             'Setting up client is done. Preparing to connect to the server.'
@@ -676,7 +647,7 @@ class REvoDesignWebSocketClient:
             received_mutant_tree = deserialized_object.__deepcopy__
             diff_mutant_tree = received_mutant_tree.diff_tree_from(
                 existed_mutant_tree(
-                    sequences={self.design_chain_id: self.design_sequence}
+                    sequences=self.bus.get_value('designable_sequences')
                 )
             )
             if self.receive_mutagenesis_broadcast:
@@ -688,7 +659,6 @@ class REvoDesignWebSocketClient:
                 run_worker_thread_with_progress(
                     worker_function=self.mutagenesis_from_mutant_tree,
                     mutant_tree=diff_mutant_tree,
-                    progress_bar=self.progress_bar,
                 )
             return
 
@@ -740,18 +710,26 @@ class REvoDesignWebSocketClient:
             # Handle unrecognized data types or return None
             return None
 
+    def get_sidechain_solver(self):
+        from REvoDesign.sidechain_solver import (
+            SidechainSolver,
+        )
+
+        return SidechainSolver().setup()
+
     def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
 
         if not self.sidechain_solver:
-            raise RuntimeError('Sidechain Solver is not instantialized.')
+            logging.warning(
+                "No sidechain_solver is configured. Instantializing..."
+            )
+            self.sidechain_solver = self.get_sidechain_solver()
+
+        self.sidechain_solver = self.sidechain_solver.refresh()
 
         quick_mutagenesis(
             mutant_tree=mutant_tree,
-            molecule=self.design_molecule,
-            chain_id=self.design_chain_id,
-            sequence=self.design_sequence,
-            nproc=self.nproc,
             sidechain_solver=self.sidechain_solver,
         )
 

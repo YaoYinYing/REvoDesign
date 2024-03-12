@@ -32,7 +32,6 @@ from REvoDesign.tools.utils import (
     rescale_number,
     run_worker_thread_with_progress,
 )
-from dataclasses import dataclass
 from pymol import cmd
 
 
@@ -41,18 +40,28 @@ from REvoDesign import root_logger
 logging = root_logger.getChild(__name__)
 
 
-@dataclass
-class MutateWorkerConfig:
-    bus: ConfigBus
-    design_molecule: str
-    design_chain_id: str
-    design_sequence: str
-    designable_sequences: dict[str, str]
-    PWD: str
-    mutate_runner: Union[PyMOL_mutate, PIPPack_worker, DLPacker_worker]
+class MutateWorker:
+    def __init__(self, PWD, mutate_runner):
+        self.bus: ConfigBus = ConfigBus()
 
+        self.PWD: str = PWD
+        self.mutate_runner: Union[
+            PyMOL_mutate, PIPPack_worker, DLPacker_worker
+        ] = mutate_runner
 
-class MutateWorker(MutateWorkerConfig):
+        self.design_molecule: str = self.bus.get_value(
+            'ui.header_panel.input.molecule'
+        )
+        self.design_chain_id: str = self.bus.get_value(
+            'ui.header_panel.input.chain_id'
+        )
+        self.designable_sequences: dict = self.bus.get_value(
+            'designable_sequences'
+        )
+        self.design_sequence: str = self.designable_sequences.get(
+            self.design_chain_id
+        )
+
     def run_mutant_loading_from_profile(self):
         try:
             design_profile = self.bus.get_value('ui.mutate.input.profile')
@@ -187,7 +196,28 @@ class MutateWorker(MutateWorkerConfig):
             traceback.print_exc()
 
 
-class VisualizingWorker(MutateWorkerConfig):
+class VisualizingWorker:
+    def __init__(self, PWD, mutate_runner):
+        self.bus: ConfigBus = ConfigBus()
+
+        self.PWD: str = PWD
+        self.mutate_runner: Union[
+            PyMOL_mutate, PIPPack_worker, DLPacker_worker
+        ] = mutate_runner
+
+        self.design_molecule: str = self.bus.get_value(
+            'ui.header_panel.input.molecule'
+        )
+        self.design_chain_id: str = self.bus.get_value(
+            'ui.header_panel.input.chain_id'
+        )
+        self.designable_sequences: dict = self.bus.get_value(
+            'designable_sequences'
+        )
+        self.design_sequence: str = self.designable_sequences.get(
+            self.design_chain_id
+        )
+
     def visualize_mutants(self):
         input_mut_table_csv = self.bus.get_value(
             'ui.visualize.input.from_mutant_txt'
@@ -281,12 +311,29 @@ class VisualizingWorker(MutateWorkerConfig):
             traceback.print_exc()
 
 
-@dataclass
-class GREMLIN_AnalyserConfig(MutateWorkerConfig):
-    ws_server: REvoDesignWebSocketServer = None
+class GREMLIN_Analyser:
+    def __init__(self, PWD, mutate_runner, ws_server=None):
+        self.bus: ConfigBus = ConfigBus()
 
+        self.PWD: str = PWD
+        self.mutate_runner: Union[
+            PyMOL_mutate, PIPPack_worker, DLPacker_worker
+        ] = mutate_runner
+        self.ws_server: REvoDesignWebSocketServer = ws_server
 
-class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
+        self.design_molecule: str = self.bus.get_value(
+            'ui.header_panel.input.molecule'
+        )
+        self.design_chain_id: str = self.bus.get_value(
+            'ui.header_panel.input.chain_id'
+        )
+        self.designable_sequences: dict = self.bus.get_value(
+            'designable_sequences'
+        )
+        self.design_sequence: str = self.designable_sequences.get(
+            self.design_chain_id
+        )
+
     def load_gremlin_mrf(
         self,
     ):
@@ -416,6 +463,11 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
 
             self.plot_w_fps = self.gremlin_tool.plot_w_in_batch()
 
+            self.plot_w_fps = run_worker_thread_with_progress(
+                worker_function=self.gremlin_tool.plot_w_in_batch,
+                progress_bar=self.bus.ui.progressBar,
+            )
+
             if not self.plot_w_fps:
                 logging.warning(
                     f'No Available co-evolutionary signal in global'
@@ -455,14 +507,16 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         i_out_of_range = []
         for i, pair_resi in self.plot_w_fps.items():
             logging.debug(pair_resi)
+            i_x = pair_resi[0][0] + 1
+            i_y = pair_resi[0][1] + 1
 
             spatial_distance = cmd.get_distance(
-                atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][0]+1} and n. CA',
-                atom2=f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair_resi[0][1]+1} and n. CA',
+                atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {i_x} and n. CA',
+                atom2=f'{self.design_molecule} and c. {self.design_chain_id} and i. {i_y} and n. CA',
             )
             cmd.bond(
-                f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][0]+1} and n. CA',
-                f'{ce_object_name} and c. {self.design_chain_id} and resi {pair_resi[0][1]+1} and n. CA',
+                f'{ce_object_name} and c. {self.design_chain_id} and resi {i_x} and n. CA',
+                f'{ce_object_name} and c. {self.design_chain_id} and resi {i_y} and n. CA',
             )
             cmd.set(
                 'stick_radius',
@@ -471,23 +525,23 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
                     min_value=min_gremlin_score,
                     max_value=max_gremlin_score,
                 ),
-                f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                f'({ce_object_name}  and c. {self.design_chain_id} and resi {i_x}+{i_y} and n. CA)',
             )
             if spatial_distance > max_interact_dist:
                 logging.info(
-                    f'Resi {pair_resi[0][0]+1} is {spatial_distance:.2f} Å away from {pair_resi[0][1]+1}, out of distance {max_interact_dist}'
+                    f'Resi {i_x} is {spatial_distance:.2f} Å away from {i_y}, out of distance {max_interact_dist}'
                 )
                 i_out_of_range.append(i)
                 cmd.set(
                     'stick_color',
                     'salmon',
-                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {i_x}+{i_y} and n. CA)',
                 )
             else:
                 cmd.set(
                     'stick_color',
                     'marine',
-                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {pair_resi[0][0]+1}+{pair_resi[0][1]+1} and n. CA)',
+                    f'({ce_object_name}  and c. {self.design_chain_id} and resi {i_x}+{i_y} and n. CA)',
                 )
 
         cmd.show('sticks', ce_object_name)
@@ -508,8 +562,8 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         try:
             self.bus.button('previous').clicked.disconnect()
             self.bus.button('next').clicked.disconnect()
-        except:
-            pass
+        except Exception as e:
+            logging.warning(f'{e=}')
 
         self.bus.button('previous').clicked.connect(
             partial(self.load_co_evolving_pairs, False)
@@ -936,7 +990,7 @@ class GREMLIN_Analyser(GREMLIN_AnalyserConfig):
         ):
             asyncio.run(
                 self.ws_server.broadcast_object(
-                    data=mutant_tree,
+                    obj=mutant_tree,
                     data_type='MutantTree',
                 )
             )

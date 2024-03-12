@@ -45,11 +45,37 @@ class ConfigBus:
         button(id: str): Retrieves a button widget based on its ID.
     """
 
-    def __init__(self, ui: QtWidgets.QWidget):
-        self.ui = ui
-        self.cfg: DictConfig = reload_config_file()
-        self.w2c = Widget2ConfigMapper(ui=self.ui)
-        self.buttons = self.w2c.buttons
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        # Check if an instance of ConfigBus already exists
+        if not cls._instance:
+            # If not, create a new instance and assign it to the _instance class variable
+            cls._instance = super(ConfigBus, cls).__new__(cls)
+        # Return the existing instance
+        return cls._instance
+
+    def __init__(self, ui=None):
+        # Check if the instance has already been initialized
+        if not hasattr(self, 'initialized'):
+            # If not, set the instance attributes
+            self.ui = ui
+            self.cfg: DictConfig = reload_config_file()
+            self.w2c = Widget2ConfigMapper(ui=self.ui)
+            self.buttons = self.w2c.buttons
+            # Mark the instance as initialized to prevent reinitialization
+            self.initialized = True
+
+    @classmethod
+    def reset_instance(cls):
+        cls._instance = None
+
+    @classmethod
+    def initialize(cls, ui):
+        if not cls._instance:
+            cls(ui=ui)
+        else:
+            cls._instance.ui = ui
 
     def initialize_widget_with_cfg_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
@@ -159,12 +185,16 @@ class ConfigBus:
 
     def get_value(
         self, cfg_item: str, converter=None
-    ) -> Union[Any, list[Any]]:
+    ) -> Union[Any, list[Any], dict]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
 
         # Default conversions for None values
-        default_conversions = {Union[str, None]: '', Union[int, float]: 0}
+        default_conversions = {
+            Union[str, None]: '',
+            Union[int, float]: 0,
+            dict: {},
+        }
         if value is None and converter in default_conversions:
             value = default_conversions[converter]
 
@@ -174,6 +204,7 @@ class ConfigBus:
             float: lambda v: float(v),
             int: lambda v: int(v),
             bool: lambda v: bool(v),
+            dict: lambda v: dict(v),
         }
         if converter in predefined_conversions:
             value = predefined_conversions[converter](value)

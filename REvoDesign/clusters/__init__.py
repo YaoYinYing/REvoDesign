@@ -10,24 +10,42 @@ from REvoDesign import root_logger
 logging = root_logger.getChild(__name__)
 
 
-@dataclass
-class ClusterRunnerConfig:
-    bus: ConfigBus = None
-    design_molecule: str = None
-    design_chain_id: str = None
-    design_sequence: str = None
-    PWD: str = None
-    cluster_batch_size: int = 100
-    cluster_number: int = 15
-    min_mut_num: int = 1
-    max_mut_num: int = 1
-    cluster_substitution_matrix: str = 'PAM30'
-    shuffle_variant: bool = False
-    nproc: int = 10
-    input_mutant_table: str = None
+class ClusterRunner:
+    def __init__(self, bus, PWD):
+        self.bus: ConfigBus = bus
 
+        self.PWD: str = PWD
+        self.design_molecule: str = self.bus.get_value(
+            'ui.header_panel.input.molecule'
+        )
+        self.design_chain_id: str = self.bus.get_value(
+            'ui.header_panel.input.chain_id'
+        )
+        self.designable_sequences: dict = self.bus.get_value(
+            'designable_sequences'
+        )
+        self.design_sequence: str = self.designable_sequences.get(
+            self.design_chain_id
+        )
 
-class ClusterRunner(ClusterRunnerConfig):
+        self.input_mutant_table = self.bus.get_value(
+            'ui.cluster.input.from_mutant_txt'
+        )
+
+        self.cluster_batch_size = self.bus.get_value(
+            'ui.cluster.batch_size', int
+        )
+        self.cluster_number = self.bus.get_value('ui.cluster.num_cluster', int)
+        self.min_mut_num = self.bus.get_value('ui.cluster.mut_num_min', int)
+        self.max_mut_num = self.bus.get_value('ui.cluster.mut_num_max', int)
+        self.cluster_substitution_matrix = self.bus.get_value(
+            'ui.cluster.score_matrix.default'
+        )
+
+        self.shuffle_variant = self.bus.get_value('ui.cluster.shuffle')
+
+        self.nproc = self.bus.get_value('ui.header_panel.nproc', int)
+
     # combination and clustering
     def run_clustering(self):
         # lazy module loading to fasten plugin initializing
