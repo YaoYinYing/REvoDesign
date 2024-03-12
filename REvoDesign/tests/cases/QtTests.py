@@ -1172,6 +1172,7 @@ class TestREvoDesignPlugin_TabConfig:
 
         WORKER.check_existed_mutant_tree()
 
+
 class TestREvoDesignPlugin_ActionTranslate:
     def test_chinese(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
@@ -1183,19 +1184,18 @@ class TestREvoDesignPlugin_ActionTranslate:
                 widget=WORKER.plugin.window,
                 basename=f'{WORKER.test_id}_{tab}',
             )
-        
+
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
             basename=f'{WORKER.test_id}',
         )
 
         assert WORKER.plugin.ui.label_molecule.text() == '蛋白分子：'
-    
+
         WORKER.click(WORKER.plugin.ui.actionEnglish)
         assert WORKER.plugin.ui.label_molecule.text() != '蛋白分子：'
 
         assert not WORKER.plugin.ui.actionFrench.isEnabled()
-
 
 
 if __name__ == '__main__' or __name__ == 'pymol':

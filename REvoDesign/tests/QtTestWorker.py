@@ -209,12 +209,12 @@ class TestWorker:
         print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
-        if isinstance(widget,QtWidgets.QAction):
+        if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
                 self.sleep(100)
             return self
-        
+
         for t in range(times):
             self.qtbot.mouseClick(widget, self.CURSOR)
             self.sleep(100)
@@ -250,8 +250,14 @@ class TestWorker:
         )
 
     def check_molecule_after_loaded(self):
-        assert self.plugin.design_molecule == self.test_data.molecule
-        assert self.plugin.design_chain_id == self.test_data.chain_id
+        assert (
+            self.plugin.bus.get_value('ui.header_panel.input.molecule')
+            == self.test_data.molecule
+        )
+        assert (
+            self.plugin.bus.get_value('ui.header_panel.input.chain_id')
+            == self.test_data.chain_id
+        )
         assert (
             get_widget_value(self.plugin.ui.comboBox_design_molecule)
             == self.test_data.molecule

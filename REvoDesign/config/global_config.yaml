@@ -3,6 +3,8 @@
 # to perform customized configurations while REvoDesign is called at the very first time.
 # Click menu-REvoDesign-Reconfigure to apply changes from this copy. 
 
+
+
 ui:
   header_panel: 
     input: 
@@ -11,8 +13,8 @@ ui:
     cmap: 
       default: bwr_r
     nproc: 6
-  # footer_panel: 
-  #   progressbar:
+  
+  
   prepare:
     input:
       pocket:
@@ -218,3 +220,5 @@ cache_dir:
   # ~/.REvoDesign/
   under_home_dir: True
   customized: 
+
+designable_sequences: ???

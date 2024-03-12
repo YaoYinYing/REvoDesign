@@ -159,12 +159,16 @@ class ConfigBus:
 
     def get_value(
         self, cfg_item: str, converter=None
-    ) -> Union[Any, list[Any]]:
+    ) -> Union[Any, list[Any], dict]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
 
         # Default conversions for None values
-        default_conversions = {Union[str, None]: '', Union[int, float]: 0}
+        default_conversions = {
+            Union[str, None]: '',
+            Union[int, float]: 0,
+            dict: {},
+        }
         if value is None and converter in default_conversions:
             value = default_conversions[converter]
 
@@ -174,6 +178,7 @@ class ConfigBus:
             float: lambda v: float(v),
             int: lambda v: int(v),
             bool: lambda v: bool(v),
+            dict: lambda v: dict(v),
         }
         if converter in predefined_conversions:
             value = predefined_conversions[converter](value)

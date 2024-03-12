@@ -233,18 +233,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 REvoDesignWebSocketClient,
             )
 
-            self.ws_server = REvoDesignWebSocketServer()
-            self.ws_client = REvoDesignWebSocketClient()
+            self.ws_server = REvoDesignWebSocketServer(self.bus)
+            self.ws_client = REvoDesignWebSocketClient(self.bus)
         else:
             self.ws_server = None
             self.ws_client = None
             # hide tab_socket if websockets is not available.
             self.bus.ui.tabWidget.setTabVisible(7, False)
-
-        # Set up general input
-        self.bus.ui.comboBox_chain_id.currentIndexChanged.connect(
-            self.set_design_sequence,
-        )
 
         # read session from PyMOL. If it is empty, load one.
         self.bus.ui.actionCheck_PyMOL_session.triggered.connect(
@@ -681,23 +676,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         return main_window
 
-    def set_design_sequence(
-        self,
-    ):
-        design_molecule = self.bus.get_widget_value(
-            'ui.header_panel.input.molecule'
-        )
-        design_chain = self.bus.get_widget_value(
-            'ui.header_panel.input.chain_id'
-        )
-
-        if design_molecule and design_chain:
-            self.design_molecule = design_molecule
-            self.design_chain_id = design_chain
-            self.design_sequence = self.designable_sequences[
-                self.design_chain_id
-            ]
-
     # class public function that can be shared with each tab
     # callback for the "Browse" button
     def browse_filename(self, mode='r', exts=[FileExtentions.AnyFileExt]):
@@ -831,6 +809,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.bus.set_widget_value(
                 'ui.header_panel.input.chain_id', chain_ids[0]
             )
+            self.bus.set_value(
+                'designable_sequences', self.designable_sequences
+            )
 
     def open_mutant_table(self, cfg_mutant_table: str, mode='r'):
         if mode == 'r':
@@ -917,9 +898,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             PSSMGremlinCalculator,
         )
 
-        molecule = self.bus.get_value('ui.header_panel.input.molecule')
-        chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
-        sequence = self.designable_sequences[self.design_chain_id]
+        molecule = self.bus.get_value('ui.header_panel.input.molecule', str)
+        chain_id = self.bus.get_value('ui.header_panel.input.chain_id', str)
+        designable_sequences = self.bus.get_value('designable_sequences', dict)
+        if not designable_sequences:
+            return
+
+        sequence = designable_sequences.get(chain_id)
 
         if (not molecule) or (not chain_id) or (not sequence):
             return
@@ -1000,6 +985,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def run_surface_detection(self):
         input_pse = self.temperal_session
         output_pse = self.bus.get_value('ui.prepare.input.surface.to_pse')
+        design_molecule = self.bus.get_value('ui.header_panel.input.molecule')
+        design_chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
 
         exclusion = self.bus.get_value('ui.prepare.input.surface.exclusion')
         cutoff = self.bus.get_value('ui.prepare.surface_probe_radius', float)
@@ -1010,8 +997,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         surfacefinder = SurfaceFinder(
             input_pse=input_pse,
             output_pse=output_pse,
-            molecule=self.design_molecule,
-            chain_id=self.design_chain_id,
+            molecule=design_molecule,
+            chain_id=design_chain_id,
             cutoff=cutoff,
             exclude_residue_selection=exclusion,
             do_show_surf_CA=do_show_surf_CA,
@@ -1022,6 +1009,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def run_pocket_detection(self):
         input_pse = self.temperal_session
+        design_molecule = self.bus.get_value('ui.header_panel.input.molecule')
+        design_chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
         output_pse = self.bus.get_value('ui.prepare.input.pocket.to_pse')
         ligand = self.bus.get_value('ui.prepare.input.pocket.substrate')
         cofactor = self.bus.get_value('ui.prepare.input.pocket.cofactor')
@@ -1035,8 +1024,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         pocketsearcher = PocketSearcher(
             input_pse=input_pse,
             output_pse=output_pse,
-            molecule=self.design_molecule,
-            chain_id=self.design_chain_id,
+            molecule=design_molecule,
+            chain_id=design_chain_id,
             ligand=ligand,
             ligand_radius=ligand_radius,
             cofactor=cofactor,
@@ -1053,36 +1042,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             SidechainSolver,
         )
 
-        sidechain_solver_name = self.bus.get_value(
-            'ui.config.sidechain_solver.default'
-        )
-        sidechain_solver_radius = self.bus.get_value(
-            'ui.config.sidechain_solver.repack_radius', float
-        )
-        sidechain_solver_model = self.bus.get_value(
-            'ui.config.sidechain_solver.model'
-        )
-        available_sidechain_solvers = list(
-            self.bus.get_value('ui.config.sidechain_solver.group')
-        )
         if not (
-            self.sidechain_solver
-            and self.sidechain_solver.molecule == self.design_molecule
-            and self.sidechain_solver.chain_id == self.design_chain_id
-            and self.sidechain_solver.sidechain_solver_name
-            == sidechain_solver_name
-            and self.sidechain_solver.sidechain_solver_radius
-            == sidechain_solver_radius
-            and self.sidechain_solver.sidechain_solver_model
-            == sidechain_solver_model
+            self.sidechain_solver and not self.sidechain_solver.cfg_updated
         ):
             self.sidechain_solver = SidechainSolver(
-                molecule=self.design_molecule,
-                chain_id=self.design_chain_id,
-                sidechain_solver_name=sidechain_solver_name,
-                sidechain_solver_radius=sidechain_solver_radius,
-                sidechain_solver_model=sidechain_solver_model,
-                available_sidechain_solvers=available_sidechain_solvers,
+                bus=self.bus,
             )
             self.sidechain_solver.setup()
             return True
@@ -1126,10 +1090,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
             worker = MutateWorker(
                 bus=self.bus,
-                design_molecule=self.design_molecule,
-                design_chain_id=self.design_chain_id,
-                design_sequence=self.design_sequence,
-                designable_sequences=self.designable_sequences,
                 mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
@@ -1163,10 +1123,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.evaluator = Evalutator(
             bus=self.bus,
-            design_molecule=self.design_molecule,
-            design_chain_id=self.design_chain_id,
-            design_sequence=self.design_sequence,
-            designable_sequences=self.designable_sequences,
         )
 
         self.evaluator.initialize_design_candidates()
@@ -1210,36 +1166,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # lazy module loading to fasten plugin initializing
         from REvoDesign.clusters import ClusterRunner
 
-        input_mutant_table = self.bus.get_value(
-            'ui.cluster.input.from_mutant_txt'
-        )
-
-        cluster_batch_size = self.bus.get_value('ui.cluster.batch_size', int)
-        cluster_number = self.bus.get_value('ui.cluster.num_cluster', int)
-        min_mut_num = self.bus.get_value('ui.cluster.mut_num_min', int)
-        max_mut_num = self.bus.get_value('ui.cluster.mut_num_max', int)
-        cluster_substitution_matrix = self.bus.get_value(
-            'ui.cluster.score_matrix.default'
-        )
-
-        shuffle_variant = self.bus.get_value('ui.cluster.shuffle')
-
-        nproc = self.bus.get_value('ui.header_panel.nproc', int)
-
         worker = ClusterRunner(
             bus=self.bus,
-            design_molecule=self.design_molecule,
-            design_chain_id=self.design_chain_id,
-            design_sequence=self.design_sequence,
             PWD=self.PWD,
-            cluster_batch_size=cluster_batch_size,
-            cluster_number=cluster_number,
-            min_mut_num=min_mut_num,
-            max_mut_num=max_mut_num,
-            cluster_substitution_matrix=cluster_substitution_matrix,
-            shuffle_variant=shuffle_variant,
-            nproc=nproc,
-            input_mutant_table=input_mutant_table,
         )
 
         with hold_trigger_button(trigger_button):
@@ -1333,10 +1262,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
             worker = VisualizingWorker(
                 bus=self.bus,
-                design_molecule=self.design_molecule,
-                design_chain_id=self.design_chain_id,
-                design_sequence=self.design_sequence,
-                designable_sequences=self.designable_sequences,
                 mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
@@ -1552,7 +1477,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('reinitialize_interact')
 
         with hold_trigger_button(trigger_button):
-            sc_refreshed = run_worker_thread_with_progress(
+            run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
                 progress_bar=self.bus.ui.progressBar,
             )
@@ -1561,10 +1486,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
             self.gremlin_worker = GREMLIN_Analyser(
                 bus=self.bus,
-                design_molecule=self.design_molecule,
-                design_chain_id=self.design_chain_id,
-                design_sequence=self.design_sequence,
-                designable_sequences=self.designable_sequences,
                 PWD=self.PWD,
                 mutate_runner=self.sidechain_solver.mutate_runner,
                 ws_server=self.ws_server,
@@ -1606,16 +1527,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def setup_ws_server(self):
         self.generate_ws_server_key()
-        self.ws_server.setup_ws_server(
-            ws_broadcast_view=self.bus.get_value('ui.socket.broadcast.view'),
-            ws_server_use_key=self.bus.get_value('ui.socket.use_key'),
-            ws_server_key=self.bus.get_value('ui.socket.input.key'),
-            ws_server_port=(self.bus.get_value('ui.socket.server_port', int)),
-            ws_view_broadcast_interval=(
-                self.bus.get_value('ui.socket.broadcast.interval', float)
-            ),
-            treeWidget_ws_peers=self.bus.ui.treeWidget_ws_peers,
-        )
+        self.ws_server.setup_ws_server()
 
     def update_ws_server_view_update_options(self):
         if not self.ws_server or not self.ws_server.is_running:
@@ -1676,7 +1588,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     REvoDesignWebSocketServer,
                 )
 
-                self.ws_server = REvoDesignWebSocketServer()
+                self.ws_server = REvoDesignWebSocketServer(self.bus)
 
             if toggled:
                 if self.ws_server.is_running:
@@ -1705,38 +1617,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         await self.ws_server.broadcast_object(data, data_type)
 
     def setup_ws_client(self):
-        if (
-            not self.design_molecule
-            or not self.design_chain_id
-            or not self.design_sequence
-        ):
-            self.reload_molecule_info()
-
-        self.ws_client.design_molecule = self.design_molecule
-        self.ws_client.design_chain_id = self.design_chain_id
-        self.ws_client.design_sequence = self.design_sequence
-        self.ws_client.cmap = self.bus.get_value(
-            'ui.header_panel.cmap.default'
-        )
-        self.ws_client.nproc = self.bus.get_value('ui.header_panel.nproc')
-        self.ws_client.progress_bar = self.bus.ui.progressBar
-
-        self.ws_client.setup_ws_client(
-            ws_server_url_to_connect=self.bus.get_value(
-                'ui.socket.server_url'
-            ),
-            ws_server_port_to_connect=(
-                self.bus.get_value('ui.socket.server_port', int)
-            ),
-            ws_server_key_to_connect=self.bus.get_value('ui.socket.input.key'),
-            ws_receive_view_broadcast=self.bus.get_value(
-                'ui.socket.receive.view'
-            ),
-            ws_receive_mutagenesis_broadcast=self.bus.get_value(
-                'ui.socket.receive.mutagenesis'
-            ),
-            treeWidget_ws_peers=self.bus.ui.treeWidget_ws_peers,
-        )
+        self.ws_client.setup_ws_client()
         run_worker_thread_with_progress(
             self.refresh_sidechainsolver,
             progress_bar=self.bus.ui.progressBar,
@@ -1758,7 +1639,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 REvoDesignWebSocketClient,
             )
 
-            self.ws_client = REvoDesignWebSocketClient()
+            self.ws_client = REvoDesignWebSocketClient(self.bus)
 
         try:
             if connect:
