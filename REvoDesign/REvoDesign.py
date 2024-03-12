@@ -1530,10 +1530,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.ws_server.setup_ws_server()
 
     def update_ws_server_view_update_options(self):
+        # not instantialized or not running
         if not self.ws_server or not self.ws_server.is_running:
             logging.warning(f'Server is not in service.')
             return
 
+        # do changes
         self.ws_server.view_broadcast_enabled = self.bus.get_value(
             'ui.socket.broadcast.view'
         )
@@ -1541,42 +1543,47 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             'ui.socket.broadcast.interval', float
         )
 
-        if self.ws_server.view_broadcast_interval:
-            if not self.ws_server.clients:
-                logging.warning(
-                    'Server has no client, ignore view updating. Do nothing.'
-                )
-                return
+        # disabled 
+        if not self.ws_server.view_broadcast_enabled:
             if self.ws_server.view_broadcast_on_air:
-                logging.warning(
-                    'Server is broadcasting view changes! Do nothing.'
-                )
+                self.ws_server.view_broadcast_worker.interrupt()
+                self.ws_server.view_broadcast_on_air = False
+                logging.warning('Stop broadcasting view.')
                 return
-
-            from REvoDesign.tools.customized_widgets import WorkerThread
-
-            if not self.ws_server.view_broadcast_on_air:
-                self.ws_server.view_broadcast_worker = WorkerThread(
-                    func=self.ws_server.broadcast_view
-                )
-
-            self.ws_server.view_broadcast_on_air = True
-            self.ws_server.view_broadcast_worker.run()
-
-            logging.warning('Start broadcasting view.')
-            return
-
-        if not self.ws_server.view_broadcast_interval:
-            if not self.ws_server.view_broadcast_on_air:
-                logging.warning(
+            logging.warning(
                     'Server is not broadcasting view changes. Do nothing.'
                 )
-                return
-
-            self.ws_server.view_broadcast_worker.interrupt()
-            self.ws_server.view_broadcast_on_air = False
-            logging.warning('Stop broadcasting view.')
             return
+        
+        # no clients
+        if not self.ws_server.clients:
+            logging.warning(
+                'Server has no client, ignore view updating. Do nothing.'
+            )
+            self.ws_server.view_broadcast_on_air = False
+            return
+
+        # already on air
+        if self.ws_server.view_broadcast_on_air:
+            logging.warning(
+                'Server is broadcasting view changes! Do nothing.'
+            )
+            return
+
+        # start broadcaster
+        from REvoDesign.tools.customized_widgets import WorkerThread
+
+        if not self.ws_server.view_broadcast_on_air:
+            self.ws_server.view_broadcast_worker = WorkerThread(
+                func=self.ws_server.broadcast_view
+            )
+
+        self.ws_server.view_broadcast_on_air = True
+        self.ws_server.view_broadcast_worker.run()
+
+        logging.warning('Start broadcasting view.')
+        return
+
 
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):
