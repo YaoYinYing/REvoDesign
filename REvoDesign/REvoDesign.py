@@ -1543,7 +1543,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             'ui.socket.broadcast.interval', float
         )
 
-        # disabled 
+        # disabled
         if not self.ws_server.view_broadcast_enabled:
             if self.ws_server.view_broadcast_on_air:
                 self.ws_server.view_broadcast_worker.interrupt()
@@ -1551,10 +1551,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 logging.warning('Stop broadcasting view.')
                 return
             logging.warning(
-                    'Server is not broadcasting view changes. Do nothing.'
-                )
+                'Server is not broadcasting view changes. Do nothing.'
+            )
             return
-        
+
         # no clients
         if not self.ws_server.clients:
             logging.warning(
@@ -1565,9 +1565,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # already on air
         if self.ws_server.view_broadcast_on_air:
-            logging.warning(
-                'Server is broadcasting view changes! Do nothing.'
-            )
+            logging.warning('Server is broadcasting view changes! Do nothing.')
             return
 
         # start broadcaster
@@ -1583,7 +1581,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         logging.warning('Start broadcasting view.')
         return
-
 
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):

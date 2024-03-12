@@ -462,16 +462,15 @@ class REvoDesignWebSocketServer:
         last_view = cmd.get_view()
         while True:
             run_worker_thread_with_progress(
-                time.sleep,None,
+                time.sleep,
+                None,
                 self.check_broadcast_interval(),
             )
 
             view_data = cmd.get_view()
             if view_data == last_view:
                 # external sleep if view is not changed.
-                run_worker_thread_with_progress(
-                    time.sleep, None,1
-                )
+                run_worker_thread_with_progress(time.sleep, None, 1)
                 continue
             if not self.check_broadcast_enabled_flag():
                 return
