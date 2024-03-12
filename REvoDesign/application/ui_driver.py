@@ -48,14 +48,18 @@ class ConfigBus:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
+        # Check if an instance of ConfigBus already exists
         if not cls._instance:
+            # If not, create a new instance and assign it to the _instance class variable
             cls._instance = super(ConfigBus, cls).__new__(cls)
+        # Return the existing instance
         return cls._instance
 
     def __init__(self, ui=None):
+        # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):
+            # If not, set the instance attributes
             self.ui = ui
-
             self.cfg: DictConfig = reload_config_file()
             self.w2c = Widget2ConfigMapper(ui=self.ui)
             self.buttons = self.w2c.buttons

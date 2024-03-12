@@ -1,5 +1,3 @@
-# revo_design_issues.py
-
 
 class REvoDesignException(Exception):
     """Base class for all exceptions in the REvoDesign application."""
@@ -22,5 +20,15 @@ class PluginError(REvoDesignException):
 
 class EnzymeDesignError(REvoDesignException):
     """Exception raised for errors during enzyme design."""
+
+    pass
+
+class DependencyError(REvoDesignException):
+    """Exception raised for errors related to uninstalled dependency"""
+
+    pass
+
+class PluginNotImplementedError(NotImplementedError):
+    """Exception raised when the plugin is not implemented"""
 
     pass

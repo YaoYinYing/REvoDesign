@@ -7,6 +7,8 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 from REvoDesign import root_logger
 
+from REvoDesign.issues.exceptions import DependencyError,PluginNotImplementedError
+
 
 logging = root_logger.getChild(__name__)
 
@@ -50,10 +52,10 @@ class SidechainSolver:
             and self.sidechain_solver_name
             in list(self.available_sidechain_solvers)
         ):
-            logging.error(
-                f'mutate_runner is not available: {self.sidechain_solver_name=}: {self.available_sidechain_solvers=}'
+            raise PluginNotImplementedError(
+                f'sidechain_solver is not available: {self.sidechain_solver_name=}: {self.available_sidechain_solvers=}'
             )
-            return
+
 
         logging.info(
             f'Using {self.sidechain_solver_name} as sidechain solver.'
@@ -66,31 +68,30 @@ class SidechainSolver:
             self.mutate_runner = PyMOL_mutate(
                 molecule=self.molecule, input_session=input_pdb
             )
+            return self
 
-        elif self.sidechain_solver_name == 'DLPacker':
+        if self.sidechain_solver_name == 'DLPacker':
             if not WITH_DEPENDENCIES.DLPACKER:
-                logging.error(
-                    'DLPacker is not available in your installation. Aborded..'
+                raise DependencyError(
+                    f'{self.sidechain_solver_name} is not available in your installation. Aborded..'
                 )
-                return
+
 
             self.mutate_runner = DLPacker_worker(pdb_file=input_pdb)
             self.mutate_runner.reconstruct_area_radius = (
                 self.sidechain_solver_radius
             )
             return self
-        elif self.sidechain_solver_name == 'PIPPack':
+        if self.sidechain_solver_name == 'PIPPack':
             if not WITH_DEPENDENCIES.PIPPACK:
-                logging.error(
-                    'PIPPack is not available in your installation. Aborded..'
+                raise DependencyError(
+                    f'{self.sidechain_solver_name} is not available in your installation. Aborded..'
                 )
-                return
             self.mutate_runner = PIPPack_worker(
                 pdb_file=input_pdb, use_model=self.sidechain_solver_model
             )
             return self
-        else:
-            raise NotImplementedError
+        
 
         # setup more sidechain solvers here ...
 
