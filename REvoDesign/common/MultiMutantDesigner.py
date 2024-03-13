@@ -12,15 +12,9 @@ from REvoDesign.common.Mutant import Mutant
 
 from REvoDesign.tools.utils import get_color, cmap_reverser
 
+from REvoDesign.tools.pymol_utils import is_distal_residue_pair
 
-from REvoDesign.tools.pymol_utils import (
-    is_distal_residue_pair,
-)
-
-from REvoDesign.tools.mutant_tools import (
-    existed_mutant_tree,
-    extract_mutant_from_pymol_object,
-)
+from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
@@ -87,15 +81,19 @@ class MultiMutantDesigner:
             'ui.visualize.multi_design.use_bond_CA'
         )
 
+        self.save_mutant_table = self.bus.get_value(
+            'ui.visualize.input.multi_design.to_mutant_txt'
+        )
+
     def get_input_and_initialize(self):
         # Initialize mutant tree for design
-        self.mutant_tree_multi_design = existed_mutant_tree(
+        self.design_pool_tree = existed_mutant_tree(
             sequences=self.designable_sequences, enabled_only=0
         )
-        if self.mutant_tree_multi_design.empty:
+        if self.design_pool_tree.empty:
             logging.error('MutantTree is empty!')
             return
-        if len(self.mutant_tree_multi_design.all_mutant_branch_ids) < 2:
+        if len(self.design_pool_tree.all_mutant_branch_ids) < 2:
             logging.error('At least two groups of mutants should be included.')
             return
 
@@ -103,16 +101,26 @@ class MultiMutantDesigner:
         self.in_design_multi_design_case: MutantTree = MutantTree()
         self.all_design_multi_design_cases: list[MutantTree] = []
 
+        # save variants as Mutant
         self.all_design_multi_design_mutant_object: list[Mutant] = []
 
         self.design_case_variant_objects: list[str] = []
-        self.mutant_tree_multi_design_copy = None
+        self.design_pool_tree_copy = None
 
         self.design_case = cmd.get_unused_name('multi_design')
 
         logging.info(
-            f'Mutant Tree for multi-design is initialized. {len(self.mutant_tree_multi_design.all_mutant_branch_ids)} groups with {len(self.mutant_tree_multi_design.all_mutant_ids)} mutants.'
+            f'Mutant Tree for multi-design is initialized. {len(self.design_pool_tree.all_mutant_branch_ids)} groups with {len(self.design_pool_tree.all_mutant_ids)} mutants.'
         )
+
+    @staticmethod
+    def recolor_pymol_obj(i, color, item):
+        cmd.set_color(f'color_{i}', color)
+        cmd.color(
+            f'color_{i}',
+            f'{item}',
+        )
+        util.cnc(f'{item}', _self=cmd)
 
     def refresh_design_color(self):
         """
@@ -125,6 +133,7 @@ class MultiMutantDesigner:
             self.total_design_cases, len(self.design_case_variant_objects)
         )
 
+        # if scorer is not specified, color them one after another
         if not (self.color_by_scores and self.external_scorer):
             for i, item in enumerate(self.design_case_variant_objects):
                 color = get_color(
@@ -133,20 +142,21 @@ class MultiMutantDesigner:
                     min_value=0,
                     max_value=_total_num_design_cases,
                 )
-                cmd.set_color(f'color_{i}', color)
-                cmd.color(
-                    f'color_{i}',
-                    f'{item}',
-                )
-                util.cnc(f'{item}', _self=cmd)
+                self.recolor_pymol_obj(i=i, color=color, item=item)
+
         else:
+            # color via scorer
             for mut_obj in self.all_design_multi_design_mutant_object:
-                if not mut_obj.mutant_score:
-                    mut_obj.mutant_score = self.external_scorer.scorer(
-                        sequence=mut_obj.get_mutant_sequence_single_chain(
-                            chain_id=self.chain_id
-                        )
+                mut_obj.wt_sequences = self.designable_sequences
+                if mut_obj.mutant_score:
+                    continue
+
+                mut_obj.mutant_score = self.external_scorer.scorer(
+                    sequence=mut_obj.get_mutant_sequence_single_chain(
+                        chain_id=self.chain_id,
+                        ignore_missing=bool('X' in self.sequence),
                     )
+                )
 
             all_scores = [
                 mut_obj.mutant_score
@@ -168,12 +178,7 @@ class MultiMutantDesigner:
                     max_value=max(all_scores),
                 )
 
-                cmd.set_color(f'color_{i_obj}', color)
-                cmd.color(
-                    f'color_{i_obj}',
-                    f'{obj}',
-                )
-                util.cnc(f'{obj}', _self=cmd)
+                self.recolor_pymol_obj(i=i_obj, color=color, item=obj)
 
         logging.debug('All design with score: \n')
         logging.debug('-' * 60)
@@ -181,7 +186,7 @@ class MultiMutantDesigner:
             '\n\n'
             + '\n'.join(
                 [
-                    _.raw_mutant_id
+                    _.full_mutant_id
                     for _ in self.all_design_multi_design_mutant_object
                 ]
             )
@@ -200,24 +205,26 @@ class MultiMutantDesigner:
         - Mutant: The evaluated Mutant object with a calculated score.
         """
         tmp_mutant_obj = self.in_design_multi_design_case.asOneMutant
-
-        tmp_mutant_obj.mutant_score = None
-
+        tmp_mutant_obj.mutant_score = 0.0
         tmp_mutant_obj.wt_sequences = self.designable_sequences
 
         if not self.external_scorer:
             logging.warning(
                 f'Abord design evaluation because no external scorer is defined.'
             )
-            return tmp_mutant_obj
 
-        tmp_mutant_obj.mutant_score = self.external_scorer.scorer(
-            sequence=tmp_mutant_obj.get_mutant_sequence_single_chain(
-                chain_id=self.chain_id
+        else:
+            tmp_mutant_obj.mutant_score = self.external_scorer.scorer(
+                sequence=tmp_mutant_obj.get_mutant_sequence_single_chain(
+                    chain_id=self.chain_id,
+                    ignore_missing=bool('X' in self.sequence),
+                )
             )
-        )
 
-        return tmp_mutant_obj
+        for m in self.in_design_multi_design_case.all_mutant_objects:
+            m.mutant_score = tmp_mutant_obj.mutant_score
+
+        return
 
     def initialize_scorer(self):
         """
@@ -255,26 +262,26 @@ class MultiMutantDesigner:
 
         This method initiates the start of a new mutant design process.
         """
-        if self.mutant_tree_multi_design.empty:
+        if self.design_pool_tree.empty:
             logging.error('Mutant Tree for multi-design is empty!')
             return
         if not self.in_design_multi_design_case.empty:
-            self.new_design()
+            self.terminate_picking()
 
-        self.in_design_multi_design_case = MutantTree()
-        self.mutant_tree_multi_design_copy = (
-            self.mutant_tree_multi_design.__deepcopy__
+        self.in_design_multi_design_case = MutantTree({})
+        self.design_pool_tree_copy = self.design_pool_tree.__deepcopy__
+        self.design_case_id_in_pymol = cmd.get_unused_name(
+            'multi_design_variant'
         )
-        self.design_case_variant = cmd.get_unused_name('multi_design_variant')
         cmd.create(
-            self.design_case_variant,
+            self.design_case_id_in_pymol,
             f'{self.molecule} and c. {self.chain_id} and polymer.protein and n. CA',
         )
-        cmd.color('greencyan', self.design_case_variant)
-        cmd.hide('everything', self.design_case_variant)
-        cmd.show('sticks', self.design_case_variant)
-        cmd.group(self.design_case, self.design_case_variant)
-        logging.info(f'Starting design with {self.design_case_variant}')
+        cmd.color('greencyan', self.design_case_id_in_pymol)
+        cmd.hide('everything', self.design_case_id_in_pymol)
+        cmd.show('sticks', self.design_case_id_in_pymol)
+        cmd.group(self.design_case, self.design_case_id_in_pymol)
+        logging.info(f'Starting design with {self.design_case_id_in_pymol=}')
 
     def _auto_pick_tryout(self, tryout=30):
         """
@@ -298,7 +305,7 @@ class MultiMutantDesigner:
             ):
                 logging.warning(f'Skip {branch}: {mutant_id}.')
                 # label this mutant deleted in this design.
-                self.mutant_tree_multi_design_copy.remove_mutant_from_branch(
+                self.design_pool_tree_copy.remove_mutant_from_branch(
                     branch=branch, mutant=mutant_id
                 )
                 continue
@@ -310,7 +317,7 @@ class MultiMutantDesigner:
                 mutant_obj=mutant_obj,
             )
 
-            self.mutant_tree_multi_design_copy.remove_mutant_from_branch(
+            self.design_pool_tree_copy.remove_mutant_from_branch(
                 branch=branch, mutant=mutant_id
             )
             # a successful picking and return.
@@ -322,28 +329,21 @@ class MultiMutantDesigner:
 
         This method selects the next mutant to be included in the design process.
         """
-        if not self.mutant_tree_multi_design:
+        if not self.design_pool_tree:
             logging.error(f'Mutant Tree is not found.')
             return
-        if self.mutant_tree_multi_design.empty:
+        if self.design_pool_tree.empty:
             logging.error('Mutant Tree for multi-design is empty!')
             return
 
-        if not self.mutant_tree_multi_design_copy:
+        if self.design_pool_tree_copy.empty:
+            logging.warning(
+                'Temperal mutant tree for multi-design is empty after designing! This design is ended.'
+            )
             self.start_new_design()
             return
 
-        if self.mutant_tree_multi_design_copy.empty:
-            if self.in_design_multi_design_case.empty:
-                logging.warning(
-                    'Temperal mutant tree for multi-design is empty after designing! This design is ended.'
-                )
-                self.new_design()
-                return
-            else:
-                logging.error('Mutant Tree for multi-design is empty!')
-                return
-
+        # run a normal picking
         num_mut_before_picking = self.in_design_multi_design_case.mutant_num
         self._auto_pick_tryout()
         if (
@@ -351,7 +351,7 @@ class MultiMutantDesigner:
             == self.in_design_multi_design_case.mutant_num
         ):
             # failed picking
-            logging.warning(f'Failed auto picking. Please take anther try.')
+            logging.warning('Failed auto picking. Please take anther try.')
             return
 
         # last mutant
@@ -362,11 +362,11 @@ class MultiMutantDesigner:
         cmd.set(
             'sphere_scale',
             0.4,
-            f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
+            f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
         )
         cmd.show(
             'sphere',
-            f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
+            f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
         )
 
         if self.bond_CA:
@@ -380,8 +380,8 @@ class MultiMutantDesigner:
                 )
 
                 cmd.bond(
-                    atom1=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_second_mutant_to_the_last} and n. CA',
-                    atom2=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
+                    atom1=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_second_mutant_to_the_last} and n. CA',
+                    atom2=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
                 )
 
             # bond internal CAs in a multi-design mutant.
@@ -397,11 +397,11 @@ class MultiMutantDesigner:
 
                 for resi_a, resi_b in positions_pairwise:
                     cmd.bond(
-                        atom1=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_a} and n. CA',
-                        atom2=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_b} and n. CA',
+                        atom1=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_a} and n. CA',
+                        atom2=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_b} and n. CA',
                     )
 
-        logging.info(f'{mutant_id} is added to {self.design_case_variant}')
+        logging.info(f'{mutant_id} is added to {self.design_case_id_in_pymol}')
 
         if (
             self.in_design_multi_design_case.mutant_num
@@ -410,7 +410,7 @@ class MultiMutantDesigner:
             logging.info(
                 f'Reaching {self.maximal_mutant_num} mutations. Stop current design.'
             )
-            self.new_design()
+            self.terminate_picking()
 
     def undo_previous_mutant(self):
         """
@@ -436,9 +436,11 @@ class MultiMutantDesigner:
             self.in_design_multi_design_case = (
                 self.all_design_multi_design_cases.pop()
             )
-            self.design_case_variant = self.design_case_variant_objects.pop()
+            self.design_case_id_in_pymol = (
+                self.design_case_variant_objects.pop()
+            )
 
-            cmd.color('greencyan', self.design_case_variant)
+            cmd.color('greencyan', self.design_case_id_in_pymol)
             self.refresh_design_color()
 
             logging.warning('Undoing the last design.')
@@ -450,14 +452,12 @@ class MultiMutantDesigner:
         ) = self.in_design_multi_design_case.pop()
 
         # recover the whole mutant tree, as the deleted branch might be used in the future.
-        self.mutant_tree_multi_design_copy = (
-            self.mutant_tree_multi_design.__deepcopy__
-        )
+        self.design_pool_tree_copy = self.design_pool_tree.__deepcopy__
         resi_undo_mutant = undo_mutant_obj.mutant_info[0]['position']
 
         cmd.hide(
             'sphere',
-            f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_undo_mutant} and n. CA',
+            f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_undo_mutant} and n. CA',
         )
 
         if self.bond_CA:
@@ -469,8 +469,8 @@ class MultiMutantDesigner:
                 resi_last_mutant = last_mutant.mutant_info[-1]['position']
 
                 cmd.unbond(
-                    atom1=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
-                    atom2=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_undo_mutant} and n. CA',
+                    atom1=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
+                    atom2=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_undo_mutant} and n. CA',
                 )
 
             # bond internal CA in a multi-design mutant.
@@ -486,17 +486,17 @@ class MultiMutantDesigner:
 
                 for resi_a, resi_b in positions_pairwise:
                     cmd.unbond(
-                        atom1=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_a} and n. CA',
-                        atom2=f'{self.design_case_variant} and c. {self.chain_id} and i. {resi_b} and n. CA',
+                        atom1=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_a} and n. CA',
+                        atom2=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_b} and n. CA',
                     )
 
             logging.info(f'Undo: {undo_mutant_id} ')
 
         # remove the object if it is already empty
         if self.in_design_multi_design_case.empty:
-            cmd.delete(self.design_case_variant)
+            cmd.delete(self.design_case_id_in_pymol)
 
-    def new_design(self, continue_design=True):
+    def terminate_picking(self, continue_design=True):
         """
         Completes the current design and starts a new one.
 
@@ -509,8 +509,13 @@ class MultiMutantDesigner:
         if self.in_design_multi_design_case.empty:
             logging.error("Design case is empty.")
             return
+
+        logging.warning(
+            f"Design case {self.in_design_multi_design_case.all_mutant_ids}"
+        )
+
         logging.info(f'Stopping current design and start a new one.')
-        self.design_case_variant_objects.append(self.design_case_variant)
+        self.design_case_variant_objects.append(self.design_case_id_in_pymol)
 
         self.all_design_multi_design_cases.append(
             self.in_design_multi_design_case
@@ -520,17 +525,22 @@ class MultiMutantDesigner:
         if self.color_by_scores and self.scorer and self.use_external_scorer:
             self.initialize_scorer()
 
+        self.evaluate_design()
         # evaluate mutant design after design case is closed.
         self.all_design_multi_design_mutant_object.append(
-            self.evaluate_design()
+            self.in_design_multi_design_case.asOneMutant
         )
 
-        self.in_design_multi_design_case = MutantTree()
+        self.in_design_multi_design_case = MutantTree({})
+        logging.warning(
+            f"Design case {self.in_design_multi_design_case.all_mutant_ids}"
+        )
         self.refresh_design_color()
+
         if continue_design:
             self.start_new_design()
 
-    def export_designed_variant(self, save_mutant_table=''):
+    def export_designed_variant(self):
         """
         Exports the designed variants.
 
@@ -544,7 +554,9 @@ class MultiMutantDesigner:
             return
 
         self.save_mutant_table = (
-            save_mutant_table if save_mutant_table else f'./{self.design_case}.mut.txt'
+            self.save_mutant_table
+            if self.save_mutant_table
+            else f'./{self.design_case}.mut.txt'
         )
 
         logging.info(f'Exporting designs to {self.save_mutant_table}')
@@ -571,12 +583,10 @@ class MultiMutantDesigner:
         This method randomly selects a mutant for the design process.
         """
         branch = random.choice(
-            self.mutant_tree_multi_design_copy.all_mutant_branch_ids
+            self.design_pool_tree_copy.all_mutant_branch_ids
         )
         mut = random.choice(
-            list(
-                self.mutant_tree_multi_design_copy.get_a_branch(branch).items()
-            )
+            list(self.design_pool_tree_copy.get_a_branch(branch).items())
         )
         return branch, mut
 

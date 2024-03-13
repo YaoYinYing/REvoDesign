@@ -25,6 +25,16 @@ from REvoDesign.tools.customized_widgets import (
 from REvoDesign.tests import *
 
 
+class Counter:
+    def __init__(self):
+        self.count = 0
+
+    @property
+    def i(self):
+        self.count += 1
+        return self.count
+
+
 @pytest.fixture
 def app():
     # Initialize the QApplication instance required for the plugin GUI
@@ -88,6 +98,8 @@ class TestWorker:
         self.is_in_ci_runner = self.in_which_runner.get(
             'CIRCLECI'
         ) or self.in_which_runner.get('GITHUB')
+
+        self.c = Counter()
 
         TEST_DIR = os.path.abspath('.')
 

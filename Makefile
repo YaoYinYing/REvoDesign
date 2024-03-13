@@ -7,7 +7,7 @@ LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 PYREVERSE_DIR=image/svg
-PYREVERSE_ARGS=../$(PROJECT)
+PYREVERSE_ARGS=--ignore Ui_REvoDesign.py
 
 help:
 	@echo "Commands:"
@@ -113,7 +113,7 @@ black:
 
 reverse:
 	mkdir -p $(PYREVERSE_DIR)
-	cd $(PYREVERSE_DIR); pyreverse $(PROJECT); dot -Tsvg classes.dot > classes.svg; dot -Tsvg packages.dot > packages.svg
+	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) $(PYREVERSE_ARGS); dot -Tsvg classes.dot > classes.svg; dot -Tsvg packages.dot > packages.svg
 	
 
 black-check:
