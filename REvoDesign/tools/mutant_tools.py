@@ -560,14 +560,14 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
         )
         write_input_mutant_table(
             output_mut_txt_fn,
-            [mt.full_mutant_id for mt in mutant_tree.all_mutant_objects],
+            [mt.raw_mutant_id for mt in mutant_tree.all_mutant_objects],
         )
 
     else:
         logging.info(f'Mutant table is created at {output_mut_txt_fn}')
         write_input_mutant_table(
             output_mut_txt_fn,
-            [mt.full_mutant_id for mt in mutant_tree.all_mutant_objects],
+            [mt.raw_mutant_id for mt in mutant_tree.all_mutant_objects],
         )
 
     output_mut_txt_dir_ckp = os.path.join(

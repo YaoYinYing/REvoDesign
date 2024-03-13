@@ -12,6 +12,7 @@ ui:
       chain_id: ''
     cmap: 
       default: bwr_r
+      reverse_score: False
     nproc: 6
   
   
@@ -43,7 +44,6 @@ ui:
     max_score: 10
     reject: PC
     accept: E:DATY K:RATY N:ATY Q:EDATY
-    reverse_score: False
     designer:
       temperature: 0.1
       batch: 10
@@ -58,7 +58,6 @@ ui:
       to_mutant_txt: ''
     rock: False
     show_wt: True
-    reverse_score: False
 
   cluster:
     input:
@@ -87,7 +86,6 @@ ui:
         to_mutant_txt: ''
     
     global_score_policy: True
-    reverse_score: False
     multi_design:
       num_mut_max: 5
       num_variant_max: 20

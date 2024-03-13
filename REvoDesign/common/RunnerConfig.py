@@ -1,9 +1,9 @@
-from attrs import define, field
+from dataclasses import dataclass
 
 
-@define(kw_only=True)
+@dataclass
 class REvoDesignRunnerConfig:
-    molecule: str = field(converter=str)
-    chain_id: str = field(converter=str)
-    input_pse: str = field(converter=str)
-    output_pse: str = field(converter=str)
+    molecule: str
+    chain_id: str
+    input_pse: str
+    output_pse: str

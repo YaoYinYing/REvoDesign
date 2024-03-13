@@ -814,7 +814,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         set_widget_value(WORKER.plugin.ui.checkBox_show_wt, True)
 
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_2,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.entropy_score_reversed,
         )
 
@@ -862,7 +862,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         set_widget_value(WORKER.plugin.ui.checkBox_show_wt, True)
 
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_2,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.entropy_score_reversed,
         )
         _init = WORKER.plugin.ui.pushButton_reinitialize_mutant_choosing
@@ -996,7 +996,7 @@ class TestREvoDesignPlugin_TabVisualize:
             WORKER.test_data.visualize_1_use_global_score,
         )
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_3,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.visualize_1_score_reversed,
         )
         WORKER.do_typing(
@@ -1048,7 +1048,7 @@ class TestREvoDesignPlugin_TabVisualize:
             WORKER.test_data.visualize_2_use_global_score,
         )
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_3,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.visualize_2_score_reversed,
         )
         WORKER.do_typing(

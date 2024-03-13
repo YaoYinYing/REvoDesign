@@ -489,7 +489,7 @@ class TestMutant(absltest.TestCase):
     def test_mutant_id(self):
         expected_raw_id = 'AP10L_AS20T'
         expected_id = 'AP10L_AS20T_0.95'
-        self.assertEqual(self.mutant_obj.full_mutant_id, expected_raw_id)
+        self.assertEqual(self.mutant_obj.raw_mutant_id, expected_raw_id)
         self.assertEqual(self.mutant_obj.short_mutant_id, expected_id)
 
     def test_short_mutant_id(self):
@@ -651,6 +651,29 @@ class TestMutantTree(absltest.TestCase):
         diff_tree = self.mutant_tree_obj.diff_tree_from(other_tree)
         self.assertIsInstance(diff_tree, MutantTree)
         self.assertEqual(len(diff_tree.all_mutant_branch_ids), 1)
+
+    def test_pop(self):
+        (
+            popped_branch_id,
+            popped_mutant_id,
+            popped_mutant,
+        ) = self.mutant_tree_obj.pop()
+        self.assertIsInstance(popped_mutant, Mutant)
+        self.assertNotIn('mutant3', self.mutant_tree_obj.all_mutant_ids)
+        self.assertNotIn(
+            popped_branch_id, self.mutant_tree_obj.all_mutant_branch_ids
+        )
+        self.assertEqual(len(self.mutant_tree_obj.all_mutant_objects), 2)
+
+    def test_asOneMutant(self):
+        combined_mutant = self.mutant_tree_obj.asOneMutant
+        self.assertIsInstance(combined_mutant, Mutant)
+        expected_mutant_info = [
+            _mut_info
+            for _mut_obj in self.mutant_tree_obj.all_mutant_objects
+            for _mut_info in _mut_obj.mutant_info
+        ]
+        self.assertEqual(combined_mutant.mutant_info, expected_mutant_info)
 
 
 class TestPSSMGremlinCalculator(absltest.TestCase):

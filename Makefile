@@ -63,7 +63,7 @@ translate:
 	# recompile ui to py
 	pyuic5 REvoDesign/UI/REvoDesign.ui -o REvoDesign/UI/Ui_REvoDesign.py
 	# update translation file
-	lupdate  REvoDesign/UI/REvoDesign.ui -ts REvoDesign/UI/language/eng-eng.ts
+	#lupdate  REvoDesign/UI/REvoDesign.ui -ts REvoDesign/UI/language/eng-eng.ts
 	lupdate  REvoDesign/UI/REvoDesign.ui -ts REvoDesign/UI/language/eng-chs.ts
 
 
@@ -76,13 +76,13 @@ prepare-test:
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/UnitTests.py
+	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/UnitTests.py
 
 
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py;
+	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py;
 
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version

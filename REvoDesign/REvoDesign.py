@@ -1327,8 +1327,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         checkBox_multi_design_color_by_scores = (
             self.bus.ui.checkBox_multi_design_color_by_scores
         )
-        checkBox_reverse_mutant_effect_3 = (
-            self.bus.ui.checkBox_reverse_mutant_effect_3
+        checkBox_reverse_mutant_effect = (
+            self.bus.ui.checkBox_reverse_mutant_effect
         )
 
         self.multi_mutagenesis_designer.scorer = (
@@ -1361,7 +1361,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             checkBox_multi_design_color_by_scores.isChecked()
         )
         self.multi_mutagenesis_designer.external_scorer_reversed_score = (
-            checkBox_reverse_mutant_effect_3.isChecked()
+            checkBox_reverse_mutant_effect.isChecked()
         )
 
     def multi_mutagenesis_design_start(self):
