@@ -154,6 +154,8 @@ class TestData:
             f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mut.txt'
         )
 
+    multi_design_steps = [2, 3, 6, 5, 7, 3, 4, 12]
+
     multi_design_scorer: str = 'ProteinMPNN'
 
     @property

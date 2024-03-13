@@ -1,5 +1,6 @@
 import os
 import glob
+import random
 import pytest
 
 from REvoDesign.tests.QtTestWorker import Counter
@@ -1239,7 +1240,10 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         WORKER.click(md_init).click(md_new)
 
-        for i in [2, 3, 4, 5, 1, 3, 4, 3, 20, 15, 7, 9, 42]:
+        for i in random.sample(
+            WORKER.test_data.multi_design_steps,
+            len(WORKER.test_data.multi_design_steps),
+        ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
             WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
@@ -1299,7 +1303,10 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         WORKER.click(md_init).click(md_new)
 
-        for i in [2, 3, 6, 5, 7, 3, 4, 12, 20, 15, 7, 9, 42]:
+        for i in random.sample(
+            WORKER.test_data.multi_design_steps,
+            len(WORKER.test_data.multi_design_steps) - 3,
+        ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
             WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
