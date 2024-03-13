@@ -3,7 +3,7 @@ from pymol import cmd
 import os
 from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
 from REvoDesign import root_logger
-from attrs import define, field
+from dataclasses import dataclass
 
 logging = root_logger.getChild(__name__)
 
@@ -13,11 +13,11 @@ http://pymolwiki.org/index.php/FindSurfaceResidues
 '''
 
 
-@define(kw_only=True)
+@dataclass
 class SurfaceFinderConfig(REvoDesignRunnerConfig):
-    exclude_residue_selection: str = field(converter=str, default='')
-    cutoff: float = field(converter=float, default=15)
-    do_show_surf_CA: bool = field(converter=bool, default=True)
+    exclude_residue_selection: str = ''
+    cutoff: float = 15.0
+    do_show_surf_CA: bool = True
 
 
 def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
@@ -114,7 +114,6 @@ cmd.extend("findSurfaceAtoms", findSurfaceAtoms)
 cmd.extend("findSurfaceResidues", findSurfaceResidues)
 
 
-@define(kw_only=True)
 class SurfaceFinder(SurfaceFinderConfig):
     def process_surface_residues(self):
         cmd.save(self.input_pse)
@@ -155,8 +154,8 @@ class SurfaceFinder(SurfaceFinderConfig):
             selection=self.molecule, cutoff=self.cutoff, return_selection=1
         )
 
-        ner_ca_selection = f'ner_ca_{self.cutoff}'
-        er_ca_selection = f'er_ca_{self.cutoff}'
+        ner_ca_selection = f'ner_ca_{self.cutoff:.1f}'
+        er_ca_selection = f'er_ca_{self.cutoff:.1f}'
 
         cmd.create(
             ner_ca_selection,
@@ -176,10 +175,10 @@ class SurfaceFinder(SurfaceFinderConfig):
 
         for obj in ray_selection_list:
             cmd.zoom(obj)
-            scene_id = f'{obj[:20]}_cutoff_{self.cutoff}'
+            scene_id = f'{obj[:20]}_cutoff_{self.cutoff:.1f}'
             cmd.refresh()
             cmd.scene(
-                scene_id, 'store', message=f'surface_cutoff: {self.cutoff}'
+                scene_id, 'store', message=f'surface_cutoff: {self.cutoff:.1f}'
             )
 
         cmd.refresh()
@@ -196,7 +195,7 @@ class SurfaceFinder(SurfaceFinderConfig):
         surface_residue_ids.sort()
         residue_filename = os.path.join(
             'surface_residue_records',
-            f'{self.molecule}_residues_cutoff_{self.cutoff}.txt',
+            f'{self.molecule}_residues_cutoff_{self.cutoff:.1f}.txt',
         )
         with open(residue_filename, 'w') as f:
             f.write(','.join(map(str, surface_residue_ids)))

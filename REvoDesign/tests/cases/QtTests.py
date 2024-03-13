@@ -1,6 +1,9 @@
 import os
 import glob
+import random
 import pytest
+
+from REvoDesign.tests.QtTestWorker import Counter
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
@@ -803,6 +806,8 @@ class TestREvoDesignPlugin_TabEvaluate:
         WORKER.load_session_and_check(customized_session=pse_path)
         WORKER.go_to_tab(tab_name='evaluate')
 
+        KeyDataDuringTests.evaluate_pse_path = pse_path
+
         mutagenesis_dir = os.path.abspath('mutagenese')
         mutant_file = os.path.join(
             mutagenesis_dir, 'evaluate_pssm_ent_surf.besthits.mut.txt'
@@ -814,7 +819,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         set_widget_value(WORKER.plugin.ui.checkBox_show_wt, True)
 
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_2,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.entropy_score_reversed,
         )
 
@@ -862,7 +867,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         set_widget_value(WORKER.plugin.ui.checkBox_show_wt, True)
 
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_2,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.entropy_score_reversed,
         )
         _init = WORKER.plugin.ui.pushButton_reinitialize_mutant_choosing
@@ -996,7 +1001,7 @@ class TestREvoDesignPlugin_TabVisualize:
             WORKER.test_data.visualize_1_use_global_score,
         )
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_3,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.visualize_1_score_reversed,
         )
         WORKER.do_typing(
@@ -1048,7 +1053,7 @@ class TestREvoDesignPlugin_TabVisualize:
             WORKER.test_data.visualize_2_use_global_score,
         )
         set_widget_value(
-            WORKER.plugin.ui.checkBox_reverse_mutant_effect_3,
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
             WORKER.test_data.visualize_2_score_reversed,
         )
         WORKER.do_typing(
@@ -1196,6 +1201,129 @@ class TestREvoDesignPlugin_ActionTranslate:
         assert WORKER.plugin.ui.label_molecule.text() != '蛋白分子：'
 
         assert not WORKER.plugin.ui.actionFrench.isEnabled()
+
+
+class TestREvoDesignPlugin_TabVisualize_MultiDesign:
+    def test_multiple_design(self, WORKER: TestWorker):
+        WORKER.test_id = WORKER.method_name()
+
+        if not KeyDataDuringTests.evaluate_pse_path:
+            KeyDataDuringTests.evaluate_pse_path = WORKER.download_file(
+                url=WORKER.test_data.EVALUATION_PSE_URL,
+                md5=WORKER.test_data.EVALUATION_PSE_MD5,
+            )
+
+        WORKER.load_session_and_check(
+            customized_session=KeyDataDuringTests.evaluate_pse_path
+        )
+        WORKER.go_to_tab(tab_name='visualize')
+
+        WORKER.do_typing(
+            widget=WORKER.plugin.ui.lineEdit_multi_design_mutant_table,
+            text=WORKER.test_data.multi_mut_txt,
+            strict_mode=True,
+        )
+
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_{WORKER.c.i}',
+        )
+
+        md_init = WORKER.plugin.bus.button('multi_design_initialize')
+        md_new = WORKER.plugin.bus.button('multi_design_start_new_design')
+        md_next = WORKER.plugin.bus.button('multi_design_right')
+        md_prev = WORKER.plugin.bus.button('multi_design_left')
+        md_stop = WORKER.plugin.bus.button('multi_design_end_this_design')
+        md_save = WORKER.plugin.bus.button(
+            'multi_design_export_mutants_from_table'
+        )
+
+        WORKER.click(md_init).click(md_new)
+
+        for i in random.sample(
+            WORKER.test_data.multi_design_steps,
+            len(WORKER.test_data.multi_design_steps),
+        ):
+            j = WORKER.c.i
+            WORKER.click(md_next, times=i)
+            WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
+
+            WORKER.sleep(300)
+
+        WORKER.click(md_prev, 3)
+
+        WORKER.click(md_save)
+
+        WORKER.sleep(300)
+
+        assert (
+            WORKER.plugin.multi_mutagenesis_designer.all_design_multi_design_mutant_object
+        )
+
+        assert os.path.exists(WORKER.test_data.multi_mut_txt)
+
+    def test_multiple_design_mpnn_score(self, WORKER: TestWorker):
+        WORKER.test_id = WORKER.method_name()
+
+        if not KeyDataDuringTests.evaluate_pse_path:
+            KeyDataDuringTests.evaluate_pse_path = WORKER.download_file(
+                url=WORKER.test_data.EVALUATION_PSE_URL,
+                md5=WORKER.test_data.EVALUATION_PSE_MD5,
+            )
+
+        WORKER.load_session_and_check(
+            customized_session=KeyDataDuringTests.evaluate_pse_path
+        )
+        WORKER.go_to_tab(tab_name='visualize')
+
+        WORKER.do_typing(
+            widget=WORKER.plugin.ui.lineEdit_multi_design_mutant_table,
+            text=WORKER.test_data.multi_mut_txt_mpnn,
+            strict_mode=True,
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_profile_type_2,
+            WORKER.test_data.multi_design_scorer,
+        )
+
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_{WORKER.c.i}',
+        )
+
+        md_init = WORKER.plugin.bus.button('multi_design_initialize')
+        md_new = WORKER.plugin.bus.button('multi_design_start_new_design')
+        md_next = WORKER.plugin.bus.button('multi_design_right')
+        md_prev = WORKER.plugin.bus.button('multi_design_left')
+        md_stop = WORKER.plugin.bus.button('multi_design_end_this_design')
+        md_save = WORKER.plugin.bus.button(
+            'multi_design_export_mutants_from_table'
+        )
+
+        WORKER.click(md_init).click(md_new)
+
+        for i in random.sample(
+            WORKER.test_data.multi_design_steps,
+            len(WORKER.test_data.multi_design_steps) - 3,
+        ):
+            j = WORKER.c.i
+            WORKER.click(md_next, times=i)
+            WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
+
+            WORKER.sleep(300)
+
+        WORKER.click(md_prev, 3)
+
+        WORKER.click(md_save)
+
+        WORKER.sleep(300)
+
+        assert (
+            WORKER.plugin.multi_mutagenesis_designer.all_design_multi_design_mutant_object
+        )
+
+        assert os.path.exists(WORKER.test_data.multi_mut_txt_mpnn)
 
 
 if __name__ == '__main__' or __name__ == 'pymol':

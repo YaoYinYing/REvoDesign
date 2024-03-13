@@ -123,7 +123,7 @@ class Evalutator:
             self.mutant_tree_pssm_selected.add_mutant_to_branch(
                 branch=self.mutant_tree_candidates.current_branch_id,
                 mutant=self.mutant_tree_candidates.current_mutant_id,
-                mutant_info=self.mutant_tree_candidates.mutant_tree[
+                mutant_obj=self.mutant_tree_candidates.mutant_tree[
                     self.mutant_tree_candidates.current_branch_id
                 ][self.mutant_tree_candidates.current_mutant_id],
             )

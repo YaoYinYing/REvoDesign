@@ -88,7 +88,7 @@ class MutantVisualizer:
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(
-            f" Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) : {color}"
+            f" Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : {color}"
         )
         temp_session_path = self.create_mutagenesis_objects(
             mutant_obj, color, in_place=False
@@ -523,7 +523,7 @@ class MutantVisualizer:
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,
                 mutant=variant_obj.short_mutant_id,
-                mutant_info=variant_obj,
+                mutant_obj=variant_obj,
             )
 
         # Determine the range for color bar

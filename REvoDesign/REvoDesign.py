@@ -1297,144 +1297,90 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         cmd.save(filename=session)
 
     def multi_mutagenesis_design_initialize(self):
-        self.multi_mutagenesis_designer = MultiMutantDesigner(
-            molecule=self.design_molecule,
-            chain_id=self.design_chain_id,
-            sequence=self.design_sequence,
-        )
-        self.refresh_multi_mutagenesis_designer_parameters()
-
-    def refresh_multi_mutagenesis_designer_parameters(self):
-        if not self.multi_mutagenesis_designer:
-            return
-        spinBox_maximal_mutant_num = self.bus.ui.spinBox_maximal_mutant_num
-        doubleSpinBox_minmal_mutant_distance = (
-            self.bus.ui.doubleSpinBox_minmal_mutant_distance
-        )
-        checkBox_multi_design_bond_CA = (
-            self.bus.ui.checkBox_multi_design_bond_CA
-        )
-        checkBox_multi_design_check_sidechain_orientations = (
-            self.bus.ui.checkBox_multi_design_check_sidechain_orientations
-        )
-        comboBox_profile_type_2 = self.bus.ui.comboBox_profile_type_2
-        spinBox_maximal_multi_design_variant_num = (
-            self.bus.ui.spinBox_maximal_multi_design_variant_num
-        )
-        checkBox_multi_design_use_external_scorer = (
-            self.bus.ui.checkBox_multi_design_use_external_scorer
-        )
-        checkBox_multi_design_color_by_scores = (
-            self.bus.ui.checkBox_multi_design_color_by_scores
-        )
-        checkBox_reverse_mutant_effect_3 = (
-            self.bus.ui.checkBox_reverse_mutant_effect_3
-        )
-
-        self.multi_mutagenesis_designer.scorer = (
-            comboBox_profile_type_2.currentText()
-        )
-        self.multi_mutagenesis_designer.total_design_cases = (
-            spinBox_maximal_multi_design_variant_num.value()
-        )
-
-        self.multi_mutagenesis_designer.cmap = self.bus.get_value(
-            'ui.header_panel.cmap.default'
-        )
-
-        self.multi_mutagenesis_designer.maximal_mutant_num = (
-            spinBox_maximal_mutant_num.value()
-        )
-        self.multi_mutagenesis_designer.minimal_distance = (
-            doubleSpinBox_minmal_mutant_distance.value()
-        )
-        self.multi_mutagenesis_designer.bond_CA = (
-            checkBox_multi_design_bond_CA.isChecked()
-        )
-        self.multi_mutagenesis_designer.use_sidechain_angle = (
-            checkBox_multi_design_check_sidechain_orientations.isChecked()
-        )
-        self.multi_mutagenesis_designer.use_external_scorer = (
-            checkBox_multi_design_use_external_scorer.isChecked()
-        )
-        self.multi_mutagenesis_designer.color_by_scores = (
-            checkBox_multi_design_color_by_scores.isChecked()
-        )
-        self.multi_mutagenesis_designer.external_scorer_reversed_score = (
-            checkBox_reverse_mutant_effect_3.isChecked()
-        )
+        with hold_trigger_button(self.bus.button('multi_design_initialize')):
+            self.multi_mutagenesis_designer = MultiMutantDesigner()
 
     def multi_mutagenesis_design_start(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
+        with hold_trigger_button(
+            self.bus.button('multi_design_start_new_design')
+        ):
+            self.multi_mutagenesis_designer.refresh_options()
 
-        if self.multi_mutagenesis_designer.in_design_multi_design_case:
-            logging.warning(
-                f'Your current mutant multi-mutagenesis will be discarded!'
-            )
+            if (
+                not self.multi_mutagenesis_designer.in_design_multi_design_case.empty
+            ):
+                logging.warning(
+                    f'Your current mutant multi-mutagenesis will be discarded!'
+                )
 
-            # Ask whether to overide
-            confirmed = proceed_with_comfirm_msg_box(
-                title="Discard in-design mutant choice?",
-                description=f"You currently have uncompleted mutant choice, which shall be discarded. \n \
-                    Are you really sure? ",
-            )
+                # Ask whether to overide
+                confirmed = proceed_with_comfirm_msg_box(
+                    title="Discard in-design mutant choice?",
+                    description=f"You currently have uncompleted mutant choice, which shall be discarded. \n \
+                        Are you really sure? ",
+                )
 
-            if not confirmed:
-                logging.warning(f'Cancelled.')
-                return
-        self.refresh_multi_mutagenesis_designer_parameters()
-        self.multi_mutagenesis_designer.start_new_design()
+                if not confirmed:
+                    logging.warning(f'Cancelled.')
+                    return
+            self.multi_mutagenesis_designer.start_new_design()
 
     def multi_mutagenesis_design_pick_next_mut(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
-        self.refresh_multi_mutagenesis_designer_parameters()
-        self.multi_mutagenesis_designer.pick_next_mutant()
+        with hold_trigger_button(self.bus.button('multi_design_right')):
+            self.multi_mutagenesis_designer.refresh_options()
+            self.multi_mutagenesis_designer.pick_next_mutant()
 
     def multi_mutagenesis_design_undo_picking(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
-
-        self.refresh_multi_mutagenesis_designer_parameters()
-        self.multi_mutagenesis_designer.undo_previous_mutant()
+        with hold_trigger_button(self.bus.button('multi_design_left')):
+            self.multi_mutagenesis_designer.refresh_options()
+            self.multi_mutagenesis_designer.undo_previous_mutant()
 
     def multi_mutagenesis_design_stop_design(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
-        self.refresh_multi_mutagenesis_designer_parameters()
-        if self.multi_mutagenesis_designer.in_design_multi_design_case:
-            self.multi_mutagenesis_designer.new_design(continue_design=False)
+        with hold_trigger_button(
+            self.bus.button('multi_design_end_this_design')
+        ):
+            self.multi_mutagenesis_designer.refresh_options()
+            if self.multi_mutagenesis_designer.in_design_multi_design_case:
+                self.multi_mutagenesis_designer.terminate_picking(
+                    continue_design=False
+                )
 
     def multi_mutagenesis_design_save_design(self):
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design is not initialized.')
             return
-        self.refresh_multi_mutagenesis_designer_parameters()
-
-        mut_table_csv = self.bus.ui.lineEdit_multi_design_mutant_table.text()
-        self.multi_mutagenesis_designer.export_designed_variant(
-            save_mutant_table=mut_table_csv
-        )
+        with hold_trigger_button(
+            self.bus.button('multi_design_export_mutants_from_table')
+        ):
+            self.multi_mutagenesis_designer.export_designed_variant()
 
     def multi_mutagenesis_design_auto(self):
         trigger_button = self.bus.button('run_multi_design')
-        self.refresh_multi_mutagenesis_designer_parameters()
-
-        maximal_multi_design_variant_num = (
-            self.multi_mutagenesis_designer.total_design_cases
-        )
-        maximal_mutant_num = self.multi_mutagenesis_designer.maximal_mutant_num
 
         # initialize
         self.multi_mutagenesis_design_initialize()
         if not self.multi_mutagenesis_designer:
             logging.error('Multi design failed in initializing.')
             return
+
+        maximal_multi_design_variant_num = (
+            self.multi_mutagenesis_designer.total_design_cases
+        )
+
+        maximal_mutant_num = self.multi_mutagenesis_designer.maximal_mutant_num
+        self.multi_mutagenesis_designer.refresh_options()
 
         with hold_trigger_button(trigger_button):
             try:

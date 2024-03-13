@@ -48,17 +48,21 @@ class Mutant:
 
     @property
     def full_mutant_id(self) -> str:
-        self._mutant_id = '_'.join(
+        return f'{self.raw_mutant_id}_{self.mutant_score}'
+
+    @property
+    def raw_mutant_id(self) -> str:
+        _raw_mutant_id = '_'.join(
             [
                 f'{mutant["chain_id"]}{mutant["wt_res"]}{mutant["position"]}{mutant["mut_res"]}'
                 for mutant in self.mutant_info
             ]
         )
-        return self._mutant_id
+        return _raw_mutant_id
 
     @property
     def short_mutant_id(self) -> str:
-        full_id = self.full_mutant_id
+        full_id = self.raw_mutant_id
         if len(full_id) > 15:
             hashed_id = hashlib.sha256(full_id.encode()).hexdigest()
             short_id = hashed_id[:15]

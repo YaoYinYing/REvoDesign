@@ -1,22 +1,21 @@
 from pymol import cmd
 import os
-from attrs import define, field
+from dataclasses import dataclass
 from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
 
 
-@define(kw_only=True)
+@dataclass
 class PocketSearcherConfig(REvoDesignRunnerConfig):
-    save_dir: str = field(converter=str, default='.')
-    ligand: str = field(converter=str, default='UNK')
-    ligand_radius: float = field(converter=float, default=6)
-    cofactor: str = field(converter=str, default='')
-    cofactor_radius: float = field(converter=float, default=7)
+    save_dir: str
+    ligand: str = 'UNK'
+    ligand_radius: float = 6
+    cofactor: str = ''
+    cofactor_radius: float = 7
 
 
-@define(kw_only=True)
 class PocketSearcher(PocketSearcherConfig):
     def search_pockets(self):
         cmd.load(self.input_pse)

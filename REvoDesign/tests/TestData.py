@@ -148,6 +148,20 @@ class TestData:
     def pippack_pse(self):
         return f'{self.test_data_repo}/analysis/1SUO.xtal.test_pippack.pze'
 
+    @property
+    def multi_mut_txt(self):
+        return (
+            f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mut.txt'
+        )
+
+    multi_design_steps = [2, 3, 6, 5, 7, 3, 4, 12]
+
+    multi_design_scorer: str = 'ProteinMPNN'
+
+    @property
+    def multi_mut_txt_mpnn(self):
+        return f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mpnn_mut.txt'
+
 
 @dataclass
 class KeyDataDuringTests:
@@ -160,6 +174,7 @@ class KeyDataDuringTests:
     mutant_file: str = None
     minimum_mutant_file: str = None
     ddg_file: str = None
+    evaluate_pse_path: str = None
 
 
 @dataclass()

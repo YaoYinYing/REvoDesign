@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>560</height>
+    <height>559</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -962,16 +962,6 @@
           </item>
          </layout>
         </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
-          <property name="statusTip">
-           <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
-          </property>
-          <property name="text">
-           <string>Reverse</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </widget>
      </widget>
@@ -1553,22 +1543,6 @@
             </property>
             <property name="checked">
              <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkBox_reverse_mutant_effect_2">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="statusTip">
-             <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
-            </property>
-            <property name="text">
-             <string>Reversed</string>
             </property>
            </widget>
           </item>
@@ -2441,16 +2415,6 @@
           </property>
           <property name="checked">
            <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox_reverse_mutant_effect_3">
-          <property name="statusTip">
-           <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
-          </property>
-          <property name="text">
-           <string>Reversed</string>
           </property>
          </widget>
         </item>
@@ -4540,30 +4504,52 @@
     <property name="title">
      <string>Color Map</string>
     </property>
-    <widget class="QComboBox" name="comboBox_cmap">
+    <widget class="QWidget" name="horizontalLayoutWidget_2">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>0</x>
        <y>30</y>
-       <width>120</width>
+       <width>131</width>
        <height>21</height>
       </rect>
      </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>120</width>
-       <height>16777215</height>
-      </size>
-     </property>
-     <property name="statusTip">
-      <string>Color map.</string>
-     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <widget class="QComboBox" name="comboBox_cmap">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Ignored">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>120</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="statusTip">
+         <string>Color map.</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBox_reverse_mutant_effect">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Ignored">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="statusTip">
+         <string>Lower scores will be favored in certain scoring methods, such as ddG scoring.</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </widget>
    <widget class="QProgressBar" name="progressBar">
@@ -4749,22 +4735,6 @@
  </widget>
  <resources/>
  <connections>
-  <connection>
-   <sender>checkBox_reverse_mutant_effect</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>checkBox_reverse_mutant_effect_2</receiver>
-   <slot>toggle()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>306</x>
-     <y>362</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>573</x>
-     <y>195</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>checkBox_randomized_sampling</sender>
    <signal>toggled(bool)</signal>

@@ -3,7 +3,7 @@ from typing import List, Dict, Union, Optional
 
 
 class MutantTree:
-    def __init__(self, mutant_tree: dict[str, dict[str, Mutant]]):
+    def __init__(self, mutant_tree: dict[str, dict[str, Mutant]] = {}):
         """
         Initialize MutantTree object with a mutant tree dictionary.
 
@@ -43,6 +43,14 @@ class MutantTree:
     @property
     def all_mutant_ids(self) -> list[str]:
         return [mutant for mutant, _ in self.all_mutants]
+
+    @property
+    def branch_num(self):
+        return len(self.all_mutant_branch_ids)
+
+    @property
+    def mutant_num(self):
+        return len(self.all_mutant_objects)
 
     def refresh_mutants(self):
         """
@@ -214,7 +222,7 @@ class MutantTree:
         self.refresh_mutants()
 
     def add_mutant_to_branch(
-        self, branch: str, mutant: str, mutant_info: Mutant
+        self, branch: str, mutant: str, mutant_obj: Mutant
     ):
         """
         Adds a mutant to a specific branch in the MutantTree object.
@@ -233,7 +241,7 @@ class MutantTree:
         if mutant in self.get_a_branch(branch_id=branch):
             print(f'Mutant {mutant} already exists and will be updated.')
 
-        self.mutant_tree[branch].update({mutant: mutant_info})
+        self.mutant_tree[branch].update({mutant: mutant_obj})
         self.refresh_mutants()
 
     def remove_mutant_from_branch(self, branch: str, mutant: str):
@@ -484,3 +492,43 @@ class MutantTree:
                     )
 
         return diff_tree if not diff_tree.empty else None
+
+    def pop(self) -> tuple[str, str, Mutant]:
+        """
+        Pops out the last mutant from the last branch of the MutantTree object.
+
+        Returns:
+        - Mutant or None: The last mutant in the last branch if it exists, otherwise None.
+
+        Usage:
+        last_mutant = tree.pop()
+        """
+        if self.empty:
+            return None
+
+        # Get the ID of the last branch
+        last_branch_id = self.all_mutant_branch_ids[-1]
+
+        # Get the last mutant ID and object from the last branch
+        last_mutant_id, last_mutant = list(
+            self.mutant_tree[last_branch_id].items()
+        )[-1]
+
+        # Remove the last mutant from the branch
+        self.remove_mutant_from_branch(last_branch_id, last_mutant_id)
+
+        # Refresh the mutant-related attributes
+        self.refresh_mutants()
+
+        return last_branch_id, last_mutant_id, last_mutant
+
+    @property
+    def asOneMutant(self) -> Mutant:
+        tmp_mutant_obj = Mutant(
+            mutant_info=[
+                _mut_info
+                for _mut_obj in self.all_mutant_objects
+                for _mut_info in _mut_obj.mutant_info
+            ]
+        )
+        return tmp_mutant_obj
