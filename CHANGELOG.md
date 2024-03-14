@@ -5,7 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## TEMPLATE
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## [Unreleased]
+
+## [1.5.4] - 2024-03-14
+### Added
+- `LanguageSwitch` to switch languages
+- config: 
+  - `'ui.header_panel.cmap.reverse_score'`
+  - `'ui.visualize.multi_design.*'`
+  - `designable_sequences` to store all chain:sequence mapping.
+- Exception templates
+- test counter: `Counter` and its intance in `TestWorker`
+- `MutantTree`:
+  - `branch_num`: number of all branches
+  - `mutant_num`: number of all mutant objects
+  - `pop`: pop the last mutant from the last branch
+  - `asOneMutant`: return a merged `Mutant`
+
+### Changed
+- refactored multi design and its tests
+- singletonized `ConfigBus`
+- Chinese traslation improved
+- `set_window_font` -> `FontSetter` and `FlavoredFonts`
+- `Mutant`: `full_mutant_id` -> `raw_mutant_id` (wo score).
+- `ConfigBus.get_value` refactored
+- `MutantTree.add_mutant_to_branch`: `mutant_info` -> `mutant_obj`
+- `SidechainSolver` refactored
+- `quick_mutagenesis` refactored 
+- `GREMLIN_Analyser` refactored
+  
+### Fixed
+- Unit test fail fast mechanism: any failure will stop the test process. this may save a lot of CI credits.
+
+### Removed
+- repetative color reverse checkbox on UI and cfg.
+- `ConfigBus`-related arg passings
+- runner configs:
+  - `ClusterRunnerConfig`
+  - `EvalutatorConfig`
+  - `MutateWorkerConfig`
+  - `SidechainSolverConfig`
+  - `GREMLIN_AnalyserConfig`
+- `attrs` calls: use `dataclasses` only.
+- `memray` dependency in `pyproject.toml`: Linux only
 
 ## [1.5.3] - 2024-03-10
 
