@@ -3,12 +3,10 @@ name: Unit Test on tagging
 on:
   push:
     paths:
-      - './CHANGELOG.md' 
-      - './pyproject.toml' 
+      - '.CHANGELOG.md' 
+      - '.pyproject.toml' 
       - 'REvoDesign/__version__.py'
       - '.github/workflows/unit_tests_tag.yml'
-    tags:        
-      - '*'   
       
 env: 
   conda_env: REvoDesign
@@ -21,8 +19,8 @@ jobs:
         os: 
           - ubuntu-latest
         python-version: 
-          # - "3.9"
-          # - "3.10"
+          - "3.9"
+          - "3.10"
           - "3.11"
         include:
           - os: windows-latest
