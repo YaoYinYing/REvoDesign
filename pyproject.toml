@@ -21,8 +21,14 @@ packages = [
     { include = "REvoDesign/**/*.py" },
 ]
 
+[[tool.poetry.source]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "supplemental"
+
+
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.9,<4.0.0"
 
 typing-extensions  = ">=4.9.0"
 immutabledict = "^4.1.0"
@@ -41,7 +47,7 @@ rdkit = ">=2023.9.4"
 attrs = "*"
 # optional packages
 ## designers
-colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", tag = "v1.1.1" , optional = true }
+colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", branch = "v1.1.1" , optional = true }
 
 #PRIME = {git = "https://github.com/YaoYinYing/Prime_1", optional = true}
 #UniKP = {git = "https://github.com/YaoYinYing/unikp.git", optional = true}

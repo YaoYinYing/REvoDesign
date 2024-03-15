@@ -1,6 +1,7 @@
 name: Docker Image
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'server/docker/Dockerfile' # Monitor the entire 'docker' directory
@@ -8,7 +9,7 @@ on:
 
     branches:
       - main
-    
+
 jobs:
   build-docker-image:
     runs-on: ubuntu-latest

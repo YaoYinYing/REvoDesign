@@ -1,6 +1,7 @@
 name: Unit Test in docker
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - '.github/workflows/unit_tests_dev.yml' # monitor the main workflow script.
@@ -8,7 +9,7 @@ on:
       - 'REvoDesign/*' # monitor the REvoDesign project source code
       - '!CHANGELOG.md' 
       - '!REvoDesign/__version__.py'
-    
+  
 
 jobs:
   DevTests:

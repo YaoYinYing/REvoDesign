@@ -1,13 +1,15 @@
 name: Docker Image for Unittests
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'tests/docker/Dockerfile' # Monitor the entire 'docker' directory
       - '.github/workflows/docker-image-test.yml' # monitor the main workflow script. enable it again if in necessary maintainances.
+      - 'pyproject.toml'
     branches:
       - main
-      - test-image
+  
     
 env: 
   docker_image_id: revodesign-test-image
