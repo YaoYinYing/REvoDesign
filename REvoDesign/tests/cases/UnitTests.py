@@ -1121,8 +1121,10 @@ class TestSidechainSolver(absltest.TestCase):
             print('Skiping dlpacker tests..')
         from REvoDesign.sidechain_solver import DLPacker_worker
 
-        mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb, radius=5)
+        mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb, radius=3.5)
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+        del mutate_runner
 
         from Bio.PDB.PDBParser import PDBParser
 
@@ -1143,6 +1145,8 @@ class TestSidechainSolver(absltest.TestCase):
         )
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
 
+        del mutate_runner
+
         from Bio.PDB.PDBParser import PDBParser
 
         parser = PDBParser(PERMISSIVE=1)
@@ -1159,6 +1163,8 @@ class TestSidechainSolver(absltest.TestCase):
 
         mutate_runner = PIPPack_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+        del mutate_runner
 
         from Bio.PDB.PDBParser import PDBParser
 

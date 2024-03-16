@@ -118,6 +118,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             mutant_obj=mutant_obj,
             reconstruct_area_radius=self.reconstruct_area_radius,
         )
+        logging.debug(f'Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}')
         self.dlpacker_worker.reconstruct_region(
             targets=reconstruct_area,
             order='natoms' if self.reconstruct_area_radius > 0 else 'sequence',
@@ -148,7 +149,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             new_residue = mut_info['mut_res']
             new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
             if reconstruct_area_radius <= 0:
-                print(
+                logging.debug(
                     f'Adding {(position, chain_id, new_residue_3)} for relax...'
                 )
                 reconstruct_area.append((position, chain_id, new_residue_3))

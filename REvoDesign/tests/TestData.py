@@ -53,7 +53,7 @@ class TestData:
         return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.pze'
 
     mpnn_profile_type: str = 'ProteinMPNN'
-    mpnn_surface_residues: str = '37,38,39,40,43,44,45,46,48'
+    mpnn_surface_residues: str = '37,38,39,40'
     mpnn_num_designs: int = 5
     mpnn_temperature: float = 0.1
     mpnn_batch_designs: int = 1
