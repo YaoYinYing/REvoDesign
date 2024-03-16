@@ -1,16 +1,19 @@
 import os
 import tempfile
 
+from omegaconf import DictConfig
+
 from REvoDesign import root_logger
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign import reload_config_file, set_cache_dir
+
+from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
+
 
 logging = root_logger.getChild(__name__)
 
 
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign import reload_config_file, set_cache_dir
-
-
-class PIPPack_worker:
+class PIPPack_worker(MutateRunnerAbstract):
     """
     Class for managing protein reconstruction and mutation using PIPPack.
 
@@ -18,28 +21,32 @@ class PIPPack_worker:
     # Further usage for other functionalities
     """
 
-    def __init__(self, pdb_file: str, use_model: str = 'ensemble'):
-        from pippack import PIPPack
-
+    def __init__(self, pdb_file: str, use_model='ensemble', **kwargs):
         """
         Initialize DLPacker_worker with a PDB file.
 
         Args:
         - pdb_file: Path to the PDB file
         """
+        super().__init__(pdb_file)
+
+        self.use_model = use_model
+
+        from pippack import PIPPack
+
         self.pdb_file = pdb_file
-        cfg = reload_config_file('sidechain-solver/pippack')[
+        ppcfg = reload_config_file('sidechain-solver/pippack')[
             'sidechain-solver'
         ]
-        self.pippack_worker = PIPPack(model=use_model)
+        self.pippack_worker = PIPPack(model=self.use_model)
 
         logging.info(f'Initializing PIPPack_worker.')
-        self.pippack_worker.n_recycle = cfg.inference.n_recycle
-        self.pippack_worker.temperature = cfg.inference.temperature
-        self.pippack_worker.force_cpu = cfg.inference.force_cpu
-        self.pippack_worker.resample_args = cfg.inference.resample_args
-        self.pippack_worker.seed = cfg.inference.seed
-        self.pippack_worker.use_resample = cfg.inference.use_resample
+        self.pippack_worker.n_recycle = ppcfg.inference.n_recycle
+        self.pippack_worker.temperature = ppcfg.inference.temperature
+        self.pippack_worker.force_cpu = ppcfg.inference.force_cpu
+        self.pippack_worker.resample_args = ppcfg.inference.resample_args
+        self.pippack_worker.seed = ppcfg.inference.seed
+        self.pippack_worker.use_resample = ppcfg.inference.use_resample
 
         cache_dir = set_cache_dir()
         self.pippack_worker.weights_path = os.path.join(
@@ -55,6 +62,7 @@ class PIPPack_worker:
         mutant_obj: Mutant,
         **kwargs,
     ):
+        logging.debug(f'Mutating {mutant_obj=}')
         new_obj_name = mutant_obj.short_mutant_id
 
         mutant_sequence = [
@@ -63,7 +71,6 @@ class PIPPack_worker:
                 for seq in mutant_obj.mutant_sequences.values()
             ]
         ]
-        logging.debug(mutant_obj)
         logging.debug(f'Mutated: {mutant_obj.mutant_sequences}')
 
         temp_dir = tempfile.mkdtemp(prefix='RD_design_pipp')

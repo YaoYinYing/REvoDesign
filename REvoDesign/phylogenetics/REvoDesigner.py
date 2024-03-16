@@ -4,11 +4,7 @@ import hashlib
 import time
 import re
 from typing import Union
-from REvoDesign.sidechain_solver import (
-    PyMOL_mutate,
-    DLPacker_worker,
-    PIPPack_worker,
-)
+from REvoDesign.sidechain_solver import MutateRunnerAbstract
 
 from REvoDesign import root_logger
 
@@ -64,9 +60,7 @@ class REvoDesigner:
         self.deduplicate_designs = False
         self.randomized_sample = False
         self.randomized_sample_num = 10
-        self.mutate_runner: Union[
-            PyMOL_mutate, DLPacker_worker, PIPPack_worker
-        ] = None
+        self.mutate_runner: MutateRunnerAbstract = None
 
         self.pwd = '.'
         self.sequence = ''

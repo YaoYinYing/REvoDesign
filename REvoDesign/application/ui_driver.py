@@ -59,10 +59,13 @@ class ConfigBus:
         # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):
             # If not, set the instance attributes
-            self.ui = ui
+
             self.cfg: DictConfig = reload_config_file()
-            self.w2c = Widget2ConfigMapper(ui=self.ui)
-            self.buttons = self.w2c.buttons
+            if ui:
+                self.ui = ui
+                self.w2c = Widget2ConfigMapper(ui=self.ui)
+                self.buttons = self.w2c.buttons
+
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
 

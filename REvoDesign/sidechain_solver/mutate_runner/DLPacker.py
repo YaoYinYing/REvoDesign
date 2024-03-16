@@ -1,13 +1,18 @@
 import os
 import tempfile
 
+from omegaconf import DictConfig
+
+
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
 
+from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
 
-class DLPacker_worker:
+
+class DLPacker_worker(MutateRunnerAbstract):
     """
     Class for managing protein reconstruction and mutation using DLPacker.
 
@@ -30,7 +35,15 @@ class DLPacker_worker:
     # Further usage for other functionalities
     """
 
-    def __init__(self, pdb_file):
+    def __init__(self, pdb_file: str, radius: float = 0.0, **kwargs):
+        """
+        Initialize DLPacker_worker with a PDB file.
+
+        Args:
+        - pdb_file: Path to the PDB file
+        """
+        super().__init__(pdb_file)
+
         from REvoDesign.tools.post_installed import set_cache_dir
 
         cache_dir = set_cache_dir()
@@ -42,14 +55,8 @@ class DLPacker_worker:
             'DLPACKER_PRETRAINED_WEIGHT'
         ] = expected_dlpacker_weight_cache_dir
 
-        """
-        Initialize DLPacker_worker with a PDB file.
-
-        Args:
-        - pdb_file: Path to the PDB file
-        """
         self.pdb_file = pdb_file
-        self.reconstruct_area_radius = 0
+        self.reconstruct_area_radius = radius
 
     def reconstruct(self):
         """
@@ -86,6 +93,7 @@ class DLPacker_worker:
         from Bio.Data import IUPACData
         from DLPacker.dlpacker import DLPacker
 
+        logging.debug(f'Mutating {mutant_obj=}')
         self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         new_obj_name = mutant_obj.short_mutant_id
 

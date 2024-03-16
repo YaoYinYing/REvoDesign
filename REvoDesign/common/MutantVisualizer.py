@@ -1,39 +1,29 @@
 import gc
 import os
-import time
 import tempfile
 from typing import Union
 import pandas as pd
-
 from Bio import SeqIO
 from pymol import cmd
 import matplotlib
-from REvoDesign.sidechain_solver import (
-    PyMOL_mutate,
-    DLPacker_worker,
-    PIPPack_worker,
-)
 
+from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign import root_logger
-
-logging = root_logger.getChild(__name__)
-
 from REvoDesign.common.MutantTree import MutantTree
 
-matplotlib.use('Agg')
-
 from REvoDesign.common.Mutant import Mutant
-
 from REvoDesign.tools.utils import (
     get_color,
     run_command,
 )
 
-
 from REvoDesign.tools.mutant_tools import (
     extract_mutants_from_mutant_id,
     extract_mutant_from_sequences,
 )
+
+matplotlib.use('Agg')
+logging = root_logger.getChild(__name__)
 
 
 class MutantVisualizer:
@@ -54,9 +44,7 @@ class MutantVisualizer:
         self.profile = ''
         self.profile_format: str = 'PSSM'
         self.scorer = None
-        self.mutate_runner: Union[
-            PyMOL_mutate, DLPacker_worker, PIPPack_worker
-        ] = None
+        self.mutate_runner: MutateRunnerAbstract = None
 
         self.profile_scoring_df: Union[None, pd.DataFrame] = None
 
@@ -88,7 +76,7 @@ class MutantVisualizer:
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(
-            f" Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : {color}"
+            f" Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : {color} with {self.mutate_runner.__class__.__name__}"
         )
         temp_session_path = self.create_mutagenesis_objects(
             mutant_obj, color, in_place=False
@@ -107,6 +95,7 @@ class MutantVisualizer:
         - self: Instance of the class containing the method.
         - mutant_obj (Mutant): Mutant object containing explicit mutagenesis description.
         - color: Color to assign to the mutagenesis objects.
+        - inplace: ask PyMOL mutate runner to not stay in place after mutate is done
 
         Returns:
         - None

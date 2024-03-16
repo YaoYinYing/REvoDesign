@@ -9,7 +9,6 @@ from Bio.Data import IUPACData
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.post_installed import reload_config_file
 from REvoDesign.tools.pymol_utils import is_hidden_object
 from REvoDesign.tools.utils import filepath_does_exists
 from REvoDesign import ConfigBus, FileExtentions

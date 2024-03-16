@@ -53,7 +53,7 @@ setup-display:
 
 # only for unittest on runner or local machine.
 install:
-	python -m pip install ".[full,unittest]" -U
+	python -m pip install ".[full,unittest]" -U --no-cache-dir
 
 reinstall:
 	make clean
@@ -71,7 +71,7 @@ translate:
 	cd REvoDesign/UI/;lrelease liguist.pro
 
 prepare-test:
-	python -m pip install pytest pytest-cov coverage -q
+	python -m pip install pytest pytest-cov coverage -q --no-cache-dir
 
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version

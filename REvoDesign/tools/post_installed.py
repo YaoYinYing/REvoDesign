@@ -65,7 +65,10 @@ def experiment_config():
 
 
 def set_cache_dir() -> str:
-    cfg: DictConfig = reload_config_file()
+    from REvoDesign import ConfigBus
+
+    bus: ConfigBus = ConfigBus()
+    cfg: DictConfig = bus.cfg
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
         raise ValueError('You must specify a custom cache directory!')
 
