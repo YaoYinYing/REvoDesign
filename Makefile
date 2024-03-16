@@ -1,7 +1,7 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
-PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --execution-timer --durations=0
+PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0
 PYTEST_CASES_PATH=../REvoDesign/tests/cases/
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests
