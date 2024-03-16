@@ -9,7 +9,8 @@ on:
       - 'REvoDesign/*' # monitor the REvoDesign project source code
       - '!CHANGELOG.md' 
       - '!REvoDesign/__version__.py'
-  
+    branches:
+        - main
 
 jobs:
   DevTests:

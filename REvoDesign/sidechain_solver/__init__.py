@@ -1,6 +1,6 @@
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Union, Mapping
 from types import MappingProxyType
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from immutabledict import immutabledict
 from REvoDesign.sidechain_solver.mutate_runner import (
@@ -35,21 +35,25 @@ __all__ = [
 @dataclass(frozen=True)
 class MutateRunnerManager:
     # Append installed runner here
-    installed_worker: MappingProxyType[str, bool] = MappingProxyType(
-        {
-            'Dunbrack Rotamer Library': True,
-            'DLPacker': WITH_DEPENDENCIES.DLPACKER,
-            'PIPPack': WITH_DEPENDENCIES.PIPPACK,
-        }
+    installed_worker: Mapping = field(
+        default_factory=lambda: MappingProxyType(
+            {
+                'Dunbrack Rotamer Library': True,
+                'DLPacker': WITH_DEPENDENCIES.DLPACKER,
+                'PIPPack': WITH_DEPENDENCIES.PIPPACK,
+            }
+        )
     )
 
     # Append implemented runner here
-    implemented_runner: MappingProxyType[str, Callable] = MappingProxyType(
-        {
-            'Dunbrack Rotamer Library': PyMOL_mutate,
-            'DLPacker': DLPacker_worker,
-            'PIPPack': PIPPack_worker,
-        }
+    implemented_runner: Mapping = field(
+        default_factory=lambda: MappingProxyType(
+            {
+                'Dunbrack Rotamer Library': PyMOL_mutate,
+                'DLPacker': DLPacker_worker,
+                'PIPPack': PIPPack_worker,
+            }
+        )
     )
 
     def _runner_is_implemented(self, sidechain_solver_name: str) -> bool:

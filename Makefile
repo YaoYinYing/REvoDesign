@@ -1,7 +1,7 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
-PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs
+PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --execution-timer --durations=0
 PYTEST_CASES_PATH=../REvoDesign/tests/cases/
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests
@@ -71,7 +71,7 @@ translate:
 	cd REvoDesign/UI/;lrelease liguist.pro
 
 prepare-test:
-	python -m pip install pytest pytest-cov coverage -q --no-cache-dir
+	python -m pip install pytest pytest-cov coverage pytest-execution-timer -q --no-cache-dir 
 
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
