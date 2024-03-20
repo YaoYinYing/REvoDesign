@@ -333,7 +333,7 @@ def run_gremlin(md5sum):
 @app.route("/PSSM_GREMLIN/api/results/<md5sum>", methods=["GET"])
 def get_results(md5sum):
     result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
-    state_file = state_file
+    state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
     fasta_fn = os.path.basename(glob.glob(f"{result_dir}/*.fasta")[0])
 
     # connect pipeline state marker to the server state
