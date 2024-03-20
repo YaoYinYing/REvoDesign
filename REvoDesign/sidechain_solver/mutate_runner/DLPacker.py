@@ -118,7 +118,9 @@ class DLPacker_worker(MutateRunnerAbstract):
             mutant_obj=mutant_obj,
             reconstruct_area_radius=self.reconstruct_area_radius,
         )
-        logging.debug(f'Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}')
+        logging.debug(
+            f'Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}'
+        )
         self.dlpacker_worker.reconstruct_region(
             targets=reconstruct_area,
             order='natoms' if self.reconstruct_area_radius > 0 else 'sequence',

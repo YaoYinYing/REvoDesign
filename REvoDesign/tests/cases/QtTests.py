@@ -617,7 +617,7 @@ class TestREvoDesignPlugin_TabInteract:
             ),
             (3, 13),
         ]:
-            i=WORKER.c.i
+            i = WORKER.c.i
             WORKER.click(
                 WORKER.plugin.bus.w2c.get_button_from_id(
                     f'{row}_vs_{col}', prefix='matrixButton'
@@ -631,7 +631,7 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}',focus=False
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}', focus=False
             )
             WORKER.check_existed_mutant_tree()
 
@@ -755,7 +755,7 @@ class TestREvoDesignPlugin_TabInteract:
             ),
             (9, 0),
         ]:
-            i=WORKER.c.i
+            i = WORKER.c.i
             WORKER.click(
                 WORKER.plugin.bus.w2c.get_button_from_id(
                     f'{row}_vs_{col}', prefix='matrixButton'
@@ -769,7 +769,7 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}',focus=False
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}', focus=False
             )
             WORKER.check_existed_mutant_tree()
 
@@ -832,7 +832,7 @@ class TestREvoDesignPlugin_TabEvaluate:
             widget=WORKER.plugin.window,
             basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.test_id,focus=False)
+        WORKER.save_pymol_png(basename=WORKER.test_id, focus=False)
 
         assert not WORKER.plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
@@ -896,7 +896,7 @@ class TestREvoDesignPlugin_TabEvaluate:
             widget=WORKER.plugin.window,
             basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.test_id,focus=False)
+        WORKER.save_pymol_png(basename=WORKER.test_id, focus=False)
 
         assert not WORKER.plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
@@ -978,7 +978,9 @@ class TestREvoDesignPlugin_TabVisualize:
         WORKER.go_to_tab(tab_name='config')
 
         set_widget_value(WORKER.plugin.ui.comboBox_sidechain_solver, 'PIPPack')
-        set_widget_value(WORKER.plugin.ui.comboBox_sidechain_solver_model, 'pippack_model_1')
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver_model, 'pippack_model_1'
+        )
         WORKER.go_to_tab(tab_name='visualize')
 
         WORKER.do_typing(
