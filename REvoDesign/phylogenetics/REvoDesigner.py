@@ -73,7 +73,6 @@ class REvoDesigner:
         # use PSSM alphabet as default
         self.profile_alphabet = 'ARNDCQEGHILKMFPSTWYV'
         self.cmap = "bwr_r"
-
         self.results = []
         self.nproc = 1
         self.max_abs_profile = 0
@@ -509,8 +508,6 @@ class REvoDesigner:
 
         session_merger.merge_sessions_via_commandline()
 
-        self.output_pse = session_merger.save_session
-
         logging.info("Done.")
 
     def setup_profile_design(
@@ -592,7 +589,7 @@ class REvoDesigner:
         self.visualizer.cmap = self.cmap
 
         self.visualizer.nproc = self.nproc
-        self.visualizer.parallel_run = self.nproc > 1
+
         self.visualizer.input_session = self.input_pse
         self.visualizer.mutate_runner = self.mutate_runner
 
@@ -643,6 +640,7 @@ class REvoDesigner:
         self.visualizer.mutant_tree = MutantTree(
             {group_id: self.mutant_tree.get_a_branch(branch_id=group_id)}
         )
+
         self.visualizer.run_mutagenesis_tasks()
         return self.visualizer.save_session
 
@@ -709,6 +707,16 @@ class REvoDesigner:
             logging.warning(f'No available designs!')
             return
 
+        all_mutants_pdb_fp = self.mutate_runner.run_mutate_parallel(
+            mutants=self.mutant_tree.all_mutant_objects,
+            n_jobs=self.nproc,
+            in_place=False,
+        )
+
+        self.mutant_tree = self.mutate_runner.mutated_pdb_mapping(
+            mutants=self.mutant_tree, pdb_fps=all_mutants_pdb_fp
+        )
+
         self.results = []
 
         for branch_id in self.mutant_tree.all_mutant_branch_ids:
@@ -724,5 +732,3 @@ class REvoDesigner:
         session_merger.save_session = self.output_pse
         session_merger.mutagenesis_sessions = self.results
         session_merger.merge_sessions_via_commandline()
-
-        self.output_pse = session_merger.save_session

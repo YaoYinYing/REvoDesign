@@ -55,6 +55,10 @@ setup-display:
 install:
 	python -m pip install ".[full,unittest]" -U --no-cache-dir
 
+install-no-dep:
+	python -m pip install "." -U --no-cache-dir
+
+
 reinstall:
 	make clean
 	make black;rm -r /Users/yyy/.REvoDesign/config/; pip install . -U

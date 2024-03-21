@@ -489,7 +489,6 @@ def quick_mutagenesis(
     cfg = bus.cfg
 
     visualizer.nproc = nproc
-    visualizer.parallel_run = nproc > 1
     visualizer.input_session = input_pdb
     visualizer.sequence = sequence
 

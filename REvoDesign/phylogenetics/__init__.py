@@ -168,10 +168,12 @@ class MutateWorker:
                     progress_bar=self.bus.ui.progressBar,
                 )
 
-            assert self.design.output_pse and dirname_does_exist(
-                self.design.output_pse
-            ), f'No output PyMOL session is created.'
+            if not dirname_does_exist(self.design.output_pse):
+                logging.warning(f'No output PyMOL session is created.')
+                return
 
+            cmd.reinitialize()
+            cmd.load(input_pse, object=self.design_molecule)
             cmd.load(self.design.output_pse, partial=2)
 
             cmd.center(self.design_molecule)
@@ -266,8 +268,6 @@ class VisualizingWorker:
                 profile_format=design_profile_format,
             )
 
-            # logging.warning(f'{self.visualizer.profile_scoring_df}')
-
             if best_leaf:
                 self.visualizer.key_col = best_leaf
             if totalscore:
@@ -283,6 +283,11 @@ class VisualizingWorker:
             run_worker_thread_with_progress(
                 worker_function=self.visualizer.run,
                 progress_bar=self.bus.ui.progressBar,
+            )
+
+            cmd.reinitialize()
+            cmd.load(
+                self.visualizer.input_session, object=self.design_molecule
             )
 
             cmd.load(self.visualizer.save_session, partial=2)

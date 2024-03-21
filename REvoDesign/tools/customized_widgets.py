@@ -1,6 +1,7 @@
 import os
 from contextlib import contextmanager
 from collections.abc import Iterable
+from typing import Any, Callable, Union
 from omegaconf import OmegaConf
 from pymol.Qt import QtWidgets, QtGui, QtCore
 
@@ -397,15 +398,17 @@ def refresh_widget_while_another_changed(
 class ParallelExecutor:
     def __init__(
         self,
-        func,
-        args,
-        n_jobs,
-        backend='auto',
-        verbose=0,
+        func: Callable,
+        args: Iterable[Any],
+        n_jobs: int,
+        backend: str = 'auto',
+        verbose: bool = 0,
+        kwargs: Union[tuple[dict], list[dict], None] = None,
     ):
         super().__init__()
         self.func = func
         self.args = args
+        self.kwargs = kwargs
         self.n_jobs = n_jobs
 
         os_type = CLIENT_INFO.OS_TYPE
@@ -427,11 +430,22 @@ class ParallelExecutor:
         from joblib import Parallel, delayed
 
         logging.info(f'Workload in this run: {len(self.args)}')
-        self.results = Parallel(
-            n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose
-        )(delayed(self.func)(*arg) for arg in self.args)
+        if not self.kwargs:
+            return Parallel(
+                n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose
+            )(delayed(self.func)(*arg) for arg in self.args)
 
-        return self.results
+        if len(self.kwargs) != len(self.args):
+            raise ValueError(
+                f'Workload kwargs mismatch: {len(self.kwargs)=} != {len(self.args)=}'
+            )
+
+        return Parallel(
+            n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose
+        )(
+            delayed(self.func)(*arg, **kwarg)
+            for arg, kwarg in zip(self.args, self.kwargs)
+        )
 
 
 class QtParallelExecutor(QtCore.QThread):

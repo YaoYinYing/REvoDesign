@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
+import os
+from typing import Iterable, Union
 
 from omegaconf import DictConfig
 
 from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.MutantTree import MutantTree
 
 
 class MutateRunnerAbstract(ABC):
@@ -22,6 +25,26 @@ class MutateRunnerAbstract(ABC):
         """
         self.pdb_file = pdb_file
 
+    @property
+    def new_cache_dir(self):
+        mutant_dir = os.path.abspath('mutant_pdbs')
+        temp_dir = os.path.join(mutant_dir, self.__class__.__name__)
+        os.makedirs(temp_dir, exist_ok=True)
+        return temp_dir
+
+    @staticmethod
+    def mutated_pdb_mapping(mutants: MutantTree, pdb_fps: Iterable[str]):
+        assert mutants.mutant_num == len(
+            pdb_fps
+        ), f"Mutant number does not match pdb_fps: {mutants.mutant_num=} != {len(pdb_fps)=}"
+
+        for m, fp in zip(mutants.all_mutant_objects, pdb_fps):
+            if not (fp and os.path.exists(fp)):
+                raise ValueError(f'pdb for mutant is not valid. {fp=} {m=}')
+            m.pdb_fp = fp
+
+        return mutants
+
     def reconstruct(self):
         """
         Reconstruct the protein structure.
@@ -38,6 +61,24 @@ class MutateRunnerAbstract(ABC):
 
         Args:
             mutant: An object or data structure representing the mutation.
+
+        This method should be implemented by subclasses to provide the specific
+        mutation functionality.
+        """
+        pass
+
+    @abstractmethod
+    def run_mutate_parallel(
+        self,
+        mutants: list[Mutant],
+        nproc: int = 2,
+    ):
+        """
+        Perform mutation on the protein in parallel.
+
+        Args:
+            nproc: Nproc
+            mutants: An list object or data structure representing the mutation.
 
         This method should be implemented by subclasses to provide the specific
         mutation functionality.

@@ -1,5 +1,5 @@
 import os
-import tempfile
+
 
 from omegaconf import DictConfig
 
@@ -57,6 +57,8 @@ class PIPPack_worker(MutateRunnerAbstract):
         else:
             self.pippack_worker._initialize_with_ensemble()
 
+        self.temp_dir = self.new_cache_dir
+
     def run_mutate(
         self,
         mutant_obj: Mutant,
@@ -73,8 +75,7 @@ class PIPPack_worker(MutateRunnerAbstract):
         ]
         logging.debug(f'Mutated: {mutant_obj.mutant_sequences}')
 
-        temp_dir = tempfile.mkdtemp(prefix='RD_design_pipp')
-        temp_pdb_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")
+        temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
         self.pippack_worker._run_repack_single(
             pdb_file=self.pdb_file,
@@ -83,3 +84,31 @@ class PIPPack_worker(MutateRunnerAbstract):
         )
 
         return temp_pdb_path
+
+    def run_mutate_parallel(self, mutants: list[Mutant], *args, **kwargs):
+        mutant_sequences = [
+            [
+                seq.replace('X', '')
+                for seq in mutant_obj.mutant_sequences.values()
+            ]
+            for mutant_obj in mutants
+        ]
+
+        pdbs = self.pippack_worker._run_repack_batch(
+            pdb_path=self.pdb_file,
+            output_dir=self.temp_dir,
+            mutant_sequence=mutant_sequences,
+        )
+
+        renamed_pdbs = [
+            os.path.join(self.temp_dir, f'{m.short_mutant_id}.pdb')
+            for i, m in enumerate(mutants)
+        ]
+
+        for i, pdb in enumerate(pdbs):
+            try:
+                os.rename(pdb, renamed_pdbs[i])
+            except OSError as e:
+                print(e)
+
+        return renamed_pdbs
