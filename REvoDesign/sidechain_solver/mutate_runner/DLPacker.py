@@ -197,7 +197,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         - List of paths to the mutated PDB files
         """
 
-        results = Parallel(n_jobs=n_jobs, backend='multiprocessing')(
+        results = Parallel(n_jobs=n_jobs)(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
 

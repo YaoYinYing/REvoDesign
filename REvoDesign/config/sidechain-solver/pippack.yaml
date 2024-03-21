@@ -5,7 +5,7 @@ inference:
   temperature: 0.0
   use_resample: False
   force_cpu: True
-  batch_size: 10000
+  batch_size: 16
   seed: 42
 
   resample_args:

@@ -7,7 +7,7 @@ LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 PYREVERSE_DIR=image/svg
-PYREVERSE_ARGS=--ignore Ui_REvoDesign.py
+PYREVERSE_ARGS=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py
 
 help:
 	@echo "Commands:"
