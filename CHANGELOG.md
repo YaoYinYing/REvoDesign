@@ -15,6 +15,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- GitHub Actions workflow dispatch
+- `pytest`: add `pytest-execution-timer` and `--durations=0` to list the slowest testcases
+- `pyreverse`: skip `UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py`
+- `Mutant`: property `pdb_fp` for recording mutated pdb path
+- `MutateRunnerAbstract`: an abstact class for mutate runners.
+- `run_mutate_parallel` for mutate runners to perform parallel sidechain building from given `Mutant` to pdb path.
+- `TestWorker`:
+  - `existed_mutant_tree` property
+  - `focus_on_tree`
+  - `save_pymol_png`: add local focus
+
+### Changed
+- updated CI `actions/checkout` to `v4`
+- `ConfigBus`: optional ui passing, for headless test
+- `REvoDesigner`: call mutate runner to perform all-tree mutate before send sub-mutant-tree to `MutantVisualizer` one branch after another.
+- `SidechainSolver` refactored
+- `post_installed.set_cache_dir`: read config from `ConfigBus` instead.
+
+### Fixed
+- `MutantVisualizer.merge_sessions_via_commandline`: changed output session file.
+- shifted pymol object name if loaded from a weird pdb file: `cmd.load(..., object=self.molecule)`
+- `extract_smiles_from_chain`: 
+  - use empty string as default arguments instead of `None`; 
+  - save molecule as `SDF` format to preserve bonds
+  - return as list
+- `server/pssm_gremlin/pssm_gremlin`: fix `state_file` in `get_results`
+  
+### Removed
+- `MutantVisualizer.parallel_run`
+- `assert` statements
+
 
 ## [1.5.4] - 2024-03-14
 ### Added
