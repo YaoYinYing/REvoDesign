@@ -2,17 +2,12 @@ import asyncio
 from functools import partial
 import os
 import traceback
-from typing import Union
 from REvoDesign import ConfigBus
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.phylogenetics.GREMLIN_Tools import GREMLIN_Tools
-from REvoDesign.sidechain_solver import (
-    PyMOL_mutate,
-    PIPPack_worker,
-    DLPacker_worker,
-)
+from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.customized_widgets import QbuttonMatrix, set_widget_value
 from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_pymol_object,
@@ -45,9 +40,7 @@ class MutateWorker:
         self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
-        self.mutate_runner: Union[
-            PyMOL_mutate, PIPPack_worker, DLPacker_worker
-        ] = mutate_runner
+        self.mutate_runner: MutateRunnerAbstract = mutate_runner
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'
@@ -175,10 +168,12 @@ class MutateWorker:
                     progress_bar=self.bus.ui.progressBar,
                 )
 
-            assert self.design.output_pse and dirname_does_exist(
-                self.design.output_pse
-            ), f'No output PyMOL session is created.'
+            if not dirname_does_exist(self.design.output_pse):
+                logging.warning(f'No output PyMOL session is created.')
+                return
 
+            cmd.reinitialize()
+            cmd.load(input_pse, object=self.design_molecule)
             cmd.load(self.design.output_pse, partial=2)
 
             cmd.center(self.design_molecule)
@@ -201,9 +196,7 @@ class VisualizingWorker:
         self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
-        self.mutate_runner: Union[
-            PyMOL_mutate, PIPPack_worker, DLPacker_worker
-        ] = mutate_runner
+        self.mutate_runner: MutateRunnerAbstract = mutate_runner
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'
@@ -275,8 +268,6 @@ class VisualizingWorker:
                 profile_format=design_profile_format,
             )
 
-            # logging.warning(f'{self.visualizer.profile_scoring_df}')
-
             if best_leaf:
                 self.visualizer.key_col = best_leaf
             if totalscore:
@@ -292,6 +283,11 @@ class VisualizingWorker:
             run_worker_thread_with_progress(
                 worker_function=self.visualizer.run,
                 progress_bar=self.bus.ui.progressBar,
+            )
+
+            cmd.reinitialize()
+            cmd.load(
+                self.visualizer.input_session, object=self.design_molecule
             )
 
             cmd.load(self.visualizer.save_session, partial=2)
@@ -316,9 +312,7 @@ class GREMLIN_Analyser:
         self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
-        self.mutate_runner: Union[
-            PyMOL_mutate, PIPPack_worker, DLPacker_worker
-        ] = mutate_runner
+        self.mutate_runner: MutateRunnerAbstract = mutate_runner
         self.ws_server: REvoDesignWebSocketServer = ws_server
 
         self.design_molecule: str = self.bus.get_value(

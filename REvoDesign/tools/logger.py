@@ -87,13 +87,6 @@ class NonErrorFilter(python_logging.Filter):
         return record.levelno <= python_logging.INFO
 
 
-# LOGGER_QUEUE=Queue()
-# LOGGER_QUEUE_HANDLER=python_logging_handlers.QueueHandler(LOGGER_QUEUE)
-# python_logging = python_logging.getLogger('REvoDesign')
-# python_logging.addHandler(LOGGER_QUEUE_HANDLER)
-# LOGGER_QUEUE_HANDLER.addHandler()
-
-
 logger_level = {
     'CRITICAL': python_logging.CRITICAL,
     'ERROR': python_logging.ERROR,

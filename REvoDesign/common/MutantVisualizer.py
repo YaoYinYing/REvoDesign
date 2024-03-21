@@ -1,39 +1,29 @@
 import gc
 import os
-import time
 import tempfile
 from typing import Union
 import pandas as pd
-
 from Bio import SeqIO
 from pymol import cmd
 import matplotlib
-from REvoDesign.sidechain_solver import (
-    PyMOL_mutate,
-    DLPacker_worker,
-    PIPPack_worker,
-)
 
+from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign import root_logger
-
-logging = root_logger.getChild(__name__)
-
 from REvoDesign.common.MutantTree import MutantTree
 
-matplotlib.use('Agg')
-
 from REvoDesign.common.Mutant import Mutant
-
 from REvoDesign.tools.utils import (
     get_color,
     run_command,
 )
 
-
 from REvoDesign.tools.mutant_tools import (
     extract_mutants_from_mutant_id,
     extract_mutant_from_sequences,
 )
+
+matplotlib.use('Agg')
+logging = root_logger.getChild(__name__)
 
 
 class MutantVisualizer:
@@ -44,7 +34,6 @@ class MutantVisualizer:
         self.input_session = ''
         self.save_session = None
         self.nproc = os.cpu_count()
-        self.parallel_run = False
         self.full = False
         self.cmap = "bwr_r"
         self.key_col = "best_leaf"
@@ -54,9 +43,7 @@ class MutantVisualizer:
         self.profile = ''
         self.profile_format: str = 'PSSM'
         self.scorer = None
-        self.mutate_runner: Union[
-            PyMOL_mutate, DLPacker_worker, PIPPack_worker
-        ] = None
+        self.mutate_runner: MutateRunnerAbstract = None
 
         self.profile_scoring_df: Union[None, pd.DataFrame] = None
 
@@ -88,7 +75,7 @@ class MutantVisualizer:
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(
-            f" Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : {color}"
+            f" Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : {color} with {self.mutate_runner.__class__.__name__}"
         )
         temp_session_path = self.create_mutagenesis_objects(
             mutant_obj, color, in_place=False
@@ -107,6 +94,7 @@ class MutantVisualizer:
         - self: Instance of the class containing the method.
         - mutant_obj (Mutant): Mutant object containing explicit mutagenesis description.
         - color: Color to assign to the mutagenesis objects.
+        - inplace: ask PyMOL mutate runner to not stay in place after mutate is done
 
         Returns:
         - None
@@ -133,15 +121,18 @@ class MutantVisualizer:
         if not self.mutate_runner:
             raise RuntimeError(f'no mutate runner is instantiated yet.')
 
-        temp_mutant_pdb_path = self.mutate_runner.run_mutate(
-            mutant_obj=mutant_obj,
-            in_place=in_place,
-        )
+        # use precomputed pdb if it exists. otherwise run the runner to get one.
+        if not (temp_mutant_pdb_path := mutant_obj.pdb_fp):
+            temp_mutant_pdb_path = self.mutate_runner.run_mutate(
+                mutant_obj=mutant_obj,
+                in_place=in_place,
+            )
+            mutant_obj.pdb_fp = temp_mutant_pdb_path
 
         if not in_place:
             cmd.reinitialize()
 
-        cmd.load(temp_mutant_pdb_path)
+        cmd.load(temp_mutant_pdb_path, new_obj_name)
 
         cmd.hide('lines', f'{new_obj_name}')
         cmd.hide('cartoon', f'{new_obj_name}')
@@ -565,38 +556,31 @@ class MutantVisualizer:
             - Executes mutagenesis tasks sequentially without parallel processing.
         - After executing mutagenesis tasks, it performs merging sessions via command line.
         """
-        from REvoDesign.tools.customized_widgets import (
-            ParallelExecutor,
-        )
 
-        # Create a multiprocessing pool
-        self.mutagenesis_tasks = [
-            [variant] for variant in self.mutant_tree.all_mutant_objects
-        ]
+        if not self.mutate_runner:
+            raise RuntimeError(f'no mutate runner is instantiated yet.')
 
-        if self.parallel_run:
-            parallel_executor = ParallelExecutor(
-                self.process_mutant,
-                args=self.mutagenesis_tasks,
+        if any(
+            not (m.pdb_fp and os.path.isfile(m.pdb_fp))
+            for m in self.mutant_tree.all_mutant_objects
+        ):
+            logging.warning(
+                f're-compute sidechain for {self.mutant_tree.branch_num}: {self.mutant_tree.mutant_num} MutantTree.'
+            )
+            all_mutants_pdb_fp = self.mutate_runner.run_mutate_parallel(
+                mutants=self.mutant_tree.all_mutant_objects,
                 n_jobs=self.nproc,
+                in_place=False,
             )
 
-            self.results = parallel_executor.run()
+            self.mutant_tree = self.mutate_runner.mutated_pdb_mapping(
+                mutants=self.mutant_tree, pdb_fps=all_mutants_pdb_fp
+            )
 
-            logging.info("Merging all sessions .... This may take a while ...")
-
-            cmd.hide('surface')
-
-            self.mutagenesis_sessions = [
-                session_path for session_path in self.results if session_path
-            ]
+        self.mutagenesis_sessions = []
+        for m in self.mutant_tree.all_mutant_objects:
+            self.mutagenesis_sessions.append(self.process_mutant(m))
             gc.collect()
-        else:
-            self.mutagenesis_sessions = []
-            for mutagenesis_task in self.mutagenesis_tasks:
-                self.mutagenesis_sessions.append(
-                    self.process_mutant(*mutagenesis_task)
-                )
 
         self.merge_sessions_via_commandline()
 
@@ -619,9 +603,6 @@ class MutantVisualizer:
 
         #session merger will save a temperal sesion based on given output session file path.
 
-        # **** IMPORTANT *****:::::
-        # `save_session` will be altered after successful merge so you have to manually set it back to final result.
-        self.output_pse=session_merger.save_session
 
         '''
         from REvoDesign.tools import SessionMerger
@@ -651,7 +632,7 @@ class MutantVisualizer:
             logging.info(
                 f'Temperal merged result is successfully created at {merged_temp_session}'
             )
-            self.save_session = merged_temp_session
+            os.rename(merged_temp_session, self.save_session)
         else:
             logging.warning(
                 f'Temperal merged result is failed to create. Try again with a clean PyMOL session. \n'

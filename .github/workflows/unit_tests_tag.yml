@@ -9,7 +9,9 @@ on:
       - 'REvoDesign/__version__.py'
       - '.github/workflows/unit_tests_tag.yml'
       
-  
+    branches:
+      - main
+
 env: 
   conda_env: REvoDesign
 

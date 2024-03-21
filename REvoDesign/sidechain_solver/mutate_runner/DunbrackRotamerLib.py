@@ -1,5 +1,6 @@
 import os
-import tempfile
+from joblib import Parallel, delayed
+from omegaconf import DictConfig
 from REvoDesign.tools.pymol_utils import mutate
 from pymol import cmd
 from REvoDesign.common.Mutant import Mutant
@@ -7,8 +8,10 @@ from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
 
+from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
 
-class PyMOL_mutate:
+
+class PyMOL_mutate(MutateRunnerAbstract):
     """
     Class for performing mutations in PyMOL.
 
@@ -19,7 +22,7 @@ class PyMOL_mutate:
     # Further usage for other functionalities
     """
 
-    def __init__(self, molecule, input_session):
+    def __init__(self, pdb_file, molecule='', **kwargs):
         """
         Initialize PyMOL_mutate with a molecule and input session.
 
@@ -27,8 +30,11 @@ class PyMOL_mutate:
         - molecule: Molecule object
         - input_session: Input session information
         """
+        super().__init__(pdb_file)
+        self.input_session = pdb_file
         self.molecule = molecule
-        self.input_session = input_session
+
+        self.temp_dir = self.new_cache_dir
 
     def run_mutate(self, mutant_obj: Mutant, in_place=True, **kwargs) -> str:
         """
@@ -43,12 +49,12 @@ class PyMOL_mutate:
         from Bio.Data import IUPACData
 
         new_obj_name = mutant_obj.short_mutant_id
+        logging.debug(f'Mutating {mutant_obj=}')
 
-        temp_dir = tempfile.mkdtemp(prefix='RD_design_')
-        temp_mutant_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")
+        temp_mutant_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
         if not in_place:
             cmd.reinitialize()
-            cmd.load(self.input_session)
+            cmd.load(self.input_session, object=self.molecule)
         cmd.hide('surface')
         cmd.create(f"{new_obj_name}", self.molecule)
         if not in_place:
@@ -66,3 +72,24 @@ class PyMOL_mutate:
         cmd.save(temp_mutant_path)
 
         return temp_mutant_path
+
+    def run_mutate_parallel(
+        self, mutants: list[Mutant], n_jobs: int = 2, in_place=True, **kwargs
+    ):
+        """
+        Perform mutation on the protein in parallel.
+
+        Args:
+        - mutants: List of Mutant objects containing mutation information
+        - n_jobs: Number of parallel jobs to run (default: -1, which means using all available cores)
+        - **kwargs: Additional keyword arguments to pass to the run_mutate method
+
+        Returns:
+        - List of paths to the mutated PDB files
+        """
+
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(self.run_mutate)(mutant, in_place=in_place)
+            for mutant in mutants
+        )
+        return results

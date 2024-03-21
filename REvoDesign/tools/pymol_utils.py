@@ -446,8 +446,8 @@ def make_temperal_input_pdb(
 
 
 def extract_smiles_from_chain(
-    molecule, chain_id=None, segment_id=None, resn=None, selection=None
-):
+    molecule, chain_id='', segment_id='', resn='', selection=''
+) -> list[str]:
     from rdkit import Chem
     from rdkit.Chem import MolToSmiles
 
@@ -458,6 +458,14 @@ def extract_smiles_from_chain(
     This function extracts the SMILES string of a small molecule from a given chain and/or segment identifier
     in a PyMOL session.
 
+    Usage:
+    `
+        python
+        from REvoDesign.tools.pymol_utils import extract_smiles_from_chain
+        print(extract_smiles_from_chain(molecule='1hx9', chain_id='A', segment_id='D', resn='FHP', selection=''))
+        python end
+    `
+
     Args:
     - molecule (str): PyMOL selection string of the molecule
     - chain_id (str): Chain identifier from which SMILES will be extracted (default is None)
@@ -465,7 +473,7 @@ def extract_smiles_from_chain(
     - resn (str): Residue from which SMILES will be extracted (default is None)
 
     Returns:
-    - str: The SMILES string of the specified molecule
+    - str: The SMILES string list of the specified molecule
     """
     # Step 1: Create a temporary input PDB file
     temp_pdb = make_temperal_input_pdb(
@@ -474,22 +482,22 @@ def extract_smiles_from_chain(
         segment_id=segment_id,
         resn=resn,
         selection=selection,
-        format='pdb',
+        format='sdf',
         wd=os.path.abspath('./ligand'),
         reload=False,
     )
 
     # Step 2: Use RDKit to read the PDB file
-    mol = Chem.rdmolfiles.MolFromPDBFile(temp_pdb, removeHs=False)
+    smiles = []
 
-    if mol is None:
-        logging.error(
-            f"Failed to create RDKit molecule from PDB file: {temp_pdb}"
-        )
-        return None
+    with Chem.SDMolSupplier(temp_pdb, removeHs=False) as suppl:
+        for mol in suppl:
+            if mol is None:
+                continue
+            print(mol.GetNumAtoms())
 
-    # Step 3: Convert the molecule to a SMILES string
-    smiles = MolToSmiles(mol)
+            # Step 3: Convert the molecule to a SMILES string
+            smiles.append(MolToSmiles(mol))
 
     # Cleanup: Optionally delete the temporary PDB file
     # os.remove(temp_pdb)

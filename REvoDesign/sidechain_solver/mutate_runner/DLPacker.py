@@ -1,13 +1,18 @@
+import gc
 import os
-import tempfile
+
+from joblib import Parallel, delayed
+
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
 
+from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
 
-class DLPacker_worker:
+
+class DLPacker_worker(MutateRunnerAbstract):
     """
     Class for managing protein reconstruction and mutation using DLPacker.
 
@@ -30,7 +35,15 @@ class DLPacker_worker:
     # Further usage for other functionalities
     """
 
-    def __init__(self, pdb_file):
+    def __init__(self, pdb_file: str, radius: float = 0.0, **kwargs):
+        """
+        Initialize DLPacker_worker with a PDB file.
+
+        Args:
+        - pdb_file: Path to the PDB file
+        """
+        super().__init__(pdb_file)
+
         from REvoDesign.tools.post_installed import set_cache_dir
 
         cache_dir = set_cache_dir()
@@ -42,14 +55,10 @@ class DLPacker_worker:
             'DLPACKER_PRETRAINED_WEIGHT'
         ] = expected_dlpacker_weight_cache_dir
 
-        """
-        Initialize DLPacker_worker with a PDB file.
-
-        Args:
-        - pdb_file: Path to the PDB file
-        """
         self.pdb_file = pdb_file
-        self.reconstruct_area_radius = 0
+        self.reconstruct_area_radius = radius
+
+        self.temp_dir = self.new_cache_dir
 
     def reconstruct(self):
         """
@@ -60,11 +69,16 @@ class DLPacker_worker:
         """
         from DLPacker.dlpacker import DLPacker
 
-        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
-        temperal_relaxed_pdb = tempfile.mktemp(suffix=".pdb")
-        self.dlpacker_worker.reconstruct_protein(
+        dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
+
+        temperal_relaxed_pdb = os.path.join(
+            self.temp_dir,
+            f'{os.path.basename(self.pdb_file).removesuffix(".pdb")}_reconstructed.pdb',
+        )
+        dlpacker_worker.reconstruct_protein(
             order='sequence', output_filename=temperal_relaxed_pdb
         )
+        del dlpacker_worker
         return temperal_relaxed_pdb
 
     def run_mutate(
@@ -86,11 +100,12 @@ class DLPacker_worker:
         from Bio.Data import IUPACData
         from DLPacker.dlpacker import DLPacker
 
-        self.dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
+        dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
+
+        logging.debug(f'Mutating {mutant_obj=}')
         new_obj_name = mutant_obj.short_mutant_id
 
-        temp_dir = tempfile.mkdtemp(prefix='RD_design_dlp')
-        temp_pdb_path = os.path.join(temp_dir, f"{new_obj_name}.pdb")
+        temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
         for mut_info in mutant_obj.mutant_info:
             chain_id = mut_info['chain_id']
@@ -101,7 +116,7 @@ class DLPacker_worker:
             new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
             wt_residue_3 = IUPACData.protein_letters_1to3[wt_residue].upper()
 
-            self.dlpacker_worker.mutate_sequence(
+            dlpacker_worker.mutate_sequence(
                 target=(position, chain_id, wt_residue_3),
                 new_label=new_residue_3,
             )
@@ -110,11 +125,16 @@ class DLPacker_worker:
             mutant_obj=mutant_obj,
             reconstruct_area_radius=self.reconstruct_area_radius,
         )
-        self.dlpacker_worker.reconstruct_region(
+        logging.debug(
+            f'Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}'
+        )
+        dlpacker_worker.reconstruct_region(
             targets=reconstruct_area,
             order='natoms' if self.reconstruct_area_radius > 0 else 'sequence',
             output_filename=temp_pdb_path,
         )
+
+        del dlpacker_worker
 
         return temp_pdb_path
 
@@ -133,6 +153,10 @@ class DLPacker_worker:
         """
         from Bio.Data import IUPACData
 
+        from DLPacker.dlpacker import DLPacker
+
+        dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
+
         reconstruct_area = []
         for mut_info in mutant_obj.mutant_info:
             chain_id = mut_info['chain_id']
@@ -140,12 +164,12 @@ class DLPacker_worker:
             new_residue = mut_info['mut_res']
             new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
             if reconstruct_area_radius <= 0:
-                print(
+                logging.debug(
                     f'Adding {(position, chain_id, new_residue_3)} for relax...'
                 )
                 reconstruct_area.append((position, chain_id, new_residue_3))
             else:
-                _ = self.dlpacker_worker.get_targets(
+                _ = dlpacker_worker.get_targets(
                     target=(position, chain_id, new_residue_3),
                     radius=reconstruct_area_radius,
                 )
@@ -155,4 +179,27 @@ class DLPacker_worker:
         if reconstruct_area:
             reconstruct_area = list(set(reconstruct_area))
 
+        del dlpacker_worker
         return reconstruct_area
+
+    def run_mutate_parallel(
+        self, mutants: list[Mutant], n_jobs: int = 2, **kwargs
+    ):
+        """
+        Perform mutation on the protein in parallel.
+
+        Args:
+        - mutants: List of Mutant objects containing mutation information
+        - n_jobs: Number of parallel jobs to run (default: -1, which means using all available cores)
+        - **kwargs: Additional keyword arguments to pass to the run_mutate method
+
+        Returns:
+        - List of paths to the mutated PDB files
+        """
+
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(self.run_mutate)(mutant) for mutant in mutants
+        )
+
+        gc.collect()
+        return results

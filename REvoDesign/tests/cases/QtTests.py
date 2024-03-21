@@ -95,7 +95,7 @@ class TestREvoDesignPlugin_TabPrepare:
             design_shell_residue_ids = ds_fr.read().strip()
             assert design_shell_residue_ids
 
-        WORKER.save_pymol_png(basename=WORKER.test_id)
+        WORKER.save_pymol_png(basename=WORKER.test_id, spells='orient hetatm')
         WORKER.save_new_experiment()
 
     def test_surface(self, WORKER: TestWorker):
@@ -163,7 +163,7 @@ class TestREvoDesignPlugin_TabPrepare:
             widget=WORKER.plugin.window,
             basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.test_id)
+        WORKER.save_pymol_png(basename=WORKER.test_id, spells='center')
         WORKER.save_new_experiment()
 
 
@@ -582,9 +582,7 @@ class TestREvoDesignPlugin_TabInteract:
         WORKER.save_pymol_png(basename=f'{WORKER.test_id}_interact_pairs')
 
         ce_links = [
-            sel
-            for sel in cmd.get_names(type='selections')
-            if sel.startswith('ce_pairs')
+            sel for sel in cmd.get_names() if sel.startswith('ce_pairs')
         ]
         for sel in ce_links:
             cmd.disable(sel)
@@ -619,19 +617,21 @@ class TestREvoDesignPlugin_TabInteract:
             ),
             (3, 13),
         ]:
+            i = WORKER.c.i
             WORKER.click(
                 WORKER.plugin.bus.w2c.get_button_from_id(
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
+            WORKER.sleep(1000)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
-                basename=f'{WORKER.test_id}_pick_{row}_{col}',
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}',
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_pick_{row}_{col}'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}', focus=False
             )
             WORKER.check_existed_mutant_tree()
 
@@ -640,7 +640,7 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
             )
             WORKER.click(_accp)
 
@@ -720,9 +720,7 @@ class TestREvoDesignPlugin_TabInteract:
         WORKER.save_pymol_png(basename=f'{WORKER.test_id}_interact_pairs')
 
         ce_links = [
-            sel
-            for sel in cmd.get_names(type='selections')
-            if sel.startswith('ce_pairs')
+            sel for sel in cmd.get_names() if sel.startswith('ce_pairs')
         ]
         for sel in ce_links:
             cmd.disable(sel)
@@ -757,19 +755,21 @@ class TestREvoDesignPlugin_TabInteract:
             ),
             (9, 0),
         ]:
+            i = WORKER.c.i
             WORKER.click(
                 WORKER.plugin.bus.w2c.get_button_from_id(
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
+            WORKER.sleep(1000)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
-                basename=f'{WORKER.test_id}_pick_{row}_{col}',
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}',
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_pick_{row}_{col}'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}', focus=False
             )
             WORKER.check_existed_mutant_tree()
 
@@ -778,7 +778,7 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
             )
             WORKER.click(_accp)
 
@@ -832,7 +832,7 @@ class TestREvoDesignPlugin_TabEvaluate:
             widget=WORKER.plugin.window,
             basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.test_id)
+        WORKER.save_pymol_png(basename=WORKER.test_id, focus=False)
 
         assert not WORKER.plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
@@ -896,7 +896,7 @@ class TestREvoDesignPlugin_TabEvaluate:
             widget=WORKER.plugin.window,
             basename=WORKER.test_id,
         )
-        WORKER.save_pymol_png(basename=WORKER.test_id)
+        WORKER.save_pymol_png(basename=WORKER.test_id, focus=False)
 
         assert not WORKER.plugin.evaluator.mutant_tree_pssm_selected.empty
         with open(mutant_file, 'r') as mr:
@@ -978,6 +978,9 @@ class TestREvoDesignPlugin_TabVisualize:
         WORKER.go_to_tab(tab_name='config')
 
         set_widget_value(WORKER.plugin.ui.comboBox_sidechain_solver, 'PIPPack')
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver_model, 'pippack_model_1'
+        )
         WORKER.go_to_tab(tab_name='visualize')
 
         WORKER.do_typing(

@@ -18,7 +18,12 @@ from typing import List, Dict, Union, Any
 from dataclasses import dataclass
 from collections.abc import MutableMapping
 from hashlib import sha256
-from REvoDesign import REVODESIGN_CONFIG_FILE, WITH_DEPENDENCIES, Widget2Widget
+from REvoDesign import (
+    REVODESIGN_CONFIG_FILE,
+    WITH_DEPENDENCIES,
+    ConfigBus,
+    Widget2Widget,
+)
 from REvoDesign.application.ui_driver import Widget2ConfigMapper
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 
@@ -329,6 +334,7 @@ class TestREvoDesignConfigFile(absltest.TestCase):
     """
 
     def setUp(self):
+        self.bus: ConfigBus = ConfigBus()
         # Setup necessary variables for the test
         self.expected_default_storage_path = os.path.expanduser(
             '~/.REvoDesign/'
@@ -339,7 +345,7 @@ class TestREvoDesignConfigFile(absltest.TestCase):
         self.expected_main_config_file = os.path.join(
             self.expected_config_dir, 'global_config.yaml'
         )
-        self.expected_global_cfg = reload_config_file()
+        self.expected_global_cfg = self.bus.cfg
         self.expected_pippack_cfg = reload_config_file(
             'sidechain-solver/pippack'
         )['sidechain-solver']
@@ -416,6 +422,10 @@ class TestREvoDesignConfigFile(absltest.TestCase):
         self.assertEqual(
             expected_old_cache_dir, self.expected_default_storage_path
         )
+
+    def tearDown(self):
+        if self.bus:
+            self.bus.reset_instance()
 
 
 class TestConfigConverter(absltest.TestCase):
@@ -1071,10 +1081,10 @@ class TestSidechainSolver(absltest.TestCase):
         self.new_pdb_code = '1nww'
 
     def test_pymol_mutate(self):
-        from REvoDesign.sidechain_solver.DunbrackRotamerLib import PyMOL_mutate
+        from REvoDesign.sidechain_solver import PyMOL_mutate
 
         mutate_runner = PyMOL_mutate(
-            molecule=self.new_pdb_code, input_session=self.wt_pdb
+            molecule=self.new_pdb_code, pdb_file=self.wt_pdb
         )
         mutate_pdb_path = mutate_runner.run_mutate(
             mutant_obj=self.mutant_obj, in_place=False
@@ -1092,7 +1102,7 @@ class TestSidechainSolver(absltest.TestCase):
     def test_dlpacker_mutate(self):
         if not WITH_DEPENDENCIES.DLPACKER:
             print('Skiping dlpacker tests..')
-        from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
+        from REvoDesign.sidechain_solver import DLPacker_worker
 
         mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
@@ -1109,12 +1119,12 @@ class TestSidechainSolver(absltest.TestCase):
     def test_dlpacker_mutate_reconstruct_range(self):
         if not WITH_DEPENDENCIES.DLPACKER:
             print('Skiping dlpacker tests..')
-        from REvoDesign.sidechain_solver.DLPacker import DLPacker_worker
+        from REvoDesign.sidechain_solver import DLPacker_worker
 
-        mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb)
-        mutate_pdb_path = mutate_runner.run_mutate(
-            mutant_obj=self.mutant_obj, reconstruct_area_radius=5
-        )
+        mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb, radius=3.5)
+        mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+        del mutate_runner
 
         from Bio.PDB.PDBParser import PDBParser
 
@@ -1125,13 +1135,36 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_1.get_resname(), 'ARG')
         self.assertEqual(mut_residue_2.get_resname(), 'THR')
 
-    def test_pippack_mutate(self):
+    def test_pippack_mutate_model_1(self):
         if not WITH_DEPENDENCIES.PIPPACK:
             print('Skiping pippack tests..')
-        from REvoDesign.sidechain_solver.PIPPack import PIPPack_worker
+        from REvoDesign.sidechain_solver import PIPPack_worker
+
+        mutate_runner = PIPPack_worker(
+            pdb_file=self.wt_pdb, use_model='pippack_model_1'
+        )
+        mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+        del mutate_runner
+
+        from Bio.PDB.PDBParser import PDBParser
+
+        parser = PDBParser(PERMISSIVE=1)
+        structure = parser.get_structure(self.mutant_string, mutate_pdb_path)
+        mut_residue_1 = structure[0]["A"][5]
+        mut_residue_2 = structure[0]["A"][26]
+        self.assertEqual(mut_residue_1.get_resname(), 'ARG')
+        self.assertEqual(mut_residue_2.get_resname(), 'THR')
+
+    def test_pippack_mutate_ensemble(self):
+        if not WITH_DEPENDENCIES.PIPPACK:
+            print('Skiping pippack tests..')
+        from REvoDesign.sidechain_solver import PIPPack_worker
 
         mutate_runner = PIPPack_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
+
+        del mutate_runner
 
         from Bio.PDB.PDBParser import PDBParser
 

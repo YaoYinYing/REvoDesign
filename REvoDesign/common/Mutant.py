@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import os
 from typing import List, Dict, Union, Optional
 import hashlib
 
@@ -10,6 +11,7 @@ class Mutant:
         default_factory=float
     )  # Note the underscore, indicating "private"
     _mutant_description: str = ''
+    _pdb_fp: str = ''
     _mutant_id: str = ''
     _wt_sequences: Dict[str, str] = field(default_factory=dict)
     _wt_score: float = 0.0  # Note the underscore, indicating "private"
@@ -45,6 +47,16 @@ class Mutant:
     @mutant_description.setter
     def mutant_description(self, new_description: str):
         self._mutant_description = new_description
+
+    @property
+    def pdb_fp(self) -> str:
+        return self._pdb_fp
+
+    @pdb_fp.setter
+    def pdb_fp(self, new_pdb_fp: str):
+        if not os.path.exists(new_pdb_fp):
+            raise FileNotFoundError(new_pdb_fp)
+        self._pdb_fp = new_pdb_fp
 
     @property
     def full_mutant_id(self) -> str:

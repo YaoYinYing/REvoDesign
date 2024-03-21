@@ -21,6 +21,7 @@ from REvoDesign.tools.customized_widgets import (
     get_widget_value,
     set_widget_value,
 )
+from REvoDesign.common.MutantTree import MutantTree
 
 from REvoDesign.tests import *
 
@@ -313,15 +314,32 @@ class TestWorker:
         extracted_files = os.listdir(dist_dir)
         return dist_dir, extracted_files
 
-    def check_existed_mutant_tree(self):
-        from REvoDesign.common.MutantTree import MutantTree
+    @property
+    def existed_mutant_tree(self) -> MutantTree:
         from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
         self.mutant_tree: MutantTree = existed_mutant_tree(
             sequences=self.plugin.designable_sequences
         )
 
-        assert not self.mutant_tree.empty
+        return self.mutant_tree
+
+    def check_existed_mutant_tree(self):
+        assert not self.existed_mutant_tree.empty
+
+    def focus_on_tree(self, method='orient'):
+        objs = self.existed_mutant_tree.all_mutant_ids
+        sele = ' or '.join(objs)
+
+        if method == 'orient':
+            cmd.orient(sele)
+            return
+        if method == 'center':
+            cmd.center(sele)
+            return
+        if method == 'zoom':
+            cmd.zoom(sele)
+            return
 
     def method_name(self):
         import sys
@@ -353,14 +371,22 @@ class TestWorker:
         self,
         basename: str = 'default',
         dpi: int = 300,
-        use_ray: bool = False,
+        use_ray: int = 0,
         spells: str = None,
+        focus=True,
+        focus_method='orient',
     ):
         if self.is_in_ci_runner:
             return
         if spells:
             cmd.do(spells)
         png_file = os.path.join(self.PYMOL_PNG_DIR, f'{basename}.png')
+        if focus and not self.existed_mutant_tree.empty:
+            try:
+                self.focus_on_tree(method=focus_method)
+            except CmdException as e:
+                print(e)
+
         cmd.png(png_file, dpi=dpi, ray=use_ray)
 
     def wait_for_file(
