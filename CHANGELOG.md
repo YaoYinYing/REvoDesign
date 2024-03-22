@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.5.5] - 2024-03-22
 ### Added
 - GitHub Actions workflow dispatch
 - `pytest`: add `pytest-execution-timer` and `--durations=0` to list the slowest testcases
@@ -30,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - updated CI `actions/checkout` to `v4`
 - `ConfigBus`: optional ui passing, for headless test
-- `REvoDesigner`: call mutate runner to perform all-tree mutate before send sub-mutant-tree to `MutantVisualizer` one branch after another.
+- `REvoDesigner`: call mutate runner to perform global-tree mutate before send sub-mutant-tree to `MutantVisualizer` one branch after another.
 - `SidechainSolver` refactored
 - `post_installed.set_cache_dir`: read config from `ConfigBus` instead.
 
