@@ -12,31 +12,33 @@ PYREVERSE_ARGS=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtT
 help:
 	@echo "Commands:"
 	@echo ""
-	@echo "  help           print this message and exit"
-	@echo "  build          build source and wheel distributions"
-	@echo "  setup-ubuntu   Setup ubuntu display for GitHub Actions"
-	@echo "  setup-display  Setup ubuntu display for CircleCI"
-	@echo "  install        install by pip mode"
-	@echo "  reinstall      reinstall after code changes"
-	@echo "  translate      translate UI"
-	@echo "  prepare-test   run pip to install pytest-related packages"
-	@echo "  test           run the UnitTest suite"
-	@echo "  ui-test        run the QtTest suite"
-	@echo "  all-test       run all tests"
-	@echo "  memray         memoray profile for leakage, saved as html file"
-	@echo "  memray-live	memoray profile for leakage in live mode"
-	@echo "  format         automatically format the code"
-	@echo "  check          run code style and quality checks"
-	@echo "  tag            pin a new tag from package version to github tag"
-	@echo "  black          black format for all python files"
-	@echo "  reverse        run pyreverse for package and methods and create SVGs"
-	@echo "  black-check    "
-	@echo "  license-update license updates for all files"
-	@echo "  license-check  check license for all files"
-	@echo "  flake8	        "
-	@echo "  flake8-lazy    "
-	@echo "  lint           run pylint for a deeper (and slower) quality check"
-	@echo "  clean          clean up build and generated files" 
+	@echo "  help                   print this message and exit"
+	@echo "  build                  build source and wheel distributions"
+	@echo "  setup-ubuntu           Setup ubuntu display for GitHub Actions"
+	@echo "  setup-display          Setup ubuntu display for CircleCI"
+	@echo "  install                install from pip "
+	@echo "  install-no-dept        install from pip, no dependencies"
+	@echo "  install-pytorch-cpu	install torch-cpu for ci runner image"
+	@echo "  reinstall              reinstall after code changes"
+	@echo "  translate              translate UI"
+	@echo "  prepare-test           run pip to install pytest-related packages"
+	@echo "  test                   run the UnitTest suite"
+	@echo "  ui-test                run the QtTest suite"
+	@echo "  all-test               run all tests"
+	@echo "  memray                 memoray profile for leakage, saved as html file"
+	@echo "  memray-live            memoray profile for leakage in live mode"
+	@echo "  format                 automatically format the code"
+	@echo "  check                  run code style and quality checks"
+	@echo "  tag                    pin a new tag from package version to github tag"
+	@echo "  black                  black format for all python files"
+	@echo "  reverse                run pyreverse for package and methods and create SVGs"
+	@echo "  black-check            "
+	@echo "  license-update         license updates for all files"
+	@echo "  license-check          check license for all files"
+	@echo "  flake8	                "
+	@echo "  flake8-lazy            "
+	@echo "  lint                   run pylint for a deeper (and slower) quality check"
+	@echo "  clean                  clean up build and generated files" 
 	@echo ""
 
 build:
@@ -55,14 +57,20 @@ setup-display:
 install:
 	python -m pip install ".[full,unittest]" -U --no-cache-dir
 
-install-no-dep:
-	python -m pip install "." -U --no-cache-dir
+# only for unittest on ci runner or local machine that already have all depencies installed.
+install-no-dept:
+	python -m pip install . --no-dependencies --no-cache-dir
 
+# ci docker image, before make install
+install-pytorch-cpu:
+	python -m pip install 'torch>2.0.1+cpu' 'torchvision>0.16.0+cpu' 'torchaudio>2.0.1+cpu' -i https://download.pytorch.org/whl/cpu --no-cache-dir
 
+# local dev
 reinstall:
 	make clean
 	make black;rm -r /Users/yyy/.REvoDesign/config/; pip install . -U
 
+# update translation
 translate:
 	# recompile ui to py
 	pyuic5 REvoDesign/UI/REvoDesign.ui -o REvoDesign/UI/Ui_REvoDesign.py
@@ -77,17 +85,19 @@ translate:
 prepare-test:
 	python -m pip install pytest pytest-cov coverage pytest-execution-timer -q --no-cache-dir 
 
+# unit test
 test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/UnitTests.py
 
-
+# ui test
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py;
 
+# all test
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)

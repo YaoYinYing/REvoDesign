@@ -2,6 +2,12 @@ name: Unit Test in docker
 
 on:
   workflow_dispatch:
+    inputs:
+      imageTag:
+        description: 'Test image tags'
+        required: true
+        type: string
+        default: 'latest'
   push:
     paths:
       - '.github/workflows/unit_tests_dev.yml' # monitor the main workflow script.
@@ -25,7 +31,9 @@ jobs:
           - "3.11"
 
     runs-on: ${{ matrix.os }}
-    container: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}
+
+    container: 
+      image: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}-${{ inputs.imageTag || 'latest' }}
 
     env:
       OS: ${{ matrix.os }}
@@ -51,7 +59,7 @@ jobs:
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           source activate REvoDesign
-          make install
+          make install-no-dept
 
       - name: Full Unit Test on Ubuntu
         env:

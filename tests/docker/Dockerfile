@@ -27,15 +27,22 @@ RUN conda create --name REvoDesign python=${PYTHON_VERSION} -y \
     && conda install -c conda-forge pymol-open-source -y \
     && conda clean --all --force-pkgs-dirs --yes 
 
-# red envs
+# red packages
 RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml \
     && cd /tmp/${FAKE_PACKAGE} \
     && touch  /tmp/${FAKE_PACKAGE}/README.md \
-    && touch  /tmp/${FAKE_PACKAGE}/${FAKE_PACKAGE}/__init__.py \
-    && source activate REvoDesign \
-    && make install \
-    && make prepare-test \
-    && python -m pip cache purge \
-    && rm -fr /tmp/${FAKE_PACKAGE}
+    && touch  /tmp/${FAKE_PACKAGE}/${FAKE_PACKAGE}/__init__.py 
+
+# torch cpu only, no cache
+RUN  source activate REvoDesign \
+    && make install-pytorch-cpu
+
+# red env, no cache
+RUN  source activate REvoDesign \
+    && make install
+
+# dev env, no cache
+RUN source activate REvoDesign \
+    && make prepare-test
 
 CMD ["/bin/bash"]
