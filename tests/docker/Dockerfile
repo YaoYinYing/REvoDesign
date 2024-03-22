@@ -34,15 +34,18 @@ RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml 
     && touch  /tmp/${FAKE_PACKAGE}/${FAKE_PACKAGE}/__init__.py 
 
 # torch cpu only, no cache
-RUN  source activate REvoDesign \
+RUN  cd /tmp/${FAKE_PACKAGE} \
+    && source activate REvoDesign \
     && make install-pytorch-cpu
 
 # red env, no cache
-RUN  source activate REvoDesign \
+RUN  cd /tmp/${FAKE_PACKAGE} \
+    && source activate REvoDesign \
     && make install
 
 # dev env, no cache
-RUN source activate REvoDesign \
+RUN cd /tmp/${FAKE_PACKAGE} \
+    && source activate REvoDesign \
     && make prepare-test
 
 CMD ["/bin/bash"]
