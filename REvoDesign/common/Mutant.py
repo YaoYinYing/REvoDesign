@@ -50,6 +50,9 @@ class Mutant:
 
     @property
     def pdb_fp(self) -> str:
+        # if Mutant is transfered to another user, or pdb file has been deleted, set it empty
+        if not os.path.exists(self._pdb_fp):
+            self.pdb_fp = ''
         return self._pdb_fp
 
     @pdb_fp.setter
