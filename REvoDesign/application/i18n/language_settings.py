@@ -41,7 +41,17 @@ class LanguageSwitch(QtWidgets.QWidget):
         self.registerLanguage()
         self._set_action_checkable()
 
-        self._set_action_checked(language=self.language_items[0])
+        self.restoreFromConfig()
+
+    def restoreFromConfig(self):
+        lan = self.language_items[0]
+
+        if lan_id := self.bus.get_value('language', str):
+            logging.info(f'Language {lan_id} is loaded from configuration.')
+            lan = [l for l in self.language_items if l.id == lan_id][0]
+
+        self.switchLanguage(language=lan)
+        self._set_action_checked(language=lan)
 
     @property
     def language_items(self) -> tuple[LanguageItem]:
@@ -83,6 +93,7 @@ class LanguageSwitch(QtWidgets.QWidget):
             )
         self.bus.ui.retranslateUi(self.window)
         self._set_action_checked(language=language)
+        self.bus.set_value('language', language.id)
 
     def _set_action_checked(self, language: LanguageItem):
         for lan in self.language_items:

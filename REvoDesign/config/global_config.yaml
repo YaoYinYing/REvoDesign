@@ -3,7 +3,7 @@
 # to perform customized configurations while REvoDesign is called at the very first time.
 # Click menu-REvoDesign-Reconfigure to apply changes from this copy. 
 
-
+language: eng-eng
 
 ui:
   header_panel: 
