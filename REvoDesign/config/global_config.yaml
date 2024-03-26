@@ -191,16 +191,16 @@ log:
       stream: ext://sys.stdout
     stderr:
       class: logging.StreamHandler
-      level: ERROR
+      level: WARNING
       formatter: simple
       stream: ext://sys.stderr
     file:
       class: logging.handlers.RotatingFileHandler
-      level: NOTSET
+      level: DEBUG
       formatter: json
       filename: logs/revodesign.log.jsonl
       maxBytes: 1000_000
-      backupCount: 3
+      backupCount: 10
     notebook:
       class: logging.handlers.RotatingFileHandler
       level: INFO
@@ -211,7 +211,7 @@ log:
 
   loggers:
     root:
-      level: NOTSET
+      level: DEBUG
 
 
 cache_dir:

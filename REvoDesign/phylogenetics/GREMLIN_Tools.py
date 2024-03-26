@@ -1,5 +1,19 @@
-# GREMLIN utils
+# GREMLIN utils: Everything but GREMLIN function
 
+# ------------------------------------------------------------
+# "THE BEERWARE LICENSE" (Revision 42):
+#  and  wrote this code.
+# As long as you retain this notice, you can do whatever you want
+# with this stuff. If we meet someday, and you think this stuff
+# is worth it, you can buy us a beer in return.
+# --Sergey Ovchinnikov and Peter Koo
+# ------------------------------------------------------------
+
+'''
+https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
+'''
+
+from typing import Literal
 import matplotlib
 
 matplotlib.use('Agg')
@@ -9,15 +23,68 @@ import pandas as pd
 from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 import pickle
-import os, pathlib
-from REvoDesign import root_logger
+import os
+from REvoDesign import ConfigBus, root_logger
+from dataclasses import dataclass
 
 logging = root_logger.getChild(__name__)
+
+
+@dataclass
+class CoevolvedPair:
+    i: int
+    j: int
+    i_aa: str
+    j_aa: str
+
+    zscore: float = 0.0
+    transposed: bool = False
+    raw_df: pd.DataFrame = None
+
+    png: str = ''
+    csv: str = ''
+
+    dist: float = 0.0
+
+    dist_cutoff: float = 0
+
+    @property
+    def is_out_of_range(self):
+        return self.dist > self.dist_cutoff
+
+    @property
+    def df(self) -> pd.DataFrame:
+        if self.transposed:
+            return self.raw_df.T
+
+        return self.raw_df
+
+    @df.setter
+    def df(self, new_df: pd.DataFrame):
+        self.raw_df = new_df.copy()
+
+    @property
+    def __str__(self):
+        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore} - {self.dist}/{self.dist_cutoff} Å'
+
+    def wt(self, resi: Literal['i', 'j']) -> str:
+        res: str = getattr(self, f'{resi}_aa')
+        wt_resn = res[0]
+        return wt_resn
+
+    def pos(self, resi: Literal['i', 'j']) -> str:
+        res: str = getattr(self, f'{resi}_aa')
+        wt_resn = res.split('_')[-1]
+        if not wt_resn.isdigit():
+            raise ValueError(f'Failed to parse {wt_resn=} from {res=}')
+
+        return int(wt_resn)
 
 
 class GREMLIN_Tools:
     def __init__(self, molecule):
         self.pwd = os.getcwd()
+        self.bus = ConfigBus()
 
         self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
         self.states = len(self.alphabet)
@@ -171,34 +238,42 @@ class GREMLIN_Tools:
         plt.savefig(plot_mrf_fp)
         return plot_mrf_fp
 
-    def plot_w(self, i, j, i_aa, j_aa, idx=0):
+    def plot_w(
+        self, i: int, j: int, i_aa: str, j_aa: str, idx: int = 0
+    ) -> CoevolvedPair:
+        # mark if the df should be transposed
         transposed = True
+
+        logging.warning(f"{i=} {j=}")
         if i > j:
-            logging.debug(f"i ({i}) > j ({j})")
             j, i = i, j
             i_aa, j_aa = j_aa, i_aa
             transposed = False
+
+        a_pair = CoevolvedPair(
+            i=i, j=j, i_aa=i_aa, j_aa=j_aa, transposed=transposed
+        )
 
         matching_indices = np.where(
             (self.mrf["w_idx"][:, 0] == i) & (self.mrf["w_idx"][:, 1] == j)
         )[0]
 
-        if len(matching_indices) == 0:
+        if not matching_indices:
             # No matching pairs found, handle this case
             logging.warning(
                 f"No matching co-evolutionary pairs found for positions {i} and {j}."
             )
 
-            return None, None
+            return None
 
         n = int(matching_indices[0])
         w = self.mrf["w"][n]
 
         # Extract WT residue positions
-        wt_i_aa = i_aa.split('_')[0]
-        wt_j_aa = j_aa.split('_')[0]
+        wt_i_aa = a_pair.wt('i')
+        wt_j_aa = a_pair.wt('j')
 
-        csv_fp = f"{self.pwd}/Top.{idx:02}.W_for_positions_{str(i_aa)}_{str(j_aa)}.csv"
+        csv_fp = f"{self.pwd}/Top.{idx:02}.W_for_positions_{a_pair.i_aa}_{a_pair.j_aa}.csv"
 
         # Create a dictionary where keys are from self.alphabet and values are from w
         data = {k: w[i] for i, k in enumerate(self.alphabet)}
@@ -208,11 +283,10 @@ class GREMLIN_Tools:
             data, index=list(self.alphabet), columns=list(self.alphabet)
         )
 
-        if transposed:
-            df = df.T
+        a_pair.df = df
 
         # Write the DataFrame to a CSV file
-        df.to_csv(csv_fp)
+        a_pair.df.to_csv(csv_fp)
 
         mx = np.max((w.max(), np.abs(w.min())))
         plt.figure(figsize=(self.states / 4, self.states / 4))
@@ -240,19 +314,22 @@ class GREMLIN_Tools:
             color='k',
             ha='center',
             va='center',
-            fontsize=9,
+            fontsize=8,
         )
 
-        plt.title(f"Top.{idx:02}: W for positions {i_aa} and {j_aa}")
-        plot_fp = (
-            f"{self.pwd}/Top.{idx:02}.W_for_positions_{i_aa}_and_{j_aa}.png"
+        plt.title(
+            f"Top.{idx:02}: W for positions {a_pair.i_aa} and {a_pair.j_aa}"
         )
+        plot_fp = f"{self.pwd}/Top.{idx:02}.W_for_positions_{a_pair.i_aa}_and_{a_pair.j_aa}.png"
         plt.savefig(plot_fp)
         matplotlib.pyplot.close()
-        return csv_fp, plot_fp
 
-    def plot_w_in_batch(self):
-        plot_w_fps = {}
+        a_pair.csv = csv_fp
+        a_pair.png = plot_fp
+        return a_pair
+
+    def plot_w_a2a(self) -> dict[int, CoevolvedPair]:
+        plot_w_fps: dict[int, CoevolvedPair] = {}
 
         for n in range(self.topN):
             i = int(self.top.iloc[n]["i"])
@@ -261,15 +338,17 @@ class GREMLIN_Tools:
             j_aa = self.top.iloc[n]["j_aa"]
             zscore = self.top.iloc[n]["zscore"]
 
-            csv_fp, plot_fp = self.plot_w(i, j, i_aa, j_aa, n)
+            pair: CoevolvedPair = self.plot_w(i, j, i_aa, j_aa, n)
+            pair.zscore = zscore
 
-            plot_w_fps[n] = ([i, j, i_aa, j_aa, zscore], csv_fp, plot_fp)
+            plot_w_fps[n] = pair
         return plot_w_fps
 
-    def analyze_coevolving_pairs_for_i(self, i):
+    def plot_w_o2a(self, resi) -> dict[int, CoevolvedPair]:
         # Step 1: Find all items where i is in either column of "w_idx"
         matching_indices = np.where(
-            (self.mrf["w_idx"][:, 0] == i) | (self.mrf["w_idx"][:, 1] == i)
+            (self.mrf["w_idx"][:, 0] == resi)
+            | (self.mrf["w_idx"][:, 1] == resi)
         )[0]
         logging.info(f"Found {len(matching_indices)} matching pairs")
 
@@ -277,13 +356,12 @@ class GREMLIN_Tools:
         coevolving_pairs = []
         for idx in matching_indices:
             w_idx = self.mrf["w_idx"][idx]
-            j = w_idx[1] if w_idx[0] == i else w_idx[0]
 
-            if self.pd_mtx['j'][idx] - self.pd_mtx['i'][idx] > 5:
+            if abs(self.pd_mtx['j'][idx] - self.pd_mtx['i'][idx]) > 5:
                 coevolving_pairs.append(
                     (
-                        i,
-                        j,
+                        int(w_idx[0]),
+                        int(w_idx[1]),
                         self.pd_mtx['i_aa'][idx],
                         self.pd_mtx['j_aa'][idx],
                         self.pd_mtx['zscore'][idx],
@@ -293,24 +371,26 @@ class GREMLIN_Tools:
         # Step 3: Sort the coevolving_pairs by zscore in descending order
         coevolving_pairs.sort(key=lambda x: x[4], reverse=True)
 
-        # logging.debug(coevolving_pairs)
+        print(coevolving_pairs)
 
         # Step 4: Select the top N items
         top_N_pairs = coevolving_pairs[: self.topN]
 
+        if not top_N_pairs:
+            logging.warning(f'No coevolving pairs found!')
+            return {}
+
         logging.info(f'top {self.topN} items selected: {str(top_N_pairs)}')
 
-        if not top_N_pairs:
-            return
-
         # Step 5: Calculate and plot for each pair
-        plot_w_fps = {}
+        plot_w_fps: dict[int, CoevolvedPair] = {}
+
         for n, pair in enumerate(top_N_pairs):
             (i, j, i_aa, j_aa, zscore) = pair
-
-            csv_fp, plot_fp = self.plot_w(i, j, i_aa, j_aa, n)
-            if csv_fp and plot_fp:
-                plot_w_fps[n] = ([i, j, i_aa, j_aa, zscore], csv_fp, plot_fp)
+            # if i>j, the i and j in `CoevolvedPair` will be swapped.
+            pair_i: CoevolvedPair = self.plot_w(i, j, i_aa, j_aa, n)
+            pair_i.zscore = zscore
+            plot_w_fps[n] = pair_i
 
         return plot_w_fps
 

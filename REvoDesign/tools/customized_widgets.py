@@ -51,7 +51,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
 
-    def __init__(self, csv_file, parent=None, button_size=12):
+    def __init__(self, pair, parent=None, button_size=12):
         """
         Initialize QbuttonMatrix.
 
@@ -61,6 +61,9 @@ class QbuttonMatrix(QtWidgets.QWidget):
             button_size (int): Size of the buttons. Defaults to 12.
         """
         super().__init__(parent)
+        from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair
+
+        self.pair: CoevolvedPair = pair
         self.button_size = button_size
         self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
 
@@ -69,13 +72,16 @@ class QbuttonMatrix(QtWidgets.QWidget):
             self.matrix,
             self.min_value,
             self.max_value,
-        ) = self.load_matrix_from_csv(csv_file)
+        ) = self.load_matrix_from_pair()
 
         self.sequence = ''
-        self.pos_i = 0
-        self.pos_j = 0
 
-    def load_matrix_from_csv(self, csv_file):
+        # if self.pair.transposed:
+        #     self.pos_i, self.pos_j = self.pair.j, self.pair.i
+        # else:
+        self.pos_i, self.pos_j = self.pair.i, self.pair.j
+
+    def load_matrix_from_pair(self):
         """
         Load matrix data from a CSV file.
 
@@ -90,7 +96,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
         try:
             import pandas as pd  # Import pandas here
 
-            df = pd.read_csv(csv_file, index_col=0)
+            df = self.pair.df
 
             # Remove rows and columns not in the alphabet
             df = df.loc[
@@ -205,6 +211,8 @@ class QbuttonMatrix(QtWidgets.QWidget):
             row (int): Row index of the clicked button.
             col (int): Column index of the clicked button.
         """
+        # if self.pair.transposed:
+        #     row, col = col, row
         logging.debug(f"Button at ({row}, {col}) clicked.")
         self.report_axes_signal.emit(row, col)
 

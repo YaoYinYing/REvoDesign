@@ -669,6 +669,13 @@ class TestREvoDesignPlugin_TabInteract:
         )
         cmd.enable('sele')
 
+        gremlin_pkl_fp = os.path.join(
+            WORKER.EXPANDED_DIR,
+            f'{WORKER.test_data.molecule}_{WORKER.test_data.chain_id}_PSSM_GREMLIN_results',
+            'gremlin_res',
+            f'{WORKER.test_data.molecule}_{WORKER.test_data.chain_id}.i90c75_aln.GREMLIN.mrf.pkl',
+        )
+
         # buttons
         _next = WORKER.plugin.ui.pushButton_next
         _prev = WORKER.plugin.ui.pushButton_previous
@@ -678,7 +685,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         set_widget_value(
             WORKER.plugin.ui.lineEdit_input_gremlin_mtx,
-            KeyDataDuringTests.gremlin_pkl_fp,
+            gremlin_pkl_fp,
         )
 
         mutfile = os.path.join('mutagenese', 'gremlin_o2a.mut.txt')

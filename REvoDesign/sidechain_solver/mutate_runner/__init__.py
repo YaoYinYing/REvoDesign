@@ -32,10 +32,6 @@ class MutateRunnerAbstract(ABC):
         os.makedirs(temp_dir, exist_ok=True)
         return temp_dir
 
-    @abstractmethod
-    def setup_weights(self):
-        pass
-
     @staticmethod
     def mutated_pdb_mapping(mutants: MutantTree, pdb_fps: Iterable[str]):
         assert mutants.mutant_num == len(

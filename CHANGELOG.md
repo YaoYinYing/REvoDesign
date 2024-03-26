@@ -15,6 +15,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- language setting saved in config and try to restore it while lauching.
+- `CoevolvedPair` to record pair data
+- `CoevolvedPairState` to switch coevolved pair state as pymol bonding.
+- `DLPacker_worker`: rescale `n_jobs` if `n_jobs > num_task`
+
+### Changed
+- logger levels
+- simplified namespaces
+- `Mutant.pdb_fp`: reset it if not available.
+- `QbuttonMatrix` use `CoevolvedPair` as input to skip csv loading
+
+### Fixed
+- GREMLIN coevolved pairs against a target residue index
+- `Mutant.get_mutant_sequence_single_chain`: detailed error messages.
+
+### Removed
+- `logger_level`
+- `setup_logger_level`
+- `test_setup_logger_level`
 
 ## [1.5.5] - 2024-03-22
 ### Added
