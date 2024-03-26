@@ -197,6 +197,13 @@ class DLPacker_worker(MutateRunnerAbstract):
         - List of paths to the mutated PDB files
         """
 
+        if n_jobs is None:
+            n_jobs = os.cpu_count()
+
+        if n_jobs > (num_task := len(mutants)):
+            logging.warning(f"Fixed {n_jobs=} to {num_task=}")
+            n_jobs = num_task
+
         results = Parallel(n_jobs=n_jobs)(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )

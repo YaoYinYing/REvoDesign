@@ -51,8 +51,8 @@ class Mutant:
     @property
     def pdb_fp(self) -> str:
         # if Mutant is transfered to another user, or pdb file has been deleted, set it empty
-        if not os.path.exists(self._pdb_fp):
-            self.pdb_fp = ''
+        if not (self._pdb_fp and os.path.exists(self._pdb_fp)):
+            self._pdb_fp = ''
         return self._pdb_fp
 
     @pdb_fp.setter
@@ -132,11 +132,15 @@ class Mutant:
             if mutant['chain_id'] != chain_id:
                 continue
             pos = int(mutant['position'])
-            if pos > len(sequence):
-                raise ValueError(f"Position {pos} out of sequence range.")
-            if sequence[pos - 1] != mutant['wt_res']:
+            if pos > (len_seq := len(sequence)):
                 raise ValueError(
-                    f"WT residue at position {pos} does not match mutant info."
+                    f"Position {pos} out of sequence range ({len_seq})."
+                )
+            if (wt_res_in_seq := sequence[pos - 1]) != (
+                wt_res_in_mut := mutant['wt_res']
+            ):
+                raise ValueError(
+                    f"WT residue at position {pos} does not match mutant info: {wt_res_in_seq=} - {wt_res_in_mut=}."
                 )
             sequence[pos - 1] = mutant['mut_res']
 

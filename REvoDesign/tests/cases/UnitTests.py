@@ -32,11 +32,7 @@ from REvoDesign.structure.SurfaceFinder import SurfaceFinder
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.tools.logger import (
-    REvoDesignLogFormatter,
-    setup_logger_level,
-    logger_level,
-)
+from REvoDesign.tools.logger import REvoDesignLogFormatter
 from REvoDesign.tools.mutant_tools import (
     expand_range,
     extract_mutant_from_sequences,
@@ -124,18 +120,6 @@ class TestLoggingSetup(absltest.TestCase):
     """
     Tests for logging setup functions to ensure they configure the logging system as expected.
     """
-
-    def test_setup_logger_level(self):
-        """
-        Test if the setup_logger_level function correctly maps string levels to logging constants.
-        """
-        for level_str, expected_level in logger_level.items():
-            actual_level = setup_logger_level(level_str)
-            self.assertEqual(
-                actual_level,
-                expected_level,
-                f"Logger level mapping failed for {level_str}",
-            )
 
     def test_setup_logging_from_dictconfig(self):
         """

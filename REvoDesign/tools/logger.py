@@ -87,21 +87,6 @@ class NonErrorFilter(python_logging.Filter):
         return record.levelno <= python_logging.INFO
 
 
-logger_level = {
-    'CRITICAL': python_logging.CRITICAL,
-    'ERROR': python_logging.ERROR,
-    'WARNING': python_logging.WARNING,
-    'INFO': python_logging.INFO,
-    'DEBUG': python_logging.DEBUG,
-    'NOTSET': python_logging.NOTSET,
-}
-
-
-def setup_logger_level(level: str):
-    _level = logger_level.get(level)
-    return _level if _level else python_logging.NOTSET
-
-
 def setup_logging_from_dictconfig(
     log_config: DictConfig,
 ) -> python_logging.Logger:
@@ -118,17 +103,13 @@ def setup_logging_from_dictconfig(
 
     # Initialize handlers
     stdout_handler = python_logging.StreamHandler()
-    stdout_handler.setLevel(
-        setup_logger_level(log_config.handlers.stdout.level)
-    )
+    stdout_handler.setLevel(log_config.handlers.stdout.level)
     stdout_handler.setFormatter(
         python_logging.Formatter(log_config.formatters.simple.format)
     )
 
     stderr_handler = python_logging.StreamHandler()
-    stderr_handler.setLevel(
-        setup_logger_level(log_config.handlers.stderr.level)
-    )
+    stderr_handler.setLevel(log_config.handlers.stderr.level)
     stderr_handler.setFormatter(
         python_logging.Formatter(log_config.formatters.simple.format)
     )
@@ -138,7 +119,7 @@ def setup_logging_from_dictconfig(
         maxBytes=file_maxBytes,
         backupCount=file_backupCount,
     )
-    file_handler.setLevel(setup_logger_level(log_config.handlers.file.level))
+    file_handler.setLevel(log_config.handlers.file.level)
     # Custom formatter needs to be implemented accordingly
     file_handler.setFormatter(
         REvoDesignLogFormatter(
@@ -151,9 +132,7 @@ def setup_logging_from_dictconfig(
         maxBytes=notebook_maxBytes,
         backupCount=notebook_backupCount,
     )
-    notebook_handler.setLevel(
-        setup_logger_level(log_config.handlers.notebook.level)
-    )
+    notebook_handler.setLevel(log_config.handlers.notebook.level)
     # Custom formatter needs to be implemented accordingly
     notebook_handler.setFormatter(
         REvoDesignLogFormatter(
@@ -163,9 +142,7 @@ def setup_logging_from_dictconfig(
 
     # Set up the QueueHandler
     queue_handler = python_logging_handlers.QueueHandler(log_queue)
-    queue_handler.setLevel(
-        setup_logger_level(log_config.loggers.root.level)
-    )  # Capture all logs
+    queue_handler.setLevel(log_config.loggers.root.level)  # Capture all logs
 
     # Initialize the QueueListener with the handlers
     listener = python_logging_handlers.QueueListener(
@@ -179,7 +156,7 @@ def setup_logging_from_dictconfig(
 
     # Configure the root logger
     python_logging.basicConfig(
-        level=setup_logger_level(log_config.loggers.root.level),
+        level=log_config.loggers.root.level,
         handlers=[queue_handler],
     )  # Adjust as needed
     # Start the listener
