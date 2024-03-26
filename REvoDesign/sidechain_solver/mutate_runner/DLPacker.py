@@ -60,6 +60,9 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         self.temp_dir = self.new_cache_dir
 
+        # call DLPacker to initialize with cache dir
+        from DLPacker.dlpacker import DLPacker
+
     def reconstruct(self):
         """
         Reconstruct the protein using DLPacker.
