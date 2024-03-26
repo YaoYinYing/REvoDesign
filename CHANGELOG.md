@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.5.6] - 2024-03-26
 ### Added
 - language setting saved in config and try to restore it while lauching.
 - `CoevolvedPair` to record pair data
