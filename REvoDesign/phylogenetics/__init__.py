@@ -31,7 +31,7 @@ from REvoDesign.tools.utils import (
     run_worker_thread_with_progress,
 )
 from pymol import cmd
-from typing import Literal, TypeAlias
+from typing import Literal
 from dataclasses import dataclass
 from REvoDesign import root_logger
 
@@ -48,7 +48,7 @@ class CoevolvedPairState:
         }
     )
 
-    state_type: TypeAlias = Literal['available', 'out_of_range', 'in_design']
+    state_type = Literal['available', 'out_of_range', 'in_design']
 
     def color(self, state: state_type) -> str:
         if not (color := self.state2color.get(state)):
