@@ -153,12 +153,19 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.window.show()
         self.fix_wd()
 
-    def reinitialize(self):
+    def reinitialize(self, delete=False):
         self.gremlin_worker = None
         self.sidechain_solver = None
         self.evaluator = None
         gc.collect()
-        self.reload_configurations()
+
+        if delete:
+            from REvoDesign import set_REvoDesign_config_file
+
+            set_REvoDesign_config_file(delete_user_config_tree=True)
+            logging.warning(
+                'Reinitialized with default configuration. Restart REvoDesign to take effort.'
+            )
 
     def __del__(self):
         # self.reinitialize()
@@ -168,17 +175,19 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # main function that makes the plugin window
     def make_window(self):
-        logging.debug(
-            f'REvoDesign is installed in {os.path.dirname(__file__)}'
-        )
-        main_window = QtWidgets.QMainWindow()
+        installed_dir = os.path.dirname(__file__)
+        logging.debug(f'REvoDesign is installed in {installed_dir}')
 
-        from pymol.Qt.utils import loadUi
+        main_window = QtWidgets.QMainWindow()
 
         from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
         self.ui = Ui_REvoDesignPyMOL_UI()
         self.ui.setupUi(main_window)
+
+        from REvoDesign.application.icon import IconSetter
+
+        IconSetter(main_window=main_window)
 
         # create a bus btw cfg<---> ui
         self.reload_configurations()
@@ -212,7 +221,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             partial(self.load_and_save_experiment, mode='w')
         )
 
-        self.bus.ui.actionReinitialize.triggered.connect(self.reinitialize)
+        self.bus.ui.actionReinitialize.triggered.connect(
+            partial(self.reinitialize, delete=True)
+        )
 
         self.bus.ui.actionSource_Code.triggered.connect(
             partial(

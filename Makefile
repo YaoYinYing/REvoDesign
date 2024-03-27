@@ -4,7 +4,8 @@ TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0
 PYTEST_CASES_PATH=../REvoDesign/tests/cases/
 LINT_FILES=$(PROJECT)
-CHECK_STYLE=$(PROJECT) tests
+CHECK_STYLE=$(PROJECT) tests 
+BLACK_EXCLUDES_EXTEND=--extend-exclude '\.ui|\.svg|\.yaml|\.md|\.pyc|\.ico|\.png' 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 PYREVERSE_DIR=image/svg
 PYREVERSE_ARGS=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py
@@ -123,7 +124,7 @@ tag:
 	bash tools/release_tag.sh
 
 black:
-	black $(CHECK_STYLE)
+	black $(CHECK_STYLE) $(BLACK_EXCLUDES_EXTEND)
 
 reverse:
 	mkdir -p $(PYREVERSE_DIR)

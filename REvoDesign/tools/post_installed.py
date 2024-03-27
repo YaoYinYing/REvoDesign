@@ -8,7 +8,7 @@ import glob
 import shutil
 
 
-def set_REvoDesign_config_file():
+def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     template_config_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         '..',
@@ -17,6 +17,12 @@ def set_REvoDesign_config_file():
 
     default_storage_path = os.path.expanduser('~/.REvoDesign/')
     config_dir = os.path.join(default_storage_path, 'config')
+
+    if delete_user_config_tree and os.path.exists(config_dir):
+        print(
+            f'WARNING: The configuration directory will be deleted as required'
+        )
+        shutil.rmtree(config_dir)
 
     if not glob.glob(os.path.join(config_dir, '*.yaml')):
         print(
