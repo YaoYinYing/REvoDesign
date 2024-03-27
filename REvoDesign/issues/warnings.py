@@ -119,3 +119,9 @@ class CIRunnerWarning(PlatformNotSupportedWarning):
     """Warning raised when a CI Runner is detected by unexpected platform behaviours are catched"""
 
     ...
+
+
+class MoleculeWarning(NoInputWarning):
+    """Warning raised when a molecule uses fuzzy chain id"""
+
+    ...

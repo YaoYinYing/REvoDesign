@@ -172,11 +172,12 @@ class ConfigBus:
         # Retrieves the value of a UI widget based on its corresponding configuration item.
         return get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
 
-    def set_widget_value(self, cfg_item: str, value):
+    def set_widget_value(self, cfg_item: str, value, hard=False):
         # Sets the value of a UI widget based on its corresponding configuration item.
-        set_widget_value(
-            widget=self.get_widget_from_cfg_item(cfg_item), value=value
-        )
+        widget = self.get_widget_from_cfg_item(cfg_item)
+        set_widget_value(widget=widget, value=value)
+        if hard:
+            self.set_value(cfg_item=cfg_item, value=value)
 
     def restore_widget_value(self, cfg_item: str):
         # Restores the value of a UI widget to its default configuration setting.

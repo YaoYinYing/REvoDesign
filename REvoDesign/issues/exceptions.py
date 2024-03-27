@@ -87,3 +87,15 @@ class UnauthorizedError(REvoDesignException):
     """Exception raised when a user is not authorized"""
 
     ...
+
+
+class MoleculeUnloadedError(NoInputError):
+    """Exception raised when no molecule is loaded"""
+
+    ...
+
+
+class MoleculeError(InvalidInputError):
+    """Exception raised when a molecule uses fuzzy chain id"""
+
+    ...

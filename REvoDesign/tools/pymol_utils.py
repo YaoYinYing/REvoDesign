@@ -2,7 +2,10 @@ from pymol import cmd
 import os
 
 from pymol import get_version_message
+from pymol.parsing import QuietException
 from REvoDesign.tools.utils import suppress_print
+import warnings
+from REvoDesign import issues
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
@@ -72,8 +75,29 @@ def find_small_molecules_in_protein(sele):
     ]
     unique_small_molecules = list(set(small_molecules))
 
+    if unique_small_molecules:
+        warnings.warn(
+            issues.MoleculeWarning(
+                'Could not find unique small molecules with standalone chain id. \n'
+                'A possible fix is calling `alter r. RES, chain="<chain-id>"` to fix the problem \n'
+                'then re-load this session.'
+            )
+        )
+
+        # Return a list of unique small molecule names found within the selection
+        return unique_small_molecules
+
+    warnings.warn(issues.FallingBackWarning('Falling back to all `hetatm`'))
+    small_molecules = [
+        at.resn
+        for at in cmd.get_model(f'hetatm and (not polymer.protein)').atom
+    ]
+
+    unique_small_molecules = find_small_molecules_in_protein(sele='hetatm')
+    unique_small_molecules = list(set(small_molecules))
+
     # Return a list of unique small molecule names found within the selection
-    return [''] + unique_small_molecules if unique_small_molecules else []
+    return unique_small_molecules
 
 
 def find_design_molecules():
@@ -91,6 +115,10 @@ def find_design_molecules():
         )
         if is_polymer_protein(object)
     ]
+    if not objects:
+        raise issues.MoleculeUnloadedError(
+            'Failed to load objects. Is it enabled?'
+        )
     return objects
 
 
@@ -114,11 +142,16 @@ def find_all_protein_chain_ids_in_protein(sele):
 
     chain_ids = [chain_id for chain_id in cmd.get_chains(sele) if chain_id]
 
-    return [
+    all_chains = [
         chain_id
         for chain_id in chain_ids
         if is_polymer_protein(f'( {sele} and c. {chain_id} )')
     ]
+
+    if not all_chains:
+        raise issues.MoleculeError(f'Fail to fetch all chain ids in {sele=}')
+
+    return all_chains
 
 
 def is_distal_residue_pair(
@@ -432,7 +465,12 @@ def make_temperal_input_pdb(
     if selection:
         selection_str += f' and {selection}'
 
-    cmd.save(input_file, selection_str, -1)
+    try:
+        cmd.save(input_file, selection_str, -1)
+    except QuietException:
+        raise issues.MoleculeUnloadedError(
+            f'Could not save molecule because it is not loaded yet.'
+        )
 
     if reload:
         cmd.reinitialize()

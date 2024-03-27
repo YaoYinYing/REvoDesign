@@ -61,11 +61,15 @@ class MutateRunnerManager:
         )
 
     def _runner_installed(self, sidechain_solver_name: str) -> bool:
-        if sidechain_solver_name not in self.installed_worker:
-            raise issues.DependencyError(
-                f'{sidechain_solver_name} is not available in your installation. Aborted..'
-            )
-        return self.installed_worker.get(sidechain_solver_name)
+        if (
+            sidechain_solver_name in self.installed_worker
+            and self.installed_worker.get(sidechain_solver_name)
+        ):
+            return self.installed_worker.get(sidechain_solver_name)
+
+        raise issues.DependencyError(
+            f'{sidechain_solver_name} is not available in your installation. Aborted..'
+        )
 
     def get_runner(
         self, sidechain_solver_name: str, **kwargs
@@ -75,6 +79,7 @@ class MutateRunnerManager:
         ) and self._runner_is_implemented(sidechain_solver_name):
             runner_class = self.implemented_runner[sidechain_solver_name]
             return runner_class(**kwargs)
+        raise
 
 
 class SidechainSolver:
@@ -140,7 +145,9 @@ class SidechainSolver:
             )
         )
         self.bus.set_widget_value(
-            'ui.config.sidechain_solver.default', 'Dunbrack Rotamer Library'
+            'ui.config.sidechain_solver.default',
+            'Dunbrack Rotamer Library',
+            hard=True,
         )
         return self.refresh()
 
