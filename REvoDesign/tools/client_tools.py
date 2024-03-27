@@ -8,6 +8,9 @@ import ssl
 from OpenSSL import crypto
 import uuid
 
+import warnings
+from REvoDesign import issues
+
 
 def check_response_code(response, successfull_opt='Submitted'):
     """
@@ -25,7 +28,7 @@ def check_response_code(response, successfull_opt='Submitted'):
         logging.info(f"{successfull_opt}.\n {response.content}")
     elif response.status_code == 401:
         # Log a warning for unauthorized access if status code is 401
-        logging.warning(
+        raise issues.UnauthorizedError(
             f"Unauthorized.\n please retry with available username and password."
         )
     else:

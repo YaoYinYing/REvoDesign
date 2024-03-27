@@ -32,7 +32,7 @@ from REvoDesign.tools.customized_widgets import (
     hold_trigger_button,
     getExistingDirectory,
     set_widget_value,
-    proceed_with_comfirm_msg_box,
+    decide,
     notify_box,
     getOpenFileNameWithExt,
     refresh_widget_while_another_changed,
@@ -57,6 +57,8 @@ from REvoDesign.tools.mutant_tools import (
 
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
 
+import warnings
+from REvoDesign import issues
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
@@ -104,8 +106,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
             self.teamwork_enabled = True
         except ImportError:
-            logging.warning(
-                f'Teamwork is disabled. Please install the related requirements.'
+            warnings.warn(
+                issues.DisabledFunctionWarning(
+                    f'Teamwork is disabled. Please install the related requirements.'
+                )
             )
             traceback.print_exc()
             self.teamwork_enabled = False
@@ -163,8 +167,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             from REvoDesign import set_REvoDesign_config_file
 
             set_REvoDesign_config_file(delete_user_config_tree=True)
-            logging.warning(
-                'Reinitialized with default configuration. Restart REvoDesign to take effort.'
+            warnings.warn(
+                issues.ConflictWarning(
+                    'Reinitialized with default configuration. Restart REvoDesign to take effort.'
+                )
             )
 
     def __del__(self):
@@ -719,7 +725,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ]
             if any(is_compressed):
                 # Ask whether to overide
-                confirmed = proceed_with_comfirm_msg_box(
+                confirmed = decide(
                     title="Extract Archive",
                     description=f"The selected file '{os.path.basename(filename)}' is a compressed archive. Do you want to extract it?",
                 )
@@ -757,9 +763,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             cmd.reinitialize()
             cmd.load(self.temperal_session)
         else:
-            logging.warning(
-                f'Current session is empty! \n \
-                            Please load one PDB/PSE/PZE!'
+            warnings.warn(
+                issues.EmptySessionWarning(
+                    f'Current session is empty! Please load one PDB/PSE/PZE!'
+                )
             )
             new_session_file = self.browse_filename(
                 mode='r',
@@ -770,10 +777,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ],
             )
             if not new_session_file:
-                logging.error(f'Abored recognizing sessions from input.')
+                warnings.warn(
+                    issues.NoInputWarning(
+                        'Abored recognizing sessions from input.'
+                    )
+                )
                 return
             elif not os.path.exists(new_session_file):
-                logging.error(f'File does not exist: {new_session_file}.')
+                warnings.warn(
+                    issues.NoInputWarning(
+                        f'File does not exist: {new_session_file}.'
+                    )
+                )
                 return
             else:
                 cmd.reinitialize()
@@ -797,12 +812,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             logging.info(f"Output file is set as {output_pse_fn}")
             self.bus.set_widget_value(cfg_to_pse, output_pse_fn)
         else:
-            logging.warning(f"Invalid output path: {output_pse_fn}.")
+            warnings.warn(
+                issues.NoInputWarning(f"Invalid output path: {output_pse_fn}.")
+            )
 
     def update_chain_id(self):
         molecule = self.bus.get_widget_value('ui.header_panel.input.molecule')
         if not molecule:
-            logging.warning(f'No available designable molecule!')
+            warnings.warn(
+                issues.NoInputWarning('No available designable molecule!')
+            )
             return
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         self.designable_sequences = {
@@ -862,16 +881,20 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         session_path: str = cmd.get('session_file')
 
         if not session_path:
-            logging.warning(
-                'Session not found, please use a new session path to save.'
+            warnings.warn(
+                issues.EmptySessionWarning(
+                    'Session not found, please use a new session path to save.'
+                )
             )
             return self.browse_filename(
                 mode='w', exts=[FileExtentions.SessionFileExt]
             )
 
         if not os.path.exists(session_path):
-            logging.warning(
-                'Invalid session file path, please use a new session path to save.'
+            warnings.warn(
+                issues.NoInputWarning(
+                    'Invalid session file path, please use a new session path to save.'
+                )
             )
             return self.browse_filename(
                 mode='w', exts=[FileExtentions.SessionFileExt]
@@ -880,8 +903,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if os.path.basename(session_path).startswith(
             'tmp'
         ) and session_path.endswith('.pse'):
-            logging.warning(
-                f'Found temperal session path: {session_path}, please use a new session path to save.'
+            warnings.warn(
+                issues.InvalidSessionWarning(
+                    f'Found temperal session path: {session_path}, please use a new session path to save.'
+                )
             )
             return self.browse_filename(
                 mode='w', exts=[FileExtentions.SessionFileExt]
@@ -1179,14 +1204,20 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     ):
         mut_table_fp = self.bus.get_value('ui.visualize.input.from_mutant_txt')
         if not os.path.exists(mut_table_fp):
-            logging.warning(f'Mutant Table path is not valid: {mut_table_fp}')
+            warnings.warn(
+                issues.NoInputWarning(
+                    f'Mutant Table path is not valid: {mut_table_fp}'
+                )
+            )
             return
 
         mut_table_cols = get_mutant_table_columns(mutfile=mut_table_fp)
 
         if not mut_table_cols:
-            logging.warning(
-                f'Mutant Table column names is not valid: {mut_table_cols}'
+            warnings.warn(
+                issues.BadDataWarning(
+                    f'Mutant Table column names is not valid: {mut_table_cols}'
+                )
             )
             return
 
@@ -1291,7 +1322,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if os.path.exists(session):
             if not overwrite:
                 # Ask whether to overide
-                confirmed = proceed_with_comfirm_msg_box(
+                confirmed = decide(
                     title="Override current session?",
                     description=f"Your current session will be overriden. \n \
                         Are you really sure? ",
@@ -1313,8 +1344,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def multi_mutagenesis_design_start(self):
         if not self.multi_mutagenesis_designer:
-            logging.error('Multi design is not initialized.')
-            return
+            raise issues.UnexpectedWorkflowError(
+                'Multi design is not initialized.'
+            )
+
         with hold_trigger_button(
             self.bus.button('multi_design_start_new_design')
         ):
@@ -1328,7 +1361,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
 
                 # Ask whether to overide
-                confirmed = proceed_with_comfirm_msg_box(
+                confirmed = decide(
                     title="Discard in-design mutant choice?",
                     description=f"You currently have uncompleted mutant choice, which shall be discarded. \n \
                         Are you really sure? ",
@@ -1341,24 +1374,30 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def multi_mutagenesis_design_pick_next_mut(self):
         if not self.multi_mutagenesis_designer:
-            logging.error('Multi design is not initialized.')
-            return
+            raise issues.UnexpectedWorkflowError(
+                'Multi design is not initialized.'
+            )
+
         with hold_trigger_button(self.bus.button('multi_design_right')):
             self.multi_mutagenesis_designer.refresh_options()
             self.multi_mutagenesis_designer.pick_next_mutant()
 
     def multi_mutagenesis_design_undo_picking(self):
         if not self.multi_mutagenesis_designer:
-            logging.error('Multi design is not initialized.')
-            return
+            raise issues.UnexpectedWorkflowError(
+                'Multi design is not initialized.'
+            )
+
         with hold_trigger_button(self.bus.button('multi_design_left')):
             self.multi_mutagenesis_designer.refresh_options()
             self.multi_mutagenesis_designer.undo_previous_mutant()
 
     def multi_mutagenesis_design_stop_design(self):
         if not self.multi_mutagenesis_designer:
-            logging.error('Multi design is not initialized.')
-            return
+            raise issues.UnexpectedWorkflowError(
+                'Multi design is not initialized.'
+            )
+
         with hold_trigger_button(
             self.bus.button('multi_design_end_this_design')
         ):
@@ -1370,8 +1409,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def multi_mutagenesis_design_save_design(self):
         if not self.multi_mutagenesis_designer:
-            logging.error('Multi design is not initialized.')
-            return
+            raise issues.UnexpectedWorkflowError(
+                'Multi design is not initialized.'
+            )
+
         with hold_trigger_button(
             self.bus.button('multi_design_export_mutants_from_table')
         ):
@@ -1383,8 +1424,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # initialize
         self.multi_mutagenesis_design_initialize()
         if not self.multi_mutagenesis_designer:
-            logging.error('Multi design failed in initializing.')
-            return
+            raise issues.UnexpectedWorkflowError(
+                'Multi design failed in initializing.'
+            )
 
         maximal_multi_design_variant_num = (
             self.multi_mutagenesis_designer.total_design_cases

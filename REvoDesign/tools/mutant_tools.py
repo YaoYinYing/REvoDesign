@@ -12,6 +12,9 @@ from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign import root_logger
 
+import warnings
+from REvoDesign import issues
+
 logging = root_logger.getChild(__name__)
 
 # Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
@@ -159,17 +162,20 @@ def extract_mutant_from_sequences(
     _mutant_sequence = mutant_sequence.replace('X', '')
 
     if len(_mutant_sequence) != len(_wt_sequence):
-        logging.error(
+        raise issues.InvalidInputError(
             f'Lengths of filtered WT and mutant are not equal to each other: {len(_wt_sequence)}: {len(_mutant_sequence)}'
         )
-        return None
 
     if mutant_sequence == wt_sequence:
-        logging.warning(f'WT and mutant sequences are identical.')
+        logging.warning('WT and mutant sequences are identical.')
         return None
 
     if 'X' in wt_sequence and not fix_missing:
-        logging.warning(f'WT has missing residue masked as "X"!')
+        warnings.warn(
+            issues.ResidueMissingWarning(
+                'WT has missing residue masked as "X"!'
+            )
+        )
 
     if fix_missing:
         _mutant_sequence = ''
@@ -182,7 +188,7 @@ def extract_mutant_from_sequences(
                 offset -= 1
 
         if len(_mutant_sequence) != len(wt_sequence):
-            logging.error(
+            raise issues.NoInputError(
                 f'Lengths of WT and fixed mutant are not equal to each other: {len(wt_sequence)}: {len(_mutant_sequence)}'
             )
             return None
@@ -473,7 +479,7 @@ def quick_mutagenesis(
     progress_bar = bus.ui.progressBar
 
     if mutant_tree.empty:
-        logging.warning(f'Mutant tree is empty!')
+        warnings.warn(issues.NoResultsWarning(f'Mutant tree is empty!'))
         return
 
     score_list = [
@@ -532,11 +538,12 @@ def quick_mutagenesis(
 
 def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
     if not mutant_tree:
-        logging.error(f"No Mutant tree is given!")
-        return
+        raise issues.NoInputError(f"No Mutant tree is given!")
 
     if mutant_tree.empty:
-        logging.warning(f'mutant tree is empty. save nothing.')
+        warnings.warn(
+            issues.NoResultsWarning(f'mutant tree is empty. save nothing.')
+        )
         return
 
     mutants_to_save = mutant_tree.all_mutant_ids
@@ -553,8 +560,10 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
         return
 
     if os.path.exists(output_mut_txt_fn):
-        logging.warning(
-            f'Mutant table exists and will be overriden! {output_mut_txt_fn}'
+        warnings.warn(
+            issues.OverridesWarning(
+                f'Mutant table exists and will be overriden! {output_mut_txt_fn}'
+            )
         )
         write_input_mutant_table(
             output_mut_txt_fn,

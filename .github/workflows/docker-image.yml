@@ -23,11 +23,6 @@ jobs:
         echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         echo "DATE: ${{ env.DATE }}"
     
-    - name: Set environment variable with current repo dir
-      run: |
-        echo "REPO=$PWD" >> $GITHUB_ENV
-        echo "REPO: ${{ env.REPO }}"
-      
     - name: Build Docker image
       run: |
         cd server/
@@ -45,7 +40,6 @@ jobs:
         
     - name: Push Docker image
       run: |
-        cd ${{ env.REPO }}
         docker push yaoyinying/revodesign-pssm-gremlin:${{ env.DATE }}
         docker push yaoyinying/revodesign-pssm-gremlin:latest
 

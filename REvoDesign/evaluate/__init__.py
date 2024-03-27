@@ -7,7 +7,7 @@ from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
 from REvoDesign.tools.customized_widgets import (
     get_widget_value,
-    proceed_with_comfirm_msg_box,
+    decide,
     set_widget_value,
 )
 
@@ -324,7 +324,7 @@ class Evalutator:
             )
 
             # Ask whether to overide
-            confirmed = proceed_with_comfirm_msg_box(
+            confirmed = decide(
                 title="Override existed mutant table choices?",
                 description=f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
                     Are you really sure? ",

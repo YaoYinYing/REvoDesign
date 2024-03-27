@@ -1,8 +1,6 @@
 import random
 import os
-from REvoDesign import ConfigBus, root_logger
 
-logging = root_logger.getChild(__name__)
 
 import itertools
 from pymol import cmd, util
@@ -10,13 +8,17 @@ from pymol import cmd, util
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.Mutant import Mutant
 
+from REvoDesign import ConfigBus, root_logger
 from REvoDesign.tools.utils import get_color, cmap_reverser
-
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
-
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
-
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+
+import warnings
+from REvoDesign import issues
+
+
+logging = root_logger.getChild(__name__)
 
 
 class MultiMutantDesigner:
@@ -91,10 +93,12 @@ class MultiMutantDesigner:
             sequences=self.designable_sequences, enabled_only=0
         )
         if self.design_pool_tree.empty:
-            logging.error('MutantTree is empty!')
-            return
+            raise issues.NoResultsError('MutantTree is empty!')
+
         if len(self.design_pool_tree.all_mutant_branch_ids) < 2:
-            logging.error('At least two groups of mutants should be included.')
+            raise issues.InvalidInputError(
+                'At least two groups of mutants should be included.'
+            )
             return
 
         # get inputs
@@ -209,8 +213,10 @@ class MultiMutantDesigner:
         tmp_mutant_obj.wt_sequences = self.designable_sequences
 
         if not self.external_scorer:
-            logging.warning(
-                f'Abord design evaluation because no external scorer is defined.'
+            warnings.warn(
+                issues.ConflictWarning(
+                    f'Abord design evaluation because no external scorer is defined.'
+                )
             )
 
         else:
@@ -337,8 +343,10 @@ class MultiMutantDesigner:
             return
 
         if self.design_pool_tree_copy.empty:
-            logging.warning(
-                'Temperal mutant tree for multi-design is empty after designing! This design is ended.'
+            warnings.warn(
+                issues.NoInputWarning(
+                    'Temperal mutant tree for multi-design is empty after designing! This design is ended.'
+                )
             )
             self.start_new_design()
             return
@@ -351,7 +359,11 @@ class MultiMutantDesigner:
             == self.in_design_multi_design_case.mutant_num
         ):
             # failed picking
-            logging.warning('Failed auto picking. Please take anther try.')
+            warnings.warn(
+                issues.NoResultsWarning(
+                    'Failed auto picking. Please take anther try.'
+                )
+            )
             return
 
         # last mutant
