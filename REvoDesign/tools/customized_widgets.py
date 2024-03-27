@@ -607,7 +607,7 @@ def notify_box(
     msg.exec_()
 
 
-def proceed_with_comfirm_msg_box(title='', description=''):
+def decide(title='', description=''):
     """
     Function: proceed_with_confirm_msg_box
     Usage: result = proceed_with_confirm_msg_box(title='', description='')

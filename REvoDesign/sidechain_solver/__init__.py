@@ -15,11 +15,8 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 from REvoDesign import root_logger
 
-from REvoDesign.issues.exceptions import (
-    DependencyError,
-    PluginNotImplementedError,
-)
-
+from REvoDesign import issues
+import warnings
 
 logging = root_logger.getChild(__name__)
 
@@ -59,13 +56,13 @@ class MutateRunnerManager:
     def _runner_is_implemented(self, sidechain_solver_name: str) -> bool:
         if sidechain_solver_name in self.implemented_runner:
             return True
-        raise PluginNotImplementedError(
+        raise issues.PluginNotImplementedError(
             f'sidechain_solver is not available: {sidechain_solver_name=}: {self.implemented_runner=}'
         )
 
     def _runner_installed(self, sidechain_solver_name: str) -> bool:
         if sidechain_solver_name not in self.installed_worker:
-            raise DependencyError(
+            raise issues.DependencyError(
                 f'{sidechain_solver_name} is not available in your installation. Aborted..'
             )
         return self.installed_worker.get(sidechain_solver_name)
@@ -78,7 +75,6 @@ class MutateRunnerManager:
         ) and self._runner_is_implemented(sidechain_solver_name):
             runner_class = self.implemented_runner[sidechain_solver_name]
             return runner_class(**kwargs)
-        raise RuntimeError(f'Failed to get runner for {sidechain_solver_name}')
 
 
 class SidechainSolver:
@@ -115,14 +111,38 @@ class SidechainSolver:
             molecule=self.molecule, chain_id=self.chain_id, reload=False
         )
 
-        self.mutate_runner = self.runner_manager.get_runner(
-            self.sidechain_solver_name,
-            pdb_file=input_pdb,
-            use_model=self.sidechain_solver_model,
-            radius=self.sidechain_solver_radius,
-            molecule=self.molecule,
+        try:
+            self.mutate_runner = self.runner_manager.get_runner(
+                self.sidechain_solver_name,
+                pdb_file=input_pdb,
+                use_model=self.sidechain_solver_model,
+                radius=self.sidechain_solver_radius,
+                molecule=self.molecule,
+            )
+            return self
+        except issues.DependencyError:
+            fallback_sidechain_solver = self.fallback()
+            fallback_sidechain_solver.mutate_runner = (
+                fallback_sidechain_solver.runner_manager.get_runner(
+                    fallback_sidechain_solver.sidechain_solver_name,
+                    pdb_file=input_pdb,
+                    use_model=fallback_sidechain_solver.sidechain_solver_model,
+                    radius=fallback_sidechain_solver.sidechain_solver_radius,
+                    molecule=fallback_sidechain_solver.molecule,
+                )
+            )
+            return fallback_sidechain_solver
+
+    def fallback(self) -> 'SidechainSolver':
+        warnings.warn(
+            issues.FallingBackWarning(
+                f'{self.sidechain_solver_name=} can not be accessed, fallback to `Dunbrack Rotamer Library`'
+            )
         )
-        return self
+        self.bus.set_widget_value(
+            'ui.config.sidechain_solver.default', 'Dunbrack Rotamer Library'
+        )
+        return self.refresh()
 
     @property
     def cfg_updated(self) -> bool:

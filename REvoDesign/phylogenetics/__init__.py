@@ -34,6 +34,8 @@ from pymol import cmd, CmdException
 from typing import Literal
 from dataclasses import dataclass
 from REvoDesign import root_logger
+import warnings
+from REvoDesign import issues
 
 logging = root_logger.getChild('phylogenetics')
 
@@ -124,10 +126,12 @@ class MutateWorker:
             )
 
             if is_a_REvoDesign_session():
-                logging.warning(
-                    'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
-                    'In order to keep the session\'s feature, you should always create seperate sessions according to '
-                    'your dataset and merge them manually in PyMOL window.'
+                warnings.warn(
+                    issues.REvoDesignSessionsWarning(
+                        'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
+                        'In order to keep the session\'s feature, you should always create seperate sessions according to '
+                        'your dataset and merge them manually in PyMOL window.'
+                    )
                 )
 
             input_pse = make_temperal_input_pdb(
@@ -190,7 +194,11 @@ class MutateWorker:
                 )
 
             if not dirname_does_exist(self.design.output_pse):
-                logging.warning(f'No output PyMOL session is created.')
+                warnings.warn(
+                    issues.NoResultsWarning(
+                        f'No output PyMOL session is created.'
+                    )
+                )
                 return
 
             cmd.reinitialize()
@@ -451,8 +459,10 @@ class GREMLIN_Analyser:
             )
 
             if not self.coevolved_pairs:
-                logging.warning(
-                    f'No Available co-evolutionary signal against {resi}'
+                warnings.warn(
+                    issues.NoResultsWarning(
+                        f'No Available co-evolutionary signal against {resi}'
+                    )
                 )
                 # early return if no data.
                 return
@@ -485,8 +495,10 @@ class GREMLIN_Analyser:
             )
 
             if not self.coevolved_pairs:
-                logging.warning(
-                    f'No Available co-evolutionary signal in global'
+                warnings.warn(
+                    issues.NoResultsWarning(
+                        f'No Available co-evolutionary signal in global'
+                    )
                 )
                 # early return if no data.
                 return
@@ -503,7 +515,11 @@ class GREMLIN_Analyser:
             self.bus.button('previous').clicked.disconnect()
             self.bus.button('next').clicked.disconnect()
         except Exception as e:
-            logging.warning(f'{e=}')
+            warnings.warn(
+                issues.AlreadyDisconnectedWarning(
+                    'button is already disconnected. do nothing'
+                )
+            )
 
         self.bus.button('previous').clicked.connect(
             partial(self.load_co_evolving_pairs, False)
@@ -609,7 +625,7 @@ class GREMLIN_Analyser:
         recover: bool = False,
     ):
         if not self.ce_object_name:
-            raise RuntimeError(
+            raise issues.UnexpectedWorkflowError(
                 f'Cannot mark pair state because {self.ce_object_name=} is not set'
             )
         color = CoevolvedPairState().color(state)

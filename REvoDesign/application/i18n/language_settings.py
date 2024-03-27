@@ -46,7 +46,7 @@ class LanguageSwitch(QtWidgets.QWidget):
     def restoreFromConfig(self):
         lan = self.language_items[0]
 
-        if lan_id := self.bus.get_value('language', str):
+        if lan_id := self.bus.get_value('language', str, reject_none=True):
             logging.info(f'Language {lan_id} is loaded from configuration.')
             lan = [l for l in self.language_items if l.id == lan_id][0]
 

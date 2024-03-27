@@ -22,6 +22,9 @@ from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_sequences,
 )
 
+import warnings
+from REvoDesign import issues
+
 matplotlib.use('Agg')
 logging = root_logger.getChild(__name__)
 
@@ -447,13 +450,13 @@ class MutantVisualizer:
             )
 
         else:
-            raise ValueError(
+            raise issues.InvalidInputError(
                 "Invalid file format. Only CSV, FASTA and TXT formats are supported."
             )
 
         # Check if the key_col exists in the dataframe
         if self.key_col not in mutation_data.columns:
-            raise ValueError(
+            raise issues.InvalidInputError(
                 f"Variant column '{self.key_col}' not found in the data."
             )
 
@@ -634,9 +637,11 @@ class MutantVisualizer:
             )
             os.rename(merged_temp_session, self.save_session)
         else:
-            logging.warning(
-                f'Temperal merged result is failed to create. Try again with a clean PyMOL session. \n'
-                f'STDOUT:\n{merge_results.stdout}\n'
-                f'STDERR:\n{merge_results.stderr}'
+            warnings.warn(
+                issues.InvalidSessionWarning(
+                    f'Temperal merged result is failed to create. Try again with a clean PyMOL session. \n'
+                    f'STDOUT:\n{merge_results.stdout}\n'
+                    f'STDERR:\n{merge_results.stderr}'
+                )
             )
             return

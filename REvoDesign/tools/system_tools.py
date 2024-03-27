@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 import platform
 
+import warnings
+from REvoDesign import issues
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
@@ -26,9 +28,11 @@ def get_system_info(os_info: platform.uname_result):
         logging.debug(f'Does it Rosetta-ed? {is_recognized_as_x86}')
 
         if is_arm_macos and is_recognized_as_x86:
-            logging.warning(
-                'Oops! You are in Rosetta-translated PyMOL bundle from official channel. '
-                'This might limit the performance of joblib, causing MutantVisualizer slower.'
+            warnings.warn(
+                issues.AppleSiliconRosetta2Warning(
+                    'Oops! You are in Rosetta-translated PyMOL bundle from official channel. '
+                    'This might limit the performance of joblib, causing MutantVisualizer slower.'
+                )
             )
             os_name += '_Rosetta'
     return os_name
@@ -63,8 +67,10 @@ class CLIENT_INFO:
         try:
             user: str = os.getlogin()
         except OSError as e:
-            logging.warning(
-                f'Failed to fetch user, maybe in CI runners? \nError: {e}'
+            warnings.warn(
+                issues.CIRunnerWarning(
+                    f'Failed to fetch user, maybe in CI runners? \nError: {e}'
+                )
             )
             user: str = 'CI'
         self.user: str = user
@@ -80,14 +86,22 @@ class CLIENT_INFO:
         try:
             self.nproc = os.cpu_count()
         except Exception as e:
-            logging.error(f'Failed to fetch CPU count: {e}')
+            warnings.warn(
+                issues.PlatformNotSupportedWarning(
+                    f'Failed to fetch CPU count: {e}'
+                )
+            )
 
         try:
             self.ip = socket.gethostbyname_ex(socket.gethostname())[2]
             if '127.0.0.1' in self.ip:
                 self.ip.remove('127.0.0.1')
         except Exception as e:
-            logging.error(f'Failed to fetch client ip: {e}')
+            warnings.warn(
+                issues.PlatformNotSupportedWarning(
+                    f'Failed to fetch client ip: {e}'
+                )
+            )
             self.ip = []
         self.qt_ver = PYQT_VERSION_STR
 

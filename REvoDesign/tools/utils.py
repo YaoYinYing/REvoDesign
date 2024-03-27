@@ -310,7 +310,7 @@ def rescale_number(number, min_value, max_value):
     """
     # Ensure that min_value and max_value are valid.
     if min_value >= max_value:
-        raise ValueError("min_value must be less than max_value")
+        raise ArithmeticError("min_value must be less than max_value")
 
     # Calculate the rescaled value.
     rescaled_value = (number - min_value) / (max_value - min_value)

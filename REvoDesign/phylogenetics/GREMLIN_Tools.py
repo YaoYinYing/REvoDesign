@@ -16,7 +16,7 @@ https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 import traceback
 from typing import Literal
 import matplotlib
-
+import warnings
 
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
@@ -28,6 +28,8 @@ import pickle
 import os
 from REvoDesign import ConfigBus, root_logger
 from dataclasses import dataclass
+from REvoDesign import issues
+
 
 logging = root_logger.getChild(__name__)
 
@@ -127,11 +129,13 @@ class GREMLIN_Tools:
 
     def load_msa_and_mrf(self, mrf_path):
         if not self.sequence:
-            logging.error(f"Sequence not valid: {self.sequence}")
-            return None
+            raise issues.NoInputError(f"Sequence not valid: {self.sequence}")
+
         elif not os.path.exists(mrf_path):
-            logging.error(f"Could not find GREMLIN mrf file: {mrf_path}")
-            return None
+            raise issues.InvalidInputError(
+                f"Could not find GREMLIN mrf file: {mrf_path}"
+            )
+
         else:
             logging.info("GREMLIN mrf is loading ...")
             self.mrf = self.load_mrf(mrf_path)
@@ -267,7 +271,7 @@ class GREMLIN_Tools:
         # mark if the df should be transposed
         transposed = True
 
-        logging.warning(f"{i=} {j=}")
+        logging.debug(f"{i=} {j=}")
         if i > j:
             j, i = i, j
             i_aa, j_aa = j_aa, i_aa
@@ -283,8 +287,10 @@ class GREMLIN_Tools:
 
         if not matching_indices:
             # No matching pairs found, handle this case
-            logging.warning(
-                f"No matching co-evolutionary pairs found for positions {i} and {j}."
+            warnings.warn(
+                issues.NoResultsWarning(
+                    f"No matching co-evolutionary pairs found for positions {i} and {j}."
+                )
             )
 
             return None
@@ -337,7 +343,7 @@ class GREMLIN_Tools:
                 f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}"
             )
             # early return to skip ploting
-            logging.error(f'Bad pair: {str(a_pair)}')
+            warnings.warn(issues.BadDataWarning(f'Bad pair: {str(a_pair)}'))
             return None
 
         plt.text(
@@ -412,7 +418,9 @@ class GREMLIN_Tools:
         top_N_pairs = coevolving_pairs[: self.topN]
 
         if not top_N_pairs:
-            logging.warning(f'No coevolving pairs found!')
+            warnings.warn(
+                issues.NoResultsWarning('No coevolving pairs found!')
+            )
             return {}
 
         logging.info(f'top {self.topN} items selected: {str(top_N_pairs)}')

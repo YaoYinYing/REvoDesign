@@ -17,6 +17,9 @@ logging = root_logger.getChild(__name__)
 from REvoDesign import reload_config_file
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
+import warnings
+from REvoDesign import issues
+
 
 class ConfigBus:
     """
@@ -187,7 +190,7 @@ class ConfigBus:
         return self.w2c.widget_id2config_dict.get(widget_id)
 
     def get_value(
-        self, cfg_item: str, converter=None
+        self, cfg_item: str, converter=None, reject_none=False
     ) -> Union[Any, list[Any], dict]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
@@ -198,6 +201,14 @@ class ConfigBus:
             Union[int, float]: 0,
             dict: {},
         }
+
+        if reject_none and not value:
+            from REvoDesign.issues import ConfigureOutofDateError
+
+            raise ConfigureOutofDateError(
+                'This configure file might be out of date. Please remove it and restart PyMOL to fix this.'
+            )
+
         if value is None and converter in default_conversions:
             value = default_conversions[converter]
 
@@ -566,8 +577,10 @@ class Widget2ConfigMapper:
                     )
                     return getattr(layout, attr)
 
-        raise ValueError(
-            f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
+        raise issues.UnknownWidgetError(
+            (
+                f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
+            )
         )
 
     def get_button_from_id(self, button_id, prefix='pushButton'):
