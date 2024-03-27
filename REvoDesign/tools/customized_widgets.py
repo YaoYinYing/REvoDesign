@@ -2,15 +2,11 @@ import os
 from contextlib import contextmanager
 from collections.abc import Iterable
 from typing import Any, Callable, Union
-from omegaconf import OmegaConf
 from pymol.Qt import QtWidgets, QtGui, QtCore
 
 from REvoDesign import root_logger
-from REvoDesign import reload_config_file
 
 logging = root_logger.getChild(__name__)
-
-from REvoDesign.tools.system_tools import CLIENT_INFO
 
 PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 
@@ -126,12 +122,27 @@ class QbuttonMatrix(QtWidgets.QWidget):
             QColor: Color based on the mapped value.
         """
         import matplotlib.pyplot as plt
+        from REvoDesign import ConfigBus
+        from REvoDesign.tools.utils import cmap_reverser
+
+        self.bus = ConfigBus()
+        self._cmap: str = self.bus.get_value(
+            'ui.header_panel.cmap.default', str
+        )
+
+        # follow the original cmap style. bwr_r -> bwr
+        self.cmap = cmap_reverser(
+            cmap=self._cmap,
+            reverse=not self.bus.get_value(
+                'ui.header_panel.cmap.reverse_score', bool
+            ),
+        )
 
         # Map a value to a color using the 'bwr' colormap with reversed colors
         normalized_value = 1 - (value - self.min_value) / (
             self.max_value - self.min_value
         )
-        colormap = plt.get_cmap('bwr')
+        colormap = plt.get_cmap(self.cmap)
         rgba_color = colormap(normalized_value)
         color = QtGui.QColor.fromRgbF(
             rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3]
@@ -388,6 +399,9 @@ def get_widget_value(widget):
 def refresh_widget_while_another_changed(
     trigger_widget, target_widget, target_data_group: dict[str, list]
 ):
+    from REvoDesign import reload_config_file
+    from omegaconf import OmegaConf
+
     cfg = reload_config_file()
     trigger_value = get_widget_value(widget=trigger_widget)
     if trigger_value in target_data_group:
@@ -413,6 +427,8 @@ class ParallelExecutor:
         verbose: bool = 0,
         kwargs: Union[tuple[dict], list[dict], None] = None,
     ):
+        from REvoDesign.tools.system_tools import CLIENT_INFO
+
         super().__init__()
         self.func = func
         self.args = args

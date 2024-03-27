@@ -30,7 +30,7 @@ from REvoDesign.tools.utils import (
     rescale_number,
     run_worker_thread_with_progress,
 )
-from pymol import cmd
+from pymol import cmd, CmdException
 from typing import Literal
 from dataclasses import dataclass
 from REvoDesign import root_logger
@@ -113,7 +113,7 @@ class MutateWorker:
                 (self.bus.get_value('ui.mutate.max_score', float)),
             ]
             reversed_mutant_effect = self.bus.get_value(
-                'ui.mutate.reverse_score'
+                'ui.header_panel.cmap.reverse_score'
             )
             output_pse = self.bus.get_value('ui.mutate.input.to_pse')
             nproc = self.bus.get_value('ui.header_panel.nproc', int)
@@ -249,7 +249,7 @@ class VisualizingWorker:
 
         try:
             reversed_mutant_effect = self.bus.get_value(
-                'ui.visualize.reverse_score'
+                'ui.header_panel.cmap.reverse_score'
             )
             cmap = cmap_reverser(
                 cmap=self.bus.get_value('ui.header_panel.cmap.default'),
@@ -556,18 +556,17 @@ class GREMLIN_Analyser:
 
         i_out_of_range = []
         for i, pair in self.coevolved_pairs.items():
-            logging.debug(pair.__str__)
-            i_x = pair.i + 1
-            i_y = pair.j + 1
-
+            atom1 = f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair.i_1} and n. CA'
+            atom2 = f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair.j_1} and n. CA'
             pair.dist = cmd.get_distance(
-                atom1=f'{self.design_molecule} and c. {self.design_chain_id} and i. {i_x} and n. CA',
-                atom2=f'{self.design_molecule} and c. {self.design_chain_id} and i. {i_y} and n. CA',
+                atom1=atom1,
+                atom2=atom2,
             )
+
             pair.dist_cutoff = max_interact_dist
             cmd.bond(
-                f'{self.ce_object_name} and c. {self.design_chain_id} and i. {i_x} and n. CA',
-                f'{self.ce_object_name} and c. {self.design_chain_id} and i. {i_y} and n. CA',
+                f'{self.ce_object_name} and c. {self.design_chain_id} and i. {pair.i_1} and n. CA',
+                f'{self.ce_object_name} and c. {self.design_chain_id} and i. {pair.j_1} and n. CA',
             )
             cmd.set(
                 'stick_radius',
@@ -576,11 +575,11 @@ class GREMLIN_Analyser:
                     min_value=min_gremlin_score,
                     max_value=max_gremlin_score,
                 ),
-                f'({self.ce_object_name}  and c. {self.design_chain_id} and resi {i_x}+{i_y} and n. CA)',
+                f'({self.ce_object_name}  and c. {self.design_chain_id} and resi {pair.i_1}+{pair.j_1} and n. CA)',
             )
             if pair.is_out_of_range:
                 logging.info(
-                    f'Resi {i_x} is {pair.dist:.2f} Å away from {i_y}, out of distance {pair.dist_cutoff} Å.'
+                    f'Resi {pair.i_1} is {pair.dist:.2f} Å away from {pair.j_1}, out of distance {pair.dist_cutoff} Å.'
                 )
                 i_out_of_range.append(i)
                 self.mark_pair_state(pair=pair, state='out_of_range')
@@ -590,7 +589,6 @@ class GREMLIN_Analyser:
         cmd.show('sticks', self.ce_object_name)
         cmd.set('stick_use_shader', 0)
         cmd.set('stick_round_nub', 0)
-        cmd.set('stick_color', 'gray70', self.ce_object_name)
 
         # remove pairs that distal
         for i in i_out_of_range:
@@ -616,26 +614,33 @@ class GREMLIN_Analyser:
             )
         color = CoevolvedPairState().color(state)
 
+        stick_selection = f'({self.ce_object_name}  and c. {self.design_chain_id} and i. {pair.i+1}+{pair.j+1} and n. CA)'
+
         cmd.set(
             'stick_color',
             color,
-            f'({self.ce_object_name}  and c. {self.design_chain_id} and i. {pair.i+1}+{pair.j+1} and n. CA)',
+            stick_selection,
         )
 
         if state != 'in_design':
+            cmd.set('stick_transparency', 0.7, stick_selection)
             return
 
-        logging.warning(f'Marking pair {pair.__str__} {state=}')
+        logging.warning(f'Marking pair {str(pair)} {state=}')
+        cmd.set('stick_transparency', 0.1, stick_selection)
+        cmd.orient(selection=f'byres ({stick_selection}) around 15', animate=1)
 
         # if it is in design,recover color according to pair dist.
-        if recover:
-            for i, p in self.coevolved_pairs.items():
-                if p == pair:
-                    continue
-                self.mark_pair_state(
-                    pair=p,
-                    state='out_of_range' if p.is_out_of_range else 'available',
-                )
+        if not recover:
+            return
+
+        for i, p in self.coevolved_pairs.items():
+            if p == pair:
+                continue
+            self.mark_pair_state(
+                pair=p,
+                state='out_of_range' if p.is_out_of_range else 'available',
+            )
 
     @staticmethod
     def reorder_dict(ordered_dict: dict):

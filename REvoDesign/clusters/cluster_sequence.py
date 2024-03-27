@@ -20,7 +20,8 @@ matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 
-from REvoDesign.tools.utils import refresh_window, minibatches_generator
+from REvoDesign.tools.utils import minibatches_generator
+from REvoDesign.tools.customized_widgets import refresh_window
 
 
 class Clustering:

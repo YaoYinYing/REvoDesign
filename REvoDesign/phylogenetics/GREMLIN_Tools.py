@@ -13,8 +13,10 @@
 https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 '''
 
+import traceback
 from typing import Literal
 import matplotlib
+
 
 matplotlib.use('Agg')
 import matplotlib.pylab as plt
@@ -63,9 +65,8 @@ class CoevolvedPair:
     def df(self, new_df: pd.DataFrame):
         self.raw_df = new_df.copy()
 
-    @property
     def __str__(self):
-        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore} - {self.dist}/{self.dist_cutoff} Å'
+        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {self.dist:.3f}/{self.dist_cutoff:.3f} Å'
 
     def wt(self, resi: Literal['i', 'j']) -> str:
         res: str = getattr(self, f'{resi}_aa')
@@ -80,11 +81,33 @@ class CoevolvedPair:
 
         return int(wt_resn)
 
+    @property
+    def i_1(self) -> int:
+        return self.i + 1
+
+    @property
+    def j_1(self) -> int:
+        return self.j + 1
+
 
 class GREMLIN_Tools:
     def __init__(self, molecule):
+        from REvoDesign.tools.utils import cmap_reverser
+
         self.pwd = os.getcwd()
         self.bus = ConfigBus()
+
+        self._cmap: str = self.bus.get_value(
+            'ui.header_panel.cmap.default', str
+        )
+
+        # follow the original cmap style. bwr_r -> bwr
+        self.cmap = cmap_reverser(
+            cmap=self._cmap,
+            reverse=not self.bus.get_value(
+                'ui.header_panel.cmap.reverse_score', bool
+            ),
+        )
 
         self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
         self.states = len(self.alphabet)
@@ -223,7 +246,7 @@ class GREMLIN_Tools:
         v = self.mrf["v"].T
         mx = np.max((v.max(), np.abs(v.min())))
         plt.figure(figsize=(v.shape[1] / 4, self.states / 4))
-        plt.imshow(-v, cmap='bwr', vmin=-mx, vmax=mx)
+        plt.imshow(-v, cmap=self.cmap, vmin=-mx, vmax=mx)
         plt.xticks(np.arange(v.shape[1]), rotation=45)
         plt.yticks(np.arange(0, 21))
         plt.grid(False)
@@ -290,7 +313,7 @@ class GREMLIN_Tools:
 
         mx = np.max((w.max(), np.abs(w.min())))
         plt.figure(figsize=(self.states / 4, self.states / 4))
-        plt.imshow(-w, cmap='bwr', vmin=-mx, vmax=mx)
+        plt.imshow(-w, cmap=self.cmap, vmin=-mx, vmax=mx)
         plt.xticks(np.arange(0, self.states))
         plt.yticks(np.arange(0, self.states))
         plt.grid(False)
@@ -305,8 +328,18 @@ class GREMLIN_Tools:
         plt.ylabel(f"Position: {i_aa}")
 
         # Highlight WT residue pair
-        wt_i_index = self.alphabet.index(wt_i_aa)
-        wt_j_index = self.alphabet.index(wt_j_aa)
+        try:
+            wt_i_index = self.alphabet.index(wt_i_aa)
+            wt_j_index = self.alphabet.index(wt_j_aa)
+        except ValueError as e:
+            traceback.print_exc()
+            logging.error(
+                f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}"
+            )
+            # early return to skip ploting
+            logging.error(f'Bad pair: {str(a_pair)}')
+            return None
+
         plt.text(
             wt_j_index,
             wt_i_index,
@@ -314,7 +347,7 @@ class GREMLIN_Tools:
             color='k',
             ha='center',
             va='center',
-            fontsize=8,
+            fontsize=6,
         )
 
         plt.title(
@@ -339,6 +372,8 @@ class GREMLIN_Tools:
             zscore = self.top.iloc[n]["zscore"]
 
             pair: CoevolvedPair = self.plot_w(i, j, i_aa, j_aa, n)
+            if not pair:
+                continue
             pair.zscore = zscore
 
             plot_w_fps[n] = pair
@@ -389,6 +424,8 @@ class GREMLIN_Tools:
             (i, j, i_aa, j_aa, zscore) = pair
             # if i>j, the i and j in `CoevolvedPair` will be swapped.
             pair_i: CoevolvedPair = self.plot_w(i, j, i_aa, j_aa, n)
+            if not pair_i:
+                continue
             pair_i.zscore = zscore
             plot_w_fps[n] = pair_i
 

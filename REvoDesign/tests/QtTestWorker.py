@@ -126,7 +126,7 @@ class TestWorker:
         self.EXPERIMENT_DIR = os.path.join(os.path.abspath('.'), 'experiments')
 
         self.ANALYSIS_DIR = os.path.join(os.path.abspath('.'), 'analysis')
-        self.POCKET_DIR = os.path.join(os.path.abspath('.'), 'pocket')
+        self.POCKET_DIR = os.path.join(os.path.abspath('.'), 'pockets')
         self.SURFACE_DIR = os.path.join(
             os.path.abspath('.'), 'surface_residue_records'
         )

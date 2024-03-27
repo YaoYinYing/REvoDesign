@@ -8,7 +8,7 @@ import queue
 from typing import Union
 from typing_extensions import override
 from omegaconf import DictConfig
-from REvoDesign import reload_config_file
+
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",
@@ -169,6 +169,8 @@ def setup_logging_from_dictconfig(
 
 
 def setup_logging() -> python_logging.Logger:
+    from REvoDesign import reload_config_file
+
     cfg: DictConfig = reload_config_file()
     logging_dir = os.path.dirname(
         os.path.abspath(cfg.log.handlers.file.filename)

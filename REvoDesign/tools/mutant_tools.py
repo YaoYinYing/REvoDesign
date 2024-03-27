@@ -3,16 +3,13 @@ import re
 import json
 import time
 
-from omegaconf import DictConfig
-from REvoDesign.common.Mutant import Mutant
 from Bio.Data import IUPACData
-from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
-from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.pymol_utils import is_hidden_object
-from REvoDesign.tools.utils import filepath_does_exists
-from REvoDesign import ConfigBus, FileExtentions
 
+from REvoDesign import ConfigBus, FileExtentions
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
@@ -342,6 +339,7 @@ def read_customized_indice(custom_indices_from_input='') -> str:
     Returns:
     - str: Processed customized indices string.
     """
+    from REvoDesign.tools.utils import filepath_does_exists
 
     if not custom_indices_from_input:
         return ''
@@ -438,6 +436,8 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
     - MutantTree
         An instance of MutantTree class containing the mutant tree structure.
     """
+    from REvoDesign.tools.pymol_utils import is_hidden_object
+
     _mutant_tree = {
         group_id: {
             mutant_id: extract_mutant_from_pymol_object(

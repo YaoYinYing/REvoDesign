@@ -3,15 +3,8 @@ import os
 import random
 import string
 import time
-import traceback
 
-from REvoDesign.tools.customized_widgets import (
-    WorkerThread,
-    refresh_window,
-)
 from REvoDesign import root_logger
-
-from pymol.Qt import QtWidgets
 
 logging = root_logger.getChild(__name__)
 
@@ -186,6 +179,11 @@ def run_worker_thread_with_progress(
     result = run_worker_thread_with_progress(my_worker_function, my_progress_bar, arg1, arg2, kwarg1=value1)
     ```
     """
+    from REvoDesign.tools.customized_widgets import (
+        WorkerThread,
+        refresh_window,
+    )
+
     if progress_bar:
         # store the progress bar state
         _min = progress_bar.minimum()

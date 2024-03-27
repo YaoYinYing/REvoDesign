@@ -298,7 +298,9 @@ class Evalutator:
         best_mutant_id = (
             self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
                 branch_id=branch_id,
-                reversed=self.bus.get_value('ui.evaluate.reverse_score'),
+                reversed=self.bus.get_value(
+                    'ui.header_panel.cmap.reverse_score'
+                ),
             )
         )
         logging.info(f'Jump to the best hit of {branch_id}: {best_mutant_id}')
@@ -345,7 +347,9 @@ class Evalutator:
             best_mutant_id = (
                 self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
                     branch_id=branch_id,
-                    reversed=self.bus.get_value('ui.evaluate.reverse_score'),
+                    reversed=self.bus.get_value(
+                        'ui.header_panel.cmap.reverse_score'
+                    ),
                 )
             )
             logging.info(
