@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.5.7] - 2024-03-28
 ### Added
 - `ConfigBus.set_widget_value`: if `hard`, override config item.
 - `ConfigBus.get_value`: if `reject_none`, raise `ConfigureOutofDateError`.
@@ -22,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Window logo
 - `CoevolvedPair`: `i_1` and `j_1` to return `1-indexed` residue index.
 - `set_REvoDesign_config_file`: `delete_user_config_tree`. if true, delete users config directory. called by `actionReinitialize`
+- `SidechainSolver` Fallback:
+  - `MutateRunnerManager`: `get_runner` -> not `_runner_installed` -> `raise issues.DependencyError`
+  - `SidechainSolver`: `setup` -> catch `issues.DependencyError` -> `fallback` to produce a fallback copy.
 
 ### Changed
 - `proceed_with_comfirm_msg_box` -> `decide`
