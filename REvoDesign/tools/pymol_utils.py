@@ -93,11 +93,10 @@ def find_small_molecules_in_protein(sele):
         for at in cmd.get_model(f'hetatm and (not polymer.protein)').atom
     ]
 
-    unique_small_molecules = find_small_molecules_in_protein(sele='hetatm')
     unique_small_molecules = list(set(small_molecules))
 
     # Return a list of unique small molecule names found within the selection
-    return unique_small_molecules
+    return unique_small_molecules if unique_small_molecules else []
 
 
 def find_design_molecules():
