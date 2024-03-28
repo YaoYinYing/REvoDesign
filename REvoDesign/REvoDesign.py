@@ -985,7 +985,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self,
     ):
         # Setup pocket determination arguments
-        small_molecules = find_small_molecules_in_protein(self.design_molecule)
+        small_molecules = ['']+ find_small_molecules_in_protein(self.design_molecule)
         if small_molecules:
             self.bus.set_widget_value(
                 'ui.prepare.input.pocket.substrate', small_molecules

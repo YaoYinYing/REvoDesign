@@ -15,6 +15,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- `ConfigBus.set_widget_value`: if `hard`, override config item.
+- `ConfigBus.get_value`: if `reject_none`, raise `ConfigureOutofDateError`.
+- Exception Classes in `REvoDesign/issues/exceptions.py` and `REvoDesign/issues/warnings.py`
+- Window logo
+- `CoevolvedPair`: `i_1` and `j_1` to return `1-indexed` residue index.
+- `set_REvoDesign_config_file`: `delete_user_config_tree`. if true, delete users config directory. called by `actionReinitialize`
+
+### Changed
+- `proceed_with_comfirm_msg_box` -> `decide`
+- `GREMLIN_Tools` use reversed cmap from `ConfigBus`
+- `GREMLIN_Analyser.mark_pair_state`: use `cmd.orient` to focus on the in-design pair because it is super cool.
+- `QbuttonMatrix`use  cmap from `ConfigBus`
+- refactored `find_small_molecules_in_protein`: if no hetatm is found in this molecule, consider `(all)`
+
+### Fixed
+- `X` residue in GREMLIN pair: `except ValueError` -> `issues.BadDataWarning`
+- call DLPacker to initialize with cache dir for Windows
+- typo in test dir name
+- `find_design_molecules`: raise `issues.MoleculeUnloadedError` if no molecule is found as enabled object
+- `find_all_protein_chain_ids_in_protein`
+- `make_temperal_input_pdb`: raise `issues.MoleculeUnloadedError` if no molecule is found as loaded object
+
+### Removed
+- configure item:
+  - `ui.cluster.score_matrix.group`
+  - `ui.interact.reverse_score`
+
 
 ## [1.5.6] - 2024-03-26
 ### Added
