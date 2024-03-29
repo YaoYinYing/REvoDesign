@@ -19,9 +19,42 @@ from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 import warnings
 from REvoDesign import issues
+from abc import ABC, abstractmethod, abstractclassmethod
 
 
-class ConfigBus:
+class SingletonAbstract(ABC):
+    _instance = None
+
+    @classmethod
+    def __new__(cls, *args, **kwargs):
+        # Check if an instance of SingletonAbstract already exists
+        if not cls._instance:
+            # If not, create a new instance and assign it to the _instance class variable
+            cls._instance = super(SingletonAbstract, cls).__new__(cls)
+        # Return the existing instance
+        return cls._instance
+
+    @classmethod
+    def reset_instance(cls):
+        cls._instance = None
+
+    @abstractclassmethod
+    def initialize(cls):
+        if not cls._instance:
+            cls()
+        else:
+            ...
+
+    @abstractmethod
+    def __init__(self):
+        # Check if the instance has already been initialized
+        if not hasattr(self, 'initialized'):
+            # If not, set the instance attributes
+            ...
+            self.initialized = True
+
+
+class ConfigBus(SingletonAbstract):
     """
     This class is responsible for handling the configuration and interaction between the UI widgets and the application's configuration settings.
 
@@ -48,16 +81,6 @@ class ConfigBus:
         button(id: str): Retrieves a button widget based on its ID.
     """
 
-    _instance = None
-
-    def __new__(cls, *args, **kwargs):
-        # Check if an instance of ConfigBus already exists
-        if not cls._instance:
-            # If not, create a new instance and assign it to the _instance class variable
-            cls._instance = super(ConfigBus, cls).__new__(cls)
-        # Return the existing instance
-        return cls._instance
-
     def __init__(self, ui=None):
         # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):
@@ -71,10 +94,6 @@ class ConfigBus:
 
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
-
-    @classmethod
-    def reset_instance(cls):
-        cls._instance = None
 
     @classmethod
     def initialize(cls, ui):
@@ -191,7 +210,11 @@ class ConfigBus:
         return self.w2c.widget_id2config_dict.get(widget_id)
 
     def get_value(
-        self, cfg_item: str, converter=None, reject_none=False
+        self,
+        cfg_item: str,
+        converter=None,
+        reject_none=False,
+        default_value=None,
     ) -> Union[Any, list[Any], dict]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
@@ -203,15 +226,18 @@ class ConfigBus:
             dict: {},
         }
 
-        if reject_none and not value:
+        if reject_none and not value and not default_value:
             from REvoDesign.issues import ConfigureOutofDateError
 
             raise ConfigureOutofDateError(
                 'This configure file might be out of date. Please remove it and restart PyMOL to fix this.'
             )
 
-        if value is None and converter in default_conversions:
-            value = default_conversions[converter]
+        if value is None:
+            if default_value:
+                value = default_value
+            elif converter in default_conversions:
+                value = default_conversions[converter]
 
         # Handle predefined converters
         predefined_conversions = {

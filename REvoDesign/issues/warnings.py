@@ -125,3 +125,27 @@ class MoleculeWarning(NoInputWarning):
     """Warning raised when a molecule uses fuzzy chain id"""
 
     ...
+
+
+class SocketWarning(REvoDesignWarning):
+    """Warning about a socket event"""
+
+    ...
+
+
+class SocketUserAlreadyExists(SocketWarning):
+    """Warning raised when socket user exists in the meething room"""
+
+    ...
+
+
+class SocketMessageOverflow(SocketWarning):
+    """Warning raised when a socket message overflows"""
+
+    ...
+
+
+class SocketMeetingRoomIsEmpty(SocketWarning):
+    """Warning raised when a socket has no client"""
+
+    ...
