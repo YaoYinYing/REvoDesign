@@ -531,4 +531,5 @@ class MutantTree:
                 for _mut_info in _mut_obj.mutant_info
             ]
         )
+        tmp_mutant_obj.wt_sequences=self.all_mutant_objects[0].wt_sequences
         return tmp_mutant_obj

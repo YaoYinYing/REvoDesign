@@ -19,7 +19,7 @@ from typing import (
     Union,
     Sequence,
 )
-from PyQt5 import QtWebSockets, QtNetwork, QtCore
+from PyQt5 import QtWebSockets, QtNetwork, QtCore, QtNetwork
 from REvoDesign import ConfigBus, root_logger
 from REvoDesign.application.ui_driver import SingletonAbstract
 from REvoDesign.tools.utils import run_worker_thread_with_progress
@@ -28,6 +28,7 @@ logging = root_logger.getChild(__name__)
 
 from REvoDesign.common.MutantTree import MutantTree
 from pymol import cmd
+
 
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
 
@@ -131,6 +132,8 @@ class Broadcaster:
                 'RequireKey': str,
                 "UserTree": dict,
                 "UUID": str,
+                'PyMOL_session': bytes,
+                'MessageStack': Any
             }
         )
     )
@@ -146,11 +149,12 @@ class Broadcaster:
         'RequireKey',
         "UserTree",
         "UUID",
+        'PyMOL_session',
+        'MessageStack',
     ]
 
     readble_type: tuple = tuple(
         [
-            'MutantTree',
             'PyMOL_prompt',
             'ConfigItem',
             'ClientInfo',
@@ -187,7 +191,7 @@ class Broadcaster:
 
     def digest_dict(
         self, unpacked_msg_dict: dict[str, str]
-    ) -> tuple[supported_datatypes, Any]:
+    ) -> tuple[Union[supported_datatypes, None], Any]:
         datatype: self.supported_datatypes = unpacked_msg_dict.get('datatype')
         if not datatype:
             warnings.warn(
@@ -196,8 +200,8 @@ class Broadcaster:
                 )
             )
             return None, None
-
-        obj = self.decode(unpacked_msg_dict.get('obj'))
+        obj_encoded = unpacked_msg_dict.get('obj')
+        obj = self.decode(obj_encoded)
         expected_obj_type = self.supported_datatypes_mapping.get(datatype)
         if not isinstance(obj, expected_obj_type):
             warnings.warn(
@@ -206,7 +210,7 @@ class Broadcaster:
                 )
             )
             return None, None
-        return (datatype, obj)
+        return datatype, obj
 
     def broadcast(
         self,
@@ -215,9 +219,9 @@ class Broadcaster:
         obj: Any = None,
         final=True,
     ):
-        if meetingroom.empty:
+        if not meetingroom or meetingroom.empty:
             warnings.warn(
-                issues.SocketMeetingRoomIsEmpty(f'Empty meeting room.')
+                issues.SocketMeetingRoomIsEmpty('Empty meeting room.')
             )
             return
         msg_dict = self.compose_dict(obj=obj, datatype=obj_type, final=final)
@@ -248,13 +252,13 @@ class Broadcaster:
 
         logging.debug(f"Typing check: {expected_type=}: {pass_check=}")
 
-        return expected_type and pass_check
+        return expected_type is not None and pass_check
 
     def received(self, packed_msg: bytes):
         unpacked_msg = self.unpack(packed_msg)
         (datatype, obj) = self.digest_dict(unpacked_msg_dict=unpacked_msg)
         if datatype:
-            return (datatype, obj)
+            return datatype, obj
         else:
             warnings.warn(
                 issues.BadDataWarning(
@@ -448,9 +452,9 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         username, node, user_id = self.client_name_and_node(client=client)
 
         # printout readable msgs
-        if msg_type in Broadcaster.readble_type:
+        if msg_type in self.bc_worker.readble_type:
             logging.info(
-                f'>>> {username}@{node}({user_id}): [{msg_type}] {msg_content}'
+                f'>>> {username}@{node}({user_id}): [{str(msg_type)}] {str(msg_content)}'
             )
 
         # matching msg_type
@@ -482,6 +486,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             if client not in self.waiting_room:
                 self.waiting_room.add(client)
                 logging.warning(f'Client {client} joins waiting room')
+            self.bc_worker.wisper(client, obj_type='Text', obj='Waiting ...')
             self.askUserAuthentication(client)
             return
 
@@ -781,7 +786,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             self.receive_mutagenesis_broadcast = True
 
             self.uuid = ''
-            self.connected = False
+
             self.client = None
             self.treeWidget_ws_peers = None
 
@@ -815,11 +820,10 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         )
 
     def connect_to_server(self):
-        if not self.check_server_reachable():
+        if not self.server_is_reachable:
             logging.error("Server unreachable or network issue.")
             return
 
-        self.connected = True
         server_uri = f"ws://{self.server_url}:{self.server_port}"
         logging.info(f'Connecting to server: {server_uri}')
         try:
@@ -841,10 +845,23 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
             logging.info('Connection established.')
 
+            try:
+                self.sidechain_solver = self.get_sidechain_solver()
+            except issues.MoleculeUnloadedError:
+                logging.error('Failed to load sidechain solver. Disconnected.')
+                self.close_connection()
+                return
+
         except Exception:
             logging.error("Unexpected error during connection:")
             traceback.print_exc()
-            self.connected = False
+
+    @property
+    def connected(self):
+        return (
+            self.client
+            and self.client.state() == QtNetwork.QAbstractSocket.ConnectedState
+        )
 
     def close_connection(self):
         if not self.connected:
@@ -856,7 +873,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         try:
             self.bc_worker.wisper(self.client, obj='Leaving, bye-bye.')
             self.client.close()
-            self.connected = False
+
             refresh_tree_widget(
                 user_tree={}, treeWidget_ws_peers=self.treeWidget_ws_peers
             )
@@ -865,7 +882,8 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             traceback.print_exc()
             logging.error('Client disconnection failed.')
 
-    def check_server_reachable(self):
+    @property
+    def server_is_reachable(self):
         try:
             # Attempt a socket connection to the server
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -937,8 +955,8 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             )
             return
 
-        if msg_type in Broadcaster.readble_type:
-            logging.info(f'>>> Host: [{msg_type}] {msg_content}')
+        if msg_type in self.bc_worker.readble_type:
+            logging.info(f'>>> Host: [{str(msg_type)}] {str(msg_content)}')
 
         if msg_type == 'Text':
             return
@@ -977,6 +995,14 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         from REvoDesign.sidechain_solver import (
             SidechainSolver,
         )
+
+        molecule = self.bus.get_value('ui.header_panel.input.molecule', str)
+        chain_id = self.bus.get_value('ui.header_panel.input.chain_id', str)
+
+        if not (molecule and chain_id):
+            raise issues.NoInputError(
+                f'Input missing. {molecule=}, {chain_id=}. You should load molecule before instantializing client.'
+            )
 
         return SidechainSolver().setup()
 

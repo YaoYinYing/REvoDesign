@@ -520,19 +520,20 @@ def quick_mutagenesis(
         visualizer.run_mutagenesis_tasks()
         results.append(visualizer.save_session)
 
-    # call MutantVisualizer for merge sessions
-    session_merger = MutantVisualizer(molecule='', chain_id='')
-    session_merger.input_session = input_pdb
-    session_merger.save_session = os.path.join(
+    output_temp_session = os.path.join(
         os.path.dirname(input_pdb),
         f'merged.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
     )
+    # call MutantVisualizer for merge sessions
+    session_merger = MutantVisualizer(molecule='', chain_id='')
+    session_merger.input_session = input_pdb
+    session_merger.save_session = output_temp_session
     session_merger.mutagenesis_sessions = results
     run_worker_thread_with_progress(
         session_merger.merge_sessions_via_commandline,
         progress_bar=progress_bar,
     )
-    cmd.load(session_merger.save_session, partial=2)
+    cmd.load(output_temp_session, partial=2)
     return
 
 
