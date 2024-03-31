@@ -1,3 +1,4 @@
+from abc import ABC
 import base64
 from functools import partial
 import json
@@ -13,13 +14,13 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    List,
     Literal,
     Mapping,
-    TypeAlias,
     Union,
     Sequence,
 )
-from PyQt5 import QtWebSockets, QtNetwork, QtCore, QtNetwork
+from PyQt5 import QtWebSockets, QtNetwork, QtCore
 from REvoDesign import ConfigBus, root_logger
 from REvoDesign.application.ui_driver import SingletonAbstract
 from REvoDesign.tools.utils import run_worker_thread_with_progress
@@ -67,7 +68,7 @@ class MeetingRoom:
     def does_user_exist(self, uuid: str) -> bool:
         return uuid in self.clients
 
-    def let_user_join(self, uuid: str, user: Client):
+    def add_user(self, uuid: str, user: Client):
         if uuid in self.clients:
             warnings.warn(
                 issues.SocketUserAlreadyExists('user already joined.')
@@ -133,12 +134,13 @@ class Broadcaster:
                 "UserTree": dict,
                 "UUID": str,
                 'PyMOL_session': bytes,
-                'MessageStack': Any
+                'Color': Any,
+                'MessageStack': List,
             }
         )
     )
 
-    supported_datatypes: TypeAlias = Literal[
+    supported_datatypes = Literal[
         'MutantTree',
         'PyMOL_prompt',
         'PyMOL_selection',
@@ -150,6 +152,7 @@ class Broadcaster:
         "UserTree",
         "UUID",
         'PyMOL_session',
+        'Color',
         'MessageStack',
     ]
 
@@ -210,24 +213,61 @@ class Broadcaster:
                 )
             )
             return None, None
+
         return datatype, obj
 
     def broadcast(
         self,
-        meetingroom: MeetingRoom,
-        obj_type: supported_datatypes = 'Text',
-        obj: Any = None,
+        meetingroom: Union[
+            Client,
+            QtWebSockets.QWebSocket,
+            MeetingRoom,
+            List[Client],
+            List[QtWebSockets.QWebSocket],
+        ],
+        obj_type: Union[
+            supported_datatypes, List[supported_datatypes]
+        ] = 'Text',
+        obj: Union[Any, List[Any]] = None,
         final=True,
     ):
-        if not meetingroom or meetingroom.empty:
-            warnings.warn(
-                issues.SocketMeetingRoomIsEmpty('Empty meeting room.')
+        # typing checks for broad cast group
+        if isinstance(meetingroom, QtWebSockets.QWebSocket):
+            all_clients = [meetingroom]
+        elif isinstance(meetingroom, Client):
+            all_clients = [meetingroom.client]
+        elif isinstance(meetingroom, MeetingRoom):
+            if not meetingroom or meetingroom.empty:
+                warnings.warn(
+                    issues.SocketMeetingRoomIsEmpty('Empty meeting room.')
+                )
+                return
+            all_clients = meetingroom.current_clients
+        elif isinstance(meetingroom, List):
+            all_clients = [
+                c.client if isinstance(c, Client) else c for c in meetingroom
+            ]
+        else:
+            raise issues.InvalidInputError(
+                f'typing of {meetingroom=} ({type(meetingroom)} is not supported.)'
             )
-            return
-        msg_dict = self.compose_dict(obj=obj, datatype=obj_type, final=final)
-        packed_msg = self.pack(msg_dict=msg_dict)
 
-        for client in meetingroom.current_clients:
+        if not isinstance(obj_type, List):
+            msg_dict = self.compose_dict(
+                obj=obj, datatype=obj_type, final=final
+            )
+            packed_msg = self.pack(msg_dict=msg_dict)
+        else:
+            stacked_data = [
+                self.compose_dict(obj=o, datatype=d, final=final)
+                for o, d in zip(obj, obj_type)
+            ]
+            stacked_msg_dict = self.compose_dict(
+                obj=stacked_data, datatype='MessageStack', final=final
+            )
+            packed_msg = self.pack(msg_dict=stacked_msg_dict)
+
+        for client in all_clients:
             client.sendBinaryMessage(packed_msg)
 
     def wisper(
@@ -237,16 +277,13 @@ class Broadcaster:
         obj: Any = None,
         final: bool = True,
     ):
-        msg_dict = self.compose_dict(obj=obj, datatype=obj_type, final=final)
-        packed_msg = self.pack(msg_dict=msg_dict)
-        if isinstance(client, Client):
-            c = client.client
-        else:
-            c = client
+        self.broadcast(
+            meetingroom=client, obj_type=obj_type, obj=obj, final=final
+        )
 
-        c.sendBinaryMessage(packed_msg)
-
-    def typing_check(self, msg_type, msg_content):
+    def typing_is_valid(self, msg_type, msg_content):
+        if not msg_type:
+            return False
         expected_type = self.supported_datatypes_mapping.get(msg_type)
         pass_check = isinstance(msg_content, expected_type)
 
@@ -254,18 +291,40 @@ class Broadcaster:
 
         return expected_type is not None and pass_check
 
-    def received(self, packed_msg: bytes):
+    def is_nestedstack(self, stacked_data: dict) -> bool:
+        stacked_lable: self.supported_datatypes = 'MessageStack'
+        for d in stacked_data:
+            if stacked_lable in d:
+                return True
+        return False
+
+    def received(
+        self, packed_msg: bytes
+    ) -> Union[tuple[None, None], tuple[str, Any], tuple[str, Iterable]]:
         unpacked_msg = self.unpack(packed_msg)
         (datatype, obj) = self.digest_dict(unpacked_msg_dict=unpacked_msg)
-        if datatype:
-            return datatype, obj
-        else:
+        if not datatype:
             warnings.warn(
                 issues.BadDataWarning(
                     f'Bad data received with unexpected none datatype.'
                 )
             )
             return None, None
+        if datatype != 'MessageStack':
+            return datatype, obj
+
+        assert isinstance(obj, List)
+        stacked_data = [
+            {_t: _o for _t, _o in self.digest_dict(unpacked_msg_dict=d)}
+            for d in obj
+        ]
+
+        if not self.is_nestedstack(stacked_data=stacked_data):
+            return datatype, stacked_data
+
+        raise issues.FobbidenDataTypeError(
+            f'Nested MessageStack is not allowd.'
+        )
 
 
 class REvoDesignWebSocketServer(SingletonAbstract):
@@ -420,46 +479,18 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         Returns:
         None
         """
-
-    def processBinaryMessage(self, client, message: QtCore.QByteArray):
-        """
-        Processes incoming binary messages from clients.
-
-        Args:
-        - client: Client connection object.
-        - message: Incoming binary message.
-
-        Returns:
-        None
-        """
-        message: bytes = message.data()
-        # logging.info("Binary Message:", message)
-        msg_type, msg_content = self.bc_worker.received(packed_msg=message)
-
-        if not msg_type:
-            return
-
-        if not self.bc_worker.typing_check(
-            msg_type=msg_type, msg_content=msg_content
-        ):
-            warnings.warn(
-                issues.BadDataWarning(
-                    f'Bad data from socket discarded: {msg_type=},{msg_content=}'
-                )
-            )
-            return
-
         username, node, user_id = self.client_name_and_node(client=client)
+        logging.info(
+            f'>>> {username}@{node}({user_id}): [TextMessage] {str(message)}'
+        )
 
-        # printout readable msgs
-        if msg_type in self.bc_worker.readble_type:
-            logging.info(
-                f'>>> {username}@{node}({user_id}): [{str(msg_type)}] {str(msg_content)}'
-            )
+        self.messageDispatcher(self, client, msg_type='Text', message=message)
 
+    def messageDispatcher(
+        self, client: QtWebSockets.QWebSocket, msg_type: str, msg_content: Any
+    ):
         # matching msg_type
         if msg_type == 'ClientInfo':
-            assert isinstance(msg_content, dict)
             if client in self.meetingroom.current_clients:
                 logging.warning(
                     f'Client {client} has already joined in chat room.'
@@ -470,6 +501,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
                     client=client,
                 )
                 return
+
             logging.info(f'Authenticating... {client}')
             self.bc_worker.wisper(
                 obj_type='Text',
@@ -491,6 +523,50 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             return
 
         ...
+
+    def processBinaryMessage(self, client, message: QtCore.QByteArray):
+        """
+        Processes incoming binary messages from clients.
+
+        Args:
+        - client: Client connection object.
+        - message: Incoming binary message.
+
+        Returns:
+        None
+        """
+        message: bytes = message.data()
+        # logging.info("Binary Message:", message)
+
+        username, node, user_id = self.client_name_and_node(client=client)
+
+        try:
+            msg_type, msg_content = self.bc_worker.received(packed_msg=message)
+        except issues.FobbidenDataTypeError:
+            warnings.warn(
+                issues.BadDataWarning(
+                    f'Bad data from {username}@{node}({user_id}) is discarded.'
+                )
+            )
+            return
+
+        if not self.bc_worker.typing_is_valid(
+            msg_type=msg_type, msg_content=msg_content
+        ):
+            warnings.warn(
+                issues.BadDataWarning(
+                    f'Bad data from socket discarded: {msg_type=},{msg_content=}'
+                )
+            )
+            return
+
+        # printout readable msgs
+        if msg_type in self.bc_worker.readble_type:
+            logging.info(
+                f'>>> {username}@{node}({user_id}): [{str(msg_type)}] {str(msg_content)}'
+            )
+
+        self.messageDispatcher(client, msg_type, msg_content)
 
     def client_name_and_node(self, client):
         if self.meetingroom.is_logged_in(client=client):
@@ -551,7 +627,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             message.pop('auth_key')
 
-            self.meetingroom.let_user_join(
+            self.meetingroom.add_user(
                 uuid=uuid,
                 user=Client(uuid=uuid, client_info=message, client=client),
             )
@@ -772,7 +848,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         else:
             ...
 
-    def __init__(self, ui=None):
+    def __init__(self):
         # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):
             # If not, set the instance attributes
@@ -941,23 +1017,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
     def handleTextMessage(self, message):
         logging.info(f'>>> Host: {message}')
 
-    def handleBinaryMessage(self, message: QtCore.QByteArray):
-        msg_bytes: bytes = message.data()
-        msg_type, msg_content = self.bc_worker.received(packed_msg=msg_bytes)
-
-        if not self.bc_worker.typing_check(
-            msg_type=msg_type, msg_content=msg_content
-        ):
-            warnings.warn(
-                issues.BadDataWarning(
-                    f'Bad data from socket discarded: {msg_type=},{msg_content=}'
-                )
-            )
-            return
-
-        if msg_type in self.bc_worker.readble_type:
-            logging.info(f'>>> Host: [{str(msg_type)}] {str(msg_content)}')
-
+    def messageDispatcher(self, msg_type: str, msg_content: Any):
         if msg_type == 'Text':
             return
 
@@ -984,12 +1044,70 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             self.uuid = msg_content
             return
 
+        if not msg_type == 'MessageStack' and (l := len(msg_content)):
+            logging.info(f'Get a new MessageStack with {l} messages')
+
+            if not isinstance(msg_content, Iterable):
+                warnings.warn(
+                    issues.FobbidenDataTypeError(
+                        f'The content of a MessageStack is expected to be an Iterable instead of a {type(msg_content)}'
+                    )
+                )
+                return
+
+            for d in msg_content:
+                if not isinstance(d, tuple):
+                    warnings.warn(
+                        issues.FobbidenDataTypeError(
+                            f'The content of a MessageStack item {d=} is expected to be a tuple with 2 item instead of a {type(msg_content)}'
+                        )
+                    )
+                    continue
+                if (l := len(d)) != 2:
+                    warnings.warn(
+                        issues.FobbidenDataTypeError(
+                            f'The MessageStack item has invalid length {l}'
+                        )
+                    )
+                    continue
+
+                self.messageDispatcher(msg_type=d[0], msg_content=d[1])
+
+            return
+
         ...
+        # process more data objects ....
 
         logging.warning(f'Unknow data in type {msg_type}: {msg_content}')
         return
 
-        # process more data objects ....
+    def handleBinaryMessage(self, message: QtCore.QByteArray):
+        msg_bytes: bytes = message.data()
+
+        try:
+            msg_type, msg_content = self.bc_worker.received(
+                packed_msg=msg_bytes
+            )
+        except issues.FobbidenDataTypeError:
+            warnings.warn(
+                issues.BadDataWarning(f'Bad data from Host is discarded.')
+            )
+            return
+
+        if not self.bc_worker.typing_is_valid(
+            msg_type=msg_type, msg_content=msg_content
+        ):
+            warnings.warn(
+                issues.BadDataWarning(
+                    f'Bad data from socket discarded: {msg_type=},{msg_content=}'
+                )
+            )
+            return
+
+        if msg_type in self.bc_worker.readble_type:
+            logging.info(f'>>> Host: [{str(msg_type)}] {str(msg_content)}')
+
+        self.messageDispatcher(msg_type=msg_type, msg_content=msg_content)
 
     def get_sidechain_solver(self):
         from REvoDesign.sidechain_solver import (

@@ -1,5 +1,15 @@
 from REvoDesign.common.Mutant import Mutant
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Protocol, Iterable
+
+
+class MutateRunner(Protocol):
+    def run_mutate_parallel(self, *args, **kwargs) -> List[str]:
+        ...
+
+    def mutated_pdb_mapping(
+        self, mutants: 'MutantTree', pdb_fps: Iterable[str]
+    ) -> 'MutantTree':
+        ...
 
 
 class MutantTree:
@@ -531,5 +541,16 @@ class MutantTree:
                 for _mut_info in _mut_obj.mutant_info
             ]
         )
-        tmp_mutant_obj.wt_sequences=self.all_mutant_objects[0].wt_sequences
+        tmp_mutant_obj.wt_sequences = self.all_mutant_objects[0].wt_sequences
         return tmp_mutant_obj
+
+    def run_mutate_parallel(
+        self, mutate_runner: MutateRunner, *args, **kwargs
+    ):
+        all_mutants_pdb_fp = mutate_runner.run_mutate_parallel(
+            mutants=self.all_mutant_objects, *args, kwargs=kwargs
+        )
+
+        self = mutate_runner.mutated_pdb_mapping(
+            mutants=self, pdb_fps=all_mutants_pdb_fp
+        )

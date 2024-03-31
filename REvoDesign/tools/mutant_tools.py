@@ -14,6 +14,7 @@ from REvoDesign import root_logger
 
 import warnings
 from REvoDesign import issues
+from REvoDesign.tools.utils import get_color
 
 logging = root_logger.getChild(__name__)
 
@@ -505,6 +506,14 @@ def quick_mutagenesis(
     visualizer.min_score = min(score_list)
     visualizer.max_score = max(score_list)
 
+    # run mutate
+
+    mutant_tree.run_mutate_parallel(
+        mutate_runner=sidechain_solver.mutate_runner,
+        n_jobs=visualizer.nproc,
+        in_place=False,
+    )
+
     for group_id in mutant_tree.all_mutant_branch_ids:
         visualizer.group_name = group_id
 
@@ -516,24 +525,20 @@ def quick_mutagenesis(
         visualizer.mutant_tree = MutantTree(
             {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
         )
+        for m in visualizer.mutant_tree.all_mutant_objects:
+            color = get_color(
+                visualizer.cmap,
+                m.mutant_score,
+                visualizer.min_score,
+                visualizer.max_score,
+            )
+            logging.info(
+                f" Visualizing {m.short_mutant_id} ({m.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
+            )
 
-        visualizer.run_mutagenesis_tasks()
-        results.append(visualizer.save_session)
-
-    output_temp_session = os.path.join(
-        os.path.dirname(input_pdb),
-        f'merged.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
-    )
-    # call MutantVisualizer for merge sessions
-    session_merger = MutantVisualizer(molecule='', chain_id='')
-    session_merger.input_session = input_pdb
-    session_merger.save_session = output_temp_session
-    session_merger.mutagenesis_sessions = results
-    run_worker_thread_with_progress(
-        session_merger.merge_sessions_via_commandline,
-        progress_bar=progress_bar,
-    )
-    cmd.load(output_temp_session, partial=2)
+            visualizer.create_mutagenesis_objects(
+                mutant_obj=m, color=color, in_place=True
+            )
     return
 
 

@@ -171,6 +171,7 @@ class ConfigBus(SingletonAbstract):
                 widget.currentTextChanged.connect(self._widget_link(widget_id))
             elif isinstance(widget, QtWidgets.QLineEdit):
                 widget.textChanged.connect(self._widget_link(widget_id))
+                widget.textEdited.connect(self._widget_link(widget_id))
             elif isinstance(widget, QtWidgets.QCheckBox):
                 widget.stateChanged.connect(self._widget_link(widget_id))
             else:
