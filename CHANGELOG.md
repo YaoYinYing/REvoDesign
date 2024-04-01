@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.5.8] - 2024-04-01
 ### Added
 - `SingletonAbstract`:  a singleton abstract base class that provides a way to singletonize it's subclasses.
   - `ConfigBus`
@@ -33,11 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `quick_mutagenesis` is refactored according to `MutantTree.run_mutate_parallel`
 
 ### Fixed
-- `Mutant.wt_sequences.setter`: `new_wt_sequences` must be atleast a `Mapping`. if not `Dict` (`DictConfig`, for example, then convert it by `dict`)
+- `Mutant.wt_sequences.setter`: `new_wt_sequences` must be at least a `Mapping`. if not `Dict` (`DictConfig`, for example, then convert it by `dict`)
 - `PlatformNotSupportedWarning(RuntimeError)`: inherit from `RuntimeWarning` instead.
 - typo in `REvoDesigner`: `mutant_obj.wt_sequences`
 
 ### Removed
+- stderr logging handler
 
 ## [1.5.7] - 2024-03-28
 
