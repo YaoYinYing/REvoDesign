@@ -110,6 +110,10 @@ class SocketError(REvoDesignException):
 class UnsupportedDataTypeError(SocketError):
     """Exception raised when requiring sending unsupported data type"""
 
+    ...
+
 
 class FobbidenDataTypeError(SocketError):
     """Exception raised when requiring sending fobbiden data type"""
+
+    ...

@@ -8,7 +8,10 @@ CHECK_STYLE=$(PROJECT) tests
 BLACK_EXCLUDES_EXTEND=--extend-exclude '\.ui|\.svg|\.yaml|\.md|\.pyc|\.ico|\.png' 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 PYREVERSE_DIR=image/svg
-PYREVERSE_ARGS=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py
+PYREVERSE_OPTS=--colorized --no-standalone --only-classnames --module-names n
+PYREVERSE_IGNORE=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py,SessionMerger.py,client_tools.py,customized_widgets.py,mutant_tools.py,pymol_utils.py,system_tools.py,utils.py,exceptions.py,warnings.py
+PYREVERSE_DOT_OPTS=-Ln10 
+
 
 help:
 	@echo "Commands:"
@@ -128,7 +131,7 @@ black:
 
 reverse:
 	mkdir -p $(PYREVERSE_DIR)
-	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) $(PYREVERSE_ARGS); dot -Tsvg classes.dot > classes.svg; dot -Tsvg packages.dot > packages.svg
+	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) $(PYREVERSE_OPTS) $(PYREVERSE_IGNORE); dot $(PYREVERSE_DOT_OPTS) -Tsvg classes.dot > classes.svg; dot $(PYREVERSE_DOT_OPTS) -Tsvg packages.dot > packages.svg
 	
 
 black-check:
