@@ -491,10 +491,6 @@ class REvoDesigner:
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
         logging.debug(f'MutantTree: {self.mutant_tree.__str__}')
 
-        self.mutant_tree.run_mutate_parallel(
-            mutate_runner=self.mutate_runner, n_jobs=self.nproc, in_place=False
-        )
-
         if not self.visualizer:
             self.setup_visualizer()
 
@@ -711,8 +707,14 @@ class REvoDesigner:
             logging.warning(f'No available designs!')
             return
 
-        self.mutant_tree.run_mutate_parallel(
-            mutate_runner=self.mutate_runner, n_jobs=self.nproc, in_place=False
+        all_mutants_pdb_fp = self.mutate_runner.run_mutate_parallel(
+            mutants=self.mutant_tree.all_mutant_objects,
+            n_jobs=self.nproc,
+            in_place=False,
+        )
+
+        self.mutant_tree = self.mutate_runner.mutated_pdb_mapping(
+            mutants=self.mutant_tree, pdb_fps=all_mutants_pdb_fp
         )
 
         self.results = []
