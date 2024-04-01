@@ -54,6 +54,7 @@ class SSLCertificateManager:
             if not self.cache_dir
             else os.path.join(self.cache_dir, 'crts')
         )
+        os.makedirs(self.crt_dir, exist_ok=True)
         self.crt_path = os.path.join(self.crt_dir, f'{self.role}.crt')
         self.key_path = os.path.join(self.crt_dir, f'{self.role}.key')
 
@@ -73,7 +74,6 @@ class SSLCertificateManager:
         """
 
         # Generate SSL context and certificate if needed
-        os.makedirs(self.crt_dir, exist_ok=True)
 
         self.get_certificate()
 

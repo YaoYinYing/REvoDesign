@@ -105,7 +105,7 @@ class OverridesWarning(REvoDesignWarning):
     ...
 
 
-class PlatformNotSupportedWarning(RuntimeError):
+class PlatformNotSupportedWarning(RuntimeWarning):
     """Warning raised when a platform is not supported"""
 
 
