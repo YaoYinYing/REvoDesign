@@ -15,6 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- `SingletonAbstract`:  a singleton abstract base class that provides a way to singletonize it's subclasses.
+  - `ConfigBus`
+  - `REvoDesignWebSocketServer`
+  - `REvoDesignWebSocketClient`
+- `MutantTree.run_mutate_parallel` to receive a Mutate Runner protocol and perform all mutant objects level mutagenesis operation. 
+- `ConfigBus.get_value`: `default_value` to receive a customized default value if the fetched is None
+- `SSLCertificateManager`
+  
+### Changed
+- `msgpack` to serialize and deserialize the objects transmitted from host to client, instead of `json`. `Pickle` is still required for dumping and loading.
+- `Client` as Client class
+- `MeetingRoom` to handle all in-and-out event sof all clients
+- `Broadcaster` to handle any ping-and-pongs of socket data
+- `REvoDesignWebSocket*.messageDispatcher` to handle message processing according to their data types
+- `quick_mutagenesis` is refactored according to `MutantTree.run_mutate_parallel`
+
+### Fixed
+- `Mutant.wt_sequences.setter`: `new_wt_sequences` must be atleast a `Mapping`. if not `Dict` (`DictConfig`, for example, then convert it by `dict`)
+- `PlatformNotSupportedWarning(RuntimeError)`: inherit from `RuntimeWarning` instead.
+- typo in `REvoDesigner`: `mutant_obj.wt_sequences`
+
+### Removed
 
 ## [1.5.7] - 2024-03-28
 
