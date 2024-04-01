@@ -1,6 +1,5 @@
 import os
 from joblib import Parallel, delayed
-from omegaconf import DictConfig
 from REvoDesign.tools.pymol_utils import mutate
 from pymol import cmd
 from REvoDesign.common.Mutant import Mutant

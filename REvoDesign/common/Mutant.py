@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 import os
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Mapping, Union, Optional
 import hashlib
+
+from REvoDesign import issues
+import warnings
 
 
 @dataclass
@@ -23,7 +26,7 @@ class Mutant:
         for mutation in self.mutant_info:
             required_keys = ['chain_id', 'position', 'wt_res', 'mut_res']
             if not all(key in mutation for key in required_keys):
-                raise ValueError("Missing keys in mutant_info.")
+                raise issues.MoleculeError("Missing keys in mutant_info.")
 
     def __str__(self):
         return f"Mutant Info: {self.mutant_info}, Mutant Score: {self.mutant_score}"
@@ -37,10 +40,18 @@ class Mutant:
         return self._wt_sequences
 
     @wt_sequences.setter
-    def wt_sequences(self, new_wt_sequences: Dict[str, str]):
-        if not isinstance(new_wt_sequences,Dict):
-            from REvoDesign import issues
-            raise issues.InvalidInputError(f'new_wt_sequences must be a Dict, not {type(new_wt_sequences)}!')
+    def wt_sequences(self, new_wt_sequences: Mapping[str, str]):
+        if not isinstance(new_wt_sequences, Mapping):
+            raise issues.InvalidInputError(
+                f'new_wt_sequences must be a Dict, not {type(new_wt_sequences)=}!'
+            )
+        if not isinstance(new_wt_sequences, Dict):
+            warnings.warn(
+                issues.OverridesWarning(
+                    f'{type(new_wt_sequences)=} is converted as a Dict'
+                )
+            )
+            new_wt_sequences = dict(new_wt_sequences)
         self._wt_sequences = new_wt_sequences
 
     @property
@@ -120,13 +131,13 @@ class Mutant:
         self, chain_id: str, ignore_missing=False
     ) -> str:
         if chain_id not in self.wt_sequences:
-            raise ValueError(
+            raise issues.InvalidInputError(
                 f'Chain {chain_id} does not exist in wt sequence.'
             )
 
         wt_sequence = self.wt_sequences[chain_id]
         if not self.mutant_info or not wt_sequence:
-            raise ValueError(
+            raise issues.InvalidInputError(
                 "No available mutant information or WT sequence is empty."
             )
 
@@ -136,13 +147,13 @@ class Mutant:
                 continue
             pos = int(mutant['position'])
             if pos > (len_seq := len(sequence)):
-                raise ValueError(
+                raise issues.MoleculeError(
                     f"Position {pos} out of sequence range ({len_seq})."
                 )
             if (wt_res_in_seq := sequence[pos - 1]) != (
                 wt_res_in_mut := mutant['wt_res']
             ):
-                raise ValueError(
+                raise issues.MoleculeError(
                     f"WT residue at position {pos} does not match mutant info: {wt_res_in_seq=} - {wt_res_in_mut=}."
                 )
             sequence[pos - 1] = mutant['mut_res']
