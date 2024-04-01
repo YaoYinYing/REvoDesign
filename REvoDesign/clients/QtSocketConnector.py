@@ -1,7 +1,5 @@
-from abc import ABC
 import base64
 from functools import partial
-import json
 import pickle
 import socket
 import time
@@ -24,6 +22,7 @@ from PyQt5 import QtWebSockets, QtNetwork, QtCore
 from REvoDesign import ConfigBus, root_logger
 from REvoDesign.application.ui_driver import SingletonAbstract
 from REvoDesign.tools.utils import run_worker_thread_with_progress
+from REvoDesign.tools.client_tools import SSLCertificateManager
 
 logging = root_logger.getChild(__name__)
 
@@ -156,7 +155,7 @@ class Broadcaster:
         'MessageStack',
     ]
 
-    readble_type: tuple = tuple(
+    readble_type: tuple[supported_datatypes] = tuple(
         [
             'PyMOL_prompt',
             'ConfigItem',
@@ -395,6 +394,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             )
 
             self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
+            self.ssl_manager = SSLCertificateManager(role='server')
+            self.ssl_manager.get_certificate()
 
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
@@ -722,6 +723,10 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         Returns:
         None
         """
+        if not self.is_running:
+            warnings.warn(issues.SocketWarning('Host is not running'))
+            return
+
         self.bc_worker.broadcast(
             meetingroom=self.meetingroom, obj=obj, obj_type=data_type
         )

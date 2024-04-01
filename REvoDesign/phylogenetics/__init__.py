@@ -630,7 +630,7 @@ class GREMLIN_Analyser:
             )
         color = CoevolvedPairState().color(state)
 
-        stick_selection = f'({self.ce_object_name}  and c. {self.design_chain_id} and i. {pair.i+1}+{pair.j+1} and n. CA)'
+        stick_selection = f'({self.ce_object_name}  and c. {self.design_chain_id} and i. {pair.i_1}+{pair.j_1} and n. CA)'
 
         cmd.set(
             'stick_color',
@@ -744,7 +744,7 @@ class GREMLIN_Analyser:
 
         if pair.is_out_of_range:
             logging.warning(
-                f'Resi {pair.i+1} ({pair.i_aa}) is {pair.dist:.2f} Å away from {pair.j+1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å '
+                f'Resi {pair.i_1} ({pair.i_aa}) is {pair.dist:.2f} Å away from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å '
             )
             set_widget_value(lineEdit_current_pair, 'Out of range.')
 
@@ -936,7 +936,7 @@ class GREMLIN_Analyser:
             self.last_gremlin_mutant_id = self.picked_gremlin_mutant_id
 
         for mut, idx, wt in zip(
-            [mut_A, mut_B], [pair.i + 1, pair.j + 1], [wt_A, wt_B]
+            [mut_A, mut_B], [pair.i_1, pair.j_1], [wt_A, wt_B]
         ):
             _ = f'{self.design_chain_id}{wt}{idx}{mut}'
             if wt == mut and ignore_wt:
@@ -1018,11 +1018,7 @@ class GREMLIN_Analyser:
         self.to_broadcaster(mutant_tree)
 
     def to_broadcaster(self, mutant_tree: MutantTree):
-        if (
-            self.ws_server
-            and self.ws_server.is_running
-            and not mutant_tree.empty
-        ):
+        if self.ws_server and not mutant_tree.empty:
             asyncio.run(
                 self.ws_server.broadcast_object(
                     obj=mutant_tree,
