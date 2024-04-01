@@ -570,14 +570,11 @@ class MutantVisualizer:
             logging.warning(
                 f're-compute sidechain for {self.mutant_tree.branch_num}: {self.mutant_tree.mutant_num} MutantTree.'
             )
-            all_mutants_pdb_fp = self.mutate_runner.run_mutate_parallel(
-                mutants=self.mutant_tree.all_mutant_objects,
+
+            self.mutant_tree.run_mutate_parallel(
+                mutate_runner=self.mutate_runner,
                 n_jobs=self.nproc,
                 in_place=False,
-            )
-
-            self.mutant_tree = self.mutate_runner.mutated_pdb_mapping(
-                mutants=self.mutant_tree, pdb_fps=all_mutants_pdb_fp
             )
 
         self.mutagenesis_sessions = []
