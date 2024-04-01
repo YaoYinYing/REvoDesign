@@ -1469,8 +1469,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.gremlin_worker = GREMLIN_Analyser(
                 PWD=self.PWD,
                 mutate_runner=self.sidechain_solver.mutate_runner,
-                ## TODO singletonized ws_server
-                ws_server=self.ws_server,
             )
             self.gremlin_worker.load_gremlin_mrf()
 
@@ -1538,7 +1536,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
 
         # no clients
-        if not self.ws_server.clients:
+        if not self.ws_server.meetingroom:
             logging.warning(
                 'Server has no client, ignore view updating. Do nothing.'
             )

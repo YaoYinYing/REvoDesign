@@ -337,12 +337,12 @@ class VisualizingWorker:
 
 
 class GREMLIN_Analyser:
-    def __init__(self, PWD, mutate_runner, ws_server=None):
+    def __init__(self, PWD, mutate_runner):
         self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
         self.mutate_runner: MutateRunnerAbstract = mutate_runner
-        self.ws_server: REvoDesignWebSocketServer = ws_server
+        self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'

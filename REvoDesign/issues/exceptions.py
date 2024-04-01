@@ -99,3 +99,21 @@ class MoleculeError(InvalidInputError):
     """Exception raised when a molecule uses fuzzy chain id"""
 
     ...
+
+
+class SocketError(REvoDesignException):
+    """Exception raised during a socket connection"""
+
+    ...
+
+
+class UnsupportedDataTypeError(SocketError):
+    """Exception raised when requiring sending unsupported data type"""
+
+    ...
+
+
+class FobbidenDataTypeError(SocketError):
+    """Exception raised when requiring sending fobbiden data type"""
+
+    ...

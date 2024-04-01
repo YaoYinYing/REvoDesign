@@ -201,7 +201,7 @@ log:
       backupCount: 10
     notebook:
       class: logging.handlers.RotatingFileHandler
-      level: INFO
+      level: WARNING
       formatter: json
       filename: logs/revodesign.notebook.jsonl
       maxBytes: 1000_000
