@@ -475,7 +475,7 @@ class REvoDesigner:
                 )
 
             mutant_obj.mutant_score = score
-            mutant_obj.wt_sequences = {self.sequence: self.sequence}
+            mutant_obj.wt_sequences = {self.chain_id: self.sequence}
             score_list.append(score)
             mutant_objs.append(mutant_obj)
 

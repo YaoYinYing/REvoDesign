@@ -38,6 +38,9 @@ class Mutant:
 
     @wt_sequences.setter
     def wt_sequences(self, new_wt_sequences: Dict[str, str]):
+        if not isinstance(new_wt_sequences,Dict):
+            from REvoDesign import issues
+            raise issues.InvalidInputError(f'new_wt_sequences must be a Dict, not {type(new_wt_sequences)}!')
         self._wt_sequences = new_wt_sequences
 
     @property
