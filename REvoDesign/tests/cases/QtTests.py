@@ -1041,7 +1041,10 @@ class TestREvoDesignPlugin_TabVisualize:
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='config')
 
-        set_widget_value(WORKER.plugin.ui.comboBox_sidechain_solver, 'PIPPack')
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
         WORKER.go_to_tab(tab_name='visualize')
 
         WORKER.do_typing(

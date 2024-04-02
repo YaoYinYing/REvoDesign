@@ -8,7 +8,7 @@ CHECK_STYLE=$(PROJECT) tests
 BLACK_EXCLUDES_EXTEND=--extend-exclude '\.ui|\.svg|\.yaml|\.md|\.pyc|\.ico|\.png' 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 
-PYREVERSE_CLASS_OPT=--class 
+PYREVERSE_CLASS_OPT=-ASmy --colorized
 PYREVERSE_DIR=image/svg
 PYREVERSE_OPTS=--colorized --no-standalone --only-classnames --module-names n
 PYREVERSE_IGNORE=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py,SessionMerger.py,client_tools.py,customized_widgets.py,mutant_tools.py,pymol_utils.py,system_tools.py,utils.py,exceptions.py,warnings.py
@@ -133,7 +133,7 @@ black:
 
 reverse-class:
 	mkdir -p $(PYREVERSE_DIR)
-	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) --class Mutant
+	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) $(PYREVERSE_CLASS_OPT) --class $(class); dot $(PYREVERSE_DOT_OPTS) -Tsvg $(class).dot > $(class).svg
 
 reverse:
 	mkdir -p $(PYREVERSE_DIR)

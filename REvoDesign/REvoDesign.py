@@ -273,8 +273,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         max_proc = CLIENT_INFO().nproc
         self.bus.set_widget_value('ui.header_panel.nproc', (1, max_proc))
-        self.bus.set_widget_value('ui.header_panel.nproc', max_proc)
-        self.bus.set_value('ui.header_panel.nproc', max_proc)
+        self.bus.set_widget_value('ui.header_panel.nproc', max_proc, hard=True)
 
         # Tab Client
         self.bus.ui.comboBox_chain_id.currentIndexChanged.connect(
@@ -817,7 +816,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
 
     def update_chain_id(self):
-        molecule = self.bus.get_widget_value('ui.header_panel.input.molecule')
+        molecule = self.bus.get_widget_value(
+            'ui.header_panel.input.molecule', str
+        )
         if not molecule:
             warnings.warn(
                 issues.NoInputWarning('No available designable molecule!')
@@ -842,6 +843,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.bus.set_value(
                 'designable_sequences', self.designable_sequences
             )
+
+        self.setup_pssm_gremlin_calculator()
 
     def open_mutant_table(self, cfg_mutant_table: str, mode='r'):
         if mode == 'r':
@@ -934,8 +937,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             PSSMGremlinCalculator,
         )
 
-        molecule = self.bus.get_value('ui.header_panel.input.molecule', str)
-        chain_id = self.bus.get_value('ui.header_panel.input.chain_id', str)
+        molecule = self.bus.get_widget_value(
+            'ui.header_panel.input.molecule', str
+        )
+        chain_id = self.bus.get_widget_value(
+            'ui.header_panel.input.chain_id', str
+        )
         designable_sequences = self.bus.get_value('designable_sequences', dict)
         if not designable_sequences:
             return
@@ -958,14 +965,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 chain_id=chain_id,
                 sequence=sequence,
             )
-        self.pssm_gremlin_calculator.url = self.bus.get_value(
-            'ui.client.pssm_gremlin_url'
+        self.pssm_gremlin_calculator.url = self.bus.get_widget_value(
+            'ui.client.pssm_gremlin_url', str
         )
-        self.pssm_gremlin_calculator.user = self.bus.get_value(
-            'ui.client.pssm_gremlin_user'
+        self.pssm_gremlin_calculator.user = self.bus.get_widget_value(
+            'ui.client.pssm_gremlin_user', str
         )
-        self.pssm_gremlin_calculator.password = self.bus.get_value(
-            'ui.client.pssm_gremlin_passwd'
+        self.pssm_gremlin_calculator.password = self.bus.get_widget_value(
+            'ui.client.pssm_gremlin_passwd', str
         )
         if (
             self.pssm_gremlin_calculator.user
@@ -1091,7 +1098,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
     ):
-        _fp = self.bus.get_value(cfg_input_profile)
+        _fp = self.bus.get_widget_value(cfg_input_profile, str)
         if _fp == 'None' or not _fp:
             return None
 
@@ -1207,7 +1214,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def update_mutant_table_columns(
         self,
     ):
-        mut_table_fp = self.bus.get_value('ui.visualize.input.from_mutant_txt')
+        mut_table_fp = self.bus.get_widget_value(
+            'ui.visualize.input.from_mutant_txt'
+        )
         if not os.path.exists(mut_table_fp):
             warnings.warn(
                 issues.NoInputWarning(
@@ -1497,7 +1506,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
     def generate_ws_server_key(self):
-        use_key = self.bus.get_widget_value('ui.socket.use_key')
+        use_key = self.bus.get_widget_value('ui.socket.use_key', str)
         if not use_key:
             return
 
@@ -1517,10 +1526,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # do changes
         self.ws_server.view_broadcast_enabled = self.bus.get_widget_value(
-            'ui.socket.broadcast.view'
+            'ui.socket.broadcast.view', bool
         )
         self.ws_server.view_broadcast_interval = self.bus.get_widget_value(
-            'ui.socket.broadcast.interval'
+            'ui.socket.broadcast.interval', float
         )
 
         # disabled
@@ -1564,10 +1573,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # Assuming toggle_ws_server_mode gets triggered on checkBox_ws_server_mode state change
     def toggle_ws_server_mode(self):
-        toggled = self.bus.get_widget_value('ui.socket.server_mode')
+        toggled = self.bus.get_widget_value('ui.socket.server_mode', bool)
 
         try:
-            if not self.ws_server:
+            if not self.ws_server.initialized:
                 from REvoDesign.clients.QtSocketConnector import (
                     REvoDesignWebSocketServer,
                 )
@@ -1591,6 +1600,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     return
                 self.ws_server.stop_server()
         except Exception as e:
+            logging.warning(e)
             traceback.print_exc()
 
         logging.warning(
@@ -1613,23 +1623,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
 
         self.ws_client.receive_view_broadcast = self.bus.get_widget_value(
-            'ui.socket.receive.view'
+            'ui.socket.receive.view', bool
         )
 
     def toggle_ws_client_connection(self, connect=True):
-        if not self.ws_client:
-            from REvoDesign.clients.QtSocketConnector import (
-                REvoDesignWebSocketClient,
-            )
-
-            self.ws_client = REvoDesignWebSocketClient()
-
         try:
             if connect:
                 self.ws_client_connect_to_server()
             else:
                 self.ws_client_disconnect_from_server()
-        except:
+        except Exception as e:
+            logging.warning(e)
             traceback.print_exc()
 
         logging.warning(
@@ -1644,7 +1648,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.ws_client.connect_to_server()
 
     def ws_client_disconnect_from_server(self):
-        if not self.ws_client:
+        if not self.ws_client.initialized:
             logging.warning(f'Client is not initialized. Do noting.')
             return
         if not self.ws_client.connected:

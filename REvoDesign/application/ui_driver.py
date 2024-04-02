@@ -169,6 +169,7 @@ class ConfigBus(SingletonAbstract):
                 widget.valueChanged.connect(self._widget_link(widget_id))
             elif isinstance(widget, QtWidgets.QComboBox):
                 widget.currentTextChanged.connect(self._widget_link(widget_id))
+                widget.editTextChanged.connect(self._widget_link(widget_id))
             elif isinstance(widget, QtWidgets.QLineEdit):
                 widget.textChanged.connect(self._widget_link(widget_id))
                 widget.textEdited.connect(self._widget_link(widget_id))
@@ -188,9 +189,40 @@ class ConfigBus(SingletonAbstract):
         # Retrieves a UI widget based on its corresponding configuration item.
         return self.w2c.config2widget_map.get(cfg_item)
 
-    def get_widget_value(self, cfg_item: str):
+    @staticmethod
+    def value_converter(value: Any, converter: Any):
+        # Handle predefined converters
+        predefined_conversions = {
+            str: lambda v: str(v),
+            float: lambda v: float(v),
+            int: lambda v: int(v),
+            bool: lambda v: bool(v),
+            dict: lambda v: dict(v),
+        }
+        if converter in predefined_conversions:
+            value = predefined_conversions[converter](value)
+
+        # Handle custom callable converters
+        elif callable(converter):
+            value = converter(value)
+        else:
+            warnings.warn(
+                issues.FallingBackWarning(
+                    f'value_converter is asked but no convertion is performed from {type(value)=} to {converter}.'
+                )
+            )
+        return value
+
+    def get_widget_value(self, cfg_item: str, converter=None):
+        value = get_widget_value(
+            widget=self.get_widget_from_cfg_item(cfg_item)
+        )
+
+        if converter:
+            value = self.value_converter(value, converter)
+
         # Retrieves the value of a UI widget based on its corresponding configuration item.
-        return get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
+        return value
 
     def set_widget_value(self, cfg_item: str, value, hard=False):
         # Sets the value of a UI widget based on its corresponding configuration item.
@@ -240,20 +272,8 @@ class ConfigBus(SingletonAbstract):
             elif converter in default_conversions:
                 value = default_conversions[converter]
 
-        # Handle predefined converters
-        predefined_conversions = {
-            str: lambda v: str(v),
-            float: lambda v: float(v),
-            int: lambda v: int(v),
-            bool: lambda v: bool(v),
-            dict: lambda v: dict(v),
-        }
-        if converter in predefined_conversions:
-            value = predefined_conversions[converter](value)
-
-        # Handle custom callable converters
-        elif callable(converter):
-            value = converter(value)
+        if converter:
+            value = self.value_converter(value, converter)
 
         # Handle list values for groups
         if cfg_item.endswith('group') and value:
