@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.5.8-post1] - 2024-04-03
 ### Fixed
 - fix ConfigBus: widget signals
 

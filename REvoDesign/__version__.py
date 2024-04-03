@@ -1,2 +1,2 @@
 # edit here and use `make tag` to dump version.
-__version__ = '1.5.8'
+__version__ = '1.5.8-post1'
