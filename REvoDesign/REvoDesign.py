@@ -62,7 +62,6 @@ from REvoDesign import issues
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
-
 logging = None
 
 
@@ -1031,53 +1030,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
 
     def run_surface_detection(self):
-        input_pse = self.temperal_session
-        output_pse = self.bus.get_value('ui.prepare.input.surface.to_pse')
-        design_molecule = self.bus.get_value('ui.header_panel.input.molecule')
-        design_chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
-
-        exclusion = self.bus.get_value('ui.prepare.input.surface.exclusion')
-        cutoff = self.bus.get_value('ui.prepare.surface_probe_radius', float)
-        do_show_surf_CA = True
-
         from REvoDesign.structure.SurfaceFinder import SurfaceFinder
 
-        surfacefinder = SurfaceFinder(
-            input_pse=input_pse,
-            output_pse=output_pse,
-            molecule=design_molecule,
-            chain_id=design_chain_id,
-            cutoff=cutoff,
-            exclude_residue_selection=exclusion,
-            do_show_surf_CA=do_show_surf_CA,
-        )
+        surfacefinder = SurfaceFinder(input_pse=self.temperal_session)
 
         surfacefinder.process_surface_residues()
         surfacefinder = None
 
     def run_pocket_detection(self):
-        input_pse = self.temperal_session
-        design_molecule = self.bus.get_value('ui.header_panel.input.molecule')
-        design_chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
-        output_pse = self.bus.get_value('ui.prepare.input.pocket.to_pse')
-        ligand = self.bus.get_value('ui.prepare.input.pocket.substrate')
-        cofactor = self.bus.get_value('ui.prepare.input.pocket.cofactor')
-        ligand_radius = self.bus.get_value('ui.prepare.ligand_radius', float)
-        cofactor_radius = self.bus.get_value(
-            'ui.prepare.cofactor_radius', float
-        )
-
         from REvoDesign.structure import PocketSearcher
 
         pocketsearcher = PocketSearcher(
-            input_pse=input_pse,
-            output_pse=output_pse,
-            molecule=design_molecule,
-            chain_id=design_chain_id,
-            ligand=ligand,
-            ligand_radius=ligand_radius,
-            cofactor=cofactor,
-            cofactor_radius=cofactor_radius,
+            input_pse=self.temperal_session,
             save_dir=f'{self.PWD}/pockets/',
         )
 

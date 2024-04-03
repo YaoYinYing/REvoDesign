@@ -1,9 +1,7 @@
 from __future__ import print_function
 from pymol import cmd
 import os
-from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
-from REvoDesign import root_logger
-from dataclasses import dataclass
+from REvoDesign import ConfigBus, root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -11,13 +9,6 @@ logging = root_logger.getChild(__name__)
 This is a slightly modified version of the code on: 
 http://pymolwiki.org/index.php/FindSurfaceResidues
 '''
-
-
-@dataclass
-class SurfaceFinderConfig(REvoDesignRunnerConfig):
-    exclude_residue_selection: str = ''
-    cutoff: float = 15.0
-    do_show_surf_CA: bool = True
 
 
 def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
@@ -114,7 +105,28 @@ cmd.extend("findSurfaceAtoms", findSurfaceAtoms)
 cmd.extend("findSurfaceResidues", findSurfaceResidues)
 
 
-class SurfaceFinder(SurfaceFinderConfig):
+class SurfaceFinder:
+    def __init__(self, input_pse):
+        self.bus = ConfigBus()
+        self.input_pse = input_pse
+        self.output_pse = self.bus.get_value(
+            'ui.prepare.input.surface.to_pse', str
+        )
+        self.molecule = self.bus.get_value(
+            'ui.header_panel.input.molecule', str
+        )
+        self.chain_id = self.bus.get_value(
+            'ui.header_panel.input.chain_id', str
+        )
+
+        self.exclude_residue_selection = self.bus.get_value(
+            'ui.prepare.input.surface.exclusion', str, default_value=''
+        )
+        self.cutoff = self.bus.get_value(
+            'ui.prepare.surface_probe_radius', float, default_value=15.0
+        )
+        self.do_show_surf_CA = True
+
     def process_surface_residues(self):
         cmd.save(self.input_pse)
         logging.debug(

@@ -1,22 +1,37 @@
 from pymol import cmd
 import os
-from dataclasses import dataclass
-from REvoDesign.common.RunnerConfig import REvoDesignRunnerConfig
-from REvoDesign import root_logger
+from REvoDesign import ConfigBus, root_logger
 
 logging = root_logger.getChild(__name__)
 
 
-@dataclass
-class PocketSearcherConfig(REvoDesignRunnerConfig):
-    save_dir: str
-    ligand: str = 'UNK'
-    ligand_radius: float = 6
-    cofactor: str = ''
-    cofactor_radius: float = 7
+class PocketSearcher:
+    def __init__(self, input_pse, save_dir=f'./pockets/') -> None:
+        self.bus = ConfigBus()
+        self.input_pse = input_pse
+        self.molecule = self.bus.get_value(
+            'ui.header_panel.input.molecule', str
+        )
+        self.chain_id = self.bus.get_value(
+            'ui.header_panel.input.chain_id', str
+        )
+        self.output_pse = self.bus.get_value(
+            'ui.prepare.input.pocket.to_pse', str
+        )
+        self.ligand = self.bus.get_value(
+            'ui.prepare.input.pocket.substrate', str, default_value='UNK'
+        )
+        self.cofactor = self.bus.get_value(
+            'ui.prepare.input.pocket.cofactor', str, default_value=''
+        )
+        self.ligand_radius = self.bus.get_value(
+            'ui.prepare.ligand_radius', float, default_value=7
+        )
+        self.cofactor_radius = self.bus.get_value(
+            'ui.prepare.cofactor_radius', float, default_value=6
+        )
+        self.save_dir = save_dir
 
-
-class PocketSearcher(PocketSearcherConfig):
     def search_pockets(self):
         cmd.load(self.input_pse)
 

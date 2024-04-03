@@ -3,6 +3,7 @@ import os
 import random
 import string
 import time
+from typing import Union
 
 from REvoDesign import root_logger
 
@@ -245,7 +246,12 @@ def extract_archive(archive_file, extract_to):
         logging.error(f"Error extracting {archive_file}: {str(e)}")
 
 
-def get_color(cmap, data, min_value, max_value):
+def get_color(
+    cmap: str,
+    data: Union[int, float],
+    min_value: Union[int, float],
+    max_value: Union[int, float],
+) -> tuple[float, float, float]:
     """
     Get color value from a colormap based on given data.
 
@@ -265,7 +271,7 @@ def get_color(cmap, data, min_value, max_value):
     import matplotlib
 
     if min_value == max_value:
-        return [0.5, 0.5, 0.5]
+        return (0.5, 0.5, 0.5)
     _cmap = matplotlib.colormaps[cmap]
     num_color = _cmap.N
     scaled_value = (data - min_value) / (max_value - min_value)
@@ -273,7 +279,7 @@ def get_color(cmap, data, min_value, max_value):
     return color
 
 
-def cmap_reverser(cmap, reverse=False):
+def cmap_reverser(cmap: str, reverse: bool = False) -> str:
     """
     Reverses a colormap name if the 'reverse' flag is set to True.
 
@@ -293,7 +299,11 @@ def cmap_reverser(cmap, reverse=False):
     return cmap
 
 
-def rescale_number(number, min_value, max_value):
+def rescale_number(
+    number: Union[int, float],
+    min_value: Union[int, float],
+    max_value: Union[int, float],
+) -> float:
     """
     Rescales a number within a specified range to a value between 0 and 1.
 
@@ -319,7 +329,7 @@ def rescale_number(number, min_value, max_value):
     return max(0, min(1, rescaled_value))
 
 
-def count_and_sort_characters(input_string, characters):
+def count_and_sort_characters(input_string: str, characters):
     """
     Counts occurrences of specified characters in a string and sorts them based on counts.
 

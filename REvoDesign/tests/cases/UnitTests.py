@@ -221,15 +221,15 @@ class TestPocketSearcher(absltest.TestCase):
         """
         pocket_seacher = PocketSearcher(
             input_pse=self.input_pdb_file,
-            output_pse=self.expected_pocket_pse,
-            molecule=self.expected_moelecule,
-            chain_id=self.chain_id,
-            ligand=self.ligand,
-            cofactor=self.cofactor,
-            cofactor_radius=self.cofactor_radius,
-            ligand_radius=self.ligand_radius,
             save_dir=os.path.dirname(self.expected_pocket_pse),
         )
+        pocket_seacher.output_pse = self.expected_pocket_pse
+        pocket_seacher.molecule = self.expected_moelecule
+        pocket_seacher.chain_id = self.chain_id
+        pocket_seacher.ligand = self.ligand
+        pocket_seacher.cofactor = self.cofactor
+        pocket_seacher.cofactor_radius = self.cofactor_radius
+        pocket_seacher.ligand_radius = self.ligand_radius
 
         pocket_seacher.search_pockets()
         self.assertTrue(os.path.isfile(self.expected_pocket_pse))
@@ -274,12 +274,13 @@ class TestSurfaceFinder(absltest.TestCase):
     def test_process_surface_residues(self):
         surface_finder = SurfaceFinder(
             input_pse=self.input_pdb_file,
-            output_pse=self.expected_surface_pse,
-            molecule=self.expected_moelecule,
-            chain_id=self.chain_id,
-            cutoff=self.cutoff,
-            do_show_surf_CA=True,
         )
+        surface_finder.output_pse = self.expected_surface_pse
+        surface_finder.molecule = self.expected_moelecule
+        surface_finder.chain_id = self.chain_id
+        surface_finder.cutoff = self.cutoff
+        surface_finder.do_show_surf_CA = True
+
         surface_finder.process_surface_residues()
         self.assertTrue(os.path.isfile(self.expected_surface_pse))
         self.assertTrue(os.path.isfile(self.expected_residue_filename))

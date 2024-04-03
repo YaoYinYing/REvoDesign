@@ -83,7 +83,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 ].upper()
 
                 # a variant from rotkit mutate function that uses pymol2 context manager
-                # http://www.pymolwiki.org/index.php/rotkit 
+                # http://www.pymolwiki.org/index.php/rotkit
                 target = new_residue_3.upper()
                 p.cmd.wizard("mutagenesis")
                 # cmd.do("refresh_wizard")
