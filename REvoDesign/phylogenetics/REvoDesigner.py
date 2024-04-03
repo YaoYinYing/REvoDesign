@@ -562,7 +562,7 @@ class REvoDesigner:
         df = df.reindex(columns=col_name)
         df[df.columns[0]] = 0
 
-        if len(self.preffered_substitutions) > 0:
+        if self.preffered_substitutions:
             preffered_dict = self.parse_preffered_mutation_string(
                 preffered_str=self.preffered_substitutions
             )

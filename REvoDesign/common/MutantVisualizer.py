@@ -4,9 +4,9 @@ import tempfile
 from typing import Union
 import pandas as pd
 from Bio import SeqIO
-from pymol import cmd
 import matplotlib
 
+from REvoDesign.common.ProfileParsers import ProfileManager
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign import root_logger
 from REvoDesign.common.MutantTree import MutantTree
@@ -48,7 +48,7 @@ class MutantVisualizer:
         self.scorer = None
         self.mutate_runner: MutateRunnerAbstract = None
 
-        self.profile_scoring_df: Union[None, pd.DataFrame] = None
+        self.profile_scoring_df: pd.DataFrame = None
 
         self.min_score = 0.5
         self.max_score = 0.5
@@ -207,196 +207,27 @@ class MutantVisualizer:
             self.scorer = magician(molecule=self.molecule)
             self.scorer.initialize(ignore_missing=bool('X' in self.sequence))
             if not self.scorer:
-                logging.error(
+                raise issues.DependencyError(
                     f'Failed to initialize designer from `{profile_format}`: {self.scorer.__class__.__name__}'
                 )
                 return
             return
+        
+        args = {
+            "profile_input": profile_fp,
+            "molecule": self.molecule,
+            "chain_id": self.chain_id,
+            "sequence": self.sequence,
+        }
 
-        if profile_format == 'Pythia-ddG':
-            df_path = os.path.join(
-                os.path.abspath('.'),
-                'pythia',
-                f'{self.molecule}_pred_mask.csv',
-            )
-            if not os.path.exists(df_path):
-                from REvoDesign.clients.PythiaBiolibClient import PythiaBiolib
+        pm = ProfileManager(profile_type=profile_format)
+        pm.parse(args)
 
-                ddg_runner = PythiaBiolib(
-                    molecule=self.molecule, chain_id=self.chain_id
-                )
-                ddg_runner.work_dir = os.path.join(
-                    os.path.abspath('.'), 'pythia'
-                )
-                os.makedirs(ddg_runner.work_dir, exist_ok=True)
-                df_path = ddg_runner.predict()
+        self.profile_scoring_df = pm.parser.df
+        self.min_score_profile = pm.parser.min_score_profile
+        self.max_score_profile = pm.parser.max_score_profile
 
-                if not df_path:
-                    logging.error('Oops! error occurs during pythia running!')
-                    return
-
-                logging.debug(f'Result file is stored at: {df_path}')
-            else:
-                logging.warning(
-                    f'Find expected Pythia output: `{df_path}`, skipping.'
-                )
-            # a nested call of parse_profile to convert ddg csv into dataframe.
-            df = self.parse_profile(profile_fp=df_path, profile_format='CSV')
-
-            return df
-
-        if not profile_fp:
-            logging.warning(f'profile not available: {profile_fp}')
-            return None
-
-        profile_bn = os.path.basename(profile_fp)
-
-        if profile_format == 'PSSM':
-            df_pssm_raw = self.convert_PSSM_file_to_df(
-                input_pssm_file=profile_fp
-            )
-            csv_fp = os.path.join(
-                os.path.dirname(profile_fp), f'{profile_bn}.csv'
-            )
-            df_pssm_raw.to_csv(csv_fp)
-            df = pd.read_csv(csv_fp, index_col=0)
-
-            score_max_abs = max(abs(df.min().min()), abs(df.max().max()))
-            self.min_score_profile = -score_max_abs
-            self.max_score_profile = score_max_abs
-            logging.debug(
-                f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
-            )
-
-            return df
-
-        elif profile_format == 'CSV':
-            df = pd.read_csv(profile_fp, index_col=0)
-            df = df.astype(float)
-
-            # try to transpose if the shape is 20 col x N row
-            if len(df.columns) == 20:
-                df = df.T
-                logging.debug(f'Profile data is transposed.')
-
-                column_rename_mapping = {pos: str(pos) for pos in df.columns}
-                logging.debug(f'Rename column : {column_rename_mapping}')
-                df.rename(columns=column_rename_mapping, inplace=True)
-
-            if str(df.columns[0]) != "0":
-                logging.debug(f'Profile data does not matche default format.')
-                # Calculate the number of columns (N) in the DataFrame
-                N = len(df.columns)
-
-                logging.debug(f'Column : {df.columns}')
-
-                # Create a dictionary to map old column names to new column names
-                column_rename_mapping = {
-                    str(int(i)): str(int(i) - 1) for i in df.columns
-                }
-
-                logging.debug(f'Rename column : {column_rename_mapping}')
-
-                # Rename the columns using the mapping
-                df.rename(columns=column_rename_mapping, inplace=True)
-
-            logging.debug(df.columns)
-
-            if (
-                len(df.columns) == len(self.sequence.replace('X', ''))
-                and 'X' in self.sequence
-            ):
-                logging.warning('Missing residues from structure.')
-
-                non_missing_resi = [
-                    i for i, j in enumerate(self.sequence) if j != 'X'
-                ]
-                # Create a dictionary to map old column names to new column names
-                column_rename_mapping = {
-                    str(int(i)): str(int(j))
-                    for i, j in zip(df.columns, non_missing_resi)
-                }
-                # Rename the columns using the mapping
-                df.rename(columns=column_rename_mapping, inplace=True)
-                logging.debug(f'Repaired: {df.columns}')
-
-                # Fill missing columns with zeros
-                logging.warning('Filling missing with zeros')
-                for i, j in enumerate(self.sequence):
-                    if j == 'X':
-                        df.insert(
-                            loc=i, column=f'{i}', value=[0 for k in range(20)]
-                        )
-
-                logging.debug(f'Filled: {df.columns}')
-
-            if len(df.columns) > 20 and str(df.columns[0]) == '0':
-                logging.debug(f'Profile data matches default format.')
-
-                score_max_abs = max(abs(df.min().min()), abs(df.max().max()))
-                self.min_score_profile = -score_max_abs
-                self.max_score_profile = score_max_abs
-                logging.debug(
-                    f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
-                )
-                return df
-            else:
-                logging.debug(f'Failed to process profile data {profile_fp}..')
-                return
-        elif profile_format == 'TSV':
-            df = pd.read_table(profile_fp, names=['mut', 'score'])
-            return df
-
-        else:
-            logging.error(
-                f'Unknown profile {profile_fp} or format {profile_format}'
-            )
-            return None
-
-    def convert_PSSM_file_to_df(self, input_pssm_file):
-        """
-        Converts a PSSM file to a pandas DataFrame.
-
-        Args:
-        - self: Instance of the class containing the method.
-        - input_pssm_file (str): Path to the input PSSM file.
-
-        Returns:
-        - df (DataFrame): Pandas DataFrame containing the parsed PSSM data.
-
-        Notes:
-        - Reads the PSSM file, parses the table header, defines column specifications, and reads the table data.
-        - Transposes the DataFrame and drops NaN values to clean the data before returning.
-        """
-        PSSM_Alphabet = 'ARNDCQEGHILKMFPSTWYV'
-        # Fetch table header of PSSM
-        c = 0
-        for line in open(input_pssm_file):
-            pssm_header = line
-            c += 1
-            if c == 3:
-                break
-
-        logging.info(pssm_header)
-
-        # Define colspecs info for parsing pssm data
-        # Guess index for PSSM file by the widths of pssm_header
-        _idx = [pssm_header.index(ab) for ab in PSSM_Alphabet]
-        logging.info(_idx)
-
-        # Guess colspecs for read_fwf to read the table
-        _width = _idx[1] - _idx[0]
-        colspec = [
-            (_idx[i] - _width + 1, _idx[i] + 1) for i in range(len(_idx))
-        ]
-        logging.info(colspec)
-        df = pd.read_fwf(input_pssm_file, skiprows=2, colspecs=colspec)
-
-        # Remove the rest lines
-        df.dropna(axis=0, inplace=True)
-
-        df = df.T
-        return df
+        return self.profile_scoring_df
 
     def run(self):
         """
