@@ -1,10 +1,4 @@
-from abc import (
-    ABC,
-    abstractmethod,
-    abstractstaticmethod,
-    abstractclassmethod,
-    abstractproperty,
-)
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import os
 from typing import Any, Union
@@ -135,7 +129,7 @@ class PSSM_Parser(ProfileParserAbstract):
         df = df.T
         return df
 
-    def parse(self) -> Union[pd.DataFrame, Any]:
+    def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
             raise issues.NoResultsError(
                 f'Profile {self.profile_input} does not exist.'

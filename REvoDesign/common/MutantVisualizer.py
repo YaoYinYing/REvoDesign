@@ -4,7 +4,6 @@ import tempfile
 from typing import Union
 import pandas as pd
 from Bio import SeqIO
-from pymol import cmd
 import matplotlib
 
 from REvoDesign.common.ProfileParsers import ProfileManager
@@ -49,7 +48,7 @@ class MutantVisualizer:
         self.scorer = None
         self.mutate_runner: MutateRunnerAbstract = None
 
-        self.profile_scoring_df: Union[None, pd.DataFrame] = None
+        self.profile_scoring_df: pd.DataFrame = None
 
         self.min_score = 0.5
         self.max_score = 0.5
@@ -208,19 +207,20 @@ class MutantVisualizer:
             self.scorer = magician(molecule=self.molecule)
             self.scorer.initialize(ignore_missing=bool('X' in self.sequence))
             if not self.scorer:
-                logging.error(
+                raise issues.DependencyError(
                     f'Failed to initialize designer from `{profile_format}`: {self.scorer.__class__.__name__}'
                 )
                 return
             return
-
-        pm = ProfileManager(profile_type=profile_format)
+        
         args = {
             "profile_input": profile_fp,
             "molecule": self.molecule,
             "chain_id": self.chain_id,
             "sequence": self.sequence,
         }
+
+        pm = ProfileManager(profile_type=profile_format)
         pm.parse(args)
 
         self.profile_scoring_df = pm.parser.df

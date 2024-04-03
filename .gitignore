@@ -49,3 +49,5 @@ classes.dot
 /.idea
 /.idea
 .idea/REvoDesign.iml
+/pythia
+/tests/testdata/pssm
