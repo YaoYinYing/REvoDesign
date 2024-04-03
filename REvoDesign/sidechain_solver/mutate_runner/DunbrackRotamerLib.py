@@ -40,15 +40,15 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         Args:
         - mutant_obj: Object containing mutation information
-        - in_place: Whether to in-place mutation.
-            + If False, PyMOL will perform a series of work:
-                1. reinitialize workspace (session)
-                2. load the input PDB
-                3. create a new object in the name of mutant.short_mutant_id
-                4. delete original object naming as input molecule
-                5. run mutate against this object.
-                6. save the mutated object as a new PDB file.
-                7. return the PDB file path
+
+        A standalone instance of PyMOL will perform a series of work:
+        1. reinitialize workspace (session)
+        2. load the input PDB
+        3. create a new object in the name of mutant.short_mutant_id
+        4. delete original object naming as input molecule
+        5. run mutates against this object.
+        6. save the mutated object as a new PDB file.
+        7. return the PDB file path
 
         Returns:
         - Path to the mutated PDB file
