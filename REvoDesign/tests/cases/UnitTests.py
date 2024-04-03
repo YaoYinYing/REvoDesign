@@ -60,7 +60,6 @@ from REvoDesign.tools.pymol_utils import (
     is_hidden_object,
     is_polymer_protein,
     make_temperal_input_pdb,
-    mutate,
     refresh_all_selections,
 )
 
@@ -844,20 +843,6 @@ class TestPymolUtils(absltest.TestCase):
                 )
             )
         )
-
-    def test_mutate(self):
-        cmd.create(f'copy_{molecule}', molecule)
-        mutate(
-            molecule=f'copy_{molecule}', chain=chain_id, resi=45, target='ALA'
-        )
-        mutant_seq = get_molecule_sequence(
-            molecule=f'copy_{molecule}', chain_id=chain_id, keep_missing=True
-        )
-        expected_sequence = 'XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIAYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP'
-        self.assertNotEqual(mutant_seq, sequence)
-        self.assertEqual(mutant_seq, expected_sequence)
-
-        cmd.delete(f'copy_{molecule}')
 
     def test_any_posision_has_been_selected(self):
         cmd.select('sele', 'i. 45')

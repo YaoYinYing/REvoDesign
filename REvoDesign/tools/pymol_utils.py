@@ -1,9 +1,7 @@
 from pymol import cmd
 import os
-
 from pymol import get_version_message
 from pymol.parsing import QuietException
-from REvoDesign.tools.utils import suppress_print
 import warnings
 from REvoDesign import issues
 from REvoDesign import root_logger
@@ -540,44 +538,6 @@ def extract_smiles_from_chain(
     # os.remove(temp_pdb)
 
     return smiles
-
-
-# http://www.pymolwiki.org/index.php/rotkit
-@suppress_print
-def mutate(molecule, chain, resi, target="CYS", mutframe="1"):
-    """
-    Function: mutate
-    Usage: mutate(molecule, chain, resi, target="CYS", mutframe="1")
-
-    This function performs residue mutation in PyMOL using the mutagenesis wizard.
-
-    Args:
-    - molecule (str): PyMOL object name or selection string of the molecule
-    - chain (str): Chain ID of the residue to be mutated
-    - resi (str): Residue number to be mutated
-    - target (str): Target residue type for mutation (default is "CYS")
-    - mutframe (str): Mutagenesis frame number (default is "1")
-
-    Returns:
-    - None
-    """
-    from pymol import cmd
-
-    target = target.upper()
-    cmd.wizard("mutagenesis")
-    # cmd.do("refresh_wizard")
-    cmd.refresh_wizard()
-    cmd.get_wizard().set_mode("%s" % target)
-    selection = "/%s//%s/%s" % (molecule, chain, resi)
-    cmd.get_wizard().do_select(selection)
-    cmd.frame(str(mutframe))
-    cmd.get_wizard().apply()
-    # cmd.set_wizard("done")
-    cmd.set_wizard()
-    # cmd.refresh()
-
-
-cmd.extend("mutate", mutate)
 
 
 def any_posision_has_been_selected():

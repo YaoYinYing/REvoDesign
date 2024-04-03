@@ -1,9 +1,8 @@
 import os
 from joblib import Parallel, delayed
-from REvoDesign.tools.pymol_utils import mutate
-from pymol import cmd
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
+from REvoDesign.tools.utils import suppress_print
 
 logging = root_logger.getChild(__name__)
 
@@ -41,34 +40,64 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         Args:
         - mutant_obj: Object containing mutation information
+        - in_place: Whether to in-place mutation.
+            + If False, PyMOL will perform a series of work:
+                1. reinitialize workspace (session)
+                2. load the input PDB
+                3. create a new object in the name of mutant.short_mutant_id
+                4. delete original object naming as input molecule
+                5. run mutate against this object.
+                6. save the mutated object as a new PDB file.
+                7. return the PDB file path
 
         Returns:
         - Path to the mutated PDB file
         """
         from Bio.Data import IUPACData
+        import pymol2
 
         new_obj_name = mutant_obj.short_mutant_id
         logging.debug(f'Mutating {mutant_obj=}')
 
         temp_mutant_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
-        if not in_place:
-            cmd.reinitialize()
-            cmd.load(self.input_session, object=self.molecule)
-        cmd.hide('surface')
-        cmd.create(f"{new_obj_name}", self.molecule)
-        if not in_place:
-            cmd.delete(self.molecule)
 
-        for mut_info in mutant_obj.mutant_info:
-            chain_id = mut_info['chain_id']
-            position = mut_info['position']
-            new_residue = mut_info['mut_res']
+        with pymol2.PyMOL() as p:
+            p.cmd.reinitialize()
+            p.cmd.load(self.input_session, object=self.molecule)
+            p.cmd.hide('surface')
+            logging.debug(
+                f'creating {new_obj_name=} copyed from  {self.molecule=}: {p.cmd.get_names()=}'
+            )
 
-            new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
+            p.cmd.create(new_obj_name, self.molecule, quiet=0)
 
-            mutate(new_obj_name, chain_id, position, new_residue_3)
+            p.cmd.delete(self.molecule)
 
-        cmd.save(temp_mutant_path)
+            for mut_info in mutant_obj.mutant_info:
+                chain_id = mut_info['chain_id']
+                position = mut_info['position']
+                new_residue = mut_info['mut_res']
+
+                new_residue_3 = IUPACData.protein_letters_1to3[
+                    new_residue
+                ].upper()
+
+                target = new_residue_3.upper()
+                p.cmd.wizard("mutagenesis")
+                # cmd.do("refresh_wizard")
+                p.cmd.refresh_wizard()
+                p.cmd.get_wizard().set_mode("%s" % target)
+                p.selection = "/%s//%s/%s" % (
+                    new_obj_name,
+                    chain_id,
+                    position,
+                )
+                p.cmd.get_wizard().do_select(p.selection)
+                p.cmd.frame(str("1"))
+                p.cmd.get_wizard().apply()
+                p.cmd.set_wizard()
+
+            p.cmd.save(temp_mutant_path, new_obj_name)
 
         return temp_mutant_path
 
