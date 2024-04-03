@@ -511,7 +511,6 @@ def quick_mutagenesis(
     mutant_tree.run_mutate_parallel(
         mutate_runner=sidechain_solver.mutate_runner,
         n_jobs=visualizer.nproc,
-        in_place=False,
     )
 
     for group_id in mutant_tree.all_mutant_branch_ids:

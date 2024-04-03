@@ -128,7 +128,6 @@ class MutantVisualizer:
         if not (temp_mutant_pdb_path := mutant_obj.pdb_fp):
             temp_mutant_pdb_path = self.mutate_runner.run_mutate(
                 mutant_obj=mutant_obj,
-                in_place=in_place,
             )
             mutant_obj.pdb_fp = temp_mutant_pdb_path
 
@@ -574,7 +573,6 @@ class MutantVisualizer:
             self.mutant_tree.run_mutate_parallel(
                 mutate_runner=self.mutate_runner,
                 n_jobs=self.nproc,
-                in_place=False,
             )
 
         self.mutagenesis_sessions = []

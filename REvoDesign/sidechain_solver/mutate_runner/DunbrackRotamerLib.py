@@ -34,7 +34,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         self.temp_dir = self.new_cache_dir
 
-    def run_mutate(self, mutant_obj: Mutant, in_place=True, **kwargs) -> str:
+    def run_mutate(self, mutant_obj: Mutant, **kwargs) -> str:
         """
         Run mutation on the molecule using PyMOL.
 
@@ -82,6 +82,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
                     new_residue
                 ].upper()
 
+                # a variant from rotkit mutate function that uses pymol2 context manager
+                # http://www.pymolwiki.org/index.php/rotkit 
                 target = new_residue_3.upper()
                 p.cmd.wizard("mutagenesis")
                 # cmd.do("refresh_wizard")
@@ -102,7 +104,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
         return temp_mutant_path
 
     def run_mutate_parallel(
-        self, mutants: list[Mutant], n_jobs: int = 2, in_place=True, **kwargs
+        self, mutants: list[Mutant], n_jobs: int = 2, **kwargs
     ):
         """
         Perform mutation on the protein in parallel.
@@ -117,7 +119,6 @@ class PyMOL_mutate(MutateRunnerAbstract):
         """
 
         results = Parallel(n_jobs=n_jobs)(
-            delayed(self.run_mutate)(mutant, in_place=in_place)
-            for mutant in mutants
+            delayed(self.run_mutate)(mutant) for mutant in mutants
         )
         return results

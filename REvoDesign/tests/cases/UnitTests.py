@@ -1055,9 +1055,7 @@ class TestSidechainSolver(absltest.TestCase):
         mutate_runner = PyMOL_mutate(
             molecule=self.new_pdb_code, pdb_file=self.wt_pdb
         )
-        mutate_pdb_path = mutate_runner.run_mutate(
-            mutant_obj=self.mutant_obj, in_place=False
-        )
+        mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
 
         from Bio.PDB.PDBParser import PDBParser
 

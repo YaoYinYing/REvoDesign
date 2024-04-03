@@ -492,7 +492,7 @@ class REvoDesigner:
         logging.debug(f'MutantTree: {self.mutant_tree.__str__}')
 
         self.mutant_tree.run_mutate_parallel(
-            mutate_runner=self.mutate_runner, n_jobs=self.nproc, in_place=False
+            mutate_runner=self.mutate_runner, n_jobs=self.nproc
         )
 
         if not self.visualizer:
@@ -712,7 +712,7 @@ class REvoDesigner:
             return
 
         self.mutant_tree.run_mutate_parallel(
-            mutate_runner=self.mutate_runner, n_jobs=self.nproc, in_place=False
+            mutate_runner=self.mutate_runner, n_jobs=self.nproc
         )
 
         self.results = []
