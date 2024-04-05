@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import os
-from typing import Any, Union
+
 import pandas as pd
 import warnings
 from REvoDesign import issues
@@ -9,7 +9,7 @@ from pymol import cmd
 
 from REvoDesign import root_logger
 
-logging = root_logger.getChild(__file__)
+logging = root_logger.getChild(__name__)
 
 
 class ProfileManager:
@@ -149,29 +149,6 @@ class PSSM_Parser(ProfileParserAbstract):
         )
 
         return self.df
-
-
-def pssm2csv(pssm: str) -> None:
-    """Shortcut for PSSM to CSV conversion.
-
-    Args:
-        pssm (str): PSSM raw file path
-
-    Returns:
-        None
-    """
-    logging.info(f'Converting {pssm}...')
-    p = PSSM_Parser(profile_input=pssm, molecule='', chain_id='', sequence='')
-    p.parse()
-
-    expected_csv = f'{pssm}.csv'
-    if not os.path.exists(expected_csv):
-        warnings.warn(issues.NoResultsWarning(f'Expected {expected_csv=}'))
-
-    logging.info(expected_csv)
-
-
-cmd.extend('pssm2csv', pssm2csv)
 
 
 class CSVProfileParser(ProfileParserAbstract):

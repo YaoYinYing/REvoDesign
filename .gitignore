@@ -51,3 +51,4 @@ classes.dot
 .idea/REvoDesign.iml
 /pythia
 /tests/testdata/pssm
+/tests/logs

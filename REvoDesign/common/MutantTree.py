@@ -35,6 +35,10 @@ class MutantTree:
         return [mutant[1] for mutant in self.all_mutants]
 
     @property
+    def all_mutant_scores(self):
+        return [mutant.mutant_score for mutant in self.all_mutant_objects]
+
+    @property
     def all_mutant_branch_ids(self) -> list[str]:
         return list(self.mutant_tree.keys())
 

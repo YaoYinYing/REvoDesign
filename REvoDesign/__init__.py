@@ -48,6 +48,9 @@ from REvoDesign.REvoDesign import REvoDesignPlugin
 # 7. enable garbage collection
 gc.enable()
 
+# 8. add shortcuts
+from REvoDesign.shortcuts import *
+
 
 __all__ = [
     'REvoDesignPlugin',

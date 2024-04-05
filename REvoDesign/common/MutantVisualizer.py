@@ -210,9 +210,8 @@ class MutantVisualizer:
                 raise issues.DependencyError(
                     f'Failed to initialize designer from `{profile_format}`: {self.scorer.__class__.__name__}'
                 )
-                return
             return
-        
+
         args = {
             "profile_input": profile_fp,
             "molecule": self.molecule,
@@ -351,10 +350,8 @@ class MutantVisualizer:
             )
 
         # Determine the range for color bar
-        score_list = [
-            variant_obj.mutant_score
-            for variant_obj in self.mutant_tree.all_mutant_objects
-        ]
+        score_list = self.mutant_tree.all_mutant_scores
+
         logging.debug(f'Scores: {score_list}')
 
         if (
