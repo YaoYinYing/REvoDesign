@@ -15,7 +15,7 @@ class TestData:
     chain_id: str = 'A'
 
     # after fetch
-    post_fetch_spell: str = 'remove r. hoh;dss'
+    post_fetch_spell: str = 'remove r. hoh;dss;set cartoon_color, gray70;set cartoon_cylindrical_helices;set cartoon_transparency, .1'
 
     # dataset PSSM&GREMLIN
     PSSM_GREMLIN_DATA_URL: str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip'
@@ -88,7 +88,8 @@ class TestData:
         )
 
     # pocket design
-    pocket_pssm_residues: str = '103,104,105'
+    # use dumbrack rotamer lib
+    pocket_pssm_residues: str = '98+100-105+108+114-115+206+209+218+294-303+362-363+365-368+428-429+434+436-439+442+477-478'
     pocket_pssm_min_score: str = '-2'
     pocket_pssm_max_score: str = '0'
     pocket_pssm_score_reversed: bool = False

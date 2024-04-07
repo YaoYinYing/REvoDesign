@@ -1,8 +1,5 @@
 import os
 
-
-from omegaconf import DictConfig
-
 from REvoDesign import root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import reload_config_file, set_cache_dir
@@ -112,3 +109,14 @@ class PIPPack_worker(MutateRunnerAbstract):
                 print(e)
 
         return renamed_pdbs
+
+    @property
+    def __bibtex__(self):
+        return {
+            'PIPPack': """@article{randolph2023pippack,
+  title={Invariant point message passing for protein side chain packing},
+  author={Randolph, Nicholas and Kuhlman, Brian},
+  journal={bioRxiv preprint bioRxiv:10.1101/2023.08.03.551328},
+  year={2023}
+}"""
+        }

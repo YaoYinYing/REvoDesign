@@ -1,7 +1,6 @@
 import gc
 import os
 import tempfile
-from typing import Union
 import pandas as pd
 from Bio import SeqIO
 import matplotlib
@@ -130,6 +129,8 @@ class MutantVisualizer:
                 mutant_obj=mutant_obj,
             )
             mutant_obj.pdb_fp = temp_mutant_pdb_path
+
+            self.mutate_runner.cite()
 
         if not in_place:
             cmd.reinitialize()

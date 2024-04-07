@@ -3,8 +3,8 @@ import json
 import hashlib
 import time
 import re
-from typing import Union
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.citations import CitationManager
 
 from REvoDesign import root_logger
 
@@ -82,6 +82,7 @@ class REvoDesigner:
         self.mutagenesis_tasks = []
 
         self.visualizer: MutantVisualizer = None
+        self.citations: CitationManager = CitationManager()
 
     def plot_custom_indices_segments(
         self,

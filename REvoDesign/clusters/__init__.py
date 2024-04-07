@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from REvoDesign import ConfigBus
+from REvoDesign.citations import CitationManager
 from REvoDesign.tools.customized_widgets import (
     set_widget_value,
 )
@@ -97,8 +98,11 @@ class ClusterRunner:
 
             clustering.run_clustering(progressbar=progressbar)
             cluster_outputs.update({num_mut: clustering.cluster_output_fp})
+            clustering.cite()
 
         cluster_imgs = [
             _cluster['score'] for _, _cluster in cluster_outputs.items()
         ]
         set_widget_value(self.plot_space, cluster_imgs)
+
+        CitationManager().output()
