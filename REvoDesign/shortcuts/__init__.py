@@ -2,7 +2,7 @@ import os
 import warnings
 from pymol import cmd, util
 import itertools
-from REvoDesign import root_logger, issues, ConfigBus
+from REvoDesign import root_logger, issues
 from REvoDesign.common.ProfileParsers import PSSM_Parser
 from immutabledict import immutabledict
 

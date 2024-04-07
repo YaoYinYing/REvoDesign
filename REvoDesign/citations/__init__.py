@@ -1,5 +1,5 @@
 from abc import ABC, abstractproperty
-from typing import List, Mapping, Union, Dict, Any
+from typing import Iterable, List, Mapping, Union, Dict, Any
 from REvoDesign import root_logger
 from REvoDesign import issues
 import warnings
@@ -25,7 +25,9 @@ class CitationManager(SingletonAbstract):
         # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):
             self.called_citations: dict[str, Any] = {}
+            self.dismissed_citations: list[str] = []
             # Mark the instance as initialized to prevent reinitialization
+            self.initialize()
             self.initialized = True
 
     @classmethod
@@ -71,20 +73,42 @@ class CitationManager(SingletonAbstract):
     def output(self, cwd: str):
         ...
 
+    def dismiss(self, modulename: str):
+        if modulename not in self.dismissed_citations:
+            self.dismissed_citations.append(modulename)
+
 
 class CitableModules(ABC):
     @abstractproperty
-    def __bibtex__(self) -> dict[str, str]:
+    def __bibtex__(self) -> dict[str, Union[str, tuple]]:
         ...
 
     def notice(self):
+        if not self.__bibtex__:
+            logging.debug('Nothing has to be cited with this module.')
+            return
+        if all(
+            k in CitationManager().dismissed_citations for k in self.__bibtex__
+        ):
+            return
+
         logging.info(
             f'{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n'
         )
         for i, c in self.__bibtex__.items():
-            logging.info(
-                f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{c}{RESET}\n\n"
-            )
+            # notify it just once then dismiss
+            if i in CitationManager().dismissed_citations:
+                continue
+            if isinstance(c, str):
+                logging.info(
+                    f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{c}{RESET}\n"
+                )
+            elif isinstance(c, (tuple, list)):
+                for j, _c in enumerate:
+                    logging.info(
+                        f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n"
+                    )
+            CitationManager().dismiss(i)
 
     def cite(self):
         citations = self.__bibtex__

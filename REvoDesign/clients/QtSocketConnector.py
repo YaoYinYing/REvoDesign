@@ -20,7 +20,7 @@ from typing import (
 )
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
 from REvoDesign import ConfigBus, root_logger
-from REvoDesign.application.ui_driver import SingletonAbstract
+from REvoDesign import SingletonAbstract
 from REvoDesign.tools.utils import run_worker_thread_with_progress
 from REvoDesign.tools.client_tools import SSLCertificateManager
 
@@ -1138,7 +1138,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             )
             self.sidechain_solver = self.get_sidechain_solver()
 
-        self.sidechain_solver = self.sidechain_solver.refresh()
+        self.sidechain_solver.refresh()
 
         quick_mutagenesis(
             mutant_tree=mutant_tree,

@@ -1049,7 +1049,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         pocketsearcher = None
 
     # Tab `Mutate`
-    def refresh_sidechainsolver(self) -> bool:
+    def refresh_sidechainsolver(self) -> None:
         from REvoDesign.sidechain_solver import SidechainSolver
 
         if not self.sidechain_solver:
@@ -1057,7 +1057,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
 
         self.sidechain_solver = self.sidechain_solver.refresh()
-        return
 
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
@@ -1452,14 +1451,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_interact_scan')
 
         with hold_trigger_button(trigger_button):
-            sc_refreshed = run_worker_thread_with_progress(
+            run_worker_thread_with_progress(
                 self.refresh_sidechainsolver,
                 progress_bar=self.bus.ui.progressBar,
             )
-            if sc_refreshed:
-                self.gremlin_worker.mutate_runner = (
-                    self.sidechain_solver.mutate_runner
-                )
+
+            self.gremlin_worker.mutate_runner = (
+                self.sidechain_solver.mutate_runner
+            )
             self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):

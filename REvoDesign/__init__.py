@@ -3,6 +3,8 @@ import os
 
 import hydra
 
+from REvoDesign.basic import SingletonAbstract
+
 # 0. import version info
 from REvoDesign.__version__ import __version__ as VERSION
 
@@ -32,7 +34,6 @@ root_logger = setup_logging()
 
 # 4. import UI bus
 from REvoDesign.application.ui_driver import (
-    SingletonAbstract,
     Widget2Widget,
     ConfigBus,
 )

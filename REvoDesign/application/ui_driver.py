@@ -4,6 +4,8 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
 
+from REvoDesign import SingletonAbstract
+from REvoDesign.citations import CitableModules
 from REvoDesign.tools.customized_widgets import (
     create_cmap_icon,
     get_widget_value,
@@ -19,42 +21,9 @@ from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 import warnings
 from REvoDesign import issues
-from abc import ABC, abstractmethod, abstractclassmethod
 
 
-class SingletonAbstract(ABC):
-    _instance = None
-
-    @classmethod
-    def __new__(cls, *args, **kwargs):
-        # Check if an instance of SingletonAbstract already exists
-        if not cls._instance:
-            # If not, create a new instance and assign it to the _instance class variable
-            cls._instance = super(SingletonAbstract, cls).__new__(cls)
-        # Return the existing instance
-        return cls._instance
-
-    @classmethod
-    def reset_instance(cls):
-        cls._instance = None
-
-    @abstractclassmethod
-    def initialize(cls):
-        if not cls._instance:
-            cls()
-        else:
-            ...
-
-    @abstractmethod
-    def __init__(self):
-        # Check if the instance has already been initialized
-        if not hasattr(self, 'initialized'):
-            # If not, set the instance attributes
-            ...
-            self.initialized = True
-
-
-class ConfigBus(SingletonAbstract):
+class ConfigBus(SingletonAbstract, CitableModules):
     """
     This class is responsible for handling the configuration and interaction between the UI widgets and the application's configuration settings.
 
@@ -94,6 +63,7 @@ class ConfigBus(SingletonAbstract):
 
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
+            self.cite()
 
     @classmethod
     def initialize(cls, ui):
@@ -326,6 +296,18 @@ class ConfigBus(SingletonAbstract):
         # Retrieves a button widget based on its ID.
         assert id in self.w2c.run_button_ids
         return self.w2c.buttons.get(id)
+
+    @property
+    def __bibtex__(self):
+        return {
+            'hydra': """@Misc{Yadan2019Hydra,
+  author =       {Omry Yadan},
+  title =        {Hydra - A framework for elegantly configuring complex applications},
+  howpublished = {Github},
+  year =         {2019},
+  url =          {https://github.com/facebookresearch/hydra}
+}"""
+        }
 
 
 @dataclass(frozen=True)

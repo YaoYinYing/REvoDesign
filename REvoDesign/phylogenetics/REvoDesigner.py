@@ -3,7 +3,6 @@ import json
 import hashlib
 import time
 import re
-from typing import Union
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 
 from REvoDesign import root_logger

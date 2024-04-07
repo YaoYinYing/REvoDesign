@@ -3,8 +3,6 @@ import os
 
 from joblib import Parallel, delayed
 
-
-from REvoDesign.citations import CitableModules
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
 

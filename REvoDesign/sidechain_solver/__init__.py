@@ -189,7 +189,8 @@ class SidechainSolver:
         if self.cfg_updated:
             logging.warning(f'Reconfiguring SC solver...')
             # return a updated
-            return SidechainSolver().setup()
+            self = SidechainSolver().setup()
         else:
             logging.warning(f'SC solver stays unchanged.')
-            return self
+
+        return self

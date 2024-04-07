@@ -287,3 +287,4 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
             return
 
         logging.debug(f'Result file is stored at: {self.profile_input}')
+        ddg_runner.cite()

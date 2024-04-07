@@ -1,8 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import os
-from typing import Iterable, Union, Protocol
-
-from omegaconf import DictConfig
+from typing import Iterable
 
 from REvoDesign.citations import CitableModules
 from REvoDesign.common.Mutant import Mutant

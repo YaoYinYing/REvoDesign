@@ -1,7 +1,6 @@
 import gc
 import os
 import tempfile
-from typing import Union
 import pandas as pd
 from Bio import SeqIO
 import matplotlib

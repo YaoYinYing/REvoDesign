@@ -2,7 +2,6 @@ import asyncio
 from functools import partial
 import os
 import traceback
-from typing import Union
 
 from immutabledict import immutabledict
 from REvoDesign import ConfigBus
