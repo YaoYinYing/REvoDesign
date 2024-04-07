@@ -1,10 +1,4 @@
-from abc import (
-    ABC,
-    abstractmethod,
-    abstractclassmethod,
-    abstractproperty,
-    abstractstaticmethod,
-)
+from abc import ABC, abstractproperty
 from typing import List, Mapping, Union, Dict, Any
 from REvoDesign import root_logger
 from REvoDesign import issues
@@ -84,11 +78,11 @@ class CitableModules(ABC):
         ...
 
     def notice(self):
-        print(
+        logging.info(
             f'{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n'
         )
         for i, c in self.__bibtex__.items():
-            print(
+            logging.info(
                 f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{c}{RESET}\n\n"
             )
 

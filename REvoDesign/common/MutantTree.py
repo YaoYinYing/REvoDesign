@@ -11,6 +11,9 @@ class MutateRunner(Protocol):
     ) -> 'MutantTree':
         ...
 
+    def cite(self) -> None:
+        ...
+
 
 class MutantTree:
     def __init__(self, mutant_tree: dict[str, dict[str, Mutant]] = {}):
@@ -558,3 +561,4 @@ class MutantTree:
         self = mutate_runner.mutated_pdb_mapping(
             mutants=self, pdb_fps=all_mutants_pdb_fp
         )
+        mutate_runner.cite()

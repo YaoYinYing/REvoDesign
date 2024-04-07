@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
 import os
-from typing import Iterable, Union
+from typing import Iterable, Union, Protocol
 
 from omegaconf import DictConfig
 
+from REvoDesign.citations import CitableModules
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 
 
-class MutateRunnerAbstract(ABC):
+class MutateRunnerAbstract(CitableModules):
     """
     Abstract base class for running mutation tools.
 

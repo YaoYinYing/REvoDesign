@@ -122,3 +122,28 @@ class PyMOL_mutate(MutateRunnerAbstract):
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
         return results
+
+    # https://www.bruot.org/ris2bib/
+    @property
+    def __bibtex__(self):
+        return {
+            'Dunbrack Rotamer Library': """@Article{Shapovalov2011,
+author={Shapovalov, Maxim V.
+and Dunbrack Jr., Roland L.,},
+title={A Smoothed Backbone-Dependent Rotamer Library for Proteins Derived from Adaptive Kernel Density Estimates and Regressions},
+journal={Structure},
+year={2011},
+month={Jun},
+day={08},
+publisher={Elsevier},
+volume={19},
+number={6},
+pages={844-858},
+abstract={Rotamer libraries are used in protein structure determination, prediction, and design. The backbone-dependent rotamer library consists of rotamer frequencies, mean dihedral angles, and variances as a function of the backbone dihedral angles. Structure prediction and design methods that employ backbone flexibility would strongly benefit from smoothly varying probabilities and angles. A new version of the backbone-dependent rotamer library has been developed using adaptive kernel density estimates for the rotamer frequencies and adaptive kernel regression for the mean dihedral angles and variances. This formulation allows for evaluation of the rotamer probabilities, mean angles, and variances as a smooth and continuous function of phi and psi. Continuous probability density estimates for the nonrotameric degrees of freedom of amides, carboxylates, and aromatic side chains have been modeled as a function of the backbone dihedrals and rotamers of the remaining degrees of freedom. New backbone-dependent rotamer libraries at varying levels of smoothing are available from http://dunbrack.fccc.edu.},
+issn={0969-2126},
+doi={10.1016/j.str.2011.03.019},
+url={https://doi.org/10.1016/j.str.2011.03.019}
+}
+
+"""
+        }

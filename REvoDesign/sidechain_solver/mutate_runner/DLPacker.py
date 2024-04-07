@@ -4,6 +4,7 @@ import os
 from joblib import Parallel, delayed
 
 
+from REvoDesign.citations import CitableModules
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
 
@@ -213,3 +214,24 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         gc.collect()
         return results
+
+    @property
+    def __bibtex__(self):
+        return {
+            'DLPacker': """@article{https://doi.org/10.1002/prot.26311,
+author = {Misiura, Mikita and Shroff, Raghav and Thyer, Ross and Kolomeisky, Anatoly B.},
+title = {DLPacker: Deep learning for prediction of amino acid side chain conformations in proteins},
+journal = {Proteins: Structure, Function, and Bioinformatics},
+volume = {90},
+number = {6},
+pages = {1278-1290},
+keywords = {3DCNN, DNN, protein structure prediction, side chain restoration, U-net},
+doi = {https://doi.org/10.1002/prot.26311},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/prot.26311},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/prot.26311},
+abstract = {Abstract Prediction of side chain conformations of amino acids in proteins (also termed “packing”) is an important and challenging part of protein structure prediction with many interesting applications in protein design. A variety of methods for packing have been developed but more accurate ones are still needed. Machine learning (ML) methods have recently become a powerful tool for solving various problems in diverse areas of science, including structural biology. In this study, we evaluate the potential of deep neural networks (DNNs) for prediction of amino acid side chain conformations. We formulate the problem as image-to-image transformation and train a U-net style DNN to solve the problem. We show that our method outperforms other physics-based methods by a significant margin: reconstruction RMSDs for most amino acids are about 20\% smaller compared to SCWRL4 and Rosetta Packer with RMSDs for bulky hydrophobic amino acids Phe, Tyr, and Trp being up to 50\% smaller.},
+year = {2022}
+}
+
+"""
+        }

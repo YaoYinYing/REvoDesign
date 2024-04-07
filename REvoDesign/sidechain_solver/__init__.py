@@ -90,9 +90,6 @@ class SidechainSolver:
         self.molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'
         )
-        self.chain_id: str = self.bus.get_value(
-            'ui.header_panel.input.chain_id'
-        )
 
         self.sidechain_solver_name = self.bus.get_value(
             'ui.config.sidechain_solver.default'
@@ -113,7 +110,7 @@ class SidechainSolver:
         )
 
         input_pdb = make_temperal_input_pdb(
-            molecule=self.molecule, chain_id=self.chain_id, reload=False
+            molecule=self.molecule, reload=False
         )
 
         try:
@@ -154,7 +151,6 @@ class SidechainSolver:
     @property
     def cfg_updated(self) -> bool:
         molecule: str = self.bus.get_value('ui.header_panel.input.molecule')
-        chain_id: str = self.bus.get_value('ui.header_panel.input.chain_id')
 
         sidechain_solver_name = self.bus.get_value(
             'ui.config.sidechain_solver.default'
@@ -169,14 +165,12 @@ class SidechainSolver:
 
         new_cfgs = [
             molecule,
-            chain_id,
             sidechain_solver_name,
             sidechain_solver_radius,
             sidechain_solver_model,
         ]
         old_cfgs = [
             self.molecule,
-            self.chain_id,
             self.sidechain_solver_name,
             self.sidechain_solver_radius,
             self.sidechain_solver_model,

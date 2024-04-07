@@ -131,6 +131,8 @@ class MutantVisualizer:
             )
             mutant_obj.pdb_fp = temp_mutant_pdb_path
 
+            self.mutate_runner.cite()
+
         if not in_place:
             cmd.reinitialize()
 
