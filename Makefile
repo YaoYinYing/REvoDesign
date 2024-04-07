@@ -169,7 +169,7 @@ clean:
 	find . -name "*.pdb" -exec rm -v {} \;
 	find . -name "*.fasta" -exec rm -v {} \;
 	find . -name "*.cif" -exec rm -v {} \;
-	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py
+	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py tests/testdata/pssm/1nww_A_ascii_mtx_file.csv
 	rm -rvf $(TESTDIR) dask-worker-space
 	rm -rvf logs surface_residue_records downloaded mutations_design_profile pockets temperal_pdb expanded_compressed_files analysis screenshots
 	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ gremlin_co_evolved_pairs/ seg_chain_resn_sel/ seg_chainA_resn_sel/ mutant_pdbs/

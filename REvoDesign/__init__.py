@@ -32,6 +32,7 @@ root_logger = setup_logging()
 
 # 4. import UI bus
 from REvoDesign.application.ui_driver import (
+    SingletonAbstract,
     Widget2Widget,
     ConfigBus,
 )
@@ -54,6 +55,7 @@ from REvoDesign.shortcuts import *
 
 __all__ = [
     'REvoDesignPlugin',
+    'SingletonAbstract',
     'Widget2Widget',
     'ConfigBus',
     'WITH_DEPENDENCIES',

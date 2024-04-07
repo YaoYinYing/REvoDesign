@@ -545,6 +545,8 @@ class GREMLIN_Analyser:
 
         # visualize co-evolved pair in pymol UI
 
+        self.gremlin_tool.cite()
+
     def plot_coevolved_pair_in_pymol(self):
         max_interact_dist: float = self.bus.get_value(
             'ui.interact.max_interact_dist', float

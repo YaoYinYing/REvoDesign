@@ -251,6 +251,7 @@ from pymol import cmd
 from Bio.Data import IUPACData
 from Bio.Align import substitution_matrices
 
+# Yinying replaced the original blosum90 matrix with biopython code.
 blosum90 = substitution_matrices.load('BLOSUM90')
 
 aa_3l = {}
