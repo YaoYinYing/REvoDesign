@@ -10,6 +10,7 @@ from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.citations import CitationManager
 from REvoDesign.tools.customized_widgets import QbuttonMatrix, set_widget_value
 from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_pymol_object,
@@ -218,6 +219,9 @@ class MutateWorker:
         except Exception:
             traceback.print_exc()
 
+        finally:
+            CitationManager().output()
+
 
 class VisualizingWorker:
     def __init__(self, PWD, mutate_runner):
@@ -333,6 +337,8 @@ class VisualizingWorker:
         except Exception:
             logging.error('Error while running the visualization: ')
             traceback.print_exc()
+        finally:
+            CitationManager().output()
 
 
 class GREMLIN_Analyser:
@@ -617,6 +623,7 @@ class GREMLIN_Analyser:
         if i_out_of_range:
             self.coevolved_pairs = self.reorder_dict(self.coevolved_pairs)
 
+        CitationManager().output()
         return
 
     def mark_pair_state(

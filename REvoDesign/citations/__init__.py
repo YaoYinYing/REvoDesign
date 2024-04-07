@@ -1,4 +1,6 @@
 from abc import ABC, abstractproperty
+import os
+import time
 from typing import Iterable, List, Mapping, Union, Dict, Any
 from REvoDesign import root_logger
 from REvoDesign import issues
@@ -25,10 +27,25 @@ class CitationManager(SingletonAbstract):
         # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):
             self.called_citations: dict[str, Any] = {}
-            self.dismissed_citations: list[str] = []
+            self.silenced_citation_modules: list[str] = []
             # Mark the instance as initialized to prevent reinitialization
             self.initialize()
             self.initialized = True
+
+    @property
+    def collected_citations(self) -> list[str]:
+        _ = []
+        for c in self.called_citations.items():
+            if isinstance(c, str):
+                _.append(c)
+            elif isinstance(c, (list, tuple)):
+                _.extend(c)
+            else:
+                raise issues.BadDataWarning(
+                    f'{c=} must be either a dict or a str, instead of {type(c)}'
+                )
+
+        return _
 
     @classmethod
     def initialize(cls):
@@ -70,12 +87,31 @@ class CitationManager(SingletonAbstract):
     def format(self) -> Union[str, Dict, List]:
         ...
 
-    def output(self, cwd: str):
-        ...
+    def output(self, cwd: str = '.'):
+        import bibtexparser
+
+        library = bibtexparser.parse_string(
+            '\n'.join(self.collected_citations)
+        )
+        if library.failed_blocks:
+            warnings.warn(
+                issues.REvoDesignWarning(
+                    f'Could not parse {library.failed_blocks=}'
+                )
+            )
+
+        citation_output = os.path.join(
+            cwd,
+            'citations',
+            f'{time.strftime("%Y%m%d", time.localtime())}.bib',
+        )
+        os.makedirs(os.path.dirname(citation_output), exist_ok=True)
+        bibtexparser.write_file(file=citation_output, library=library)
+        logging.info(f'Citation is created at {citation_output}')
 
     def dismiss(self, modulename: str):
-        if modulename not in self.dismissed_citations:
-            self.dismissed_citations.append(modulename)
+        if modulename not in self.silenced_citation_modules:
+            self.silenced_citation_modules.append(modulename)
 
 
 class CitableModules(ABC):
@@ -88,7 +124,8 @@ class CitableModules(ABC):
             logging.debug('Nothing has to be cited with this module.')
             return
         if all(
-            k in CitationManager().dismissed_citations for k in self.__bibtex__
+            k in CitationManager().silenced_citation_modules
+            for k in self.__bibtex__
         ):
             return
 
@@ -97,7 +134,7 @@ class CitableModules(ABC):
         )
         for i, c in self.__bibtex__.items():
             # notify it just once then dismiss
-            if i in CitationManager().dismissed_citations:
+            if i in CitationManager().silenced_citation_modules:
                 continue
             if isinstance(c, str):
                 logging.info(
