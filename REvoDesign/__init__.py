@@ -3,10 +3,18 @@ import os
 
 import hydra
 
+# -2. import basic
 from REvoDesign.basic import SingletonAbstract
+
+# -1. import FileExtentions
+from REvoDesign.common.FileExtentions import (
+    REvoDesignFileExtentions as FileExtentions,
+)
 
 # 0. import version info
 from REvoDesign.__version__ import __version__ as VERSION
+
+# -=-=-=-=-=-=-=-= the importing stack begins -=-=-=-=-=-=-=-=
 
 # 1. import post install module and methods
 from REvoDesign.tools.post_installed import (
@@ -24,33 +32,28 @@ hydra.initialize_config_dir(
     version_base=None, config_dir=os.path.dirname(REVODESIGN_CONFIG_FILE)
 )
 
-# 2.5. initialize experiments directory
+# 2.5. initialize experiments directory, depending on config
 EXPERIMENTS_CONFIG_DIR = experiment_config()
 
-# 3. initialize logging config and root logger
+# 3. initialize logging config and root logger, depending on config
 from REvoDesign.tools.logger import setup_logging
 
 root_logger = setup_logging()
 
-# 4. import UI bus
+# 4. import UI bus, depending on SingletonAbstract, logger, configuration
 from REvoDesign.application.ui_driver import (
     Widget2Widget,
     ConfigBus,
 )
 
-# 5. import FileExtentions
-from REvoDesign.common.FileExtentions import (
-    REvoDesignFileExtentions as FileExtentions,
-)
-
-# 6. import the plugin class
+# 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
 
 
-# 7. enable garbage collection
+# 6. enable garbage collection
 gc.enable()
 
-# 8. add shortcuts
+# 7. add shortcuts to PyMOL commandline prompt
 from REvoDesign.shortcuts import *
 
 
