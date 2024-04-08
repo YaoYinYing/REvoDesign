@@ -30,6 +30,9 @@ Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easi
 
 Enzyme redesign is a complex task that requires a deep understanding of protein structures, substrate binding sites, and evolutionary relationships. **REvoDesign** Toolkit is designed to streamline this process by offering a range of tools and functionalities to assist protein designers in their endeavors.
 
+### Basic Architecture Design
+![software design](https://github-image-cache.yaoyy.moe/2024/04/9593eb8fc02494a9d2327e82eb52de0e.jpg)
+
 ### Key Features
 
 In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to help protein designers with the following tasks:
@@ -69,7 +72,7 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 
    This will create an graphic installer for installing the core package of **REvoDesign**. Once the package is installed, the entrypoint file will allow you to access it from the PyMOL menu.
 
-   ![installer](https://github.com/YaoYinYing/REvoDesign/assets/33014714/b44fc4df-e1a7-4ded-9f9b-bba2c1303bb7)
+   ![installer](https://github-image-cache.yaoyy.moe/2024/04/6fd3d7838e0f92d88ab9fab99eeba250.png)
 
 
 2. **Install the Main Program**:
@@ -78,23 +81,23 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 
    a. If you prefer to install from the remote repository, check `Repository` and click `Install`:
 
-   ![From remote repo](https://github.com/YaoYinYing/REvoDesign/assets/33014714/75d50ebd-cb92-4ad5-b761-40fce374a79e)
+   ![From remote repo](https://github-image-cache.yaoyy.moe/2024/04/ca3cd885e65ba7373dbe5fb5e2fbd970.png)
 
 
    This action will call the exact Python interpreter that used by current PyMOL instance and install REvoDesign as a package.
 
    b. If you have no access to the remote url because of the policy from network provider, you may install it from a cloned local repository or unzipped source code by running the following command:
 
-   ![From a local src](https://github.com/YaoYinYing/REvoDesign/assets/33014714/5d35c6cc-d057-46ff-a31b-f3e056172116)
+   ![From a local src](https://github-image-cache.yaoyy.moe/2024/04/77d1218caeb77111279a5a6557bbc6af.png)
    
 
    c. To install a specific commit/branch, check `Version` or `Commit` for more historical releases:
-   ![From remote repo, commit c66f29356907102ffdf797486f299a9608558e34](https://github.com/YaoYinYing/REvoDesign/assets/33014714/a950091c-09c5-4266-bef4-4df5c93e0923)
+   ![From remote repo, commit c66f29356907102ffdf797486f299a9608558e34](https://github-image-cache.yaoyy.moe/2024/04/b914e8a7cb0a95223a1c23aa6baed51b.png)
    
 
    d. To install with extra features, use `Extras` to pick a desire one, or install full version by selecting `full`:
 
-   ![install with extras](https://github.com/YaoYinYing/REvoDesign/assets/33014714/06655184-6c0d-4291-9371-23d6a7ed2ce5)
+   ![install with extras](https://github-image-cache.yaoyy.moe/2024/04/4192c1572361a42a472146009e1c7951.png)
 
    **Extras table**
 
