@@ -16,6 +16,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+## [1.5.9] - 2024-04-08
+### Added
+- PyMOL shortcuts
+  - `pssm2csv`
+  - `real_sc`
+  - `color_by_plddt`
+  - `color_by_mutation`: deduplicated with `biopython` calling
+- Citations handled by `CitationManager`
+- `CitableModules` abstract:
+  - `ConfigBus`: Yes `Hydra` is a citable module.
+  - `PythiaBiolib`
+  - `Clustering`
+  - `ColabDesigner_MPNN`
+  - `GREMLIN_Tools`
+  - `MutateRunnerAbstract`: all mutate runner are citable
+- Profile Parsing handled with `ProfileManager`, `ProfileParserAbstract` and its subclasses: 
+  - `PSSM_Parser`
+  - `CSVProfileParser`
+  - `TSVProfileParser`: unfinished and unvalidated
+  - `Pythia_ddG_Parser`
+
+- `TestData`: `post_fetch_spell` for cartoon styles
+- `tests/PyMOLTests.pml` for PyMOL commandline prompt tests
+
+### Changed
+- moved: `SingletonAbstract`: `REvoDesign.basic`, called by the root.
+- `MutantVisualizer`: parsing profile via `ProfileManager`
+- use `pymol2.PyMOL()` as mutate context manager in `PyMOL_mutate`. PDB in, PDB out.
+- Use `ConfigBus` in `PocketSearcher` and `SurfaceFinder`
+
+### Removed
+- `REvoDesignRunnerConfig`: overdesigned
+- `PocketSearcherConfig` and `SurfaceFinderConfig`
+- `PyMOL_mutate.run_mutate`: `in_place` arg
+- `pymol_utils.mutate` and test case `TestPymolUtils.test_mutate`
+- `chain_id` arg in `SidechainSolver`
+
 ## [1.5.8-post1] - 2024-04-03
 ### Fixed
 - fix ConfigBus: widget signals
