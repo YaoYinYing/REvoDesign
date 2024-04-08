@@ -62,12 +62,12 @@ setup-display:
 # only for unittest on runner or local machine.
 install:
 	python -m pip install ".[full,unittest]" -U --no-cache-dir
-	pip install bibtexparser --pre
+	pip install bibtexparser --pre -U
 
 # only for unittest on ci runner or local machine that already have all depencies installed.
 install-no-dept:
 	python -m pip install . --no-dependencies --no-cache-dir
-	pip install bibtexparser --pre
+	pip install bibtexparser --pre -U
 
 # ci docker image, before make install
 install-pytorch-cpu:
