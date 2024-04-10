@@ -461,15 +461,12 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
     return MutantTree(_mutant_tree)
 
 
-def quick_mutagenesis(
-    mutant_tree: MutantTree,
-    sidechain_solver: SidechainSolver,
-):
+def quick_mutagenesis(mutant_tree: MutantTree):
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
     from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-    from REvoDesign.tools.utils import run_worker_thread_with_progress
 
     bus: ConfigBus = ConfigBus()
+    sidechain_solver: SidechainSolver = SidechainSolver().refresh()
 
     molecule = bus.get_value('ui.header_panel.input.molecule')
     chain_id = bus.get_value('ui.header_panel.input.chain_id')
@@ -477,7 +474,6 @@ def quick_mutagenesis(
     sequence: str = designable_sequences.get(chain_id)
 
     nproc = bus.get_value('ui.header_panel.nproc')
-    progress_bar = bus.ui.progressBar
 
     if mutant_tree.empty:
         warnings.warn(issues.NoResultsWarning(f'Mutant tree is empty!'))
@@ -488,8 +484,6 @@ def quick_mutagenesis(
         for group_id in mutant_tree.all_mutant_branch_ids
         for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items()
     ]
-
-    results = []
 
     input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
     visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)

@@ -17,7 +17,7 @@ class SingletonAbstract(ABC):
     def reset_instance(cls):
         cls._instance = None
 
-    @abstractclassmethod
+    @classmethod
     def initialize(cls):
         if not cls._instance:
             cls()

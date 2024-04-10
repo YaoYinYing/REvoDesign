@@ -86,7 +86,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.design_sequence = ''
 
         self.gremlin_worker = None
-        self.sidechain_solver = None
         self.evaluator = None
         global logging
         logging = root_logger.getChild(self.__class__.__name__)
@@ -158,7 +157,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def reinitialize(self, delete=False):
         self.gremlin_worker = None
-        self.sidechain_solver = None
         self.evaluator = None
         gc.collect()
 
@@ -1049,15 +1047,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         pocketsearcher = None
 
     # Tab `Mutate`
-    def refresh_sidechainsolver(self) -> None:
-        from REvoDesign.sidechain_solver import SidechainSolver
-
-        if not self.sidechain_solver:
-            self.sidechain_solver = SidechainSolver().setup()
-            return
-
-        self.sidechain_solver = self.sidechain_solver.refresh()
-
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
     ):
@@ -1082,13 +1071,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_PSSM_to_pse')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
             worker = MutateWorker(
-                mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
 
@@ -1252,14 +1235,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.phylogenetics import VisualizingWorker
 
         with hold_trigger_button(trigger_button):
-            # reinstiatate sidechain solver if required
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
             worker = VisualizingWorker(
-                mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
             worker.visualize_mutants()
@@ -1431,16 +1407,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('reinitialize_interact')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
             from REvoDesign.phylogenetics import GREMLIN_Analyser
 
             self.gremlin_worker = GREMLIN_Analyser(
                 PWD=self.PWD,
-                mutate_runner=self.sidechain_solver.mutate_runner,
             )
             self.gremlin_worker.load_gremlin_mrf()
 
@@ -1451,14 +1421,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_interact_scan')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
-            self.gremlin_worker.mutate_runner = (
-                self.sidechain_solver.mutate_runner
-            )
             self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):
@@ -1575,10 +1537,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def setup_ws_client(self):
         self.ws_client.setup_ws_client()
-        run_worker_thread_with_progress(
-            self.refresh_sidechainsolver,
-            progress_bar=self.bus.ui.progressBar,
-        )
 
     def update_ws_client_view_update_options(self):
         if not self.ws_client or not self.ws_client.connected:

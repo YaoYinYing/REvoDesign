@@ -9,8 +9,8 @@ from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
-from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.citations import CitationManager
+from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import QbuttonMatrix, set_widget_value
 from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_pymol_object,
@@ -37,7 +37,7 @@ from REvoDesign import root_logger
 import warnings
 from REvoDesign import issues
 
-logging = root_logger.getChild('phylogenetics')
+logging = root_logger.getChild(__name__)
 
 
 @dataclass
@@ -59,11 +59,9 @@ class CoevolvedPairState:
 
 
 class MutateWorker:
-    def __init__(self, PWD, mutate_runner):
+    def __init__(self, PWD):
         self.bus: ConfigBus = ConfigBus()
-
         self.PWD: str = PWD
-        self.mutate_runner: MutateRunnerAbstract = mutate_runner
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'
@@ -162,7 +160,9 @@ class MutateWorker:
             self.design.randomized_sample = randomized_sample
             self.design.randomized_sample_num = randomized_sample_num
 
-            self.design.mutate_runner = self.mutate_runner
+            self.design.mutate_runner = (
+                SidechainSolver().refresh().mutate_runner
+            )
 
             self.design.preffered_substitutions = preffered
             self.design.reject_aa = rejected
@@ -224,11 +224,10 @@ class MutateWorker:
 
 
 class VisualizingWorker:
-    def __init__(self, PWD, mutate_runner):
+    def __init__(self, PWD):
         self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
-        self.mutate_runner: MutateRunnerAbstract = mutate_runner
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'
@@ -310,7 +309,9 @@ class VisualizingWorker:
             self.visualizer.group_name = group_name
             self.visualizer.cmap = cmap
 
-            self.visualizer.mutate_runner = self.mutate_runner
+            self.visualizer.mutate_runner = (
+                SidechainSolver().refresh().mutate_runner
+            )
 
             run_worker_thread_with_progress(
                 worker_function=self.visualizer.run,
@@ -342,11 +343,10 @@ class VisualizingWorker:
 
 
 class GREMLIN_Analyser:
-    def __init__(self, PWD, mutate_runner):
+    def __init__(self, PWD):
         self.bus: ConfigBus = ConfigBus()
 
         self.PWD: str = PWD
-        self.mutate_runner: MutateRunnerAbstract = mutate_runner
         self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
 
         self.design_molecule: str = self.bus.get_value(
@@ -904,7 +904,7 @@ class GREMLIN_Analyser:
         visualizer.sequence = self.design_sequence
         alphabet = self.gremlin_tool.alphabet
 
-        visualizer.mutate_runner = self.mutate_runner
+        visualizer.mutate_runner = SidechainSolver().refresh().mutate_runner
 
         visualizer.group_name = '_vs_'.join(
             [
