@@ -31,6 +31,7 @@ help:
 	@echo "  test                   run the UnitTest suite"
 	@echo "  ui-test                run the QtTest suite"
 	@echo "  all-test               run all tests"
+	@echo "  pymol-test             run PyMOL script tests"
 	@echo "  memray                 memoray profile for leakage, saved as html file"
 	@echo "  memray-live            memoray profile for leakage in live mode"
 	@echo "  format                 automatically format the code"

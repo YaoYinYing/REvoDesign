@@ -83,7 +83,7 @@ class MutateRunnerManager:
             return runner_class(**kwargs)
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True)
 class SidechainSolverConfig:
     molecule: str
     sidechain_solver_name: str

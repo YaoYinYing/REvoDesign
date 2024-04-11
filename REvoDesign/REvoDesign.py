@@ -5,6 +5,7 @@ import traceback
 
 # using partial module to reduce duplicate code.
 from functools import partial
+from typing import Literal
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -64,6 +65,7 @@ REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 logging = None
 
+IO_MODE=Literal['r','w']
 
 class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
@@ -691,7 +693,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
-    def browse_filename(self, mode='r', exts=[FileExtentions.AnyFileExt]):
+    def browse_filename(self, mode:IO_MODE='r', exts=[FileExtentions.AnyFileExt]):
         from pymol.Qt.utils import getSaveFileNameWithExt
 
         filter_strings = ';;'.join(
@@ -702,7 +704,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ]
         )
 
-        if mode == 'w' or mode == 'a':
+        if mode == 'w':
             browse_title = 'Save As...'
             filename = getSaveFileNameWithExt(
                 self.window, browse_title, filter=filter_strings
@@ -843,7 +845,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.setup_pssm_gremlin_calculator()
 
-    def open_mutant_table(self, cfg_mutant_table: str, mode='r'):
+    def open_mutant_table(self, cfg_mutant_table: str, mode:IO_MODE='r'):
         if mode == 'r':
             input_mut_txt_fn = self.open_input_psepath(
                 cfg_mutant_table,
@@ -859,7 +861,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 logging.warning(
                     f'Could not open file for reading: {input_mut_txt_fn}'
                 )
-        elif mode == 'w':
+        else:
             output_mut_txt_fn = self.browse_filename(
                 mode=mode,
                 exts=[
@@ -874,8 +876,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.bus.set_widget_value(cfg_mutant_table, output_mut_txt_fn)
             else:
                 logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
-        else:
-            logging.warning(f'Unknown mode {mode} ! Aborded.')
 
     def find_session_path(self) -> str:
         session_path: str = cmd.get('session_file')
@@ -1624,11 +1624,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def save_configuration_from_ui(self, experiment: str = None):
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
 
-    def load_and_save_experiment(self, mode='r'):
+    def load_and_save_experiment(self, mode: IO_MODE='r'):
         import shutil
 
-        if not (mode == 'r' or mode == 'w'):
-            return
         new_cfg_file = self.browse_filename(
             mode=mode,
             exts=[FileExtentions.ConfigFileExt, FileExtentions.AnyFileExt],
