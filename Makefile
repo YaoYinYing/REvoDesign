@@ -33,6 +33,7 @@ help:
 	@echo "  test                   run the UnitTest suite"
 	@echo "  ui-test                run the QtTest suite"
 	@echo "  all-test               run all tests"
+	@echo "  macos-rosetta-test     run UI tests versus PyMOL incentive installation (MacOS Application)"
 	@echo "  pymol-test             run PyMOL script tests"
 	@echo "  memray                 memoray profile for leakage, saved as html file"
 	@echo "  memray-live            memoray profile for leakage in live mode"
@@ -123,7 +124,7 @@ macos-rosetta-test:
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
 	$(MACOS_PYMOL_BIN_PATH)/python -m pip install pytest pytest-cov coverage psutil -q --no-cache-dir 
 	$(MACOS_PYMOL_BIN_PATH)/python -m pip install bibtexparser --pre -U
-	cd $(TESTDIR); $(MACOS_PYMOL_BIN_PATH)/python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py -k 'not mpnn'
+	cd $(TESTDIR); $(MACOS_PYMOL_BIN_PATH)/python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py -k 'not mpnn'
 
 
 pymol-test:
