@@ -190,6 +190,7 @@ class SidechainSolver(SingletonAbstract):
         if reconfigured or not self.mutate_runner:
             logging.warning(f'Reconfiguring SC solver with {latest_cfg=}...')
             # return a updated
+            self.cfg = latest_cfg
             self.setup()
 
         return self
