@@ -65,7 +65,8 @@ REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 logging = None
 
-IO_MODE=Literal['r','w']
+IO_MODE = Literal['r', 'w']
+
 
 class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
@@ -693,7 +694,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
-    def browse_filename(self, mode:IO_MODE='r', exts=[FileExtentions.AnyFileExt]):
+    def browse_filename(
+        self, mode: IO_MODE = 'r', exts=[FileExtentions.AnyFileExt]
+    ):
         from pymol.Qt.utils import getSaveFileNameWithExt
 
         filter_strings = ';;'.join(
@@ -845,7 +848,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.setup_pssm_gremlin_calculator()
 
-    def open_mutant_table(self, cfg_mutant_table: str, mode:IO_MODE='r'):
+    def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = 'r'):
         if mode == 'r':
             input_mut_txt_fn = self.open_input_psepath(
                 cfg_mutant_table,
@@ -1624,7 +1627,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def save_configuration_from_ui(self, experiment: str = None):
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
 
-    def load_and_save_experiment(self, mode: IO_MODE='r'):
+    def load_and_save_experiment(self, mode: IO_MODE = 'r'):
         import shutil
 
         new_cfg_file = self.browse_filename(

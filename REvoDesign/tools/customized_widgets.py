@@ -440,10 +440,7 @@ class ParallelExecutor:
         if not backend == 'auto':
             self.backend = backend
         else:
-            if os_type == 'Windows' or os_type == 'Darwin_Rosetta':
-                self.backend = 'multiprocessing'
-            else:
-                self.backend = 'loky'
+            self.backend = 'loky'
 
         self.verbose = verbose
         logging.debug(

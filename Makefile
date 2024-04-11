@@ -15,6 +15,8 @@ PYREVERSE_IGNORE=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,Q
 PYREVERSE_DOT_OPTS=-Ln10 
 
 
+MACOS_PYMOL_BIN_PATH=/Applications/PyMOL.app/Contents/bin/
+
 help:
 	@echo "Commands:"
 	@echo ""
@@ -92,7 +94,7 @@ translate:
 	cd REvoDesign/UI/;lrelease liguist.pro
 
 prepare-test:
-	python -m pip install pytest pytest-cov coverage pytest-execution-timer -q --no-cache-dir 
+	python -m pip install pytest pytest-cov coverage -q --no-cache-dir 
 
 # unit test
 test:
@@ -113,6 +115,16 @@ all-test:
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
 	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py
 	cp $(TESTDIR)/.coverage* .
+
+macos-rosetta-test:
+	$(MACOS_PYMOL_BIN_PATH)/python -m pip install ".[unittest]" -U --no-cache-dir
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
+	$(MACOS_PYMOL_BIN_PATH)/python -m pip install pytest pytest-cov coverage psutil -q --no-cache-dir 
+	$(MACOS_PYMOL_BIN_PATH)/python -m pip install bibtexparser --pre -U
+	cd $(TESTDIR); $(MACOS_PYMOL_BIN_PATH)/python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py -k 'not mpnn'
+
 
 pymol-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
