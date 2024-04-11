@@ -871,7 +871,6 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             self.client = None
             self.treeWidget_ws_peers = None
 
-            self.sidechain_solver = None
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
 
@@ -925,13 +924,6 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             self.client.disconnected.connect(self.close_connection)
 
             logging.info('Connection established.')
-
-            try:
-                self.sidechain_solver = self.get_sidechain_solver()
-            except issues.MoleculeUnloadedError:
-                logging.error('Failed to load sidechain solver. Disconnected.')
-                self.close_connection()
-                return
 
         except Exception:
             logging.error("Unexpected error during connection:")
@@ -1114,36 +1106,10 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
         self.messageDispatcher(msg_type=msg_type, msg_content=msg_content)
 
-    def get_sidechain_solver(self):
-        from REvoDesign.sidechain_solver import (
-            SidechainSolver,
-        )
-
-        molecule = self.bus.get_value('ui.header_panel.input.molecule', str)
-        chain_id = self.bus.get_value('ui.header_panel.input.chain_id', str)
-
-        if not (molecule and chain_id):
-            raise issues.NoInputError(
-                f'Input missing. {molecule=}, {chain_id=}. You should load molecule before instantializing client.'
-            )
-
-        return SidechainSolver().setup()
-
     def mutagenesis_from_mutant_tree(self, mutant_tree: MutantTree):
         from REvoDesign.tools.mutant_tools import quick_mutagenesis
 
-        if not self.sidechain_solver:
-            logging.warning(
-                "No sidechain_solver is configured. Instantializing..."
-            )
-            self.sidechain_solver = self.get_sidechain_solver()
-
-        self.sidechain_solver.refresh()
-
-        quick_mutagenesis(
-            mutant_tree=mutant_tree,
-            sidechain_solver=self.sidechain_solver,
-        )
+        quick_mutagenesis(mutant_tree=mutant_tree)
 
     def error(self, error_code):
         logging.error(f"error code: {error_code}")

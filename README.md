@@ -6,6 +6,7 @@
 ![architecture](https://img.shields.io/badge/Architecture-win--64%20%7C%20linux--64%20%7C%20osx--64%20%7C%20osx--arm64-6A5FBB)
 ![python-version](https://img.shields.io/badge/Python-3.9_%7C_3.10_%7C_3.11-3776AB?logo=python&logoColor=yellow)
 [![pymol-bundle](https://tinyurl.com/pymol-bundle)](https://pymol.org/2/)
+[![pymol-bundle-v3](https://tinyurl.com/pymol-bundle-v3)](https://pymol.org/)
 [![pymol-open-source](https://tinyurl.com/pymol-open-source)](https://anaconda.org/conda-forge/pymol-open-source)
 ![pyqt](https://img.shields.io/badge/PyQt-5-41CD52?logo=qt)
 ---

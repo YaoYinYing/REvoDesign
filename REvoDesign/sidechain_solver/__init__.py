@@ -10,7 +10,7 @@ from REvoDesign.sidechain_solver.mutate_runner import (
     PIPPack_worker,
 )
 
-from REvoDesign import WITH_DEPENDENCIES, ConfigBus
+from REvoDesign import WITH_DEPENDENCIES, ConfigBus, SingletonAbstract
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 from REvoDesign import root_logger
@@ -54,91 +54,106 @@ class MutateRunnerManager:
     )
 
     def _runner_is_implemented(self, sidechain_solver_name: str) -> bool:
-        if sidechain_solver_name in self.implemented_runner:
-            return True
-        raise issues.PluginNotImplementedError(
-            f'sidechain_solver is not available: {sidechain_solver_name=}: {self.implemented_runner=}'
-        )
+        if not sidechain_solver_name in self.implemented_runner:
+            raise issues.PluginNotImplementedError(
+                f'sidechain_solver is not available: {sidechain_solver_name=}: {self.implemented_runner=}'
+            )
+        return True
 
     def _runner_installed(self, sidechain_solver_name: str) -> bool:
-        if (
+        if not (
             sidechain_solver_name in self.installed_worker
             and self.installed_worker.get(sidechain_solver_name)
         ):
-            return self.installed_worker.get(sidechain_solver_name)
+            raise issues.DependencyError(
+                f'{sidechain_solver_name} is not available in your installation. Aborted..'
+            )
+        return True
 
-        raise issues.DependencyError(
-            f'{sidechain_solver_name} is not available in your installation. Aborted..'
-        )
+    def avaliable(self, sidechain_solver_name: str) -> bool:
+        return self._runner_installed(
+            sidechain_solver_name
+        ) and self._runner_is_implemented(sidechain_solver_name)
 
     def get_runner(
         self, sidechain_solver_name: str, **kwargs
     ) -> MutateRunnerAbstract:
-        if self._runner_installed(
-            sidechain_solver_name
-        ) and self._runner_is_implemented(sidechain_solver_name):
+        if self.avaliable(sidechain_solver_name):
             runner_class = self.implemented_runner[sidechain_solver_name]
             return runner_class(**kwargs)
-        raise
 
 
-class SidechainSolver:
+@dataclass(frozen=True)
+class SidechainSolverConfig:
+    molecule: str
+    sidechain_solver_name: str
+    sidechain_solver_radius: float
+    sidechain_solver_model: str
+
+    def dump(self) -> tuple[str, float]:
+        return (
+            self.molecule,
+            self.sidechain_solver_name,
+            self.sidechain_solver_radius,
+            self.sidechain_solver_model,
+        )
+
+    def reconfigured(self, new_config: 'SidechainSolverConfig') -> bool:
+        reconfigured = False
+        for _new_cfg, _old_cfg in zip(new_config.dump(), self.dump()):
+            if _new_cfg != _old_cfg:
+                logging.warning(
+                    f'SC solver changed: {_old_cfg=} -> {_new_cfg=}'
+                )
+                reconfigured = True
+        return reconfigured
+
+
+class SidechainSolver(SingletonAbstract):
     def __init__(self):
-        self.bus: ConfigBus = ConfigBus()
-        self.mutate_runner: MutateRunnerAbstract = None
+        # Check if the instance has already been initialized
+        if not hasattr(self, 'initialized'):
+            # If not, set the instance attributes
+            self.bus: ConfigBus = ConfigBus()
+            self.mutate_runner: MutateRunnerAbstract = None
+            self.runner_manager = MutateRunnerManager()
+            self.cfg: SidechainSolverConfig = self.get_config()
+            # Mark the instance as initialized to prevent reinitialization
+            self.initialized = True
 
-        self.molecule: str = self.bus.get_value(
-            'ui.header_panel.input.molecule'
-        )
-
-        self.sidechain_solver_name = self.bus.get_value(
-            'ui.config.sidechain_solver.default'
-        )
-
-        self.sidechain_solver_radius = self.bus.get_value(
-            'ui.config.sidechain_solver.repack_radius', float
-        )
-        self.sidechain_solver_model = self.bus.get_value(
-            'ui.config.sidechain_solver.model'
-        )
-
-        self.runner_manager = MutateRunnerManager()
+    @classmethod
+    def initialize(cls):
+        if not cls._instance:
+            cls()
+        else:
+            ...
 
     def setup(self):
         logging.info(
-            f'Using {self.sidechain_solver_name} as sidechain solver.'
+            f'Using {self.cfg.sidechain_solver_name} as sidechain solver.'
         )
 
         input_pdb = make_temperal_input_pdb(
-            molecule=self.molecule, reload=False
+            molecule=self.cfg.molecule, reload=False
         )
 
         try:
             self.mutate_runner = self.runner_manager.get_runner(
-                self.sidechain_solver_name,
+                self.cfg.sidechain_solver_name,
                 pdb_file=input_pdb,
-                use_model=self.sidechain_solver_model,
-                radius=self.sidechain_solver_radius,
-                molecule=self.molecule,
+                use_model=self.cfg.sidechain_solver_model,
+                radius=self.cfg.sidechain_solver_radius,
+                molecule=self.cfg.molecule,
             )
             return self
         except issues.DependencyError:
-            fallback_sidechain_solver = self.fallback()
-            fallback_sidechain_solver.mutate_runner = (
-                fallback_sidechain_solver.runner_manager.get_runner(
-                    fallback_sidechain_solver.sidechain_solver_name,
-                    pdb_file=input_pdb,
-                    use_model=fallback_sidechain_solver.sidechain_solver_model,
-                    radius=fallback_sidechain_solver.sidechain_solver_radius,
-                    molecule=fallback_sidechain_solver.molecule,
-                )
-            )
-            return fallback_sidechain_solver
+            self.fallback().setup()
+            return self
 
     def fallback(self) -> 'SidechainSolver':
         warnings.warn(
             issues.FallingBackWarning(
-                f'{self.sidechain_solver_name=} can not be accessed, fallback to `Dunbrack Rotamer Library`'
+                f'{self.cfg.sidechain_solver_name=} can not be accessed, fallback to `Dunbrack Rotamer Library`'
             )
         )
         self.bus.set_widget_value(
@@ -146,51 +161,35 @@ class SidechainSolver:
             'Dunbrack Rotamer Library',
             hard=True,
         )
-        return self.refresh()
+        self.cfg = self.get_config()
+        return self
 
-    @property
-    def cfg_updated(self) -> bool:
-        molecule: str = self.bus.get_value('ui.header_panel.input.molecule')
-
-        sidechain_solver_name = self.bus.get_value(
-            'ui.config.sidechain_solver.default'
+    def get_config(self) -> SidechainSolverConfig:
+        cfg = SidechainSolverConfig(
+            molecule=self.bus.get_value('ui.header_panel.input.molecule'),
+            sidechain_solver_name=self.bus.get_widget_value(
+                'ui.config.sidechain_solver.default'
+            ),
+            sidechain_solver_radius=self.bus.get_widget_value(
+                'ui.config.sidechain_solver.repack_radius', float
+            ),
+            sidechain_solver_model=self.bus.get_widget_value(
+                'ui.config.sidechain_solver.model'
+            ),
         )
 
-        sidechain_solver_radius = self.bus.get_value(
-            'ui.config.sidechain_solver.repack_radius', float
-        )
-        sidechain_solver_model = self.bus.get_value(
-            'ui.config.sidechain_solver.model'
-        )
-
-        new_cfgs = [
-            molecule,
-            sidechain_solver_name,
-            sidechain_solver_radius,
-            sidechain_solver_model,
-        ]
-        old_cfgs = [
-            self.molecule,
-            self.sidechain_solver_name,
-            self.sidechain_solver_radius,
-            self.sidechain_solver_model,
-        ]
-        reconfigured = False
-        for _new_cfg, _old_cfg in zip(new_cfgs, old_cfgs):
-            if _new_cfg != _old_cfg:
-                logging.warning(
-                    f'SC solver changed: {_old_cfg=} -> {_new_cfg=}'
-                )
-                reconfigured = True
-
-        return reconfigured
+        return cfg
 
     def refresh(self) -> 'SidechainSolver':
-        if self.cfg_updated:
-            logging.warning(f'Reconfiguring SC solver...')
+        latest_cfg = self.get_config()
+        if not (reconfigured := self.cfg.reconfigured(new_config=latest_cfg)):
+            logging.warning(
+                f'SC solver stays unchanged: {self.cfg=}, {latest_cfg=}.'
+            )
+
+        if reconfigured or not self.mutate_runner:
+            logging.warning(f'Reconfiguring SC solver with {latest_cfg=}...')
             # return a updated
-            self = SidechainSolver().setup()
-        else:
-            logging.warning(f'SC solver stays unchanged.')
+            self.setup()
 
         return self

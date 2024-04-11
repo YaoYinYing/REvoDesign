@@ -6,6 +6,12 @@ from typing import Union
 
 import pytest
 
+from REvoDesign.clients.QtSocketConnector import (
+    REvoDesignWebSocketClient,
+    REvoDesignWebSocketServer,
+)
+from REvoDesign.sidechain_solver import SidechainSolver
+
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
 from immutabledict import immutabledict
@@ -49,6 +55,9 @@ def app():
 def plugin(qtbot: qtbot.QtBot, app):
     # Create and return an instance of the REvoDesignPlugin
     plugin = REvoDesignPlugin()
+    REvoDesignWebSocketClient.reset_instance()
+    REvoDesignWebSocketServer.reset_instance()
+    SidechainSolver.reset_instance()
     ConfigBus.reset_instance()
     if not plugin.window:
         plugin.run_plugin_gui()

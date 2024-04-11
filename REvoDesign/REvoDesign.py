@@ -5,6 +5,7 @@ import traceback
 
 # using partial module to reduce duplicate code.
 from functools import partial
+from typing import Literal
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -64,6 +65,8 @@ REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 logging = None
 
+IO_MODE = Literal['r', 'w']
+
 
 class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
@@ -86,7 +89,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.design_sequence = ''
 
         self.gremlin_worker = None
-        self.sidechain_solver = None
         self.evaluator = None
         global logging
         logging = root_logger.getChild(self.__class__.__name__)
@@ -158,7 +160,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def reinitialize(self, delete=False):
         self.gremlin_worker = None
-        self.sidechain_solver = None
         self.evaluator = None
         gc.collect()
 
@@ -693,7 +694,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
-    def browse_filename(self, mode='r', exts=[FileExtentions.AnyFileExt]):
+    def browse_filename(
+        self, mode: IO_MODE = 'r', exts=[FileExtentions.AnyFileExt]
+    ):
         from pymol.Qt.utils import getSaveFileNameWithExt
 
         filter_strings = ';;'.join(
@@ -704,7 +707,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ]
         )
 
-        if mode == 'w' or mode == 'a':
+        if mode == 'w':
             browse_title = 'Save As...'
             filename = getSaveFileNameWithExt(
                 self.window, browse_title, filter=filter_strings
@@ -845,7 +848,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.setup_pssm_gremlin_calculator()
 
-    def open_mutant_table(self, cfg_mutant_table: str, mode='r'):
+    def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = 'r'):
         if mode == 'r':
             input_mut_txt_fn = self.open_input_psepath(
                 cfg_mutant_table,
@@ -861,7 +864,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 logging.warning(
                     f'Could not open file for reading: {input_mut_txt_fn}'
                 )
-        elif mode == 'w':
+        else:
             output_mut_txt_fn = self.browse_filename(
                 mode=mode,
                 exts=[
@@ -876,8 +879,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.bus.set_widget_value(cfg_mutant_table, output_mut_txt_fn)
             else:
                 logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
-        else:
-            logging.warning(f'Unknown mode {mode} ! Aborded.')
 
     def find_session_path(self) -> str:
         session_path: str = cmd.get('session_file')
@@ -1049,15 +1050,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         pocketsearcher = None
 
     # Tab `Mutate`
-    def refresh_sidechainsolver(self) -> None:
-        from REvoDesign.sidechain_solver import SidechainSolver
-
-        if not self.sidechain_solver:
-            self.sidechain_solver = SidechainSolver().setup()
-            return
-
-        self.sidechain_solver = self.sidechain_solver.refresh()
-
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
     ):
@@ -1082,13 +1074,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_PSSM_to_pse')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
             worker = MutateWorker(
-                mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
 
@@ -1252,14 +1238,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.phylogenetics import VisualizingWorker
 
         with hold_trigger_button(trigger_button):
-            # reinstiatate sidechain solver if required
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
             worker = VisualizingWorker(
-                mutate_runner=self.sidechain_solver.mutate_runner,
                 PWD=self.PWD,
             )
             worker.visualize_mutants()
@@ -1431,16 +1410,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('reinitialize_interact')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
             from REvoDesign.phylogenetics import GREMLIN_Analyser
 
             self.gremlin_worker = GREMLIN_Analyser(
                 PWD=self.PWD,
-                mutate_runner=self.sidechain_solver.mutate_runner,
             )
             self.gremlin_worker.load_gremlin_mrf()
 
@@ -1451,14 +1424,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_interact_scan')
 
         with hold_trigger_button(trigger_button):
-            run_worker_thread_with_progress(
-                self.refresh_sidechainsolver,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
-            self.gremlin_worker.mutate_runner = (
-                self.sidechain_solver.mutate_runner
-            )
             self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept):
@@ -1575,10 +1540,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def setup_ws_client(self):
         self.ws_client.setup_ws_client()
-        run_worker_thread_with_progress(
-            self.refresh_sidechainsolver,
-            progress_bar=self.bus.ui.progressBar,
-        )
 
     def update_ws_client_view_update_options(self):
         if not self.ws_client or not self.ws_client.connected:
@@ -1666,11 +1627,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def save_configuration_from_ui(self, experiment: str = None):
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
 
-    def load_and_save_experiment(self, mode='r'):
+    def load_and_save_experiment(self, mode: IO_MODE = 'r'):
         import shutil
 
-        if not (mode == 'r' or mode == 'w'):
-            return
         new_cfg_file = self.browse_filename(
             mode=mode,
             exts=[FileExtentions.ConfigFileExt, FileExtentions.AnyFileExt],
