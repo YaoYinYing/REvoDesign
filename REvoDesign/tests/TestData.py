@@ -163,6 +163,11 @@ class TestData:
     def multi_mut_txt_mpnn(self):
         return f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mpnn_mut.txt'
 
+    gremlin_homomer_molecule: str = '4MB8'
+    gremlin_homomer_profile_url: str = ''
+
+    gremlin_homomer_chains: str = 'ABCD'
+
 
 @dataclass
 class KeyDataDuringTests:

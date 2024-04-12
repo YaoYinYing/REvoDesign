@@ -31,7 +31,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="153"/>
         <location filename="../REvoDesign.ui" line="185"/>
-        <location filename="../REvoDesign.ui" line="4265"/>
+        <location filename="../REvoDesign.ui" line="4299"/>
         <source>radius:</source>
         <translation type="unfinished">半径：</translation>
     </message>
@@ -61,7 +61,7 @@
         <location filename="../REvoDesign.ui" line="426"/>
         <location filename="../REvoDesign.ui" line="560"/>
         <location filename="../REvoDesign.ui" line="2713"/>
-        <location filename="../REvoDesign.ui" line="3261"/>
+        <location filename="../REvoDesign.ui" line="3213"/>
         <source>Å</source>
         <translation></translation>
     </message>
@@ -180,7 +180,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="736"/>
-        <location filename="../REvoDesign.ui" line="3333"/>
+        <location filename="../REvoDesign.ui" line="3349"/>
         <source>Format of profile, automatically determined. Profile will be ignored if choosing external designer.</source>
         <translation></translation>
     </message>
@@ -239,7 +239,7 @@
         <translation></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4545"/>
+        <location filename="../REvoDesign.ui" line="4579"/>
         <source>Lower scores will be favored in certain scoring methods, such as ddG scoring.</source>
         <translation>在特定的打分机制（如ddG, MPNN）中，偏好更低的得分。</translation>
     </message>
@@ -420,7 +420,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1500"/>
-        <location filename="../REvoDesign.ui" line="3347"/>
+        <location filename="../REvoDesign.ui" line="3365"/>
         <source>Initialize</source>
         <translation>初始化</translation>
     </message>
@@ -480,7 +480,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1636"/>
-        <location filename="../REvoDesign.ui" line="3387"/>
+        <location filename="../REvoDesign.ui" line="3395"/>
         <source>Next</source>
         <translation>下一个</translation>
     </message>
@@ -496,7 +496,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1677"/>
-        <location filename="../REvoDesign.ui" line="3397"/>
+        <location filename="../REvoDesign.ui" line="3405"/>
         <source>Reject</source>
         <translation>拒绝</translation>
     </message>
@@ -512,7 +512,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1715"/>
-        <location filename="../REvoDesign.ui" line="3407"/>
+        <location filename="../REvoDesign.ui" line="3425"/>
         <source>Accept</source>
         <translation>接受</translation>
     </message>
@@ -528,7 +528,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="1750"/>
-        <location filename="../REvoDesign.ui" line="3377"/>
+        <location filename="../REvoDesign.ui" line="3415"/>
         <source>Previous</source>
         <translation>上一个</translation>
     </message>
@@ -682,7 +682,7 @@
     <message>
         <location filename="../REvoDesign.ui" line="2361"/>
         <source>Save this mutant table (Mutants that keep enabled in current PyMOL session)</source>
-        <translation type="unfinished"></translation>
+        <translation>保存选中的点突变表</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2364"/>
@@ -716,7 +716,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2432"/>
-        <location filename="../REvoDesign.ui" line="3551"/>
+        <location filename="../REvoDesign.ui" line="3583"/>
         <source>Mut:</source>
         <translation>突变个体：</translation>
     </message>
@@ -732,7 +732,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2486"/>
-        <location filename="../REvoDesign.ui" line="3465"/>
+        <location filename="../REvoDesign.ui" line="3489"/>
         <source>Score:</source>
         <translation>打分：</translation>
     </message>
@@ -819,7 +819,7 @@
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="2818"/>
-        <location filename="../REvoDesign.ui" line="4703"/>
+        <location filename="../REvoDesign.ui" line="4737"/>
         <source>Reinitialize</source>
         <translation>初始化</translation>
     </message>
@@ -919,578 +919,591 @@
         <translation>共进化位点对</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3188"/>
+        <location filename="../REvoDesign.ui" line="3273"/>
         <source>Top:</source>
         <translation>前：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3204"/>
+        <location filename="../REvoDesign.ui" line="3289"/>
         <source>Select top N interact pairs</source>
         <translation>选择前N组互作位点对。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3239"/>
+        <location filename="../REvoDesign.ui" line="3191"/>
         <source>Dist.: </source>
         <translation>距离：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3255"/>
+        <location filename="../REvoDesign.ui" line="3207"/>
         <source>Max distance to accept a co-evolved pair.</source>
         <translation>最远可接受共进化位点对的距离。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3283"/>
         <source>Ignore WT-to-WT mutagenesis</source>
-        <translation>忽略野生型到野生型的突变个体</translation>
+        <translation type="vanished">忽略野生型到野生型的突变个体</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3286"/>
         <source>Ignore WT</source>
-        <translation>忽略野生型</translation>
+        <translation type="vanished">忽略野生型</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3305"/>
+        <location filename="../REvoDesign.ui" line="3321"/>
         <source>Scorer:</source>
         <translation type="unfinished">打分器：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3344"/>
+        <location filename="../REvoDesign.ui" line="3362"/>
         <source>Initialize design work space</source>
         <translation>初始化设计工作界面</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3357"/>
+        <location filename="../REvoDesign.ui" line="3375"/>
         <source>Scan for co-evolved pairs.</source>
         <translation>扫描符合约束条件的共进化位点对</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3360"/>
+        <location filename="../REvoDesign.ui" line="3378"/>
         <source>Scan</source>
         <translation>扫描</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3374"/>
+        <location filename="../REvoDesign.ui" line="3412"/>
         <source>Previous co-evolved pair.</source>
         <translation>上一组共进化位点对。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3384"/>
+        <location filename="../REvoDesign.ui" line="3392"/>
         <source>Next co-evolved pair.</source>
         <translation>下一组共进化位点对</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3394"/>
+        <location filename="../REvoDesign.ui" line="3233"/>
+        <source>Bind to multiple chains</source>
+        <translation>绑定多条链（同源多聚体）模式</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3236"/>
+        <source>Bind Chains:</source>
+        <translation type="unfinished">绑定：</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3243"/>
+        <source>Chain IDs to bind together. eg. `ABCD`</source>
+        <translation>需要绑定的链编号。</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="3402"/>
         <source>Reject picked pair.</source>
         <translation>拒绝挑选的突变对</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3404"/>
+        <location filename="../REvoDesign.ui" line="3422"/>
         <source>Accept picked pair.</source>
         <translation>接受挑选的点突变对。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3430"/>
+        <location filename="../REvoDesign.ui" line="3450"/>
         <source>Pair:</source>
         <translation>位点对：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3443"/>
+        <location filename="../REvoDesign.ui" line="3463"/>
         <source>Pair id</source>
         <translation>共进化位点对的名称</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3490"/>
+        <location filename="../REvoDesign.ui" line="3514"/>
         <source>Pair score</source>
         <translation>共进化位点对的分数（关联性）</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3516"/>
+        <location filename="../REvoDesign.ui" line="3544"/>
         <source>WT:</source>
         <translation>野生型：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3529"/>
+        <location filename="../REvoDesign.ui" line="3557"/>
         <source>WT GREMLIN score</source>
         <translation>野生型GREMLIN分数</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3564"/>
+        <location filename="../REvoDesign.ui" line="3596"/>
         <source>Mutant GREMLIN score</source>
         <translation>突变体GREMLIN分数</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3579"/>
+        <location filename="../REvoDesign.ui" line="3613"/>
         <source>Client</source>
         <translation>客户端</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3591"/>
+        <location filename="../REvoDesign.ui" line="3625"/>
         <source>GREMLIN-PSSM-Calculator</source>
         <translation>GREMLIN-PSSM计算器</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3613"/>
+        <location filename="../REvoDesign.ui" line="3647"/>
         <source>Sever:</source>
         <translation>服务器：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3623"/>
+        <location filename="../REvoDesign.ui" line="3657"/>
         <source>Server URL for PSSM GREMLIN calculation.</source>
         <translation>PSSM GREMLIN计算服务器的ip/域名。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3626"/>
+        <location filename="../REvoDesign.ui" line="3660"/>
         <source>https://revodesign.yaoyy.moe/</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3637"/>
+        <location filename="../REvoDesign.ui" line="3671"/>
         <source>Submit the selected molecule and chain.</source>
         <translation>提交选择的蛋白分子链用于计算PSSM GREMLIN。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3640"/>
+        <location filename="../REvoDesign.ui" line="3674"/>
         <source>Submit</source>
         <translation>提交</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3647"/>
+        <location filename="../REvoDesign.ui" line="3681"/>
         <source>Cancel running/queuing task.</source>
         <translation>取消在执行/排队的任务。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3650"/>
+        <location filename="../REvoDesign.ui" line="3684"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3657"/>
+        <location filename="../REvoDesign.ui" line="3691"/>
         <source>Download completed results.</source>
         <translation>下载完整的分析结果。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3660"/>
+        <location filename="../REvoDesign.ui" line="3694"/>
         <source>Download</source>
         <translation>下载</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3679"/>
+        <location filename="../REvoDesign.ui" line="3713"/>
         <source>User: </source>
         <translation>用户：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3695"/>
+        <location filename="../REvoDesign.ui" line="3729"/>
         <source>Server username for PSSM GREMLIN calculation.</source>
         <translation>PSSM GREMLIN计算服务器的用户名。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3698"/>
+        <location filename="../REvoDesign.ui" line="3732"/>
         <source>revodesign_users</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3711"/>
+        <location filename="../REvoDesign.ui" line="3745"/>
         <source>Passwd:</source>
         <translation>口令：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3727"/>
+        <location filename="../REvoDesign.ui" line="3761"/>
         <source>Server password for PSSM GREMLIN calculation.</source>
         <translation>PSSM GREMLIN服务器访问口令，同网站口令。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3748"/>
+        <location filename="../REvoDesign.ui" line="3782"/>
         <source>Socket</source>
         <translation>互联</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3763"/>
+        <location filename="../REvoDesign.ui" line="3797"/>
         <source>Host options</source>
         <translation>主机选项</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3778"/>
+        <location filename="../REvoDesign.ui" line="3812"/>
         <source>Broadcast time interval.</source>
         <translation>广播的时间间隔。越小越频繁。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3781"/>
+        <location filename="../REvoDesign.ui" line="3815"/>
         <source>Broadcast interval:</source>
         <translation>广播间隔</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3791"/>
+        <location filename="../REvoDesign.ui" line="3825"/>
         <source>Broadcast time interval. Smaller means faster.</source>
         <translation>广播的时间间隔。越小越频繁。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3816"/>
+        <location filename="../REvoDesign.ui" line="3850"/>
         <source>sec</source>
         <translation>秒</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3836"/>
+        <location filename="../REvoDesign.ui" line="3870"/>
         <source>Peer options</source>
         <translation>用户选项</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3856"/>
+        <location filename="../REvoDesign.ui" line="3890"/>
         <source>Server IP/domain to connect</source>
         <translation>待连接的主机IP/域名</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3859"/>
+        <location filename="../REvoDesign.ui" line="3893"/>
         <source>Host:</source>
         <translation>主机：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3869"/>
+        <location filename="../REvoDesign.ui" line="3903"/>
         <source>Host IP/domain to connect</source>
         <translation>主机IP/域名</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3872"/>
+        <location filename="../REvoDesign.ui" line="3906"/>
         <source>localhost</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3883"/>
+        <location filename="../REvoDesign.ui" line="3917"/>
         <source>Join the network</source>
         <translation>加入互联的网络</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3886"/>
+        <location filename="../REvoDesign.ui" line="3920"/>
         <source>Join</source>
         <translation>加入协作</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3893"/>
+        <location filename="../REvoDesign.ui" line="3927"/>
         <source>Leave the network</source>
         <translation>离开互作网络</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3896"/>
+        <location filename="../REvoDesign.ui" line="3930"/>
         <source>Leave</source>
         <translation>离开协作</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3915"/>
+        <location filename="../REvoDesign.ui" line="3949"/>
         <source>Team role</source>
         <translation>协作模式角色</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3935"/>
+        <location filename="../REvoDesign.ui" line="3969"/>
         <source>Start teamwork server to create a network</source>
         <translation>启动协作网络服务</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3938"/>
+        <location filename="../REvoDesign.ui" line="3972"/>
         <source>Host Mode</source>
         <translation>主机模式</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3945"/>
+        <location filename="../REvoDesign.ui" line="3979"/>
         <source>Duplex mode: receive broadcasts from the clients.</source>
         <translation>双工模式：接受客户端广播。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3948"/>
+        <location filename="../REvoDesign.ui" line="3982"/>
         <source>Duplex</source>
         <translation>双工模式</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3963"/>
+        <location filename="../REvoDesign.ui" line="3997"/>
         <source>Port:</source>
         <translation>端口：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="3979"/>
+        <location filename="../REvoDesign.ui" line="4013"/>
         <source>Server port to communicate with peers</source>
         <translation>主机连接端口</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4001"/>
+        <location filename="../REvoDesign.ui" line="4035"/>
         <source>Use key in server</source>
         <translation>启用密钥验证</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4004"/>
+        <location filename="../REvoDesign.ui" line="4038"/>
         <source>Key:</source>
         <translation>密钥：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4014"/>
+        <location filename="../REvoDesign.ui" line="4048"/>
         <source>Server key for client authentication.</source>
         <translation>用于客户端认证的密钥</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4024"/>
+        <location filename="../REvoDesign.ui" line="4058"/>
         <source>Generate key</source>
         <translation>生成密钥</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4027"/>
+        <location filename="../REvoDesign.ui" line="4061"/>
         <source>Generate</source>
         <translation>生成</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4046"/>
+        <location filename="../REvoDesign.ui" line="4080"/>
         <source>Peers in this networks</source>
         <translation>在该网络中的对等用户</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4050"/>
+        <location filename="../REvoDesign.ui" line="4084"/>
         <source>Peers</source>
         <translation>对等用户</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4064"/>
+        <location filename="../REvoDesign.ui" line="4098"/>
         <source>Receive</source>
         <translation>接收</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4079"/>
-        <location filename="../REvoDesign.ui" line="4105"/>
+        <location filename="../REvoDesign.ui" line="4113"/>
+        <location filename="../REvoDesign.ui" line="4139"/>
         <source>Receive mutant updates</source>
         <translation>接收点突变更新</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4082"/>
-        <location filename="../REvoDesign.ui" line="4149"/>
+        <location filename="../REvoDesign.ui" line="4116"/>
+        <location filename="../REvoDesign.ui" line="4183"/>
         <source>Mutations</source>
         <translation>突变</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4095"/>
+        <location filename="../REvoDesign.ui" line="4129"/>
         <source>Receive  view updates</source>
         <translation>接受界面更新</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4098"/>
-        <location filename="../REvoDesign.ui" line="4165"/>
+        <location filename="../REvoDesign.ui" line="4132"/>
+        <location filename="../REvoDesign.ui" line="4199"/>
         <source>View Change</source>
         <translation>界面变更</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4108"/>
-        <location filename="../REvoDesign.ui" line="4175"/>
+        <location filename="../REvoDesign.ui" line="4142"/>
+        <location filename="../REvoDesign.ui" line="4209"/>
         <source>Selection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4131"/>
+        <location filename="../REvoDesign.ui" line="4165"/>
         <source>Broadcast</source>
         <translation>广播</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4146"/>
-        <location filename="../REvoDesign.ui" line="4172"/>
+        <location filename="../REvoDesign.ui" line="4180"/>
+        <location filename="../REvoDesign.ui" line="4206"/>
         <source>Broadcast mutant updates</source>
         <translation>广播新产生的点突变。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4162"/>
+        <location filename="../REvoDesign.ui" line="4196"/>
         <source>Broadcast view changes</source>
         <translation>广播PyMOL界面变化。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4191"/>
+        <location filename="../REvoDesign.ui" line="4225"/>
         <source>Config</source>
         <translation>配置</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4203"/>
+        <location filename="../REvoDesign.ui" line="4237"/>
         <source>Sidechain options</source>
         <translation>侧链选项</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4224"/>
+        <location filename="../REvoDesign.ui" line="4258"/>
         <source>Solver:</source>
         <translation>求解器：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4252"/>
+        <location filename="../REvoDesign.ui" line="4286"/>
         <source>Sidechain solver. Default: buildin for Dunbrack rotamer library used by PyMOL </source>
         <translation>侧链求解器。默认用DLPacker.</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4294"/>
+        <location filename="../REvoDesign.ui" line="4328"/>
         <source>Model:</source>
         <translation>模型：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4322"/>
+        <location filename="../REvoDesign.ui" line="4356"/>
         <source>Sidechain solver options. </source>
         <translation>侧链求解器选项。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4341"/>
+        <location filename="../REvoDesign.ui" line="4375"/>
         <source>Molecule and Chain</source>
         <translation>蛋白分子和肽链</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4365"/>
+        <location filename="../REvoDesign.ui" line="4399"/>
         <source>Molecule: </source>
         <translation>蛋白分子：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4387"/>
+        <location filename="../REvoDesign.ui" line="4421"/>
         <source>Molecule for design.</source>
         <translation>用于设计的分子</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4400"/>
+        <location filename="../REvoDesign.ui" line="4434"/>
         <source>Chain: </source>
         <translation>蛋白链：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4422"/>
+        <location filename="../REvoDesign.ui" line="4456"/>
         <source>Chain ID for design.</source>
         <translation>需要设计的蛋白链</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4442"/>
+        <location filename="../REvoDesign.ui" line="4476"/>
         <source>Parallelism</source>
         <translation>并行计算</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4466"/>
-        <location filename="../REvoDesign.ui" line="4485"/>
+        <location filename="../REvoDesign.ui" line="4500"/>
+        <location filename="../REvoDesign.ui" line="4519"/>
         <source>Number of processors used. Parallelism is enabled if CPU is set greater than 1</source>
         <translation>可分配的处理器核心数。若大于1，则开启并行计算。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4469"/>
+        <location filename="../REvoDesign.ui" line="4503"/>
         <source>CPUs:</source>
         <translation>核心数：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4505"/>
+        <location filename="../REvoDesign.ui" line="4539"/>
         <source>Color Map</source>
         <translation>颜色预设</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4532"/>
+        <location filename="../REvoDesign.ui" line="4566"/>
         <source>Color map.</source>
         <translation>预设的颜色方案。从matplotlib中提取。</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4580"/>
+        <location filename="../REvoDesign.ui" line="4614"/>
         <source>REvoDesign</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4584"/>
+        <location filename="../REvoDesign.ui" line="4618"/>
         <source>Experiment</source>
         <translation>实验方案</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4591"/>
+        <location filename="../REvoDesign.ui" line="4625"/>
         <source>Language</source>
         <translation>语言</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4611"/>
+        <location filename="../REvoDesign.ui" line="4645"/>
         <source>About</source>
         <translation>关于</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4625"/>
+        <location filename="../REvoDesign.ui" line="4659"/>
         <source>Set Rosetta Path</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4630"/>
+        <location filename="../REvoDesign.ui" line="4664"/>
         <source>Set GNU Parallel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4635"/>
+        <location filename="../REvoDesign.ui" line="4669"/>
         <source>Source Code</source>
         <translation>源代码</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4640"/>
+        <location filename="../REvoDesign.ui" line="4674"/>
         <source>Check for updates</source>
         <translation>检查更新</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4645"/>
+        <location filename="../REvoDesign.ui" line="4679"/>
         <source>Import PyMOL Session</source>
         <translation>导入PyMOL会话</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4650"/>
+        <location filename="../REvoDesign.ui" line="4684"/>
         <source>Citations</source>
         <translation>引用</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4655"/>
+        <location filename="../REvoDesign.ui" line="4689"/>
         <source>Set Working Directory</source>
         <translation>设置工作路径</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4660"/>
+        <location filename="../REvoDesign.ui" line="4694"/>
         <source>Debug</source>
         <translation>调试</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4665"/>
+        <location filename="../REvoDesign.ui" line="4699"/>
         <source>Warning</source>
         <translation>告警</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4670"/>
+        <location filename="../REvoDesign.ui" line="4704"/>
         <source>Info</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4675"/>
+        <location filename="../REvoDesign.ui" line="4709"/>
         <source>Reconfigure</source>
         <translation>配置重载</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4678"/>
+        <location filename="../REvoDesign.ui" line="4712"/>
         <source>Reconfigure REvoDesign from YAML config file.</source>
         <translation>重新载入保存的配置文件</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4683"/>
+        <location filename="../REvoDesign.ui" line="4717"/>
         <source>Save Configurations</source>
         <translation>保存配置</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4688"/>
+        <location filename="../REvoDesign.ui" line="4722"/>
         <source>Load Demo</source>
         <translation>加载实例</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4693"/>
+        <location filename="../REvoDesign.ui" line="4727"/>
         <source>Load</source>
         <translation>加载</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4698"/>
+        <location filename="../REvoDesign.ui" line="4732"/>
         <source>Save to ...</source>
         <translation>保存到...</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4708"/>
+        <location filename="../REvoDesign.ui" line="4742"/>
         <source>Version</source>
         <translation>版本</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4716"/>
+        <location filename="../REvoDesign.ui" line="4750"/>
         <source>English</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4724"/>
+        <location filename="../REvoDesign.ui" line="4758"/>
         <source>Chinese</source>
         <translation>中文</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="4732"/>
+        <location filename="../REvoDesign.ui" line="4766"/>
         <source>French</source>
         <translation></translation>
     </message>

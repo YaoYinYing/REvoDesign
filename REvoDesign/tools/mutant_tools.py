@@ -489,6 +489,8 @@ def quick_mutagenesis(mutant_tree: MutantTree):
     visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
     cfg = bus.cfg
 
+    visualizer.designable_sequences = designable_sequences
+
     visualizer.nproc = nproc
     visualizer.input_session = input_pdb
     visualizer.sequence = sequence

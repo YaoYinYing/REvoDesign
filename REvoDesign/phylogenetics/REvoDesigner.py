@@ -47,6 +47,7 @@ class REvoDesigner:
         self.input_pse = ''
         self.output_pse = ''
         self.molecule = ''
+        self.designable_sequences: dict[str, str] = {}
         self.chain_id = 'A'
 
         self.input_profile = input_profile
@@ -541,6 +542,7 @@ class REvoDesigner:
         profile_parser = MutantVisualizer(
             molecule=self.molecule, chain_id=self.chain_id
         )
+        profile_parser.designable_sequences = self.designable_sequences
         profile_parser.sequence = self.sequence
         df = profile_parser.parse_profile(
             profile_fp=self.input_profile,

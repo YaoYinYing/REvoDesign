@@ -2,6 +2,7 @@ import asyncio
 from functools import partial
 import os
 import traceback
+from itertools import combinations_with_replacement
 
 from immutabledict import immutabledict
 from REvoDesign import ConfigBus
@@ -14,7 +15,6 @@ from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import QbuttonMatrix, set_widget_value
 from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_pymol_object,
-    extract_mutants_from_mutant_id,
     save_mutant_choices,
 )
 
@@ -31,7 +31,7 @@ from REvoDesign.tools.utils import (
     run_worker_thread_with_progress,
 )
 from pymol import cmd, CmdException
-from typing import Literal
+from typing import Dict, List, Literal, Union
 from dataclasses import dataclass
 from REvoDesign import root_logger
 import warnings
@@ -142,6 +142,7 @@ class MutateWorker:
             from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 
             self.design = REvoDesigner(design_profile)
+            self.design.designable_sequences = self.designable_sequences
             self.design.input_pse = input_pse
             self.design.output_pse = output_pse
             self.design.input_profile_format = design_profile_format
@@ -277,6 +278,7 @@ class VisualizingWorker:
                 molecule=self.design_molecule,
                 chain_id=self.design_chain_id,
             )
+            self.visualizer.designable_sequences = self.designable_sequences
             self.visualizer.mutfile = input_mut_table_csv
             self.visualizer.input_session = make_temperal_input_pdb(
                 molecule=self.design_molecule,
@@ -363,6 +365,10 @@ class GREMLIN_Analyser:
         )
         self.ce_object_name = None
 
+        self.max_interact_dist: float = -1
+        self.chain_binding_enabled: bool = False
+        self.chains_to_bind: list = []
+
     def load_gremlin_mrf(
         self,
     ):
@@ -440,6 +446,67 @@ class GREMLIN_Analyser:
                 f'Work Space is cleaned. Click once again to reinitialize. '
             )
 
+    def _get_dist(
+        self,
+        chain_1: str,
+        chain_2: str,
+        i_1: Union[int, str],
+        j_1: Union[int, str],
+    ) -> float:
+        atom1 = (
+            f'{self.design_molecule} and c. {chain_1} and i. {i_1} and n. CA'
+        )
+        atom2 = (
+            f'{self.design_molecule} and c. {chain_2} and i. {j_1} and n. CA'
+        )
+        return cmd.get_distance(atom1=atom1, atom2=atom2)
+
+    def bind_chains(self):
+        self.max_interact_dist: float = self.bus.get_value(
+            'ui.interact.max_interact_dist', float
+        )
+        self.chain_binding_enabled: bool = self.bus.get_value(
+            'ui.interact.chain_binding.enabled', bool
+        )
+        self.chains_to_bind: list = list(
+            set(
+                self.bus.get_value(
+                    'ui.interact.chain_binding.chains_to_bind', str
+                )
+            )
+        )
+
+        # fix chain id if chain binding is enabled.
+        if not (self.chain_binding_enabled and self.chains_to_bind):
+            logging.info('Intrachain connections.')
+            for i, pair in self.coevolved_pairs.items():
+                pair.dist_cutoff = self.max_interact_dist
+
+                dist = self._get_dist(
+                    chain_1=self.design_chain_id,
+                    chain_2=self.design_chain_id,
+                    i_1=pair.i_1,
+                    j_1=pair.j_1,
+                )
+                pair.homochains_dist.update(
+                    {f'{self.design_chain_id}{self.design_chain_id}': dist}
+                )
+
+            return
+
+        for i, pair in self.coevolved_pairs.items():
+            pair.dist_cutoff = self.max_interact_dist
+            for c1, c2 in combinations_with_replacement(
+                self.chains_to_bind, 2
+            ):
+                if (
+                    dist := self._get_dist(
+                        chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1
+                    )
+                ) > pair.dist_cutoff:
+                    continue
+                pair.homochains_dist.update({f'{c1}{c2}': dist})
+
     def run_gremlin_tool(self):
         self.coevolved_pairs: dict[int, CoevolvedPair] = {}
 
@@ -514,7 +581,17 @@ class GREMLIN_Analyser:
 
         logging.debug(self.coevolved_pairs)
 
-        self.plot_coevolved_pair_in_pymol()
+        logging.info(f'Binding Chains ...')
+        run_worker_thread_with_progress(
+            worker_function=self.bind_chains,
+            progress_bar=self.bus.ui.progressBar,
+        )
+
+        logging.info('Visualizing as bonds ...')
+        run_worker_thread_with_progress(
+            worker_function=self.plot_coevolved_pair_in_pymol,
+            progress_bar=self.bus.ui.progressBar,
+        )
 
         try:
             self.bus.button('previous').clicked.disconnect()
@@ -553,9 +630,6 @@ class GREMLIN_Analyser:
         self.gremlin_tool.cite()
 
     def plot_coevolved_pair_in_pymol(self):
-        max_interact_dist: float = self.bus.get_value(
-            'ui.interact.max_interact_dist', float
-        )
         min_gremlin_score = min(
             [
                 min([i.zscore for i in self.coevolved_pairs.values()]),
@@ -567,47 +641,40 @@ class GREMLIN_Analyser:
         )
 
         self.ce_object_name = cmd.get_unused_name(
-            f"ce_pairs_{self.design_molecule}_{self.design_chain_id}"
+            f"ce_pairs_{self.design_molecule}"
         )
 
         cmd.create(
             self.ce_object_name,
-            f'{self.design_molecule} and c. {self.design_chain_id} and n. CA',
+            f'{self.design_molecule} and n. CA',
         )
         cmd.hide('cartoon', self.ce_object_name)
         cmd.hide('surface', self.ce_object_name)
 
         i_out_of_range = []
         for i, pair in self.coevolved_pairs.items():
-            atom1 = f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair.i_1} and n. CA'
-            atom2 = f'{self.design_molecule} and c. {self.design_chain_id} and i. {pair.j_1} and n. CA'
-            pair.dist = cmd.get_distance(
-                atom1=atom1,
-                atom2=atom2,
-            )
-
-            pair.dist_cutoff = max_interact_dist
-            cmd.bond(
-                f'{self.ce_object_name} and c. {self.design_chain_id} and i. {pair.i_1} and n. CA',
-                f'{self.ce_object_name} and c. {self.design_chain_id} and i. {pair.j_1} and n. CA',
-            )
-            cmd.set(
-                'stick_radius',
-                rescale_number(
-                    pair.zscore,
-                    min_value=min_gremlin_score,
-                    max_value=max_gremlin_score,
-                ),
-                f'({self.ce_object_name}  and c. {self.design_chain_id} and resi {pair.i_1}+{pair.j_1} and n. CA)',
-            )
-            if pair.is_out_of_range:
-                logging.info(
-                    f'Resi {pair.i_1} is {pair.dist:.2f} Å away from {pair.j_1}, out of distance {pair.dist_cutoff} Å.'
+            for cc, atom_pair in pair.all_atom_pairs.items():
+                cmd.bond(
+                    f'{self.ce_object_name} and {atom_pair[0]}',
+                    f'{self.ce_object_name} and {atom_pair[1]}',
                 )
-                i_out_of_range.append(i)
-                self.mark_pair_state(pair=pair, state='out_of_range')
-            else:
-                self.mark_pair_state(pair=pair, state='available')
+                cmd.set(
+                    'stick_radius',
+                    rescale_number(
+                        pair.zscore,
+                        min_value=min_gremlin_score,
+                        max_value=max_gremlin_score,
+                    ),
+                    f'({self.ce_object_name})  and ({atom_pair[0]} or {atom_pair[1]})',
+                )
+                if pair.is_out_of_range:
+                    logging.info(
+                        f'Resi {pair.i_1}({cc[0]}) is {pair.dist:.2f} Å away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å.'
+                    )
+                    i_out_of_range.append(i)
+                    self.mark_pair_state(pair=pair, state='out_of_range')
+                else:
+                    self.mark_pair_state(pair=pair, state='available')
 
         cmd.show('sticks', self.ce_object_name)
         cmd.set('stick_use_shader', 0)
@@ -638,7 +705,9 @@ class GREMLIN_Analyser:
             )
         color = CoevolvedPairState().color(state)
 
-        stick_selection = f'({self.ce_object_name}  and c. {self.design_chain_id} and i. {pair.i_1}+{pair.j_1} and n. CA)'
+        stick_selection = f'(({self.ce_object_name}) and ( {" or ".join(pair.all_atom_pairs_selections.values())} ))'
+
+        logging.debug(f'{stick_selection=}')
 
         cmd.set(
             'stick_color',
@@ -888,6 +957,13 @@ class GREMLIN_Analyser:
                 run_worker_thread_with_progress(
                     worker_function=self.gremlin_external_scorer.initialize,
                     ignore_missing=bool('X' in self.design_sequence),
+                    chain=','.join(
+                        self.chains_to_bind
+                        if self.chain_binding_enabled
+                        else self.design_chain_id
+                    ),
+                    homooligomeric=self.chain_binding_enabled
+                    and self.chains_to_bind,
                     progress_bar=self.bus.ui.progressBar,
                 )
 
@@ -901,6 +977,7 @@ class GREMLIN_Analyser:
         visualizer = MutantVisualizer(
             molecule=self.design_molecule, chain_id=self.design_chain_id
         )
+        visualizer.designable_sequences = self.designable_sequences
         visualizer.sequence = self.design_sequence
         alphabet = self.gremlin_tool.alphabet
 
@@ -923,11 +1000,11 @@ class GREMLIN_Analyser:
         self.picked_gremlin_group_id = visualizer.group_name
 
         # aa from wt
-        wt_A = pair.i_aa.split('_')[0]  # in column
-        wt_B = pair.j_aa.split('_')[0]  # in row
+        wt_i = pair.wt('i')  # in column
+        wt_j = pair.wt('j')  # in row
 
         wt_score = (
-            matrix[alphabet.index(wt_A)][alphabet.index(wt_B)]
+            matrix[alphabet.index(wt_i)][alphabet.index(wt_j)]
             if not self.gremlin_external_scorer
             else self.gremlin_external_scorer.scorer(
                 sequence=self.design_sequence.replace('X', '')
@@ -935,26 +1012,39 @@ class GREMLIN_Analyser:
         )
 
         # aa from clicked button, mutant
-        mut_A = alphabet[col]
-        mut_B = alphabet[row]
+        mut_i = alphabet[col]
+        mut_j = alphabet[row]
 
-        _mutant = []
+        _mutant: List[Dict[str, Union[str, int]]] = []
 
         if self.picked_gremlin_mutant_id:
             self.last_gremlin_mutant_id = self.picked_gremlin_mutant_id
 
-        for mut, idx, wt in zip(
-            [mut_A, mut_B], [pair.i_1, pair.j_1], [wt_A, wt_B]
-        ):
-            _ = f'{self.design_chain_id}{wt}{idx}{mut}'
-            if wt == mut and ignore_wt:
-                logging.debug(f'Ignore WT to WT mutagenese {_}')
+        for chain_id_pair in pair.homochains:
+            for chain_id, mut, idx, wt in zip(
+                chain_id_pair,
+                [mut_i, mut_j],
+                [pair.i_1, pair.j_1],
+                [wt_i, wt_j],
+            ):
+                expected_mutant = {
+                    'chain_id': chain_id,
+                    'position': int(idx),
+                    'wt_res': wt,
+                    'mut_res': mut,
+                }
+                if wt == mut and ignore_wt:
+                    logging.debug(
+                        f'Ignore WT to WT mutagenese {expected_mutant}'
+                    )
+                    continue
 
-            elif mut == '-':
-                logging.info(f'Igore deletion {_}')
-            else:
-                logging.debug(f'Adding mutagenesis {_}')
-                _mutant.append(_)
+                if mut == '-':
+                    logging.info(f'Igore deletion {expected_mutant}')
+                    continue
+
+                logging.debug(f'Adding mutagenesis {expected_mutant}')
+                _mutant.append(expected_mutant)
 
         if not _mutant:
             logging.info(
@@ -962,12 +1052,7 @@ class GREMLIN_Analyser:
             )
             return
 
-        mutant = '_'.join(_mutant)
-
-        mutant_obj: Mutant = extract_mutants_from_mutant_id(
-            mutant_string=mutant,
-            sequences=self.designable_sequences,
-        )
+        mutant_obj: Mutant = Mutant(mutant_info=_mutant)
 
         mutant_obj.wt_sequences = self.designable_sequences
 

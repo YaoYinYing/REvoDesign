@@ -32,6 +32,7 @@ class MutantVisualizer:
     def __init__(self, molecule, chain_id):
         self.molecule = molecule
         self.chain_id = chain_id
+        self.designable_sequences: dict[str, str] = {}
         self.mutfile = ''
         self.input_session = ''
         self.save_session = None
@@ -251,10 +252,9 @@ class MutantVisualizer:
             mutation_data = pd.read_csv(
                 self.mutfile, sep='\t', names=[self.key_col]
             )
-        elif (
-            self.mutfile.lower().endswith('.fasta')
-            or self.mutfile.lower().endswith('.fas')
-            or self.mutfile.lower().endswith('.fa')
+        elif any(
+            self.mutfile.lower().endswith(ext)
+            for ext in ['.fasta', '.fas', '.fa']
         ):
             # Read mutant data from fasta file.
             _mutation_objs = [
@@ -300,7 +300,7 @@ class MutantVisualizer:
         for _, row in mutation_data.iterrows():
             variant_obj: Mutant = extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
-                sequences={self.chain_id: self.sequence},
+                sequences=self.designable_sequences,
             )
 
             # skip None variant (failed to be parsed)
@@ -309,7 +309,7 @@ class MutantVisualizer:
 
             _variant_info = variant_obj.mutant_info
 
-            variant_obj.wt_sequences = {self.chain_id: self.sequence}
+            variant_obj.wt_sequences = self.designable_sequences
 
             # external scorer stays highest priority.
             if self.scorer:

@@ -14,7 +14,7 @@ https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 '''
 
 import traceback
-from typing import Literal
+from typing import Dict, Literal
 import matplotlib
 import warnings
 
@@ -29,7 +29,7 @@ from scipy.spatial.distance import pdist, squareform
 import pickle
 import os
 from REvoDesign import ConfigBus, root_logger
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from REvoDesign import issues
 
 
@@ -43,6 +43,8 @@ class CoevolvedPair:
     i_aa: str
     j_aa: str
 
+    homochains_dist: Dict[str, str] = field(default_factory=dict)
+
     zscore: float = 0.0
     transposed: bool = False
     raw_df: pd.DataFrame = None
@@ -50,9 +52,19 @@ class CoevolvedPair:
     png: str = ''
     csv: str = ''
 
-    dist: float = 0.0
+    selection_string: str = ''
+
+    @property
+    def dist(self) -> float:
+        if self.homochains_dist:
+            return min(self.homochains_dist.values())
+        return 0.0
 
     dist_cutoff: float = 0
+
+    @property
+    def homochains(self) -> tuple[str]:
+        return tuple(self.homochains_dist.keys())
 
     @property
     def is_out_of_range(self):
@@ -84,6 +96,49 @@ class CoevolvedPair:
             raise ValueError(f'Failed to parse {wt_resn=} from {res=}')
 
         return int(wt_resn)
+
+    def atom_pair(
+        self,
+        chain_pair: str,
+    ) -> tuple[str]:
+        if not chain_pair in self.homochains_dist:
+            raise ValueError(
+                f'No such {chain_pair=} in {self.homochains_dist=}'
+            )
+
+        c1, c2 = tuple(chain_pair)
+        atom_pair = (
+            f'(c. {c1} and i. {self.i_1} and n. CA)',
+            f'(c. {c2} and i. {self.j_1} and n. CA)',
+        )
+
+        logging.debug(f'{atom_pair=}')
+
+        return atom_pair
+
+    def atom_pair_selection(
+        self,
+        chain_pair: str,
+    ) -> str:
+        atom_1, atom_2 = self.atom_pair(chain_pair)
+        return f'({atom_1} or {atom_2})'
+
+    @property
+    def all_atom_pairs(self) -> dict[str, tuple[str]]:
+        all_atom_pairs = {
+            cc: self.atom_pair(chain_pair=cc) for cc in self.homochains
+        }
+        logging.debug(f'{all_atom_pairs=}')
+        return all_atom_pairs
+
+    @property
+    def all_atom_pairs_selections(self) -> dict[str, str]:
+        all_atom_pairs_selections = {
+            cc: self.atom_pair_selection(chain_pair=cc)
+            for cc in self.homochains
+        }
+        logging.debug(f'{all_atom_pairs_selections}')
+        return all_atom_pairs_selections
 
     @property
     def i_1(self) -> int:
