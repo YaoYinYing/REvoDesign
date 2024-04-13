@@ -168,10 +168,7 @@ class MutantVisualizer:
         util.cnc(f'{new_obj_name} and ({" or ".join(mut_pos)})', _self=cmd)
 
         if self.group_name:
-            cmd.group(
-                self.group_name,
-                f'{new_obj_name}',
-            )
+            cmd.group(self.group_name, new_obj_name)
 
         if not in_place:
             cmd.save(temp_mutant_path)

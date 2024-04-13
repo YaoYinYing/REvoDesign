@@ -1,4 +1,8 @@
-from abc import ABC, abstractmethod, abstractclassmethod
+from abc import ABC, abstractmethod
+from typing import Any, Iterable, Iterator, Tuple, TypeVar, Generic
+from dataclasses import dataclass
+
+T = TypeVar('T')
 
 
 class SingletonAbstract(ABC):
@@ -31,3 +35,95 @@ class SingletonAbstract(ABC):
             # If not, set the instance attributes
             ...
             self.initialized = True
+
+
+@dataclass
+class IterableLoop(Generic[T]):
+    """
+    A class for managing an iterable with looping behavior.
+    """
+
+    iterable: Tuple[T]
+    current_idx: int = -1
+
+    @property
+    def empty(self):
+        return not bool(self.iterable)
+
+    def __iter__(self) -> Iterator[T]:
+        """
+        Returns an iterator object to enable iteration over the iterable.
+        """
+        return iter(self.iterable)
+
+    def __len__(self) -> int:
+        """
+        Returns the length of the iterable.
+        """
+        return len(self.iterable)
+
+    def __next__(self) -> T:
+        """
+        Returns the next item in the iterable, wrapping around to the beginning if necessary.
+        """
+        if not self.initialized:
+            self.current_idx = 0
+        if self.current_idx == len(self.iterable):
+            raise StopIteration
+        return self.iterable[self.pick_next()]
+
+    @property
+    def initialized(self):
+        return self.current_idx >= 0
+
+    def pick_next(self) -> int:
+        """
+        Moves to the next item in the iterable, wrapping around to the beginning if necessary.
+        """
+        if self.current_idx == len(self.iterable) - 1:
+            self.current_idx = 0
+        else:
+            self.current_idx += 1
+
+        return self.current_idx
+
+    def pick_previous(self) -> int:
+        """
+        Moves to the previous item in the iterable, wrapping around to the end if necessary.
+        """
+        if self.current_idx == 0:
+            self.current_idx = len(self.iterable) - 1
+        else:
+            self.current_idx -= 1
+
+        return self.current_idx
+
+    def walker(self, direction: bool) -> int:
+        """
+        Moves to the next or previous item in the iterable based on the given direction.
+
+        Args:
+            direction: A boolean value indicating the direction of movement.
+                       True for next, False for previous.
+        """
+        if not self.initialized:
+            self.current_idx = 0
+
+        if direction:
+            return self.pick_next()
+        else:
+            return self.pick_previous()
+
+    @property
+    def current_item(self) -> T:
+        """
+        Returns the current item in the iterable.
+        """
+        return self.iterable[self.current_idx]
+
+    def reset(self) -> int:
+        """
+        Resets the current index to -1, indicating an uninitialized state.
+        """
+        self.current_idx = -1
+        return self.current_idx

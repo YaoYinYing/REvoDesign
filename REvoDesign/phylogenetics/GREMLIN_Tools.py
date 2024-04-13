@@ -14,9 +14,10 @@ https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 '''
 
 import traceback
-from typing import Dict, Literal
+from typing import Dict, List, Literal
 import matplotlib
 import warnings
+from functools import cached_property
 
 from REvoDesign.citations import CitableModules
 
@@ -54,7 +55,7 @@ class CoevolvedPair:
 
     selection_string: str = ''
 
-    @property
+    @cached_property
     def dist(self) -> float:
         if self.homochains_dist:
             return min(self.homochains_dist.values())
@@ -62,11 +63,11 @@ class CoevolvedPair:
 
     dist_cutoff: float = 0
 
-    @property
+    @cached_property
     def homochains(self) -> tuple[str]:
         return tuple(self.homochains_dist.keys())
 
-    @property
+    @cached_property
     def is_out_of_range(self):
         return self.dist > self.dist_cutoff
 
@@ -80,6 +81,9 @@ class CoevolvedPair:
     @df.setter
     def df(self, new_df: pd.DataFrame):
         self.raw_df = new_df.copy()
+
+    def __repr__(self):
+        return f'{self.i_aa}_{self.j_aa}'
 
     def __str__(self):
         return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {self.dist:.3f}/{self.dist_cutoff:.3f} Å'
@@ -97,7 +101,7 @@ class CoevolvedPair:
 
         return int(wt_resn)
 
-    def atom_pair(
+    def res_pair(
         self,
         chain_pair: str,
     ) -> tuple[str]:
@@ -107,44 +111,44 @@ class CoevolvedPair:
             )
 
         c1, c2 = tuple(chain_pair)
-        atom_pair = (
-            f'(c. {c1} and i. {self.i_1} and n. CA)',
-            f'(c. {c2} and i. {self.j_1} and n. CA)',
+        res_pair = (
+            f'(c. {c1} and i. {self.i_1})',
+            f'(c. {c2} and i. {self.j_1})',
         )
 
-        logging.debug(f'{atom_pair=}')
+        logging.debug(f'{res_pair=}')
 
-        return atom_pair
+        return res_pair
 
-    def atom_pair_selection(
+    def res_pair_selection(
         self,
         chain_pair: str,
     ) -> str:
-        atom_1, atom_2 = self.atom_pair(chain_pair)
+        atom_1, atom_2 = self.res_pair(chain_pair)
         return f'({atom_1} or {atom_2})'
 
-    @property
-    def all_atom_pairs(self) -> dict[str, tuple[str]]:
-        all_atom_pairs = {
-            cc: self.atom_pair(chain_pair=cc) for cc in self.homochains
+    @cached_property
+    def all_res_pairs(self) -> dict[str, tuple[str]]:
+        all_res_pairs = {
+            cc: self.res_pair(chain_pair=cc) for cc in self.homochains
         }
-        logging.debug(f'{all_atom_pairs=}')
-        return all_atom_pairs
+        logging.debug(f'{all_res_pairs=}')
+        return all_res_pairs
 
-    @property
-    def all_atom_pairs_selections(self) -> dict[str, str]:
-        all_atom_pairs_selections = {
-            cc: self.atom_pair_selection(chain_pair=cc)
+    @cached_property
+    def all_res_pairs_selections(self) -> dict[str, str]:
+        all_res_pairs_selections = {
+            cc: self.res_pair_selection(chain_pair=cc)
             for cc in self.homochains
         }
-        logging.debug(f'{all_atom_pairs_selections}')
-        return all_atom_pairs_selections
+        logging.debug(f'{all_res_pairs_selections}')
+        return all_res_pairs_selections
 
-    @property
+    @cached_property
     def i_1(self) -> int:
         return self.i + 1
 
-    @property
+    @cached_property
     def j_1(self) -> int:
         return self.j + 1
 
@@ -424,8 +428,8 @@ class GREMLIN_Tools(CitableModules):
         a_pair.png = plot_fp
         return a_pair
 
-    def plot_w_a2a(self) -> dict[int, CoevolvedPair]:
-        plot_w_fps: dict[int, CoevolvedPair] = {}
+    def plot_w_a2a(self) -> tuple[CoevolvedPair]:
+        plot_w_fps: List[CoevolvedPair] = []
 
         for n in range(self.topN):
             i = int(self.top.iloc[n]["i"])
@@ -439,10 +443,10 @@ class GREMLIN_Tools(CitableModules):
                 continue
             pair.zscore = zscore
 
-            plot_w_fps[n] = pair
-        return plot_w_fps
+            plot_w_fps.append(pair)
+        return tuple(plot_w_fps)
 
-    def plot_w_o2a(self, resi) -> dict[int, CoevolvedPair]:
+    def plot_w_o2a(self, resi) -> tuple[CoevolvedPair]:
         # Step 1: Find all items where i is in either column of "w_idx"
         matching_indices = np.where(
             (self.mrf["w_idx"][:, 0] == resi)
@@ -483,7 +487,7 @@ class GREMLIN_Tools(CitableModules):
         logging.info(f'top {self.topN} items selected: {str(top_N_pairs)}')
 
         # Step 5: Calculate and plot for each pair
-        plot_w_fps: dict[int, CoevolvedPair] = {}
+        plot_w_fps: List[CoevolvedPair] = []
 
         for n, pair in enumerate(top_N_pairs):
             (i, j, i_aa, j_aa, zscore) = pair
@@ -492,9 +496,9 @@ class GREMLIN_Tools(CitableModules):
             if not pair_i:
                 continue
             pair_i.zscore = zscore
-            plot_w_fps[n] = pair_i
+            plot_w_fps.append(pair_i)
 
-        return plot_w_fps
+        return tuple(plot_w_fps)
 
     @property
     def __bibtex__(self) -> dict[str, str]:

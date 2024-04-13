@@ -842,6 +842,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.bus.set_widget_value(
                 'ui.header_panel.input.chain_id', chain_ids[0]
             )
+
+            # TODO:
+            '''
+            omegaconf.errors.ConfigKeyError if trying to override a loaded designable sequences dict with another molecule
+            '''
             self.bus.set_value(
                 'designable_sequences', self.designable_sequences
             )
@@ -1429,9 +1434,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def coevoled_mutant_decision(self, decision_to_accept):
         if not self.gremlin_worker:
             return
-        self.gremlin_worker.coevoled_mutant_decision(
-            decision_to_accept=decision_to_accept
-        )
+        self.gremlin_worker.coevoled_mutant_decision(accept=decision_to_accept)
 
     def generate_ws_server_key(self):
         use_key = self.bus.get_widget_value('ui.socket.use_key', str)
