@@ -106,7 +106,7 @@ ui:
     interact_ignore_wt: False
     use_external_scorer: ''
     chain_binding: 
-      enabled: True
+      enabled: False
       chains_to_bind: "ABCD"
   
   client:
