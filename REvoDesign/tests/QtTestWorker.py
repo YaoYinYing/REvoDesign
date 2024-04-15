@@ -206,7 +206,7 @@ class TestWorker:
                 self.plugin.ui.spinBox_nproc,
                 self.test_data.nproc_circleci,
             )
-        cmd.reinitialize()
+        
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
         else:
@@ -445,6 +445,7 @@ def WORKER(
     def final_action():
         w.performace_report()
         w.plugin.reinitialize()
+        cmd.reinitialize()
         gc.collect()
 
     yield w

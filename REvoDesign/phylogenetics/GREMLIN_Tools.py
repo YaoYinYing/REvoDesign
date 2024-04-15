@@ -62,6 +62,10 @@ class CoevolvedPair:
         return len(self.homochains_dist) > 1
 
     @property
+    def empty(self) -> bool:
+        return not bool(self.homochains_dist)
+
+    @property
     def homochains(self) -> tuple[str]:
         return tuple(self.homochains_dist.keys())
 
@@ -70,6 +74,11 @@ class CoevolvedPair:
 
     @property
     def min_dist(self):
+        if self.empty:
+            warnings.warn(
+                issues.NoInputWarning(f'Pair {repr(self)} is empty! ')
+            )
+            return -1
         return min(
             [float(d) for d in self.homochains_dist.values() if float(d) > 0]
         )

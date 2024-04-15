@@ -679,7 +679,12 @@ class GREMLIN_Analyser:
         cmd.hide('surface', _tmp_obj)
 
         i_out_of_range: List[CoevolvedPair] = []
+        discarded: List[CoevolvedPair] = []
         for pair in self.coevolved_pairs:
+            if pair.empty:
+                warnings.warn(f'Skipping empty pair: {str(pair)}')
+                discarded.append(pair)
+                continue
             pair.selection_string = cmd.get_unused_name(f"{repr(pair)}_")
 
             try:
@@ -687,7 +692,7 @@ class GREMLIN_Analyser:
                     [x for x in pair.all_res_pairs_selections.values()]
                 )
                 if not _sele:
-                    i_out_of_range.append(pair)
+                    discarded.append(pair)
                     continue
                 cmd.create(
                     pair.selection_string,
@@ -699,7 +704,7 @@ class GREMLIN_Analyser:
                         f'This atom selection is invalid: {sele}'
                     )
                 )
-                i_out_of_range.append(pair)
+                discarded.append(pair)
                 continue
 
             cmd.hide('cartoon', pair.selection_string)
@@ -749,7 +754,11 @@ class GREMLIN_Analyser:
         )
         self.mark_pair_state(
             pairs=tuple(
-                [p for p in self.coevolved_pairs if p not in i_out_of_range]
+                [
+                    p
+                    for p in self.coevolved_pairs
+                    if not (p in i_out_of_range or p in discarded)
+                ]
             ),
             state='available',
         )
@@ -766,7 +775,11 @@ class GREMLIN_Analyser:
 
         self.coevolved_pairs = IterableLoop(
             iterable=tuple(
-                [p for p in self.coevolved_pairs if p not in i_out_of_range]
+                [
+                    p
+                    for p in self.coevolved_pairs
+                    if not (p in i_out_of_range or p in discarded)
+                ]
             )
         )
 
@@ -1092,6 +1105,11 @@ class GREMLIN_Analyser:
                     'wt_res': wt,
                     'mut_res': mut,
                 }
+                if expected_mutant in _mutant:
+                    logging.warning(
+                        f'Ignore existed mutagenese {expected_mutant}'
+                    )
+                    continue
                 if wt == mut and ignore_wt:
                     logging.debug(
                         f'Ignore WT to WT mutagenese {expected_mutant}'

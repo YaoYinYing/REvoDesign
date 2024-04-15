@@ -190,6 +190,7 @@ class TestData:
 
     gremlin_homomer_molecule: str = '4MB8'
     gremlin_homomer_chain: str = 'A'
+    gremlin_homomer_o2a_sele: int = 196
     gremlin_homomer_postfetch_spell: str = 'remove r. hoh;set cartoon_cylindrical_helices;spectrum chain, blue_white_red, 4MB8'
     gremlin_homomer_profile_url: str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/4MB8/4MB8_A_PSSM_GREMLIN_results.zip'
     gremlin_homomer_profile_md5: str = 'md5:999af75bd166b15594ed0435066b4e2d'
@@ -204,6 +205,19 @@ class TestData:
         2,
         (3, 11),
     )
+
+    gremlin_homomer_clicks_o2a: tuple[tuple, int] = (
+        2,
+        (15, 15),
+        1,
+        (6, 1),
+        7,
+        -20,
+    )
+
+    @property
+    def gremlin_homomer_o2a_spell(self) -> str:
+        return f'select sele, {self.gremlin_homomer_molecule} and chain {self.gremlin_homomer_chain} and i. {self.gremlin_homomer_o2a_sele}; enable sele'
 
     @property
     def gremlin_homomer_pse(self):

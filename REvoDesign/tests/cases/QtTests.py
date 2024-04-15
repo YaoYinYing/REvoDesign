@@ -595,7 +595,9 @@ class TestREvoDesignPlugin_TabInteract:
             basename=f'{WORKER.test_id}_after_scan',
         )
 
-        WORKER.save_pymol_png(basename=f'{WORKER.test_id}_interact_pairs')
+        WORKER.save_pymol_png(
+            basename=f'{WORKER.test_id}_interact_pairs', focus=False
+        )
 
         ce_links = [sel for sel in cmd.get_names() if sel.startswith('cep')]
         for sel in ce_links:
@@ -635,6 +637,7 @@ class TestREvoDesignPlugin_TabInteract:
                 cmd.orient(WORKER.test_data.molecule)
                 WORKER.save_pymol_png(
                     basename=f'{WORKER.test_id}_interact_pair_{i}_{operation}',
+                    focus=False,
                 )
 
                 continue
@@ -655,7 +658,144 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}', focus=False
+            )
+            WORKER.check_existed_mutant_tree()
+
+            cmd.orient(
+                WORKER.mutant_tree.all_mutant_objects[0].short_mutant_id
+            )
+
+            WORKER.save_pymol_png(
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+            )
+            WORKER.click(_accp)
+
+        assert os.path.exists(mutfile)
+
+    def test_gremlin_homomer_one2all(self, WORKER: TestWorker):
+        WORKER.test_id = WORKER.method_name()
+        WORKER.load_session_and_check(
+            from_rcsb=True,
+            pdb_code=WORKER.test_data.gremlin_homomer_molecule,
+            spell=f'{WORKER.test_data.gremlin_homomer_postfetch_spell};{WORKER.test_data.gremlin_homomer_o2a_spell}',
+        )
+
+        WORKER.go_to_tab(tab_name='interact')
+
+        # buttons
+        _next = WORKER.plugin.ui.pushButton_next
+        _prev = WORKER.plugin.ui.pushButton_previous
+
+        _accp = WORKER.plugin.ui.pushButton_interact_accept
+        _rjct = WORKER.plugin.ui.pushButton_interact_reject
+
+        gremlin_pkl_fp = KeyDataDuringTests.gremlin_pkl_fp_homomer
+
+        set_widget_value(
+            WORKER.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.lineEdit_interact_chain_binding,
+            WORKER.test_data.gremlin_homomer_chains,
+        )
+        set_widget_value(
+            WORKER.plugin.ui.checkBox_interact_bind_chain_mode, True
+        )
+
+        mutfile = os.path.join('mutagenese', 'gremlin_homomer_o2a.mut.txt')
+
+        WORKER.do_typing(
+            WORKER.plugin.ui.lineEdit_output_mutant_table, mutfile
+        )
+
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_before_init',
+        )
+
+        WORKER.click(WORKER.plugin.ui.pushButton_reinitialize_interact)
+
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_after_init',
+        )
+        WORKER.save_new_experiment()
+
+        WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
+
+        WORKER.sleep(2000)
+
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_after_scan',
+        )
+
+        WORKER.save_pymol_png(
+            basename=f'{WORKER.test_id}_interact_pairs', focus=False
+        )
+
+        ce_links = [sel for sel in cmd.get_names() if sel.startswith('cep')]
+        for sel in ce_links:
+            cmd.disable(sel)
+
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_pair_0',
+        )
+
+        a2a_dir = WORKER.plugin.gremlin_worker.gremlin_workpath
+
+        assert os.path.exists(a2a_dir)
+        csv_files = [
+            f
+            for f in os.listdir(a2a_dir)
+            if f.startswith('Top.') and f.endswith('.csv')
+        ]
+        assert len(csv_files) == get_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN
+        )
+
+        cmd.save(WORKER.test_data.gremlin_homomer_pse)
+
+        for operation in WORKER.test_data.gremlin_homomer_clicks_o2a:
+            i = WORKER.c.i
+
+            if not isinstance(operation, (int, tuple)):
+                continue
+
+            if isinstance(operation, int):
+                WORKER.click(_next if operation > 0 else _prev, abs(operation))
+                WORKER.save_screenshot(
+                    widget=WORKER.plugin.window,
+                    basename=f'{WORKER.test_id}_pair_{operation}',
+                )
+                cmd.orient(WORKER.test_data.molecule)
+                WORKER.save_pymol_png(
+                    basename=f'{WORKER.test_id}_interact_pair_{i}_{operation}',
+                    focus=False,
+                )
+
+                continue
+
+            assert len(operation) == 2
+            row, col = operation
+
+            WORKER.click(
+                WORKER.plugin.bus.w2c.get_button_from_id(
+                    f'{row}_vs_{col}', prefix='matrixButton'
+                )
+            )
+            WORKER.sleep(1000)
+
+            WORKER.save_screenshot(
+                widget=WORKER.plugin.window,
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}',
+            )
+
+            WORKER.save_pymol_png(
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}', focus=False
             )
             WORKER.check_existed_mutant_tree()
 
