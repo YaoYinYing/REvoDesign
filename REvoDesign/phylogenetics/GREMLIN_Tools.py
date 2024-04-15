@@ -14,9 +14,10 @@ https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 '''
 
 import traceback
-from typing import Literal
+from typing import Dict, List, Literal
 import matplotlib
 import warnings
+from functools import cached_property
 
 from REvoDesign.citations import CitableModules
 
@@ -29,7 +30,7 @@ from scipy.spatial.distance import pdist, squareform
 import pickle
 import os
 from REvoDesign import ConfigBus, root_logger
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from REvoDesign import issues
 
 
@@ -43,6 +44,8 @@ class CoevolvedPair:
     i_aa: str
     j_aa: str
 
+    homochains_dist: Dict[str, str] = field(default_factory=dict)
+
     zscore: float = 0.0
     transposed: bool = False
     raw_df: pd.DataFrame = None
@@ -50,13 +53,47 @@ class CoevolvedPair:
     png: str = ''
     csv: str = ''
 
-    dist: float = 0.0
+    selection_string: str = ''
 
     dist_cutoff: float = 0
 
     @property
-    def is_out_of_range(self):
-        return self.dist > self.dist_cutoff
+    def homochain_mode(self) -> bool:
+        return len(self.homochains_dist) > 1
+
+    @property
+    def empty(self) -> bool:
+        return not bool(self.homochains_dist)
+
+    @property
+    def homochains(self) -> tuple[str]:
+        return tuple(self.homochains_dist.keys())
+
+    def is_out_of_range(self, chain_pair: str) -> bool:
+        return self.dist(chain_pair=chain_pair) > self.dist_cutoff
+
+    @property
+    def min_dist(self):
+        if self.empty:
+            warnings.warn(
+                issues.NoInputWarning(f'Pair {repr(self)} is empty! ')
+            )
+            return -1
+        return min(
+            [float(d) for d in self.homochains_dist.values() if float(d) > 0]
+        )
+
+    def dist(self, chain_pair: str) -> float:
+        dist = self.homochains_dist.get(chain_pair)
+        if not dist:
+            raise issues.NoResultsError(
+                f'{chain_pair=} not in {self.homochains_dist=}'
+            )
+        return float(dist)
+
+    @property
+    def all_out_of_range(self) -> bool:
+        return all(self.is_out_of_range(c) for c in self.homochains)
 
     @property
     def df(self) -> pd.DataFrame:
@@ -69,8 +106,12 @@ class CoevolvedPair:
     def df(self, new_df: pd.DataFrame):
         self.raw_df = new_df.copy()
 
+    def __repr__(self):
+        return f'{"homo" if self.homochain_mode else "mono"}.{self.i_1}{self.wt("i")}_{self.j_1}{self.wt("j")}'
+
     def __str__(self):
-        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {self.dist:.3f}/{self.dist_cutoff:.3f} Å'
+        dist = {c: f'{float(d):.2f}' for c, d in self.homochains_dist.items()}
+        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {dist}/{self.dist_cutoff:.2f} Å'
 
     def wt(self, resi: Literal['i', 'j']) -> str:
         res: str = getattr(self, f'{resi}_aa')
@@ -84,6 +125,49 @@ class CoevolvedPair:
             raise ValueError(f'Failed to parse {wt_resn=} from {res=}')
 
         return int(wt_resn)
+
+    def res_pair(
+        self,
+        chain_pair: str,
+    ) -> tuple[str]:
+        if not chain_pair in self.homochains_dist:
+            raise ValueError(
+                f'No such {chain_pair=} in {self.homochains_dist=}'
+            )
+
+        c1, c2 = tuple(chain_pair)
+        res_pair = (
+            f'(c. {c1} and i. {self.i_1})',
+            f'(c. {c2} and i. {self.j_1})',
+        )
+
+        logging.debug(f'{res_pair=}')
+
+        return res_pair
+
+    def res_pair_selection(
+        self,
+        chain_pair: str,
+    ) -> str:
+        atom_1, atom_2 = self.res_pair(chain_pair)
+        return f'({atom_1} or {atom_2})'
+
+    @property
+    def all_res_pairs(self) -> dict[str, tuple[str]]:
+        all_res_pairs = {
+            cc: self.res_pair(chain_pair=cc) for cc in self.homochains
+        }
+        logging.debug(f'{all_res_pairs=}')
+        return all_res_pairs
+
+    @property
+    def all_res_pairs_selections(self) -> dict[str, str]:
+        all_res_pairs_selections = {
+            cc: self.res_pair_selection(chain_pair=cc)
+            for cc in self.homochains
+        }
+        logging.debug(f'{all_res_pairs_selections}')
+        return all_res_pairs_selections
 
     @property
     def i_1(self) -> int:
@@ -369,8 +453,8 @@ class GREMLIN_Tools(CitableModules):
         a_pair.png = plot_fp
         return a_pair
 
-    def plot_w_a2a(self) -> dict[int, CoevolvedPair]:
-        plot_w_fps: dict[int, CoevolvedPair] = {}
+    def plot_w_a2a(self) -> tuple[CoevolvedPair]:
+        plot_w_fps: List[CoevolvedPair] = []
 
         for n in range(self.topN):
             i = int(self.top.iloc[n]["i"])
@@ -384,10 +468,10 @@ class GREMLIN_Tools(CitableModules):
                 continue
             pair.zscore = zscore
 
-            plot_w_fps[n] = pair
-        return plot_w_fps
+            plot_w_fps.append(pair)
+        return tuple(plot_w_fps)
 
-    def plot_w_o2a(self, resi) -> dict[int, CoevolvedPair]:
+    def plot_w_o2a(self, resi) -> tuple[CoevolvedPair]:
         # Step 1: Find all items where i is in either column of "w_idx"
         matching_indices = np.where(
             (self.mrf["w_idx"][:, 0] == resi)
@@ -428,7 +512,7 @@ class GREMLIN_Tools(CitableModules):
         logging.info(f'top {self.topN} items selected: {str(top_N_pairs)}')
 
         # Step 5: Calculate and plot for each pair
-        plot_w_fps: dict[int, CoevolvedPair] = {}
+        plot_w_fps: List[CoevolvedPair] = []
 
         for n, pair in enumerate(top_N_pairs):
             (i, j, i_aa, j_aa, zscore) = pair
@@ -437,9 +521,9 @@ class GREMLIN_Tools(CitableModules):
             if not pair_i:
                 continue
             pair_i.zscore = zscore
-            plot_w_fps[n] = pair_i
+            plot_w_fps.append(pair_i)
 
-        return plot_w_fps
+        return tuple(plot_w_fps)
 
     @property
     def __bibtex__(self) -> dict[str, str]:

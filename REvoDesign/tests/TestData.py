@@ -163,6 +163,70 @@ class TestData:
     def multi_mut_txt_mpnn(self):
         return f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mpnn_mut.txt'
 
+    gremlin_monomer_clicks_a2a: tuple[tuple, int] = (
+        2,
+        (
+            6,
+            1,
+        ),
+        (3, 13),
+        2,
+        -7,
+    )
+    gremlin_monomer_clicks_o2a: tuple[tuple, int] = (
+        1,
+        (
+            0,
+            19,
+        ),
+        (9, 0),
+        2,
+        -7,
+    )
+
+    @property
+    def gremlin_monomer_pse(self):
+        return f'{self.test_data_repo}/analysis/{self.molecule}.{self.chain_id}.xtal.test_gremlin_monomer.pze'
+
+    gremlin_homomer_molecule: str = '4MB8'
+    gremlin_homomer_chain: str = 'A'
+    gremlin_homomer_o2a_sele: int = 196
+    gremlin_homomer_postfetch_spell: str = 'remove r. hoh;set cartoon_cylindrical_helices;spectrum chain, blue_white_red, 4MB8'
+    gremlin_homomer_profile_url: str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/4MB8/4MB8_A_PSSM_GREMLIN_results.zip'
+    gremlin_homomer_profile_md5: str = 'md5:999af75bd166b15594ed0435066b4e2d'
+
+    gremlin_homomer_chains: str = 'ABCD'
+
+    gremlin_homomer_clicks_a2a: tuple[tuple, int] = (
+        2,
+        (1, 6),
+        14,
+        (0, 1),
+        2,
+        (3, 11),
+    )
+
+    gremlin_homomer_clicks_o2a: tuple[tuple, int] = (
+        2,
+        (15, 15),
+        1,
+        (6, 1),
+        7,
+        -20,
+    )
+
+    @property
+    def gremlin_homomer_o2a_spell(self) -> str:
+        return f'select sele, {self.gremlin_homomer_molecule} and chain {self.gremlin_homomer_chain} and i. {self.gremlin_homomer_o2a_sele}; enable sele'
+
+    @property
+    def gremlin_homomer_pse(self):
+        return f'{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.pze'
+
+    @property
+    def used_molecules(self):
+        return tuple([self.molecule, self.gremlin_homomer_molecule])
+
 
 @dataclass
 class KeyDataDuringTests:
@@ -176,6 +240,7 @@ class KeyDataDuringTests:
     minimum_mutant_file: str = None
     ddg_file: str = None
     evaluate_pse_path: str = None
+    gremlin_pkl_fp_homomer: str = None
 
 
 @dataclass()

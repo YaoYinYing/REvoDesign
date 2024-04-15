@@ -160,12 +160,17 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def _fetch_pdb(self):
+    def _fetch_pdb(self, pdb_code: str, spell: str):
+        if not pdb_code:
+            pdb_code = self.test_data.molecule
+        if not spell:
+            spell = self.test_data.post_fetch_spell
+
         try:
             molecules = cmd.get_names()
             print(f'Before fetch: {molecules}')
-            cmd.fetch(self.test_data.molecule)
-            cmd.do(self.test_data.post_fetch_spell)
+            cmd.fetch(pdb_code)
+            cmd.do(spell)
 
             molecules = cmd.get_names()
             print(f'After fetch: {molecules}')
@@ -182,7 +187,11 @@ class TestWorker:
             pass
 
     def load_session_and_check(
-        self, from_rcsb=False, customized_session: str = None
+        self,
+        pdb_code: str = None,
+        spell: str = None,
+        from_rcsb=False,
+        customized_session: str = None,
     ):
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
         print(f'nproc: {nproc}')
@@ -197,8 +206,9 @@ class TestWorker:
                 self.plugin.ui.spinBox_nproc,
                 self.test_data.nproc_circleci,
             )
+
         if from_rcsb:
-            self._fetch_pdb()
+            self._fetch_pdb(pdb_code, spell)
         else:
             if not customized_session:
                 customized_session = self.test_data.pocket_pse
@@ -275,19 +285,12 @@ class TestWorker:
     def check_molecule_after_loaded(self):
         assert (
             self.plugin.bus.get_value('ui.header_panel.input.molecule')
-            == self.test_data.molecule
+            in self.test_data.used_molecules
         )
-        assert (
-            self.plugin.bus.get_value('ui.header_panel.input.chain_id')
-            == self.test_data.chain_id
-        )
+
         assert (
             get_widget_value(self.plugin.ui.comboBox_design_molecule)
-            == self.test_data.molecule
-        )
-        assert (
-            get_widget_value(self.plugin.ui.comboBox_chain_id)
-            == self.test_data.chain_id
+            in self.test_data.used_molecules
         )
 
     def download_file(self, url, md5):
@@ -442,6 +445,7 @@ def WORKER(
     def final_action():
         w.performace_report()
         w.plugin.reinitialize()
+        cmd.reinitialize()
         gc.collect()
 
     yield w

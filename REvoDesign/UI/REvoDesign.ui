@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>660</width>
-    <height>559</height>
+    <height>562</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -3155,8 +3155,8 @@
         <rect>
          <x>10</x>
          <y>30</y>
-         <width>261</width>
-         <height>231</height>
+         <width>251</width>
+         <height>232</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_18">
@@ -3165,57 +3165,9 @@
         </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_14">
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
-            <property name="spacing">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="label_chainid_6">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-                <horstretch>1</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>Top:</string>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QSpinBox" name="spinBox_gremlin_topN">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="statusTip">
-               <string>Select top N interact pairs</string>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>1000</number>
-              </property>
-              <property name="value">
-               <number>50</number>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_8">
             <property name="spacing">
@@ -3273,66 +3225,132 @@
             </item>
            </layout>
           </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_62">
+            <item>
+             <widget class="QCheckBox" name="checkBox_interact_bind_chain_mode">
+              <property name="statusTip">
+               <string>Bind to multiple chains</string>
+              </property>
+              <property name="text">
+               <string>Bind Chains:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_interact_chain_binding">
+              <property name="statusTip">
+               <string>Chain IDs to bind together. eg. `ABCD`</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
          </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_44">
           <item>
-           <widget class="QCheckBox" name="checkBox_interact_ignore_wt">
-            <property name="statusTip">
-             <string>Ignore WT-to-WT mutagenesis</string>
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <property name="spacing">
+             <number>0</number>
             </property>
-            <property name="text">
-             <string>Ignore WT</string>
-            </property>
-           </widget>
+            <item>
+             <widget class="QLabel" name="label_chainid_6">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Top:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="spinBox_gremlin_topN">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="statusTip">
+               <string>Select top N interact pairs</string>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
+              <property name="value">
+               <number>50</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
           <item>
-           <widget class="QLabel" name="label_chainid_13">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Scorer:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="comboBox_external_scorer">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>100</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="statusTip">
-             <string>Format of profile, automatically determined. Profile will be ignored if choosing external designer.</string>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_61">
+            <item>
+             <widget class="QLabel" name="label_chainid_13">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Scorer:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBox_external_scorer">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>100</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="statusTip">
+               <string>Format of profile, automatically determined. Profile will be ignored if choosing external designer.</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
@@ -3368,16 +3386,6 @@
           <property name="verticalSpacing">
            <number>-1</number>
           </property>
-          <item row="0" column="0">
-           <widget class="QPushButton" name="pushButton_previous">
-            <property name="statusTip">
-             <string>Previous co-evolved pair.</string>
-            </property>
-            <property name="text">
-             <string>Previous</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="1">
            <widget class="QPushButton" name="pushButton_next">
             <property name="statusTip">
@@ -3398,6 +3406,16 @@
             </property>
            </widget>
           </item>
+          <item row="0" column="0">
+           <widget class="QPushButton" name="pushButton_previous">
+            <property name="statusTip">
+             <string>Previous co-evolved pair.</string>
+            </property>
+            <property name="text">
+             <string>Previous</string>
+            </property>
+           </widget>
+          </item>
           <item row="1" column="1">
            <widget class="QPushButton" name="pushButton_interact_accept">
             <property name="statusTip">
@@ -3413,160 +3431,176 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_46">
           <item>
-           <widget class="QLabel" name="label_chainid_10">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Pair:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_56">
+            <item>
+             <widget class="QLabel" name="label_chainid_10">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Pair:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_current_pair">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="statusTip">
+               <string>Pair id</string>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_current_pair">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="statusTip">
-             <string>Pair id</string>
-            </property>
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_chainid_12">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Score:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lineEdit_current_pair_score">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>70</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="statusTip">
-             <string>Pair score</string>
-            </property>
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_58">
+            <item>
+             <widget class="QLabel" name="label_chainid_12">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Score:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_current_pair_score">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>70</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="statusTip">
+               <string>Pair score</string>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_45">
           <item>
-           <widget class="QLabel" name="label_chainid_9">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>WT:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_59">
+            <item>
+             <widget class="QLabel" name="label_chainid_9">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>WT:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_current_pair_wt_score">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="statusTip">
+               <string>WT GREMLIN score</string>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
           <item>
-           <widget class="QLineEdit" name="lineEdit_current_pair_wt_score">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="statusTip">
-             <string>WT GREMLIN score</string>
-            </property>
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_chainid_8">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Mut:</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lineEdit_current_pair_mut_score">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="statusTip">
-             <string>Mutant GREMLIN score</string>
-            </property>
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_60">
+            <item>
+             <widget class="QLabel" name="label_chainid_8">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+                <horstretch>1</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Mut:</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_current_pair_mut_score">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="statusTip">
+               <string>Mutant GREMLIN score</string>
+              </property>
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
