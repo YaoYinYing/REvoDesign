@@ -372,11 +372,9 @@ class GREMLIN_Analyser:
         self.chain_binding_enabled: bool = False
         self.chains_to_bind: tuple = []
 
-        self.explored_mutant_tree: MutantTree= MutantTree({})
+        self.explored_mutant_tree: MutantTree = MutantTree({})
         self.mutant_tree_coevolved = MutantTree({})
         self.picked_gremlin_mutant: Mutant = None
-
-
 
     def load_gremlin_mrf(
         self,
@@ -649,7 +647,6 @@ class GREMLIN_Analyser:
             self.bus.ui.progressBar, [0, len(self.coevolved_pairs)]
         )
 
-        self.picked_gremlin_mutant_id = ''
         self.picked_gremlin_group_id = ''
 
         self.load_co_evolving_pairs()
@@ -904,6 +901,8 @@ class GREMLIN_Analyser:
         button_matrix.setEnabled(not pair.all_out_of_range)
 
     def coevoled_mutant_decision(self, accept: bool):
+        if self.explored_mutant_tree.empty or not self.picked_gremlin_mutant:
+            raise issues.UnexpectedWorkflowError('Nothing to decide.')
         logging.debug(
             f'{"Accepting" if accept else "Rejecting"}  co-evolved mutant {(picked_gremlin_mutant_id:=self.picked_gremlin_mutant.short_mutant_id)}'
         )
@@ -939,13 +938,22 @@ class GREMLIN_Analyser:
 
     def activate_focused_interaction(self):
         if not self.picked_gremlin_mutant or self.picked_gremlin_mutant.empty:
-            raise issues.UnexpectedWorkflowError('Co-evolved pairs are not loaded. ')
-        
-        if self.picked_gremlin_mutant == self.explored_mutant_tree.all_mutant_objects[-1]:
-            logging.warning(f'Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})')
+            raise issues.UnexpectedWorkflowError(
+                'Co-evolved pairs are not loaded. '
+            )
+
+        if (
+            self.picked_gremlin_mutant
+            == self.explored_mutant_tree.all_mutant_objects[-1]
+        ):
+            logging.warning(
+                f'Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})'
+            )
             return
-        
-        if picked_gremlin_mutant_id:=self.picked_gremlin_mutant.short_mutant_id:
+
+        if (
+            picked_gremlin_mutant_id := self.picked_gremlin_mutant.short_mutant_id
+        ):
             cmd.enable(picked_gremlin_mutant_id)
             cmd.show(
                 'sticks',
@@ -956,16 +964,15 @@ class GREMLIN_Analyser:
                 f'{picked_gremlin_mutant_id} and (sidechain or n. CA)',
             )
             cmd.hide('cartoon', f'{picked_gremlin_mutant_id}')
-        
+
         for group_id in self.explored_mutant_tree.all_mutant_branch_ids:
             if group_id == self.picked_gremlin_group_id:
                 continue
             cmd.disable(group_id)
-            cmd.group( group_id, action='close')
-            
+            cmd.group(group_id, action='close')
 
         # expand group object if activated
-        if  self.picked_gremlin_group_id:
+        if self.picked_gremlin_group_id:
             cmd.enable(self.picked_gremlin_group_id)
             cmd.group(self.picked_gremlin_group_id, action='open')
 
@@ -1070,7 +1077,6 @@ class GREMLIN_Analyser:
 
         _mutant: List[Dict[str, Union[str, int]]] = []
 
-
         for chain_id_pair in pair.homochains:
             for chain_id, mut, idx, wt in zip(
                 chain_id_pair,
@@ -1157,9 +1163,13 @@ class GREMLIN_Analyser:
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)
 
-            self.explored_mutant_tree.add_mutant_to_branch(branch=visualizer.group_name, mutant=mutant_obj.short_mutant_id, mutant_obj=mutant_obj)
+            self.explored_mutant_tree.add_mutant_to_branch(
+                branch=visualizer.group_name,
+                mutant=mutant_obj.short_mutant_id,
+                mutant_obj=mutant_obj,
+            )
 
-        self.picked_gremlin_mutant_id = mutant
+        self.picked_gremlin_mutant = mutant_obj
         self.activate_focused_interaction()
 
         mutant_tree = MutantTree(
