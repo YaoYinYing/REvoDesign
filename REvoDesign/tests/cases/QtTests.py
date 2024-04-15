@@ -595,9 +595,7 @@ class TestREvoDesignPlugin_TabInteract:
             basename=f'{WORKER.test_id}_after_scan',
         )
 
-        WORKER.save_pymol_png(
-            basename=f'{WORKER.test_id}_interact_pairs', focus=False
-        )
+        WORKER.save_pymol_png(basename=f'{WORKER.test_id}_interact_pairs')
 
         ce_links = [sel for sel in cmd.get_names() if sel.startswith('cep')]
         for sel in ce_links:
@@ -625,7 +623,7 @@ class TestREvoDesignPlugin_TabInteract:
         for operation in WORKER.test_data.gremlin_homomer_clicks_a2a:
             i = WORKER.c.i
 
-            if not isinstance(operation, (str, tuple)):
+            if not isinstance(operation, (int, tuple)):
                 continue
 
             if isinstance(operation, int):
@@ -637,7 +635,6 @@ class TestREvoDesignPlugin_TabInteract:
                 cmd.orient(WORKER.test_data.molecule)
                 WORKER.save_pymol_png(
                     basename=f'{WORKER.test_id}_interact_pair_{i}_{operation}',
-                    focus=False,
                 )
 
                 continue
@@ -658,7 +655,7 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}', focus=False
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}'
             )
             WORKER.check_existed_mutant_tree()
 
@@ -756,7 +753,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         for operation in WORKER.test_data.gremlin_monomer_clicks_a2a:
             i = WORKER.c.i
-            if not isinstance(operation, (str, tuple)):
+            if not isinstance(operation, (int, tuple)):
                 continue
 
             if isinstance(operation, int):
@@ -898,7 +895,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         for operation in WORKER.test_data.gremlin_monomer_clicks_o2a:
             i = WORKER.c.i
-            if not isinstance(operation, (str, tuple)):
+            if not isinstance(operation, (int, tuple)):
                 continue
 
             if isinstance(operation, int):
@@ -940,7 +937,8 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
+                focus=True,
             )
             WORKER.click(_accp)
 

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from REvoDesign.common.Mutant import Mutant
 from typing import List, Dict, Union, Optional, Protocol, Iterable
 
@@ -562,3 +563,13 @@ class MutantTree:
             mutants=self, pdb_fps=all_mutants_pdb_fp
         )
         mutate_runner.cite()
+
+
+@dataclass(frozen=True)
+class FobiddenMutantTreeNamingSpace:
+    group_id_prefix: tuple[str] = (
+        'RDPM',
+        'multi_design',
+        'cep',
+        'invalid_cep',
+    )

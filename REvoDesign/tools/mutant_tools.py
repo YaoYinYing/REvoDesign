@@ -8,7 +8,10 @@ from pymol import cmd
 
 from REvoDesign import ConfigBus, FileExtentions
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common.MutantTree import (
+    FobiddenMutantTreeNamingSpace,
+    MutantTree,
+)
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign import root_logger
 
@@ -456,7 +459,10 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
         for group_id in cmd.get_names(
             type='group_objects', enabled_only=enabled_only
         )
-        if not group_id.startswith('multi_design')
+        if all(
+            not group_id.startswith(_id)
+            for _id in FobiddenMutantTreeNamingSpace.group_id_prefix
+        )
     }
     return MutantTree(_mutant_tree)
 
