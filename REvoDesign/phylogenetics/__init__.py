@@ -2,7 +2,7 @@ import asyncio
 from functools import partial
 import os
 import traceback
-from itertools import combinations_with_replacement
+import itertools
 
 from immutabledict import immutabledict
 from REvoDesign import ConfigBus
@@ -358,18 +358,19 @@ class GREMLIN_Analyser:
             'ui.header_panel.input.chain_id'
         )
         self.designable_sequences: dict = self.bus.get_value(
-            'designable_sequences'
+            'designable_sequences', dict
         )
         self.design_sequence: str = self.designable_sequences.get(
             self.design_chain_id
         )
-        self.ce_object_group: str = None
+        self.ce_object_group_valid: str = None
+        self.ce_object_group_invalid: str = None
 
         self.coevolved_pairs: IterableLoop[CoevolvedPair] = None
 
         self.max_interact_dist: float = -1
         self.chain_binding_enabled: bool = False
-        self.chains_to_bind: list = []
+        self.chains_to_bind: tuple = []
 
     def load_gremlin_mrf(
         self,
@@ -460,24 +461,25 @@ class GREMLIN_Analyser:
         atom2 = (
             f'{self.design_molecule} and c. {chain_2} and i. {j_1} and n. CA'
         )
-        return cmd.get_distance(atom1=atom1, atom2=atom2)
+        try:
+            dist = cmd.get_distance(atom1=atom1, atom2=atom2)
+            return dist
+        except CmdException:
+            warnings.warn(
+                issues.BadDataWarning(
+                    f'No such atom pair {atom1=} and {atom2=}'
+                )
+            )
+            return -1
 
+    # record chain binding: distances and maximum distance to be accepted
     def bind_chains(self):
         self.max_interact_dist: float = self.bus.get_value(
             'ui.interact.max_interact_dist', float
         )
-        self.chain_binding_enabled: bool = self.bus.get_value(
-            'ui.interact.chain_binding.enabled', bool
-        )
-        self.chains_to_bind: list = list(
-            set(
-                self.bus.get_value(
-                    'ui.interact.chain_binding.chains_to_bind', str
-                )
-            )
-        )
 
         # fix chain id if chain binding is enabled.
+        # monomer pairs
         if not (self.chain_binding_enabled and self.chains_to_bind):
             logging.info('Intrachain connections.')
             for pair in self.coevolved_pairs:
@@ -489,26 +491,53 @@ class GREMLIN_Analyser:
                     i_1=pair.i_1,
                     j_1=pair.j_1,
                 )
+
+                # invalid distance, raised from residue missing in PDB structure.
+                if dist < 0:
+                    continue
                 pair.homochains_dist.update(
                     {f'{self.design_chain_id}{self.design_chain_id}': dist}
                 )
 
             return
 
+        invalid_coevolved_chain_pair: dict = {}
+
+        # homomer pairs
         for pair in self.coevolved_pairs:
             pair.dist_cutoff = self.max_interact_dist
-            for c1, c2 in combinations_with_replacement(
-                self.chains_to_bind, 2
-            ):
-                if (
-                    dist := self._get_dist(
-                        chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1
+            for c1, c2 in itertools.product(self.chains_to_bind, repeat=2):
+                dist = self._get_dist(
+                    chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1
+                )
+                if dist < 0:
+                    continue
+
+                if dist > self.max_interact_dist:
+                    invalid_coevolved_chain_pair.update(
+                        {f'{repr(pair)}_{c1}{c2}': dist}
                     )
-                ) > pair.dist_cutoff:
                     continue
                 pair.homochains_dist.update({f'{c1}{c2}': dist})
 
+        if invalid_coevolved_chain_pair:
+            warnings.warn(
+                issues.BadDataWarning(
+                    f'Discarded: {len(invalid_coevolved_chain_pair)=}'
+                )
+            )
+
     def run_gremlin_tool(self):
+        self.chain_binding_enabled: bool = self.bus.get_value(
+            'ui.interact.chain_binding.enabled', bool
+        )
+        self.chains_to_bind: tuple = tuple(
+            set(
+                self.bus.get_value(
+                    'ui.interact.chain_binding.chains_to_bind', str
+                )
+            )
+        )
         if any_posision_has_been_selected():
             logging.info(f'One vs All mode.')
             self.gremlin_tool_a2a_mode = False
@@ -516,7 +545,10 @@ class GREMLIN_Analyser:
             logging.info(f'{resi} is selected.')
 
             self.gremlin_workpath = os.path.join(
-                self.PWD, 'gremlin_co_evolved_pairs', f'resi_{resi}'
+                self.PWD,
+                'gremlin_co_evolved_pairs',
+                f'resi_{resi}',
+                f'{self.design_molecule}_{self.design_chain_id}.{"homo." + "".join(self.chains_to_bind) if self.chain_binding_enabled and self.chains_to_bind else "mono"}',
             )
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
@@ -547,7 +579,10 @@ class GREMLIN_Analyser:
             self.gremlin_tool_a2a_mode = True
 
             self.gremlin_workpath = os.path.join(
-                self.PWD, 'gremlin_co_evolved_pairs', 'all_vs_all'
+                self.PWD,
+                'gremlin_co_evolved_pairs',
+                'all_vs_all',
+                f'{self.design_molecule}_{self.design_chain_id}.{"homo." + "".join(self.chains_to_bind) if self.chain_binding_enabled and self.chains_to_bind else "mono"}',
             )
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
@@ -573,7 +608,7 @@ class GREMLIN_Analyser:
         logging.debug(coevolved_pairs)
         self.coevolved_pairs = IterableLoop(iterable=coevolved_pairs)
 
-        logging.info(f'Binding Chains ...')
+        logging.info('Binding Chains ...')
         run_worker_thread_with_progress(
             worker_function=self.bind_chains,
             progress_bar=self.bus.ui.progressBar,
@@ -629,11 +664,15 @@ class GREMLIN_Analyser:
         )
         max_gremlin_score = max([p.zscore for p in self.coevolved_pairs])
 
-        self.ce_object_group = cmd.get_unused_name(
-            f"ce_pairs_{self.design_molecule}_"
+        self.ce_object_group_valid = cmd.get_unused_name(
+            f"cep_{self.design_molecule}_"
         )
 
-        _tmp_obj = f'_tmp_object_for_{self.ce_object_group}'
+        self.ce_object_group_invalid = cmd.get_unused_name(
+            f"invalid_{self.ce_object_group_valid}_"
+        )
+
+        _tmp_obj = f'_tmp_object_for_{self.ce_object_group_valid}'
 
         cmd.create(_tmp_obj, f'{self.design_molecule} and n. CA')
         cmd.hide('cartoon', _tmp_obj)
@@ -643,10 +682,25 @@ class GREMLIN_Analyser:
         for pair in self.coevolved_pairs:
             pair.selection_string = cmd.get_unused_name(f"{repr(pair)}_")
 
-            cmd.create(
-                pair.selection_string,
-                f'{_tmp_obj} and ({" or ".join([x for x in pair.all_res_pairs_selections.values()])}) and n. CA',
-            )
+            try:
+                _sele = " or ".join(
+                    [x for x in pair.all_res_pairs_selections.values()]
+                )
+                if not _sele:
+                    i_out_of_range.append(pair)
+                    continue
+                cmd.create(
+                    pair.selection_string,
+                    sele := f'{_tmp_obj} and ({_sele}) and n. CA',
+                )
+            except CmdException:
+                warnings.warn(
+                    issues.BadDataWarning(
+                        f'This atom selection is invalid: {sele}'
+                    )
+                )
+                i_out_of_range.append(pair)
+                continue
 
             cmd.hide('cartoon', pair.selection_string)
             cmd.hide('surface', pair.selection_string)
@@ -664,24 +718,30 @@ class GREMLIN_Analyser:
                 pair.selection_string,
             )
 
-            cmd.group(self.ce_object_group, pair.selection_string)
+            if pair.all_out_of_range:
+                i_out_of_range.append(pair)
+                cmd.group(self.ce_object_group_invalid, pair.selection_string)
+            else:
+                cmd.group(self.ce_object_group_valid, pair.selection_string)
 
+            # bond w/o colors
+            # out-of-range residue pair in valid pair will be not considered.
             for cc, res_pair in pair.all_res_pairs.items():
+                if pair.is_out_of_range(cc):
+                    logging.info(
+                        f'Resi {pair.i_1}({cc[0]}) is {pair.dist(chain_pair=cc):.2f} Å away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å.'
+                    )
+
+                    continue
+
                 cmd.bond(
                     f'{pair.selection_string} and {res_pair[0]} and n. CA',
                     f'{pair.selection_string} and {res_pair[1]} and n. CA',
                 )
 
-                if pair.is_out_of_range:
-                    logging.info(
-                        f'Resi {pair.i_1}({cc[0]}) is {pair.dist:.2f} Å away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å.'
-                    )
-                    i_out_of_range.append(pair)
-
-                    continue
-
         cmd.delete(_tmp_obj)
-        cmd.group(self.ce_object_group, action='close')
+        cmd.group(self.ce_object_group_valid, action='close')
+        cmd.group(self.ce_object_group_invalid, action='close')
 
         self.mark_pair_state(
             pairs=tuple([i for i in i_out_of_range]),
@@ -718,9 +778,9 @@ class GREMLIN_Analyser:
         pairs: Union[CoevolvedPair, List[CoevolvedPair], Tuple[CoevolvedPair]],
         state: CoevolvedPairState.state_type = 'available',
     ):
-        if not self.ce_object_group:
+        if not self.ce_object_group_valid:
             raise issues.UnexpectedWorkflowError(
-                f'Cannot mark pair state because {self.ce_object_group=} is not set'
+                f'Cannot mark pair state because {self.ce_object_group_valid=} is not set'
             )
         color = CoevolvedPairState().color(state)
 
@@ -770,7 +830,7 @@ class GREMLIN_Analyser:
         # before walking the index, set this pair back
         self.mark_pair_state(
             pairs=(p := self.coevolved_pairs.current_item),
-            state='available' if not p.is_out_of_range else 'out_of_range',
+            state='available' if not p.all_out_of_range else 'out_of_range',
         )
 
         self.coevolved_pairs.walker(direction=walk_to_next)
@@ -813,19 +873,19 @@ class GREMLIN_Analyser:
 
         set_widget_value(
             lineEdit_current_pair,
-            f'{pair.i_aa.replace("_","")}-{pair.j_aa.replace("_","")}, {pair.dist:.1f} Å',
+            f'{pair.i_aa.replace("_","")}-{pair.j_aa.replace("_","")}, {pair.min_dist:.1f} Å',
         )
 
         set_widget_value(lineEdit_current_pair_score, f'{pair.zscore:.3f}')
 
-        if pair.is_out_of_range:
+        if pair.all_out_of_range:
             logging.warning(
-                f'Resi {pair.i_1} ({pair.i_aa}) is {pair.dist:.2f} Å away from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å '
+                f'Resi {pair.i_1} ({pair.i_aa}) is {pair.min_dist:.2f} Å away from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å '
             )
             set_widget_value(lineEdit_current_pair, 'Out of range.')
 
         # To disable the QbuttonMatrix:
-        button_matrix.setEnabled(not pair.is_out_of_range)
+        button_matrix.setEnabled(not pair.all_out_of_range)
 
     def coevoled_mutant_decision(self, accept: bool):
         logging.debug(
@@ -1077,10 +1137,10 @@ class GREMLIN_Analyser:
             enabled_only=0,
         ):
             logging.info(
-                f'Picked mutant: {mutant} already exists. Do nothing.'
+                f'Picked mutant: {mutant} ({mutant_obj.full_mutant_id}) already exists. Do nothing.'
             )
         else:
-            logging.info(f'Picked mutant: {mutant} ')
+            logging.info(f'Picked mutant: {mutant_obj.full_mutant_id} ')
 
             color = get_color(
                 self.bus.get_value('ui.header_panel.cmap.default'),
@@ -1089,7 +1149,9 @@ class GREMLIN_Analyser:
                 max_score,
             )
 
-            logging.info(f" Visualizing {mutant}: {color}")
+            logging.info(
+                f" Visualizing {mutant} ({mutant_obj.full_mutant_id}): {color}"
+            )
 
             run_worker_thread_with_progress(
                 worker_function=visualizer.create_mutagenesis_objects,

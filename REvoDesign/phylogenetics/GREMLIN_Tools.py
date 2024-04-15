@@ -55,21 +55,36 @@ class CoevolvedPair:
 
     selection_string: str = ''
 
-    @cached_property
-    def dist(self) -> float:
-        if self.homochains_dist:
-            return min(self.homochains_dist.values())
-        return 0.0
-
     dist_cutoff: float = 0
 
-    @cached_property
+    @property
+    def homochain_mode(self) -> bool:
+        return len(self.homochains_dist) > 1
+
+    @property
     def homochains(self) -> tuple[str]:
         return tuple(self.homochains_dist.keys())
 
-    @cached_property
-    def is_out_of_range(self):
-        return self.dist > self.dist_cutoff
+    def is_out_of_range(self, chain_pair: str) -> bool:
+        return self.dist(chain_pair=chain_pair) > self.dist_cutoff
+
+    @property
+    def min_dist(self):
+        return min(
+            [float(d) for d in self.homochains_dist.values() if float(d) > 0]
+        )
+
+    def dist(self, chain_pair: str) -> float:
+        dist = self.homochains_dist.get(chain_pair)
+        if not dist:
+            raise issues.NoResultsError(
+                f'{chain_pair=} not in {self.homochains_dist=}'
+            )
+        return float(dist)
+
+    @property
+    def all_out_of_range(self) -> bool:
+        return all(self.is_out_of_range(c) for c in self.homochains)
 
     @property
     def df(self) -> pd.DataFrame:
@@ -83,10 +98,11 @@ class CoevolvedPair:
         self.raw_df = new_df.copy()
 
     def __repr__(self):
-        return f'{self.i_aa}_{self.j_aa}'
+        return f'{"homo" if self.homochain_mode else "mono"}.{self.i_1}{self.wt("i")}_{self.j_1}{self.wt("j")}'
 
     def __str__(self):
-        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {self.dist:.3f}/{self.dist_cutoff:.3f} Å'
+        dist = {c: f'{float(d):.2f}' for c, d in self.homochains_dist.items()}
+        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {dist}/{self.dist_cutoff:.2f} Å'
 
     def wt(self, resi: Literal['i', 'j']) -> str:
         res: str = getattr(self, f'{resi}_aa')
@@ -127,7 +143,7 @@ class CoevolvedPair:
         atom_1, atom_2 = self.res_pair(chain_pair)
         return f'({atom_1} or {atom_2})'
 
-    @cached_property
+    @property
     def all_res_pairs(self) -> dict[str, tuple[str]]:
         all_res_pairs = {
             cc: self.res_pair(chain_pair=cc) for cc in self.homochains
@@ -135,7 +151,7 @@ class CoevolvedPair:
         logging.debug(f'{all_res_pairs=}')
         return all_res_pairs
 
-    @cached_property
+    @property
     def all_res_pairs_selections(self) -> dict[str, str]:
         all_res_pairs_selections = {
             cc: self.res_pair_selection(chain_pair=cc)
@@ -144,11 +160,11 @@ class CoevolvedPair:
         logging.debug(f'{all_res_pairs_selections}')
         return all_res_pairs_selections
 
-    @cached_property
+    @property
     def i_1(self) -> int:
         return self.i + 1
 
-    @cached_property
+    @property
     def j_1(self) -> int:
         return self.j + 1
 
