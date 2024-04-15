@@ -372,6 +372,12 @@ class GREMLIN_Analyser:
         self.chain_binding_enabled: bool = False
         self.chains_to_bind: tuple = []
 
+        self.explored_mutant_tree: MutantTree= MutantTree({})
+        self.mutant_tree_coevolved = MutantTree({})
+        self.picked_gremlin_mutant: Mutant = None
+
+
+
     def load_gremlin_mrf(
         self,
     ):
@@ -644,10 +650,7 @@ class GREMLIN_Analyser:
         )
 
         self.picked_gremlin_mutant_id = ''
-        self.last_gremlin_mutant_id = ''
-
         self.picked_gremlin_group_id = ''
-        self.last_gremlin_co_evoving_pair_group_id = ''
 
         self.load_co_evolving_pairs()
 
@@ -902,34 +905,31 @@ class GREMLIN_Analyser:
 
     def coevoled_mutant_decision(self, accept: bool):
         logging.debug(
-            f'{"Accepting" if accept else "Rejecting"}  co-evolved mutant {self.picked_gremlin_mutant_id}'
+            f'{"Accepting" if accept else "Rejecting"}  co-evolved mutant {(picked_gremlin_mutant_id:=self.picked_gremlin_mutant.short_mutant_id)}'
         )
 
         if accept:
-            cmd.enable(self.picked_gremlin_mutant_id)
+            cmd.enable(picked_gremlin_mutant_id)
 
             self.mutant_tree_coevolved.add_mutant_to_branch(
                 self.picked_gremlin_group_id,
-                self.picked_gremlin_mutant_id,
-                extract_mutant_from_pymol_object(
-                    pymol_object=self.picked_gremlin_mutant_id,
-                    sequences=self.designable_sequences,
-                ),
+                picked_gremlin_mutant_id,
+                self.picked_gremlin_mutant,
             )
         else:
-            cmd.disable(self.picked_gremlin_mutant_id)
+            cmd.disable(picked_gremlin_mutant_id)
             if (
-                self.picked_gremlin_mutant_id
+                picked_gremlin_mutant_id
                 not in self.mutant_tree_coevolved.all_mutant_ids
             ):
                 logging.warning(
-                    f'{self.picked_gremlin_mutant_id} has not been accepted yet. Skipped.'
+                    f'{picked_gremlin_mutant_id} has not been accepted yet. Skipped.'
                 )
                 return
             else:
                 self.mutant_tree_coevolved.remove_mutant_from_branch(
                     self.picked_gremlin_group_id,
-                    self.picked_gremlin_mutant_id,
+                    picked_gremlin_mutant_id,
                 )
 
         save_mutant_choices(
@@ -938,53 +938,38 @@ class GREMLIN_Analyser:
         )
 
     def activate_focused_interaction(self):
-        if self.picked_gremlin_mutant_id == self.last_gremlin_mutant_id:
+        if not self.picked_gremlin_mutant or self.picked_gremlin_mutant.empty:
+            raise issues.UnexpectedWorkflowError('Co-evolved pairs are not loaded. ')
+        
+        if self.picked_gremlin_mutant == self.explored_mutant_tree.all_mutant_objects[-1]:
+            logging.warning(f'Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})')
             return
-
-        if self.picked_gremlin_mutant_id:
-            cmd.enable(self.picked_gremlin_mutant_id)
+        
+        if picked_gremlin_mutant_id:=self.picked_gremlin_mutant.short_mutant_id:
+            cmd.enable(picked_gremlin_mutant_id)
             cmd.show(
                 'sticks',
-                f'{self.picked_gremlin_mutant_id} and (sidechain or n. CA) and not hydrogen',
+                f'{picked_gremlin_mutant_id} and (sidechain or n. CA) and not hydrogen',
             )
             cmd.show(
                 'mesh',
-                f'{self.picked_gremlin_mutant_id} and (sidechain or n. CA)',
+                f'{picked_gremlin_mutant_id} and (sidechain or n. CA)',
             )
-            cmd.hide('cartoon', f'{self.picked_gremlin_mutant_id}')
-        if self.last_gremlin_mutant_id:
-            cmd.disable(self.last_gremlin_mutant_id)
-            cmd.hide(
-                'mesh',
-                f'{self.last_gremlin_mutant_id} and (sidechain or n. CA)',
-            )
-            cmd.hide(
-                'sticks',
-                f'{self.last_gremlin_mutant_id} and (sidechain or n. CA) and not hydrogen',
-            )
-            cmd.hide('cartoon', f'{self.picked_gremlin_mutant_id}')
-
-        # close group object if deactivated
-        if (
-            self.last_gremlin_co_evoving_pair_group_id != ''
-            and self.picked_gremlin_group_id
-            != self.last_gremlin_co_evoving_pair_group_id
-        ):
-            cmd.disable(self.last_gremlin_co_evoving_pair_group_id)
-            cmd.group(
-                self.last_gremlin_co_evoving_pair_group_id, action='close'
-            )
+            cmd.hide('cartoon', f'{picked_gremlin_mutant_id}')
+        
+        for group_id in self.explored_mutant_tree.all_mutant_branch_ids:
+            if group_id == self.picked_gremlin_group_id:
+                continue
+            cmd.disable(group_id)
+            cmd.group( group_id, action='close')
+            
 
         # expand group object if activated
-        if (
-            self.picked_gremlin_group_id
-            and self.last_gremlin_co_evoving_pair_group_id
-            != self.picked_gremlin_group_id
-        ):
+        if  self.picked_gremlin_group_id:
             cmd.enable(self.picked_gremlin_group_id)
             cmd.group(self.picked_gremlin_group_id, action='open')
 
-        cmd.center(self.picked_gremlin_mutant_id)
+        cmd.center(picked_gremlin_mutant_id)
 
     def mutate_with_gridbuttons(
         self,
@@ -1064,10 +1049,6 @@ class GREMLIN_Analyser:
                 )
             ]
         )
-        if self.picked_gremlin_group_id:
-            self.last_gremlin_co_evoving_pair_group_id = (
-                self.picked_gremlin_group_id
-            )
 
         self.picked_gremlin_group_id = visualizer.group_name
 
@@ -1089,8 +1070,6 @@ class GREMLIN_Analyser:
 
         _mutant: List[Dict[str, Union[str, int]]] = []
 
-        if self.picked_gremlin_mutant_id:
-            self.last_gremlin_mutant_id = self.picked_gremlin_mutant_id
 
         for chain_id_pair in pair.homochains:
             for chain_id, mut, idx, wt in zip(
@@ -1122,6 +1101,7 @@ class GREMLIN_Analyser:
 
                 logging.debug(f'Adding mutagenesis {expected_mutant}')
                 _mutant.append(expected_mutant)
+        logging.debug(_mutant)
 
         if not _mutant:
             logging.info(
@@ -1150,10 +1130,7 @@ class GREMLIN_Analyser:
         # update mutant id from Mutant object.
         mutant = mutant_obj.short_mutant_id
 
-        if mutant in cmd.get_names(
-            type='nongroup_objects',
-            enabled_only=0,
-        ):
+        if mutant in self.explored_mutant_tree.all_mutant_ids:
             logging.info(
                 f'Picked mutant: {mutant} ({mutant_obj.full_mutant_id}) already exists. Do nothing.'
             )
@@ -1179,6 +1156,8 @@ class GREMLIN_Analyser:
             )
             cmd.hide('everything', 'hydrogens and polymer.protein')
             cmd.hide('cartoon', mutant)
+
+            self.explored_mutant_tree.add_mutant_to_branch(branch=visualizer.group_name, mutant=mutant_obj.short_mutant_id, mutant_obj=mutant_obj)
 
         self.picked_gremlin_mutant_id = mutant
         self.activate_focused_interaction()

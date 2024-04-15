@@ -206,7 +206,7 @@ class TestWorker:
                 self.plugin.ui.spinBox_nproc,
                 self.test_data.nproc_circleci,
             )
-        
+
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
         else:
