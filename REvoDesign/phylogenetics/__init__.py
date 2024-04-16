@@ -562,8 +562,8 @@ class GREMLIN_Analyser:
             self.gremlin_workpath = os.path.join(
                 self.PWD,
                 'gremlin_co_evolved_pairs',
-                f'resi_{resi}',
                 subdir,
+                f'resi_{resi}',
             )
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
@@ -576,17 +576,6 @@ class GREMLIN_Analyser:
                 progress_bar=self.bus.ui.progressBar,
             )
 
-            if not coevolved_pairs:
-                warnings.warn(
-                    issues.NoResultsWarning(
-                        f'No Available co-evolutionary signal against {resi}'
-                    )
-                )
-                # early return if no data.
-                return
-
-            logging.info(f'Found {len(coevolved_pairs)} pairs against {resi}.')
-
         else:
             logging.info(
                 f'No selection `sele` is picked, use All vs All mode.'
@@ -596,8 +585,8 @@ class GREMLIN_Analyser:
             self.gremlin_workpath = os.path.join(
                 self.PWD,
                 'gremlin_co_evolved_pairs',
-                'all_vs_all',
                 subdir,
+                'all_vs_all',
             )
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
@@ -609,16 +598,16 @@ class GREMLIN_Analyser:
                 progress_bar=self.bus.ui.progressBar,
             )
 
-            if not coevolved_pairs:
-                warnings.warn(
-                    issues.NoResultsWarning(
-                        f'No Available co-evolutionary signal in global'
-                    )
+        if not coevolved_pairs:
+            warnings.warn(
+                issues.NoResultsWarning(
+                    f'No Available co-evolutionary signal in global'
                 )
-                # early return if no data.
-                return
+            )
+            # early return if no data.
+            return
 
-            logging.info(f'Found {len(coevolved_pairs)} pairs in global')
+        logging.info(f'Found {len(coevolved_pairs)} pairs')
 
         logging.debug(coevolved_pairs)
 

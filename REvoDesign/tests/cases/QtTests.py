@@ -689,7 +689,7 @@ class TestREvoDesignPlugin_TabInteract:
         WORKER.load_session_and_check(
             from_rcsb=True,
             pdb_code=WORKER.test_data.gremlin_homomer_molecule,
-            spell=f'{WORKER.test_data.gremlin_homomer_postfetch_spell};{WORKER.test_data.gremlin_homomer_o2a_spell}',
+            spell=WORKER.test_data.gremlin_homomer_postfetch_spell,
         )
         WORKER.go_to_tab(tab_name='config')
 
@@ -743,6 +743,9 @@ class TestREvoDesignPlugin_TabInteract:
             basename=f'{WORKER.test_id}_after_init',
         )
         WORKER.save_new_experiment()
+
+        cmd.select('sele', WORKER.test_data.gremlin_homomer_o2a_sele)
+        cmd.enable('sele')
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
