@@ -240,6 +240,13 @@ class TestREvoDesignPlugin_TabMutate:
     def test_mpnn_surf(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
+
         WORKER.go_to_tab(tab_name='mutate')
 
         set_widget_value(
@@ -309,6 +316,12 @@ class TestREvoDesignPlugin_TabMutate:
     def test_ddg_surf_non_biolib_calling(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
         WORKER.go_to_tab(tab_name='mutate')
 
         local_ddg_file = WORKER.download_file(

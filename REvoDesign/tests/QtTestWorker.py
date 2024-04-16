@@ -193,6 +193,7 @@ class TestWorker:
         from_rcsb=False,
         customized_session: str = None,
     ):
+        self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
         print(f'nproc: {nproc}')
         if (
@@ -206,18 +207,22 @@ class TestWorker:
                 self.plugin.ui.spinBox_nproc,
                 self.test_data.nproc_circleci,
             )
+        self.sleep(100)
 
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
+            
         else:
             if not customized_session:
                 customized_session = self.test_data.pocket_pse
             self._load_pocket_pse(customized_session)
 
-        self.qtbot.wait(100)
+        self.sleep(100)
 
         self.plugin.reload_molecule_info()
+        self.sleep(100)
         self.check_molecule_after_loaded()
+        self.sleep(100)
 
     def save_new_experiment(self, experiment_name: str = None):
         import shutil
@@ -242,6 +247,7 @@ class TestWorker:
         print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
+        self.sleep(150)
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
@@ -259,6 +265,7 @@ class TestWorker:
     def do_typing(
         self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False
     ):
+        self.sleep(200)
         set_widget_value(widget=widget, value='')
         # if text is short enough or in strict mode
         # type one after another
@@ -269,7 +276,10 @@ class TestWorker:
         # only type the last character to trigger hook connected to this widget
         _tex, _t = text[:-1], text[-1]
         set_widget_value(widget=widget, value=_tex)
+
         self.qtbot.keyClicks(widget, _t)
+        self.sleep(200)
+
 
     def _navigate_to_tab(
         self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
@@ -281,6 +291,7 @@ class TestWorker:
             tab=self.plugin.ui.tabWidget,
             page=self.tab_widget_mapping.get(tab_name),
         )
+        self.sleep(150)
 
     def check_molecule_after_loaded(self):
         assert (
@@ -400,6 +411,7 @@ class TestWorker:
                 print(e)
 
         cmd.png(png_file, dpi=dpi, ray=use_ray)
+        self.sleep(100)
 
     def wait_for_file(
         self, file: str, interval: str = 100, timeout: float = 61.0
