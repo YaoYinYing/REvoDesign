@@ -64,7 +64,6 @@ class MultiMutantDesigner:
         self.use_external_scorer = self.bus.get_value(
             'ui.visualize.multi_design.use_external_scorer'
         )
-        self.external_scorer = None
 
         self.color_by_scores = self.bus.get_value(
             'ui.visualize.multi_design.color_by_scores'
