@@ -36,6 +36,7 @@ class MultiMutantDesigner:
         """
         # get the bus
         self.bus = ConfigBus()
+        self.external_scorer = None
         self.refresh_options()
         self.get_input_and_initialize()
 
