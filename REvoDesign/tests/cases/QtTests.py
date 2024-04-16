@@ -630,7 +630,7 @@ class TestREvoDesignPlugin_TabInteract:
             WORKER.plugin.ui.spinBox_gremlin_topN
         )
 
-        cmd.save(WORKER.test_data.gremlin_homomer_pse)
+        cmd.save(WORKER.test_data.gremlin_homomer_a2a_pse)
 
         for operation in WORKER.test_data.gremlin_homomer_clicks_a2a:
             i = WORKER.c.i
@@ -778,7 +778,7 @@ class TestREvoDesignPlugin_TabInteract:
             WORKER.plugin.ui.spinBox_gremlin_topN
         )
 
-        cmd.save(WORKER.test_data.gremlin_homomer_pse)
+        cmd.save(WORKER.test_data.gremlin_homomer_o2a_pse)
 
         for operation in WORKER.test_data.gremlin_homomer_clicks_o2a:
             i = WORKER.c.i

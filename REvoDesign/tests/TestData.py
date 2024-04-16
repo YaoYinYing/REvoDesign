@@ -221,8 +221,12 @@ class TestData:
         return f'select sele, {self.gremlin_homomer_molecule} and chain {self.gremlin_homomer_chain} and i. {self.gremlin_homomer_o2a_sele}; enable sele'
 
     @property
-    def gremlin_homomer_pse(self):
-        return f'{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.pze'
+    def gremlin_homomer_a2a_pse(self):
+        return f'{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.a2a.pze'
+
+    @property
+    def gremlin_homomer_o2a_pse(self):
+        return f'{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.o2a.pze'
 
     @property
     def used_molecules(self):

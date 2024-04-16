@@ -544,6 +544,15 @@ class GREMLIN_Analyser:
                 )
             )
         )
+        # name this subdir for every analysis
+        chains = "".join(self.chains_to_bind)
+        if self.chain_binding_enabled and self.chains_to_bind:
+            subdir = (
+                f'{self.design_molecule}_{self.design_chain_id}.homo.{chains}'
+            )
+        else:
+            subdir = f'{self.design_molecule}_{self.design_chain_id}.mono'
+
         if any_posision_has_been_selected():
             logging.info(f'One vs All mode.')
             self.gremlin_tool_a2a_mode = False
@@ -554,7 +563,7 @@ class GREMLIN_Analyser:
                 self.PWD,
                 'gremlin_co_evolved_pairs',
                 f'resi_{resi}',
-                f'{self.design_molecule}_{self.design_chain_id}.{"homo." + "".join(self.chains_to_bind) if self.chain_binding_enabled and self.chains_to_bind else "mono"}',
+                subdir,
             )
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
@@ -588,7 +597,7 @@ class GREMLIN_Analyser:
                 self.PWD,
                 'gremlin_co_evolved_pairs',
                 'all_vs_all',
-                f'{self.design_molecule}_{self.design_chain_id}.{"homo." + "".join(self.chains_to_bind) if self.chain_binding_enabled and self.chains_to_bind else "mono"}',
+                subdir,
             )
             os.makedirs(self.gremlin_workpath, exist_ok=True)
             self.gremlin_tool.pwd = self.gremlin_workpath
