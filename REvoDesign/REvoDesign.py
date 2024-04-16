@@ -436,27 +436,45 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         self.bus.button('reinitialize_mutant_choosing').clicked.connect(
-            self.initialize_design_candidates,
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.initialize_design_candidates,
+            )
         )
 
         self.bus.button('goto_best_hit_in_group').clicked.connect(
-            self.jump_to_the_best_mutant,
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.jump_to_the_best_mutant,
+            )
         )
 
         self.bus.button('load_mutant_choice_checkpoint').clicked.connect(
-            self.recover_mutant_choices_from_checkpoint,
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.recover_mutant_choices_from_checkpoint,
+            )
         )
 
         self.bus.ui.comboBox_group_ids.currentTextChanged.connect(
-            self.jump_to_branch,
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.jump_to_branch,
+            )
         )
 
         self.bus.ui.comboBox_mutant_ids.currentTextChanged.connect(
-            self.jump_to_a_mutant,
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.jump_to_a_mutant,
+            )
         )
 
         self.bus.button('choose_lucky_mutant').clicked.connect(
-            self.find_all_best_mutants,
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.find_all_best_mutants,
+            )
         )
 
         # Tab `Cluster`
@@ -1276,7 +1294,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         with hold_trigger_button(trigger_button):
             worker = VisualizingWorker()
-            worker.visualize_mutants()
+            run_worker_thread_with_progress(
+                worker_function=worker.visualize_mutants,
+                progress_bar=self.bus.ui.progressBar,
+            )
 
         if (
             self.ws_server
