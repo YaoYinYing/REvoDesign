@@ -211,7 +211,7 @@ class TestWorker:
 
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
-            
+
         else:
             if not customized_session:
                 customized_session = self.test_data.pocket_pse
@@ -279,7 +279,6 @@ class TestWorker:
 
         self.qtbot.keyClicks(widget, _t)
         self.sleep(200)
-
 
     def _navigate_to_tab(
         self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
