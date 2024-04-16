@@ -14,10 +14,7 @@ from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.citations import CitationManager
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import QbuttonMatrix, set_widget_value
-from REvoDesign.tools.mutant_tools import (
-    extract_mutant_from_pymol_object,
-    save_mutant_choices,
-)
+from REvoDesign.tools.mutant_tools import save_mutant_choices
 
 from REvoDesign.tools.pymol_utils import (
     any_posision_has_been_selected,
@@ -41,7 +38,7 @@ from REvoDesign import issues
 logging = root_logger.getChild(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class CoevolvedPairState:
     state2color: immutabledict = immutabledict(
         {
@@ -60,9 +57,9 @@ class CoevolvedPairState:
 
 
 class MutateWorker:
-    def __init__(self, PWD):
+    def __init__(self):
         self.bus: ConfigBus = ConfigBus()
-        self.PWD: str = PWD
+        self.PWD: str = self.bus.get_value('work_dir', str)
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'
@@ -226,10 +223,10 @@ class MutateWorker:
 
 
 class VisualizingWorker:
-    def __init__(self, PWD):
+    def __init__(self):
         self.bus: ConfigBus = ConfigBus()
 
-        self.PWD: str = PWD
+        self.PWD: str = self.bus.get_value('work_dir', str)
 
         self.design_molecule: str = self.bus.get_value(
             'ui.header_panel.input.molecule'
@@ -345,10 +342,10 @@ class VisualizingWorker:
 
 
 class GREMLIN_Analyser:
-    def __init__(self, PWD):
+    def __init__(self):
         self.bus: ConfigBus = ConfigBus()
 
-        self.PWD: str = PWD
+        self.PWD: str = self.bus.get_value('work_dir', str)
         self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
 
         self.design_molecule: str = self.bus.get_value(
@@ -685,9 +682,11 @@ class GREMLIN_Analyser:
                 warnings.warn(f'Skipping empty pair: {str(pair)}')
                 discarded.append(pair)
                 continue
-            pair.selection_string = cmd.get_unused_name(f"{repr(pair)}_")
 
             try:
+                sele_name = repr(pair)
+                logging.debug(f'{sele_name=}')
+                pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
                 _sele = " or ".join(
                     [x for x in pair.all_res_pairs_selections.values()]
                 )
@@ -770,7 +769,7 @@ class GREMLIN_Analyser:
 
         for p in i_out_of_range:
             logging.info(
-                f'Pair {p.i_aa}-{p.j_aa} will be removed:  out of range.'
+                f'Pair {p.i_aa}-{p.j_aa} will be removed: out of range.'
             )
 
         self.coevolved_pairs = IterableLoop(

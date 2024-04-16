@@ -115,6 +115,7 @@ all-test:
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
 	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py
+	tree || echo Never mind.
 	cp $(TESTDIR)/.coverage* .
 
 macos-rosetta-test:

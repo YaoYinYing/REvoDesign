@@ -17,7 +17,6 @@ import traceback
 from typing import Dict, List, Literal
 import matplotlib
 import warnings
-from functools import cached_property
 
 from REvoDesign.citations import CitableModules
 
