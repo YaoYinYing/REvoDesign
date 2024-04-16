@@ -68,9 +68,15 @@ class IterableLoop(Generic[T]):
         """
         if not self.initialized:
             self.current_idx = 0
-        if self.current_idx >= len(self.iterable) - 1:
+        else:
+            self.current_idx += 1
+
+        # index overflow
+        if self.current_idx == len(self.iterable):
+            # reset index
+            self.current_idx = -1
             raise StopIteration
-        return self.iterable[self.pick_next()]
+        return self.iterable[self.current_idx]
 
     @property
     def initialized(self):

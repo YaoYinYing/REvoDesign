@@ -38,7 +38,7 @@ from REvoDesign import issues
 logging = root_logger.getChild(__name__)
 
 
-@dataclass(frozen=True)
+@dataclass
 class CoevolvedPairState:
     state2color: immutabledict = immutabledict(
         {
@@ -439,8 +439,17 @@ class GREMLIN_Analyser:
         self.gremlin_tool.pwd = self.PWD
         self.gremlin_tool.topN = topN_gremlin_candidates
 
-        self.gremlin_tool.get_to_coevolving_pairs()
-        plot_mtx_fp = self.gremlin_tool.plot_mtx()
+        run_worker_thread_with_progress(
+            worker_function=self.gremlin_tool.get_to_coevolving_pairs,
+            mrf_path=gremlin_mrf_fp,
+            progress_bar=self.bus.ui.progressBar,
+        )
+
+        plot_mtx_fp = run_worker_thread_with_progress(
+            worker_function=self.gremlin_tool.plot_mtx,
+            mrf_path=gremlin_mrf_fp,
+            progress_bar=self.bus.ui.progressBar,
+        )
 
         try:
             set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
@@ -766,22 +775,19 @@ class GREMLIN_Analyser:
                 f'Pair {p.i_aa}-{p.j_aa} will be removed: out of range.'
             )
 
-        coevolved_pairs = tuple(
-            [
-                p
-                for p in self.coevolved_pairs
-                if not (p in i_out_of_range or p in discarded)
-            ]
+        self.coevolved_pairs = IterableLoop(
+            iterable=tuple(
+                [
+                    p
+                    for p in self.coevolved_pairs
+                    if not (p in i_out_of_range or p in discarded)
+                ]
+            )
         )
-
-        self.coevolved_pairs = IterableLoop(iterable=coevolved_pairs)
 
         logging.warning(f'Out of range: {len(i_out_of_range)}')
         logging.warning(f'Discarded pairs: {len(discarded)}')
         logging.warning(f'Filtered pairs: {len(self.coevolved_pairs)}')
-
-        del i_out_of_range
-        del discarded
 
         CitationManager().output()
         return
@@ -1045,7 +1051,10 @@ class GREMLIN_Analyser:
         visualizer.sequence = self.design_sequence
         alphabet = self.gremlin_tool.alphabet
 
-        visualizer.mutate_runner = SidechainSolver().refresh().mutate_runner
+        visualizer.mutate_runner = run_worker_thread_with_progress(
+            worker_function=SidechainSolver().refresh().mutate_runner,
+            progress_bar=self.bus.ui.progressBar,
+        )
 
         visualizer.group_name = '_vs_'.join(
             [
@@ -1119,15 +1128,18 @@ class GREMLIN_Analyser:
 
         mutant_obj.wt_sequences = self.designable_sequences
 
-        mut_score = (
-            matrix[col][row]
-            if not self.gremlin_external_scorer
-            else self.gremlin_external_scorer.scorer(
+        if not self.gremlin_external_scorer:
+            mut_score = matrix[col][row]
+        else:
+            mut_score = run_worker_thread_with_progress(
+                worker_function=self.gremlin_external_scorer.scorer,
                 sequence=mutant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.design_chain_id, ignore_missing=True
-                )
+                    chain_id=self.design_chain_id,
+                    ignore_missing=True,
+                    progress_bar=self.bus.ui.progressBar,
+                ),
             )
-        )
+
         mutant_obj.mutant_score = mut_score
 
         set_widget_value(lineEdit_current_pair_wt_score, f'{wt_score:.4f}')
