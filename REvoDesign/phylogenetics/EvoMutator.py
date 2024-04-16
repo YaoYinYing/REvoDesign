@@ -5,6 +5,7 @@ import traceback
 import itertools
 
 from immutabledict import immutabledict
+from joblib import Parallel, delayed
 from REvoDesign import ConfigBus
 from REvoDesign.basic import IterableLoop
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
@@ -342,6 +343,93 @@ class VisualizingWorker:
             CitationManager().output()
 
 
+@dataclass
+class ChainBinder:
+    design_molecule: str
+    design_chain_id: str
+    max_interact_dist: float
+    chain_binding_enabled: bool = False
+    chains_to_bind: tuple = None
+    n_jobs: int = -1
+
+    def get_input_pdb(self):
+        return make_temperal_input_pdb(
+            molecule=self.design_molecule, reload=False
+        )
+
+    def _get_dist(
+        self,
+        chain_1: str,
+        chain_2: str,
+        i_1: Union[int, str],
+        j_1: Union[int, str],
+    ) -> float:
+        import pymol2
+
+        with pymol2.PyMOL() as p:
+            p.cmd.reinitialize()
+            p.cmd.load(self.input_pdb)
+            atom1 = f'{self.design_molecule} and c. {chain_1} and i. {i_1} and n. CA'
+            atom2 = f'{self.design_molecule} and c. {chain_2} and i. {j_1} and n. CA'
+            try:
+                dist = p.cmd.get_distance(atom1=atom1, atom2=atom2)
+                return dist
+            except CmdException as e:
+                warnings.warn(
+                    issues.BadDataWarning(
+                        f'No such atom pair {atom1=} and {atom2=}: {e=}'
+                    )
+                )
+                return -1
+
+    # record chain binding: distances and maximum distance to be accepted
+    def bind_chains(
+        self, coevolved_pairs: tuple[CoevolvedPair]
+    ) -> tuple[CoevolvedPair]:
+        self.input_pdb = self.get_input_pdb()
+
+        if not (self.chain_binding_enabled and self.chains_to_bind):
+            logging.info('Intrachain connections.')
+            # Parallelize intrachain calculations
+            results = Parallel(n_jobs=self.n_jobs)(
+                delayed(self._calculate_intrachain_dist)(pair)
+                for pair in coevolved_pairs
+            )
+            return tuple(results)
+
+        # Parallelize interchain calculations for homomer pairs
+        results = Parallel(n_jobs=self.n_jobs)(
+            delayed(self._calculate_interchain_dist)(pair)
+            for pair in coevolved_pairs
+        )
+
+        return tuple(results)
+
+    def _calculate_intrachain_dist(self, pair: CoevolvedPair):
+        pair.dist_cutoff = self.max_interact_dist
+        dist = self._get_dist(
+            chain_1=self.design_chain_id,
+            chain_2=self.design_chain_id,
+            i_1=pair.i_1,
+            j_1=pair.j_1,
+        )
+        if dist >= 0:
+            pair.homochains_dist.update(
+                {f'{self.design_chain_id}{self.design_chain_id}': dist}
+            )
+        return pair
+
+    def _calculate_interchain_dist(self, pair: CoevolvedPair):
+        pair.dist_cutoff = self.max_interact_dist
+        for c1, c2 in itertools.product(self.chains_to_bind, repeat=2):
+            dist = self._get_dist(
+                chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1
+            )
+            if 0 <= dist <= self.max_interact_dist:
+                pair.homochains_dist.update({f'{c1}{c2}': dist})
+        return pair
+
+
 class GREMLIN_Analyser:
     def __init__(self):
         self.bus: ConfigBus = ConfigBus()
@@ -455,84 +543,6 @@ class GREMLIN_Analyser:
                 f'Work Space is cleaned. Click once again to reinitialize. '
             )
 
-    def _get_dist(
-        self,
-        chain_1: str,
-        chain_2: str,
-        i_1: Union[int, str],
-        j_1: Union[int, str],
-    ) -> float:
-        atom1 = (
-            f'{self.design_molecule} and c. {chain_1} and i. {i_1} and n. CA'
-        )
-        atom2 = (
-            f'{self.design_molecule} and c. {chain_2} and i. {j_1} and n. CA'
-        )
-        try:
-            dist = cmd.get_distance(atom1=atom1, atom2=atom2)
-            return dist
-        except CmdException:
-            warnings.warn(
-                issues.BadDataWarning(
-                    f'No such atom pair {atom1=} and {atom2=}'
-                )
-            )
-            return -1
-
-    # record chain binding: distances and maximum distance to be accepted
-    def bind_chains(
-        self, coevolved_pairs: tuple[CoevolvedPair]
-    ) -> tuple[CoevolvedPair]:
-        self.max_interact_dist: float = self.bus.get_value(
-            'ui.interact.max_interact_dist', float
-        )
-
-        # fix chain id if chain binding is enabled.
-        # monomer pairs
-        if not (self.chain_binding_enabled and self.chains_to_bind):
-            logging.info('Intrachain connections.')
-            for pair in coevolved_pairs:
-                pair.dist_cutoff = self.max_interact_dist
-
-                dist = self._get_dist(
-                    chain_1=self.design_chain_id,
-                    chain_2=self.design_chain_id,
-                    i_1=pair.i_1,
-                    j_1=pair.j_1,
-                )
-
-                # invalid distance, raised from residue missing in PDB structure.
-                if dist < 0:
-                    continue
-                pair.homochains_dist.update(
-                    {f'{self.design_chain_id}{self.design_chain_id}': dist}
-                )
-
-            return coevolved_pairs
-
-        invalid_coevolved_chain_pair: int = 0
-
-        # homomer pairs
-        for pair in coevolved_pairs:
-            pair.dist_cutoff = self.max_interact_dist
-            for c1, c2 in itertools.product(self.chains_to_bind, repeat=2):
-                dist = self._get_dist(
-                    chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1
-                )
-                if dist < 0 or dist > self.max_interact_dist:
-                    invalid_coevolved_chain_pair += 1
-                    continue
-                pair.homochains_dist.update({f'{c1}{c2}': dist})
-
-        if invalid_coevolved_chain_pair:
-            warnings.warn(
-                issues.BadDataWarning(
-                    f'Discarded: {invalid_coevolved_chain_pair=}'
-                )
-            )
-
-        return coevolved_pairs
-
     def run_gremlin_tool(self):
         self.chain_binding_enabled: bool = self.bus.get_value(
             'ui.interact.chain_binding.enabled', bool
@@ -544,6 +554,10 @@ class GREMLIN_Analyser:
                 )
             )
         )
+        self.max_interact_dist: float = self.bus.get_value(
+            'ui.interact.max_interact_dist', float
+        )
+
         # name this subdir for every analysis
         chains = "".join(self.chains_to_bind)
         if self.chain_binding_enabled and self.chains_to_bind:
@@ -612,10 +626,19 @@ class GREMLIN_Analyser:
         logging.debug(coevolved_pairs)
 
         logging.info('Binding Chains ...')
+        chain_binder = ChainBinder(
+            design_molecule=self.design_molecule,
+            design_chain_id=self.design_chain_id,
+            chain_binding_enabled=self.chain_binding_enabled,
+            max_interact_dist=self.max_interact_dist,
+            chains_to_bind=self.chains_to_bind,
+            n_jobs=self.bus.get_value('ui.header_panel.nproc', int),
+        )
+
         coevolved_pairs: tuple[
             CoevolvedPair
         ] = run_worker_thread_with_progress(
-            worker_function=self.bind_chains,
+            worker_function=chain_binder.bind_chains,
             coevolved_pairs=coevolved_pairs,
             progress_bar=self.bus.ui.progressBar,
         )
