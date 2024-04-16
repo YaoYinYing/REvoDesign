@@ -648,11 +648,10 @@ class GREMLIN_Analyser:
 
         self.load_co_evolving_pairs()
 
-        # visualize co-evolved pair in pymol UI
-
         self.gremlin_tool.cite()
 
     def plot_coevolved_pair_in_pymol(self):
+        # visualize co-evolved pair in pymol UI
         min_gremlin_score = min(
             [
                 min([p.zscore for p in self.coevolved_pairs]),
@@ -686,6 +685,10 @@ class GREMLIN_Analyser:
             try:
                 sele_name = repr(pair)
                 logging.debug(f'{sele_name=}')
+                if not sele_name or ' ' in sele_name:
+                    discarded.append(pair)
+                    continue
+
                 pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
                 _sele = " or ".join(
                     [x for x in pair.all_res_pairs_selections.values()]
