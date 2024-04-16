@@ -621,9 +621,7 @@ def determine_profile_type(profile_fp):
 def get_mutant_table_columns(mutfile):
     import pandas as pd
 
-    table_extensions = [
-        f'.{ext}' for ext, _ in FileExtentions.Mutable.items()
-    ]
+    table_extensions = [f'.{ext}' for ext, _ in FileExtentions.Mutable.items()]
 
     if not any(
         [True for ext in table_extensions if mutfile.lower().endswith(ext)]

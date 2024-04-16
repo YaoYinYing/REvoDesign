@@ -68,7 +68,7 @@ class IterableLoop(Generic[T]):
         """
         if not self.initialized:
             self.current_idx = 0
-        if self.current_idx == len(self.iterable):
+        if self.current_idx >= len(self.iterable) - 1:
             raise StopIteration
         return self.iterable[self.pick_next()]
 

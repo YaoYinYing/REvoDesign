@@ -530,6 +530,12 @@ class TestREvoDesignPlugin_TabInteract:
             pdb_code=WORKER.test_data.gremlin_homomer_molecule,
             spell=WORKER.test_data.gremlin_homomer_postfetch_spell,
         )
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
 
         WORKER.go_to_tab(tab_name='interact')
 
@@ -680,6 +686,12 @@ class TestREvoDesignPlugin_TabInteract:
             pdb_code=WORKER.test_data.gremlin_homomer_molecule,
             spell=f'{WORKER.test_data.gremlin_homomer_postfetch_spell};{WORKER.test_data.gremlin_homomer_o2a_spell}',
         )
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
 
         WORKER.go_to_tab(tab_name='interact')
 
@@ -813,6 +825,12 @@ class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_all2all(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
         WORKER.go_to_tab(tab_name='interact')
 
         # buttons
@@ -944,6 +962,12 @@ class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_one2all_mpnn_score(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
         WORKER.go_to_tab(tab_name='interact')
 
         sele_resi = 295

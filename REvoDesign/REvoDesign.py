@@ -697,9 +697,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
-    def browse_filename(
-        self, mode: IO_MODE = 'r', exts=[FileExtentions.Any]
-    ):
+    def browse_filename(self, mode: IO_MODE = 'r', exts=[FileExtentions.Any]):
         from pymol.Qt.utils import getSaveFileNameWithExt
 
         filter_strings = ';;'.join(
@@ -746,9 +744,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return filename
 
     # A universal and versatile function for input file path browsing.
-    def open_input_psepath(
-        self, cfg_input: str, exts=[FileExtentions.Any]
-    ):
+    def open_input_psepath(self, cfg_input: str, exts=[FileExtentions.Any]):
         input_fn = self.browse_filename(mode='r', exts=exts)
         if input_fn:
             self.bus.set_widget_value(cfg_input, input_fn)
