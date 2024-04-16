@@ -502,7 +502,7 @@ class GREMLIN_Analyser:
 
             return
 
-        invalid_coevolved_chain_pair: dict = {}
+        invalid_coevolved_chain_pair:int=0
 
         # homomer pairs
         for pair in self.coevolved_pairs:
@@ -511,20 +511,15 @@ class GREMLIN_Analyser:
                 dist = self._get_dist(
                     chain_1=c1, chain_2=c2, i_1=pair.i_1, j_1=pair.j_1
                 )
-                if dist < 0:
-                    continue
-
-                if dist > self.max_interact_dist:
-                    invalid_coevolved_chain_pair.update(
-                        {f'{repr(pair)}_{c1}{c2}': dist}
-                    )
+                if dist or dist > self.max_interact_dist:
+                    invalid_coevolved_chain_pair+=1
                     continue
                 pair.homochains_dist.update({f'{c1}{c2}': dist})
 
         if invalid_coevolved_chain_pair:
             warnings.warn(
                 issues.BadDataWarning(
-                    f'Discarded: {len(invalid_coevolved_chain_pair)=}'
+                    f'Discarded: {invalid_coevolved_chain_pair=}'
                 )
             )
 
@@ -652,13 +647,14 @@ class GREMLIN_Analyser:
 
     def plot_coevolved_pair_in_pymol(self):
         # visualize co-evolved pair in pymol UI
+        coevolved_pairs=self.coevolved_pairs
         min_gremlin_score = min(
             [
                 min([p.zscore for p in self.coevolved_pairs]),
                 0,
             ]
         )
-        max_gremlin_score = max([p.zscore for p in self.coevolved_pairs])
+        max_gremlin_score = max([p.zscore for p in coevolved_pairs])
 
         self.ce_object_group_valid = cmd.get_unused_name(
             f"cep_{self.design_molecule}_"
@@ -676,7 +672,7 @@ class GREMLIN_Analyser:
 
         i_out_of_range: List[CoevolvedPair] = []
         discarded: List[CoevolvedPair] = []
-        for pair in self.coevolved_pairs:
+        for pair in coevolved_pairs:
             if pair.empty:
                 warnings.warn(f'Skipping empty pair: {str(pair)}')
                 discarded.append(pair)
@@ -685,10 +681,6 @@ class GREMLIN_Analyser:
             try:
                 sele_name = repr(pair)
                 logging.debug(f'{sele_name=}')
-                if not sele_name or ' ' in sele_name:
-                    discarded.append(pair)
-                    continue
-
                 pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
                 _sele = " or ".join(
                     [x for x in pair.all_res_pairs_selections.values()]
@@ -749,6 +741,7 @@ class GREMLIN_Analyser:
         cmd.delete(_tmp_obj)
         cmd.group(self.ce_object_group_valid, action='close')
         cmd.group(self.ce_object_group_invalid, action='close')
+        
 
         self.mark_pair_state(
             pairs=tuple([i for i in i_out_of_range]),
@@ -758,7 +751,7 @@ class GREMLIN_Analyser:
             pairs=tuple(
                 [
                     p
-                    for p in self.coevolved_pairs
+                    for p in coevolved_pairs
                     if not (p in i_out_of_range or p in discarded)
                 ]
             ),
@@ -779,11 +772,19 @@ class GREMLIN_Analyser:
             iterable=tuple(
                 [
                     p
-                    for p in self.coevolved_pairs
+                    for p in coevolved_pairs
                     if not (p in i_out_of_range or p in discarded)
                 ]
             )
         )
+
+        logging.warning(f'Out of range: {len(i_out_of_range)}')
+        logging.warning(f'Discarded pairs: {len(discarded)}')
+        logging.warning(f'Filtered pairs: {len(self.coevolved_pairs)}')
+
+        del i_out_of_range
+        del discarded
+
 
         CitationManager().output()
         return
