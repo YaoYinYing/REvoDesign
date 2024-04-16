@@ -251,12 +251,12 @@ class TestWorker:
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
-                self.sleep()
+                self.sleep(100)
             return self
 
         for t in range(times):
             self.qtbot.mouseClick(widget, self.CURSOR)
-            self.sleep()
+            self.sleep(100)
         return self
 
     def sleep(self, time=1000):
@@ -265,7 +265,7 @@ class TestWorker:
     def do_typing(
         self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False
     ):
-        self.sleep(200)
+        self.sleep(100)
         set_widget_value(widget=widget, value='')
         # if text is short enough or in strict mode
         # type one after another
@@ -278,7 +278,7 @@ class TestWorker:
         set_widget_value(widget=widget, value=_tex)
 
         self.qtbot.keyClicks(widget, _t)
-        self.sleep(200)
+        self.sleep(100)
 
     def _navigate_to_tab(
         self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
