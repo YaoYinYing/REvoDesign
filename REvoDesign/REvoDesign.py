@@ -575,28 +575,54 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         self.bus.button('multi_design_initialize').clicked.connect(
-            self.multi_mutagenesis_design_initialize
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_initialize,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_start_new_design').clicked.connect(
-            self.multi_mutagenesis_design_start
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_start,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_left').clicked.connect(
-            self.multi_mutagenesis_design_undo_picking
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_undo_picking,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_right').clicked.connect(
-            self.multi_mutagenesis_design_pick_next_mut
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_pick_next_mut,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_end_this_design').clicked.connect(
-            self.multi_mutagenesis_design_stop_design
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_stop_design,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button(
             'multi_design_export_mutants_from_table'
-        ).clicked.connect(self.multi_mutagenesis_design_save_design)
+        ).clicked.connect(
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_save_design,
+                progress_bar=self.bus.ui.progressBar,
+            )
+        )
 
         self.bus.button('run_multi_design').clicked.connect(
             partial(

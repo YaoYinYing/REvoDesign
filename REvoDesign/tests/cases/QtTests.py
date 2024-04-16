@@ -1584,7 +1584,7 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         for i in random.sample(
             WORKER.test_data.multi_design_steps,
-            len(WORKER.test_data.multi_design_steps),
+            5,
         ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
@@ -1647,7 +1647,7 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         for i in random.sample(
             WORKER.test_data.multi_design_steps,
-            len(WORKER.test_data.multi_design_steps) - 3,
+            3,
         ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)

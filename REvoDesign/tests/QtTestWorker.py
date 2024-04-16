@@ -245,12 +245,12 @@ class TestWorker:
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
-                self.sleep(100)
+                self.sleep()
             return self
 
         for t in range(times):
             self.qtbot.mouseClick(widget, self.CURSOR)
-            self.sleep(100)
+            self.sleep()
         return self
 
     def sleep(self, time=1000):

@@ -99,7 +99,6 @@ class MultiMutantDesigner:
             raise issues.InvalidInputError(
                 'At least two groups of mutants should be included.'
             )
-            return
 
         # get inputs
         self.in_design_multi_design_case: MutantTree = MutantTree()
@@ -304,11 +303,9 @@ class MultiMutantDesigner:
             except IndexError:
                 return
 
-            if not self._is_compatible_mutant(
-                (mutant_id, mutant_obj),
-                minimal_distance=self.minimal_distance,
-                use_sidechain_angle=self.use_sidechain_angle,
-            ):
+            mutant_obj.mutant_description = mutant_id
+
+            if not self._is_compatible_mutant(mutant_obj):
                 logging.warning(f'Skip {branch}: {mutant_id}.')
                 # label this mutant deleted in this design.
                 self.design_pool_tree_copy.remove_mutant_from_branch(
@@ -604,17 +601,13 @@ class MultiMutantDesigner:
 
     def _is_compatible_mutant(
         self,
-        mutant: tuple[str, Mutant],
-        minimal_distance=20,
-        use_sidechain_angle=True,
+        mutant: Mutant,
     ):
         """
         Checks compatibility of mutants.
 
         Args:
         - mutant: Tuple containing mutant information.
-        - minimal_distance: Minimal distance between mutants (default: 20).
-        - use_sidechain_angle: Flag to use sidechain angle (default: True).
 
         Returns:
         - bool: True if mutants are compatible, False otherwise.
@@ -628,8 +621,8 @@ class MultiMutantDesigner:
 
         existed_mutant_obj = self.in_design_multi_design_case.asOneMutant
 
-        mutant_id, mutant_obj = mutant
-        for _picked_residue in mutant_obj.mutant_info:
+        mutant_id = mutant.mutant_description
+        for _picked_residue in mutant.mutant_info:
             if any(
                 _picked_residue["position"] == _existed_residue["position"]
                 for _existed_residue in existed_mutant_obj.mutant_info
@@ -646,8 +639,8 @@ class MultiMutantDesigner:
                     chain_id=self.chain_id,
                     resi_1=_picked_residue["position"],
                     resi_2=_existed_residue["position"],
-                    minimal_distance=minimal_distance,
-                    use_sidechain_angle=use_sidechain_angle,
+                    minimal_distance=self.minimal_distance,
+                    use_sidechain_angle=self.use_sidechain_angle,
                 )
                 for _existed_residue in existed_mutant_obj.mutant_info
             ):
