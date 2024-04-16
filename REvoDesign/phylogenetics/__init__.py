@@ -1167,11 +1167,10 @@ class GREMLIN_Analyser:
             mut_score = run_worker_thread_with_progress(
                 worker_function=self.gremlin_external_scorer.scorer,
                 sequence=mutant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.design_chain_id,
-                    ignore_missing=True),
-                    progress_bar=self.bus.ui.progressBar,
-                )
-
+                    chain_id=self.design_chain_id, ignore_missing=True
+                ),
+                progress_bar=self.bus.ui.progressBar,
+            )
 
         mutant_obj.wt_score = wt_score
         mutant_obj.mutant_score = mut_score
