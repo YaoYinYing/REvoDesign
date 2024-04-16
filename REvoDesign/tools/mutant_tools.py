@@ -448,6 +448,12 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
     """
     from REvoDesign.tools.pymol_utils import is_hidden_object
 
+    group_ids = cmd.get_names(type='group_objects', enabled_only=enabled_only)
+
+    filtered_group_ids = filter(
+        FobiddenMutantTreeNamingSpace.group_id_prefix_filter, group_ids
+    )
+
     _mutant_tree = {
         group_id: {
             mutant_id: extract_mutant_from_pymol_object(
@@ -456,13 +462,7 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
             for mutant_id in cmd.get_object_list(f'({group_id})')
             if not enabled_only or not is_hidden_object(selection=mutant_id)
         }
-        for group_id in cmd.get_names(
-            type='group_objects', enabled_only=enabled_only
-        )
-        if all(
-            not group_id.startswith(_id)
-            for _id in FobiddenMutantTreeNamingSpace.group_id_prefix
-        )
+        for group_id in filtered_group_ids
     }
     return MutantTree(_mutant_tree)
 

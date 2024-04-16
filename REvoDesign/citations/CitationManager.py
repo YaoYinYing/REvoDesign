@@ -1,0 +1,155 @@
+from abc import ABC
+import os
+import time
+from typing import Iterable, List, Mapping, Union, Dict, Any
+from REvoDesign import root_logger
+from REvoDesign import issues
+import warnings
+from REvoDesign import SingletonAbstract
+
+logging = root_logger.getChild(__name__)
+
+# Color escape sequences
+GREEN = "\033[0;32m"
+RED = "\033[0;31m"
+YELLOW = "\033[0;33m"
+RESET = "\033[0m"
+
+BOLD = "\033[1m"
+
+CYAN_BG = "\033[0;44m"
+RED_BG = "\033[0;41m"
+MAGENTA_BG = "\033[0;45m"
+
+
+class CitationManager(SingletonAbstract):
+    def __init__(self):
+        # Check if the instance has already been initialized
+        if not hasattr(self, 'initialized'):
+            self.called_citations: dict[str, Any] = {}
+            self.silenced_citation_modules: list[str] = []
+            # Mark the instance as initialized to prevent reinitialization
+            self.initialize()
+            self.initialized = True
+
+    @property
+    def collected_citations(self) -> list[str]:
+        _ = []
+        for c in self.called_citations.items():
+            if isinstance(c, str):
+                _.append(c)
+            elif isinstance(c, (list, tuple)):
+                _.extend(c)
+            else:
+                raise issues.BadDataWarning(
+                    f'{c=} must be either a dict or a str, instead of {type(c)}'
+                )
+
+        return _
+
+    @classmethod
+    def initialize(cls):
+        if not cls._instance:
+            cls()
+        else:
+            ...
+
+    def update(self, new_citations: dict):
+        if not (new_citations and isinstance(new_citations, dict)):
+            warnings.warn(
+                issues.NoInputWarning(
+                    f'{new_citations=} is not a valid dictionary.'
+                )
+            )
+            return
+
+        self.called_citations.update(new_citations)
+
+    def clear(self):
+        self.called_citations.clear()
+
+    def remove(self, modulename: str):
+        if modulename not in self.called_citations:
+            warnings.warn(
+                issues.REvoDesignWarning(
+                    issues.REvoDesignWarning(f'{modulename} is not in called.')
+                )
+            )
+            return
+        else:
+            self.called_citations.pop(modulename)
+            warnings.warn(
+                issues.REvoDesignWarning(
+                    issues.REvoDesignWarning(f'Will not cite {modulename}.')
+                )
+            )
+
+    def format(self) -> Union[str, Dict, List]:
+        ...
+
+    def output(self, cwd: str = '.'):
+        import bibtexparser
+
+        library = bibtexparser.parse_string(
+            '\n'.join(self.collected_citations)
+        )
+        if library.failed_blocks:
+            warnings.warn(
+                issues.REvoDesignWarning(
+                    f'Could not parse {library.failed_blocks=}'
+                )
+            )
+
+        citation_output = os.path.join(
+            cwd,
+            'citations',
+            f'{time.strftime("%Y%m%d", time.localtime())}.bib',
+        )
+        os.makedirs(os.path.dirname(citation_output), exist_ok=True)
+        bibtexparser.write_file(file=citation_output, library=library)
+        logging.info(f'Citation is created at {citation_output}')
+
+    def dismiss(self, modulename: str):
+        if modulename not in self.silenced_citation_modules:
+            self.silenced_citation_modules.append(modulename)
+
+
+class CitableModules(ABC):
+    @property
+    def __bibtex__(self) -> dict[str, Union[str, tuple]]:
+        ...
+
+    def notice(self):
+        if not self.__bibtex__:
+            logging.debug('Nothing has to be cited with this module.')
+            return
+        if all(
+            k in CitationManager().silenced_citation_modules
+            for k in self.__bibtex__
+        ):
+            return
+
+        logging.info(
+            f'{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n'
+        )
+        for i, c in self.__bibtex__.items():
+            # notify it just once then dismiss
+            if i in CitationManager().silenced_citation_modules:
+                continue
+            if isinstance(c, str):
+                logging.info(
+                    f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{c}{RESET}\n"
+                )
+            elif isinstance(c, (tuple, list)):
+                for j, _c in enumerate:
+                    logging.info(
+                        f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n"
+                    )
+            CitationManager().dismiss(i)
+
+    def cite(self):
+        citations = self.__bibtex__
+        if not isinstance(citations, Mapping):
+            raise TypeError(f'citation must be a dict.')
+        CitationManager().update(new_citations=dict(citations))
+        self.notice()

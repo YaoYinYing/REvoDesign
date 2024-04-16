@@ -1051,7 +1051,7 @@ class TestSidechainSolver(absltest.TestCase):
         self.new_pdb_code = '1nww'
 
     def test_pymol_mutate(self):
-        from REvoDesign.sidechain_solver import PyMOL_mutate
+        from REvoDesign.sidechain_solver.SidechainSolver import PyMOL_mutate
 
         mutate_runner = PyMOL_mutate(
             molecule=self.new_pdb_code, pdb_file=self.wt_pdb
@@ -1070,7 +1070,7 @@ class TestSidechainSolver(absltest.TestCase):
     def test_dlpacker_mutate(self):
         if not WITH_DEPENDENCIES.DLPACKER:
             print('Skiping dlpacker tests..')
-        from REvoDesign.sidechain_solver import DLPacker_worker
+        from REvoDesign.sidechain_solver.SidechainSolver import DLPacker_worker
 
         mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
@@ -1087,7 +1087,7 @@ class TestSidechainSolver(absltest.TestCase):
     def test_dlpacker_mutate_reconstruct_range(self):
         if not WITH_DEPENDENCIES.DLPACKER:
             print('Skiping dlpacker tests..')
-        from REvoDesign.sidechain_solver import DLPacker_worker
+        from REvoDesign.sidechain_solver.SidechainSolver import DLPacker_worker
 
         mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb, radius=3.5)
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)
@@ -1106,7 +1106,7 @@ class TestSidechainSolver(absltest.TestCase):
     def test_pippack_mutate_model_1(self):
         if not WITH_DEPENDENCIES.PIPPACK:
             print('Skiping pippack tests..')
-        from REvoDesign.sidechain_solver import PIPPack_worker
+        from REvoDesign.sidechain_solver.SidechainSolver import PIPPack_worker
 
         mutate_runner = PIPPack_worker(
             pdb_file=self.wt_pdb, use_model='pippack_model_1'
@@ -1127,7 +1127,7 @@ class TestSidechainSolver(absltest.TestCase):
     def test_pippack_mutate_ensemble(self):
         if not WITH_DEPENDENCIES.PIPPACK:
             print('Skiping pippack tests..')
-        from REvoDesign.sidechain_solver import PIPPack_worker
+        from REvoDesign.sidechain_solver.SidechainSolver import PIPPack_worker
 
         mutate_runner = PIPPack_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path = mutate_runner.run_mutate(mutant_obj=self.mutant_obj)

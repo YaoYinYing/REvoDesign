@@ -3,8 +3,6 @@ import glob
 import random
 import pytest
 
-from REvoDesign.tests.QtTestWorker import Counter
-
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
 import pytest
