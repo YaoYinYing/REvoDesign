@@ -99,7 +99,7 @@ def setup_logging_from_dictconfig(
     notebook_backupCount = log_config.handlers.notebook.backupCount
 
     # Create a queue for the QueueHandler
-    log_queue = queue.Queue(-1)  # No limit on queue size
+    log_queue = queue.Queue(10_000)
 
     # Initialize handlers
     stdout_handler = python_logging.StreamHandler()
