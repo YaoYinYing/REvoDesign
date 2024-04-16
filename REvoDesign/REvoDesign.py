@@ -163,11 +163,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.fix_wd()
 
     def reinitialize(self, delete=False):
-        self.multi_mutagenesis_designer=None
-        self.pssm_gremlin_calculator=None
+        self.multi_mutagenesis_designer = None
+        self.pssm_gremlin_calculator = None
         self.ws_client.reset_instance()
         self.ws_server.reset_instance()
-        
+
         self.gremlin_worker = None
         self.evaluator = None
 
