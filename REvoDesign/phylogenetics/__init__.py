@@ -9,6 +9,7 @@ from REvoDesign import ConfigBus
 from REvoDesign.basic import IterableLoop
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.citations import CitationManager
@@ -373,9 +374,7 @@ class GREMLIN_Analyser:
         self.mutant_tree_coevolved = MutantTree({})
         self.picked_gremlin_mutant: Mutant = None
 
-    def load_gremlin_mrf(
-        self,
-    ):
+    def load_gremlin_mrf(self):
         self.gremlin_external_scorer = None
         gremlin_mrf_fp = self.bus.get_value('ui.interact.input.gremlin_pkl')
 
@@ -441,13 +440,11 @@ class GREMLIN_Analyser:
 
         run_worker_thread_with_progress(
             worker_function=self.gremlin_tool.get_to_coevolving_pairs,
-            mrf_path=gremlin_mrf_fp,
             progress_bar=self.bus.ui.progressBar,
         )
 
         plot_mtx_fp = run_worker_thread_with_progress(
             worker_function=self.gremlin_tool.plot_mtx,
-            mrf_path=gremlin_mrf_fp,
             progress_bar=self.bus.ui.progressBar,
         )
 
@@ -483,7 +480,9 @@ class GREMLIN_Analyser:
             return -1
 
     # record chain binding: distances and maximum distance to be accepted
-    def bind_chains(self):
+    def bind_chains(
+        self, coevolved_pairs: tuple[CoevolvedPair]
+    ) -> tuple[CoevolvedPair]:
         self.max_interact_dist: float = self.bus.get_value(
             'ui.interact.max_interact_dist', float
         )
@@ -492,7 +491,7 @@ class GREMLIN_Analyser:
         # monomer pairs
         if not (self.chain_binding_enabled and self.chains_to_bind):
             logging.info('Intrachain connections.')
-            for pair in self.coevolved_pairs:
+            for pair in coevolved_pairs:
                 pair.dist_cutoff = self.max_interact_dist
 
                 dist = self._get_dist(
@@ -509,12 +508,12 @@ class GREMLIN_Analyser:
                     {f'{self.design_chain_id}{self.design_chain_id}': dist}
                 )
 
-            return
+            return coevolved_pairs
 
         invalid_coevolved_chain_pair: int = 0
 
         # homomer pairs
-        for pair in self.coevolved_pairs:
+        for pair in coevolved_pairs:
             pair.dist_cutoff = self.max_interact_dist
             for c1, c2 in itertools.product(self.chains_to_bind, repeat=2):
                 dist = self._get_dist(
@@ -531,6 +530,8 @@ class GREMLIN_Analyser:
                     f'Discarded: {invalid_coevolved_chain_pair=}'
                 )
             )
+
+        return coevolved_pairs
 
     def run_gremlin_tool(self):
         self.chain_binding_enabled: bool = self.bus.get_value(
@@ -611,13 +612,25 @@ class GREMLIN_Analyser:
             logging.info(f'Found {len(coevolved_pairs)} pairs in global')
 
         logging.debug(coevolved_pairs)
-        self.coevolved_pairs = IterableLoop(iterable=coevolved_pairs)
 
         logging.info('Binding Chains ...')
-        run_worker_thread_with_progress(
+        coevolved_pairs: tuple[
+            CoevolvedPair
+        ] = run_worker_thread_with_progress(
             worker_function=self.bind_chains,
+            coevolved_pairs=coevolved_pairs,
             progress_bar=self.bus.ui.progressBar,
         )
+
+        coevolved_pairs: tuple[CoevolvedPair] = self.coevolved_pairs_filter(
+            coevolved_pairs
+        )
+        self.coevolved_pairs = IterableLoop(iterable=coevolved_pairs)
+        if self.coevolved_pairs.empty:
+            warnings.warn(
+                issues.NoResultsWarning('No coevolved_pairs passes filter.')
+            )
+            return
 
         logging.info('Visualizing as bonds ...')
         run_worker_thread_with_progress(
@@ -645,7 +658,7 @@ class GREMLIN_Analyser:
 
         # intitialize
         set_widget_value(
-            self.bus.ui.progressBar, [0, len(self.coevolved_pairs)]
+            self.bus.ui.progressBar, [0, len(self.coevolved_pairs.iterable)]
         )
 
         self.picked_gremlin_group_id = ''
@@ -654,15 +667,30 @@ class GREMLIN_Analyser:
 
         self.gremlin_tool.cite()
 
+    @staticmethod
+    def coevolved_pairs_filter(
+        coevolved_pairs: tuple[CoevolvedPair],
+    ) -> tuple[CoevolvedPair]:
+        _: list[CoevolvedPair] = []
+        for p in coevolved_pairs:
+            if p.empty:
+                continue
+            if not [x for x in p.all_res_pairs_selections.values()]:
+                continue
+            _.append(p)
+        return tuple(_)
+
     def plot_coevolved_pair_in_pymol(self):
         # visualize co-evolved pair in pymol UI
         min_gremlin_score = min(
             [
-                min([p.zscore for p in self.coevolved_pairs]),
+                min([p.zscore for p in self.coevolved_pairs.iterable]),
                 0,
             ]
         )
-        max_gremlin_score = max([p.zscore for p in self.coevolved_pairs])
+        max_gremlin_score = max(
+            [p.zscore for p in self.coevolved_pairs.iterable]
+        )
 
         self.ce_object_group_valid = cmd.get_unused_name(
             f"cep_{self.design_molecule}_"
@@ -680,12 +708,7 @@ class GREMLIN_Analyser:
 
         i_out_of_range: List[CoevolvedPair] = []
         discarded: List[CoevolvedPair] = []
-        for pair in self.coevolved_pairs:
-            if pair.empty:
-                warnings.warn(f'Skipping empty pair: {str(pair)}')
-                discarded.append(pair)
-                continue
-
+        for pair in self.coevolved_pairs.iterable:
             try:
                 sele_name = repr(pair)
                 logging.debug(f'{sele_name=}')
@@ -693,9 +716,6 @@ class GREMLIN_Analyser:
                 _sele = " or ".join(
                     [x for x in pair.all_res_pairs_selections.values()]
                 )
-                if not _sele:
-                    discarded.append(pair)
-                    continue
                 cmd.create(
                     pair.selection_string,
                     sele := f'{_tmp_obj} and ({_sele}) and n. CA',
@@ -758,7 +778,7 @@ class GREMLIN_Analyser:
             pairs=tuple(
                 [
                     p
-                    for p in self.coevolved_pairs
+                    for p in self.coevolved_pairs.iterable
                     if not (p in i_out_of_range or p in discarded)
                 ]
             ),
@@ -779,7 +799,7 @@ class GREMLIN_Analyser:
             iterable=tuple(
                 [
                     p
-                    for p in self.coevolved_pairs
+                    for p in self.coevolved_pairs.iterable
                     if not (p in i_out_of_range or p in discarded)
                 ]
             )
@@ -787,7 +807,9 @@ class GREMLIN_Analyser:
 
         logging.warning(f'Out of range: {len(i_out_of_range)}')
         logging.warning(f'Discarded pairs: {len(discarded)}')
-        logging.warning(f'Filtered pairs: {len(self.coevolved_pairs)}')
+        logging.warning(
+            f'Filtered pairs: {len(self.coevolved_pairs.iterable)}'
+        )
 
         CitationManager().output()
         return
@@ -942,6 +964,30 @@ class GREMLIN_Analyser:
             self.mutant_tree_coevolved,
         )
 
+    @staticmethod
+    def show_mutant(mutant_id: str, group_id: str = None):
+        cmd.enable(mutant_id)
+        cmd.show(
+            'sticks',
+            f'{mutant_id} and (sidechain or n. CA) and not hydrogen',
+        )
+        cmd.show(
+            'mesh',
+            f'{mutant_id} and (sidechain or n. CA)',
+        )
+        cmd.hide('cartoon', f'{mutant_id}')
+        cmd.center(mutant_id)
+
+        # expand group object if activated
+        if group_id:
+            cmd.enable(group_id)
+            cmd.group(group_id, action='open')
+
+    def hide_all_mutants(self):
+        for group_id in self.explored_mutant_tree.all_mutant_branch_ids:
+            cmd.disable(group_id)
+            cmd.group(group_id, action='close')
+
     def activate_focused_interaction(self):
         if not self.picked_gremlin_mutant or self.picked_gremlin_mutant.empty:
             raise issues.UnexpectedWorkflowError(
@@ -950,56 +996,18 @@ class GREMLIN_Analyser:
 
         if (
             self.picked_gremlin_mutant
-            == self.explored_mutant_tree.all_mutant_objects[-1]
+            in self.explored_mutant_tree.all_mutant_objects
         ):
             logging.warning(
                 f'Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})'
             )
-            return
+        self.hide_all_mutants()
+        self.show_mutant(
+            mutant_id=self.picked_gremlin_mutant.short_mutant_id,
+            group_id=self.picked_gremlin_group_id,
+        )
 
-        if (
-            picked_gremlin_mutant_id := self.picked_gremlin_mutant.short_mutant_id
-        ):
-            cmd.enable(picked_gremlin_mutant_id)
-            cmd.show(
-                'sticks',
-                f'{picked_gremlin_mutant_id} and (sidechain or n. CA) and not hydrogen',
-            )
-            cmd.show(
-                'mesh',
-                f'{picked_gremlin_mutant_id} and (sidechain or n. CA)',
-            )
-            cmd.hide('cartoon', f'{picked_gremlin_mutant_id}')
-
-        for group_id in self.explored_mutant_tree.all_mutant_branch_ids:
-            if group_id == self.picked_gremlin_group_id:
-                continue
-            cmd.disable(group_id)
-            cmd.group(group_id, action='close')
-
-        # expand group object if activated
-        if self.picked_gremlin_group_id:
-            cmd.enable(self.picked_gremlin_group_id)
-            cmd.group(self.picked_gremlin_group_id, action='open')
-
-        cmd.center(picked_gremlin_mutant_id)
-
-    def mutate_with_gridbuttons(
-        self,
-        col,
-        row,
-        matrix,
-        min_score,
-        max_score,
-        pair: CoevolvedPair,
-        ignore_wt=False,
-    ):
-        import matplotlib
-
-        matplotlib.use('Agg')
-
-        from REvoDesign.common.MutantVisualizer import MutantVisualizer
-
+        # display scores
         lineEdit_current_pair_wt_score = (
             self.bus.ui.lineEdit_current_pair_wt_score
         )
@@ -1007,6 +1015,18 @@ class GREMLIN_Analyser:
             self.bus.ui.lineEdit_current_pair_mut_score
         )
 
+        set_widget_value(
+            lineEdit_current_pair_wt_score,
+            f'{self.picked_gremlin_mutant.wt_score:.4f}',
+        )
+        set_widget_value(
+            lineEdit_current_pair_mut_score,
+            f'{self.picked_gremlin_mutant.mutant_score:.4f}',
+        )
+
+        return
+
+    def refresh_scorer(self):
         external_scorer = self.bus.get_value('ui.interact.use_external_scorer')
 
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
@@ -1044,19 +1064,25 @@ class GREMLIN_Analyser:
                 )
             self.gremlin_external_scorer = None
 
-        visualizer = MutantVisualizer(
-            molecule=self.design_molecule, chain_id=self.design_chain_id
-        )
-        visualizer.designable_sequences = self.designable_sequences
-        visualizer.sequence = self.design_sequence
+    def mutate_with_gridbuttons(
+        self,
+        col,
+        row,
+        matrix,
+        min_score,
+        max_score,
+        pair: CoevolvedPair,
+        ignore_wt=False,
+    ):
+        import matplotlib
+
+        matplotlib.use('Agg')
+
+        self.refresh_scorer()
+
         alphabet = self.gremlin_tool.alphabet
 
-        visualizer.mutate_runner = run_worker_thread_with_progress(
-            worker_function=SidechainSolver().refresh().mutate_runner,
-            progress_bar=self.bus.ui.progressBar,
-        )
-
-        visualizer.group_name = '_vs_'.join(
+        self.picked_gremlin_group_id = '_vs_'.join(
             [
                 wt.replace('_', '')
                 for wt in (
@@ -1066,24 +1092,15 @@ class GREMLIN_Analyser:
             ]
         )
 
-        self.picked_gremlin_group_id = visualizer.group_name
-
         # aa from wt
         wt_i = pair.wt('i')  # in column
         wt_j = pair.wt('j')  # in row
-
-        wt_score = (
-            matrix[alphabet.index(wt_i)][alphabet.index(wt_j)]
-            if not self.gremlin_external_scorer
-            else self.gremlin_external_scorer.scorer(
-                sequence=self.design_sequence.replace('X', '')
-            )
-        )
 
         # aa from clicked button, mutant
         mut_i = alphabet[col]
         mut_j = alphabet[row]
 
+        # construct this Mutant obj from scratch.
         _mutant: List[Dict[str, Union[str, int]]] = []
 
         for chain_id_pair in pair.homochains:
@@ -1111,13 +1128,14 @@ class GREMLIN_Analyser:
                     continue
 
                 if mut == '-':
-                    logging.info(f'Igore deletion {expected_mutant}')
+                    logging.warning(f'Igore deletion {expected_mutant}')
                     continue
 
                 logging.debug(f'Adding mutagenesis {expected_mutant}')
                 _mutant.append(expected_mutant)
         logging.debug(_mutant)
 
+        # early return if nothing is created.
         if not _mutant:
             logging.info(
                 'No mutagenesis will be performed since the picked pair is a wt-wt pair'
@@ -1125,12 +1143,18 @@ class GREMLIN_Analyser:
             return
 
         mutant_obj: Mutant = Mutant(mutant_info=_mutant)
-
         mutant_obj.wt_sequences = self.designable_sequences
 
+        # call scorer to evaluate wt and mutant
         if not self.gremlin_external_scorer:
+            wt_score = matrix[alphabet.index(wt_i)][alphabet.index(wt_j)]
             mut_score = matrix[col][row]
         else:
+            wt_score = run_worker_thread_with_progress(
+                worker_function=self.gremlin_external_scorer.scorer,
+                sequence=self.design_sequence.replace('X', ''),
+                progress_bar=self.bus.ui.progressBar,
+            )
             mut_score = run_worker_thread_with_progress(
                 worker_function=self.gremlin_external_scorer.scorer,
                 sequence=mutant_obj.get_mutant_sequence_single_chain(
@@ -1140,54 +1164,68 @@ class GREMLIN_Analyser:
                 ),
             )
 
+        mutant_obj.wt_score = wt_score
         mutant_obj.mutant_score = mut_score
 
-        set_widget_value(lineEdit_current_pair_wt_score, f'{wt_score:.4f}')
-        set_widget_value(lineEdit_current_pair_mut_score, f'{mut_score:.4f}')
-
-        # update mutant id from Mutant object.
-        mutant = mutant_obj.short_mutant_id
-
-        if mutant in self.explored_mutant_tree.all_mutant_ids:
-            logging.info(
-                f'Picked mutant: {mutant} ({mutant_obj.full_mutant_id}) already exists. Do nothing.'
-            )
-        else:
-            logging.info(f'Picked mutant: {mutant_obj.full_mutant_id} ')
-
-            color = get_color(
-                self.bus.get_value('ui.header_panel.cmap.default'),
-                mut_score,
-                min_score,
-                max_score,
-            )
-
-            logging.info(
-                f" Visualizing {mutant} ({mutant_obj.full_mutant_id}): {color}"
-            )
-
-            run_worker_thread_with_progress(
-                worker_function=visualizer.create_mutagenesis_objects,
-                mutant_obj=mutant_obj,
-                color=color,
-                progress_bar=self.bus.ui.progressBar,
-            )
-            cmd.hide('everything', 'hydrogens and polymer.protein')
-            cmd.hide('cartoon', mutant)
-
-            self.explored_mutant_tree.add_mutant_to_branch(
-                branch=visualizer.group_name,
-                mutant=mutant_obj.short_mutant_id,
-                mutant_obj=mutant_obj,
-            )
-
         self.picked_gremlin_mutant = mutant_obj
-        self.activate_focused_interaction()
 
-        mutant_tree = MutantTree(
-            {visualizer.group_name: {mutant_obj.short_mutant_id: mutant_obj}}
+        # if mutant obj exists, activate it.
+        if mutant_obj in self.explored_mutant_tree.all_mutant_objects:
+            logging.info(
+                f'Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) already exists. Do nothing.'
+            )
+            self.activate_focused_interaction()
+            return
+
+        # otherwise, call MutantVisualizer to display it.
+        logging.info(
+            f'Picked mutant:{(mutant := mutant_obj.short_mutant_id)} {(full_mutant_id:=mutant_obj.full_mutant_id)} '
         )
 
+        color = get_color(
+            self.bus.get_value('ui.header_panel.cmap.default'),
+            mut_score,
+            min_score,
+            max_score,
+        )
+
+        logging.info(f" Visualizing {mutant} ({full_mutant_id}): {color}")
+
+        visualizer = MutantVisualizer(
+            molecule=self.design_molecule, chain_id=self.design_chain_id
+        )
+
+        run_worker_thread_with_progress(
+            worker_function=SidechainSolver().refresh,
+            progress_bar=self.bus.ui.progressBar,
+        )
+
+        visualizer.mutate_runner = SidechainSolver().mutate_runner
+        visualizer.designable_sequences = self.designable_sequences
+        visualizer.sequence = self.design_sequence
+
+        visualizer.group_name = self.picked_gremlin_group_id
+
+        run_worker_thread_with_progress(
+            worker_function=visualizer.create_mutagenesis_objects,
+            mutant_obj=mutant_obj,
+            color=color,
+            progress_bar=self.bus.ui.progressBar,
+        )
+        cmd.hide('everything', 'hydrogens and polymer.protein')
+        cmd.hide('cartoon', mutant)
+
+        # create a new record.
+        self.explored_mutant_tree.add_mutant_to_branch(
+            branch=visualizer.group_name,
+            mutant=mutant,
+            mutant_obj=mutant_obj,
+        )
+
+        # create a small mutant tree and send to broadcaster.
+        mutant_tree = MutantTree(
+            {self.picked_gremlin_group_id: {mutant: mutant_obj}}
+        )
         self.to_broadcaster(mutant_tree)
 
     def to_broadcaster(self, mutant_tree: MutantTree):

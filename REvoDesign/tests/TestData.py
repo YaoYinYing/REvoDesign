@@ -188,6 +188,7 @@ class TestData:
     def gremlin_monomer_pse(self):
         return f'{self.test_data_repo}/analysis/{self.molecule}.{self.chain_id}.xtal.test_gremlin_monomer.pze'
 
+    gremlin_topN: int = 35
     gremlin_homomer_molecule: str = '4MB8'
     gremlin_homomer_chain: str = 'A'
     gremlin_homomer_o2a_sele: int = 196

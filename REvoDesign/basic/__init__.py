@@ -50,34 +50,6 @@ class IterableLoop(Generic[T]):
     def empty(self):
         return not bool(self.iterable)
 
-    def __iter__(self) -> Iterator[T]:
-        """
-        Returns an iterator object to enable iteration over the iterable.
-        """
-        return iter(self.iterable)
-
-    def __len__(self) -> int:
-        """
-        Returns the length of the iterable.
-        """
-        return len(self.iterable)
-
-    def __next__(self) -> T:
-        """
-        Returns the next item in the iterable, wrapping around to the beginning if necessary.
-        """
-        if not self.initialized:
-            self.current_idx = 0
-        else:
-            self.current_idx += 1
-
-        # index overflow
-        if self.current_idx == len(self.iterable):
-            # reset index
-            self.current_idx = -1
-            raise StopIteration
-        return self.iterable[self.current_idx]
-
     @property
     def initialized(self):
         return self.current_idx >= 0

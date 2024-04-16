@@ -566,6 +566,10 @@ class TestREvoDesignPlugin_TabInteract:
         KeyDataDuringTests.gremlin_pkl_fp_homomer = gremlin_pkl_fp
 
         set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
+        )
+        set_widget_value(
             WORKER.plugin.ui.lineEdit_interact_chain_binding,
             WORKER.test_data.gremlin_homomer_chains,
         )
@@ -673,7 +677,8 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
+                focus=False,
             )
             WORKER.click(_accp)
 
@@ -703,6 +708,10 @@ class TestREvoDesignPlugin_TabInteract:
         _rjct = WORKER.plugin.ui.pushButton_interact_reject
 
         gremlin_pkl_fp = KeyDataDuringTests.gremlin_pkl_fp_homomer
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
+        )
 
         set_widget_value(
             WORKER.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp
@@ -816,7 +825,8 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
+                focus=False,
             )
             WORKER.click(_accp)
 
@@ -851,6 +861,10 @@ class TestREvoDesignPlugin_TabInteract:
             WORKER.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp
         )
         KeyDataDuringTests.gremlin_pkl_fp = gremlin_pkl_fp
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
+        )
 
         mutfile = os.path.join('mutagenese', 'gremlin_a2a.mut.txt')
 
@@ -953,7 +967,8 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
+                focus=False,
             )
             WORKER.click(_accp)
 
@@ -994,6 +1009,11 @@ class TestREvoDesignPlugin_TabInteract:
         set_widget_value(
             WORKER.plugin.ui.lineEdit_input_gremlin_mtx,
             gremlin_pkl_fp,
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
         )
 
         mutfile = os.path.join('mutagenese', 'gremlin_o2a.mut.txt')
@@ -1102,7 +1122,7 @@ class TestREvoDesignPlugin_TabInteract:
 
             WORKER.save_pymol_png(
                 basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
-                focus=True,
+                focus=False,
             )
             WORKER.click(_accp)
 
