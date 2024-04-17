@@ -15,6 +15,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- multiple chain binding for `Interact`
+- Makefile: 
+  - `macos-rosetta-test` for local PyMOL app tests
+  - `pymol-test` for PyMOL shortcut tests
+- PyMOL bundle V3 tests are passed.
+- `IterableLoop`: Iterable looping class.
+- Config: `global_config.yaml`: 
+  - `work_dir`
+  - `chain_binding`
+- `CoevolvedPair`: add more attributes.
+- README:
+  - New architecture design picture for illustrating this plugin, thanks to BioRender.
+
+
+### Changed
+- Singleton `SidechainSolver`
+  - `SidechainSolverConfig` for config term management behavior.
+  - refactored falling back and refreshing
+- Classes in `__init__.py` are now moved out.
+- `REvoDesignFileExtentions`: Simplified namings.
+- Typing: `GREMLIN_Tools`: `plot_w_a2a` and `plot_w_o2a` now return `tuple[CoevolvedPair]`
+- `TestWorker`: support customized PDB fetching.
+- `TestREvoDesignPlugin_TabInteract`: simplified test workflow.
+- `quick_mutagenesis`: `MutantTree` input only, taking the rest from `ConfigBus` 
+- README: image urls change to `github-image-cache.yaoyy.moe` thanks to Cloudflare.
+- `MultiMutantDesigner`: `_is_compatible_mutant` only accept Mutant object.
+
+### Fixed
+- Bad performance in ui-test, thanks to `pytest-order`
+- `MutantVisualizer`: use `designable_sequence` for full sequences.
+- `existed_mutant_tree`: `NOT_ALLOWED_GROUP_ID_PREFIX` as filter of group ids
+  
+### Removed
+- `REvoDesignWebSocketClient`: `sidechain_solver`
+- `REvoDesignPlugin`: `refresh_sidechainsolver`
 
 ## [1.5.9] - 2024-04-08
 ### Added
