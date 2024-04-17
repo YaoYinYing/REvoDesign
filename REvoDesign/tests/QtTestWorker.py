@@ -212,7 +212,6 @@ class TestWorker:
                 self.plugin.ui.spinBox_nproc,
                 self.test_data.nproc_circleci,
             )
-        
 
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
@@ -222,11 +221,8 @@ class TestWorker:
                 customized_session = self.test_data.pocket_pse
             self._load_pocket_pse(customized_session)
 
-        
-
         self.plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
-        
 
     def save_new_experiment(self, experiment_name: str = None):
         import shutil

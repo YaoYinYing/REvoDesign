@@ -197,9 +197,7 @@ class Evalutator:
             f'Walked to the {"next" if walk_to_next else "previous"} mutant {current_mutant_id}.'
         )
 
-    def jump_to_branch(
-        self,
-    ):
+    def jump_to_branch(self):
         comboBox_group_ids = self.bus.ui.comboBox_group_ids
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         progressBar_mutant_choosing = self.bus.ui.progressBar
@@ -241,9 +239,7 @@ class Evalutator:
             return
 
     # end of mutant switching machanism. This step will do focusing, centering, progress bar updating.
-    def jump_to_a_mutant(
-        self,
-    ):
+    def jump_to_a_mutant(self):
         comboBox_group_ids = self.bus.ui.comboBox_group_ids
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         progressBar_mutant_choosing = self.bus.ui.progressBar
@@ -285,9 +281,7 @@ class Evalutator:
         )
         set_widget_value(progressBar_mutant_choosing, progress)
 
-    def jump_to_the_best_mutant(
-        self,
-    ):
+    def jump_to_the_best_mutant(self):
         comboBox_group_ids = self.bus.ui.comboBox_group_ids
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         if self.mutant_tree_candidates.empty:
@@ -307,9 +301,7 @@ class Evalutator:
 
         set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
-    def find_all_best_mutants(
-        self,
-    ):
+    def find_all_best_mutants(self):
         comboBox_group_ids = self.bus.ui.comboBox_group_ids
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         if self.mutant_tree_candidates.empty:
