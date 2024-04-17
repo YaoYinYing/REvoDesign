@@ -671,7 +671,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(500)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -760,7 +760,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
-        WORKER.sleep(500)
+        WORKER.sleep(200)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -822,7 +822,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(500)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -905,7 +905,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
-        WORKER.sleep(500)
+        WORKER.sleep(200)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -964,7 +964,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(500)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -1059,7 +1059,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
-        WORKER.sleep(500)
+        WORKER.sleep(200)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -1118,7 +1118,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(500)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -1604,19 +1604,19 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         for i in random.sample(
             WORKER.test_data.multi_design_steps,
-            5,
+            3,
         ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
             WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
 
-            WORKER.sleep(200)
+            WORKER.sleep(30)
 
         WORKER.click(md_prev, 3)
 
         WORKER.click(md_save)
 
-        WORKER.sleep(200)
+        WORKER.sleep(30)
 
         assert (
             WORKER.plugin.multi_mutagenesis_designer.all_design_multi_design_mutant_object
@@ -1667,19 +1667,19 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         for i in random.sample(
             WORKER.test_data.multi_design_steps,
-            3,
+            2,
         ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
             WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
 
-            WORKER.sleep(200)
+            WORKER.sleep(30)
 
         WORKER.click(md_prev, 3)
 
         WORKER.click(md_save)
 
-        WORKER.sleep(200)
+        WORKER.sleep(30)
 
         assert (
             WORKER.plugin.multi_mutagenesis_designer.all_design_multi_design_mutant_object

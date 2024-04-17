@@ -3,6 +3,7 @@ import gc
 import os
 import time
 from typing import Union
+import warnings
 
 import pytest
 
@@ -109,6 +110,10 @@ class TestWorker:
             'CIRCLECI'
         ) or self.in_which_runner.get('GITHUB')
 
+        self.SKIP_PYMOL_PNG = bool(
+            int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG"))
+        )
+
         self.c = Counter()
 
         TEST_DIR = os.path.abspath('.')
@@ -193,7 +198,7 @@ class TestWorker:
         from_rcsb=False,
         customized_session: str = None,
     ):
-        self.sleep(1000)
+        self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
         print(f'nproc: {nproc}')
         if (
@@ -207,7 +212,7 @@ class TestWorker:
                 self.plugin.ui.spinBox_nproc,
                 self.test_data.nproc_circleci,
             )
-        self.sleep(150)
+        
 
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
@@ -217,12 +222,11 @@ class TestWorker:
                 customized_session = self.test_data.pocket_pse
             self._load_pocket_pse(customized_session)
 
-        self.sleep(150)
+        
 
         self.plugin.reload_molecule_info()
-        self.sleep(150)
         self.check_molecule_after_loaded()
-        self.sleep(150)
+        
 
     def save_new_experiment(self, experiment_name: str = None):
         import shutil
@@ -247,7 +251,7 @@ class TestWorker:
         print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
-        self.sleep(150)
+        self.sleep(50)
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
@@ -290,7 +294,7 @@ class TestWorker:
             tab=self.plugin.ui.tabWidget,
             page=self.tab_widget_mapping.get(tab_name),
         )
-        self.sleep(150)
+        self.sleep(50)
 
     def check_molecule_after_loaded(self):
         assert (
@@ -399,7 +403,14 @@ class TestWorker:
         focus_method='orient',
     ):
         if self.is_in_ci_runner:
+            warnings.warn('Skip PyMOL png because CI runner is detected')
             return
+        if self.SKIP_PYMOL_PNG:
+            warnings.warn(
+                f'Skip PyMOL png because an environment variable is set: {self.SKIP_PYMOL_PNG=}'
+            )
+            return
+
         if spells:
             cmd.do(spells)
         png_file = os.path.join(self.PYMOL_PNG_DIR, f'{basename}.png')
@@ -410,7 +421,7 @@ class TestWorker:
                 print(e)
 
         cmd.png(png_file, dpi=dpi, ray=use_ray)
-        self.sleep(100)
+        self.sleep(50)
 
     def wait_for_file(
         self, file: str, interval: str = 100, timeout: float = 61.0
