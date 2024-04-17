@@ -217,6 +217,8 @@ class TestWorker:
                 self.test_data.nproc_circleci,
             )
 
+        cmd.reinitialize()
+
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
 

@@ -136,7 +136,7 @@ pymol-test:
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --native -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
+	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
 
 memray-live:
 	# Run a tmp folder to make sure the tests are run on the installed version
