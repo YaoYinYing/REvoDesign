@@ -765,6 +765,7 @@ class GREMLIN_Analyser:
             if pair.all_out_of_range:
                 i_out_of_range.append(pair)
                 cmd.group(self.ce_object_group_invalid, pair.selection_string)
+
             else:
                 cmd.group(self.ce_object_group_valid, pair.selection_string)
 
@@ -787,40 +788,32 @@ class GREMLIN_Analyser:
         cmd.group(self.ce_object_group_valid, action='close')
         cmd.group(self.ce_object_group_invalid, action='close')
 
-        self.mark_pair_state(
-            pairs=tuple([i for i in i_out_of_range]),
-            state='out_of_range',
-        )
-        self.mark_pair_state(
-            pairs=tuple(
-                [
-                    p
-                    for p in self.coevolved_pairs.iterable
-                    if not (p in i_out_of_range or p in discarded)
-                ]
-            ),
-            state='available',
-        )
-
-        cmd.set('stick_use_shader', 0)
-        cmd.set('stick_round_nub', 0)
-
-        # remove pairs that distal
-
         for p in i_out_of_range:
             logging.info(
                 f'Pair {p.i_aa}-{p.j_aa} will be removed: out of range.'
             )
 
+        self.mark_pair_state(
+            pairs=tuple((p for p in i_out_of_range)),
+            state='out_of_range',
+        )
+
+        # remove pairs that distal or discarded
         self.coevolved_pairs = IterableLoop(
             iterable=tuple(
-                [
-                    p
-                    for p in self.coevolved_pairs.iterable
-                    if not (p in i_out_of_range or p in discarded)
-                ]
+                filter(
+                    lambda p: not (p in i_out_of_range or p in discarded),
+                    self.coevolved_pairs.iterable,
+                )
             )
         )
+        self.mark_pair_state(
+            pairs=self.coevolved_pairs.iterable,
+            state='available',
+        )
+
+        cmd.set('stick_use_shader', 0)
+        cmd.set('stick_round_nub', 0)
 
         logging.warning(f'Out of range: {len(i_out_of_range)}')
         logging.warning(f'Discarded pairs: {len(discarded)}')
@@ -970,11 +963,11 @@ class GREMLIN_Analyser:
                     f'{picked_gremlin_mutant_id} has not been accepted yet. Skipped.'
                 )
                 return
-            else:
-                self.mutant_tree_coevolved.remove_mutant_from_branch(
-                    self.picked_gremlin_group_id,
-                    picked_gremlin_mutant_id,
-                )
+
+            self.mutant_tree_coevolved.remove_mutant_from_branch(
+                self.picked_gremlin_group_id,
+                picked_gremlin_mutant_id,
+            )
 
         save_mutant_choices(
             self.bus.get_value('ui.interact.input.to_mutant_txt'),
@@ -1245,7 +1238,11 @@ class GREMLIN_Analyser:
         self.to_broadcaster(mutant_tree)
 
     def to_broadcaster(self, mutant_tree: MutantTree):
-        if self.ws_server and not mutant_tree.empty:
+        if (
+            self.ws_server
+            and self.ws_server.is_running
+            and not mutant_tree.empty
+        ):
             asyncio.run(
                 self.ws_server.broadcast_object(
                     obj=mutant_tree,
