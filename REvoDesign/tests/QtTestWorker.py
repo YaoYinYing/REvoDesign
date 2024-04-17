@@ -111,7 +111,7 @@ class TestWorker:
         ) or self.in_which_runner.get('GITHUB')
 
         self.SKIP_PYMOL_PNG = bool(
-            int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG"))
+            int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG",0))
         )
 
         self.c = Counter()
