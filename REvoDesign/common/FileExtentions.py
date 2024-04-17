@@ -4,14 +4,14 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class REvoDesignFileExtentions:
-    SessionFileExt: immutabledict = immutabledict(
+    Session: immutabledict = immutabledict(
         {
             'pze': 'PZE file',
             'pse': 'PSE file',
         }
     )
 
-    MutableFileExt: immutabledict = immutabledict(
+    Mutable: immutabledict = immutabledict(
         {
             'txt': 'Mutagenesis table file',
             'mut.txt': 'Mutagenesis table file',
@@ -21,18 +21,18 @@ class REvoDesignFileExtentions:
             'xls': 'Scored Mutagenesis table file',
         }
     )
-    PDB_FileExt: immutabledict = immutabledict({'pdb': 'PDB File'})
+    PDB: immutabledict = immutabledict({'pdb': 'PDB File'})
 
-    PSSM_FileExt: immutabledict = immutabledict(
+    PSSM: immutabledict = immutabledict(
         {'csv': "CSV file", 'pssm': "Raw PSSM file"}
     )
 
-    TXT_FileExt: immutabledict = immutabledict({'txt': 'TXT'})
+    TXT: immutabledict = immutabledict({'txt': 'TXT'})
 
     # a hack of file extension filter, to enable those without explicit extension
-    AnyFileExt: immutabledict = immutabledict({'* *': 'Any file'})
+    Any: immutabledict = immutabledict({'* *': 'Any file'})
 
-    CompressedFileExt: immutabledict = immutabledict(
+    Compressed: immutabledict = immutabledict(
         {
             'zip': "ZIP archive",
             'tar.gz': "Tarball (TAR.GZ)",
@@ -43,11 +43,11 @@ class REvoDesignFileExtentions:
         }
     )
 
-    PickleObjectFileExt: immutabledict = immutabledict(
+    PickledObject: immutabledict = immutabledict(
         {'pkl': 'Dumpped Pickle Object'}
     )
 
-    MSA_FileExt: immutabledict = immutabledict(
+    MSA: immutabledict = immutabledict(
         {
             'fas': 'MSA in FASTA',
             'fasta': 'MSA in FASTA',
@@ -55,7 +55,7 @@ class REvoDesignFileExtentions:
         }
     )
 
-    ConfigFileExt: immutabledict = immutabledict(
+    YAML: immutabledict = immutabledict(
         {
             'yaml': 'Config file in YAML',
         }

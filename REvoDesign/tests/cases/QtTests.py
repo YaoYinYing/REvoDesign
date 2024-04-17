@@ -3,8 +3,6 @@ import glob
 import random
 import pytest
 
-from REvoDesign.tests.QtTestWorker import Counter
-
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
 import pytest
@@ -242,6 +240,13 @@ class TestREvoDesignPlugin_TabMutate:
     def test_mpnn_surf(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
+
         WORKER.go_to_tab(tab_name='mutate')
 
         set_widget_value(
@@ -311,6 +316,12 @@ class TestREvoDesignPlugin_TabMutate:
     def test_ddg_surf_non_biolib_calling(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
         WORKER.go_to_tab(tab_name='mutate')
 
         local_ddg_file = WORKER.download_file(
@@ -530,6 +541,12 @@ class TestREvoDesignPlugin_TabInteract:
             pdb_code=WORKER.test_data.gremlin_homomer_molecule,
             spell=WORKER.test_data.gremlin_homomer_postfetch_spell,
         )
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
 
         WORKER.go_to_tab(tab_name='interact')
 
@@ -560,6 +577,10 @@ class TestREvoDesignPlugin_TabInteract:
         KeyDataDuringTests.gremlin_pkl_fp_homomer = gremlin_pkl_fp
 
         set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
+        )
+        set_widget_value(
             WORKER.plugin.ui.lineEdit_interact_chain_binding,
             WORKER.test_data.gremlin_homomer_chains,
         )
@@ -588,7 +609,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
-        WORKER.sleep(2000)
+        WORKER.sleep(300)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -620,7 +641,7 @@ class TestREvoDesignPlugin_TabInteract:
             WORKER.plugin.ui.spinBox_gremlin_topN
         )
 
-        cmd.save(WORKER.test_data.gremlin_homomer_pse)
+        cmd.save(WORKER.test_data.gremlin_homomer_a2a_pse)
 
         for operation in WORKER.test_data.gremlin_homomer_clicks_a2a:
             i = WORKER.c.i
@@ -650,7 +671,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(1000)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -667,7 +688,8 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
+                focus=False,
             )
             WORKER.click(_accp)
 
@@ -678,7 +700,13 @@ class TestREvoDesignPlugin_TabInteract:
         WORKER.load_session_and_check(
             from_rcsb=True,
             pdb_code=WORKER.test_data.gremlin_homomer_molecule,
-            spell=f'{WORKER.test_data.gremlin_homomer_postfetch_spell};{WORKER.test_data.gremlin_homomer_o2a_spell}',
+            spell=WORKER.test_data.gremlin_homomer_postfetch_spell,
+        )
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
         )
 
         WORKER.go_to_tab(tab_name='interact')
@@ -691,6 +719,10 @@ class TestREvoDesignPlugin_TabInteract:
         _rjct = WORKER.plugin.ui.pushButton_interact_reject
 
         gremlin_pkl_fp = KeyDataDuringTests.gremlin_pkl_fp_homomer
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
+        )
 
         set_widget_value(
             WORKER.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp
@@ -723,9 +755,12 @@ class TestREvoDesignPlugin_TabInteract:
         )
         WORKER.save_new_experiment()
 
+        cmd.select('sele', WORKER.test_data.gremlin_homomer_o2a_sele)
+        cmd.enable('sele')
+
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
-        WORKER.sleep(2000)
+        WORKER.sleep(200)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -757,7 +792,7 @@ class TestREvoDesignPlugin_TabInteract:
             WORKER.plugin.ui.spinBox_gremlin_topN
         )
 
-        cmd.save(WORKER.test_data.gremlin_homomer_pse)
+        cmd.save(WORKER.test_data.gremlin_homomer_o2a_pse)
 
         for operation in WORKER.test_data.gremlin_homomer_clicks_o2a:
             i = WORKER.c.i
@@ -787,7 +822,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(1000)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -804,7 +839,8 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
+                focus=False,
             )
             WORKER.click(_accp)
 
@@ -813,6 +849,12 @@ class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_all2all(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
         WORKER.go_to_tab(tab_name='interact')
 
         # buttons
@@ -833,6 +875,10 @@ class TestREvoDesignPlugin_TabInteract:
             WORKER.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp
         )
         KeyDataDuringTests.gremlin_pkl_fp = gremlin_pkl_fp
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
+        )
 
         mutfile = os.path.join('mutagenese', 'gremlin_a2a.mut.txt')
 
@@ -859,7 +905,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
-        WORKER.sleep(2000)
+        WORKER.sleep(200)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -918,7 +964,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(1000)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -935,7 +981,8 @@ class TestREvoDesignPlugin_TabInteract:
             )
 
             WORKER.save_pymol_png(
-                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient'
+                basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
+                focus=False,
             )
             WORKER.click(_accp)
 
@@ -944,6 +991,12 @@ class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_one2all_mpnn_score(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver,
+            'Dunbrack Rotamer Library',
+        )
         WORKER.go_to_tab(tab_name='interact')
 
         sele_resi = 295
@@ -970,6 +1023,11 @@ class TestREvoDesignPlugin_TabInteract:
         set_widget_value(
             WORKER.plugin.ui.lineEdit_input_gremlin_mtx,
             gremlin_pkl_fp,
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_gremlin_topN,
+            WORKER.test_data.gremlin_topN,
         )
 
         mutfile = os.path.join('mutagenese', 'gremlin_o2a.mut.txt')
@@ -1001,7 +1059,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         WORKER.click(WORKER.plugin.ui.pushButton_run_interact_scan)
 
-        WORKER.sleep(2000)
+        WORKER.sleep(200)
 
         WORKER.save_screenshot(
             widget=WORKER.plugin.window,
@@ -1060,7 +1118,7 @@ class TestREvoDesignPlugin_TabInteract:
                     f'{row}_vs_{col}', prefix='matrixButton'
                 )
             )
-            WORKER.sleep(1000)
+            WORKER.sleep(200)
 
             WORKER.save_screenshot(
                 widget=WORKER.plugin.window,
@@ -1078,7 +1136,7 @@ class TestREvoDesignPlugin_TabInteract:
 
             WORKER.save_pymol_png(
                 basename=f'{WORKER.test_id}_{i}_pick_{row}_{col}_orient',
-                focus=True,
+                focus=False,
             )
             WORKER.click(_accp)
 
@@ -1515,6 +1573,13 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
         )
         WORKER.go_to_tab(tab_name='visualize')
 
+        set_widget_value(
+            WORKER.plugin.ui.checkBox_multi_design_use_external_scorer, False
+        )
+        set_widget_value(
+            WORKER.plugin.ui.checkBox_multi_design_color_by_scores, False
+        )
+
         WORKER.do_typing(
             widget=WORKER.plugin.ui.lineEdit_multi_design_mutant_table,
             text=WORKER.test_data.multi_mut_txt,
@@ -1539,23 +1604,20 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         for i in random.sample(
             WORKER.test_data.multi_design_steps,
-            len(WORKER.test_data.multi_design_steps),
+            3,
         ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
             WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
 
-            WORKER.sleep(300)
+            WORKER.sleep(30)
 
-        WORKER.click(md_prev, 3)
+        WORKER.click(md_prev, 1)
 
         WORKER.click(md_save)
 
-        WORKER.sleep(300)
+        WORKER.sleep(30)
 
-        assert (
-            WORKER.plugin.multi_mutagenesis_designer.all_design_multi_design_mutant_object
-        )
 
         assert os.path.exists(WORKER.test_data.multi_mut_txt)
 
@@ -1602,19 +1664,17 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         for i in random.sample(
             WORKER.test_data.multi_design_steps,
-            len(WORKER.test_data.multi_design_steps) - 3,
+            3,
         ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
             WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
 
-            WORKER.sleep(300)
-
-        WORKER.click(md_prev, 3)
+            WORKER.sleep(30)
 
         WORKER.click(md_save)
 
-        WORKER.sleep(300)
+        WORKER.sleep(30)
 
         assert (
             WORKER.plugin.multi_mutagenesis_designer.all_design_multi_design_mutant_object

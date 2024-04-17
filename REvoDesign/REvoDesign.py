@@ -23,6 +23,7 @@ from REvoDesign import (
 from REvoDesign.application.i18n import LanguageSwitch
 
 
+from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.utils import (
     extract_archive,
     generate_strong_password,
@@ -144,6 +145,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def set_working_directory(self, dir=None):
         # if dir is specified yet same as the PWD, return silently.
         if dir and os.path.abspath(dir) == os.path.abspath(self.PWD):
+            self.bus.set_value('work_dir', os.path.abspath(self.PWD))
             return
 
         if dir and os.path.exists(dir):
@@ -152,6 +154,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
 
+        self.bus.set_value('work_dir', os.path.abspath(self.PWD))
+
     def run_plugin_gui(self):
         if self.window is None:
             self.window = self.make_window()
@@ -159,9 +163,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.fix_wd()
 
     def reinitialize(self, delete=False):
+        self.multi_mutagenesis_designer = None
+        self.pssm_gremlin_calculator = None
+        self.ws_client.reset_instance()
+        self.ws_server.reset_instance()
+
         self.gremlin_worker = None
         self.evaluator = None
-        gc.collect()
 
         if delete:
             from REvoDesign import set_REvoDesign_config_file
@@ -172,6 +180,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     'Reinitialized with default configuration. Restart REvoDesign to take effort.'
                 )
             )
+
+        SidechainSolver.reset_instance()
+        ConfigBus.reset_instance()
+        gc.collect()
 
     def __del__(self):
         # self.reinitialize()
@@ -363,7 +375,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             partial(
                 self.open_input_psepath,
                 'ui.mutate.input.residue_ids',
-                [FileExtentions.TXT_FileExt, FileExtentions.AnyFileExt],
+                [FileExtentions.TXT, FileExtentions.Any],
             )
         )
 
@@ -372,9 +384,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.open_input_psepath,
                 'ui.mutate.input.profile',
                 [
-                    FileExtentions.PSSM_FileExt,
-                    FileExtentions.AnyFileExt,
-                    FileExtentions.CompressedFileExt,
+                    FileExtentions.PSSM,
+                    FileExtentions.Any,
+                    FileExtentions.Compressed,
                 ],
             )
         )
@@ -507,9 +519,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.open_input_psepath,
                 'ui.visualize.input.profile',
                 [
-                    FileExtentions.PSSM_FileExt,
-                    FileExtentions.AnyFileExt,
-                    FileExtentions.CompressedFileExt,
+                    FileExtentions.PSSM,
+                    FileExtentions.Any,
+                    FileExtentions.Compressed,
                 ],
             )
         )
@@ -572,28 +584,54 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         self.bus.button('multi_design_initialize').clicked.connect(
-            self.multi_mutagenesis_design_initialize
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_initialize,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_start_new_design').clicked.connect(
-            self.multi_mutagenesis_design_start
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_start,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_left').clicked.connect(
-            self.multi_mutagenesis_design_undo_picking
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_undo_picking,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_right').clicked.connect(
-            self.multi_mutagenesis_design_pick_next_mut
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_pick_next_mut,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button('multi_design_end_this_design').clicked.connect(
-            self.multi_mutagenesis_design_stop_design
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_stop_design,
+                progress_bar=self.bus.ui.progressBar,
+            )
         )
 
         self.bus.button(
             'multi_design_export_mutants_from_table'
-        ).clicked.connect(self.multi_mutagenesis_design_save_design)
+        ).clicked.connect(
+            partial(
+                run_worker_thread_with_progress,
+                worker_function=self.multi_mutagenesis_design_save_design,
+                progress_bar=self.bus.ui.progressBar,
+            )
+        )
 
         self.bus.button('run_multi_design').clicked.connect(
             partial(
@@ -610,8 +648,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.open_input_psepath,
                 'ui.interact.input.gremlin_pkl',
                 [
-                    FileExtentions.PickleObjectFileExt,
-                    FileExtentions.AnyFileExt,
+                    FileExtentions.PickledObject,
+                    FileExtentions.Any,
                 ],
             )
         )
@@ -694,9 +732,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
-    def browse_filename(
-        self, mode: IO_MODE = 'r', exts=[FileExtentions.AnyFileExt]
-    ):
+    def browse_filename(self, mode: IO_MODE = 'r', exts=[FileExtentions.Any]):
         from pymol.Qt.utils import getSaveFileNameWithExt
 
         filter_strings = ';;'.join(
@@ -721,7 +757,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # Check if the selected file is a compressed archive
             is_compressed = [
                 True
-                for ext_, _ in FileExtentions.CompressedFileExt.items()
+                for ext_, _ in FileExtentions.Compressed.items()
                 if filename.endswith(ext_)
             ]
             if any(is_compressed):
@@ -743,9 +779,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return filename
 
     # A universal and versatile function for input file path browsing.
-    def open_input_psepath(
-        self, cfg_input: str, exts=[FileExtentions.AnyFileExt]
-    ):
+    def open_input_psepath(self, cfg_input: str, exts=[FileExtentions.Any]):
         input_fn = self.browse_filename(mode='r', exts=exts)
         if input_fn:
             self.bus.set_widget_value(cfg_input, input_fn)
@@ -772,9 +806,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             new_session_file = self.browse_filename(
                 mode='r',
                 exts=[
-                    FileExtentions.SessionFileExt,
-                    FileExtentions.PDB_FileExt,
-                    FileExtentions.AnyFileExt,
+                    FileExtentions.Session,
+                    FileExtentions.PDB,
+                    FileExtentions.Any,
                 ],
             )
             if not new_session_file:
@@ -806,7 +840,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def save_as_a_session(self, cfg_to_pse: str):
         output_pse_fn = self.browse_filename(
             mode='w',
-            exts=[FileExtentions.SessionFileExt, FileExtentions.AnyFileExt],
+            exts=[FileExtentions.Session, FileExtentions.Any],
         )
 
         if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
@@ -858,9 +892,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             input_mut_txt_fn = self.open_input_psepath(
                 cfg_mutant_table,
                 [
-                    FileExtentions.MutableFileExt,
-                    FileExtentions.AnyFileExt,
-                    FileExtentions.CompressedFileExt,
+                    FileExtentions.Mutable,
+                    FileExtentions.Any,
+                    FileExtentions.Compressed,
                 ],
             )
             if input_mut_txt_fn:
@@ -873,8 +907,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             output_mut_txt_fn = self.browse_filename(
                 mode=mode,
                 exts=[
-                    FileExtentions.MutableFileExt,
-                    FileExtentions.AnyFileExt,
+                    FileExtentions.Mutable,
+                    FileExtentions.Any,
                 ],
             )
             if output_mut_txt_fn and os.path.exists(
@@ -895,7 +929,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return self.browse_filename(
-                mode='w', exts=[FileExtentions.SessionFileExt]
+                mode='w', exts=[FileExtentions.Session]
             )
 
         if not os.path.exists(session_path):
@@ -905,7 +939,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return self.browse_filename(
-                mode='w', exts=[FileExtentions.SessionFileExt]
+                mode='w', exts=[FileExtentions.Session]
             )
 
         if os.path.basename(session_path).startswith(
@@ -917,7 +951,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return self.browse_filename(
-                mode='w', exts=[FileExtentions.SessionFileExt]
+                mode='w', exts=[FileExtentions.Session]
             )
 
         return session_path
@@ -1079,9 +1113,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button('run_PSSM_to_pse')
 
         with hold_trigger_button(trigger_button):
-            worker = MutateWorker(
-                PWD=self.PWD,
-            )
+            worker = MutateWorker()
 
             worker.run_mutant_loading_from_profile()
 
@@ -1119,7 +1151,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
         mutant_choice_checkpoint_fn = self.browse_filename(
             mode='r',
-            exts=[FileExtentions.MutableFileExt, FileExtentions.AnyFileExt],
+            exts=[FileExtentions.Mutable, FileExtentions.Any],
         )
 
         self.evaluator.recover_mutant_choices_from_checkpoint(
@@ -1243,9 +1275,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         from REvoDesign.phylogenetics import VisualizingWorker
 
         with hold_trigger_button(trigger_button):
-            worker = VisualizingWorker(
-                PWD=self.PWD,
-            )
+            worker = VisualizingWorker()
             worker.visualize_mutants()
 
         if (
@@ -1291,7 +1321,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
                 if not confirmed:
                     session = self.browse_filename(
-                        mode='w', exts=[FileExtentions.SessionFileExt]
+                        mode='w', exts=[FileExtentions.Session]
                     )
 
                 if not session:
@@ -1417,9 +1447,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         with hold_trigger_button(trigger_button):
             from REvoDesign.phylogenetics import GREMLIN_Analyser
 
-            self.gremlin_worker = GREMLIN_Analyser(
-                PWD=self.PWD,
-            )
+            self.gremlin_worker = GREMLIN_Analyser()
             self.gremlin_worker.load_gremlin_mrf()
 
     def run_gremlin_tool(self):
@@ -1635,7 +1663,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         new_cfg_file = self.browse_filename(
             mode=mode,
-            exts=[FileExtentions.ConfigFileExt, FileExtentions.AnyFileExt],
+            exts=[FileExtentions.YAML, FileExtentions.Any],
         )
         if not new_cfg_file:
             return

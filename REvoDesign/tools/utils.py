@@ -198,7 +198,7 @@ def run_worker_thread_with_progress(
 
     while not work_thread.isFinished():
         refresh_window()
-        time.sleep(0.001)
+        time.sleep(0.005)
 
     if progress_bar:
         # restore the progressbar state

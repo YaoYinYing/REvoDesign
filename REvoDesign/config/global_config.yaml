@@ -4,6 +4,7 @@
 # Click menu-REvoDesign-Reconfigure to apply changes from this copy. 
 
 language: eng-eng
+work_dir: '.'
 
 ui:
   header_panel: 
