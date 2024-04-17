@@ -1664,15 +1664,13 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         for i in random.sample(
             WORKER.test_data.multi_design_steps,
-            2,
+            3,
         ):
             j = WORKER.c.i
             WORKER.click(md_next, times=i)
             WORKER.save_pymol_png(basename=f'{WORKER.test_id}_{j}_{i}')
 
             WORKER.sleep(30)
-
-        WORKER.click(md_prev, 1)
 
         WORKER.click(md_save)
 
