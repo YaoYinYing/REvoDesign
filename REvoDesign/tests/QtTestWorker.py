@@ -55,13 +55,17 @@ def app():
 @pytest.fixture
 def plugin(qtbot: qtbot.QtBot, app):
     # Create and return an instance of the REvoDesignPlugin
+    gc.collect()
     plugin = REvoDesignPlugin()
     REvoDesignWebSocketClient.reset_instance()
     REvoDesignWebSocketServer.reset_instance()
     SidechainSolver.reset_instance()
     ConfigBus.reset_instance()
-    if not plugin.window:
-        plugin.run_plugin_gui()
+    if plugin.window:
+        plugin.reinitialize()
+    plugin = REvoDesignPlugin()
+    plugin.run_plugin_gui()
+
     qtbot.addWidget(
         plugin.window
     )  # Add the plugin's main window to qtbot for automatic cleanup
@@ -111,7 +115,7 @@ class TestWorker:
         ) or self.in_which_runner.get('GITHUB')
 
         self.SKIP_PYMOL_PNG = bool(
-            int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG",0))
+            int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG", 0))
         )
 
         self.c = Counter()
@@ -247,7 +251,6 @@ class TestWorker:
         print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):
-        self.sleep(50)
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
@@ -265,7 +268,6 @@ class TestWorker:
     def do_typing(
         self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False
     ):
-        self.sleep(100)
         set_widget_value(widget=widget, value='')
         # if text is short enough or in strict mode
         # type one after another
@@ -290,7 +292,7 @@ class TestWorker:
             tab=self.plugin.ui.tabWidget,
             page=self.tab_widget_mapping.get(tab_name),
         )
-        self.sleep(50)
+        self.sleep(5)
 
     def check_molecule_after_loaded(self):
         assert (
@@ -417,7 +419,6 @@ class TestWorker:
                 print(e)
 
         cmd.png(png_file, dpi=dpi, ray=use_ray)
-        self.sleep(50)
 
     def wait_for_file(
         self, file: str, interval: str = 100, timeout: float = 61.0

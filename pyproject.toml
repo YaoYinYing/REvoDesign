@@ -40,6 +40,8 @@ omegaconf = "^2.3.0"
 rdkit = ">=2023.9.4" 
 msgpack="*"
 bibtexparser="*"
+
+
 # optional packages
 ## designers
 colabdesign= { git = "https://github.com/sokrypton/ColabDesign.git", branch = "v1.1.1" , optional = true }
@@ -54,14 +56,18 @@ PIPPack = {git = "https://github.com/YaoYinYing/PIPPack", branch = 'pip-installa
 # unit tests
 absl-py = { version = ">=1.4.0", optional= true}
 pooch = {version = "^1.8.0", optional =true}
+pytest = {version = "*", optional = true}
 pytest-qt = {version = "^4.4.0", optional = true}
+pytest-cov = {version = "*", optional = true}
+pytest-order = {version = "*", optional = true}
+coverage= {version = "*", optional = true}
 
 [tool.poetry.extras]
 jax = ["colabdesign"]
 torch = ["PIPPack"]
 tf = ["DLPacker"]
 
-unittest = [ "absl-py", "pooch", "pytest-qt", "psutil"]
+unittest = [ "absl-py", "pooch", "pytest-qt","pytest", "pytest-cov", "pytest-order", "coverage"]
 
 full = ["colabdesign", "DLPacker", "PIPPack"]
 

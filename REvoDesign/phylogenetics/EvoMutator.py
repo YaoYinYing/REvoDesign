@@ -379,7 +379,7 @@ class ChainBinder:
             atom2 = f'{self.design_molecule} and c. {chain_2} and i. {j_1} and n. CA'
             try:
                 dist = p.cmd.get_distance(atom1=atom1, atom2=atom2)
-                return dist
+                return float(dist)
             except CmdException as e:
                 warnings.warn(
                     issues.BadDataWarning(
@@ -439,6 +439,7 @@ class ChainBinder:
 class GREMLIN_Analyser:
     def __init__(self):
         self.bus: ConfigBus = ConfigBus()
+        self.alphabet: str = None
 
         self.PWD: str = self.bus.get_value('work_dir', str)
         self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
@@ -514,6 +515,7 @@ class GREMLIN_Analyser:
         self.gremlin_tool = GREMLIN_Tools(molecule=self.design_molecule)
 
         self.gremlin_tool.sequence = self.design_sequence
+        self.alphabet = self.gremlin_tool.alphabet
 
         run_worker_thread_with_progress(
             worker_function=self.gremlin_tool.load_msa_and_mrf,
@@ -654,6 +656,10 @@ class GREMLIN_Analyser:
                 filter(self.coevolved_pairs_filter, coevolved_pairs)
             )
         )
+
+        del coevolved_pairs
+        del chain_binder
+
         if self.coevolved_pairs.empty:
             warnings.warn(
                 issues.NoResultsWarning('No coevolved_pairs passes filter.')
@@ -916,7 +922,7 @@ class GREMLIN_Analyser:
         self.mark_pair_state(pairs=pair, state='in_design')
 
         button_matrix = QbuttonMatrix(pair)
-        button_matrix.sequence = self.gremlin_tool.sequence
+        button_matrix.sequence = self.design_sequence
 
         button_matrix.init_ui()
 
@@ -1109,8 +1115,6 @@ class GREMLIN_Analyser:
 
         self.refresh_scorer()
 
-        alphabet = self.gremlin_tool.alphabet
-
         self.picked_gremlin_group_id = '_vs_'.join(
             [
                 wt.replace('_', '')
@@ -1126,8 +1130,8 @@ class GREMLIN_Analyser:
         wt_j = pair.wt('j')  # in row
 
         # aa from clicked button, mutant
-        mut_i = alphabet[col]
-        mut_j = alphabet[row]
+        mut_i = self.alphabet[col]
+        mut_j = self.alphabet[row]
 
         # construct this Mutant obj from scratch.
         _mutant: List[Dict[str, Union[str, int]]] = []
@@ -1176,7 +1180,9 @@ class GREMLIN_Analyser:
 
         # call scorer to evaluate wt and mutant
         if not self.gremlin_external_scorer:
-            wt_score = matrix[alphabet.index(wt_i)][alphabet.index(wt_j)]
+            wt_score = matrix[self.alphabet.index(wt_i)][
+                self.alphabet.index(wt_j)
+            ]
             mut_score = matrix[col][row]
         else:
             wt_score = run_worker_thread_with_progress(
@@ -1249,6 +1255,8 @@ class GREMLIN_Analyser:
             mutant=mutant,
             mutant_obj=mutant_obj,
         )
+
+        del visualizer
 
         # create a small mutant tree and send to broadcaster.
         mutant_tree = MutantTree(

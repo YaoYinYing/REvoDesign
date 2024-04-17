@@ -43,7 +43,7 @@ class CoevolvedPair:
     i_aa: str
     j_aa: str
 
-    homochains_dist: Dict[str, str] = field(default_factory=dict)
+    homochains_dist: Dict[str, float] = field(default_factory=dict)
 
     zscore: float = 0.0
     transposed: bool = False
@@ -78,9 +78,7 @@ class CoevolvedPair:
                 issues.NoInputWarning(f'Pair {repr(self)} is empty! ')
             )
             return -1
-        return min(
-            [float(d) for d in self.homochains_dist.values() if float(d) > 0]
-        )
+        return min(d for d in self.homochains_dist.values() if d > 0)
 
     def dist(self, chain_pair: str) -> float:
         dist = self.homochains_dist.get(chain_pair)

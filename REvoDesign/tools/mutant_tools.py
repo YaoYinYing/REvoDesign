@@ -8,10 +8,7 @@ from pymol import cmd
 
 from REvoDesign import ConfigBus, FileExtentions
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import (
-    FobiddenMutantTreeNamingSpace,
-    MutantTree,
-)
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign import root_logger
 
@@ -448,10 +445,23 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
     """
     from REvoDesign.tools.pymol_utils import is_hidden_object
 
-    group_ids = cmd.get_names(type='group_objects', enabled_only=enabled_only)
+    NOT_ALLOWED_GROUP_ID_PREFIX: tuple[str] = (
+        'RDPM',
+        'multi_design',
+        'cep',
+        'invalid_cep',
+    )
 
+    group_ids: list[str] = cmd.get_names(
+        type='group_objects', enabled_only=enabled_only
+    )
+
+    # if the group id starts with any of the disallowed prefixes, filter it out.
     filtered_group_ids = filter(
-        FobiddenMutantTreeNamingSpace.group_id_prefix_filter, group_ids
+        lambda group_id: not any(
+            group_id.startswith(p) for p in NOT_ALLOWED_GROUP_ID_PREFIX
+        ),
+        group_ids,
     )
 
     _mutant_tree = {

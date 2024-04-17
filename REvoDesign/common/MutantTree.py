@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from REvoDesign.common.Mutant import Mutant
 from typing import List, Dict, Union, Optional, Protocol, Iterable
 
@@ -563,18 +562,3 @@ class MutantTree:
             mutants=self, pdb_fps=all_mutants_pdb_fp
         )
         mutate_runner.cite()
-
-
-@dataclass(frozen=True)
-class FobiddenMutantTreeNamingSpace:
-    @staticmethod
-    def group_id_prefix_filter(group_id: str) -> bool:
-        group_id_prefix: tuple[str] = (
-            'RDPM',
-            'multi_design',
-            'cep',
-            'invalid_cep',
-        )
-        return not any(
-            group_id.startswith(prefix) for prefix in group_id_prefix
-        )

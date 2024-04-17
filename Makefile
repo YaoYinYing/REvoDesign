@@ -95,7 +95,7 @@ translate:
 	cd REvoDesign/UI/;lrelease liguist.pro
 
 prepare-test:
-	python -m pip install pytest pytest-cov coverage -q --no-cache-dir 
+	python -m pip install pytest pytest-cov pytest-order coverage -q --no-cache-dir  
 
 # unit test
 test:

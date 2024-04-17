@@ -533,6 +533,7 @@ class TestREvoDesignPlugin_TabMutate:
         WORKER.save_pymol_png(basename=WORKER.test_id)
 
 
+@pytest.mark.order(-2)
 class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_homomer_all2all(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
@@ -695,6 +696,9 @@ class TestREvoDesignPlugin_TabInteract:
 
         assert os.path.exists(mutfile)
 
+        del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker
+
     def test_gremlin_homomer_one2all(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check(
@@ -846,6 +850,9 @@ class TestREvoDesignPlugin_TabInteract:
 
         assert os.path.exists(mutfile)
 
+        del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker
+
     def test_gremlin_all2all(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
@@ -987,6 +994,9 @@ class TestREvoDesignPlugin_TabInteract:
             WORKER.click(_accp)
 
         assert os.path.exists(mutfile)
+
+        del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker
 
     def test_gremlin_one2all_mpnn_score(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
@@ -1143,6 +1153,9 @@ class TestREvoDesignPlugin_TabInteract:
         cmd.orient(WORKER.test_data.molecule)
 
         assert os.path.exists(mutfile)
+
+        del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker
 
 
 class TestREvoDesignPlugin_TabEvaluate:
@@ -1558,6 +1571,7 @@ class TestREvoDesignPlugin_ActionTranslate:
         assert not WORKER.plugin.ui.actionFrench.isEnabled()
 
 
+@pytest.mark.order(-1)
 class TestREvoDesignPlugin_TabVisualize_MultiDesign:
     def test_multiple_design(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
@@ -1617,7 +1631,6 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
         WORKER.click(md_save)
 
         WORKER.sleep(30)
-
 
         assert os.path.exists(WORKER.test_data.multi_mut_txt)
 

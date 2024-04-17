@@ -23,7 +23,6 @@ from REvoDesign import (
 from REvoDesign.application.i18n import LanguageSwitch
 
 
-from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.utils import (
     extract_archive,
     generate_strong_password,
@@ -165,11 +164,15 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def reinitialize(self, delete=False):
         self.multi_mutagenesis_designer = None
         self.pssm_gremlin_calculator = None
-        self.ws_client.reset_instance()
-        self.ws_server.reset_instance()
 
         self.gremlin_worker = None
         self.evaluator = None
+        self.ws_server = None
+        self.ws_client = None
+
+        self.window = None
+
+        gc.collect()
 
         if delete:
             from REvoDesign import set_REvoDesign_config_file
@@ -180,10 +183,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     'Reinitialized with default configuration. Restart REvoDesign to take effort.'
                 )
             )
-
-        SidechainSolver.reset_instance()
-        ConfigBus.reset_instance()
-        gc.collect()
 
     def __del__(self):
         # self.reinitialize()
