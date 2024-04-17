@@ -1573,6 +1573,13 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
         )
         WORKER.go_to_tab(tab_name='visualize')
 
+        set_widget_value(
+            WORKER.plugin.ui.checkBox_multi_design_use_external_scorer, False
+        )
+        set_widget_value(
+            WORKER.plugin.ui.checkBox_multi_design_color_by_scores, False
+        )
+
         WORKER.do_typing(
             widget=WORKER.plugin.ui.lineEdit_multi_design_mutant_table,
             text=WORKER.test_data.multi_mut_txt,
