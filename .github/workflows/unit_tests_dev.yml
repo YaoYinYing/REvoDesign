@@ -69,6 +69,8 @@ jobs:
         run: |
           source activate REvoDesign
           make prepare-test
+          conda info
+          conda list
           make all-test
           make pymol-test
       
