@@ -134,13 +134,13 @@ class CoevolvedPair:
                 f'No such {chain_pair=} in {self.homochains_dist=}'
             )
 
-        c1, c2 = tuple(chain_pair)
+        assert len(chain_pair) == 2, f'{len(chain_pair)=} != 2'
         res_pair = (
-            f'(c. {c1} and i. {self.i_1})',
-            f'(c. {c2} and i. {self.j_1})',
+            f'(c. {chain_pair[0]} and i. {self.i_1})',
+            f'(c. {chain_pair[1]} and i. {self.j_1})',
         )
 
-        logging.debug(f'{res_pair=}')
+        # logging.debug(f'{res_pair=}')
 
         return res_pair
 
@@ -148,24 +148,24 @@ class CoevolvedPair:
         self,
         chain_pair: str,
     ) -> str:
-        atom_1, atom_2 = self.res_pair(chain_pair)
-        return f'({atom_1} or {atom_2})'
+        res_1, res_2 = self.res_pair(chain_pair)
+        return f'({res_1} or {res_2})'
 
     @property
     def all_res_pairs(self) -> dict[str, tuple[str]]:
         all_res_pairs = {
-            cc: self.res_pair(chain_pair=cc) for cc in self.homochains
+            cc: self.res_pair(chain_pair=cc) for cc in self.homochains_dist
         }
-        logging.debug(f'{all_res_pairs=}')
+        # logging.debug(f'{all_res_pairs=}')
         return all_res_pairs
 
     @property
     def all_res_pairs_selections(self) -> dict[str, str]:
         all_res_pairs_selections = {
             cc: self.res_pair_selection(chain_pair=cc)
-            for cc in self.homochains
+            for cc in self.homochains_dist
         }
-        logging.debug(f'{all_res_pairs_selections}')
+        # logging.debug(f'{all_res_pairs_selections}')
         return all_res_pairs_selections
 
     @property

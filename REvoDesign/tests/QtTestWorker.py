@@ -193,7 +193,7 @@ class TestWorker:
         from_rcsb=False,
         customized_session: str = None,
     ):
-        self.sleep(100)
+        self.sleep(1000)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
         print(f'nproc: {nproc}')
         if (
@@ -207,7 +207,7 @@ class TestWorker:
                 self.plugin.ui.spinBox_nproc,
                 self.test_data.nproc_circleci,
             )
-        self.sleep(100)
+        self.sleep(150)
 
         if from_rcsb:
             self._fetch_pdb(pdb_code, spell)
@@ -217,12 +217,12 @@ class TestWorker:
                 customized_session = self.test_data.pocket_pse
             self._load_pocket_pse(customized_session)
 
-        self.sleep(100)
+        self.sleep(150)
 
         self.plugin.reload_molecule_info()
-        self.sleep(100)
+        self.sleep(150)
         self.check_molecule_after_loaded()
-        self.sleep(100)
+        self.sleep(150)
 
     def save_new_experiment(self, experiment_name: str = None):
         import shutil

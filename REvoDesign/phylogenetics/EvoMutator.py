@@ -15,7 +15,11 @@ from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.citations import CitationManager
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import QbuttonMatrix, set_widget_value
+from REvoDesign.tools.customized_widgets import (
+    QbuttonMatrix,
+    refresh_window,
+    set_widget_value,
+)
 from REvoDesign.tools.mutant_tools import save_mutant_choices
 
 from REvoDesign.tools.pymol_utils import (
@@ -58,6 +62,7 @@ class CoevolvedPairState:
         return color
 
 
+# tab mutate
 class MutateWorker:
     def __init__(self):
         self.bus: ConfigBus = ConfigBus()
@@ -224,6 +229,7 @@ class MutateWorker:
             CitationManager().output()
 
 
+# tab visualize
 class VisualizingWorker:
     def __init__(self):
         self.bus: ConfigBus = ConfigBus()
@@ -643,9 +649,10 @@ class GREMLIN_Analyser:
             progress_bar=self.bus.ui.progressBar,
         )
 
-        coevolved_pairs = filter(self.coevolved_pairs_filter, coevolved_pairs)
         self.coevolved_pairs = IterableLoop(
-            iterable=tuple([x for x in coevolved_pairs])
+            iterable=tuple(
+                filter(self.coevolved_pairs_filter, coevolved_pairs)
+            )
         )
         if self.coevolved_pairs.empty:
             warnings.warn(
@@ -654,10 +661,7 @@ class GREMLIN_Analyser:
             return
 
         logging.info('Visualizing as bonds ...')
-        run_worker_thread_with_progress(
-            worker_function=self.plot_coevolved_pair_in_pymol,
-            progress_bar=self.bus.ui.progressBar,
-        )
+        self.plot_coevolved_pair_in_pymol()
 
         try:
             self.bus.button('previous').clicked.disconnect()
@@ -725,7 +729,12 @@ class GREMLIN_Analyser:
 
         i_out_of_range: List[CoevolvedPair] = []
         discarded: List[CoevolvedPair] = []
-        for pair in self.coevolved_pairs.iterable:
+        set_widget_value(
+            self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable))
+        )
+        for i, pair in enumerate(self.coevolved_pairs.iterable):
+            set_widget_value(self.bus.ui.progressBar, i)
+            refresh_window()
             try:
                 sele_name = repr(pair)
                 logging.debug(f'{sele_name=}')
@@ -745,23 +754,24 @@ class GREMLIN_Analyser:
                 )
                 discarded.append(pair)
                 continue
-
+            refresh_window()
             cmd.hide('cartoon', pair.selection_string)
             cmd.hide('surface', pair.selection_string)
             cmd.show('sticks', pair.selection_string)
-
+            refresh_window()
             zscore = rescale_number(
                 pair.zscore,
                 min_value=min_gremlin_score,
                 max_value=max_gremlin_score,
             )
-
+            refresh_window()
             cmd.set(
                 'stick_radius',
                 zscore,
                 pair.selection_string,
             )
 
+            refresh_window()
             if pair.all_out_of_range:
                 i_out_of_range.append(pair)
                 cmd.group(self.ce_object_group_invalid, pair.selection_string)
@@ -772,6 +782,7 @@ class GREMLIN_Analyser:
             # bond w/o colors
             # out-of-range residue pair in valid pair will be not considered.
             for cc, res_pair in pair.all_res_pairs.items():
+                refresh_window()
                 if pair.is_out_of_range(cc):
                     logging.info(
                         f'Resi {pair.i_1}({cc[0]}) is {pair.dist(chain_pair=cc):.2f} Å away from {pair.j_1}({cc[1]}), out of distance {pair.dist_cutoff} Å.'
@@ -783,11 +794,11 @@ class GREMLIN_Analyser:
                     f'{pair.selection_string} and {res_pair[0]} and n. CA',
                     f'{pair.selection_string} and {res_pair[1]} and n. CA',
                 )
-
+        refresh_window()
         cmd.delete(_tmp_obj)
         cmd.group(self.ce_object_group_valid, action='close')
         cmd.group(self.ce_object_group_invalid, action='close')
-
+        refresh_window()
         for p in i_out_of_range:
             logging.info(
                 f'Pair {p.i_aa}-{p.j_aa} will be removed: out of range.'
@@ -821,6 +832,10 @@ class GREMLIN_Analyser:
             f'Filtered pairs: {len(self.coevolved_pairs.iterable)}'
         )
 
+        set_widget_value(
+            self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable))
+        )
+
         CitationManager().output()
         return
 
@@ -838,31 +853,28 @@ class GREMLIN_Analyser:
         if isinstance(pairs, CoevolvedPair):
             pairs = (pairs,)
 
-        _sele = ' or '.join([p.selection_string for p in pairs])
-
-        logging.debug(f'{_sele=}')
-
         for p in pairs:
+            refresh_window()
             cmd.set(
                 'stick_color',
                 color,
                 p.selection_string,
             )
+            cmd.set(
+                'stick_transparency',
+                0.7 if state != 'in_design' else 0.1,
+                p.selection_string,
+            )
+
+        logging.debug(f'Marking pair as {state=}: {[str(p) for p in pairs]}')
 
         if state != 'in_design':
-            for p in pairs:
-                cmd.set('stick_transparency', 0.7, p.selection_string)
-
-            logging.debug(
-                f'Marking pair as {state=}: {[str(pair) for pair in pairs]} ({_sele=})'
-            )
             return
 
-        logging.warning(
-            f'Marking pair as {state=}: {[str(pair) for pair in pairs]} ({_sele=})'
-        )
-        for p in pairs:
-            cmd.set('stick_transparency', 0.1, p.selection_string)
+        _sele = ' or '.join([p.selection_string for p in pairs])
+
+        logging.debug(f'{_sele=}')
+
         cmd.orient(selection=f'byres ({_sele}) around 15', animate=1)
 
     def load_co_evolving_pairs(
@@ -1041,38 +1053,45 @@ class GREMLIN_Analyser:
 
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
+        # if scorer is specified and available
         if external_scorer and external_scorer in EXTERNAL_DESIGNERS:
             magician = EXTERNAL_DESIGNERS[external_scorer]
+            # if it is ready
             if (
-                not self.gremlin_external_scorer  # non-scorer is set
-                or magician.__name__  # scorer is switched to another
-                != self.gremlin_external_scorer.__class__.__name__
+                self.gremlin_external_scorer  # scorer is set
+                and magician.__name__  # scorer is not switched to another
+                == self.gremlin_external_scorer.__class__.__name__
             ):
-                logging.info(
-                    f'Pre-heating {external_scorer} ... This could take a while ...'
-                )
-                self.gremlin_external_scorer = magician(
-                    molecule=self.design_molecule
-                )
-                run_worker_thread_with_progress(
-                    worker_function=self.gremlin_external_scorer.initialize,
-                    ignore_missing=bool('X' in self.design_sequence),
-                    chain=','.join(
-                        self.chains_to_bind
-                        if self.chain_binding_enabled
-                        else self.design_chain_id
-                    ),
-                    homooligomeric=self.chain_binding_enabled
-                    and self.chains_to_bind,
-                    progress_bar=self.bus.ui.progressBar,
-                )
+                logging.info(f'Using the same scorer {magician.__name__}')
+                return
 
-        else:
-            if self.gremlin_external_scorer:
-                logging.info(
-                    f'Cooling down {self.gremlin_external_scorer.__class__.__name__} ...'
-                )
-            self.gremlin_external_scorer = None
+            # if not ready, initialize it and return
+            logging.info(
+                f'Pre-heating {external_scorer} ... This could take a while ...'
+            )
+            self.gremlin_external_scorer = magician(
+                molecule=self.design_molecule
+            )
+            run_worker_thread_with_progress(
+                worker_function=self.gremlin_external_scorer.initialize,
+                ignore_missing=bool('X' in self.design_sequence),
+                chain=','.join(
+                    self.chains_to_bind
+                    if self.chain_binding_enabled
+                    else self.design_chain_id
+                ),
+                homooligomeric=self.chain_binding_enabled
+                and self.chains_to_bind,
+                progress_bar=self.bus.ui.progressBar,
+            )
+            return
+
+        # otherwise, cancel the external scorer
+        if self.gremlin_external_scorer:
+            logging.info(
+                f'Cooling down {self.gremlin_external_scorer.__class__.__name__} ...'
+            )
+        self.gremlin_external_scorer = None
 
     def mutate_with_gridbuttons(
         self,
