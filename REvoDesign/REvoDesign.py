@@ -1368,7 +1368,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 'Multi design is not initialized.'
             )
 
-        with hold_trigger_button(self.bus.button('multi_design_right')):
+        with hold_trigger_button(
+            buttons=(
+                self.bus.button('multi_design_left'),
+                self.bus.button('multi_design_right'),
+            )
+        ):
             self.multi_mutagenesis_designer.refresh_options()
             self.multi_mutagenesis_designer.pick_next_mutant()
 
@@ -1378,7 +1383,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 'Multi design is not initialized.'
             )
 
-        with hold_trigger_button(self.bus.button('multi_design_left')):
+        with hold_trigger_button(
+            buttons=(
+                self.bus.button('multi_design_left'),
+                self.bus.button('multi_design_right'),
+            )
+        ):
             self.multi_mutagenesis_designer.refresh_options()
             self.multi_mutagenesis_designer.undo_previous_mutant()
 

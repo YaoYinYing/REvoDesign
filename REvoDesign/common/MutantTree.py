@@ -364,10 +364,10 @@ class MutantTree:
         (
             self.current_branch_id,
             self.current_mutant_id,
-        ) = self._walk_the_mutants(walk_to_next_one=walk_to_next_one)
+        ) = self._walk_the_mutants(walk_forward=walk_to_next_one)
 
     # internal function that returns instead of changes the current stored values
-    def _walk_the_mutants(self, walk_to_next_one: bool = True):
+    def _walk_the_mutants(self, walk_forward: bool = True):
         # store the last one
         last_branch_id = self.current_branch_id
         last_mutant_id = self.current_mutant_id
@@ -377,7 +377,7 @@ class MutantTree:
             last_branch_id, last_mutant_id
         )
 
-        if walk_to_next_one:
+        if walk_forward:
             if not self.is_the_mutant_the_last_in_branch(
                 last_branch_id, last_mutant_id
             ):

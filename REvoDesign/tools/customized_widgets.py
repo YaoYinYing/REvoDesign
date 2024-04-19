@@ -732,7 +732,9 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
 
 
 @contextmanager
-def hold_trigger_button(button: QtWidgets.QPushButton):
+def hold_trigger_button(
+    buttons: Union[tuple[QtWidgets.QPushButton], QtWidgets.QPushButton]
+):
     """
     A context manager for holding and releasing a trigger button.
 
@@ -741,8 +743,13 @@ def hold_trigger_button(button: QtWidgets.QPushButton):
             # Code block where the button is held (disabled)
             # The button will be automatically released (enabled) at the end of the block
     """
+    if not isinstance(buttons, (tuple, list, set)):
+        buttons = (buttons,)
+
     try:
-        button.setEnabled(False)
+        for b in buttons:
+            b.setEnabled(False)
         yield
     finally:
-        button.setEnabled(True)
+        for b in buttons:
+            b.setEnabled(True)

@@ -167,7 +167,7 @@ class Evalutator:
             current_branch_id,
             current_mutant_id,
         ) = self.mutant_tree_candidates._walk_the_mutants(
-            walk_to_next_one=walk_to_next
+            walk_forward=walk_to_next
         )
 
         set_widget_value(
@@ -518,6 +518,6 @@ class Evalutator:
     def center_design_area(self, mutant_id):
         if self.mutant_tree_candidates and mutant_id:
             logging.debug(f'Centering design area: {mutant_id}')
-            cmd.center(mutant_id)
+            cmd.center(mutant_id, animate=1)
         else:
             logging.debug(f'Giving up centering design area: {mutant_id}')

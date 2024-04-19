@@ -131,7 +131,7 @@ macos-rosetta-test:
 pymol-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); if command -v pymol;then pymol ../tests/PyMOLTests.pml; else pymol.exe ../tests/PyMOLTests.pml;fi 
+	cd $(TESTDIR); if command -v pymol;then pymol ../tests/PyMOLTests.pml; else PyMOL.exe ../tests/PyMOLTests.pml;fi 
 	
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version

@@ -17,6 +17,7 @@ from REvoDesign.citations import CitationManager
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import (
     QbuttonMatrix,
+    hold_trigger_button,
     refresh_window,
     set_widget_value,
 )
@@ -887,74 +888,83 @@ class GREMLIN_Analyser:
         self,
         walk_to_next=True,
     ):
-        ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
-
-        lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
-        lineEdit_current_pair_score = self.bus.ui.lineEdit_current_pair_score
-
-        if not self.design_chain_id or not self.design_molecule:
-            logging.error(f'No available molecule or chain id.')
-            return
-
-        # before walking the index, set this pair back
-        self.mark_pair_state(
-            pairs=(p := self.coevolved_pairs.current_item),
-            state='available' if not p.all_out_of_range else 'out_of_range',
-        )
-
-        self.coevolved_pairs.walker(direction=walk_to_next)
-
-        set_widget_value(
-            self.bus.ui.progressBar, self.coevolved_pairs.current_idx
-        )
-
-        pair = self.coevolved_pairs.current_item
-
-        # Clear the existing widgets from gridLayout_interact_pairs
-        for i in reversed(
-            range(self.bus.ui.gridLayout_interact_pairs.count())
+        with hold_trigger_button(
+            buttons=(self.bus.button('previous'), self.bus.button('next'))
         ):
-            widget = self.bus.ui.gridLayout_interact_pairs.itemAt(i).widget()
-            if widget is not None:
-                widget.deleteLater()
+            ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
 
-        # after walking and widget is updated, mark it as in design
-        self.mark_pair_state(pairs=pair, state='in_design')
-
-        button_matrix = QbuttonMatrix(pair)
-        button_matrix.sequence = self.design_sequence
-
-        button_matrix.init_ui()
-
-        button_matrix.report_axes_signal.connect(
-            lambda row, col: self.mutate_with_gridbuttons(
-                row,
-                col,
-                button_matrix.matrix,
-                button_matrix.min_value,
-                button_matrix.max_value,
-                pair,
-                ignore_wt,
+            lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
+            lineEdit_current_pair_score = (
+                self.bus.ui.lineEdit_current_pair_score
             )
-        )
 
-        self.bus.ui.gridLayout_interact_pairs.addWidget(button_matrix)
+            if not self.design_chain_id or not self.design_molecule:
+                logging.error(f'No available molecule or chain id.')
+                return
 
-        set_widget_value(
-            lineEdit_current_pair,
-            f'{pair.i_aa.replace("_","")}-{pair.j_aa.replace("_","")}, {pair.min_dist:.1f} Å',
-        )
-
-        set_widget_value(lineEdit_current_pair_score, f'{pair.zscore:.3f}')
-
-        if pair.all_out_of_range:
-            logging.warning(
-                f'Resi {pair.i_1} ({pair.i_aa}) is {pair.min_dist:.2f} Å away from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å '
+            # before walking the index, set this pair back
+            self.mark_pair_state(
+                pairs=(p := self.coevolved_pairs.current_item),
+                state='available'
+                if not p.all_out_of_range
+                else 'out_of_range',
             )
-            set_widget_value(lineEdit_current_pair, 'Out of range.')
 
-        # To disable the QbuttonMatrix:
-        button_matrix.setEnabled(not pair.all_out_of_range)
+            self.coevolved_pairs.walker(direction=walk_to_next)
+
+            set_widget_value(
+                self.bus.ui.progressBar, self.coevolved_pairs.current_idx
+            )
+
+            pair = self.coevolved_pairs.current_item
+
+            # Clear the existing widgets from gridLayout_interact_pairs
+            for i in reversed(
+                range(self.bus.ui.gridLayout_interact_pairs.count())
+            ):
+                widget = self.bus.ui.gridLayout_interact_pairs.itemAt(
+                    i
+                ).widget()
+                if widget is not None:
+                    widget.deleteLater()
+
+            # after walking and widget is updated, mark it as in design
+            self.mark_pair_state(pairs=pair, state='in_design')
+
+            button_matrix = QbuttonMatrix(pair)
+            button_matrix.sequence = self.design_sequence
+
+            button_matrix.init_ui()
+
+            button_matrix.report_axes_signal.connect(
+                lambda row, col: self.mutate_with_gridbuttons(
+                    row,
+                    col,
+                    button_matrix.matrix,
+                    button_matrix.min_value,
+                    button_matrix.max_value,
+                    pair,
+                    ignore_wt,
+                )
+            )
+
+            self.bus.ui.gridLayout_interact_pairs.addWidget(button_matrix)
+
+            set_widget_value(
+                lineEdit_current_pair,
+                f'{pair.i_aa.replace("_","")}-{pair.j_aa.replace("_","")}, {pair.min_dist:.1f} Å',
+            )
+
+            set_widget_value(lineEdit_current_pair_score, f'{pair.zscore:.3f}')
+
+            if pair.all_out_of_range:
+                logging.warning(
+                    f'Resi {pair.i_1} ({pair.i_aa}) is {pair.min_dist:.2f} Å away from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å '
+                )
+                set_widget_value(lineEdit_current_pair, 'Out of range.')
+
+            # To disable the QbuttonMatrix:
+            button_matrix.setEnabled(not pair.all_out_of_range)
 
     def coevoled_mutant_decision(self, accept: bool):
         if self.explored_mutant_tree.empty or not self.picked_gremlin_mutant:

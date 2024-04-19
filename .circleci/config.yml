@@ -48,6 +48,12 @@ jobs:
       - codecov/upload:
           file: coverage.xml
 
+      - run:
+          name: Clean Up
+          command: |
+            make clean
+
+
 workflows:
   version: 2
   test:
