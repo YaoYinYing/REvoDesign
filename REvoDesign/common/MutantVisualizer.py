@@ -1,6 +1,8 @@
 import gc
 import os
 import tempfile
+import warnings
+
 import pandas as pd
 from Bio import SeqIO
 import matplotlib
@@ -21,7 +23,6 @@ from REvoDesign.tools.mutant_tools import (
     extract_mutant_from_sequences,
 )
 
-import warnings
 from REvoDesign import issues
 
 matplotlib.use('Agg')

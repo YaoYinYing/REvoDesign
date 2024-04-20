@@ -1,12 +1,13 @@
 import os
+
+from Bio.Data import IUPACData
 from joblib import Parallel, delayed
+
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
-from REvoDesign.tools.utils import suppress_print
+from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
 
 logging = root_logger.getChild(__name__)
-
-from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
 
 
 class PyMOL_mutate(MutateRunnerAbstract):
@@ -53,7 +54,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
         Returns:
         - Path to the mutated PDB file
         """
-        from Bio.Data import IUPACData
+
         import pymol2
 
         new_obj_name = mutant_obj.short_mutant_id

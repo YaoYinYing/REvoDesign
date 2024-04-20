@@ -2,7 +2,9 @@ from dataclasses import dataclass
 from functools import partial
 import os
 from typing import Any
+
 from pymol.Qt import QtWidgets
+
 from REvoDesign import root_logger
 from REvoDesign.application.ui_driver import ConfigBus
 

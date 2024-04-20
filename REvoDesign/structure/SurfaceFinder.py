@@ -1,6 +1,7 @@
 from __future__ import print_function
-from pymol import cmd
 import os
+
+from pymol import cmd
 from REvoDesign import ConfigBus, root_logger
 
 logging = root_logger.getChild(__name__)

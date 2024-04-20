@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+import warnings
 
 from Bio.Data import IUPACData
 from pymol import cmd
@@ -12,7 +13,6 @@ from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign import root_logger
 
-import warnings
 from REvoDesign import issues
 from REvoDesign.tools.utils import get_color
 

@@ -1,6 +1,6 @@
 import random
 import os
-
+import warnings
 
 import itertools
 from pymol import cmd, util
@@ -14,7 +14,7 @@ from REvoDesign.tools.pymol_utils import is_distal_residue_pair
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
-import warnings
+
 from REvoDesign import issues
 
 

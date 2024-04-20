@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Iterable, Iterator, Tuple, TypeVar, Generic
+from typing import Tuple, TypeVar, Generic
 from dataclasses import dataclass
 
 T = TypeVar('T')
@@ -22,9 +22,9 @@ class SingletonAbstract(ABC):
         cls._instance = None
 
     @classmethod
-    def initialize(cls):
+    def initialize(cls, *args, **kwargs):
         if not cls._instance:
-            cls()
+            cls(*args, **kwargs)
         else:
             ...
 

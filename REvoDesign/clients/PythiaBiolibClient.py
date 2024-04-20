@@ -1,6 +1,9 @@
 import os
-import biolib
+
 import traceback
+
+import biolib
+
 from REvoDesign import root_logger
 from REvoDesign.citations import CitableModules
 

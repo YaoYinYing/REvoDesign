@@ -1,14 +1,15 @@
 import os
 import hashlib
 from typing import Union
+
 import requests
-from REvoDesign import root_logger
 
 from requests.auth import HTTPBasicAuth
 
-logging = root_logger.getChild(__name__)
-
+from REvoDesign import root_logger
 from REvoDesign.tools.client_tools import check_response_code
+
+logging = root_logger.getChild(__name__)
 
 
 class PSSMGremlinCalculator:
@@ -39,7 +40,7 @@ class PSSMGremlinCalculator:
 
         logging.info(f'Calculated MD5 sum {self.md5sum}')
 
-    def submit_remote_pssm_gremlin_calc(self, opt):
+    def submit_calc(self, opt):
         if opt == 'submit':
             # Submit the file by posting the FASTA file
             response = self.submit_fasta_file(self.temp_file_path)

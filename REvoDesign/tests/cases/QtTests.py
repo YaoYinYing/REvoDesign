@@ -1690,7 +1690,7 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
         WORKER.sleep(30)
 
         assert (
-            WORKER.plugin.multi_mutagenesis_designer.all_design_multi_design_mutant_object
+            WORKER.plugin.multi_designer.all_design_multi_design_mutant_object
         )
 
         assert os.path.exists(WORKER.test_data.multi_mut_txt_mpnn)
