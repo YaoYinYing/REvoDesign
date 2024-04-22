@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from pymol.Qt import QtCore, QtGui, QtWidgets
+
+from pymol.Qt import QtGui
 from immutabledict import immutabledict
 
 from REvoDesign.tools.system_tools import CLIENT_INFO

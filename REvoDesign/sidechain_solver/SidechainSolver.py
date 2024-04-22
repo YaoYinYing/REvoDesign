@@ -1,8 +1,8 @@
-from typing import Any, Callable, Dict, Union, Mapping
+import warnings
+from typing import Mapping
 from types import MappingProxyType
 from dataclasses import dataclass, field
 
-from immutabledict import immutabledict
 from REvoDesign.sidechain_solver.mutate_runner import (
     MutateRunnerAbstract,
     PyMOL_mutate,
@@ -14,9 +14,8 @@ from REvoDesign import WITH_DEPENDENCIES, ConfigBus, SingletonAbstract
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 from REvoDesign import root_logger
-
 from REvoDesign import issues
-import warnings
+
 
 logging = root_logger.getChild(__name__)
 

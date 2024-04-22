@@ -3,29 +3,23 @@ import json
 import hashlib
 import time
 import re
-from REvoDesign.sidechain_solver import MutateRunnerAbstract
-from REvoDesign.citations import CitationManager
-
-from REvoDesign import root_logger
-
-logging = root_logger.getChild(__name__)
-
-from REvoDesign import WITH_DEPENDENCIES
+import random
+import collections
 
 import matplotlib
-import collections
-import random
-from REvoDesign.common.MutantTree import MutantTree
+import matplotlib.pylab as plt
 
+from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.citations import CitationManager
+from REvoDesign import root_logger
+from REvoDesign import WITH_DEPENDENCIES
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
-matplotlib.use('Agg')
-import matplotlib.pylab as plt
 from REvoDesign.tools.utils import (
     random_deduplicate,
 )
-
 
 from REvoDesign.tools.pymol_utils import (
     get_molecule_sequence,
@@ -40,6 +34,9 @@ from REvoDesign.tools.mutant_tools import (
     read_profile_design_mutations,
 )
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
+
+matplotlib.use('Agg')
+logging = root_logger.getChild(__name__)
 
 
 class REvoDesigner:

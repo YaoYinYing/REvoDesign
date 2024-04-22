@@ -1,5 +1,6 @@
+from typing import List, Union, Protocol, Iterable
+
 from REvoDesign.common.Mutant import Mutant
-from typing import List, Dict, Union, Optional, Protocol, Iterable
 
 
 class MutateRunner(Protocol):

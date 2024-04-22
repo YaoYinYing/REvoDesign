@@ -1,11 +1,22 @@
-import contextlib
 import os
 import random
 import string
 import time
 from typing import Union
+import tarfile
+import zipfile
+import sys
+import subprocess
+
+
+import matplotlib
+import numpy as np
 
 from REvoDesign import root_logger
+from REvoDesign.tools.customized_widgets import (
+    WorkerThread,
+    refresh_window,
+)
 
 logging = root_logger.getChild(__name__)
 
@@ -26,9 +37,6 @@ def run_command(excutable='python', command_list=[]):
     - Handles the execution of the specified command and arguments.
     - Logs the command_list for debugging purposes.
     """
-    import sys
-    import subprocess
-
     if excutable == 'python':
         python_exe = os.path.realpath(sys.executable)
         command_list = [python_exe] + command_list
@@ -56,30 +64,6 @@ def dirname_does_exist(fp):
 
 def filepath_does_exists(fp):
     return os.path.exists(fp)
-
-
-def suppress_print(func):
-    """
-    Decorator to suppress standard output (stdout) and standard error (stderr) during function execution.
-
-    Args:
-    - func: Function to be decorated.
-
-    Returns:
-    - Function wrapper that suppresses print outputs.
-
-    Notes:
-    - Wraps the provided function to suppress any output to stdout and stderr.
-    - Uses contextlib to redirect both stdout and stderr to /dev/null, effectively silencing any print statements.
-    """
-
-    def wrapper(*args, **kwargs):
-        with contextlib.redirect_stdout(open(os.devnull, 'w')):
-            with contextlib.redirect_stderr(open(os.devnull, 'w')):
-                result = func(*args, **kwargs)
-        return result
-
-    return wrapper
 
 
 def minibatches(inputs_data, batch_size):
@@ -180,11 +164,6 @@ def run_worker_thread_with_progress(
     result = run_worker_thread_with_progress(my_worker_function, my_progress_bar, arg1, arg2, kwarg1=value1)
     ```
     """
-    from REvoDesign.tools.customized_widgets import (
-        WorkerThread,
-        refresh_window,
-    )
-
     if progress_bar:
         # store the progress bar state
         _min = progress_bar.minimum()
@@ -220,11 +199,7 @@ def extract_archive(archive_file, extract_to):
     """
 
     try:
-        import tarfile
-
         if archive_file.endswith(".zip"):
-            import zipfile
-
             with zipfile.ZipFile(archive_file, 'r') as zip_ref:
                 zip_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
@@ -268,8 +243,6 @@ def get_color(
     - Uses a specified colormap to map data values to color.
     - Returns a RGB color value in the range [0, 1].
     """
-    import matplotlib
-
     if min_value == max_value:
         return (0.5, 0.5, 0.5)
     _cmap = matplotlib.colormaps[cmap]
@@ -365,8 +338,6 @@ def random_deduplicate(seq, score):
     - numpy.array: Unique items from seq.
     - numpy.array: Randomly chosen scores corresponding to unique items.
     """
-    import numpy as np
-
     unique_items = np.unique(seq)
     unique_scores = [
         np.random.choice(score[seq == item]) for item in unique_items

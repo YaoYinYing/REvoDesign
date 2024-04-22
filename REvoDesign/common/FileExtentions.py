@@ -1,5 +1,6 @@
-from immutabledict import immutabledict
 from dataclasses import dataclass
+
+from immutabledict import immutabledict
 
 
 @dataclass(frozen=True)

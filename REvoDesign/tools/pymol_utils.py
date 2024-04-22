@@ -1,8 +1,10 @@
-from pymol import cmd
 import os
+import warnings
+
+from pymol import cmd
 from pymol import get_version_message
 from pymol.parsing import QuietException
-import warnings
+
 from REvoDesign import issues
 from REvoDesign import root_logger
 
@@ -88,7 +90,7 @@ def find_small_molecules_in_protein(sele):
     warnings.warn(issues.FallingBackWarning('Falling back to all `hetatm`'))
     small_molecules = [
         at.resn
-        for at in cmd.get_model(f'hetatm and (not polymer.protein)').atom
+        for at in cmd.get_model('hetatm and (not polymer.protein)').atom
     ]
 
     unique_small_molecules = list(set(small_molecules))
@@ -406,12 +408,24 @@ def is_a_REvoDesign_session():
     Function: is_a_REvoDesign_session
     Usage: result = is_a_REvoDesign_session()
 
-    This function checks if it's a REvoDesign session by verifying the existence of public group objects.
+    This function checks if it's a REvoDesign session by verifying the
+    existence of public group objects.
 
     Returns:
-    - bool: True if it's a REvoDesign session (public group objects exist), False otherwise.
+    - bool: True if it's a REvoDesign session (public group objects exist),
+        False otherwise.
     """
-    return bool(cmd.get_names(type='public_group_objects'))
+    if check := bool(cmd.get_names(type='public_group_objects')):
+        warnings.warn(
+            issues.REvoDesignSessionsWarning(
+                'Loading mutants into a REvoDesign session may trigger'
+                'unexpected segmentation fault.\nIn order to keep the'
+                'session\'s feature, you should always create seperate'
+                'sessions according to your dataset and merge them '
+                'manually in PyMOL window.'
+            )
+        )
+    return check
 
 
 def make_temperal_input_pdb(
@@ -420,7 +434,7 @@ def make_temperal_input_pdb(
     segment_id='',
     resn='',
     selection='',
-    format='pdb',
+    save_as_format='pdb',
     wd=os.getcwd(),
     reload=True,
 ):
@@ -448,7 +462,7 @@ def make_temperal_input_pdb(
     input_file = os.path.join(
         wd,
         f'seg{segment_id}_chain{chain_id}_resn{resn}_sel{selection.replace(" ","-")[:20]}',
-        f'{molecule}.{format}',
+        f'{molecule}.{save_as_format}',
     )
     os.makedirs(os.path.dirname(input_file), exist_ok=True)
 
@@ -517,7 +531,7 @@ def extract_smiles_from_chain(
         segment_id=segment_id,
         resn=resn,
         selection=selection,
-        format='sdf',
+        save_as_format='sdf',
         wd=os.path.abspath('./ligand'),
         reload=False,
     )

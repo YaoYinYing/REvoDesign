@@ -1,6 +1,7 @@
 import os
-from pymol import cmd
 import argparse
+
+from pymol import cmd
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)

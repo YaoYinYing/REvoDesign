@@ -1,10 +1,13 @@
 from abc import ABC
 import os
 import time
-from typing import Iterable, List, Mapping, Union, Dict, Any
+from typing import List, Mapping, Union, Dict, Any
+
+import warnings
+
 from REvoDesign import root_logger
 from REvoDesign import issues
-import warnings
+
 from REvoDesign import SingletonAbstract
 
 logging = root_logger.getChild(__name__)

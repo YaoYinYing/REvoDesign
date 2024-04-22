@@ -2,6 +2,7 @@ import os
 from contextlib import contextmanager
 from collections.abc import Iterable
 from typing import Any, Callable, Union
+
 from pymol.Qt import QtWidgets, QtGui, QtCore
 
 from REvoDesign import root_logger

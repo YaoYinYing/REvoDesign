@@ -1,10 +1,10 @@
-from dataclasses import dataclass, field
 import os
 from typing import List, Dict, Mapping, Union, Optional
+from dataclasses import dataclass, field
 import hashlib
+import warnings
 
 from REvoDesign import issues
-import warnings
 
 
 @dataclass

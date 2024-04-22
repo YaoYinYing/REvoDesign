@@ -1,10 +1,10 @@
-from functools import partial
 import os
+from functools import partial
+
+from pymol import cmd
 
 from REvoDesign import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
-
-from pymol import cmd
 from REvoDesign.tools.customized_widgets import (
     get_widget_value,
     decide,

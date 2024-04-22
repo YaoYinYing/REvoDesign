@@ -5,36 +5,30 @@ import socket
 import time
 import traceback
 from types import MappingProxyType
-
-import msgpack
 from dataclasses import dataclass, field
 from typing import (
     Any,
-    Callable,
     Iterable,
     List,
     Literal,
     Mapping,
     Union,
-    Sequence,
 )
+import warnings
+
+import msgpack
+from pymol import cmd
 from PyQt5 import QtWebSockets, QtNetwork, QtCore
+
 from REvoDesign import ConfigBus, root_logger
 from REvoDesign import SingletonAbstract
 from REvoDesign.tools.utils import run_worker_thread_with_progress
 from REvoDesign.tools.client_tools import SSLCertificateManager
-
-logging = root_logger.getChild(__name__)
-
 from REvoDesign.common.MutantTree import MutantTree
-from pymol import cmd
-
-
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
-
-import warnings
 from REvoDesign import issues
 
+logging = root_logger.getChild(__name__)
 
 '''
 helpful:

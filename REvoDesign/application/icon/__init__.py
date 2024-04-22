@@ -1,8 +1,10 @@
+import os
+
+from pymol.Qt import QtGui
+
+
 class IconSetter:
     def __init__(self, main_window):
-        import os
-        from pymol.Qt import QtGui
-
         installed_dir = os.path.join(
             os.path.dirname(__file__),
             '..',

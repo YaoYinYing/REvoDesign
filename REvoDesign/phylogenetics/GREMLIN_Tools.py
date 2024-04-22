@@ -15,25 +15,26 @@ https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 
 import traceback
 from typing import Dict, List, Literal
-import matplotlib
+import pickle
+import os
+
 import warnings
+from dataclasses import dataclass, field
 
-from REvoDesign.citations import CitableModules
-
-matplotlib.use('Agg')
+import matplotlib
 import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.spatial.distance import pdist, squareform
-import pickle
-import os
+
 from REvoDesign import ConfigBus, root_logger
-from dataclasses import dataclass, field
+from REvoDesign.citations import CitableModules
 from REvoDesign import issues
 
 
 logging = root_logger.getChild(__name__)
+matplotlib.use('Agg')
 
 
 @dataclass

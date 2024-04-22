@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Iterable, Union
+from functools import partial
+import warnings
+
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
@@ -11,16 +14,16 @@ from REvoDesign.tools.customized_widgets import (
     get_widget_value,
     set_widget_value,
 )
-from functools import partial
-from REvoDesign import root_logger
 
-logging = root_logger.getChild(__name__)
+from REvoDesign import root_logger
 
 from REvoDesign import reload_config_file
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
-import warnings
+
 from REvoDesign import issues
+
+logging = root_logger.getChild(__name__)
 
 
 class ConfigBus(SingletonAbstract, CitableModules):
@@ -79,7 +82,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
             group_values = []
             widget = self.get_widget_from_id(widget_id=widget_id)
             if isinstance(widget, str):
-                raise TypeError(f'widget cannot be string')
+                raise TypeError('widget cannot be string')
 
             for j, group_cfg in enumerate(group_cfgs):
                 if callable(group_cfg):

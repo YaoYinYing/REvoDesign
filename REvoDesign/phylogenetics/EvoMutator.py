@@ -3,9 +3,15 @@ from functools import partial
 import os
 import traceback
 import itertools
+import warnings
+from dataclasses import dataclass
 
-from immutabledict import immutabledict
+from typing import Dict, List, Literal, Tuple, Union
+
 from joblib import Parallel, delayed
+from pymol import cmd, CmdException
+from immutabledict import immutabledict
+
 from REvoDesign import ConfigBus
 from REvoDesign.basic import IterableLoop
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
@@ -13,6 +19,7 @@ from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
+from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 from REvoDesign.citations import CitationManager
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import (
@@ -35,11 +42,8 @@ from REvoDesign.tools.utils import (
     rescale_number,
     run_worker_thread_with_progress,
 )
-from pymol import cmd, CmdException
-from typing import Dict, List, Literal, Tuple, Union
-from dataclasses import dataclass
+
 from REvoDesign import root_logger
-import warnings
 from REvoDesign import issues
 
 logging = root_logger.getChild(__name__)
@@ -47,6 +51,15 @@ logging = root_logger.getChild(__name__)
 
 @dataclass
 class CoevolvedPairState:
+    """A data class that represents the state-color mapping for
+    coevolved pairs.
+
+    `state2color`: mapping states to colors:
+        - 'available' -> 'marine'
+        - 'out_of_range' -> 'salmon'
+        - 'in_design' -> 'tv_yellow'
+    """
+
     state2color: immutabledict = immutabledict(
         {
             'available': 'marine',
@@ -58,6 +71,15 @@ class CoevolvedPairState:
     state_type = Literal['available', 'out_of_range', 'in_design']
 
     def color(self, state: state_type) -> str:
+        """Returns the color associated with a given state keyword
+
+        Args:
+            state (state_type): the state for the corresponding color.
+
+
+        Returns:
+            str: `color` corresponding to the `state` keyword
+        """
         if not (color := self.state2color.get(state)):
             raise ValueError(f'Invalid state keyword {state}')
         return color
@@ -129,23 +151,14 @@ class MutateWorker:
                 reverse=reversed_mutant_effect,
             )
 
-            if is_a_REvoDesign_session():
-                warnings.warn(
-                    issues.REvoDesignSessionsWarning(
-                        'Loading mutants into a REvoDesign session may trigger unexpected segmentation fault.\n'
-                        'In order to keep the session\'s feature, you should always create seperate sessions according to '
-                        'your dataset and merge them manually in PyMOL window.'
-                    )
-                )
+            is_a_REvoDesign_session()
 
             input_pse = make_temperal_input_pdb(
                 molecule=self.design_molecule,
-                format='pdb',
+                save_as_format='pdb',
                 wd=os.path.join(self.PWD, 'temperal_pdb'),
                 reload=False,
             )
-
-            from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 
             self.design = REvoDesigner(design_profile)
             self.design.designable_sequences = self.designable_sequences
