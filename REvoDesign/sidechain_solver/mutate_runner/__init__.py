@@ -64,7 +64,6 @@ class MutateRunnerAbstract(CitableModules):
         This method should be implemented by subclasses to provide the specific
         mutation functionality.
         """
-        pass
 
     @abstractmethod
     def run_mutate_parallel(
@@ -82,7 +81,6 @@ class MutateRunnerAbstract(CitableModules):
         This method should be implemented by subclasses to provide the specific
         mutation functionality.
         """
-        pass
 
     # Add any other common methods or properties that should be shared by all subclasses.
 

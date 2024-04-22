@@ -164,7 +164,7 @@ reverse:
 	
 
 black-check:
-	black --check $(CHECK_STYLE)
+	black --check $(CHECK_STYLE) $(BLACK_EXCLUDES_EXTEND)
 
 license-update:
 	python tools/license_notice.py

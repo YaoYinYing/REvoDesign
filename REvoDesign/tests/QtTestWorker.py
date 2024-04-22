@@ -43,7 +43,7 @@ class Counter:
         return self.count
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def app():
     # Initialize the QApplication instance required for the plugin GUI
     app = QtWidgets.QApplication.instance()
@@ -52,7 +52,7 @@ def app():
     return app
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def plugin(qtbot: qtbot.QtBot, app):
     # Create and return an instance of the REvoDesignPlugin
     gc.collect()
@@ -454,8 +454,14 @@ class TestWorker:
         with open(mem_count_file, 'w') as mc:
             mc.write('\n'.join([self.print_mem(p) for p in procs]))
 
+    def teardown(self):
+        self.performace_report()
+        self.plugin.reinitialize()
+        cmd.reinitialize()
+        gc.collect()
 
-@pytest.fixture
+
+@pytest.fixture(scope="function")
 def WORKER(
     qtbot: qtbot.QtBot,
     plugin,
@@ -464,10 +470,7 @@ def WORKER(
     w = TestWorker(qtbot, plugin)
 
     def final_action():
-        w.performace_report()
-        w.plugin.reinitialize()
-        cmd.reinitialize()
-        gc.collect()
+        w.teardown()
 
     yield w
     request.addfinalizer(final_action)

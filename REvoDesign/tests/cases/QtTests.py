@@ -697,6 +697,7 @@ class TestREvoDesignPlugin_TabInteract:
         assert os.path.exists(mutfile)
 
         del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker.coevolved_pairs
         del WORKER.plugin.gremlin_worker
 
     def test_gremlin_homomer_one2all(self, WORKER: TestWorker):
@@ -851,6 +852,7 @@ class TestREvoDesignPlugin_TabInteract:
         assert os.path.exists(mutfile)
 
         del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker.coevolved_pairs
         del WORKER.plugin.gremlin_worker
 
     def test_gremlin_all2all(self, WORKER: TestWorker):
@@ -996,6 +998,7 @@ class TestREvoDesignPlugin_TabInteract:
         assert os.path.exists(mutfile)
 
         del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker.coevolved_pairs
         del WORKER.plugin.gremlin_worker
 
     def test_gremlin_one2all_mpnn_score(self, WORKER: TestWorker):
@@ -1155,6 +1158,7 @@ class TestREvoDesignPlugin_TabInteract:
         assert os.path.exists(mutfile)
 
         del WORKER.plugin.gremlin_worker.gremlin_tool
+        del WORKER.plugin.gremlin_worker.coevolved_pairs
         del WORKER.plugin.gremlin_worker
 
 
