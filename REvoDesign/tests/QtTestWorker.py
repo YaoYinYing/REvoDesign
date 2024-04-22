@@ -7,10 +7,15 @@ import warnings
 
 import pytest
 
+from REvoDesign.citations import CitationManager
+from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (
     REvoDesignWebSocketClient,
     REvoDesignWebSocketServer,
 )
+from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.evaluate.Evaluator import Evalutator
+from REvoDesign.phylogenetics.EvoMutator import GREMLIN_Analyser
 from REvoDesign.sidechain_solver import SidechainSolver
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
@@ -55,12 +60,19 @@ def app():
 @pytest.fixture(scope="function")
 def plugin(qtbot: qtbot.QtBot, app):
     # Create and return an instance of the REvoDesignPlugin
-    gc.collect()
-    plugin = REvoDesignPlugin()
+
+    cmd.reinitialize()
+
+    # reset singleton classes
+    CitationManager.reset_instance()
     REvoDesignWebSocketClient.reset_instance()
     REvoDesignWebSocketServer.reset_instance()
     SidechainSolver.reset_instance()
     ConfigBus.reset_instance()
+    gc.collect()
+
+    plugin = REvoDesignPlugin()
+
     if plugin.window:
         plugin.reinitialize()
     plugin = REvoDesignPlugin()
@@ -458,6 +470,14 @@ class TestWorker:
         self.performace_report()
         self.plugin.reinitialize()
         cmd.reinitialize()
+
+        # reset singleton classes
+        CitationManager.reset_instance()
+        REvoDesignWebSocketClient.reset_instance()
+        REvoDesignWebSocketServer.reset_instance()
+        SidechainSolver.reset_instance()
+        ConfigBus.reset_instance()
+
         gc.collect()
 
 

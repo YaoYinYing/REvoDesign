@@ -485,8 +485,8 @@ class Evalutator:
         ]:
             try:
                 pushButton.clicked.disconnect()
-            except:
-                pass
+            except Exception as e:
+                logging.warning(f'Already disconnected. Do nothing. {e}')
             pushButton.setEnabled(bool(not self.mutant_tree_candidates.empty))
 
         pushButton_accept_this_mutant.clicked.connect(

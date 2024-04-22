@@ -120,13 +120,6 @@ class SidechainSolver(SingletonAbstract):
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
 
-    @classmethod
-    def initialize(cls):
-        if not cls._instance:
-            cls()
-        else:
-            ...
-
     def setup(self):
         logging.info(
             f'Using {self.cfg.sidechain_solver_name} as sidechain solver.'
