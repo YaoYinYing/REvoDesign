@@ -3,6 +3,9 @@ import glob
 import random
 import pytest
 
+import REvoDesign.tools
+import REvoDesign.tools.post_installed
+
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
 import pytest
@@ -11,7 +14,11 @@ from REvoDesign.tools.customized_widgets import (
     get_widget_value,
     set_widget_value,
 )
+from unittest.mock import Mock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
+import REvoDesign
 from REvoDesign.tests import *
 
 
@@ -1545,6 +1552,121 @@ class TestREvoDesignPlugin_TabConfig:
             widget=WORKER.plugin.window,
             basename=WORKER.test_id,
         )
+        WORKER.save_pymol_png(basename=WORKER.test_id)
+
+        WORKER.check_existed_mutant_tree()
+
+    @patch('REvoDesign.tools.post_installed.WITH_DEPENDENCIES.PIPPACK', False)
+    def test_sidechain_solver_fallback(self, WORKER: TestWorker):
+        WORKER.test_id = WORKER.method_name()
+        WORKER.load_session_and_check()
+        WORKER.go_to_tab(tab_name='config')
+
+        assert (
+            REvoDesign.tools.post_installed.WITH_DEPENDENCIES.PIPPACK == False
+        )
+
+        set_widget_value(WORKER.plugin.ui.comboBox_sidechain_solver, 'PIPPack')
+        assert (
+            get_widget_value(
+                WORKER.plugin.ui.comboBox_sidechain_solver_model,
+            )
+            == 'ensemble'
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_sidechain_solver_model,
+            'pippack_model_1',
+        )
+        assert (
+            get_widget_value(
+                WORKER.plugin.ui.comboBox_sidechain_solver_model,
+            )
+            == 'pippack_model_1'
+        )
+
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_use_PIPPack_model_1',
+        )
+        WORKER.save_pymol_png(basename=WORKER.test_id)
+
+        # back to tab mutate and run mpnn redesign, saved as another file
+        WORKER.go_to_tab(tab_name='mutate')
+
+        set_widget_value(
+            WORKER.plugin.ui.comboBox_profile_type,
+            WORKER.test_data.mpnn_profile_type,
+        )
+        WORKER.do_typing(
+            WORKER.plugin.ui.lineEdit_input_customized_indices,
+            WORKER.test_data.mpnn_surface_residues,
+        )
+        WORKER.do_typing(
+            WORKER.plugin.ui.lineEdit_output_pse_mutate,
+            WORKER.test_data.sidechain_solver_fallback_pse,
+        )
+
+        WORKER.do_typing(
+            WORKER.plugin.ui.lineEdit_reject_substitution,
+            WORKER.test_data.mpnn_reject,
+        )
+        WORKER.do_typing(
+            WORKER.plugin.ui.lineEdit_preffer_substitution,
+            WORKER.test_data.mpnn_accept,
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.checkBox_reverse_mutant_effect,
+            WORKER.test_data.mpnn_score_reversed,
+        )
+
+        WORKER.do_typing(
+            WORKER.plugin.ui.lineEdit_design_case,
+            WORKER.test_data.mpnn_design_case,
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.doubleSpinBox_designer_temperature,
+            WORKER.test_data.mpnn_temperature,
+        )
+
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_designer_batch,
+            WORKER.test_data.mpnn_batch_designs,
+        )
+        set_widget_value(
+            WORKER.plugin.ui.spinBox_designer_num_samples,
+            WORKER.test_data.mpnn_num_designs,
+        )
+        set_widget_value(
+            WORKER.plugin.ui.checkBox_deduplicate_designs,
+            WORKER.test_data.mpnn_deduplicated,
+        )
+
+        if os.path.exists(WORKER.test_data.sidechain_solver_fallback_pse):
+            os.remove(WORKER.test_data.sidechain_solver_fallback_pse)
+
+        WORKER.save_new_experiment()
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_setup',
+        )
+        WORKER.click(widget=WORKER.plugin.ui.pushButton_run_PSSM_to_pse)
+
+        WORKER.go_to_tab(tab_name='config')
+        WORKER.save_screenshot(
+            widget=WORKER.plugin.window,
+            basename=f'{WORKER.test_id}_fallbacked',
+        )
+
+        assert (
+            get_widget_value(
+                WORKER.plugin.ui.comboBox_sidechain_solver,
+            )
+            == 'Dunbrack Rotamer Library'
+        )
+
         WORKER.save_pymol_png(basename=WORKER.test_id)
 
         WORKER.check_existed_mutant_tree()

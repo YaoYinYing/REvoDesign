@@ -150,6 +150,10 @@ class TestData:
         return f'{self.test_data_repo}/analysis/1SUO.xtal.test_pippack.pze'
 
     @property
+    def sidechain_solver_fallback_pse(self):
+        return f'{self.test_data_repo}/analysis/1SUO.xtal.test_sc_fallback.pze'
+
+    @property
     def multi_mut_txt(self):
         return (
             f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mut.txt'
