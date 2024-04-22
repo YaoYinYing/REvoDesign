@@ -540,7 +540,7 @@ class TestREvoDesignPlugin_TabMutate:
         WORKER.save_pymol_png(basename=WORKER.test_id)
 
 
-@pytest.mark.order(-2)
+@pytest.mark.order(-1)
 class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_homomer_all2all(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
@@ -1697,7 +1697,7 @@ class TestREvoDesignPlugin_ActionTranslate:
         assert not WORKER.plugin.ui.actionFrench.isEnabled()
 
 
-@pytest.mark.order(-1)
+@pytest.mark.order(-2)
 class TestREvoDesignPlugin_TabVisualize_MultiDesign:
     def test_multiple_design(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()

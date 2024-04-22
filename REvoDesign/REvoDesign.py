@@ -1638,11 +1638,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         with hold_trigger_button(trigger_button):
             self.gremlin_worker.run_gremlin_tool()
 
-    def coevoled_mutant_decision(self, decision_to_accept):
+    def coevoled_mutant_decision(self, decision_to_accept: bool):
         """Makes a decision on accepting a mutant.
 
         Args:
-            decision_to_accept (_type_): whether to accept or
+            decision_to_accept (bool): whether to accept or
                 reject a coevolved mutant.
 
         """
