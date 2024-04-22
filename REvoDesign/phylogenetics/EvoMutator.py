@@ -906,7 +906,7 @@ class GREMLIN_Analyser:
         walk_to_next=True,
     ):
         with hold_trigger_button(
-            buttons=(self.bus.button('previous'), self.bus.button('next'))
+            buttons=self.bus.buttons(button_ids=('previous', 'next'))
         ):
             ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
 

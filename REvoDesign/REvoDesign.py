@@ -1527,9 +1527,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
 
         with hold_trigger_button(
-            buttons=(
-                self.bus.button('multi_design_left'),
-                self.bus.button('multi_design_right'),
+            buttons=self.bus.buttons(
+                button_ids=('multi_design_left', 'multi_design_right')
             )
         ):
             self.multi_designer.refresh_options()
@@ -1545,9 +1544,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
 
         with hold_trigger_button(
-            buttons=(
-                self.bus.button('multi_design_left'),
-                self.bus.button('multi_design_right'),
+            buttons=self.bus.buttons(
+                ('multi_design_left', 'multi_design_right')
             )
         ):
             self.multi_designer.refresh_options()

@@ -403,10 +403,20 @@ class Evalutator:
     def initialize_design_candidates(
         self,
     ):
-        pushButton_previous_mutant = self.bus.button('previous_mutant')
-        pushButton_next_mutant = self.bus.button('next_mutant')
-        pushButton_reject_this_mutant = self.bus.button('reject_this_mutant')
-        pushButton_accept_this_mutant = self.bus.button('accept_this_mutant')
+        (
+            pushButton_previous_mutant,
+            pushButton_next_mutant,
+            pushButton_reject_this_mutant,
+            pushButton_accept_this_mutant,
+        ) = self.bus.buttons(
+            (
+                'previous_mutant',
+                'next_mutant',
+                'reject_this_mutant',
+                'accept_this_mutant',
+            )
+        )
+
         lcdNumber_total_mutant = self.bus.ui.lcdNumber_total_mutant
         lcdNumber_selected_mutant = self.bus.ui.lcdNumber_selected_mutant
         progressBar_mutant_choosing = self.bus.ui.progressBar
@@ -419,7 +429,7 @@ class Evalutator:
             sequences=self.designable_sequences, enabled_only=False
         )
         if self.mutant_tree_candidates.empty:
-            logging.error(f'This sesion may not contain an mutant tree.')
+            logging.error('This sesion may not contain an mutant tree.')
             return None
 
         self.mutant_tree_pssm_selected = MutantTree({})
