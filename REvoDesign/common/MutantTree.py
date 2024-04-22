@@ -35,11 +35,11 @@ class MutantTree:
         self.refresh_mutants()
 
     @property
-    def all_mutant_objects(self):
+    def all_mutant_objects(self) -> list[Mutant]:
         return [mutant[1] for mutant in self.all_mutants]
 
     @property
-    def all_mutant_scores(self):
+    def all_mutant_scores(self) -> list[float]:
         return [mutant.mutant_score for mutant in self.all_mutant_objects]
 
     @property
@@ -63,11 +63,11 @@ class MutantTree:
         return [mutant for mutant, _ in self.all_mutants]
 
     @property
-    def branch_num(self):
+    def branch_num(self) -> int:
         return len(self.all_mutant_branch_ids)
 
     @property
-    def mutant_num(self):
+    def mutant_num(self) -> int:
         return len(self.all_mutant_objects)
 
     def refresh_mutants(self):
@@ -81,8 +81,7 @@ class MutantTree:
         if not self.current_branch_id:
             self.initialize_current_branch()
 
-    @property
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns a string representation of the MutantTree object.
 
@@ -98,7 +97,7 @@ class MutantTree:
         return tree_str
 
     @property
-    def __copy__(self):
+    def __copy__(self) -> 'MutantTree':
         """
         Returns a shallow copy of the MutantTree object.
 
@@ -108,7 +107,7 @@ class MutantTree:
         return MutantTree(self.mutant_tree.copy())
 
     @property
-    def __deepcopy__(self):
+    def __deepcopy__(self) -> 'MutantTree':
         """
         Returns a deep copy of the MutantTree object.
 
@@ -119,7 +118,7 @@ class MutantTree:
 
         return MutantTree(copy.deepcopy(self.mutant_tree))
 
-    def get_branch_index(self, branch_id):
+    def get_branch_index(self, branch_id) -> int:
         """
         Gets the index of a branch ID in the MutantTree object.
 
@@ -168,7 +167,7 @@ class MutantTree:
         """
         return list(self.mutant_tree[branch_id].keys()).index(mutant_id)
 
-    def get_mutant_index_in_all_mutants(self, mutant_id):
+    def get_mutant_index_in_all_mutants(self, mutant_id) -> int:
         """
         Gets the index of a mutant in all mutants of the MutantTree object.
 
@@ -210,7 +209,7 @@ class MutantTree:
         """
         return len(list(self.mutant_tree[branch_id].keys())) == 0
 
-    def initialize_current_branch(self):
+    def initialize_current_branch(self) -> None:
         for branch in self.all_mutant_branch_ids:
             if not self.is_this_branch_empty(branch):
                 self.current_branch_id = branch
@@ -221,7 +220,7 @@ class MutantTree:
 
     def update_tree_with_new_branches(
         self, new_branches: Union[dict[str, dict[str, Mutant]], 'MutantTree']
-    ):
+    ) -> None:
         """
         Update the MutantTree object with new branches.
 
@@ -241,7 +240,7 @@ class MutantTree:
 
     def add_mutant_to_branch(
         self, branch: str, mutant: str, mutant_obj: Mutant
-    ):
+    ) -> None:
         """
         Adds a mutant to a specific branch in the MutantTree object.
 
@@ -262,7 +261,7 @@ class MutantTree:
         self.mutant_tree[branch].update({mutant: mutant_obj})
         self.refresh_mutants()
 
-    def remove_mutant_from_branch(self, branch: str, mutant: str):
+    def remove_mutant_from_branch(self, branch: str, mutant: str) -> None:
         """
         Removes a mutant from a specific branch in the MutantTree object.
 
@@ -286,7 +285,7 @@ class MutantTree:
 
         self.refresh_mutants()
 
-    def create_mutant_tree_from_list(self, mutant_id_list):
+    def create_mutant_tree_from_list(self, mutant_id_list) -> 'MutantTree':
         """
         Creates a new MutantTree instance from a filtered list of mutant IDs.
 
@@ -346,18 +345,17 @@ class MutantTree:
 
         return sorted_mutants_scores[0][0]
 
-    # Completed mutant_tree walking function
-    """
+    def walk_the_mutants(self, walf_forward: bool = True):
+        # Completed mutant_tree walking function
+        """
         Walks through mutants in the MutantTree object.
 
         Parameters:
-        - walk_to_next_one (bool): Optional - Set to False to walk backward.
+        - walf_forward (bool): Optional - Set to False to walk backward.
 
         Usage:
         tree.walk_the_mutants()
         """
-
-    def walk_the_mutants(self, walk_to_next_one: bool = True):
         if not self.current_branch_id:
             self.initialize_current_branch()
             return
@@ -365,10 +363,10 @@ class MutantTree:
         (
             self.current_branch_id,
             self.current_mutant_id,
-        ) = self._walk_the_mutants(walk_forward=walk_to_next_one)
+        ) = self._walk_the_mutants(walk_forward=walf_forward)
 
     # internal function that returns instead of changes the current stored values
-    def _walk_the_mutants(self, walk_forward: bool = True):
+    def _walk_the_mutants(self, walk_forward: bool = True) -> tuple[int]:
         # store the last one
         last_branch_id = self.current_branch_id
         last_mutant_id = self.current_mutant_id
@@ -429,7 +427,7 @@ class MutantTree:
             current_mutant_id,
         )
 
-    def jump_to_branch(self, branch_id: str):
+    def jump_to_branch(self, branch_id: str) -> None:
         """
         Jumps to a specified branch in the MutantTree object.
 
@@ -554,7 +552,7 @@ class MutantTree:
 
     def run_mutate_parallel(
         self, mutate_runner: MutateRunner, *args, **kwargs
-    ):
+    ) -> None:
         all_mutants_pdb_fp = mutate_runner.run_mutate_parallel(
             mutants=self.all_mutant_objects, *args, kwargs=kwargs
         )

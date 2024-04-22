@@ -663,7 +663,7 @@ class TestREvoDesignPlugin_TabInteract:
                     widget=WORKER.plugin.window,
                     basename=f'{WORKER.test_id}_pair_{operation}',
                 )
-                cmd.orient(WORKER.test_data.molecule)
+                cmd.orient(WORKER.test_data.gremlin_homomer_molecule)
                 WORKER.save_pymol_png(
                     basename=f'{WORKER.test_id}_interact_pair_{i}_{operation}',
                     focus=False,
@@ -818,7 +818,7 @@ class TestREvoDesignPlugin_TabInteract:
                     widget=WORKER.plugin.window,
                     basename=f'{WORKER.test_id}_pair_{operation}',
                 )
-                cmd.orient(WORKER.test_data.molecule)
+                cmd.orient(WORKER.test_data.gremlin_homomer_molecule)
                 WORKER.save_pymol_png(
                     basename=f'{WORKER.test_id}_interact_pair_{i}_{operation}',
                     focus=False,

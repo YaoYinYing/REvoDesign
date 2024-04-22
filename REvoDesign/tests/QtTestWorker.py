@@ -308,7 +308,18 @@ class TestWorker:
         )
         self.sleep(5)
 
-    def check_molecule_after_loaded(self):
+    def check_molecule_after_loaded(self, molecule: str = None):
+        if molecule and isinstance(molecule, str):
+            assert (
+                self.plugin.bus.get_value('ui.header_panel.input.molecule')
+                == molecule
+            )
+            assert (
+                get_widget_value(self.plugin.ui.comboBox_design_molecule)
+                == molecule
+            )
+            return
+
         assert (
             self.plugin.bus.get_value('ui.header_panel.input.molecule')
             in self.test_data.used_molecules
@@ -357,8 +368,9 @@ class TestWorker:
         from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
         self.mutant_tree: MutantTree = existed_mutant_tree(
-            sequences=self.plugin.designable_sequences
+            sequences=self.plugin.designable_sequences, enabled_only=0
         )
+        print(self.mutant_tree)
 
         return self.mutant_tree
 

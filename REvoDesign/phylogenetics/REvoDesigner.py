@@ -488,7 +488,7 @@ class REvoDesigner:
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
-        logging.debug(f'MutantTree: {self.mutant_tree.__str__}')
+        logging.debug(f'MutantTree: {str(self.mutant_tree)}')
 
         self.mutant_tree.run_mutate_parallel(
             mutate_runner=self.mutate_runner, n_jobs=self.nproc
