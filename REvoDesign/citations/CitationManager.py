@@ -50,13 +50,6 @@ class CitationManager(SingletonAbstract):
 
         return _
 
-    @classmethod
-    def initialize(cls):
-        if not cls._instance:
-            cls()
-        else:
-            ...
-
     def update(self, new_citations: dict):
         if not (new_citations and isinstance(new_citations, dict)):
             warnings.warn(

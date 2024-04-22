@@ -394,13 +394,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
 
-    @classmethod
-    def initialize(cls):
-        if not cls._instance:
-            cls()
-        else:
-            ...
-
     @property
     def is_running(self):
         return self.server is not None and self.server.isListening()
@@ -840,13 +833,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
 
 class REvoDesignWebSocketClient(SingletonAbstract):
-    @classmethod
-    def initialize(cls):
-        if not cls._instance:
-            cls()
-        else:
-            ...
-
     def __init__(self):
         # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):

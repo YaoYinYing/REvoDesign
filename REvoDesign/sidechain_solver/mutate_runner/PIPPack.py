@@ -4,7 +4,7 @@ from REvoDesign import root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import reload_config_file, set_cache_dir
 
-from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
+from . import MutateRunnerAbstract
 
 
 logging = root_logger.getChild(__name__)

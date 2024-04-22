@@ -7,10 +7,15 @@ import warnings
 
 import pytest
 
+from REvoDesign.citations import CitationManager
+from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (
     REvoDesignWebSocketClient,
     REvoDesignWebSocketServer,
 )
+from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.evaluate.Evaluator import Evalutator
+from REvoDesign.phylogenetics.EvoMutator import GREMLIN_Analyser
 from REvoDesign.sidechain_solver import SidechainSolver
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
@@ -43,7 +48,7 @@ class Counter:
         return self.count
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def app():
     # Initialize the QApplication instance required for the plugin GUI
     app = QtWidgets.QApplication.instance()
@@ -52,15 +57,22 @@ def app():
     return app
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def plugin(qtbot: qtbot.QtBot, app):
     # Create and return an instance of the REvoDesignPlugin
-    gc.collect()
-    plugin = REvoDesignPlugin()
+
+    cmd.reinitialize()
+
+    # reset singleton classes
+    CitationManager.reset_instance()
     REvoDesignWebSocketClient.reset_instance()
     REvoDesignWebSocketServer.reset_instance()
     SidechainSolver.reset_instance()
     ConfigBus.reset_instance()
+    gc.collect()
+
+    plugin = REvoDesignPlugin()
+
     if plugin.window:
         plugin.reinitialize()
     plugin = REvoDesignPlugin()
@@ -296,7 +308,18 @@ class TestWorker:
         )
         self.sleep(5)
 
-    def check_molecule_after_loaded(self):
+    def check_molecule_after_loaded(self, molecule: str = None):
+        if molecule and isinstance(molecule, str):
+            assert (
+                self.plugin.bus.get_value('ui.header_panel.input.molecule')
+                == molecule
+            )
+            assert (
+                get_widget_value(self.plugin.ui.comboBox_design_molecule)
+                == molecule
+            )
+            return
+
         assert (
             self.plugin.bus.get_value('ui.header_panel.input.molecule')
             in self.test_data.used_molecules
@@ -345,8 +368,9 @@ class TestWorker:
         from REvoDesign.tools.mutant_tools import existed_mutant_tree
 
         self.mutant_tree: MutantTree = existed_mutant_tree(
-            sequences=self.plugin.designable_sequences
+            sequences=self.plugin.designable_sequences, enabled_only=0
         )
+        print(self.mutant_tree)
 
         return self.mutant_tree
 
@@ -454,8 +478,22 @@ class TestWorker:
         with open(mem_count_file, 'w') as mc:
             mc.write('\n'.join([self.print_mem(p) for p in procs]))
 
+    def teardown(self):
+        self.performace_report()
+        self.plugin.reinitialize()
+        cmd.reinitialize()
 
-@pytest.fixture
+        # reset singleton classes
+        CitationManager.reset_instance()
+        REvoDesignWebSocketClient.reset_instance()
+        REvoDesignWebSocketServer.reset_instance()
+        SidechainSolver.reset_instance()
+        ConfigBus.reset_instance()
+
+        gc.collect()
+
+
+@pytest.fixture(scope="function")
 def WORKER(
     qtbot: qtbot.QtBot,
     plugin,
@@ -464,10 +502,7 @@ def WORKER(
     w = TestWorker(qtbot, plugin)
 
     def final_action():
-        w.performace_report()
-        w.plugin.reinitialize()
-        cmd.reinitialize()
-        gc.collect()
+        w.teardown()
 
     yield w
     request.addfinalizer(final_action)

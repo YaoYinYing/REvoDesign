@@ -46,7 +46,8 @@ class PythiaBiolib(CitableModules):
             return expected_output
         except AssertionError:
             logging.error('Failed to run Pythia via biolib remote command!')
-        except:
+        except Exception as e:
+            logging.error(f'{e=}')
             traceback.print_exc()
 
     def __bibtex__(self):

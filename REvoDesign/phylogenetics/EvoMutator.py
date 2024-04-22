@@ -452,6 +452,8 @@ class ChainBinder:
 
 class GREMLIN_Analyser:
     def __init__(self):
+        # Check if the instance has already been initialized
+
         self.bus: ConfigBus = ConfigBus()
         self.alphabet: str = None
 
@@ -492,7 +494,9 @@ class GREMLIN_Analyser:
         )
         if (not self.design_molecule) or (not self.design_chain_id):
             logging.error(
-                f'Molecule Info not complete. \n\tmolecule: {self.design_molecule}\n\tchain: {self.design_chain_id}.'
+                'Molecule Info not complete. \n'
+                f'molecule: {self.design_molecule}\n'
+                f'chain: {self.design_chain_id}.'
             )
             return
 
@@ -541,7 +545,7 @@ class GREMLIN_Analyser:
 
         if not self.gremlin_tool:
             logging.error(
-                f'Failed to create gremlin tool object. Please check the inputs.'
+                'Failed to create gremlin tool object. Please check the inputs.'
             )
             return
 
@@ -562,7 +566,7 @@ class GREMLIN_Analyser:
             set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)
         except AttributeError:
             logging.info(
-                f'Work Space is cleaned. Click once again to reinitialize. '
+                'Work Space is cleaned. Click once again to reinitialize. '
             )
 
     def run_gremlin_tool(self):
@@ -590,7 +594,7 @@ class GREMLIN_Analyser:
             subdir = f'{self.design_molecule}_{self.design_chain_id}.mono'
 
         if any_posision_has_been_selected():
-            logging.info(f'One vs All mode.')
+            logging.info('One vs All mode.')
             self.gremlin_tool_a2a_mode = False
             resi = int(cmd.get_model('sele and n. CA').atom[0].resi)
             logging.info(f'{resi} is selected.')
@@ -613,9 +617,7 @@ class GREMLIN_Analyser:
             )
 
         else:
-            logging.info(
-                f'No selection `sele` is picked, use All vs All mode.'
-            )
+            logging.info('No selection `sele` is picked, use All vs All mode.')
             self.gremlin_tool_a2a_mode = True
 
             self.gremlin_workpath = os.path.join(
@@ -637,7 +639,7 @@ class GREMLIN_Analyser:
         if not coevolved_pairs:
             warnings.warn(
                 issues.NoResultsWarning(
-                    f'No Available co-evolutionary signal in global'
+                    'No Available co-evolutionary signal in global'
                 )
             )
             # early return if no data.
@@ -689,7 +691,7 @@ class GREMLIN_Analyser:
         except Exception as e:
             warnings.warn(
                 issues.AlreadyDisconnectedWarning(
-                    'button is already disconnected. do nothing'
+                    f'button is already disconnected. do nothing. {e=}'
                 )
             )
 
@@ -755,16 +757,18 @@ class GREMLIN_Analyser:
         for i, pair in enumerate(self.coevolved_pairs.iterable):
             set_widget_value(self.bus.ui.progressBar, i)
             refresh_window()
+
+            sele_name = repr(pair)
+            logging.debug(f'{sele_name=}')
+            pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
+            _sele = " or ".join(
+                [x for x in pair.all_res_pairs_selections.values()]
+            )
+            sele = f'{_tmp_obj} and ({_sele}) and n. CA'
             try:
-                sele_name = repr(pair)
-                logging.debug(f'{sele_name=}')
-                pair.selection_string = cmd.get_unused_name(f"{sele_name}_")
-                _sele = " or ".join(
-                    [x for x in pair.all_res_pairs_selections.values()]
-                )
                 cmd.create(
                     pair.selection_string,
-                    sele := f'{_tmp_obj} and ({_sele}) and n. CA',
+                    sele,
                 )
             except CmdException:
                 warnings.warn(
@@ -902,7 +906,7 @@ class GREMLIN_Analyser:
         walk_to_next=True,
     ):
         with hold_trigger_button(
-            buttons=(self.bus.button('previous'), self.bus.button('next'))
+            buttons=self.bus.buttons(button_ids=('previous', 'next'))
         ):
             ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
 
@@ -912,15 +916,15 @@ class GREMLIN_Analyser:
             )
 
             if not self.design_chain_id or not self.design_molecule:
-                logging.error(f'No available molecule or chain id.')
+                logging.error('No available molecule or chain id.')
                 return
 
             # before walking the index, set this pair back
             self.mark_pair_state(
                 pairs=(p := self.coevolved_pairs.current_item),
-                state='available'
-                if not p.all_out_of_range
-                else 'out_of_range',
+                state=(
+                    'available' if not p.all_out_of_range else 'out_of_range'
+                ),
             )
 
             self.coevolved_pairs.walker(direction=walk_to_next)
@@ -982,11 +986,13 @@ class GREMLIN_Analyser:
     def coevoled_mutant_decision(self, accept: bool):
         if self.explored_mutant_tree.empty or not self.picked_gremlin_mutant:
             raise issues.UnexpectedWorkflowError('Nothing to decide.')
-        logging.debug(
-            f'{"Accepting" if accept else "Rejecting"}  co-evolved mutant {(picked_gremlin_mutant_id:=self.picked_gremlin_mutant.short_mutant_id)}'
-        )
+
+        picked_gremlin_mutant_id = self.picked_gremlin_mutant.short_mutant_id
 
         if accept:
+            logging.debug(
+                f'Accepting  co-evolved mutant {picked_gremlin_mutant_id}'
+            )
             cmd.enable(picked_gremlin_mutant_id)
 
             self.mutant_tree_coevolved.add_mutant_to_branch(
@@ -995,6 +1001,9 @@ class GREMLIN_Analyser:
                 self.picked_gremlin_mutant,
             )
         else:
+            logging.debug(
+                f' Rejecting  co-evolved mutant {picked_gremlin_mutant_id}'
+            )
             cmd.disable(picked_gremlin_mutant_id)
             if (
                 picked_gremlin_mutant_id

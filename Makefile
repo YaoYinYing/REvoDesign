@@ -5,6 +5,7 @@ PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJEC
 PYTEST_CASES_PATH=../REvoDesign/tests/cases/
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
+BLACK_STYLE=-l 79 -t py39 -t py310 -t py311
 BLACK_EXCLUDES_EXTEND=--extend-exclude '\.ui|\.svg|\.yaml|\.md|\.pyc|\.ico|\.png' 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 
@@ -152,7 +153,7 @@ tag:
 	bash tools/release_tag.sh
 
 black:
-	black $(CHECK_STYLE) $(BLACK_EXCLUDES_EXTEND)
+	black $(CHECK_STYLE) $(BLACK_EXCLUDES_EXTEND) $(BLACK_STYLE)
 
 reverse-class:
 	mkdir -p $(PYREVERSE_DIR)
@@ -164,7 +165,7 @@ reverse:
 	
 
 black-check:
-	black --check $(CHECK_STYLE)
+	black --check $(CHECK_STYLE) $(BLACK_EXCLUDES_EXTEND) $(BLACK_STYLE)
 
 license-update:
 	python tools/license_notice.py

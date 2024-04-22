@@ -62,7 +62,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
             if ui:
                 self.ui = ui
                 self.w2c = Widget2ConfigMapper(ui=self.ui)
-                self.buttons = self.w2c.buttons
+                self.push_buttons = self.w2c.push_buttons
 
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
@@ -97,12 +97,12 @@ class ConfigBus(SingletonAbstract, CitableModules):
                 elif isinstance(values, dict) and not group_values:
                     group_values = values.copy()
                 elif isinstance(values, dict) and group_values:
-                    if isinstance(group_values, list):
+                    if not isinstance(group_values, dict):
                         raise TypeError(
-                            f'{group_cfg} returns a dict while group_values is a list'
+                            f'{group_cfg} returns a dict while group_values is'
+                            f' a {type(group_cfg)=}, not a dict.'
                         )
-                    else:
-                        group_values.update(values)
+                    group_values.update(values)
 
             if not group_values:
                 continue
@@ -262,7 +262,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
     def toggle_buttons(self, buttons_ids: Iterable, set_enabled: bool = False):
         # Toggles the enabled state of a list of buttons.
         for button_id in buttons_ids:
-            self.w2c.buttons.get(button_id).setEnabled(set_enabled)
+            self.w2c.push_buttons.get(button_id).setEnabled(set_enabled)
 
     def fp_lock(
         self,
@@ -295,10 +295,34 @@ class ConfigBus(SingletonAbstract, CitableModules):
             buttons_ids=buttons_id_to_release, set_enabled=True
         )
 
-    def button(self, id: str):
-        # Retrieves a button widget based on its ID.
-        assert id in self.w2c.run_button_ids
-        return self.w2c.buttons.get(id)
+    def button(self, button_id: str) -> QtWidgets.QPushButton:
+        """Retrieves a button widget based on its ID.
+
+        Args:
+            button_id (str): Button ID.
+
+        Returns:
+            QtWidgets.QPushButton: Button object
+        """
+        assert button_id in self.w2c.run_button_ids
+        return self.w2c.push_buttons.get(button_id)
+
+    def buttons(self, button_ids: tuple[str]) -> tuple[QtWidgets.QPushButton]:
+        """Retrieves all button widgets based on its ID.
+
+        Args:
+            button_ids (tuple[str]): Button IDs.
+
+        Returns:
+            tuple[QtWidgets.QPushButton]: Button objects in the same order as
+                the given IDs.
+        """
+        assert all(
+            button_id in self.w2c.run_button_ids for button_id in button_ids
+        )
+        return tuple(
+            self.w2c.push_buttons.get(button_id) for button_id in button_ids
+        )
 
     @property
     def __bibtex__(self):
@@ -546,7 +570,7 @@ class Widget2ConfigMapper:
         )
 
         self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
-        self.buttons: immutabledict = immutabledict(
+        self.push_buttons: immutabledict = immutabledict(
             {
                 button_id: self.get_button_from_id(button_id=button_id)
                 for button_id in self.run_button_ids

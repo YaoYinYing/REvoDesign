@@ -6,7 +6,7 @@ from joblib import Parallel, delayed
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
 
-from REvoDesign.sidechain_solver.mutate_runner import MutateRunnerAbstract
+from . import MutateRunnerAbstract
 
 logging = root_logger.getChild(__name__)
 
