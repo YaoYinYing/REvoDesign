@@ -5,13 +5,10 @@ from typing import Any
 
 from pymol.Qt import QtWidgets
 
-from REvoDesign import root_logger
-from REvoDesign.application.ui_driver import ConfigBus
+from ..ui_driver import ConfigBus
 
 self_dir = os.path.dirname(__file__)
 language_dir = os.path.join(self_dir, '..', '..', 'UI', 'language')
-
-logging = root_logger.getChild(__name__)
 
 
 @dataclass(frozen=True)
@@ -40,23 +37,27 @@ class LanguageSwitch(QtWidgets.QWidget):
             'eng-fr': {'name': 'français', 'action': self.bus.ui.actionFrench},
         }
 
-        self.registerLanguage()
-        self._set_action_checkable()
+        self.register_language()
+        self._set_action_clickable()
 
-        self.restoreFromConfig()
+        self.restore_from_config()
 
-    def restoreFromConfig(self):
+    def restore_from_config(self):
         lan = self.language_items[0]
 
         if lan_id := self.bus.get_value('language', str, reject_none=True):
-            logging.info(f'Language {lan_id} is loaded from configuration.')
-            lan = [l for l in self.language_items if l.id == lan_id][0]
+            print(f'Language {lan_id} is loaded from configuration.')
+            lan = [
+                _language
+                for _language in self.language_items
+                if _language.id == lan_id
+            ][0]
 
-        self.switchLanguage(language=lan)
+        self.switch_language(language=lan)
         self._set_action_checked(language=lan)
 
     @property
-    def language_items(self) -> tuple[LanguageItem]:
+    def language_items(self) -> tuple[LanguageItem, ...]:
         all_language_items = [
             LanguageItem(
                 name=lan_opts.get('name'),
@@ -69,20 +70,20 @@ class LanguageSwitch(QtWidgets.QWidget):
 
     def _bind_to_action(self, language: LanguageItem):
         language.action.triggered.connect(
-            partial(self.switchLanguage, language)
+            partial(self.switch_language, language)
         )
 
-    def registerLanguage(self):
+    def register_language(self):
         for lan in self.language_items:
-            logging.debug(
+            print(
                 f'Registering language {lan.name} by {lan.id} from {lan.language_file}'
             )
             self._bind_to_action(language=lan)
 
-    def switchLanguage(self, language: LanguageItem):
+    def switch_language(self, language: LanguageItem):
         if language.id and os.path.exists(language.language_file):
             self.bus.ui.trans.load(language.language_file)
-            logging.info(
+            print(
                 f'loading {language.name} ({language.id}) from {language.language_file}'
             )
             QtWidgets.QApplication.instance().installTranslator(
@@ -101,7 +102,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         for lan in self.language_items:
             lan.action.setChecked(lan.id == language.id)
 
-    def _set_action_checkable(self):
+    def _set_action_clickable(self):
         for lan in self.language_items:
             lan_available = (
                 os.path.exists(lan.language_file) or lan.name == 'English'

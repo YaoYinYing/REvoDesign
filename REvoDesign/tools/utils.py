@@ -1,3 +1,4 @@
+import contextlib
 import os
 import random
 import string
@@ -378,3 +379,13 @@ def generate_strong_password(length=16):
     )
 
     return generated_password
+
+
+# modified from AlphaFold
+@contextlib.contextmanager
+def timing(msg: str):
+    logging.info(f'Started {msg}')
+    tic = time.perf_counter()
+    yield
+    toc = time.perf_counter()
+    logging.info(f'Finished {msg} in {toc - tic:.3f} seconds')

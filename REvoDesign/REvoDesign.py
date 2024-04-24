@@ -65,6 +65,7 @@ from REvoDesign.tools.utils import (
     extract_archive,
     generate_strong_password,
     run_worker_thread_with_progress,
+    timing,
 )
 
 from REvoDesign.clients.PSSM_GREMLIN_client import (
@@ -1195,7 +1196,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         trigger_button = self.bus.button('run_PSSM_to_pse')
 
-        with hold_trigger_button(trigger_button):
+        with hold_trigger_button(trigger_button), timing(
+            'Run Mutant Loading from Profile'
+        ):
             worker = MutateWorker()
 
             worker.run_mutant_loading_from_profile()
@@ -1308,7 +1311,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             PWD=self.PWD,
         )
 
-        with hold_trigger_button(trigger_button):
+        with hold_trigger_button(trigger_button), timing('Clustering'):
             worker.run_clustering()
 
         del worker
@@ -1412,7 +1415,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         trigger_button = self.bus.button('run_visualizing')
 
-        with hold_trigger_button(trigger_button):
+        with hold_trigger_button(trigger_button), timing('Visualizng Mutants'):
             worker = VisualizingWorker()
             worker.visualize_mutants()
 
@@ -1599,7 +1602,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         maximal_mutant_num = self.multi_designer.maximal_mutant_num
         self.multi_designer.refresh_options()
 
-        with hold_trigger_button(trigger_button):
+        with hold_trigger_button(trigger_button), timing(
+            'Automatic multi-design'
+        ):
             try:
                 for i in range(max_num_multi_design_cases):
                     logging.info(f'Starting {i}-th mutagenesis variant case')
@@ -1620,7 +1625,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         trigger_button = self.bus.button('reinitialize_interact')
 
-        with hold_trigger_button(trigger_button):
+        with hold_trigger_button(trigger_button), timing('Load GREMLIN mrf'):
             self.gremlin_worker = GREMLIN_Analyser()
             self.gremlin_worker.load_gremlin_mrf()
 
@@ -1635,7 +1640,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         trigger_button = self.bus.button('run_interact_scan')
 
-        with hold_trigger_button(trigger_button):
+        with hold_trigger_button(trigger_button), timing(
+            'GREMLIN interaction scanning'
+        ):
             self.gremlin_worker.run_gremlin_tool()
 
     def coevoled_mutant_decision(self, decision_to_accept: bool):

@@ -41,6 +41,7 @@ from REvoDesign.tools.utils import (
     get_color,
     rescale_number,
     run_worker_thread_with_progress,
+    timing,
 )
 
 from REvoDesign import root_logger
@@ -907,7 +908,7 @@ class GREMLIN_Analyser:
     ):
         with hold_trigger_button(
             buttons=self.bus.buttons(button_ids=('previous', 'next'))
-        ):
+        ), timing('Load co-evolved pairs'):
             ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
 
             lineEdit_current_pair = self.bus.ui.lineEdit_current_pair

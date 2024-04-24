@@ -15,6 +15,7 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 from REvoDesign import root_logger
 from REvoDesign import issues
+from REvoDesign.tools.utils import timing
 
 
 logging = root_logger.getChild(__name__)
@@ -129,18 +130,19 @@ class SidechainSolver(SingletonAbstract):
             molecule=self.cfg.molecule, reload=False
         )
 
-        try:
-            self.mutate_runner = self.runner_manager.get_runner(
-                self.cfg.sidechain_solver_name,
-                pdb_file=input_pdb,
-                use_model=self.cfg.sidechain_solver_model,
-                radius=self.cfg.sidechain_solver_radius,
-                molecule=self.cfg.molecule,
-            )
-            return self
-        except issues.DependencyError:
-            self.fallback().setup()
-            return self
+        with timing('Setting up sidechain solver'):
+            try:
+                self.mutate_runner = self.runner_manager.get_runner(
+                    self.cfg.sidechain_solver_name,
+                    pdb_file=input_pdb,
+                    use_model=self.cfg.sidechain_solver_model,
+                    radius=self.cfg.sidechain_solver_radius,
+                    molecule=self.cfg.molecule,
+                )
+                return self
+            except issues.DependencyError:
+                self.fallback().setup()
+                return self
 
     def fallback(self) -> 'SidechainSolver':
         warnings.warn(
