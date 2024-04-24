@@ -14,7 +14,7 @@ import matplotlib
 import numpy as np
 
 from REvoDesign import root_logger
-from REvoDesign.tools.customized_widgets import (
+from .customized_widgets import (
     WorkerThread,
     refresh_window,
 )

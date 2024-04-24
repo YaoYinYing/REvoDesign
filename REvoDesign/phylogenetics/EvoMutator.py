@@ -908,7 +908,7 @@ class GREMLIN_Analyser:
     ):
         with hold_trigger_button(
             buttons=self.bus.buttons(button_ids=('previous', 'next'))
-        ), timing('Load co-evolved pairs'):
+        ):
             ignore_wt = self.bus.get_value('ui.interact.interact_ignore_wt')
 
             lineEdit_current_pair = self.bus.ui.lineEdit_current_pair
@@ -1244,50 +1244,53 @@ class GREMLIN_Analyser:
             self.activate_focused_interaction()
             return
 
-        # otherwise, call MutantVisualizer to display it.
-        logging.info(
-            f'Picked mutant:{(mutant := mutant_obj.short_mutant_id)} {(full_mutant_id:=mutant_obj.full_mutant_id)} '
-        )
+        with timing(f'Visualizing {mutant_obj.short_mutant_id}'):
+            # otherwise, call MutantVisualizer to display it.
+            logging.info(
+                f'Picked mutant:{(mutant := mutant_obj.short_mutant_id)} {(full_mutant_id:=mutant_obj.full_mutant_id)} '
+            )
 
-        color = get_color(
-            self.bus.get_value('ui.header_panel.cmap.default'),
-            mut_score,
-            min_score,
-            max_score,
-        )
+            color = get_color(
+                self.bus.get_value('ui.header_panel.cmap.default'),
+                mut_score,
+                min_score,
+                max_score,
+            )
 
-        logging.info(f" Visualizing {mutant} ({full_mutant_id}): {color}")
+            logging.info(f"Visualizing {mutant} ({full_mutant_id}): {color}")
 
-        visualizer = MutantVisualizer(
-            molecule=self.design_molecule, chain_id=self.design_chain_id
-        )
+            visualizer = MutantVisualizer(
+                molecule=self.design_molecule, chain_id=self.design_chain_id
+            )
 
-        run_worker_thread_with_progress(
-            worker_function=SidechainSolver().refresh,
-            progress_bar=self.bus.ui.progressBar,
-        )
+            run_worker_thread_with_progress(
+                worker_function=SidechainSolver().refresh,
+                progress_bar=self.bus.ui.progressBar,
+            )
 
-        visualizer.mutate_runner = SidechainSolver().mutate_runner
-        visualizer.designable_sequences = self.designable_sequences
-        visualizer.sequence = self.design_sequence
+            visualizer.mutate_runner = SidechainSolver().mutate_runner
+            visualizer.designable_sequences = self.designable_sequences
+            visualizer.sequence = self.design_sequence
 
-        visualizer.group_name = self.picked_gremlin_group_id
+            visualizer.group_name = self.picked_gremlin_group_id
 
-        run_worker_thread_with_progress(
-            worker_function=visualizer.create_mutagenesis_objects,
-            mutant_obj=mutant_obj,
-            color=color,
-            progress_bar=self.bus.ui.progressBar,
-        )
-        cmd.hide('everything', 'hydrogens and polymer.protein')
-        cmd.hide('cartoon', mutant)
+            run_worker_thread_with_progress(
+                worker_function=visualizer.create_mutagenesis_objects,
+                mutant_obj=mutant_obj,
+                color=color,
+                progress_bar=self.bus.ui.progressBar,
+            )
+            cmd.hide('everything', 'hydrogens and polymer.protein')
+            cmd.hide('cartoon', mutant)
 
-        # create a new record.
-        self.explored_mutant_tree.add_mutant_to_branch(
-            branch=visualizer.group_name,
-            mutant=mutant,
-            mutant_obj=mutant_obj,
-        )
+            # create a new record.
+            self.explored_mutant_tree.add_mutant_to_branch(
+                branch=visualizer.group_name,
+                mutant=mutant,
+                mutant_obj=mutant_obj,
+            )
+
+        self.activate_focused_interaction()
 
         del visualizer
 

@@ -14,7 +14,7 @@ from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign import root_logger
 
 from REvoDesign import issues
-from REvoDesign.tools.utils import get_color
+from .utils import get_color
 
 logging = root_logger.getChild(__name__)
 
@@ -479,10 +479,13 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
 
 def quick_mutagenesis(mutant_tree: MutantTree):
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
-    from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
+    from .pymol_utils import make_temperal_input_pdb
+    from .utils import timing
 
     bus: ConfigBus = ConfigBus()
     sidechain_solver: SidechainSolver = SidechainSolver().refresh()
+
+
 
     molecule = bus.get_value('ui.header_panel.input.molecule')
     chain_id = bus.get_value('ui.header_panel.input.chain_id')
@@ -500,56 +503,56 @@ def quick_mutagenesis(mutant_tree: MutantTree):
         for group_id in mutant_tree.all_mutant_branch_ids
         for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items()
     ]
+    with timing('Quick mutagenesis'):
+        input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
+        visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
+        cfg = bus.cfg
 
-    input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
-    visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
-    cfg = bus.cfg
+        visualizer.designable_sequences = designable_sequences
 
-    visualizer.designable_sequences = designable_sequences
+        visualizer.nproc = nproc
+        visualizer.input_session = input_pdb
+        visualizer.sequence = sequence
 
-    visualizer.nproc = nproc
-    visualizer.input_session = input_pdb
-    visualizer.sequence = sequence
+        visualizer.full = cfg.ui.visualize.full_pdb
+        visualizer.cmap = cfg.ui.header_panel.cmap
+        visualizer.mutate_runner = sidechain_solver.mutate_runner
 
-    visualizer.full = cfg.ui.visualize.full_pdb
-    visualizer.cmap = cfg.ui.header_panel.cmap
-    visualizer.mutate_runner = sidechain_solver.mutate_runner
+        visualizer.min_score = min(score_list)
+        visualizer.max_score = max(score_list)
 
-    visualizer.min_score = min(score_list)
-    visualizer.max_score = max(score_list)
+        # run mutate
 
-    # run mutate
-
-    mutant_tree.run_mutate_parallel(
-        mutate_runner=sidechain_solver.mutate_runner,
-        n_jobs=visualizer.nproc,
-    )
-
-    for group_id in mutant_tree.all_mutant_branch_ids:
-        visualizer.group_name = group_id
-
-        visualizer.save_session = os.path.join(
-            os.path.dirname(input_pdb),
-            f'group.{group_id}.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
+        mutant_tree.run_mutate_parallel(
+            mutate_runner=sidechain_solver.mutate_runner,
+            n_jobs=visualizer.nproc,
         )
 
-        visualizer.mutant_tree = MutantTree(
-            {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
-        )
-        for m in visualizer.mutant_tree.all_mutant_objects:
-            color = get_color(
-                visualizer.cmap,
-                m.mutant_score,
-                visualizer.min_score,
-                visualizer.max_score,
-            )
-            logging.info(
-                f" Visualizing {m.short_mutant_id} ({m.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
+        for group_id in mutant_tree.all_mutant_branch_ids:
+            visualizer.group_name = group_id
+
+            visualizer.save_session = os.path.join(
+                os.path.dirname(input_pdb),
+                f'group.{group_id}.{os.path.basename(input_pdb).replace(".pdb",".pze")}',
             )
 
-            visualizer.create_mutagenesis_objects(
-                mutant_obj=m, color=color, in_place=True
+            visualizer.mutant_tree = MutantTree(
+                {group_id: mutant_tree.get_a_branch(branch_id=group_id)}
             )
+            for m in visualizer.mutant_tree.all_mutant_objects:
+                color = get_color(
+                    visualizer.cmap,
+                    m.mutant_score,
+                    visualizer.min_score,
+                    visualizer.max_score,
+                )
+                logging.info(
+                    f" Visualizing {m.short_mutant_id} ({m.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
+                )
+
+                visualizer.create_mutagenesis_objects(
+                    mutant_obj=m, color=color, in_place=True
+                )
     return
 
 
