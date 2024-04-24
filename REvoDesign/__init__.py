@@ -17,7 +17,7 @@ from REvoDesign.__version__ import __version__ as VERSION
 # -=-=-=-=-=-=-=-= the importing stack begins -=-=-=-=-=-=-=-=
 
 # 1. import post install module and methods
-from REvoDesign.tools.post_installed import (
+from REvoDesign.boot import (
     experiment_config,
     set_REvoDesign_config_file,
     WITH_DEPENDENCIES,
@@ -36,7 +36,7 @@ hydra.initialize_config_dir(
 EXPERIMENTS_CONFIG_DIR = experiment_config()
 
 # 3. initialize logging config and root logger, depending on config
-from REvoDesign.tools.logger import setup_logging
+from REvoDesign.logger import setup_logging
 
 root_logger = setup_logging()
 

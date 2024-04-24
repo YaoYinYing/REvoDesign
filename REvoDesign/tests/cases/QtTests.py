@@ -3,8 +3,6 @@ import glob
 import random
 import pytest
 
-import REvoDesign.tools
-import REvoDesign.tools.post_installed
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
@@ -1563,7 +1561,7 @@ class TestREvoDesignPlugin_TabConfig:
         WORKER.go_to_tab(tab_name='config')
 
         assert (
-            REvoDesign.tools.post_installed.WITH_DEPENDENCIES.PIPPACK == False
+            REvoDesign.boot.post_installed.WITH_DEPENDENCIES.PIPPACK == False
         )
 
         set_widget_value(WORKER.plugin.ui.comboBox_sidechain_solver, 'PIPPack')
