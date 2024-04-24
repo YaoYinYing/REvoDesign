@@ -53,3 +53,5 @@ classes.dot
 /tests/testdata/pssm
 /tests/logs
 /citations
+/.idea
+.idea/misc.xml

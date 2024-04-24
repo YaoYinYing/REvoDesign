@@ -3,9 +3,6 @@ import platform
 
 import warnings
 from REvoDesign import issues
-from REvoDesign import root_logger
-
-logging = root_logger.getChild(__name__)
 
 
 def get_system_info(os_info: platform.uname_result):
@@ -24,8 +21,8 @@ def get_system_info(os_info: platform.uname_result):
         is_arm_macos = "ARM64" in os_info.version
         is_recognized_as_x86 = os_info.machine == 'x86_64'
 
-        logging.debug(f'Does it ARMed? {is_arm_macos}')
-        logging.debug(f'Does it Rosetta-ed? {is_recognized_as_x86}')
+        print(f'Does it ARMed? {is_arm_macos}')
+        print(f'Does it Rosetta-ed? {is_recognized_as_x86}')
 
         if is_arm_macos and is_recognized_as_x86:
             warnings.warn(

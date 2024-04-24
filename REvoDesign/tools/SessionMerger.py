@@ -2,10 +2,6 @@ import os
 import argparse
 
 from pymol import cmd
-from REvoDesign import root_logger
-
-logging = root_logger.getChild(__name__)
-
 
 class PyMOLSessionMerger:
     """
@@ -63,7 +59,7 @@ class PyMOLSessionMerger:
         """
         cmd.reinitialize()
         for session_path in self.session_paths:
-            logging.info(f"Loading session: {session_path}")
+            print(f"Loading session: {session_path}")
             cmd.load(session_path, partial=self.mode, quiet=self.quiet)
 
             if self.delete:
