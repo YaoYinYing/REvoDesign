@@ -7,7 +7,7 @@ import uuid
 
 from OpenSSL import crypto
 
-import issues
+from REvoDesign import issues
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)
