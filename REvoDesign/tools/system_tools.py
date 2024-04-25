@@ -57,8 +57,8 @@ class CLIENT_INFO:
         import os
         import socket
         from REvoDesign import VERSION
-        from REvoDesign.tools.pymol_utils import PYMOL_VERSION, PYMOL_BUILD
-        from REvoDesign.tools.customized_widgets import PYQT_VERSION_STR
+        from .pymol_utils import PYMOL_VERSION, PYMOL_BUILD
+        from .customized_widgets import PYQT_VERSION_STR
 
         self.node: str = self.OS_INFO.node
         try:

@@ -13,7 +13,7 @@ from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign import root_logger
 
-from REvoDesign import issues
+import issues
 from .utils import get_color
 
 logging = root_logger.getChild(__name__)

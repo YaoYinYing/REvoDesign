@@ -5,7 +5,7 @@ from pymol import cmd
 from pymol import get_version_message
 from pymol.parsing import QuietException
 
-from REvoDesign import issues
+import issues
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)

@@ -3,6 +3,8 @@ import glob
 import random
 import pytest
 
+import REvoDesign.tools
+import REvoDesign.boot.post_installed
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
@@ -1554,7 +1556,7 @@ class TestREvoDesignPlugin_TabConfig:
 
         WORKER.check_existed_mutant_tree()
 
-    @patch('REvoDesign.tools.post_installed.WITH_DEPENDENCIES.PIPPACK', False)
+    @patch('REvoDesign.boot.post_installed.WITH_DEPENDENCIES.PIPPACK', False)
     def test_sidechain_solver_fallback(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
