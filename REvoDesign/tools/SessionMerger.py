@@ -3,6 +3,7 @@ import argparse
 
 from pymol import cmd
 
+
 class PyMOLSessionMerger:
     """
     Class: PyMOLSessionMerger

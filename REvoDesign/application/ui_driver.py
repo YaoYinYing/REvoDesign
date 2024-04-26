@@ -7,7 +7,6 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
 
-from REvoDesign import SingletonAbstract
 from REvoDesign.citations import CitableModules
 from REvoDesign.tools.customized_widgets import (
     create_cmap_icon,
@@ -17,11 +16,14 @@ from REvoDesign.tools.customized_widgets import (
 
 from REvoDesign import root_logger
 
-from REvoDesign import reload_config_file
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 
 from REvoDesign import issues
+
+
+from ..boot import reload_config_file
+from ..basic import SingletonAbstract
 
 logging = root_logger.getChild(__name__)
 

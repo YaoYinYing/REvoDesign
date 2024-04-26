@@ -32,7 +32,7 @@ from REvoDesign.structure.SurfaceFinder import SurfaceFinder
 
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.tools.logger import REvoDesignLogFormatter
+from REvoDesign.logger.logger import REvoDesignLogFormatter
 from REvoDesign.tools.mutant_tools import (
     expand_range,
     extract_mutant_from_sequences,
@@ -47,7 +47,7 @@ from REvoDesign import (
     set_REvoDesign_config_file,
     set_cache_dir,
 )
-from REvoDesign.tools.post_installed import ConfigConverter
+from REvoDesign.boot.post_installed import ConfigConverter
 from REvoDesign.tools.pymol_utils import (
     any_posision_has_been_selected,
     find_all_protein_chain_ids_in_protein,

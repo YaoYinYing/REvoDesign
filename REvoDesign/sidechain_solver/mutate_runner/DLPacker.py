@@ -43,7 +43,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         """
         super().__init__(pdb_file)
 
-        from REvoDesign.tools.post_installed import set_cache_dir
+        from REvoDesign.boot import set_cache_dir
 
         cache_dir = set_cache_dir()
 

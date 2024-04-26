@@ -123,7 +123,7 @@ class MutantVisualizer:
         ]
 
         if not self.mutate_runner:
-            raise RuntimeError(f'no mutate runner is instantiated yet.')
+            raise RuntimeError('no mutate runner is instantiated yet.')
 
         # use precomputed pdb if it exists. otherwise run the runner to get one.
         if not (temp_mutant_pdb_path := mutant_obj.pdb_fp):

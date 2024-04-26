@@ -485,8 +485,6 @@ def quick_mutagenesis(mutant_tree: MutantTree):
     bus: ConfigBus = ConfigBus()
     sidechain_solver: SidechainSolver = SidechainSolver().refresh()
 
-
-
     molecule = bus.get_value('ui.header_panel.input.molecule')
     chain_id = bus.get_value('ui.header_panel.input.chain_id')
     designable_sequences: dict = bus.get_value('designable_sequences')
