@@ -1557,7 +1557,7 @@ class TestREvoDesignPlugin_TabConfig:
         WORKER.check_existed_mutant_tree()
 
     @patch('REvoDesign.boot.post_installed.WITH_DEPENDENCIES.PIPPACK', False)
-    def test_sidechain_solver_fallback(self, WORKER: TestWorker):
+    def test_sidechain_solver_fallback_mpnn(self, WORKER: TestWorker):
         WORKER.test_id = WORKER.method_name()
         WORKER.load_session_and_check()
         WORKER.go_to_tab(tab_name='config')
