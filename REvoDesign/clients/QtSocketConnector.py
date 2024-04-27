@@ -8,6 +8,7 @@ from types import MappingProxyType
 from dataclasses import dataclass, field
 from typing import (
     Any,
+    Dict,
     Iterable,
     List,
     Literal,
@@ -72,14 +73,14 @@ class MeetingRoom:
     def get_user_uuid(self, client: QtWebSockets.QWebSocket):
         return [u for u, c in self.clients.items() if c.client == client][0]
 
-    def kickout(self, uuid: str) -> Client:
+    def kickout(self, uuid: str) -> None:
         client = self.get_user_by_uuid(uuid=uuid)
         self.clients.pop(uuid)
         client.client.close()
         return
 
     @property
-    def user_tree(self):
+    def user_tree(self) -> Dict[str, Any]:
         return {
             uuid: {
                 k: v for k, v in client.client_info.items() if k != 'client'
@@ -161,18 +162,18 @@ class Broadcaster:
     )
 
     @staticmethod
-    def encode(obj):
-        pickled_obj = pickle.dumps(obj)
+    def encode(obj: Any) -> str:
+        pickled_obj: bytes = pickle.dumps(obj)
         return base64.b64encode(pickled_obj).decode()
 
     @staticmethod
-    def decode(serialized_data) -> Any:
-        decoded_data = base64.b64decode(serialized_data)
+    def decode(serialized_data: str) -> Any:
+        decoded_data: bytes = base64.b64decode(serialized_data)
         return pickle.loads(decoded_data)
 
     def compose_dict(
         self, obj: Any, datatype: supported_datatypes, final: bool = True
-    ):
+    ) -> Dict[str, Union[supported_datatypes, str, bool]]:
         if not datatype in self.supported_datatypes_mapping:
             raise issues.FobbidenDataTypeError(f'{datatype=} is not allowed.')
         return {'datatype': datatype, 'obj': self.encode(obj), 'final': final}
@@ -223,7 +224,7 @@ class Broadcaster:
         ] = 'Text',
         obj: Union[Any, List[Any]] = None,
         final=True,
-    ):
+    ) -> None:
         # typing checks for broad cast group
         if isinstance(meetingroom, QtWebSockets.QWebSocket):
             all_clients = [meetingroom]
@@ -558,15 +559,15 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
     def client_name_and_node(self, client):
         if self.meetingroom.is_logged_in(client=client):
-            user_id = self.meetingroom.get_user_uuid(client=client)
+            user_id: str = self.meetingroom.get_user_uuid(client=client)
             user_info = self.meetingroom.get_user_by_uuid(user_id).client_info
-            user = user_info.get('user')
-            user_node = user_info.get('node')
+            user: str = user_info.get('user')
+            user_node: str = user_info.get('node')
 
         else:
             user_id = 'Unautherized'
-            user = client.peerName()
-            user_node = client.peerAddress()
+            user: str = client.peerName()
+            user_node: str = client.peerAddress()
 
         return user, user_node, user_id
 
