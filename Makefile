@@ -197,3 +197,4 @@ clean:
 	rm -rvf $(TESTDIR) dask-worker-space
 	rm -rvf logs surface_residue_records downloaded mutations_design_profile pockets temperal_pdb expanded_compressed_files analysis screenshots
 	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ gremlin_co_evolved_pairs/ seg_chain_resn_sel/ seg_chainA_resn_sel/ mutant_pdbs/
+	git clean -ffdx
