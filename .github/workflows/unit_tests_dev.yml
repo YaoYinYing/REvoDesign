@@ -30,6 +30,11 @@ jobs:
       fail-fast: false
       matrix:
         os: 
+          # if any:
+          # - workflow_dispatch requires self-hosted runners 
+          # - commit message does NOT contain 'fast-test', use japs runner. 
+          # otherwise:
+          # - use github-hosted runners
           - ${{ (inputs.useSelfHostedRunnerOnly || (! contains( github.event.head_commit.message, 'fast-test'))) && 'ubuntu-japs' || 'ubuntu-latest' }}
         python-version: 
           - "3.9"
