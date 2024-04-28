@@ -2,6 +2,7 @@ import os
 import re
 import json
 import time
+from typing import List, Tuple, Union
 import warnings
 
 from Bio.Data import IUPACData
@@ -25,9 +26,16 @@ protein_letters_3to1 = {
     for k, v in IUPACData.protein_letters_1to3.items()  # Looping through the items in the 1-to-3-letter amino acid dictionary
 }
 
+NOT_ALLOWED_GROUP_ID_PREFIX: tuple[str] = (
+    'RDPM',
+    'multi_design',
+    'cep',
+    'invalid_cep',
+)
+
 
 def extract_mutants_from_mutant_id(
-    mutant_string: str, sequences: dict = {}
+    mutant_string: str, sequences: dict[str, str] = {}
 ) -> Mutant:
     '''
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
@@ -62,8 +70,10 @@ def extract_mutants_from_mutant_id(
         elif re.match(r'[A-Z]{1}\d+[A-Z]{1}', mut):
             logging.debug(f'reduced description: {mut}')
             if not (mutant_info or sequences):
-                logging.error(
-                    f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
+                warnings.warn(
+                    issues.BadDataWarning(
+                        f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
+                    )
                 )
                 continue
             _mut = re.match(r'([A-Z]{1})(\d+)([A-Z]{1})', mut)
@@ -78,8 +88,10 @@ def extract_mutants_from_mutant_id(
             logging.debug(f'fuzzy description: {mut}')
             # silent error report while mismatching the score term
             if not (mutant_info or sequences):
-                logging.error(
-                    f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
+                warnings.warn(
+                    issues.BadDataWarning(
+                        f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
+                    )
                 )
                 continue
 
@@ -91,7 +103,11 @@ def extract_mutants_from_mutant_id(
             _mut_res = _mut.group(2)
 
         else:
-            logging.error(f'Error while processing mutant id {mut}. ')
+            warnings.warn(
+                issues.BadDataWarning(
+                    f'Error while processing mutant id {mut}. '
+                )
+            )
             continue
 
         mutant_info.append(
@@ -123,7 +139,7 @@ def extract_mutants_from_mutant_id(
     return mutant_obj
 
 
-def extract_mutant_score_from_string(mutant_string):
+def extract_mutant_score_from_string(mutant_string: str) -> Union[float, None]:
     '''
     Extract mutant score from an mutant string
 
@@ -145,7 +161,10 @@ def extract_mutant_score_from_string(mutant_string):
 
 
 def extract_mutant_from_sequences(
-    mutant_sequence, wt_sequence, chain_id='A', fix_missing=False
+    mutant_sequence: str,
+    wt_sequence: str,
+    chain_id: str = 'A',
+    fix_missing: bool = False,
 ) -> Mutant:
     '''
     Extract mutant from mutant sequence.
@@ -214,7 +233,11 @@ def extract_mutant_from_sequences(
     return mutant_obj
 
 
-def shorter_range(input_list, connector='-', seperator='+'):
+def shorter_range(
+    input_list: Union[List[int], Tuple[int]],
+    connector: str = '-',
+    seperator: str = '+',
+) -> str:
     """
     Shorten a list of integers by representing consecutive ranges with hyphens,
     and non-consecutive integers with plus signs.
@@ -267,7 +290,9 @@ def shorter_range(input_list, connector='-', seperator='+'):
     return seperator.join(range_pairs)
 
 
-def expand_range(shortened_str, connector='-', seperator='+') -> list[int]:
+def expand_range(
+    shortened_str: str, connector: str = '-', seperator: str = '+'
+) -> list[int]:
     """
     Expand a shortened string expression representing a list of integers to the original list.
 
@@ -389,10 +414,9 @@ def read_customized_indice(custom_indices_from_input='') -> str:
         return ','.join([str(x) for x in custom_indices_str])
 
     else:
-        logging.error(
+        raise issues.InvalidInputError(
             f'Failed in parsing customized indice file/string: {custom_indices_from_input}'
         )
-        return ''
 
 
 def process_mutations(data):
@@ -430,7 +454,9 @@ def read_profile_design_mutations(filename):
     return process_mutations(data)
 
 
-def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
+def existed_mutant_tree(
+    sequences: dict[str, str], enabled_only: Union[int, bool] = 1
+) -> MutantTree:
     """
     Creates a tree structure of existing mutants based on PyMOL objects.
 
@@ -444,13 +470,6 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
         An instance of MutantTree class containing the mutant tree structure.
     """
     from REvoDesign.tools.pymol_utils import is_hidden_object
-
-    NOT_ALLOWED_GROUP_ID_PREFIX: tuple[str] = (
-        'RDPM',
-        'multi_design',
-        'cep',
-        'invalid_cep',
-    )
 
     group_ids: list[str] = cmd.get_names(
         type='group_objects', enabled_only=enabled_only
@@ -477,7 +496,13 @@ def existed_mutant_tree(sequences: dict[str, str], enabled_only=1):
     return MutantTree(_mutant_tree)
 
 
-def quick_mutagenesis(mutant_tree: MutantTree):
+def quick_mutagenesis(mutant_tree: MutantTree) -> None:
+    """run quick mutagenesis on a given mutation tree.
+        Everything else is read from local config bus.
+
+    Args:
+        mutant_tree (MutantTree): input mutant tree object.
+    """
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
     from .pymol_utils import make_temperal_input_pdb
     from .utils import timing
@@ -574,7 +599,7 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
             f'Parent dir for mutant table does NOT exist! {output_mut_txt_dir}'
         )
         # os.makedirs(output_mut_txt_dir,exist_ok=True)
-        logging.warning(f'Skip saving mutant file.')
+        logging.warning('Skip saving mutant file.')
         return
 
     if os.path.exists(output_mut_txt_fn):
@@ -595,9 +620,7 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
             [mt.raw_mutant_id for mt in mutant_tree.all_mutant_objects],
         )
 
-    output_mut_txt_dir_ckp = os.path.join(
-        output_mut_txt_dir, f'./checkpoints/'
-    )
+    output_mut_txt_dir_ckp = os.path.join(output_mut_txt_dir, './checkpoints/')
     os.makedirs(output_mut_txt_dir_ckp, exist_ok=True)
 
     output_mut_txt_bn_ckp = f'ckp_{time.strftime("%Y%m%d_%H%M%S", time.localtime())}.{os.path.basename(output_mut_txt_fn)}'
@@ -617,32 +640,37 @@ def write_input_mutant_table(output_mut_txt_fn, mutant_list):
     )
 
 
-def determine_profile_type(profile_fp):
-    profile_bn = os.path.basename(profile_fp)
-    if profile_bn.endswith('.csv'):
-        return 'CSV'
-    elif profile_bn.endswith('.txt'):
-        return 'TSV'
-    elif profile_bn.endswith('.pssm') or profile_bn.endswith('ascii_mtx_file'):
-        return 'PSSM'
-    else:
-        return
+def determine_profile_type(profile_fp: str) -> str:
+    profile_type_mapping = {
+        '.csv': 'CSV',
+        '.txt': 'TSV',
+        '.pssm': 'PSSM',
+        'ascii_mtx_file': 'PSSM',
+    }
+    if not profile_fp:
+        raise issues.NoInputError(f'Invalid {profile_fp=}')
+
+    for ext, pt in profile_type_mapping.items():
+        if profile_fp.endswith(ext):
+            return pt
+
+    return ''
 
 
-def get_mutant_table_columns(mutfile):
+def get_mutant_table_columns(mutfile: str):
     import pandas as pd
 
     table_extensions = [f'.{ext}' for ext, _ in FileExtentions.Mutable.items()]
 
-    if not any(
-        [True for ext in table_extensions if mutfile.lower().endswith(ext)]
-    ):
-        return None
+    if not any(mutfile.lower().endswith(ext) for ext in table_extensions):
+        raise issues.InvalidInputError(
+            f'Invalid file extention {mutfile=}. \nAll available: {table_extensions=}'
+        )
 
     elif mutfile.lower().endswith('.txt'):
         return None
 
-    elif mutfile.lower().endswith('.csv'):
+    if mutfile.lower().endswith('.csv'):
         mutation_data = pd.read_csv(mutfile)
 
     elif mutfile.lower().endswith('.tsv'):
