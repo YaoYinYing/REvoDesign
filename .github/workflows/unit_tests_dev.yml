@@ -22,6 +22,7 @@ on:
       - '!REvoDesign/__version__.py'
     branches:
         - main
+        - linting-4
 
 jobs:
   DevTests:
@@ -29,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         os: 
-          - ${{ (inputs.useSelfHostedRunnerOnly) && 'ubuntu-japs' || 'ubuntu-latest' }}
+          - ${{ (inputs.useSelfHostedRunnerOnly || (! contains( github.event.head_commit.message, 'fast-test'))) && 'ubuntu-japs' || 'ubuntu-latest' }}
         python-version: 
           - "3.9"
           - "3.10"
