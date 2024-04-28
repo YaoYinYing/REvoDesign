@@ -153,9 +153,34 @@ function ping_pong_setup(){
 
 }
 
+function help_msg(){
+    exec='bash ci-runner.admin.sh'
+    echo "
+Setup paralell GitHub self-hosted runner in a snap finger.
+
+Usage: ${exec} command [options]
+  command:
+    install [url] [sha256]    Install runner from image file.
+    register                  Register runner one-after-another to GitHub.
+    enable                    Enable runners as system service for a target user.
+    disable                   Disable runners as system service for a target user.
+    uninstall | remove        Remove runners one-after-another from GitHub.
+    restart | reboot          Restart runners via system service.
+    proxies | proxy           Setting proxies to runners by linking '.env' file. 
+                              A service restart is required.
+                              
+    help | -h | --help        Show this help message and exit.
+    
+    "
+    exit 0
+
+}
+
 
 if [[ "$1" == 'install' ]];then
     install_runner $2 $3
+elif [[ "$1" == 'help' || "$1" == '-h' || "$1" == '--help' ]];then
+        help_msg
 else
     read_runner_prefix_from_env
 
@@ -233,6 +258,7 @@ else
             ln .env $dir/actions-runner/.env;
 
         done
+    
     fi
 
 fi
