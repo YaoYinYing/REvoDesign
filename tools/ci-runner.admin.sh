@@ -120,7 +120,6 @@ function check_env_file(){
 }
 
 
-# TODO: FIXME
 function ping_pong_setup(){
     local url=$1
     local dir=$2
@@ -141,7 +140,12 @@ function ping_pong_setup(){
  	send -- "'${dir/_/-}'\r";
 
  	expect "Enter any additional labels*"; 
- 	send -- "'$labels'\r";'
+ 	send -- "'$labels'\r";
+    
+    expect "Enter name of work folder*";
+    send -- "\r";
+    '
+    
 
     echo $expect_scripts
     sleep 0.3
@@ -158,8 +162,8 @@ else
     if [[ "$1" == 'register' ]];then
         echo Which GitHub Repo url you wish to be registered for?
         read github_url
-        # echo What kind of labels can these runner call?
-        # read labels
+        echo What kind of labels can these runner call?
+        read labels
 
 
         for dir in ${runner_prefix}_*; do
@@ -167,9 +171,7 @@ else
             cd $dir/actions-runner/;
 
             # register runner
-            ./config.sh --url $github_url
-            # TODO: FIXME
-            #ping_pong_setup $github_url $dir $labels
+            ping_pong_setup $github_url $dir $labels
 
             cd ../..;
         done
@@ -202,8 +204,11 @@ else
             check_runner_path $dir
             cd $dir/actions-runner/;
 
+            echo Token please: 
+            read token
+
             # remove config from repository
-            ./config.sh remove;
+            ./config.sh remove --token $token;
 
             cd ../..;
         done
