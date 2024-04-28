@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Iterable, Union
+from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 from functools import partial
 import warnings
 
@@ -222,9 +222,9 @@ class ConfigBus(SingletonAbstract, CitableModules):
     def get_value(
         self,
         cfg_item: str,
-        converter=None,
-        reject_none=False,
-        default_value=None,
+        converter: Union[Callable, Any] = None,
+        reject_none: bool = False,
+        default_value: Any = None,
     ) -> Union[Any, list[Any], dict]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
@@ -237,9 +237,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         }
 
         if reject_none and not value and not default_value:
-            from REvoDesign.issues import ConfigureOutofDateError
-
-            raise ConfigureOutofDateError(
+            raise issues.ConfigureOutofDateError(
                 'This configure file might be out of date. Please remove it and restart PyMOL to fix this.'
             )
 
@@ -258,15 +256,23 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         return value
 
-    def set_value(self, cfg_item: str, value):
+    def set_value(self, cfg_item: str, value: Union[str, List, Dict]) -> None:
         # Sets the value of a configuration item.
         if value is not None:
             OmegaConf.update(self.cfg, cfg_item, value)
 
-    def toggle_buttons(self, buttons_ids: Iterable, set_enabled: bool = False):
+    def toggle_buttons(
+        self,
+        button_ids: Union[List[str], Tuple[str]],
+        set_enabled: bool = False,
+    ):
         # Toggles the enabled state of a list of buttons.
-        for button_id in buttons_ids:
-            self.w2c.push_buttons.get(button_id).setEnabled(set_enabled)
+        buttons = self.buttons(button_ids=button_ids)
+
+        for button in buttons:
+            if not button:
+                continue
+            button.setEnabled(set_enabled)
 
     def fp_lock(
         self,
@@ -281,7 +287,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
             buttons_id_to_release = [buttons_id_to_release]
 
         self.toggle_buttons(
-            buttons_ids=buttons_id_to_release, set_enabled=False
+            button_ids=buttons_id_to_release, set_enabled=False
         )
 
         for cfg_fp in cfg_fps:
@@ -289,15 +295,13 @@ class ConfigBus(SingletonAbstract, CitableModules):
             logging.info(f'Checking file path: {_fp}')
             if not _fp or not dirname_does_exist(_fp):
                 return
-            else:
-                if not filepath_does_exists(_fp):
-                    logging.warning(f'The file `{_fp}` is not valid.')
-                else:
-                    logging.info(f'The file `{_fp}` is valid.')
 
-        self.toggle_buttons(
-            buttons_ids=buttons_id_to_release, set_enabled=True
-        )
+            if not filepath_does_exists(_fp):
+                logging.warning(f'The file `{_fp}` is not valid.')
+            else:
+                logging.info(f'The file `{_fp}` is valid.')
+
+        self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=True)
 
     def button(self, button_id: str) -> QtWidgets.QPushButton:
         """Retrieves a button widget based on its ID.

@@ -9,20 +9,22 @@
 [![pymol-bundle-v3](https://tinyurl.com/pymol-bundle-v3)](https://pymol.org/)
 [![pymol-open-source](https://tinyurl.com/pymol-open-source)](https://anaconda.org/conda-forge/pymol-open-source)
 ![pyqt](https://img.shields.io/badge/PyQt-5-41CD52?logo=qt)
----
+[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+## CI Status
 [![Unit Test in docker](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_dev.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_dev.yml)
 [![Unit Test on tagging](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml)
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main.svg?style=svg&circle-token=5f78acfbe0dd8e334384b23515857bd4996ca7a1)](https://dl.circleci.com/status-badge/redirect/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main)
----
+
 [![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
 [![Docker Image for Unittests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml)
-
+## Docker images
 [![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin)
 [![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-test-image?style=social&logo=docker&label=Environment%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-test-image)
----
+## Code checkings
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/3583a7e4923d4116931fcbab21492f21)](https://app.codacy.com?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
-[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=license)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=security)
 ## Introduction
 
 Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
@@ -132,4 +134,4 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from **REvoDesign** toolkit's support resources.
 
 ---
-[![CircleCI](https://dl.circleci.com/insights-snapshot/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/main/test/badge.svg?window=30d&circle-token=465c8a4e66021ab11dd31f920a60a452b09a4cb8)](https://app.circleci.com/insights/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/workflows/test/overview?branch=main&reporting-window=last-30-days&insights-snapshot=true)
+[![CircleCI](https://dl.circleci.com/insights-snapshot/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/main/test/badge.svg?window=30d&circle-token=465c8a4e66021ab11dd31f920a60a452b09a4cb8)](https://app.circleci.com/insights/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/workflows/test/overview?branch=main&reporting-window=last-30-days&insights-snapshot=true) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=large&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_large&issueType=license)

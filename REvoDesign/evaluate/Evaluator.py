@@ -292,7 +292,7 @@ class Evalutator:
         best_mutant_id = (
             self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
                 branch_id=branch_id,
-                reversed=self.bus.get_value(
+                ascending_order=self.bus.get_value(
                     'ui.header_panel.cmap.reverse_score'
                 ),
             )
@@ -339,7 +339,7 @@ class Evalutator:
             best_mutant_id = (
                 self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
                     branch_id=branch_id,
-                    reversed=self.bus.get_value(
+                    ascending_order=self.bus.get_value(
                         'ui.header_panel.cmap.reverse_score'
                     ),
                 )

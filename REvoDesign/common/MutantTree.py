@@ -315,32 +315,33 @@ class MutantTree:
         return new_tree_instance
 
     def jump_to_the_best_mutant_in_branch(
-        self, branch_id: str, reversed: bool = False
+        self, branch_id: str, ascending_order: bool = False
     ):
         """
         Jumps to the best mutant in a specific branch based on scores.
 
         Parameters:
         - branch_id (str): ID of the branch.
-        - reversed (bool): Optional - Set to True to reverse sorting.
+        - ascending_order (bool): Optional - Set to True to reverse sorting
+            by sorting with assending order (from smaller to larger).
 
         Usage:
         tree.jump_to_the_best_mutant_in_branch('branch_id')
         """
         self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(
-            branch_id, reversed
+            branch_id, ascending_order
         )
 
     # internal function that returns instead of changes the current stored values
     def _jump_to_the_best_mutant_in_branch(
-        self, branch_id: str, reversed: bool = False
+        self, branch_id: str, ascending_order: bool = False
     ):
         mutants_scores = {
             mutant_id: mutant_obj.mutant_score
             for mutant_id, mutant_obj in self.mutant_tree[branch_id].items()
         }
         sorted_mutants_scores = sorted(
-            mutants_scores.items(), key=lambda x: x[1], reverse=not reversed
+            mutants_scores.items(), key=lambda x: x[1], reverse=not ascending_order
         )
 
         return sorted_mutants_scores[0][0]
@@ -465,12 +466,12 @@ class MutantTree:
             ).items()
         ]
 
-    def diff_tree_from(self, other_tree: 'MutantTree') -> 'MutantTree':
+    def diff_tree_from(self, incoming_tree: 'MutantTree') -> 'MutantTree':
         """
         Compares two MutantTree objects and returns the differences as a new MutantTree.
 
         Args:
-        - other_tree (MutantTree): The MutantTree object to compare with.
+        - incoming_tree (MutantTree): The incoming MutantTree object to compare with.
 
         Returns:
         - MutantTree or None: A MutantTree object containing the differences between self and other_tree,
@@ -479,14 +480,14 @@ class MutantTree:
         Raises:
         - ValueError: If the input other_tree is not a MutantTree object.
         """
-        if not isinstance(other_tree, MutantTree):
+        if not isinstance(incoming_tree, MutantTree):
             raise ValueError("Input must be a MutantTree object.")
 
         diff_tree = MutantTree({})
 
         # Compare branches in self with other_tree
         for branch_id in self.all_mutant_branch_ids:
-            if branch_id not in other_tree.all_mutant_branch_ids:
+            if branch_id not in incoming_tree.all_mutant_branch_ids:
                 # Branch exists in self but not in other_tree
                 diff_tree.update_tree_with_new_branches(
                     {branch_id: self.get_a_branch(branch_id)}
@@ -494,12 +495,12 @@ class MutantTree:
             else:
                 # Branch exists in both trees, compare branch contents
                 self_branch = self.get_a_branch(branch_id)
-                other_branch = other_tree.get_a_branch(branch_id)
+                incoming_tree_branch = incoming_tree.get_a_branch(branch_id)
 
                 diff_branch_contents = {
                     k: v
                     for k, v in self_branch.items()
-                    if k not in other_branch
+                    if k not in incoming_tree_branch
                 }
 
                 if diff_branch_contents:
