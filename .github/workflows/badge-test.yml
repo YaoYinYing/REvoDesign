@@ -1,0 +1,162 @@
+name: Test Badge
+
+on:
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: 'Test image tags'
+        required: true
+        type: string
+        default: 'latest'
+      useSelfHostedRunnerOnly:
+        description: 'Use self-hosted runners only'
+        required: false
+        type: boolean
+        default: false
+  push:
+    paths:
+      - '.github/workflows/badge-test.yml' # monitor the main workflow script.
+    branches:
+        - main
+        - py312
+
+env:
+  lint-python-version: '3.11'
+jobs:
+  DevTests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: 
+          # if any:
+          # - workflow_dispatch requires self-hosted runners 
+          # - commit message does NOT contain 'fast-test', use japs runner. 
+          # otherwise:
+          # - use github-hosted runners
+          - ${{ (inputs.useSelfHostedRunnerOnly || (! contains( github.event.head_commit.message, 'fast-test'))) && 'ubuntu-japs' || 'ubuntu-latest' }}
+        python-version: 
+          - "3.11"
+
+
+    runs-on: ${{ matrix.os }}
+    outputs:
+      linted: ${{steps.skip-lint.outputs.linted }}
+      lint-svg-url: ${{ steps.pylint-scanning.outputs.svg_link}}
+      lint-markdown: ${{ steps.pylint-scanning.outputs.markdown_text}}
+      lint-svg-path: ${{ steps.pylint-scanning.outputs.expected_badge_file}}
+      
+    container: 
+      image: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}-${{ inputs.imageTag || 'latest' }}
+      # https://github.com/actions/runner/issues/2033#issuecomment-1598547465
+      # options: --user 1001 # not work :-(
+
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+      DISPLAY: ':99.0'
+      
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Setting up display
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
+      # https://github.com/tlambert03/setup-qt-libs
+      - name: setup Qt headless Display on Ubuntu
+        run: |
+          source activate REvoDesign
+          make setup-display
+
+      - name: Install REvoDesign on ${{ matrix.os }}
+        run: |
+          source activate REvoDesign
+          make install-no-dept
+
+      - 
+        name: Set ownership
+        run: |
+          # this is to fix GIT not liking owner of the checkout dir
+          # https://github.com/actions/runner/issues/2033#issuecomment-1204205989
+          chown -R $(id -u):$(id -g) $PWD
+          echo linted=1 >> $GITHUB_OUTPUT
+        shell: bash
+      
+      - name: Skipped linting
+        id: skip-lint
+        run: |
+          if [[ ${{matrix.python-version}} == ${{env.lint-python-version}} ]];then
+            echo linted=1 >> $GITHUB_OUTPUT
+          else
+            echo linted=0 >> $GITHUB_OUTPUT
+          fi
+        
+
+      - name: PyLint Scanning
+        id: pylint-scanning
+        if: matrix.python-version == env.lint-python-version
+        
+        uses: YaoYinYing/pylint-github-action@e60661e765cda461263a36599659cac38e3144ff
+        with:
+          lint-path: REvoDesign  # lint src package
+          python-version: ${{ env.lint-python-version }}  # python version which will lint the package
+          badge-text: pylint score
+          badge-branch: badge
+          badge-file-name: pylint_scan
+          conda-env-name: REvoDesign
+
+
+
+      - name: Clean up
+        run: |
+          make clean
+
+  UpdateLinting:
+    runs-on: ${{ (inputs.useSelfHostedRunnerOnly || (! contains( github.event.head_commit.message, 'fast-test'))) && 'ubuntu-japs' || 'ubuntu-latest' }}
+    needs: DevTests
+    if: needs.DevTests.outputs.linted == 1
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          ref: badge
+
+      - name: Fetch new badge
+        run: |
+          if [[ -f ${{ needs.DevTests.outputs.lint-svg-path }} ]];then
+            mv ${{ needs.DevTests.outputs.lint-svg-path }} ${{ needs.DevTests.outputs.lint-svg-path }}.bak
+          fi
+
+          curl -o ${{ needs.DevTests.outputs.lint-svg-path }} ${{ needs.DevTests.outputs.lint-svg-url }}
+
+      - name: Compare old and new badge to create a git commit
+        id: compare_badges
+        run: |
+          if [[ ! -f ${{ needs.DevTests.outputs.lint-svg-path }}.bak ]];then
+            echo "Badge is created. Will create a new commit."
+            echo badge_check=1 >> $GITHUB_OUTPUT
+          elif [[ "$(diff -q ${{ needs.DevTests.outputs.lint-svg-path }} ${{ needs.DevTests.outputs.lint-svg-path }}.bak)" == "" ]]; then
+            echo "Badges are the same. Skipping the rest of the steps."
+            echo badge_check=0 >> $GITHUB_OUTPUT
+          else
+            echo "Badges are differed. Will create a new commit."
+            echo badge_check=1 >> $GITHUB_OUTPUT
+          fi
+        
+      - name: Update lint badge
+        if: steps.compare_badges.outputs.badge_check == 1 
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: ${{ needs.DevTests.outputs.lint-svg-path }}
+          default_author: github_actions
+          message: 'Updated pylint badge'
+          push: 'true'
+          new_branch: badge
+        
+
+    
+    

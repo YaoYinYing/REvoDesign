@@ -9,7 +9,7 @@ function download_runner_image(){
     image_url=$1
     if [[ -z "${image_url}" ]]; then
         echo "Please input the url of runner image from GitHub (See: https://github.com/actions/runner/releases/)"
-        read url;
+        read image_url;
     fi
 
     check_runner_url $image_url
@@ -257,6 +257,15 @@ else
             rm $dir/actions-runner/.env;
             ln .env $dir/actions-runner/.env;
 
+        done
+
+    elif [[ "$1" == 'clean' || "$1" == 'prune' ]];then
+        for dir in ${runner_prefix}_*; do
+            check_runner_path $dir
+            selected_dir=$dir/actions-runner/_work
+
+            # link env file for proxies
+            rm -rvf $selected_dir;
         done
     
     fi

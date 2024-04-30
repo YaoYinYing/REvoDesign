@@ -8,6 +8,7 @@ on:
         required: true
         type: string
         default: 'dispatch'
+        
   push:
     paths:
       - 'tests/docker/Dockerfile' # Monitor the entire 'docker' directory
@@ -26,11 +27,12 @@ jobs:
       fail-fast: true
       matrix:
         os: 
-          - ubuntu-latest
+          - 'ubuntu-latest'
         python-version: 
           - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
     runs-on: ${{ matrix.os }}
     
     
