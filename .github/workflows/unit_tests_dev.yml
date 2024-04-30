@@ -44,7 +44,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     container: 
-      image: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}-${{ inputs.imageTag || 'latest' }}
+      image: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}-${{ inputs.imageTag || '2024-04-29' }}
 
     env:
       OS: ${{ matrix.os }}
