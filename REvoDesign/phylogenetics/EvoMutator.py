@@ -830,7 +830,7 @@ class GREMLIN_Analyser:
                     continue
 
                 logging.debug(
-                    f'Bonding {pair.selection_string}: {res_pair[0]} amd {res_pair[1]}'
+                    f'Bonding {pair.selection_string}: {res_pair[0]} and {res_pair[1]}'
                 )
 
                 cmd.bond(

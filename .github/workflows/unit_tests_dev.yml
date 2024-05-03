@@ -112,7 +112,7 @@ jobs:
 
       - name: PyLint Scanning
         id: pylint-scanning
-        if: matrix.python-version == env.lint-python-version
+        if: steps.skip-lint.outputs.linted == 1
         
         uses: YaoYinYing/pylint-github-action@e60661e765cda461263a36599659cac38e3144ff
         with:
@@ -140,6 +140,7 @@ jobs:
     runs-on: 'ubuntu-latest'
     needs: DevTests
     if: needs.DevTests.outputs.linted == 1
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -147,20 +148,23 @@ jobs:
           ref: badge
 
       - name: Fetch new badge
+        env:
+          lint_svg_path: ${{ needs.DevTests.outputs.lint-svg-path }}
+          lint_svg_url: ${{ needs.DevTests.outputs.lint-svg-url }}
         run: |
-          if [[ -f ${{ needs.DevTests.outputs.lint-svg-path }} ]];then
-            mv ${{ needs.DevTests.outputs.lint-svg-path }} ${{ needs.DevTests.outputs.lint-svg-path }}.bak
+          if [[ -f $lint_svg_path ]];then
+            mv $lint_svg_path $lint_svg_path.bak
           fi
 
-          curl -o ${{ needs.DevTests.outputs.lint-svg-path }} ${{ needs.DevTests.outputs.lint-svg-url }}
+          curl -o $lint_svg_path $lint_svg_url
 
       - name: Compare old and new badge to create a git commit
         id: compare_badges
         run: |
-          if [[ ! -f ${{ needs.DevTests.outputs.lint-svg-path }}.bak ]];then
+          if [[ ! -f $lint_svg_path.bak ]];then
             echo "Badge is created. Will create a new commit."
             echo badge_check=1 >> $GITHUB_OUTPUT
-          elif [[ "$(diff -q ${{ needs.DevTests.outputs.lint-svg-path }} ${{ needs.DevTests.outputs.lint-svg-path }}.bak)" == "" ]]; then
+          elif [[ "$(diff -q $lint_svg_path $lint_svg_path.bak)" == "" ]]; then
             echo "Badges are the same. Skipping the rest of the steps."
             echo badge_check=0 >> $GITHUB_OUTPUT
           else
