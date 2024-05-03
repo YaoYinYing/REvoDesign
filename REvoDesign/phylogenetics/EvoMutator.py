@@ -766,12 +766,17 @@ class GREMLIN_Analyser:
                 [x for x in pair.all_res_pairs_selections.values()]
             )
             sele = f'{_tmp_obj} and ({_sele}) and n. CA'
+
             try:
+                logging.debug(
+                    f'trying to get all atom from {pair.selection_string=}: {sele=}'
+                )
                 cmd.create(
                     pair.selection_string,
                     sele,
                 )
             except CmdException:
+                logging.debug('Failed, now discard this pair!')
                 warnings.warn(
                     issues.BadDataWarning(
                         f'This atom selection is invalid: {sele}'
@@ -790,6 +795,9 @@ class GREMLIN_Analyser:
                 max_value=max_gremlin_score,
             )
             refresh_window()
+            logging.debug(
+                f'Setting stick_radius as {zscore=} for {pair.selection_string=}'
+            )
             cmd.set(
                 'stick_radius',
                 zscore,
@@ -799,9 +807,15 @@ class GREMLIN_Analyser:
             refresh_window()
             if pair.all_out_of_range:
                 i_out_of_range.append(pair)
+                logging.debug(
+                    f'Grouping {pair.selection_string=} to {self.ce_object_group_invalid=}'
+                )
                 cmd.group(self.ce_object_group_invalid, pair.selection_string)
 
             else:
+                logging.debug(
+                    f'Grouping {pair.selection_string=} to {self.ce_object_group_valid=}'
+                )
                 cmd.group(self.ce_object_group_valid, pair.selection_string)
 
             # bond w/o colors
@@ -814,6 +828,10 @@ class GREMLIN_Analyser:
                     )
 
                     continue
+
+                logging.debug(
+                    f'Bonding {pair.selection_string}: {res_pair[0]} amd {res_pair[1]}'
+                )
 
                 cmd.bond(
                     f'{pair.selection_string} and {res_pair[0]} and n. CA',
