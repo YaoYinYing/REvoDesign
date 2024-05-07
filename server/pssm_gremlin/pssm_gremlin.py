@@ -267,7 +267,7 @@ def upload_file():
         # early return for running tasks
         if (
             os.path.exists(state_file)
-            and open(state_file, "r").read().strip() == "running"
+            and ((job_state:=open(state_file, "r").read().strip()) == "running" or job_state == "queued")
         ):
             return (
                 jsonify(

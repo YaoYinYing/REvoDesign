@@ -241,12 +241,14 @@ else
         for dir in ${runner_prefix}_*; do
             check_runner_path $dir
             cd $dir/actions-runner/;
+            echo Restarting $dir ... this may take a while...
 
             # restart runner from service
-            ./svc.sh stop && ./svc.sh start;
+            ./svc.sh stop && ./svc.sh start &
 
             cd ../..;
         done
+        wait
     elif [[ "$1" == 'proxies' || "$1" == 'proxy' ]];then
         check_env_file
 
@@ -266,6 +268,7 @@ else
 
             # link env file for proxies
             rm -rvf $selected_dir;
+            mkdir -p $selected_dir
         done
     
     fi

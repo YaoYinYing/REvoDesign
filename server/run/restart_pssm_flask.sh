@@ -19,12 +19,17 @@ source activate $CONDA_ENV_NAME
 # Change to the Flask app directory
 cd $FLASK_APP_DIR
 
-# (re)start celery
-celery multi restart worker -A  pssm_gremlin.celery -l INFO  --pidfile="${WORK_DIR}/run/celery/pid/%n.pid" --logfile="${WORK_DIR}/logs/celery/%n%I.log" --concurrency=$CONCURRENCY
+echo 'Restarting celery'
+ps auxww | grep 'celery worker' | awk '{print $2}' | xargs kill -9
+# start celery
+celery multi restart worker -A  pssm_gremlin.celery -l INFO  --pidfile="$WORK_DIR/run/celery/pid/%n.pid" --logfile="$WORK_DIR/logs/celery/%n%I.log" --concurrency=$CONCURRENCY
 
+
+echo 'Kill all running processes'
 # Kill all previously running processes
 pkill -f ${CONDA_ENV_NAME}.*gunicorn
 
+echo 'Restarting gunicorn'
 # Run your Flask app using Gunicorn
 gunicorn -w $GUNICORN_WORKERS -b 0.0.0.0:${PORT} pssm_gremlin:app --log-level=info --error-logfile ${WORK_DIR}/logs/gunicorn_errors.log --access-logfile ${WORK_DIR}/logs/gunicorn_access.log 2>&1 &
 
