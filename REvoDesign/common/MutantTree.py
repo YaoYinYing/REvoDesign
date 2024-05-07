@@ -341,7 +341,9 @@ class MutantTree:
             for mutant_id, mutant_obj in self.mutant_tree[branch_id].items()
         }
         sorted_mutants_scores = sorted(
-            mutants_scores.items(), key=lambda x: x[1], reverse=not ascending_order
+            mutants_scores.items(),
+            key=lambda x: x[1],
+            reverse=not ascending_order,
         )
 
         return sorted_mutants_scores[0][0]
