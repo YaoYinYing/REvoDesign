@@ -114,7 +114,7 @@ jobs:
         id: pylint-scanning
         if: steps.skip-lint.outputs.linted == 1
         
-        uses: YaoYinYing/pylint-github-action@e60661e765cda461263a36599659cac38e3144ff
+        uses: YaoYinYing/pylint-github-action@3c4f2d9c4d7c0f57cc495f5aa7f3cf1a7b622d44
         with:
           lint-path: REvoDesign  # lint src package
           python-version: ${{ env.lint-python-version }}  # python version which will lint the package
