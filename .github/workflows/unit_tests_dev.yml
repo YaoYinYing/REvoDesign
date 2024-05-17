@@ -77,12 +77,19 @@ jobs:
         run: |
           source activate REvoDesign
           make setup-display
-
+      
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           source activate REvoDesign
           make install-no-dept
-
+      - 
+        name: Set ownership
+        run: |
+          # this is to fix GIT not liking owner of the checkout dir
+          # https://github.com/actions/runner/issues/2033#issuecomment-1204205989
+          chown -R $(id -u):$(id -g) $PWD
+        shell: bash
+      
       - name: Full Unit Test on Ubuntu
         env:
           REVODESIGN_USERS: ${{ secrets.REVODESIGN_USERS }}
