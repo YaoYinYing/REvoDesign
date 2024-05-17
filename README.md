@@ -22,7 +22,7 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-test-image?style=social&logo=docker&label=Environment%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-test-image)
 ## Code checkings
 
-[![pylint](https://github.com/YaoYinYing/REvoDesign/blob/badge/image/badge/pylint_scan.svg)](https://github.com/Silleellie/pylint-github-action)
+[![pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/REvoDesign/pylint/pylint_scan.svg)](https://github.com/Silleellie/pylint-github-action)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/3583a7e4923d4116931fcbab21492f21)](https://app.codacy.com?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=license)

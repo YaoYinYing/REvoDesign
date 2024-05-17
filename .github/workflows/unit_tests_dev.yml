@@ -60,7 +60,7 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
       DISPLAY: ':99.0'
-
+      
 
     defaults:
       run:
@@ -109,47 +109,45 @@ jobs:
           else
             echo linted=0 >> $GITHUB_OUTPUT
           fi
-
+        
       - name: PyLint Scanning
         id: pylint-scanning
         if: steps.skip-lint.outputs.linted == 1
-        
-        uses: YaoYinYing/pylint-github-action@3c4f2d9c4d7c0f57cc495f5aa7f3cf1a7b622d44
+        uses: YaoYinYing/pylint-github-action@b8fc3c1a373cb5fe949968c3126515e512ebe133
         with:
           lint-path: REvoDesign  # lint src package
           python-version: ${{ env.lint-python-version }}  # python version which will lint the package
           badge-text: pylint score
-          badge-branch: badge
           badge-file-name: pylint_scan
           conda-env-name: REvoDesign
-      
-      - name: PyLint Badge Fetching
-        id: pylint-badge-fetch
-        if: steps.skip-lint.outputs.linted == 1
-        run: |
-          mkdir -p ./badge_dir_with_uniq_name
-          curl -o ./badge_dir_with_uniq_name/${{ steps.pylint-scanning.outputs.expected_badge_file }} ${{ steps.pylint-scanning.outputs.svg_link }}
           
-      - name: PyLint Badge Uploading
-        if: steps.skip-lint.outputs.linted == 1
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-          r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          r2-bucket: ${{ secrets.R2_BUCKET }}
-          source-dir: badge_dir_with_uniq_name
-          destination-dir: ./badge_dir_with_uniq_name/REvoDesign/pylint/
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage.xml
-          env_vars: OS,PYTHON
-          fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Clean up
         run: |
           make clean
+
+    
+  UpdateLinting:
+    runs-on: 'ubuntu-latest'
+    needs: DevTests
+    if: needs.DevTests.outputs.linted == 1
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: PyLint Badge Fetching
+        id: pylint-badge-fetch
+        uses: actions/download-artifact@v4
+        with:
+          name: upload-my-awesome-badge
+          path: badge_dir_with_uniq_name
+
+      - name: Display structure of downloaded files
+        run: ls -R badge_dir_with_uniq_name
+        
+      - name: Upload to R2
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: r2 object put  ${{ secrets.R2_BUCKET }}/badge_dir_with_uniq_name/REvoDesign/pylint/pylint_scan.svg --file badge_dir_with_uniq_name/pylint_scan.svg --content-type image/svg+xml
+      
