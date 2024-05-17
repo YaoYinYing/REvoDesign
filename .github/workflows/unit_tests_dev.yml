@@ -7,7 +7,7 @@ on:
         description: 'Test image tags'
         required: true
         type: string
-        default: 'latest'
+        default: '2024-04-29'
       useSelfHostedRunnerOnly:
         description: 'Use self-hosted runners only'
         required: false
