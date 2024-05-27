@@ -58,6 +58,25 @@ In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to h
 
 Please refer to the [documentation(WIP)](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
 
+## Dependencies wait list
+> [!NOTE]
+> These are the dependencies that are not yet implemented but will be added in the toolkit.
+### Designers
+- [ ] [SaProt](https://github.com/westlake-repl/SaProt)
+- [ ] [Prime](https://github.com/ai4protein/Pro-Prime)
+- [ ] [ProtSSN](https://github.com/tyang816/ProtSSN)
+- [ ] [Native Pythia-ddG](https://github.com/Wublab/Pythia)
+- [ ] [CarbonDesign](https://github.com/zhanghaicang/carbonmatrix_public)
+- [ ] [ProtMamba](https://github.com/Bitbol-Lab/ProtMamba-ssm)
+- [ ] [LigandMPNN](https://github.com/dauparas/LigandMPNN)
+- [ ] [UniKP](https://github.com/Luo-SynBioLab/UniKP)
+- [ ] [ByProt](https://github.com/BytedProtein/ByProt)
+
+### Sidechain Solvers
+- [ ] [AttnPacker](https://github.com/MattMcPartlon/AttnPacker)
+- [ ] [opus_rota4](https://github.com/OPUS-MaLab/opus_rota4)
+- [ ] [GeoPacker](https://github.com/PKUliujl/GeoPacker)
+
 ## Installation
 
 With the recent updates, the installation process for **REvoDesign** Toolkit has been dramatically changed. Please follow the steps below:
@@ -115,12 +134,15 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    | `unittest` |   `absl-py`  |                                                        | for unit tests  |
    
    
-   **WARNING: ColabDesign uses Jax, which requires Python >= 3.9**
+   > [!WARNING]
+   > ColabDesign uses Jax, which requires **Python >= 3.9**
    
-   Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+   > [!IMPORTANT]
+   > Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
 
-   ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
-   Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
+   > [!IMPORTANT]
+   > ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
+   > Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
 
    **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
    

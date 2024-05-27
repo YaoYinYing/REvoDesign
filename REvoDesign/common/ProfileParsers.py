@@ -15,7 +15,7 @@ class ProfileManager:
         self.profile_type = profile_type
         self.parser: ProfileParserAbstract = None
 
-    def _initialize_parser(self, kwargs):
+    def _initialize_parser(self, kwargs) -> 'ProfileParserAbstract':
         if self.profile_type == 'Pythia-ddG':
             return Pythia_ddG_Parser(**kwargs)
 
