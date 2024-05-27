@@ -133,23 +133,23 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    |   `full`   |   all above  |                        all above                       | with all above  |
    | `unittest` |   `absl-py`  |                                                        | for unit tests  |
    
-   
-   > [!WARNING]
-   > ColabDesign uses Jax, which requires **Python >= 3.9**
-   
-   > [!IMPORTANT]
-   > Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
 
-   > [!IMPORTANT]
-   > ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
-   > Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
+> [!WARNING]
+> ColabDesign uses Jax, which requires **Python >= 3.9**
 
-   **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
-   
-   **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
+> [!IMPORTANT]
+> Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+
+> [!IMPORTANT]
+> ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
+> Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
+
+**Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
+
+**Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
 
 
-3. **Getting started**:
+2. **Getting started**:
    - In order to get started, you need to load/fetch a structure(`fetch 1SUO`, for example) into your PyMOL session.
    - Click `Menu` -> `REvoDesign` -> `Import PyMOL Session` to let **REvoDesign** find a designable molecule.
    - Have fun!
