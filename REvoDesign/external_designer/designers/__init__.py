@@ -38,7 +38,7 @@ else:
 
 '''
 
-class ExternalDesignerAbstract(ABC, CitableModules):
+class ExternalDesignerAbstract(CitableModules):
     """
     Abstract class for external design, providing a framework for designing molecules.
     This class is abstract and must be inherited and implemented by concrete design classes.
@@ -81,7 +81,7 @@ class ExternalDesignerAbstract(ABC, CitableModules):
         """
         ...
 
-    @abstractmethod
+
     def designer(self, *args, **kwargs):
         """
         Abstract method to execute the design algorithm.
@@ -90,9 +90,8 @@ class ExternalDesignerAbstract(ABC, CitableModules):
         Parameters:
             *args, **kwargs: Additional parameters that can be used during the design process.
         """
-        ...
+        raise NotImplementedError("Designer method not implemented")
 
-    @abstractmethod
     def scorer(self, sequence, *args, **kwargs):
         """
         Abstract method to evaluate or score a given sequence design.
@@ -102,7 +101,7 @@ class ExternalDesignerAbstract(ABC, CitableModules):
             sequence: The molecular sequence being evaluated.
             *args, **kwargs: Additional parameters for scoring, if required.
         """
-        ...
+        raise NotImplementedError("Scorer method not implemented")
 
 
 
