@@ -44,6 +44,27 @@ class ProfileManager:
 
 @dataclass
 class ProfileParserAbstract(ABC):
+    """
+    `ProfileParserAbstract` is an abstract base class designed to parse profile data associated with molecular structures.
+
+    Attributes:
+    - `profile_input`: str, the path to the input profile file.
+    - `molecule`: str, the name of the molecule.
+    - `chain_id`: str, identifier for a specific chain within the molecule's structure.
+    - `sequence`: str, the amino acid or nucleotide sequence related to the profile.
+    - `df`: pd.DataFrame, optional, stores parsed data; default is None.
+
+    Abstract Methods:
+    - `parse()`: Must be implemented by subclasses to parse the profile data into a DataFrame.
+
+    Properties:
+    - `score_max_abs`: float, computes the maximum absolute value from the parsed DataFrame's min and max values.
+    - `min_score_profile`: float, derived from `score_max_abs`, represents the minimum possible score for the profile.
+    - `max_score_profile`: float, derived from `score_max_abs`, represents the maximum possible score for the profile.
+    - `profile_input_bn`: str, returns the basename of `profile_input` if it exists as a file.
+    - `is_valid_profile`: bool, checks if the `profile_input` file exists.
+    """
+
     profile_input: str
     molecule: str
     chain_id: str
@@ -53,30 +74,72 @@ class ProfileParserAbstract(ABC):
 
     @abstractmethod
     def parse(self) -> pd.DataFrame:
+        """
+        Abstract method to be implemented by subclasses that parses the profile data and returns it as a DataFrame.
+
+        Returns:
+        - pd.DataFrame, containing the parsed profile data.
+        """
         ...
 
     @property
     def score_max_abs(self) -> float:
+        """
+        Computes the maximum absolute value between the minimum and maximum values of the DataFrame.
+
+        Returns:
+        - float, maximum absolute value found in the DataFrame.
+
+        Raises:
+        - UnexpectedWorkflowError: If the DataFrame is not properly initialized or empty.
+        """
         if not isinstance(self.df, pd.DataFrame) or self.df.empty:
             raise issues.UnexpectedWorkflowError('dataframe is not parsed!')
         return max(abs(self.df.min().min()), abs(self.df.max().max()))
 
     @property
     def min_score_profile(self) -> float:
+        """
+        Calculates the minimum possible score for the profile based on `score_max_abs`.
+
+        Returns:
+        - float, representing the minimum score.
+        """
         return -self.score_max_abs
 
     @property
     def max_score_profile(self) -> float:
+        """
+        Calculates the maximum possible score for the profile based on `score_max_abs`.
+
+        Returns:
+        - float, representing the maximum score.
+        """
         return self.score_max_abs
 
     @property
     def profile_input_bn(self) -> str:
+        """
+        Retrieves the basename of the `profile_input` file if it exists.
+
+        Returns:
+        - str, the basename of the input file.
+
+        Raises:
+        - InvalidInputError: If `profile_input` does not point to an existing file.
+        """
         if self.profile_input and os.path.exists(self.profile_input):
             return os.path.basename(self.profile_input)
         raise issues.InvalidInputError(f'Not a file: {self.profile_input=}')
 
     @property
     def is_valid_profile(self) -> bool:
+        """
+        Validates whether the `profile_input` file exists.
+
+        Returns:
+        - bool, True if the file exists, False otherwise.
+        """
         return os.path.exists(self.profile_input)
 
 
@@ -245,19 +308,38 @@ class TSVProfileParser(ProfileParserAbstract):
 
 
 class Pythia_ddG_Parser(ProfileParserAbstract):
+    """
+    The `Pythia_ddG_Parser` class is designed to parse the binding free energy (ddG) predictions from Pythia and convert them into a DataFrame format.
+
+    Methods:
+    - `parse`: Parses the ddG data and returns it as a pandas DataFrame. If the expected output does not exist, triggers a cloud computation.
+    - `_run_cloud`: Internal method to initiate Pythia calculations in case the output is not found locally. Sets up the working directory and handles the execution and citation of Pythia.
+    """
+
     def parse(self) -> pd.DataFrame:
+        """
+        Parses the Pythia ddG prediction file and returns its content as a pandas DataFrame.
+
+        Returns:
+        - `pd.DataFrame`: DataFrame containing parsed ddG data.
+
+        If the expected Pythia output file does not exist, the `_run_cloud` method is invoked to generate the predictions remotely.
+        """
         self.profile_input = os.path.join(
             os.path.abspath('.'),
             'pythia',
             f'{self.molecule}_pred_mask.csv',
         )
+
+        # Check for existing Pythia output; if not present, initiate cloud computation.
         if not os.path.exists(self.profile_input):
             self._run_cloud()
         else:
             logging.warning(
-                f'Find expected Pythia output: `{self.profile_input}`, skipping.'
+                f'Found expected Pythia output: `{self.profile_input}`, skipping computation.'
             )
-        # a nested call of parse_profile to convert ddg csv into dataframe.
+
+        # Instantiate and use CSVProfileParser to convert the CSV into a DataFrame.
         csv_parser = CSVProfileParser(
             profile_input=self.profile_input,
             molecule=self.molecule,
@@ -266,11 +348,18 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
         )
         csv_parser.parse()
 
+        # Assign the DataFrame from CSVParser to this instance's attribute.
         self.df = csv_parser.df
 
         return self.df
 
     def _run_cloud(self):
+        """
+        Internal method that triggers Pythia calculations in a remote environment when local output is missing.
+
+        Establishes the working directory for Pythia, initiates the prediction process, and handles result storage and citation.
+        In case of errors during Pythia execution, logs an error message.
+        """
         from REvoDesign.clients.PythiaBiolibClient import PythiaBiolib
 
         ddg_runner = PythiaBiolib(
@@ -278,11 +367,13 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
         )
         ddg_runner.work_dir = os.path.join(os.path.abspath('.'), 'pythia')
         os.makedirs(ddg_runner.work_dir, exist_ok=True)
+
+        # Execute Pythia prediction and handle potential errors.
         self.profile_input = ddg_runner.predict()
 
         if not self.profile_input:
-            logging.error('Oops! error occurs during pythia running!')
+            logging.error('An error occurred during the Pythia run!')
             return
 
-        logging.debug(f'Result file is stored at: {self.profile_input}')
+        logging.debug(f'The result file is stored at: {self.profile_input}')
         ddg_runner.cite()

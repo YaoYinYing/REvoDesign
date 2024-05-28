@@ -542,9 +542,9 @@ class MutantTree:
         return last_branch_id, last_mutant_id, last_mutant
 
     @property
-    def asOneMutant(self)  -> Mutant:
+    def asOneMutant(self) -> Mutant:
         """
-        This property method is used to create a single Mutant object from all the 
+        This property method is used to create a single Mutant object from all the
         mutants in the tree. It combines the mutant info of all mutants into one.
         """
         tmp_mutant_obj = Mutant(
