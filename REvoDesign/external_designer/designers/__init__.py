@@ -1,5 +1,4 @@
-import os
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from REvoDesign.citations import CitableModules
 
 '''
