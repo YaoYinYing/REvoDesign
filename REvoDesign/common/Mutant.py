@@ -163,6 +163,8 @@ class Mutant:
         # Check if the new path exists, and raise an exception if it doesn't
         if not os.path.exists(new_pdb_fp):
             raise FileNotFoundError(new_pdb_fp)
+        
+        self._pdb_fp = new_pdb_fp
 
     @property
     def full_mutant_id(self) -> str:
