@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.5.11] - 2024-06-14
 ### Added
 - Python 3.12 support.
 - Docstrings and comments.
