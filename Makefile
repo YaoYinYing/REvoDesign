@@ -33,6 +33,7 @@ help:
 	@echo "  prepare-test           run pip to install pytest-related packages"
 	@echo "  test                   run the UnitTest suite"
 	@echo "  ui-test                run the QtTest suite"
+	@echo "  ui-test-pymol          run the QtTest suite with PyMOL GUI integration."
 	@echo "  all-test               run all tests"
 	@echo "  macos-rosetta-test     run UI tests versus PyMOL incentive installation (MacOS Application)"
 	@echo "  pymol-test             run PyMOL script tests"
@@ -108,6 +109,13 @@ ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py;
+
+# ui test with pymol
+# see https://github.com/schrodinger/pymol-open-source/pull/106/files#diff-5c3fa597431eda03ac3339ae6bf7f05e1a50d6fc7333679ec38e21b337cb6721R57
+ui-test-pymol:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); pymol -ckqy /Users/yyy/miniconda_py39_arm64/lib/python3.10/site-packages/REvoDesign/tests/cases/QtTests.py;
 
 # all test
 all-test:

@@ -66,6 +66,11 @@ def find_small_molecules_in_protein(sele):
                       Returns None if the selection is not provided.
     """
     if not sele:
+        warnings.warn(
+            issues.NoInputWarning(
+                'Selection for small molecules is not provided.'
+            )
+        )
         return None  # Return None if the selection is not provided
 
     # Retrieve the atoms that belong to small molecules within the selection and extract unique small molecule names
@@ -73,6 +78,7 @@ def find_small_molecules_in_protein(sele):
         at.resn
         for at in cmd.get_model(f'( {sele} ) and (not polymer.protein)').atom
     ]
+    logging.info(f'Found small molecule names: {small_molecules}')
     unique_small_molecules = list(set(small_molecules))
 
     if unique_small_molecules:
