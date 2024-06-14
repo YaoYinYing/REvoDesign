@@ -1,6 +1,7 @@
 import os
 from . import ExternalDesignerAbstract
 
+
 # Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN(ExternalDesignerAbstract):
     def __init__(self, molecule):

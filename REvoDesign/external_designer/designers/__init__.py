@@ -37,6 +37,7 @@ else:
 
 '''
 
+
 class ExternalDesignerAbstract(CitableModules):
     """
     Abstract class for external design, providing a framework for designing molecules.
@@ -80,7 +81,6 @@ class ExternalDesignerAbstract(CitableModules):
         """
         ...
 
-
     def designer(self, *args, **kwargs):
         """
         Abstract method to execute the design algorithm.
@@ -101,7 +101,6 @@ class ExternalDesignerAbstract(CitableModules):
             *args, **kwargs: Additional parameters for scoring, if required.
         """
         raise NotImplementedError("Scorer method not implemented")
-
 
 
 from .colabdesign import ColabDesigner_MPNN

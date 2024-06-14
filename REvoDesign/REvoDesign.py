@@ -1106,19 +1106,26 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     # Tab `Determine`
     def reload_determine_tab_setup(self):
         """Setup pocket determination"""
+        molecule = self.bus.get_widget_value(
+            'ui.header_panel.input.molecule', str
+        )
+        if not molecule:
+            warnings.warn(issues.NoResultsWarning('No design molecule found.'))
+            return
 
         small_molecules = ['']
-        if more_hetatm := find_small_molecules_in_protein(
-            self.design_molecule
-        ):
+        if more_hetatm := find_small_molecules_in_protein(molecule):
             small_molecules.extend(more_hetatm)
-        if small_molecules:
-            self.bus.set_widget_value(
-                'ui.prepare.input.pocket.substrate', small_molecules
-            )
-            self.bus.set_widget_value(
-                'ui.prepare.input.pocket.cofactor', small_molecules
-            )
+            logging.info(f"Small molecules found: {more_hetatm}")
+        else:
+            warnings.warn(issues.NoResultsWarning('No small molecule found.'))
+
+        self.bus.set_widget_value(
+            'ui.prepare.input.pocket.substrate', small_molecules
+        )
+        self.bus.set_widget_value(
+            'ui.prepare.input.pocket.cofactor', small_molecules
+        )
 
     def update_surface_exclusion(self):
         """Setup surface determination"""

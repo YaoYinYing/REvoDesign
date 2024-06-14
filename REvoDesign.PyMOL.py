@@ -1010,9 +1010,10 @@ def __init_plugin__(app=None):
 
     plugin = REvoDesignInstaller()
     addmenuitemqt('REvoDesign Installer', plugin.run_plugin_gui)
-
+    
     try:
         from REvoDesign import REvoDesignPlugin
+        
 
         plugin = REvoDesignPlugin()
         addmenuitemqt('REvoDesign', plugin.run_plugin_gui)

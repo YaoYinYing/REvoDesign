@@ -2,6 +2,7 @@ import os
 import glob
 import random
 import pytest
+import pymol
 
 import REvoDesign.tools
 import REvoDesign.boot.post_installed
@@ -1822,5 +1823,10 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
         assert os.path.exists(WORKER.test_data.multi_mut_txt_mpnn)
 
 
+def main(args=None):
+    pytest.main(args=args)
+
+
 if __name__ == '__main__' or __name__ == 'pymol':
-    pytest.main()
+    print(f'Parent: {__name__}')
+    main(args=None)

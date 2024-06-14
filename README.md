@@ -13,7 +13,7 @@
 ## CI Status
 [![Unit Test in docker](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_dev.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_dev.yml)
 [![Unit Test on tagging](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml)
-[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main.svg?style=svg&circle-token=5f78acfbe0dd8e334384b23515857bd4996ca7a1)](https://dl.circleci.com/status-badge/redirect/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/tree/main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/YaoYinYing/REvoDesign/tree/main.svg?style=svg&circle-token=CCIPRJ_HUET1GZsh4QvG9zsGJmd4n_37fb6a6c718247b0e7b4cf65e007a815279af3bd)](https://dl.circleci.com/status-badge/redirect/gh/YaoYinYing/REvoDesign/tree/main)
 
 [![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
 [![Docker Image for Unittests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml)
