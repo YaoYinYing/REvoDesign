@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- Python 3.12 support.
+- Docstrings and comments.
+- A timer context manager from AF2 code.
+- Test: UI tests with PyMOL GUI. This is currently an experimental feature.
+- Budge: PyLint score
+
+### Fixed
+- CI: runners and test env images.
+- Lints, typing hints and imports.
+- Small molecule searching
 
 ## [1.5.10] - 2024-04-17
 ### Added
