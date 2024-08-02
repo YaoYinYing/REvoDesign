@@ -39,7 +39,8 @@ hydra-core= "^1.3.2"
 omegaconf = "^2.3.0"
 rdkit = ">=2023.9.4" 
 msgpack="*"
-bibtexparser="*"
+bibtexparser={ git = "https://github.com/sciunto-org/python-bibtexparser.git", tag = "v2.0.0b7" }
+
 
 
 # optional packages
