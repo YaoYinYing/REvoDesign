@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+### Changed
+- Entry: 
+  - GitSolver for Git
+  - Eusure pip < 23
+- deps: bibtexparser: pin to 2 beta from github tag
+
+
 ## [1.5.11] - 2024-06-14
 ### Added
 - Python 3.12 support.
