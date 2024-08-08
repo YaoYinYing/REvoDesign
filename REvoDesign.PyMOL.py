@@ -9,37 +9,74 @@ Date    : Sept 2023
 REvoDesign -- Makes enzyme redesign tasks easier to all.
 '''
 
-from contextlib import contextmanager
 import subprocess
 import time
-from typing import Iterable
-from pymol.Qt import QtCore, QtGui, QtWidgets
+
+import warnings
 import traceback
 import json
 import os
+import shutil
+
+from typing import Iterable, Mapping, Optional, Union, Protocol
 
 from dataclasses import dataclass
+from contextlib import contextmanager
 
+
+from pymol.Qt import QtCore, QtGui, QtWidgets
 
 print(f'REvoDesign entrypoint is located at {os.path.dirname(__file__)}')
 
-install_msg = '''
-You can still use the following in PyMOL command prompt to install REvoDesign manually:\n
-`install_REvoDesign_via_pip` or \n
-`install_REvoDesign_via_pip file:///local/path/to/repository/of/REvoDesign`\n
-After it is done, you should restart PyMOL.
-'''
 
 REPO_URL: str = 'https://github.com/YaoYinYing/REvoDesign'
 AVAILABLE_EXTRAS: list = ['', 'tf', 'torch', 'jax', 'full', 'unittest']
 
 
-def run_command(cmd):
+def run_command(
+    cmd: Union[tuple[str], str],
+    verbose: bool = False,
+    env: Mapping[str, str] = {},
+) -> subprocess.CompletedProcess:
+    """
+    Execute a specified command in the shell.
+
+    Parameters:
+    - cmd: A tuple or string representing the command to be executed. If it's a tuple, it represents the command and its parameters.
+    - verbose: A boolean indicating whether to print detailed execution information.
+    - env: A mapping object containing environment variables for the command.
+
+    Returns:
+    - The CompletedProcess object returned by subprocess.run(), containing the command execution information.
+
+    Raises:
+    - When the command execution fails (return code is not 0) and verbose is True, a RuntimeError is raised.
+    """
+    # Optionally print the command for debugging
+    if verbose:
+        print(cmd)
+
+    # Execute the command using subprocess.run()
     result = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        encoding="utf-8",
+        env=env if env else None,
+        universal_newlines=True,
     )
+
+    # Optionally print the command output for debugging
+    if verbose and (res_text := result.stdout):
+        print(res_text)
+
+    # If the command execution fails and verbose is True, raise an exception
+    if result.returncode != 0 and verbose:
+        raise RuntimeError(
+            f"--> Command failed: \n{'-'*79}\n{result.stderr}\n{'-'*79}"
+        )
+
+    # Return the execution result
     return result
 
 
@@ -508,32 +545,46 @@ class Ui_Dialog(object):
 
 @dataclass
 class GitSolver:
+    """
+    A class that checks for the presence of Git, Conda, and Winget on the system and can install Git if necessary.
+    """
 
-    @property
-    def has_git(self) -> bool:
-        import shutil
+    __slots__ = ['has_git', 'has_conda', 'has_winget']
 
-        return shutil.which('git') is not None
-    
-    @property
-    def has_winget(self) -> bool:
-        import shutil
-        return shutil.which('winget') is not None
+    def __post_init__(self):
+        """
+        Initializes instance attributes to check if git, conda, and winget are installed.
 
-    def fetch_git(self):
-        import platform, shutil
+        This method is automatically called after the object initialization.
+        It sets the object's properties based on whether these tools are available in the system path.
+        This ensures that the object can determine if it can perform related operations before doing so.
+        """
+        for c in ['git', 'conda', 'winget']:
+            setattr(self, f'has_{c}', shutil.which(c) is not None)
 
+    def fetch_git(self, env: Optional[Mapping[str, str]]):
+        """
+        Installs Git if it is not present on the system.
+
+        This method attempts to install Git based on the available installers (Conda, Winget) or the system type.
+        If the installation is successful, it returns True. Otherwise, it provides error information and returns False.
+
+        Parameters:
+            env (Optional[Mapping[str, str]]): Environment variables for the installation process.
+        """
+        import platform
+
+        # Check if Git is already installed
         if self.has_git:
-            return
+            return True
 
+        # Get system information for conditional logic
         uname_info = platform.uname()
-        print(uname_info)
-        if shutil.which('conda') is not None:
+
+        # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
+        if self.has_conda:
             cmd = ['conda', 'install', '-y', 'git']
-        elif (
-            uname_info.system == "Windows"
-            and self.has_winget
-        ):
+        elif uname_info.system == "Windows" and self.has_winget:
             cmd = [
                 "winget",
                 "install",
@@ -546,44 +597,51 @@ class GitSolver:
                 "--accept-source-agreements",
             ]
         else:
+            # If neither Conda nor Winget is present, prompt the user to install Git manually
             notify_box(
                 message='Git is required to install REvoDesign. Please install Git first.\n'
                 'See https://git-scm.com/downloads',
             )
-            return
+            return False
 
+        # Prompt the user for confirmation to install Git
         confirmed = proceed_with_comfirm_msg_box(
             title='Install Git?',
             description=f'Do you want to install git first?\n command:\n {" ".join(cmd)}',
         )
         if not confirmed:
+            # If the user cancels the installation, notify and return
             notify_box(message='Git installation is cancelled.')
-            return
+            return False
 
-        git_install_std = run_worker_thread_with_progress(
-            worker_function=run_command,
+        # Execute the Git installation command in a worker thread and monitor progress
+        git_install_std: subprocess.CompletedProcess = run_command(
             cmd=cmd,
-            progress_bar=self.ui.progressBar,
+            verbose=True,
+            env=env,
         )
 
+        # Check if the Git installation was successful
         if (
             git_install_std
             and git_install_std.returncode == 0
-            and self.git_installed()
+            and self.has_git
         ):
+            # If successful, show a notification and return True
             notify_box(message=f'Git installed successfully.')
+            return True
         else:
+            # If installation failed, show error information and return False
             try:
-                stdout, stderr = git_install_std.stdout.decode(
-                    'utf-8'
-                ), git_install_std.stderr.decode('utf-8')
+                stdout, stderr = git_install_std.stdout, git_install_std.stderr
             except UnicodeDecodeError as e:
+                with open((fp := os.path.abspath('error.log')), 'w') as f:
+                    f.write(f'STDOUT:\n{stdout}\n\n\n\nSTDERR:\n{stderr}')
+
                 notify_box(
-                    message=f'Git not installed.\n {e}',
+                    message=f'Git not installed due to {e}.\n Error details saved to {fp}\n',
+                    error_type=RuntimeError,
                 )
-            notify_box(
-                message=f'Git not installed.\n {stdout}\n {stderr}',
-            )
 
 
 @dataclass
@@ -599,7 +657,31 @@ class REvoDesignInstaller:
             worker_function=self.fetch_tags, progress_bar=self.ui.progressBar
         )
 
-    def make_window(self) -> QtWidgets.QDialog:
+    @staticmethod
+    def proxy_in_env(proxy: str) -> Mapping[str, str]:
+        """
+        Generates an environment mapping based on the provided proxy string.
+
+        Args:
+            proxy (str): The proxy string to use for creating the environment variables.
+
+        Returns:
+            Mapping[str, str]: A dictionary containing the proxy settings for environment variables.
+                            If `proxy` is empty, returns an empty dictionary.
+        """
+
+        if not proxy:
+            return {}
+
+        print(f'using proxy: {proxy}')
+        proxy_env = {
+            'http_proxy': proxy,
+            'https_proxy': proxy,
+            'all_proxy': proxy,
+        }
+        return proxy_env
+
+    def make_window(self) -> QtWidgets.QDialog:  # type: ignore
         self.ui = Ui_Dialog()
 
         dialog = QtWidgets.QDialog()
@@ -680,14 +762,19 @@ class REvoDesignInstaller:
             return
 
         with hold_trigger_button(self.ui.pushButton_remove):
-            run_worker_thread_with_progress(
+            ret: subprocess.CompletedProcess = run_worker_thread_with_progress(
                 worker_function=install_via_pip,
                 uninstall=True,
                 progress_bar=self.ui.progressBar,
             )
 
+            if not ret.returncode:
+                notify_box(
+                    message='REvoDesign is removed successfully. Bye-bye.',
+                )
+                return
             notify_box(
-                message='REvoDesign is removed successfully. Bye-bye.',
+                message='Failed to remove REvoDesign.', error_type=RuntimeError
             )
 
     def install(self):
@@ -726,12 +813,14 @@ class REvoDesignInstaller:
         elif from_local_clone:
             install_source = local_source
             if not local_source:
-                raise ValueError(f'Empty local dir: {local_source}')
+                notify_box(f'Empty local dir: {local_source}', ValueError)
             if not os.path.exists(local_source):
-                raise ValueError(f'dir not exists: {local_source}')
+                notify_box(f'dir not exists: {local_source}', ValueError)
 
             if not os.path.isdir(local_source):
-                raise FileNotFoundError(f'{local_source} not a directory')
+                notify_box(
+                    f'{local_source} not a directory', FileNotFoundError
+                )
 
             if use_version and target_version:
                 install_source = f'file://{install_source}@{target_version}'
@@ -740,15 +829,16 @@ class REvoDesignInstaller:
         elif from_local_file:
             install_source = local_source
             if not os.path.exists(local_source):
-                raise FileNotFoundError(f'{local_source} is not found.')
+                notify_box(f'{local_source} is not found.', FileNotFoundError)
             if not os.path.isfile(local_source):
-                raise ValueError(f'{local_source} is not a file.')
+                notify_box(f'{local_source} is not a file.', ValueError)
             if not (
                 local_source.endswith('.zip')
                 or local_source.endswith('.tar.gz')
             ):
-                raise ValueError(
-                    f'{local_source} must be a .zip or .tar.gz file!'
+                notify_box(
+                    f'{local_source} must be a .zip or .tar.gz file!',
+                    ValueError,
                 )
             if use_version or use_commit or target_version or target_commit:
                 print(
@@ -757,27 +847,52 @@ class REvoDesignInstaller:
             install_source = local_source
 
         if not install_source:
-            raise ValueError('Installation configuration is failed. Aborded. ')
+            notify_box(
+                'Installation configuration is failed. Aborded. ', ValueError
+            )
+
+        env = {}
+
+        env.update(
+            self.proxy_in_env(
+                proxy=proxy_url if (use_proxy and proxy_url) else None
+            )
+        )
 
         with hold_trigger_button(self.ui.pushButton_install):
-            ensure_lower_pip()
+            ensure_lower_pip(env=env)
             git_solver = GitSolver()
-            git_solver.fetch_git()
-
-            installed = run_worker_thread_with_progress(
-                worker_function=install_via_pip,
+            has_git = run_worker_thread_with_progress(
+                worker_function=git_solver.fetch_git,
+                env=env,
                 progress_bar=self.ui.progressBar,
-                source=install_source,
-                upgrade=upgrade,
-                vebose=verbose,
-                extras=extras,
-                proxy=proxy_url if (use_proxy and proxy_url) else '',
-                mirror=mirror_url if (use_mirror and mirror_url) else '',
             )
-            if installed:
+
+            if not has_git:
+                return
+
+            installed: Union[subprocess.CompletedProcess, None] = (
+                run_worker_thread_with_progress(
+                    worker_function=install_via_pip,
+                    progress_bar=self.ui.progressBar,
+                    source=install_source,
+                    upgrade=upgrade,
+                    verbose=verbose,
+                    extras=extras,
+                    env=env,
+                    mirror=mirror_url if (use_mirror and mirror_url) else '',
+                )
+            )
+            if isinstance(installed,subprocess.CompletedProcess ) and installed.returncode == 0:
                 notify_box(
                     message='Installation succeeded. \nIf this is an upgrade, please restart PyMOL for it to take effect.',
                 )
+                return
+
+            notify_box(
+                message=f'Installation failed from: {install_source} \n',
+                error_type=RuntimeError,
+            )
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
@@ -836,9 +951,17 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
 
+class QtProgressBarHint(Protocol):
+    def minimum(self) -> int: ...
+    def maximum(self) -> int: ...
+    def value(self) -> int: ...
+    def setRange(self, min: int, max: int): ...
+    def setValue(self, value: int): ...
+
+
 # a copy from `REvoDesign/tools/utils.py`
 def run_worker_thread_with_progress(
-    worker_function, progress_bar=None, *args, **kwargs
+    worker_function, progress_bar=Optional[QtProgressBarHint], *args, **kwargs
 ):
     if progress_bar:
         # store the progress bar state
@@ -928,10 +1051,7 @@ def set_widget_value(widget, value):
     - QCheckBox: Supports bool.
     """
 
-    def set_value_error(widget, value):
-        print(
-            f'FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}'
-        )
+    class UnsupportedWidgetValueTypeError(TypeError): ...
 
     # Preprocess values according to types
     if callable(value):
@@ -951,23 +1071,35 @@ def set_widget_value(widget, value):
         if isinstance(value, (list, tuple)):
             widget.clear()
             widget.addItems(map(str, value))
-        elif isinstance(value, dict):
+            return
+        if isinstance(value, dict):
             widget.clear()
             for k, v in value.items():
                 widget.addItem(v, k)
-        else:
-            widget.setCurrentText(str(value))
-    elif isinstance(widget, QtWidgets.QLineEdit):
+            return
+
+        widget.setCurrentText(str(value))
+        return
+    if isinstance(widget, QtWidgets.QLineEdit):
         widget.setText(str(value))
-    elif isinstance(widget, QtWidgets.QProgressBar):
+        return
+    if isinstance(widget, QtWidgets.QProgressBar):
         if isinstance(value, int):
             widget.setValue(value)
-        elif isinstance(value, (list, tuple)) and len(value) == 2:
+            return
+        if isinstance(value, (list, tuple)) and len(value) == 2:
             widget.setRange(*value)
-    elif isinstance(widget, QtWidgets.QCheckBox):
+            return
+        raise ValueError(
+            f'Invalid value {value} for QProgressBar. Value must be an integer or a list/tuple of two integers.'
+        )
+    if isinstance(widget, QtWidgets.QCheckBox):
         widget.setChecked(bool(value))
-    else:
-        set_value_error(widget, value)
+        return
+
+    raise UnsupportedWidgetValueTypeError(
+        f'FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}'
+    )
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
@@ -977,15 +1109,38 @@ def refresh_window():
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
 def notify_box(
-    message: str = '',
+    message: str = '', error_type: Optional[Union[Exception, Warning]] = None
 ):
-    # A notify message.
+    """
+    Display a notification message box.
+
+    Parameters:
+    - message: str, the content of the message box.
+    - error_type: Optional[Union[Exception, Warning]], the type of error or warning, can be None.
+
+    Returns:
+    - None, but if error_type is not None, it either shows a warning or raises an exception.
+    """
+    # Create an information message box
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Information)
     msg.setText(message)
     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
+    # Display the message box
     msg.exec_()
+    # If error_type is None, end the function execution
+    if error_type is None:
+        return True
+
+    # if it is warning, show the warning message and return
+    if isinstance(error_type(), Warning):
+        warnings.warn(error_type(message))
+        return True
+
+    # otherwise raise the exception
+    if isinstance(error_type(), Exception):
+        raise error_type(message)
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
@@ -1035,7 +1190,9 @@ def hold_trigger_button(button):
         button.setEnabled(True)
 
 
-def solve_installation_config(source, git_url, git_tag, extras):
+def solve_installation_config(
+    source: str, git_url: str, git_tag: str, extras: str
+):
     package_string = f"REvoDesign{f'[{extras}]' if extras and extras in AVAILABLE_EXTRAS else ''}"
 
     # with github url and tag
@@ -1044,91 +1201,101 @@ def solve_installation_config(source, git_url, git_tag, extras):
         return package_string
 
     # with git repo clone and tag
-    elif source.startswith('file://'):
+    if source.startswith('file://'):
         dir = git_url.replace('file://', '')
         if not os.path.exists(os.path.join(dir, '.git')):
-            raise FileNotFoundError(
-                f'Git dir not found: {os.path.join(dir, ".git")}'
-            )
+            notify_box(f'Git dir not found: {os.path.join(dir, ".git")}')
         package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
         return package_string
 
     # with unzipped code dir
-    elif os.path.exists(source) and os.path.isdir(source):
+    if os.path.exists(source) and os.path.isdir(source):
         if not os.path.exists(os.path.join(source, 'pyproject.toml')):
-            raise FileNotFoundError(
-                f'{source} is not a directory containing pyproject.toml'
+            notify_box(
+                f'{source} is not a directory containing pyproject.toml',
+                FileNotFoundError,
             )
         if git_tag:
-            raise ValueError('unzipped code directory can not have a tag!')
+            notify_box(
+                'unzipped code directory can not have a tag!', ValueError
+            )
         if source.endswith('/'):
             source = source[:-1]
         package_string = f"{source}{f'[{extras}]'if extras else ''}"
         return package_string
 
     # with zipped code archive
-    elif os.path.exists(source) and os.path.isfile(source):
+    if os.path.exists(source) and os.path.isfile(source):
         if git_tag:
-            raise ValueError('zipped file can not have a tag!')
+            notify_box('zipped file can not have a tag!', ValueError)
 
         if source.endswith('.zip'):
             package_string = f"{source}{f'[{extras}]'if extras else ''}"
         elif source.endswith('.tar.gz'):
             package_string = f"{source}{f'[{extras}]'if extras else ''}"
         else:
-            raise FileNotFoundError(
-                f'{source} is neither a zipped file nor a tar.gz file!'
+            notify_box(
+                f'{source} is neither a zipped file nor a tar.gz file!',
+                FileNotFoundError,
             )
 
         return package_string
 
-    else:
-        raise ValueError(f'Unknown installation source {source}!')
+    notify_box(f'Unknown installation source {source}!', ValueError)
 
 
-def ensure_lower_pip():
+def ensure_lower_pip(env: Optional[Mapping[str, str]]):
+    """
+    Ensure the pip version is lower than 24.0, as REvoDesign installation requires pip<24.0.
 
+    Parameters:
+    - env: Optional[Mapping[str, str]] - The environment variables for the pip installation command, optional.
+
+    Returns:
+    None
+    """
+    # Import necessary modules
     import sys
     import warnings
     import pip
 
-    pip_ver: float = float(pip.__version__)
+    # Get the current pip version number
+    pip_ver: float = float(pip.__version__.split('.')[0])
+    # If the pip version is already lower than 24.0, no action is needed
     if pip_ver < 24.0:
         return
 
+    # Warn the user that pip>=24.0 will be required for future REvoDesign installations
     warnings.warn(
         FutureWarning(
             'pip>=24.0 will be required for REvoDesign installation.'
         )
     )
 
+    # Get the absolute path of the current Python executable
     python_exe = os.path.realpath(sys.executable)
-    pip_cmd = [python_exe, '-m', 'pip', 'install', '-U', 'pip<24.0']
+    # Construct the command to install a specific version of pip
+    pip_cmd = [python_exe, '-m', 'pip', 'install', '-U', 'pip<24.0', '-q']
 
-    print(pip_cmd)
-
-    result = subprocess.run(
-        pip_cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    # Execute the pip installation command
+    result = run_command(pip_cmd, verbose=True, env=env)
+    # If the pip downgrade command fails, notify the user to manually execute the command
     if result.returncode:
-        print(result.stdout.decode('utf-8'))
-        print(result.stderr.decode('utf-8'))
-        raise ValueError(
-            f'Failed to downgrade pip. Please upgrade pip manually.'
+        notify_box(
+            'Failed to downgrade pip. Please upgrade/downgrade pip<24.0 manually.\n'
+            f'Run this command in your shell - `{" ".join(pip_cmd)}`'
         )
 
 
 def install_via_pip(
     source=REPO_URL,
     upgrade=0,
-    vebose=1,
+    verbose=1,
     extras='',
-    proxy='',
     mirror='',
     uninstall=False,
-):
+    env: Optional[Mapping[str, str]] = None,
+) -> subprocess.CompletedProcess:
     def get_source_and_tag(source):
         git_dir = source.split('@')[0]
         if '@' in source:
@@ -1140,15 +1307,21 @@ def install_via_pip(
     import sys
 
     upgrade = int(upgrade)
-    vebose = int(vebose)
+    verbose = int(verbose)
 
     print(
         'Installation is started. This may take a while and the window will freeze until it is done.'
     )
+
     python_exe = os.path.realpath(sys.executable)
 
     # run installation via pip
-    run_command([python_exe, '-m', 'ensurepip'])
+    ensurepip = run_command(
+        [python_exe, '-m', 'ensurepip'], verbose=verbose, env=env
+    )
+    if ensurepip.returncode:
+        notify_box('ensurepip failed.')
+        return None
 
     if uninstall:
         pip_cmd = [
@@ -1180,29 +1353,17 @@ def install_via_pip(
         if upgrade:
             pip_cmd.append('--upgrade')
 
-        if proxy:
-            print(f'using proxy: {proxy}')
-            pip_cmd.extend(['--proxy', proxy])
-
         if mirror:
             print(f'using mirror from {mirror}')
             pip_cmd.extend(['-i', mirror])
 
     print(pip_cmd)
 
-    result = run_command(pip_cmd)
-    if result.returncode != 0:
-        print(f'Installation failed: {source} \n')
-        if vebose:
-            print(f'stdout: {result.stdout.decode()}')
-            print(f'stderr: {result.stderr.decode()}')
-    else:
-        print(
-            f'Installation succeeded: {source}.\nIf this is an upgrade, please restart PyMOL for it to take effect.',
-        )
-        if vebose:
-            print(f'stdout: {result.stdout.decode()}')
-    return result.returncode == 0
+    result: subprocess.CompletedProcess = run_command(
+        pip_cmd, verbose=verbose, env=env
+    )
+
+    return result
 
 
 # entrypoint of PyMOL plugin
@@ -1224,8 +1385,3 @@ def __init_plugin__(app=None):
         traceback.print_exc()
 
         print('REvoDesign is not available.')
-
-    finally:
-        from pymol import cmd
-
-        cmd.extend('install_REvoDesign_via_pip', install_via_pip)

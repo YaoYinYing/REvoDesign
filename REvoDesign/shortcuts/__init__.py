@@ -456,3 +456,46 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
 
 
 cmd.extend("color_by_mutation", color_by_mutation)
+
+
+def dump_sidechains(
+    sele: str,
+    enabled_only: bool=False,
+    save_dir: str = 'png/sidechain_dump/',
+    height: int = 1280,
+    width: int = 1280,
+    dpi: int = 150,
+    ray: bool = True,
+):
+    '''
+    Dumps sidechain images of selected models to a directory.
+    Parameters:
+      sele (str): Selection string to choose the models.
+      enabled_only (bool, optional): If True, only dumps enabled models. Defaults to False.
+      save_dir (str, optional): Directory path to save the images. Defaults to 'png/sidechain_dump/'.
+      height (int, optional): Height of the image in pixels. Defaults to 1280.
+      width (int, optional): Width of the image in pixels. Defaults to 1280.
+      dpi (int, optional): DPI of the image. Defaults to 150.
+      ray (bool, optional): If True, uses ray tracing. Defaults to True.
+    Returns:
+      None
+    '''
+    
+
+    all_models = cmd.get_names('objects', int(enabled_only), sele)
+    os.makedirs(save_dir, exist_ok=True)
+
+    (cmd.disable(m) for m in all_models)
+
+    for m in all_models:
+        print(f'Dumping PNG for {m} ...')
+        cmd.enable(m)
+        cmd.show('sticks', m)
+        cmd.show('mesh', m)
+        cmd.center(f'{m}')
+        p = os.path.join(save_dir, f'{m}.png')
+        cmd.png(p, height, width, dpi, int(ray))
+        cmd.disable(m)
+
+
+cmd.extend("dump_sidechains", dump_sidechains)
