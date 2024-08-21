@@ -1,9 +1,15 @@
 import os
+from typing import Tuple
 
 from pymol import cmd
 from REvoDesign import ConfigBus, root_logger
 
 logging = root_logger.getChild(__name__)
+
+"""
+This module is used to search pocket residues for a given molecule.
+"""
+
 
 
 class PocketSearcher:
@@ -33,17 +39,54 @@ class PocketSearcher:
         )
         self.save_dir = save_dir
 
+    @staticmethod
+    def process_multiple_resn(selection: str) -> Tuple[str, str]:
+        """
+        Processes a selection string to generate formatted outputs.
+
+        This function takes a string that may contain one or more comma-separated elements.
+        It processes the input and returns two strings:
+        - The first string is a concatenation of the elements separated by underscores.
+        - The second string provides a PyMOL property selection syntax description of the elements.
+
+        Parameters:
+        - selection (str): A string containing one or more residue names, possibly separated by commas.
+
+        Returns:
+        - Tuple[str, str]: A tuple containing two strings:
+            1. Elements joined by underscores.
+            2. Descriptive text with residue name listed and prefixed with 'r.'.
+        """
+
+        if not selection:
+            # If the input string is empty, return two empty strings.
+            return '', ''
+
+        if not ',' in selection:
+            # If there are no commas in the input, return the input as is and a formatted version.
+            return selection, f'r. {selection}'
+
+        # Remove spaces and split the input string by commas.
+        _sele = selection.replace(' ', '').split(',')
+
+        # Join the elements with underscores and create a descriptive string.
+        return '_'.join([_sel for _sel in _sele]), ' or '.join([f'r. {_sel}' for _sel in _sele])
+            
+
+
     def search_pockets(self):
         cmd.load(self.input_pse)
+
+        ligand_label, ligand_sele = self.process_multiple_resn(self.ligand)
 
         hetatm_pocket_id = cmd.get_unused_name(
             f'pkt_hetatm_{self.ligand_radius}_'
         )
         substrate_pocket_id = cmd.get_unused_name(
-            f'pkt_{self.ligand}_{self.ligand_radius}_'
+            f'pkt_{ligand_label}_{self.ligand_radius}_'
         )
         design_shell_id = cmd.get_unused_name(
-            f'design_shell_{self.ligand}_{self.ligand_radius}_'
+            f'design_shell_{ligand_label}_{self.ligand_radius}_'
         )
 
         cmd.select(
@@ -52,7 +95,7 @@ class PocketSearcher:
         )
         cmd.select(
             substrate_pocket_id,
-            f'({self.molecule} and c. {self.chain_id}) and (byres resn {self.ligand} around {self.ligand_radius}) and polymer.protein',
+            f'({self.molecule} and c. {self.chain_id}) and (byres ({ligand_sele}) around {self.ligand_radius}) and polymer.protein',
         )
         cmd.select(
             design_shell_id,
@@ -65,10 +108,12 @@ class PocketSearcher:
             design_shell_id,
         ]
 
-        logging.debug(f'cofactor info {self.cofactor}: {self.cofactor_radius}')
+        
         if self.cofactor and self.cofactor_radius > 0:
+            logging.debug(f'cofactor info {self.cofactor} ({cofact_label}: {cofact_sele}): {self.cofactor_radius}')
+            cofact_label, cofact_sele = self.process_multiple_resn(self.cofactor)
             cofactor_pocket_id = cmd.get_unused_name(
-                f'pkt_cof_{self.cofactor}_{self.cofactor_radius}_'
+                f'pkt_cof_{cofact_label}_{self.cofactor_radius}_'
             )
             logging.info(
                 f'Setting cofactor {self.cofactor}: {cofactor_pocket_id}'
@@ -76,7 +121,7 @@ class PocketSearcher:
 
             cmd.select(
                 cofactor_pocket_id,
-                f'({self.molecule} and c. {self.chain_id}) and (byres resn {self.cofactor} around {self.cofactor_radius}) and polymer.protein',
+                f'({self.molecule} and c. {self.chain_id}) and (byres resn ({cofact_sele}) around {self.cofactor_radius}) and polymer.protein',
             )
             cmd.select(
                 design_shell_id,

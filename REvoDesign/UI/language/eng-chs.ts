@@ -24,9 +24,8 @@
         <translation>催化口袋选择</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="134"/>
         <source>Substrate/Product molecule. Use PyMOL selection syntax(eg. (LIG or PRD))</source>
-        <translation>底物或者产物分子。可以使用PyMOL的选择语法，例如`(LIG or PRD)`</translation>
+        <translation type="obsolete">底物或者产物分子。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="153"/>
@@ -46,9 +45,8 @@
         <translation>底物：</translation>
     </message>
     <message>
-        <location filename="../REvoDesign.ui" line="229"/>
         <source>Co-factor or co-enzyme, HEM/FAD/NAD, etc. Use PyMOL selection syntax (eg. (HEM or FAD))</source>
-        <translation>辅因子或者辅酶分子，例如HEM/FAD/NAD。可以使用PyMOL的选择语法，例如`(HEM or FAD)`</translation>
+        <translation type="obsolete">辅因子或者辅酶分子，例如HEM/FAD/NAD。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="245"/>
@@ -975,6 +973,16 @@
         <location filename="../REvoDesign.ui" line="3392"/>
         <source>Next co-evolved pair.</source>
         <translation>下一组共进化位点对</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="134"/>
+        <source>Substrate/Product molecule. Comma separated if multiple, eg. `XXX,YYY`</source>
+        <translation>底物或者产物分子。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
+    </message>
+    <message>
+        <location filename="../REvoDesign.ui" line="229"/>
+        <source>Co-factor or co-enzyme, HEM/FAD/NAD. Comma separated if multiple, eg. `XXX,YYY`</source>
+        <translation>辅因子或者辅酶分子，例如HEM/FAD/NAD。如果需要选择多个，使用英文逗号分隔，例如`XXX,YYY`</translation>
     </message>
     <message>
         <location filename="../REvoDesign.ui" line="3233"/>

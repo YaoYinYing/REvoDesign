@@ -131,7 +131,7 @@
                </size>
               </property>
               <property name="statusTip">
-               <string>Substrate/Product molecule. Use PyMOL selection syntax(eg. (LIG or PRD))</string>
+               <string>Substrate/Product molecule. Comma separated if multiple, eg. `XXX,YYY`</string>
               </property>
               <property name="whatsThis">
                <string/>
@@ -226,7 +226,7 @@
                </size>
               </property>
               <property name="statusTip">
-               <string>Co-factor or co-enzyme, HEM/FAD/NAD, etc. Use PyMOL selection syntax (eg. (HEM or FAD))</string>
+               <string>Co-factor or co-enzyme, HEM/FAD/NAD. Comma separated if multiple, eg. `XXX,YYY`</string>
               </property>
               <property name="editable">
                <bool>true</bool>
