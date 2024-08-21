@@ -344,7 +344,7 @@ def extract_mutant_from_pymol_object(pymol_object, sequences: dict) -> Mutant:
 
     for chain_id in sequences:
         sequence = sequences[chain_id]
-        for at in cmd.get_model(f'{pymol_object} and n. CA').atom:
+        for at in cmd.get_model(f'{pymol_object} and c. {chain_id} and n. CA').atom:
             try:
                 mutant_info.append(
                     {
