@@ -110,8 +110,8 @@ class PocketSearcher:
 
         
         if self.cofactor and self.cofactor_radius > 0:
-            logging.debug(f'cofactor info {self.cofactor} ({cofact_label}: {cofact_sele}): {self.cofactor_radius}')
             cofact_label, cofact_sele = self.process_multiple_resn(self.cofactor)
+            logging.debug(f'cofactor info {self.cofactor} ({cofact_label}: {cofact_sele}): {self.cofactor_radius}')
             cofactor_pocket_id = cmd.get_unused_name(
                 f'pkt_cof_{cofact_label}_{self.cofactor_radius}_'
             )
