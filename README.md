@@ -91,7 +91,7 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    - Choose the entrypoint file located at the root directory of the repository:
 
    ```
-   <repo-url-or-filepath>/REvoDesign.PyMOL.py
+   <repo-url-or-filepath>/REvoDesign_PyMOL.py
    ```
 
    This will create an graphic installer for installing the core package of **REvoDesign**. Once the package is installed, the entrypoint file will allow you to access it from the PyMOL menu.

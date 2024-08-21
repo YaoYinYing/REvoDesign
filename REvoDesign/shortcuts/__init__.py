@@ -499,3 +499,4 @@ def dump_sidechains(
 
 
 cmd.extend("dump_sidechains", dump_sidechains)
+

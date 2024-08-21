@@ -102,7 +102,7 @@ class CitationManager(SingletonAbstract):
             f'{time.strftime("%Y%m%d", time.localtime())}.bib',
         )
         os.makedirs(os.path.dirname(citation_output), exist_ok=True)
-        bibtexparser.write_file(file=citation_output, library=library)
+        bibtexparser.write_file(file=open(citation_output, 'w', encoding='utf8'), library=library)
         logging.info(f'Citation is created at {citation_output}')
 
     def dismiss(self, modulename: str):
@@ -113,7 +113,7 @@ class CitationManager(SingletonAbstract):
 class CitableModules(ABC):
     @property
     def __bibtex__(self) -> dict[str, Union[str, tuple]]:
-        ...
+        return {}
 
     def notice(self):
         if not self.__bibtex__:
@@ -144,6 +144,7 @@ class CitableModules(ABC):
             CitationManager().dismiss(i)
 
     def cite(self):
+
         citations = self.__bibtex__
         if not isinstance(citations, Mapping):
             raise TypeError(f'citation must be a dict.')

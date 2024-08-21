@@ -6,13 +6,13 @@ import biolib
 
 from REvoDesign import root_logger
 from REvoDesign.citations import CitableModules
+from REvoDesign.tools.utils import timing
 
 logging = root_logger.getChild(__name__)
 
 
 class PythiaBiolib(CitableModules):
     def __init__(self, molecule, chain_id):
-        logging.info("Creating Pythia Instance ...")
         self.molecule = molecule
         self.chain_id = chain_id
 
@@ -27,12 +27,10 @@ class PythiaBiolib(CitableModules):
             wd=self.work_dir,
             reload=False,
         )
-        logging.info('Predict ddG effect using pythia from biolib ...')
-        pythia_wubianlab = biolib.load('YaoYinYing/pythia_wubianlab')
-        logging.info('Remote image loaded.')
+
         try:
-            logging.info(f'Processing `{input_pdb}`... ')
-            res = pythia_wubianlab.cli(args=f'--pdb_filename {input_pdb}')
+            with timing('Pythia-ddG from biolib'):
+                res=biolib.load('YaoYinYing/pythia_wubianlab').cli(f'--pdb_filename {input_pdb}')
 
             expected_output = os.path.join(
                 self.work_dir,

@@ -1357,8 +1357,6 @@ def install_via_pip(
             print(f'using mirror from {mirror}')
             pip_cmd.extend(['-i', mirror])
 
-    print(pip_cmd)
-
     result: subprocess.CompletedProcess = run_command(
         pip_cmd, verbose=verbose, env=env
     )
