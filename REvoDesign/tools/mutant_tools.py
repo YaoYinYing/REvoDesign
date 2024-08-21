@@ -345,14 +345,19 @@ def extract_mutant_from_pymol_object(pymol_object, sequences: dict) -> Mutant:
     for chain_id in sequences:
         sequence = sequences[chain_id]
         for at in cmd.get_model(f'{pymol_object} and n. CA').atom:
-            mutant_info.append(
-                {
-                    'chain_id': at.chain,
-                    'position': int(at.resi),
-                    'wt_res': sequence[int(at.resi) - 1] if sequence else 'X',
-                    'mut_res': protein_letters_3to1[at.resn],
-                }
-            )
+            try:
+                mutant_info.append(
+                    {
+                        'chain_id': at.chain,
+                        'position': int(at.resi),
+                        'wt_res': sequence[int(at.resi) - 1] if sequence else 'X',
+                        'mut_res': protein_letters_3to1[at.resn],
+                    }
+                )
+            except IndexError:
+                warnings.warn(issues.BadDataWarning(f'{at.resn} at {at.resi} (chain {chain_id}) is out of range of sequence length.')
+                )
+                continue
 
     mutant_obj = Mutant(mutant_info=mutant_info)
     mutant_obj.mutant_score = extract_mutant_score_from_string(pymol_object)
