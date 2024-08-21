@@ -121,7 +121,7 @@ class PocketSearcher:
 
             cmd.select(
                 cofactor_pocket_id,
-                f'({self.molecule} and c. {self.chain_id}) and (byres resn ({cofact_sele}) around {self.cofactor_radius}) and polymer.protein',
+                f'({self.molecule} and c. {self.chain_id}) and (byres ({cofact_sele}) around {self.cofactor_radius}) and polymer.protein',
             )
             cmd.select(
                 design_shell_id,
