@@ -119,19 +119,17 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
    ![From remote repo, commit c66f29356907102ffdf797486f299a9608558e34](https://github-image-cache.yaoyy.moe/2024/04/b914e8a7cb0a95223a1c23aa6baed51b.png)
    
 
-   d. To install with extra features, use `Extras` to pick a desire one, or install full version by selecting `full`:
+   d. To install with extra features, use `Customized` to pick, or install full version by selecting `Everything`:
 
    ![install with extras](https://github-image-cache.yaoyy.moe/2024/04/4192c1572361a42a472146009e1c7951.png)
 
    **Extras table**
 
-   | extras tag |   packages   |                        references                      |   explanations  |
-   | :--------: | :----------: | :----------------------------------------------------- | :-------------: |
-   |    `jax`   | `colabdesign`| https://github.com/sokrypton/ColabDesign.git@v1.1.1    |     with JAX    |
-   |    `tf`    |  `DLPacker`  | https://github.com/YaoYinYing/DLPacker@pip-installable | with TensorFlow |
-   |   `torch`  |   `PIPPack`  | https://github.com/YaoYinYing/PIPPack@pip-installable  |  with PyTorch   |
-   |   `full`   |   all above  |                        all above                       | with all above  |
-   | `unittest` |   `absl-py`  |                                                        | for unit tests  |
+   | extras tag and packages |                        references                      |   explanations  |
+   | :---------------------: | :----------------------------------------------------- | :-------------: |
+   |   `ColabDesign`   | https://github.com/sokrypton/ColabDesign.git@v1.1.1    |     with JAX    |
+   |     `DLPacker`    | https://github.com/YaoYinYing/DLPacker@pip-installable | with TensorFlow |
+   |     `PIPPack`     | https://github.com/YaoYinYing/PIPPack@pip-installable  |  with PyTorch   |
    
 
 > [!WARNING]
@@ -149,7 +147,7 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
 
 
-2. **Getting started**:
+1. **Getting started**:
    - In order to get started, you need to load/fetch a structure(`fetch 1SUO`, for example) into your PyMOL session.
    - Click `Menu` -> `REvoDesign` -> `Import PyMOL Session` to let **REvoDesign** find a designable molecule.
    - Have fun!

@@ -64,13 +64,12 @@ pytest-order = {version = "*", optional = true}
 coverage= {version = "*", optional = true}
 
 [tool.poetry.extras]
-jax = ["colabdesign"]
-torch = ["PIPPack"]
-tf = ["DLPacker"]
+colabdesign = ["colabdesign"]
+pippack = ["PIPPack"]
+dlpacker = ["DLPacker"]
 
 unittest = [ "absl-py", "pooch", "pytest-qt","pytest", "pytest-cov", "pytest-order", "coverage"]
 
-full = ["colabdesign", "DLPacker", "PIPPack"]
 
 [tool.black]
 line-length = 79

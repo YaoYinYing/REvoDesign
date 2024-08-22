@@ -68,7 +68,7 @@ setup-display:
 # only for unittest on runner or local machine.
 install:
 	python -m pip install -U 'pip<24.0'
-	python -m pip install ".[full,unittest]" -U --no-cache-dir
+	python -m pip install ".[dlpacker,pippack,colabdesign,unittest]" -U --no-cache-dir
 
 # only for unittest on ci runner or local machine that already have all depencies installed.
 install-no-dept:
@@ -132,7 +132,6 @@ macos-rosetta-test:
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
 	$(MACOS_PYMOL_BIN_PATH)/python -m pip install pytest pytest-cov coverage psutil -q --no-cache-dir 
-	$(MACOS_PYMOL_BIN_PATH)/python -m pip install bibtexparser --pre -U
 	cd $(TESTDIR); $(MACOS_PYMOL_BIN_PATH)/python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py -k 'not mpnn'
 
 

@@ -1,7 +1,7 @@
 import importlib
 import os
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Any, Optional, Union
 import glob
 import shutil
 
@@ -48,12 +48,10 @@ def reload_config_file(config_name: str = 'global_config') -> DictConfig:
 
 
 def save_configuration(
-    new_cfg: DictConfig, config_name: Union[str, None] = None
+    new_cfg: DictConfig, config_name: Optional[str] = 'global_config'
 ):
     from REvoDesign import REVODESIGN_CONFIG_FILE
 
-    if not config_name:
-        config_name = 'global_config'
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
     cfg_save_fp = os.path.join(cfg_save_dir, f'{config_name}.yaml')
     OmegaConf.save(new_cfg, cfg_save_fp)

@@ -6,20 +6,26 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>543</width>
-    <height>402</height>
+    <width>490</width>
+    <height>534</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="minimumSize">
    <size>
-    <width>543</width>
-    <height>0</height>
+    <width>490</width>
+    <height>534</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>543</width>
-    <height>16777215</height>
+    <width>652</width>
+    <height>547</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -33,7 +39,7 @@
     <rect>
      <x>10</x>
      <y>70</y>
-     <width>521</width>
+     <width>471</width>
      <height>101</height>
     </rect>
    </property>
@@ -51,7 +57,7 @@
      <rect>
       <x>10</x>
       <y>30</y>
-      <width>501</width>
+      <width>451</width>
       <height>64</height>
      </rect>
     </property>
@@ -195,7 +201,7 @@
     <rect>
      <x>10</x>
      <y>170</y>
-     <width>521</width>
+     <width>471</width>
      <height>101</height>
     </rect>
    </property>
@@ -207,7 +213,7 @@
      <rect>
       <x>10</x>
       <y>29</y>
-      <width>501</width>
+      <width>451</width>
       <height>65</height>
      </rect>
     </property>
@@ -220,37 +226,24 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
-          <widget class="QLabel" name="label">
+          <widget class="QCheckBox" name="checkBox_upgrade">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
-           </property>
-           <property name="text">
-            <string>Extras:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="comboBox_extras">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>75</width>
-             <height>16777215</height>
-            </size>
            </property>
            <property name="toolTip">
-            <string>Extra definitions of dependencies.</string>
+            <string>Upgrade to the latest</string>
            </property>
-           <property name="whatsThis">
+           <property name="statusTip">
             <string/>
+           </property>
+           <property name="text">
+            <string>Upgrade</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -308,28 +301,6 @@
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QCheckBox" name="checkBox_upgrade">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Upgrade to the latest</string>
-           </property>
-           <property name="statusTip">
-            <string/>
-           </property>
-           <property name="text">
-            <string>Upgrade</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
        <item>
@@ -337,7 +308,7 @@
          <item>
           <widget class="QCheckBox" name="checkBox_specified_commit">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -372,7 +343,7 @@
     <rect>
      <x>20</x>
      <y>20</y>
-     <width>501</width>
+     <width>451</width>
      <height>41</height>
     </rect>
    </property>
@@ -399,7 +370,7 @@
     <number>0</number>
    </property>
    <property name="text">
-    <string>REvoDesign Installation/Upgradation Tool</string>
+    <string>REvoDesign Helper</string>
    </property>
    <property name="textFormat">
     <enum>Qt::RichText</enum>
@@ -416,7 +387,7 @@
     <rect>
      <x>10</x>
      <y>270</y>
-     <width>521</width>
+     <width>471</width>
      <height>101</height>
     </rect>
    </property>
@@ -428,7 +399,7 @@
      <rect>
       <x>10</x>
       <y>30</y>
-      <width>501</width>
+      <width>451</width>
       <height>61</height>
      </rect>
     </property>
@@ -458,6 +429,12 @@
         <widget class="QLineEdit" name="lineEdit_proxy_url">
          <property name="enabled">
           <bool>false</bool>
+         </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
          <property name="toolTip">
           <string>HTTP proxy</string>
@@ -492,6 +469,12 @@
          <property name="enabled">
           <bool>false</bool>
          </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="toolTip">
           <string>Set PyPi mirror URL</string>
          </property>
@@ -505,13 +488,178 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QProgressBar" name="progressBar">
+  <widget class="QGroupBox" name="groupBox_4">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>430</y>
+     <width>471</width>
+     <height>71</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Cache:</string>
+   </property>
+   <widget class="QWidget" name="horizontalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>451</width>
+      <height>33</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_11">
+     <item>
+      <widget class="QCheckBox" name="checkBox_user_cache_dir">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>Use customized cache dir. Uncheck this to let REvoDesign choose one.</string>
+       </property>
+       <property name="whatsThis">
+        <string/>
+       </property>
+       <property name="text">
+        <string>Use:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit_customized_cache_dir">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>Cache file on this dir</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_open_cache_dir">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>Open a dir as cache directory.</string>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_set_cache_dir">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>Apply this directory for cache.</string>
+       </property>
+       <property name="text">
+        <string>Apply</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_5">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>370</y>
-     <width>521</width>
-     <height>20</height>
+     <width>471</width>
+     <height>61</height>
+    </rect>
+   </property>
+   <property name="toolTip">
+    <string>Extra definitions of dependencies.</string>
+   </property>
+   <property name="title">
+    <string>Extras:</string>
+   </property>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>451</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_12">
+     <item>
+      <widget class="QRadioButton" name="radioButton_extra_none">
+       <property name="toolTip">
+        <string>Default setting with no extra dependencies.</string>
+       </property>
+       <property name="whatsThis">
+        <string/>
+       </property>
+       <property name="text">
+        <string>None</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="radioButton_extra_customized">
+       <property name="toolTip">
+        <string>Customized extras picked from right panel.</string>
+       </property>
+       <property name="whatsThis">
+        <string/>
+       </property>
+       <property name="text">
+        <string>Customized</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="radioButton_extra_everything">
+       <property name="toolTip">
+        <string>Install with all extras except unit tests</string>
+       </property>
+       <property name="whatsThis">
+        <string/>
+       </property>
+       <property name="text">
+        <string>Everything</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QProgressBar" name="progressBar">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>510</y>
+     <width>471</width>
+     <height>16</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -554,6 +702,22 @@
    </property>
    <property name="textDirection">
     <enum>QProgressBar::TopToBottom</enum>
+   </property>
+  </widget>
+  <widget class="QListView" name="listView_extras">
+   <property name="geometry">
+    <rect>
+     <x>490</x>
+     <y>90</y>
+     <width>151</width>
+     <height>431</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
    </property>
   </widget>
  </widget>
@@ -844,6 +1008,54 @@
     <hint type="destinationlabel">
      <x>389</x>
      <y>243</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_user_cache_dir</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEdit_customized_cache_dir</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>46</x>
+     <y>418</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>243</x>
+     <y>418</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_user_cache_dir</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>pushButton_open_cache_dir</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>46</x>
+     <y>418</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>443</x>
+     <y>419</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBox_user_cache_dir</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>pushButton_set_cache_dir</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>46</x>
+     <y>418</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>432</x>
+     <y>419</y>
     </hint>
    </hints>
   </connection>
