@@ -91,7 +91,7 @@ def run_command(
     """
     # Optionally print the command for debugging
     if verbose:
-        print(cmd)
+        print(f'launching command: {" ".join(cmd)}')
 
     # Execute the command using subprocess.run()
     result = subprocess.run(
