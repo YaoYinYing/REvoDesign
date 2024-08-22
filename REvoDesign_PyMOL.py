@@ -523,6 +523,9 @@ class CheckableListView(QtWidgets.QWidget):
         else:
             self.model = self.listView.model()
 
+        # Clear the model before adding new items
+        self.model.clear()
+
         # Add items to the model with optional separators
         if not items:
             return
