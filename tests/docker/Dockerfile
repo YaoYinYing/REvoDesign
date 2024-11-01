@@ -7,8 +7,8 @@ ENV FAKE_PACKAGE=RED
 SHELL ["/bin/bash", "-c"]
 
 # copying
-RUN mkdir -p /tmp/${FAKE_PACKAGE}/${FAKE_PACKAGE}/UI
-COPY pyproject.toml /tmp/${FAKE_PACKAGE}
+RUN mkdir -p /tmp/${FAKE_PACKAGE}/src/${FAKE_PACKAGE}/UI
+COPY pyproject.toml /tmp/${FAKE_PACKAGE}/src/
 COPY Makefile /tmp/${FAKE_PACKAGE}
 
 # basic tools
@@ -28,7 +28,7 @@ RUN conda create --name REvoDesign python=${PYTHON_VERSION} -y \
     && conda clean --all --force-pkgs-dirs --yes 
 
 # red packages
-RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml \
+RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/src/pyproject.toml \
     && cd /tmp/${FAKE_PACKAGE} \
     && touch  /tmp/${FAKE_PACKAGE}/README.md \
     && mkdir -p  /tmp/${FAKE_PACKAGE}/src/${FAKE_PACKAGE} \
