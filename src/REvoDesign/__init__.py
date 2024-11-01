@@ -13,7 +13,7 @@ from REvoDesign.common.FileExtentions import (
 
 # 0. import version info
 
-__version__ = '1.5.12'
+__version__ = '1.5.11.post-2'
 VERSION = __version__
 
 # -=-=-=-=-=-=-=-= the importing stack begins -=-=-=-=-=-=-=-=

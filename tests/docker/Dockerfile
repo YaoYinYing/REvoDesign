@@ -31,7 +31,9 @@ RUN conda create --name REvoDesign python=${PYTHON_VERSION} -y \
 RUN sed -i "s/REvoDesign/${FAKE_PACKAGE}/g" /tmp/${FAKE_PACKAGE}/pyproject.toml \
     && cd /tmp/${FAKE_PACKAGE} \
     && touch  /tmp/${FAKE_PACKAGE}/README.md \
-    && touch  /tmp/${FAKE_PACKAGE}/${FAKE_PACKAGE}/__init__.py 
+    && mkdir -p  /tmp/${FAKE_PACKAGE}/src/${FAKE_PACKAGE} \
+    && echo '__version__ = "1.1.1"' >>  /tmp/${FAKE_PACKAGE}/src/${FAKE_PACKAGE}/__init__.py
+
 
 # torch cpu only, no cache
 RUN  cd /tmp/${FAKE_PACKAGE} \
