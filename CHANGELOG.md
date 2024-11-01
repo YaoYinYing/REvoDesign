@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-```
+
+```text
 ## TEMPLATE
 ### Added
 
@@ -14,7 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 ```
+
 ## [Unreleased]
+
+### Added
+
+### Changed
+
+- Installer: Refactors, Cleanups, Docs, Lints
+- Source Dir: move into `src`
+- `pyproject.toml`: use `flit_core` instead.
+- extras `unittest` -> `test`
+
+### Fixed
+
+### Removed
+
+- `REvoDesign/__version__.py`: no longer needed for versioning
+- `tools/release_tag.sh`: drop `pyproject.toml` version rewriting bcs no longer needed.
 
 ## [1.5.11.post-1] - 2024-08-02
 

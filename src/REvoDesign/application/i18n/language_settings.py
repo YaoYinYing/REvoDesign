@@ -1,3 +1,7 @@
+'''
+Internationalization settings
+'''
+
 from dataclasses import dataclass
 from functools import partial
 import os
@@ -13,17 +17,47 @@ language_dir = os.path.join(self_dir, '..', '..', 'UI', 'language')
 
 @dataclass(frozen=True)
 class LanguageItem:
+    """
+    A frozen data class representing a language item.
+    
+    Attributes:
+        name (str): The name of the language.
+        id (str): The unique identifier for the language.
+        action (Any): An action associated with the language item.
+    """
     name: str
     id: str
     action: Any
 
     @property
     def language_file(self):
+        """
+        Returns the absolute path to the language file.
+
+        This property constructs and returns the absolute path to the language file 
+        based on the language ID and a predefined directory.
+
+        Returns:
+            str: The absolute path to the language file.
+        """
         return os.path.abspath(os.path.join(language_dir, f'{self.id}.qm'))
 
-
 class LanguageSwitch(QtWidgets.QWidget):
+    """
+    Language switching component, manages the language settings and switching for the application.
+    
+    Attributes:
+        bus: Configuration bus for communication with other components.
+        window: Main window of the application.
+        language_settings: Dictionary containing language related settings.
+    """
     def __init__(self, window):
+        """
+        Initializes the language switching component.
+        
+        Args:
+            window: Main window of the application.
+        """
         self.bus: ConfigBus = ConfigBus()
         self.window = window
 
@@ -43,6 +77,9 @@ class LanguageSwitch(QtWidgets.QWidget):
         self.restore_from_config()
 
     def restore_from_config(self):
+        """
+        Restores the language setting from the configuration.
+        """
         lan = self.language_items[0]
 
         if lan_id := self.bus.get_value('language', str, reject_none=True):
@@ -58,6 +95,12 @@ class LanguageSwitch(QtWidgets.QWidget):
 
     @property
     def language_items(self) -> tuple[LanguageItem, ...]:
+        """
+        Returns a tuple of all language items.
+        
+        Returns:
+            Tuple of all language items.
+        """
         all_language_items = [
             LanguageItem(
                 name=lan_opts.get('name'),
@@ -69,11 +112,20 @@ class LanguageSwitch(QtWidgets.QWidget):
         return tuple(all_language_items)
 
     def _bind_to_action(self, language: LanguageItem):
+        """
+        Binds the language switching action to the specified language.
+        
+        Args:
+            language: Language item to bind the action to.
+        """
         language.action.triggered.connect(
             partial(self.switch_language, language)
         )
 
     def register_language(self):
+        """
+        Registers all languages.
+        """
         for lan in self.language_items:
             print(
                 f'Registering language {lan.name} by {lan.id} from {lan.language_file}'
@@ -81,6 +133,12 @@ class LanguageSwitch(QtWidgets.QWidget):
             self._bind_to_action(language=lan)
 
     def switch_language(self, language: LanguageItem):
+        """
+        Switches to the specified language.
+        
+        Args:
+            language: Language item to switch to.
+        """
         if language.id and os.path.exists(language.language_file):
             self.bus.ui.trans.load(language.language_file)
             print(
@@ -99,10 +157,19 @@ class LanguageSwitch(QtWidgets.QWidget):
         self.bus.set_value('language', language.id)
 
     def _set_action_checked(self, language: LanguageItem):
+        """
+        Sets the checked state of the language actions.
+        
+        Args:
+            language: Currently selected language item.
+        """
         for lan in self.language_items:
             lan.action.setChecked(lan.id == language.id)
 
     def _set_action_clickable(self):
+        """
+        Sets the clickable state of the language actions.
+        """
         for lan in self.language_items:
             lan_available = (
                 os.path.exists(lan.language_file) or lan.name == 'English'

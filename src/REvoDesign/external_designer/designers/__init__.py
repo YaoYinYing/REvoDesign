@@ -68,7 +68,7 @@ class ExternalDesignerAbstract(CitableModules):
         Retrieve the weights used in the design process.
         The implementation should define how these weights are calculated or retrieved.
         """
-        ...
+
 
     @abstractmethod
     def initialize(self, *args, **kwargs):
@@ -79,7 +79,7 @@ class ExternalDesignerAbstract(CitableModules):
         Parameters:
             *args, **kwargs: Flexible arguments that can be passed to perform specific initialization tasks.
         """
-        ...
+
 
     def designer(self, *args, **kwargs):
         """
@@ -91,7 +91,7 @@ class ExternalDesignerAbstract(CitableModules):
         """
         raise NotImplementedError("Designer method not implemented")
 
-    def scorer(self, sequence, *args, **kwargs):
+    def scorer(self, sequence,):
         """
         Abstract method to evaluate or score a given sequence design.
         Determines the quality or fitness of the designed sequence.

@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Tuple, TypeVar, Generic
 from dataclasses import dataclass
 
@@ -58,7 +58,6 @@ class SingletonAbstract(ABC):
         # Check if the instance has already been initialized
         if not hasattr(self, 'initialized'):
             # If not, set the instance attributes
-            ...
             self.initialized = True
 
 

@@ -65,12 +65,12 @@ setup-display:
 	fluxbox &
 	sleep 3
 
-# only for unittest on runner or local machine.
+# only for test on runner or local machine.
 install:
 	python -m pip install -U 'pip<24.0'
-	python -m pip install ".[dlpacker,pippack,colabdesign,unittest]" -U --no-cache-dir
+	python -m pip install ".[dlpacker,pippack,colabdesign,test]" -U --no-cache-dir
 
-# only for unittest on ci runner or local machine that already have all depencies installed.
+# only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:
 	python -m pip install -U 'pip<24.0'
 	python -m pip install . --no-dependencies --no-cache-dir
@@ -127,7 +127,7 @@ all-test:
 	cp $(TESTDIR)/.coverage* .
 
 macos-rosetta-test:
-	$(MACOS_PYMOL_BIN_PATH)/python -m pip install ".[unittest]" -U --no-cache-dir
+	$(MACOS_PYMOL_BIN_PATH)/python -m pip install ".[test]" -U --no-cache-dir
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure

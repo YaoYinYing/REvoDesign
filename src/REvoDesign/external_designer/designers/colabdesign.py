@@ -1,3 +1,5 @@
+
+# pylint: disable=import-outside-toplevel
 import os
 from . import ExternalDesignerAbstract
 

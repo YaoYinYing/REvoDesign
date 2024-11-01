@@ -1,4 +1,4 @@
-'''
+"""
 Described at GitHub:
 https://github.com/YaoYinYing/REvoDesign
 
@@ -7,73 +7,69 @@ Program : REvoDesign
 Date    : Sept 2023
 
 REvoDesign -- Makes enzyme redesign tasks easier to all.
-'''
+"""
 
-from functools import partial
-import subprocess
-import time
+# pylint: disable=too-many-lines
+# pylint: disable=import-outside-toplevel
+# pylint: disable=unused-argument
 
-import warnings
-import traceback
+import importlib
+import importlib.util
 import json
 import os
+import re
 import shutil
-
-from typing import (
-    Iterable,
-    Mapping,
-    Optional,
-    Union,
-    Protocol,
-    Mapping,
-    Callable,
-)
-
-from dataclasses import dataclass
+import subprocess
+import sys
+import time
+import traceback
+import urllib.request
+import warnings
 from contextlib import contextmanager
+from dataclasses import dataclass
+from functools import partial
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, Protocol, Tuple, TypeVar, Union
+from urllib.error import HTTPError, URLError
+
+import pip
+from pymol.plugins import addmenuitemqt
+from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
+
+print(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
 
 
-from pymol.Qt import QtCore, QtGui, QtWidgets
+REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
-print(f'REvoDesign entrypoint is located at {os.path.dirname(__file__)}')
+AVAILABLE_EXTRAS: Dict[str, str] = {
+    "Sidechain Solvers": "",  # Separator line
+    "DLPacker": "dlpacker",
+    "PIPPack": "pippack",
+    
+    "Designers": "",  # Separator line
+    "ColabDesign": "colabdesign",
 
-
-REPO_URL: str = 'https://github.com/YaoYinYing/REvoDesign'
-
-AVAILABLE_EXTRAS: Mapping[str, str] = {
-
-    'Sidechain Solvers': '', # Separator line
-    'DLPacker': 'dlpacker',
-    'PIPPack': 'pippack',
-
-    'Designers':'', # Separator line
-    'ColabDesign': 'colabdesign',
+    "Developer Tool": "",  # Separator line
+    "Test": "test",
 }
 
-EXTRA_SEPARATORS: list[str] = [k for k, v in AVAILABLE_EXTRAS.items() if v == '']
+
+# Define a generic type variable for the return type of worker_function
+R = TypeVar("R")
 
 
+class UnsupportedWidgetValueTypeError(TypeError):
+    """
+    Exception raised when an unsupported value type is assigned to a Widget.
 
-def solve_pip_extras(input_kw: str = '') -> str:
-    # default for no extra
-    if input_kw == '':
-        return ''
-
-    # require all available extras
-    if input_kw == 'All' or input_kw == 'Everything':
-        required_kw = list(AVAILABLE_EXTRAS.keys())
-    else:
-        required_kw = [
-            kw for kw in input_kw.split(',') if kw and kw in AVAILABLE_EXTRAS
-        ]
-
-    return f"[{','.join([AVAILABLE_EXTRAS[kw] for kw in required_kw])}]"
+    This exception class inherits from TypeError and is used to indicate that the value type
+    assigned to a Widget instance is not supported.
+    """
 
 
 def run_command(
-    cmd: Union[tuple[str], str],
+    cmd: Union[Tuple[str], List[str]],
     verbose: bool = False,
-    env: Mapping[str, str] = {},
+    env: Optional[Mapping[str, str]] = None,
 ) -> subprocess.CompletedProcess:
     """
     Execute a specified command in the shell.
@@ -101,6 +97,7 @@ def run_command(
         encoding="utf-8",
         env=env if env else None,
         universal_newlines=True,
+        check=False,
     )
 
     # Optionally print the command output for debugging
@@ -109,9 +106,7 @@ def run_command(
 
     # If the command execution fails and verbose is True, raise an exception
     if result.returncode != 0 and verbose:
-        raise RuntimeError(
-            f"--> Command failed: \n{'-'*79}\n{result.stderr}\n{'-'*79}"
-        )
+        raise RuntimeError(f"--> Command failed: \n{'-'*79}\n{result.stderr}\n{'-'*79}")
 
     # Return the execution result
     return result
@@ -417,7 +412,7 @@ class Ui_Dialog(object):
         font.setPointSize(3)
         self.progressBar.setFont(font)
         self.progressBar.setProperty("value", 0)
-        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
+        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
         self.progressBar.setOrientation(QtCore.Qt.Horizontal)
         self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
         self.progressBar.setObjectName("progressBar")
@@ -431,27 +426,27 @@ class Ui_Dialog(object):
         self.listView_extras.setObjectName("listView_extras")
 
         self.retranslateUi(Dialog)
-        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled) # type: ignore
-        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled) # type: ignore
-        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled) # type: ignore
-        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
-        self.checkBox_use_proxy.toggled['bool'].connect(self.lineEdit_proxy_url.setEnabled) # type: ignore
-        self.checkBox_use_mirror.toggled['bool'].connect(self.lineEdit_mirror_url.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.lineEdit_customized_cache_dir.setEnabled) # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_open_cache_dir.setEnabled) # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_set_cache_dir.setEnabled) # type: ignore
+        self.radioButton_from_repo.toggled["bool"].connect(self.lineEdit_local.setDisabled)  # type: ignore
+        self.radioButton_from_repo.toggled["bool"].connect(self.pushButton_open.setDisabled)  # type: ignore
+        self.checkBox_specified_version.toggled["bool"].connect(self.comboBox_version.setEnabled)  # type: ignore
+        self.checkBox_specified_commit.toggled["bool"].connect(self.lineEdit_commit.setEnabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(self.lineEdit_local.setEnabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(self.pushButton_open.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(self.lineEdit_local.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(self.pushButton_open.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(self.comboBox_version.setDisabled)  # type: ignore
+        self.checkBox_use_proxy.toggled["bool"].connect(self.lineEdit_proxy_url.setEnabled)  # type: ignore
+        self.checkBox_use_mirror.toggled["bool"].connect(self.lineEdit_mirror_url.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(self.checkBox_specified_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(self.checkBox_specified_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(self.lineEdit_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(self.comboBox_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(self.checkBox_specified_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(self.checkBox_specified_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(self.lineEdit_commit.setDisabled)  # type: ignore
+        self.checkBox_user_cache_dir.toggled["bool"].connect(self.lineEdit_customized_cache_dir.setEnabled)  # type: ignore
+        self.checkBox_user_cache_dir.toggled["bool"].connect(self.pushButton_open_cache_dir.setEnabled)  # type: ignore
+        self.checkBox_user_cache_dir.toggled["bool"].connect(self.pushButton_set_cache_dir.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
@@ -460,7 +455,9 @@ class Ui_Dialog(object):
         self.groupBox.setTitle(_translate("Dialog", "Source:"))
         self.radioButton_from_repo.setToolTip(_translate("Dialog", "From GitHub repository"))
         self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
-        self.radioButton_from_local_clone.setToolTip(_translate("Dialog", "From project directory containing `pyproject.toml`"))
+        self.radioButton_from_local_clone.setToolTip(
+            _translate("Dialog", "From project directory containing `pyproject.toml`")
+        )
         self.radioButton_from_local_clone.setText(_translate("Dialog", "Local clone"))
         self.radioButton_from_local_file.setToolTip(_translate("Dialog", "From released zip/tarball file"))
         self.radioButton_from_local_file.setText(_translate("Dialog", "Local file"))
@@ -492,7 +489,9 @@ class Ui_Dialog(object):
         self.lineEdit_mirror_url.setToolTip(_translate("Dialog", "Set PyPi mirror URL"))
         self.lineEdit_mirror_url.setText(_translate("Dialog", "https://mirrors.bfsu.edu.cn/pypi/web/simple"))
         self.groupBox_4.setTitle(_translate("Dialog", "Cache:"))
-        self.checkBox_user_cache_dir.setToolTip(_translate("Dialog", "Use customized cache dir. Uncheck this to let REvoDesign choose one."))
+        self.checkBox_user_cache_dir.setToolTip(
+            _translate("Dialog", "Use customized cache dir. Uncheck this to let REvoDesign choose one.")
+        )
         self.checkBox_user_cache_dir.setText(_translate("Dialog", "Use:"))
         self.lineEdit_customized_cache_dir.setToolTip(_translate("Dialog", "Cache file on this dir"))
         self.pushButton_open_cache_dir.setToolTip(_translate("Dialog", "Open a dir as cache directory."))
@@ -508,20 +507,38 @@ class Ui_Dialog(object):
         self.radioButton_extra_everything.setToolTip(_translate("Dialog", "Install with all extras except unit tests"))
         self.radioButton_extra_everything.setText(_translate("Dialog", "Everything"))
 
-# additional widget for extra selection
+
+# Additional widget for extra selection
 class CheckableListView(QtWidgets.QWidget):
-    def __init__(self, listView, items=None, separators=None, parent=None):
+    """
+    Checkable list view widget, allowing users to check items in the list.
+
+    Attributes:
+        list_view: The QListView instance this widget operates on.
+        model: The data model instance used by the list view.
+    """
+
+    def __init__(self, list_view, items:Optional[Dict[str,str]]=None, parent=None):
+        """
+        Initializes the CheckableListView instance.
+
+        Parameters:
+            listView: The QListView instance to use.
+            items: Optional list of item texts to add to the list.
+            separators: Optional list of separator texts, used to categorize items.
+            parent: The parent widget, defaults to None.
+        """
         super().__init__(parent)
 
         # Use the existing list view
-        self.listView = listView
+        self.list_view = list_view
 
         # Set up the model (use existing one if set, otherwise create a new one)
-        if self.listView.model() is None:
-            self.model = QtGui.QStandardItemModel(self.listView)
-            self.listView.setModel(self.model)
+        if self.list_view.model() is None:
+            self.model = QtGui.QStandardItemModel(self.list_view)
+            self.list_view.setModel(self.model)
         else:
-            self.model = self.listView.model()
+            self.model = self.list_view.model()
 
         # Clear the model before adding new items
         self.model.clear()
@@ -530,10 +547,14 @@ class CheckableListView(QtWidgets.QWidget):
         if not items:
             return
         
-        for item_text in items:
-            if item_text in separators:
-                # Add a separator
-                separator_item = QtGui.QStandardItem(item_text)
+        self.items=items
+        
+
+
+        for k,v in items.items():
+            if not v:  
+                # Add as a separator
+                separator_item = QtGui.QStandardItem(k)
                 separator_item.setEnabled(False)  # Non-interactive
                 separator_item.setSelectable(False)  # Non-selectable
                 separator_item.setCheckable(False)  # Non-checkable
@@ -542,34 +563,44 @@ class CheckableListView(QtWidgets.QWidget):
                 separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
                 self.model.appendRow(separator_item)
             else:
-                # Add a regular checkable item
-                item = QtGui.QStandardItem(item_text)
+                # Add as a regular checkable item
+                item = QtGui.QStandardItem(k)
                 item.setCheckable(True)
                 item.setCheckState(QtCore.Qt.Unchecked)  # Default unchecked
                 self.model.appendRow(item)
 
     def get_checked_items(self):
-        """Returns a list of all checked items' text."""
+        """
+        Returns a list of all checked items' text.
+
+        Returns:
+            A list of strings representing the texts of all checked items.
+        """
         checked_items = []
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable() and item.checkState() == QtCore.Qt.Checked:
-                checked_items.append(item.text())
+                checked_items.append(self.items[item.text()])
         return checked_items
 
     def check_all(self):
-        """Check all items in the list, excluding separators."""
+        """
+        Check all items in the list, excluding separators.
+        """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable():
+            if item.isCheckable() and item.text() != 'Test':
                 item.setCheckState(QtCore.Qt.Checked)
 
     def uncheck_all(self):
-        """Uncheck all items in the list, excluding separators."""
+        """
+        Uncheck all items in the list, excluding separators.
+        """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable():
                 item.setCheckState(QtCore.Qt.Unchecked)
+
 
 @dataclass
 class GitSolver:
@@ -577,7 +608,9 @@ class GitSolver:
     A class that checks for the presence of Git, Conda, and Winget on the system and can install Git if necessary.
     """
 
-    __slots__ = ['has_git', 'has_conda', 'has_winget']
+    has_git: bool = False
+    has_conda: bool = False
+    has_winget: bool = False
 
     def __post_init__(self):
         """
@@ -587,10 +620,10 @@ class GitSolver:
         It sets the object's properties based on whether these tools are available in the system path.
         This ensures that the object can determine if it can perform related operations before doing so.
         """
-        for c in ['git', 'conda', 'winget']:
-            setattr(self, f'has_{c}', shutil.which(c) is not None)
+        for cmd_tool in ["git", "conda", "winget"]:
+            setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool) is not None)
 
-    def fetch_git(self, env: Optional[Mapping[str, str]]):
+    def fetch_git(self, env: Optional[Mapping[str, str]] = None):
         """
         Installs Git if it is not present on the system.
 
@@ -600,7 +633,6 @@ class GitSolver:
         Parameters:
             env (Optional[Mapping[str, str]]): Environment variables for the installation process.
         """
-        import platform
 
         # Check if Git is already installed
         if self.has_git:
@@ -620,24 +652,24 @@ class GitSolver:
                 "--accept-source-agreements",
             ]
         elif self.has_conda:
-            cmd = ['conda', 'install', '-y', 'git']
+            cmd = ["conda", "install", "-y", "git"]
 
         else:
             # If neither Conda nor Winget is present, prompt the user to install Git manually
             notify_box(
-                message='Git is required to install REvoDesign. Please install Git first.\n'
-                'See https://git-scm.com/downloads',
+                message="Git is required to install REvoDesign. Please install Git first.\n"
+                "See https://git-scm.com/downloads",
             )
             return False
 
         # Prompt the user for confirmation to install Git
         confirmed = proceed_with_comfirm_msg_box(
-            title='Install Git?',
+            title="Install Git?",
             description=f'Do you want to install git first?\n command:\n {" ".join(cmd)}',
         )
         if not confirmed:
             # If the user cancels the installation, notify and return
-            notify_box(message='Git installation is cancelled.')
+            notify_box(message="Git installation is cancelled.")
             return False
 
         # Execute the Git installation command in a worker thread and monitor progress
@@ -648,60 +680,84 @@ class GitSolver:
         )
 
         # Check if the Git installation was successful
-        if (
-            git_install_std
-            and git_install_std.returncode == 0
-            and self.has_git
-        ):
+        if git_install_std and git_install_std.returncode == 0 and self.has_git:
             # If successful, show a notification and return True
-            notify_box(message=f'Git installed successfully.')
+            notify_box(message="Git installed successfully.")
             return True
-        else:
-            # If installation failed, show error information and return False
-            try:
-                stdout, stderr = git_install_std.stdout, git_install_std.stderr
-            except UnicodeDecodeError as e:
-                with open((fp := os.path.abspath('error.log')), 'w') as f:
-                    f.write(f'STDOUT:\n{stdout}\n\n\n\nSTDERR:\n{stderr}')
 
-                notify_box(
-                    message=f'Git not installed due to {e}.\n Error details saved to {fp}\n',
-                    error_type=RuntimeError,
-                )
+        # If installation failed, show error information and return False
+
+        with open((file_path := os.path.abspath("error.log")), "w", encoding="utf-8") as f:
+            f.write(f"STDOUT:\n{git_install_std.stdout}\n\n\n\nSTDERR:\n{git_install_std.stderr}")
+
+        notify_box(
+            message=f"Git not installed.\n Error details saved to {file_path}\n",
+            error_type=RuntimeError,
+        )
 
 
 @dataclass
 class REvoDesignInstaller:
+    """
+    Class to manage the installation of the REvoDesign plugin.
+
+    Attributes:
+        dialog (QWidget): The main dialog window for the plugin GUI.
+        extra_checkbox (CheckableListView): A checkbox list for selecting extra components.
+    """
 
     dialog = None
-    extra_checkbox = None
+
+    installer_ui: Ui_Dialog = None  # type: ignore
+    extra_checkbox: CheckableListView = None  # type: ignore
 
     def run_plugin_gui(self):
+        """
+        Runs the plugin GUI.
+
+        This method initializes and displays the plugin's graphical user interface. It also sets up
+        the extra components checkbox list and connects the radio button signals to the appropriate
+        methods for checking or unchecking all items.
+
+        Steps:
+        - Initialize the dialog window if it hasn't been created yet.
+        - Display the dialog window.
+        - Create and position the extra components checkbox list.
+        - Connect the 'None' radio button to uncheck all items in the checkbox list.
+        - Connect the 'Everything' radio button to check all items in the checkbox list.
+        - Run a worker thread to fetch tags with a progress bar.
+        """
         if self.dialog is None:
             self.dialog = self.make_window()
         self.dialog.show()
-        self.extra_checkbox = CheckableListView(
-            self.ui.listView_extras, AVAILABLE_EXTRAS.keys(), EXTRA_SEPARATORS
-        )
+
+        if self.extra_checkbox is None:
+            # Create and position the extra components checkbox list
+            self.extra_checkbox = CheckableListView(
+                self.installer_ui.listView_extras, AVAILABLE_EXTRAS
+            )
+
         self.extra_checkbox.setGeometry(QtCore.QRect(540, 90, 141, 431))
 
-        self.ui.radioButton_extra_none.toggled['bool'].connect(
+        # Connect the 'None' radio button to uncheck all items
+        self.installer_ui.radioButton_extra_none.toggled["bool"].connect(
             partial(
                 self.extra_checkbox.uncheck_all,
             )
         )
-        self.ui.radioButton_extra_everything.toggled['bool'].connect(
+
+        # Connect the 'Everything' radio button to check all items
+        self.installer_ui.radioButton_extra_everything.toggled["bool"].connect(
             partial(
                 self.extra_checkbox.check_all,
             )
         )
 
-        run_worker_thread_with_progress(
-            worker_function=self.fetch_tags, progress_bar=self.ui.progressBar
-        )
+        # Run a worker thread to fetch tags with a progress bar
+        run_worker_thread_with_progress(worker_function=self.fetch_tags, progress_bar=self.installer_ui.progressBar)
 
     @staticmethod
-    def proxy_in_env(proxy: str) -> Mapping[str, str]:
+    def proxy_in_env(proxy: Optional[str] = None) -> Dict[str, str]:
         """
         Generates an environment mapping based on the provided proxy string.
 
@@ -709,52 +765,80 @@ class REvoDesignInstaller:
             proxy (str): The proxy string to use for creating the environment variables.
 
         Returns:
-            Mapping[str, str]: A dictionary containing the proxy settings for environment variables.
+            Dict[str, str]: A dictionary containing the proxy settings for environment variables.
                             If `proxy` is empty, returns an empty dictionary.
         """
 
         if not proxy:
             return {}
 
-        print(f'using proxy: {proxy}')
+        print(f"using proxy: {proxy}")
         proxy_env = {
-            'http_proxy': proxy,
-            'https_proxy': proxy,
-            'all_proxy': proxy,
+            "http_proxy": proxy,
+            "https_proxy": proxy,
+            "all_proxy": proxy,
         }
         return proxy_env
 
     def make_window(self) -> QtWidgets.QDialog:  # type: ignore
-        self.ui = Ui_Dialog()
+        """
+        Creates and configures the application window.
 
+        This method initializes a QDialog object and sets up its UI elements using the `Ui_Dialog` class.
+        It also connects various buttons to their respective methods for handling user interactions.
+
+        Returns:
+            QtWidgets.QDialog: The configured dialog window.
+        """
+
+        self.installer_ui = Ui_Dialog()
+
+        # Create a new dialog window
         dialog = QtWidgets.QDialog()
-        self.ui.setupUi(Dialog=dialog)
-        self.ui.pushButton_open.clicked.connect(self.open_files)
-        self.ui.pushButton_open_cache_dir.clicked.connect(self.open_cache_dir)
-        self.ui.pushButton_set_cache_dir.clicked.connect(self.setup_cache_dir)
 
-        self.ui.pushButton_install.clicked.connect(self.install)
-        self.ui.pushButton_remove.clicked.connect(self.uninstall)
-        self.ui.radioButton_extra_customized.toggled['bool'].connect(
+        # Set up the UI for the dialog
+        self.installer_ui.setupUi(Dialog=dialog)
+
+        # Connect the open files button to the open_files method
+        self.installer_ui.pushButton_open.clicked.connect(self.open_files)
+
+        # Connect the open cache directory button to the open_cache_dir method
+        self.installer_ui.pushButton_open_cache_dir.clicked.connect(self.open_cache_dir)
+
+        # Connect the set cache directory button to the setup_cache_dir method
+        self.installer_ui.pushButton_set_cache_dir.clicked.connect(self.setup_cache_dir)
+
+        # Connect the install button to the install method
+        self.installer_ui.pushButton_install.clicked.connect(self.install)
+
+        # Connect the remove button to the uninstall method
+        self.installer_ui.pushButton_remove.clicked.connect(self.uninstall)
+
+        # Connect the radio button for customized extra options to the resize_extra_widget method with expand=True
+        self.installer_ui.radioButton_extra_customized.toggled["bool"].connect(
             partial(
                 self.resize_extra_widget,
                 expand=True,
             )
         )
 
-        self.ui.radioButton_extra_none.toggled['bool'].connect(
-            partial(
-                self.resize_extra_widget,
-                expand=False,
-            )
-        )
-        self.ui.radioButton_extra_everything.toggled['bool'].connect(
+        # Connect the radio button for no extra options to the resize_extra_widget method with expand=False
+        self.installer_ui.radioButton_extra_none.toggled["bool"].connect(
             partial(
                 self.resize_extra_widget,
                 expand=False,
             )
         )
 
+        # Connect the radio button for all extra options to the resize_extra_widget method with expand=False
+        self.installer_ui.radioButton_extra_everything.toggled["bool"].connect(
+            partial(
+                self.resize_extra_widget,
+                expand=False,
+            )
+        )
+
+        # Return the configured dialog window
         return dialog
 
     @staticmethod
@@ -777,249 +861,318 @@ class REvoDesignInstaller:
         widget.anim = animation
 
     def resize_extra_widget(self, expand: bool = False):
+        """
+        Resize the extra widget based on the expand parameter.
+
+        Parameters:
+        - expand (bool): If True, expands the widget to a larger size; if False, shrinks it to a smaller size.
+
+        This function animates the resizing of `self.dialog` and `self.ui.label_2` to the specified dimensions.
+        """
         if expand:
+            # Expand the dialog and label to larger sizes
             self.animate_to_size(self.dialog, (652, 534))
-            self.animate_to_size(self.ui.label_2, (611, 41))
+            self.animate_to_size(self.installer_ui.label_2, (611, 41))
         else:
+            # Shrink the dialog and label to smaller sizes
             self.animate_to_size(self.dialog, (490, 534))
-            self.animate_to_size(self.ui.label_2, (451, 41))
+            self.animate_to_size(self.installer_ui.label_2, (451, 41))
 
     def fetch_tags(self):
-        set_widget_value(
-            self.ui.comboBox_version, get_github_repo_tags(repo_url=REPO_URL)
-        )
+        """
+        Retrieves the tags of a GitHub repository and sets them as the value of the version combo box.
+
+        This method calls the `get_github_repo_tags` function to obtain the tags information of the specified GitHub repository,
+        and then sets the result as the value of the `comboBox_version` combo box in the UI.
+        """
+        set_widget_value(self.installer_ui.comboBox_version, get_github_repo_tags(repo_url=REPO_URL))
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
-    def getExistingDirectory(self):
+    def get_existing_directory(self):
+        """
+        Opens a dialog for the user to select an existing directory.
+
+        Parameters:
+        - self: The instance of the class this method is called on.
+
+        Returns:
+        - str: The path of the selected directory.
+        """
         return QtWidgets.QFileDialog.getExistingDirectory(
             None,
             "Open Directory",
-            os.path.expanduser('~'),
+            os.path.expanduser("~"),
             QtWidgets.QFileDialog.DontResolveSymlinks,
         )
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
     # an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
-    def getOpenFileNameWithExt(self, *args, **kwargs):
+    def get_open_file_name_with_ext(self, *args, **kwargs):
         """
         Return a file name, append extension from filter if no extension provided.
         """
-        import re
 
-        fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
+        fname, ext_filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
 
         if not fname:
-            return ''
+            return ""
 
-        if '.' not in os.path.split(fname)[-1]:
-            m = re.search(r'\*(\.[\w\.]+)', filter)
-            if m:
+        if "." not in os.path.split(fname)[-1]:
+            ext_match = re.search(r"\*(\.[\w\.]+)", ext_filter)
+            if ext_match:
                 # append first extension from filter
-                fname += m.group(1)
+                fname += ext_match.group(1)
 
         return fname
 
-
     def open_cache_dir(self):
-        dir = self.getExistingDirectory()
-        if dir and os.path.exists(dir):
-            return set_widget_value(self.ui.lineEdit_customized_cache_dir, dir)
-    
+        """
+        Opens the cache directory.
+
+        This method retrieves an existing directory path and sets it as the value of a line edit widget.
+        If the directory exists, it updates the UI with the directory path.
+
+        Returns:
+            The method returns the result of `set_widget_value` function, which is typically None or a status indicating success.
+        """
+        # Retrieve the existing directory path
+        cache_dir = self.get_existing_directory()
+
+        # Check if the directory exists and update the UI
+        if cache_dir and os.path.exists(cache_dir):
+            return set_widget_value(self.installer_ui.lineEdit_customized_cache_dir, cache_dir)
+
     def open_files(self):
-        from_local_clone = self.ui.radioButton_from_local_clone.isChecked()
-        from_local_file = self.ui.radioButton_from_local_file.isChecked()
+        """
+        Opens files or directories based on user selection from the UI.
+
+        This function checks which radio button is selected (local clone or local file) and then opens the corresponding directory or file.
+
+        Returns:
+            None: The function updates the UI with the selected directory or file path.
+        """
+
+        # Check if the 'from local clone' radio button is selected
+        from_local_clone = self.installer_ui.radioButton_from_local_clone.isChecked()
+
+        # Check if the 'from local file' radio button is selected
+        from_local_file = self.installer_ui.radioButton_from_local_file.isChecked()
 
         if from_local_clone:
-            dir = self.getExistingDirectory()
-            if dir and os.path.exists(dir):
-                return set_widget_value(self.ui.lineEdit_local, dir)
+            # Get the existing directory path from the user
+            opened_dir = self.get_existing_directory()
+
+            # If a valid directory is selected, update the UI with the directory path
+            if opened_dir and os.path.exists(opened_dir):
+                return set_widget_value(self.installer_ui.lineEdit_local, opened_dir)
 
         if from_local_file:
-            ext = {'zip': "ZIP archive", 'tar.gz': "Tarball (TAR.GZ)"}
-            file = self.getOpenFileNameWithExt(
+            # Define supported file extensions and their descriptions
+            ext = {"zip": "ZIP archive", "tar.gz": "Tarball (TAR.GZ)"}
+
+            # Open a file dialog to select a file with the specified extensions
+            file = self.get_open_file_name_with_ext(
                 self.dialog,
-                'Open',
-                filter=';;'.join(
-                    [
-                        f'{ext_discrition} ( *.{ext_} )'
-                        for ext_, ext_discrition in ext.items()
-                    ]
-                ),
+                "Open",
+                filter=";;".join([f"{ext_description} ( *.{ext_} )" for ext_, ext_description in ext.items()]),
             )
+
+            # If a valid file is selected, update the UI with the file path
             if file and os.path.exists(file):
-                return set_widget_value(self.ui.lineEdit_local, file)
+                return set_widget_value(self.installer_ui.lineEdit_local, file)
 
     def uninstall(self):
-        import importlib
+        """
+        Uninstall the REvoDesign package.
 
-        installed = importlib.util.find_spec('REvoDesign') is not None
+        This function checks if REvoDesign is installed. If it is installed, it initiates the uninstallation process
+        through a separate thread, displaying the progress on the UI progress bar. After uninstallation is complete,
+        it provides feedback on the operation's success or failure.
+        """
 
+        # Check if REvoDesign is installed
+        installed = importlib.util.find_spec("REvoDesign") is not None
+
+        # If REvoDesign is not installed, notify the user and exit the function
         if not installed:
-            notify_box(message='REvoDesign is not installed.')
+            notify_box(message="REvoDesign is not installed.")
             return
 
-        with hold_trigger_button(self.ui.pushButton_remove):
-            ret: subprocess.CompletedProcess = run_worker_thread_with_progress(
+        # During the uninstallation process, hold down the remove button on the UI to prevent multiple triggers
+        with hold_trigger_button(self.installer_ui.pushButton_remove):
+            # Run the uninstallation process in a separate thread and monitor its progress
+            ret: Optional[subprocess.CompletedProcess] = run_worker_thread_with_progress(
                 worker_function=install_via_pip,
                 uninstall=True,
-                progress_bar=self.ui.progressBar,
+                progress_bar=self.installer_ui.progressBar,
             )
 
-            if not ret.returncode:
-                notify_box(
-                    message='REvoDesign is removed successfully. Bye-bye.',
-                )
-                return
-            notify_box(
-                message='Failed to remove REvoDesign.', error_type=RuntimeError
+            if ret is None or ret.returncode:
+                # If the uninstallation fails, notify the user of the failure and raise an error
+                return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError)
+
+            # If the uninstallation is successful, notify the user
+            return notify_box(
+                message="REvoDesign is removed successfully. Bye-bye.",
             )
 
     def install(self):
-        # sources
-        from_repo = self.ui.radioButton_from_repo.isChecked()
-        from_local_clone = self.ui.radioButton_from_local_clone.isChecked()
-        from_local_file = self.ui.radioButton_from_local_file.isChecked()
-        local_source: str = self.ui.lineEdit_local.text()
+        """
+        Handles the installation process based on user-selected options.
 
-        extras = ','.join(self.extra_checkbox.get_checked_items())
-        upgrade = self.ui.checkBox_upgrade.isChecked()
-        verbose = self.ui.checkBox_verbose.isChecked()
+        This function determines the installation source and method based on the user's choices,
+        validates the input, and performs the installation process. It also manages network settings,
+        such as proxies and mirrors, and provides feedback on the installation result.
+        """
+        # sources
+        from_repo = self.installer_ui.radioButton_from_repo.isChecked()
+        from_local_clone = self.installer_ui.radioButton_from_local_clone.isChecked()
+        from_local_file = self.installer_ui.radioButton_from_local_file.isChecked()
+        local_source: str = self.installer_ui.lineEdit_local.text()
+
+        # Determine additional components to install
+        extras = ",".join(self.extra_checkbox.get_checked_items())
+        upgrade = self.installer_ui.checkBox_upgrade.isChecked()
+        verbose = self.installer_ui.checkBox_verbose.isChecked()
 
         # version tags
-        use_version = self.ui.checkBox_specified_version.isChecked()
-        target_version = self.ui.comboBox_version.currentText()
+        use_version = self.installer_ui.checkBox_specified_version.isChecked()
+        target_version = self.installer_ui.comboBox_version.currentText()
 
         # git commits
-        use_commit = self.ui.checkBox_specified_commit.isChecked()
-        target_commit = self.ui.lineEdit_commit.text()
+        use_commit = self.installer_ui.checkBox_specified_commit.isChecked()
+        target_commit = self.installer_ui.lineEdit_commit.text()
 
         # networking
-        use_proxy = self.ui.checkBox_use_proxy.isChecked()
-        proxy_url = self.ui.lineEdit_proxy_url.text()
+        use_proxy = self.installer_ui.checkBox_use_proxy.isChecked()
+        proxy_url = self.installer_ui.lineEdit_proxy_url.text()
 
-        use_mirror = self.ui.checkBox_use_mirror.isChecked()
-        mirror_url = self.ui.lineEdit_mirror_url.text()
+        use_mirror = self.installer_ui.checkBox_use_mirror.isChecked()
+        mirror_url = self.installer_ui.lineEdit_mirror_url.text()
 
+        # Determine the installation source based on user selection
         if from_repo:
             install_source = REPO_URL
             if use_version and target_version:
-                install_source += f'@{target_version}'
+                install_source += f"@{target_version}"
             elif use_commit and target_commit:
-                install_source += f'@{target_commit}'
+                install_source += f"@{target_commit}"
 
         elif from_local_clone:
             install_source = local_source
+            # Validate the local directory
             if not local_source:
-                notify_box(f'Empty local dir: {local_source}', ValueError)
+                notify_box(f"Empty local dir: {local_source}", ValueError)
             if not os.path.exists(local_source):
-                notify_box(f'dir not exists: {local_source}', ValueError)
+                notify_box(f"dir not exists: {local_source}", ValueError)
 
             if not os.path.isdir(local_source):
-                notify_box(
-                    f'{local_source} not a directory', FileNotFoundError
-                )
+                notify_box(f"{local_source} not a directory", FileNotFoundError)
 
             if use_version and target_version:
-                install_source = f'file://{install_source}@{target_version}'
+                install_source = f"file://{install_source}@{target_version}"
             elif use_commit and target_commit:
-                install_source = f'file://{install_source}@{target_commit}'
+                install_source = f"file://{install_source}@{target_commit}"
         elif from_local_file:
             install_source = local_source
+            # Validate the local file
             if not os.path.exists(local_source):
-                notify_box(f'{local_source} is not found.', FileNotFoundError)
+                notify_box(f"{local_source} is not found.", FileNotFoundError)
             if not os.path.isfile(local_source):
-                notify_box(f'{local_source} is not a file.', ValueError)
-            if not (
-                local_source.endswith('.zip')
-                or local_source.endswith('.tar.gz')
-            ):
+                notify_box(f"{local_source} is not a file.", ValueError)
+            if not (local_source.endswith(".zip") or local_source.endswith(".tar.gz")):
                 notify_box(
-                    f'{local_source} must be a .zip or .tar.gz file!',
+                    f"{local_source} must be a .zip or .tar.gz file!",
                     ValueError,
                 )
             if use_version or use_commit or target_version or target_commit:
-                print(
-                    f'WARNING: installation from zip/tar file cannot use specified version/commit.'
-                )
+                print("WARNING: installation from zip/tar file cannot use specified version/commit.")
             install_source = local_source
 
-        if not install_source:
-            notify_box(
-                'Installation configuration is failed. Aborded. ', ValueError
-            )
+        else:
+            return notify_box("Installation configuration is failed. Aborded. ", ValueError)
 
-        env = {}
+        env: Dict[str, str] = {}
 
-        env.update(
-            self.proxy_in_env(
-                proxy=proxy_url if (use_proxy and proxy_url) else None
-            )
-        )
+        # Update environment variables based on proxy settings
+        env.update(self.proxy_in_env(proxy=proxy_url if (use_proxy and proxy_url) else None))
 
-        with hold_trigger_button(self.ui.pushButton_install):
+        # Perform the installation process
+        with hold_trigger_button(self.installer_ui.pushButton_install):
             ensure_lower_pip(env=env)
             git_solver = GitSolver()
             has_git = run_worker_thread_with_progress(
                 worker_function=git_solver.fetch_git,
                 env=env,
-                progress_bar=self.ui.progressBar,
+                progress_bar=self.installer_ui.progressBar,
             )
 
             if not has_git:
                 return
 
-            installed: Union[subprocess.CompletedProcess, None] = (
-                run_worker_thread_with_progress(
-                    worker_function=install_via_pip,
-                    progress_bar=self.ui.progressBar,
-                    source=install_source,
-                    upgrade=upgrade,
-                    verbose=verbose,
-                    extras=extras,
-                    env=env,
-                    mirror=mirror_url if (use_mirror and mirror_url) else '',
-                )
+            installed: Union[subprocess.CompletedProcess, None] = run_worker_thread_with_progress(
+                worker_function=install_via_pip,
+                progress_bar=self.installer_ui.progressBar,
+                source=install_source,
+                upgrade=upgrade,
+                verbose=verbose,
+                extras=extras,
+                env=env,
+                mirror=mirror_url if (use_mirror and mirror_url) else "",
             )
-            if (
-                isinstance(installed, subprocess.CompletedProcess)
-                and installed.returncode == 0
-            ):
+            # Provide feedback on the installation result
+            if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
                 notify_box(
-                    message='Installation succeeded. \nIf this is an upgrade, please restart PyMOL for it to take effect.',
+                    message="Installation succeeded. \nIf this is an upgrade, please restart PyMOL for it to take effect.",
                 )
                 return
 
             notify_box(
-                message=f'Installation failed from: {install_source} \n',
+                message=f"Installation failed from: {install_source} \n",
                 error_type=RuntimeError,
             )
 
     def setup_cache_dir(self):
+        """
+        Set up the custom cache directory.
+
+        This function attempts to import `ConfigBus` and `save_configuration` from the REvoDesign library to update the cache directory settings.
+        If the specified cache directory is valid, it updates the configuration and saves it.
+
+        Returns:
+            None
+        """
         try:
-            from REvoDesign import ConfigBus,save_configuration
-            bus=ConfigBus()
+            # Import necessary components from REvoDesign
+            from REvoDesign import ConfigBus, save_configuration
 
-            new_cache_dir=self.ui.lineEdit_customized_cache_dir.text()
+            bus = ConfigBus()
+
+            # Get the new cache directory from the UI input
+            new_cache_dir = self.installer_ui.lineEdit_customized_cache_dir.text()
+
+            # Check if the new cache directory is valid
             if new_cache_dir and os.path.isdir(new_cache_dir):
-                bus.cfg.cache_dir.under_home_dir=False
-                bus.cfg.cache_dir.customized=new_cache_dir
-                
+                # Update the cache directory settings
+                bus.cfg.cache_dir.under_home_dir = False
+                bus.cfg.cache_dir.customized = new_cache_dir
+
+                # Save the updated configuration
                 save_configuration(new_cfg=bus.cfg)
-                notify_box(
-                    f'The customized cache directory has been updated: \n{new_cache_dir}'
-                )
+
+                # Notify the user that the cache directory has been updated
+                notify_box(f"The customized cache directory has been updated: \n{new_cache_dir}")
             else:
-                notify_box(
-                    f'The cache directory is not valid. Please check the path: \n{new_cache_dir}', ValueError
-                )
+                # Notify the user that the cache directory is invalid
+                notify_box(f"The cache directory is not valid. Please check the path: \n{new_cache_dir}", UserWarning)
 
-
+            # Reset the ConfigBus instance
             ConfigBus.reset_instance()
-            
 
         except ImportError:
+            # Notify the user that REvoDesign is not installed
             notify_box(
-                message='REvoDesign is not installed. \nPlease install it first.',
+                message="REvoDesign is not installed. \nPlease install it first.",
                 error_type=RuntimeError,
             )
             return
@@ -1068,31 +1221,88 @@ class WorkerThread(QtCore.QThread):
         self.results = None  # Define the results attribute
 
     def run(self):
+        """
+        Executes the task and handles the results.
+
+        This function checks if an interruption has been requested. If not, it runs the specified function with given arguments and keyword arguments.
+        The result is then emitted through a signal if available, and a completion signal is emitted at the end.
+
+        Parameters:
+        - self: The instance of the class containing this method. It should have the following attributes:
+            - func: The function to be executed.
+            - args: A tuple of positional arguments for the function.
+            - kwargs: A dictionary of keyword arguments for the function.
+            - result_signal: A signal to emit the results.
+            - finished_signal: A signal to indicate the task has finished.
+            - isInterruptionRequested: A method that returns True if an interruption has been requested, otherwise False.
+        """
+        # Check if an interruption has been requested
         if not self.isInterruptionRequested():
+            # Execute the function with provided arguments and store the result
             self.results = [self.func(*self.args, **self.kwargs)]
+
+            # Emit the result if it exists
             if self.results:
                 self.result_signal.emit(self.results)
+
+            # Emit the finished signal
             self.finished_signal.emit()
 
     def handle_result(self):
+        """
+        Retrieves the results from the current instance.
+
+        This method returns the 'results' attribute of the current instance.
+        It is used to obtain the result data within other methods of the class.
+        """
         return self.results
 
     def interrupt(self):
+        """
+        Emit an interrupt signal.
+
+        This function triggers an interrupt signal.
+        """
         self.interrupt_signal.emit()
 
 
 class QtProgressBarHint(Protocol):
+    """
+    Defines a protocol class to specify the behavior of a progress bar.
+    This class outlines the methods that a progress bar should have, allowing other classes to implement this protocol.
+    """
+
     def minimum(self) -> int: ...
+
     def maximum(self) -> int: ...
+
     def value(self) -> int: ...
+
     def setRange(self, min: int, max: int): ...
+
     def setValue(self, value: int): ...
 
 
 # a copy from `REvoDesign/tools/utils.py`
 def run_worker_thread_with_progress(
-    worker_function, progress_bar=Optional[QtProgressBarHint], *args, **kwargs
-):
+    worker_function: Callable[..., R], *args, progress_bar: Optional[QtProgressBarHint] = None, **kwargs
+) -> Optional[R]:
+    """
+    Runs a worker function in a separate thread and optionally updates a progress bar.
+
+    This function is designed to execute a given task (worker_function) in a separate thread,
+    allowing the main thread to remain responsive, such as updating a progress bar.
+    After the task is completed, it restores the progress bar's state and returns the result of the task.
+
+    Parameters:
+    - worker_function: The function to execute in a separate thread.
+    - progress_bar: An optional progress bar object to update during the execution of the worker function.
+    - *args, **kwargs: Additional arguments and keyword arguments to pass to the worker function.
+
+    Returns:
+    - The result of the worker function or None if no result is available.
+    """
+    # If a progress bar is provided, store its current state and set it to indeterminate progress
     if progress_bar:
         # store the progress bar state
         _min = progress_bar.minimum()
@@ -1101,18 +1311,22 @@ def run_worker_thread_with_progress(
 
         progress_bar.setRange(0, 0)
 
+    # Create and start a worker thread with the given function and parameters
     work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
     work_thread.start()
 
+    # Keep the main thread running until the worker thread finishes
     while not work_thread.isFinished():
         refresh_window()
         time.sleep(0.001)
 
+    # If a progress bar was used, restore its state after the task is completed
     if progress_bar:
         # restore the progressbar state
-        progress_bar.setRange(_min, _max)
-        progress_bar.setValue(_val)
+        progress_bar.setRange(_min, _max)  # type: ignore
+        progress_bar.setValue(_val)  # type: ignore
 
+    # Obtain and return the result of the worker function
     result = work_thread.handle_result()
 
     return result[0] if result else None
@@ -1132,7 +1346,6 @@ def get_github_repo_tags(repo_url) -> list[str]:
     Returns:
         list: A list of tag names for the repository.
     """
-    import urllib.request
 
     # Extract the owner and repo name from the URL
     parts = repo_url.split("/")
@@ -1150,13 +1363,13 @@ def get_github_repo_tags(repo_url) -> list[str]:
             # Parse JSON response data
             tags = json.loads(response_data)
             # Extract the name of each tag
-            tag_names = [tag['name'] for tag in tags]
+            tag_names = [tag["name"] for tag in tags]
             return tag_names
-    except urllib.error.HTTPError as e:
+    except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
         print(f"Error: GitHub API returned status code {e.code}")
         return []
-    except urllib.error.URLError as e:
+    except URLError as e:
         # Handle URL errors (e.g., network issues)
         print(f"Error: Failed to reach the server. Reason: {e.reason}")
         return []
@@ -1181,20 +1394,12 @@ def set_widget_value(widget, value):
     - QCheckBox: Supports bool.
     """
 
-    class UnsupportedWidgetValueTypeError(TypeError): ...
-
     # Preprocess values according to types
     if callable(value):
-        value = (
-            value()
-        )  # Call the function to get the value if value is callable
+        value = value()  # Call the function to get the value if value is callable
 
-    if isinstance(value, Iterable) and not isinstance(
-        value, (str, list, tuple, dict)
-    ):
-        value = list(
-            value
-        )  # Convert iterable (excluding strings, lists, tuples, dicts) to list
+    if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple, dict)):
+        value = list(value)  # Convert iterable (excluding strings, lists, tuples, dicts) to list
 
     # Setting values
     if isinstance(widget, QtWidgets.QComboBox):
@@ -1221,26 +1426,33 @@ def set_widget_value(widget, value):
             widget.setRange(*value)
             return
         raise ValueError(
-            f'Invalid value {value} for QProgressBar. Value must be an integer or a list/tuple of two integers.'
+            f"Invalid value {value} for QProgressBar. Value must be an integer or a list/tuple of two integers."
         )
     if isinstance(widget, QtWidgets.QCheckBox):
         widget.setChecked(bool(value))
         return
 
     raise UnsupportedWidgetValueTypeError(
-        f'FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}'
+        f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}"
     )
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
 def refresh_window():
+    """
+    Refresh the application window by processing all pending events.
+    This function is copied from `REvoDesign/tools/customized_widgets.py`.
+
+    No parameters are required for this function.
+
+    Returns:
+        None
+    """
     QtWidgets.QApplication.processEvents()
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
-def notify_box(
-    message: str = '', error_type: Optional[Union[Exception, Warning]] = None
-):
+def notify_box(message: str = "", error_type: Optional[Union[type[Exception], type[Warning]]] = None) -> bool:
     """
     Display a notification message box.
 
@@ -1264,17 +1476,19 @@ def notify_box(
         return True
 
     # if it is warning, show the warning message and return
-    if isinstance(error_type(), Warning):
-        warnings.warn(error_type(message))
+    if isinstance(error_type, Warning):
+        warnings.warn(error_type(message))  # type: ignore
         return True
 
     # otherwise raise the exception
-    if isinstance(error_type(), Exception):
-        raise error_type(message)
+    if isinstance(error_type, Exception):
+        raise error_type(message)  # type: ignore
+
+    return False
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
-def proceed_with_comfirm_msg_box(title='', description=''):
+def proceed_with_comfirm_msg_box(title="", description=""):
     """
     Function: proceed_with_confirm_msg_box
     Usage: result = proceed_with_confirm_msg_box(title='', description='')
@@ -1294,9 +1508,7 @@ def proceed_with_comfirm_msg_box(title='', description=''):
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
-    msg.setStandardButtons(
-        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-    )
+    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
     result = msg.exec_()
 
     return result == QtWidgets.QMessageBox.Yes
@@ -1320,60 +1532,68 @@ def hold_trigger_button(button):
         button.setEnabled(True)
 
 
-def solve_installation_config(
-    source: str, git_url: str, git_tag: str, extras: str
-):
-    extra_string = solve_pip_extras(extras)
+def solve_installation_config(source: str, git_url: str, git_tag: str, extras: Optional[str]):
+    """
+    Solves the installation configuration based on the provided parameters.
+
+    Parameters:
+    - source (str): The source of the package to install. Can be a URL, a file path, or a directory.
+    - git_url (str): The Git URL of the repository.
+    - git_tag (str): The Git tag or branch to use for installation.
+    - extras (str): Additional extras to include in the installation.
+
+    Returns:
+    - str: The formatted package string for installation.
+    """
+    extra_string = f'[{extras}]'
     package_string = f"REvoDesign{extra_string}"
-    print(f'Installing as {package_string}...')
+    print(f"Installing as {package_string}...")
 
-    # with github url and tag
-    if source and source.startswith('https://'):
+    # Handle installation from a GitHub URL with a tag
+    if source and source.startswith("https://"):
         package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
         return package_string
 
-    # with git repo clone and tag
-    if source.startswith('file://'):
-        dir = git_url.replace('file://', '')
-        if not os.path.exists(os.path.join(dir, '.git')):
-            notify_box(f'Git dir not found: {os.path.join(dir, ".git")}')
+    # Handle installation from a local Git repository with a tag
+    if source.startswith("file://"):
+        repo_dir = git_url.replace("file://", "")
+        if not os.path.exists(os.path.join(repo_dir, ".git")):
+            notify_box(f'Git dir not found: {os.path.join(repo_dir, ".git")}')
         package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
         return package_string
 
-    # with unzipped code dir
+    # Handle installation from an unzipped code directory
     if os.path.exists(source) and os.path.isdir(source):
-        if not os.path.exists(os.path.join(source, 'pyproject.toml')):
+        if not os.path.exists(os.path.join(source, "pyproject.toml")):
             notify_box(
-                f'{source} is not a directory containing pyproject.toml',
+                f"{source} is not a directory containing pyproject.toml",
                 FileNotFoundError,
             )
         if git_tag:
-            notify_box(
-                'unzipped code directory can not have a tag!', ValueError
-            )
-        if source.endswith('/'):
+            notify_box("unzipped code directory can not have a tag!", ValueError)
+        if source.endswith("/"):
             source = source[:-1]
         package_string = f"{source}{extra_string}"
         return package_string
 
-    # with zipped code archive
+    # Handle installation from a zipped code archive
     if os.path.exists(source) and os.path.isfile(source):
         if git_tag:
-            notify_box('zipped file can not have a tag!', ValueError)
+            notify_box("zipped file can not have a tag!", ValueError)
 
-        if source.endswith('.zip'):
+        if source.endswith(".zip"):
             package_string = f"{source}{extra_string}"
-        elif source.endswith('.tar.gz'):
+        elif source.endswith(".tar.gz"):
             package_string = f"{source}{extra_string}"
         else:
             notify_box(
-                f'{source} is neither a zipped file nor a tar.gz file!',
+                f"{source} is neither a zipped file nor a tar.gz file!",
                 FileNotFoundError,
             )
 
         return package_string
 
-    notify_box(f'Unknown installation source {source}!', ValueError)
+    notify_box(f"Unknown installation source {source}!", ValueError)
 
 
 def ensure_lower_pip(env: Optional[Mapping[str, str]]):
@@ -1386,83 +1606,92 @@ def ensure_lower_pip(env: Optional[Mapping[str, str]]):
     Returns:
     None
     """
-    # Import necessary modules
-    import sys
-    import warnings
-    import pip
 
     # Get the current pip version number
-    pip_ver: float = float(pip.__version__.split('.')[0])
+    pip_ver: float = float(pip.__version__.split(".", maxsplit=1)[0])
     # If the pip version is already lower than 24.0, no action is needed
     if pip_ver < 24.0:
         return
 
     # Warn the user that pip>=24.0 will be required for future REvoDesign installations
-    warnings.warn(
-        FutureWarning(
-            'pip>=24.0 will be required for REvoDesign installation.'
-        )
-    )
+    warnings.warn(FutureWarning("pip>=24.0 will be required for REvoDesign installation."))
 
     # Get the absolute path of the current Python executable
     python_exe = os.path.realpath(sys.executable)
     # Construct the command to install a specific version of pip
-    pip_cmd = [python_exe, '-m', 'pip', 'install', '-U', 'pip<24.0', '-q']
+    pip_cmd = [python_exe, "-m", "pip", "install", "-U", "pip<24.0", "-q"]
 
     # Execute the pip installation command
     result = run_command(pip_cmd, verbose=True, env=env)
     # If the pip downgrade command fails, notify the user to manually execute the command
     if result.returncode:
         notify_box(
-            'Failed to downgrade pip. Please upgrade/downgrade pip<24.0 manually.\n'
+            "Failed to downgrade pip. Please upgrade/downgrade pip<24.0 manually.\n"
             f'Run this command in your shell - `{" ".join(pip_cmd)}`'
         )
 
 
 def install_via_pip(
-    source=REPO_URL,
-    upgrade=0,
-    verbose=1,
-    extras='',
-    mirror='',
-    uninstall=False,
+    source: str = REPO_URL,
+    upgrade: bool = False,
+    verbose: bool = True,
+    extras: Optional[str] = None,
+    mirror: Optional[str] = "",
+    uninstall: bool = False,
     env: Optional[Mapping[str, str]] = None,
-) -> subprocess.CompletedProcess:
-    def get_source_and_tag(source):
-        git_dir = source.split('@')[0]
-        if '@' in source:
-            git_tag = source.split('@')[1]
+) -> Optional[subprocess.CompletedProcess]:
+    """
+    Install a package via pip.
+
+    Args:
+        source: The source URL of the package, default is the URL defined in REPO_URL.
+        upgrade: Whether to upgrade the package, default is False.
+        verbose: Whether to output detailed information, default is True.
+        extras: Additional requirements, default is None.
+        mirror: The mirror source for installation, default is empty.
+        uninstall: Whether to uninstall before installation, default is False.
+        env: Environment variables for the installation process, default is None.
+
+    Returns:
+        Returns the result of the installation process as a subprocess.CompletedProcess object.
+    """
+
+    def get_source_and_tag(source: str):
+        """
+        Parse the source URL and tag.
+
+        Args:
+            source: The source URL of the package.
+
+        Returns:
+            Returns a tuple containing the git directory and git tag.
+        """
+        git_dir = source.split("@")[0]
+        if "@" in source:
+            git_tag = source.split("@")[1]
         else:
-            git_tag = ''
+            git_tag = ""
         return git_dir, git_tag
 
-    import sys
-
-    upgrade = int(upgrade)
-    verbose = int(verbose)
-
-    print(
-        'Installation is started. This may take a while and the window will freeze until it is done.'
-    )
+    print("Installation is started. This may take a while and the window will freeze until it is done.")
 
     python_exe = os.path.realpath(sys.executable)
 
     # run installation via pip
-    ensurepip = run_command(
-        [python_exe, '-m', 'ensurepip'], verbose=verbose, env=env
-    )
+    ensurepip = run_command([python_exe, "-m", "ensurepip"], verbose=verbose, env=env)
     if ensurepip.returncode:
-        notify_box('ensurepip failed.')
-        return None
+        notify_box("ensurepip failed.", RuntimeError)
+        return
+        
 
     if uninstall:
         pip_cmd = [
             python_exe,
-            '-m',
-            'pip',
-            'uninstall',
-            '-y',
-            'REvoDesign',
+            "-m",
+            "pip",
+            "uninstall",
+            "-y",
+            "REvoDesign",
         ]
     else:
         # use default source
@@ -1471,47 +1700,42 @@ def install_via_pip(
 
         git_url, git_tag = get_source_and_tag(source=source)
 
-        package_string = solve_installation_config(
-            source=source, git_url=git_url, git_tag=git_tag, extras=extras
-        )
+        package_string = solve_installation_config(source=source, git_url=git_url, git_tag=git_tag, extras=extras)
         pip_cmd = [
             python_exe,
-            '-m',
-            'pip',
-            'install',
+            "-m",
+            "pip",
+            "install",
             f"{package_string}",
         ]
 
         if upgrade:
-            pip_cmd.append('--upgrade')
+            pip_cmd.append("--upgrade")
 
         if mirror:
-            print(f'using mirror from {mirror}')
-            pip_cmd.extend(['-i', mirror])
+            print(f"using mirror from {mirror}")
+            pip_cmd.extend(["-i", mirror])
 
-    result: subprocess.CompletedProcess = run_command(
-        pip_cmd, verbose=verbose, env=env
-    )
+    result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=verbose, env=env)
 
     return result
 
 
 # entrypoint of PyMOL plugin
 def __init_plugin__(app=None):
-    '''
+    """
     Add an entry to the PyMOL "Plugin" menu
-    '''
-    from pymol.plugins import addmenuitemqt
+    """
 
     plugin = REvoDesignInstaller()
-    addmenuitemqt('REvoDesign Installer', plugin.run_plugin_gui)
+    addmenuitemqt("REvoDesign Installer", plugin.run_plugin_gui)
 
     try:
         from REvoDesign import REvoDesignPlugin
 
         plugin = REvoDesignPlugin()
-        addmenuitemqt('REvoDesign', plugin.run_plugin_gui)
+        addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
     except ImportError:
         traceback.print_exc()
 
-        print('REvoDesign is not available.')
+        print("REvoDesign is not available.")
