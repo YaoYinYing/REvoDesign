@@ -2,22 +2,19 @@ import contextlib
 import os
 import random
 import string
-import time
-from typing import Union
-import tarfile
-import zipfile
-import sys
 import subprocess
-
+import sys
+import tarfile
+import time
+import zipfile
+from typing import Union
 
 import matplotlib
 import numpy as np
 
 from REvoDesign import root_logger
-from .customized_widgets import (
-    WorkerThread,
-    refresh_window,
-)
+
+from .customized_widgets import WorkerThread, refresh_window
 
 logging = root_logger.getChild(__name__)
 
@@ -52,8 +49,7 @@ def run_command(excutable='python', command_list=[]):
 
     result = subprocess.run(
         command_list,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
+        capture_output=True,
     )
 
     return result

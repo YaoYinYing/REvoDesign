@@ -1,6 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from REvoDesign_PyMOL import GitSolver  # Replace with actual module path
+
 
 # Mock notify_box to simply print the message
 def mock_notify_box(*args, **kwargs):
@@ -9,9 +12,11 @@ def mock_notify_box(*args, **kwargs):
     if kwargs:
         return print(kwargs['message'])
 
+
 @pytest.fixture
 def git_solver():
     return GitSolver()
+
 
 @pytest.mark.parametrize("has_git, expected_result", [
     (True, True),
@@ -22,6 +27,7 @@ def test_fetch_git_when_git_present(git_solver, has_git, expected_result):
     with patch.object(git_solver, 'has_git', new=has_git):
         result = git_solver.fetch_git(env=None)
         assert result == expected_result
+
 
 @pytest.mark.parametrize("has_conda, has_winget, expected_cmd", [
     (True, False, ['conda', 'install', '-y', 'git']),
@@ -45,7 +51,7 @@ def test_fetch_git_with_installers(mock_notify, git_solver, has_conda, has_winge
                 with patch('REvoDesign_PyMOL.run_command') as mock_run:
                     mock_run.return_value = MagicMock(returncode=0)
                     result = git_solver.fetch_git(env=None)
-                    assert result == True
+                    assert result
                     mock_run.assert_called_once_with(
                         cmd=expected_cmd,
                         verbose=True,
@@ -54,14 +60,12 @@ def test_fetch_git_with_installers(mock_notify, git_solver, has_conda, has_winge
                     # Ensure notify_box was called with the correct message
                     mock_notify.assert_called_once_with('Git installed successfully.')
 
+
 def test_fetch_git_failed_installation(git_solver):
-    with patch.object(git_solver, 'has_git', new=False):
-        with patch.object(git_solver, 'has_conda', new=False):
-            with patch.object(git_solver, 'has_winget', new=False):
-                with patch('REvoDesign_PyMOL.run_command') as mock_run:
-                    mock_run.return_value = MagicMock(returncode=1)
-                    with patch('REvoDesign_PyMOL.notify_box', side_effect=mock_notify_box) as mock_notify:
-                        result = git_solver.fetch_git(env=None)
-                        assert result == False
-                        # Ensure notify_box was called with the correct message
-                        mock_notify.assert_called()
+    with patch.object(git_solver, 'has_git', new=False), patch.object(git_solver, 'has_conda', new=False), patch.object(git_solver, 'has_winget', new=False), patch('REvoDesign_PyMOL.run_command') as mock_run:
+        mock_run.return_value = MagicMock(returncode=1)
+        with patch('REvoDesign_PyMOL.notify_box', side_effect=mock_notify_box) as mock_notify:
+            result = git_solver.fetch_git(env=None)
+            assert not result
+            # Ensure notify_box was called with the correct message
+            mock_notify.assert_called()

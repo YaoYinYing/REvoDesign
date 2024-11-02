@@ -3,9 +3,9 @@
 # for hhblits a3m alignment file treatment
 
 
+import pathlib
 import re
 import sys
-import pathlib
 
 
 # remove lowercase in sequence but not its title
@@ -24,11 +24,11 @@ if __name__ == '__main__':
     else:
         input_fn = pathlib.Path(sys.argv[1]).resolve()
 
-        output_fn= input_fn.parent.joinpath(f'{input_fn.stem}_aln.fas')
+        output_fn = input_fn.parent.joinpath(f'{input_fn.stem}_aln.fas')
 
         with open(output_fn, 'w') as out_fn:
             treated = ''
-            with open(input_fn, 'r') as in_fn:
+            with open(input_fn) as in_fn:
                 in_rd = in_fn.readlines()
                 for line in in_rd:
                     treated += char_filter(line)

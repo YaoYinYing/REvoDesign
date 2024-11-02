@@ -1,16 +1,16 @@
 import atexit
 import datetime as dt
 import json
-import logging.handlers as python_logging_handlers
 import logging as python_logging
+import logging.handlers as python_logging_handlers
 import os
 import queue
 from typing import Union
-from typing_extensions import override
+
 from omegaconf import DictConfig
+from typing_extensions import override
 
 from ..boot import reload_config_file
-
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",

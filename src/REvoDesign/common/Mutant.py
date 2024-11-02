@@ -1,8 +1,8 @@
-import os
-from typing import List, Dict, Mapping, Union, Optional
-from dataclasses import dataclass, field
 import hashlib
+import os
 import warnings
+from dataclasses import dataclass, field
+from typing import Dict, List, Mapping, Optional, Union
 
 from REvoDesign import issues
 
@@ -43,7 +43,8 @@ class Mutant:
         Raises a MoleculeError if any key is missing.
 
         Args:
-            self: An instance of the class containing the `mutant_info` attribute, which is a list of dictionaries representing mutations.
+            self: An instance of the class containing the `mutant_info` attribute, which is a list of
+            dictionaries representing mutations.
 
         Raises:
             issues.MoleculeError: If any dictionary in `mutant_info` is missing one or more of the required keys.
@@ -75,9 +76,11 @@ class Mutant:
         """
         Retrieves a dictionary of wild-type sequences.
 
-        This method takes no parameters and returns a dictionary where keys are sample IDs and values are the corresponding wild-type sequences.
+        This method takes no parameters and returns a dictionary where keys are sample IDs and
+        values are the corresponding wild-type sequences.
 
-        :return: A dictionary with string keys representing sample IDs and string values representing the wild-type sequences.
+        :return: A dictionary with string keys representing sample IDs and string values representing
+        the wild-type sequences.
         """
         return self._wt_sequences
 
@@ -86,10 +89,12 @@ class Mutant:
         """
         Updates or sets the object's wild-type sequences.
 
-        This method allows users to provide a mapping (dictionary) of sequence identifiers to their corresponding wild-type sequences.
+        This method allows users to provide a mapping (dictionary) of sequence identifiers to their
+        corresponding wild-type sequences.
 
         Args:
-            new_wt_sequences (Mapping[str, str]): A dictionary where keys are sequence identifiers and values are the wild-type sequences.
+            new_wt_sequences (Mapping[str, str]): A dictionary where keys are sequence identifiers and
+            values are the wild-type sequences.
 
         Raises:
             InvalidInputError: If `new_wt_sequences` is not a `dict`.
@@ -294,7 +299,7 @@ class Mutant:
 
         if ignore_missing:
             while True:
-                if not 'X' in sequence:
+                if 'X' not in sequence:
                     break
                 sequence.remove('X')
 
@@ -305,7 +310,8 @@ class Mutant:
         """
         Generates a dictionary of mutant sequences for each chain.
 
-        Iterates through each chain in the original wt_sequences dictionary and retrieves the mutant sequence for that specific chain.
+        Iterates through each chain in the original wt_sequences dictionary and retrieves the mutant sequence
+        for that specific chain.
 
         Returns:
             dict[str, str]: A dictionary where keys are chain IDs and values are the corresponding mutated sequences.

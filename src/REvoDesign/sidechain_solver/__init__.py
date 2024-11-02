@@ -1,3 +1,3 @@
-from .SidechainSolver import SidechainSolver, MutateRunnerAbstract
+from .SidechainSolver import MutateRunnerAbstract, SidechainSolver
 
 __all__ = ['SidechainSolver', 'MutateRunnerAbstract']

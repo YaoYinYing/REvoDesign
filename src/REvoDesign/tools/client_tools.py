@@ -1,14 +1,13 @@
 import datetime
-from dataclasses import dataclass
-from typing import Literal
 import os
 import ssl
 import uuid
+from dataclasses import dataclass
+from typing import Literal
 
 from OpenSSL import crypto
 
-from REvoDesign import issues
-from REvoDesign import root_logger
+from REvoDesign import issues, root_logger
 
 logging = root_logger.getChild(__name__)
 

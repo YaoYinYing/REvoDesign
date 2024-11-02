@@ -1,7 +1,7 @@
-from dataclasses import dataclass
 import platform
-
 import warnings
+from dataclasses import dataclass
+
 from REvoDesign import issues
 
 
@@ -56,9 +56,11 @@ class CLIENT_INFO:
     def __post_init__(self):
         import os
         import socket
+
         from REvoDesign import VERSION
-        from .pymol_utils import PYMOL_VERSION, PYMOL_BUILD
+
         from .customized_widgets import PYQT_VERSION_STR
+        from .pymol_utils import PYMOL_BUILD, PYMOL_VERSION
 
         self.node: str = self.OS_INFO.node
         try:

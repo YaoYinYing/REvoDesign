@@ -1,41 +1,32 @@
-from dataclasses import dataclass
 import gc
 import os
 import time
-from typing import Union
 import warnings
+from dataclasses import dataclass
+from typing import Optional, Union
 
+import psutil
 import pytest
+from immutabledict import immutabledict
+from pymol import CmdException, cmd
+from pymol.Qt import QtCore, QtWidgets
+from pytestqt import qtbot
 
+from REvoDesign import EXPERIMENTS_CONFIG_DIR, ConfigBus, REvoDesignPlugin
 from REvoDesign.citations import CitationManager
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
-from REvoDesign.clients.QtSocketConnector import (
-    REvoDesignWebSocketClient,
-    REvoDesignWebSocketServer,
-)
+from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
+                                                  REvoDesignWebSocketServer)
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.evaluate.Evaluator import Evalutator
 from REvoDesign.phylogenetics.EvoMutator import GREMLIN_Analyser
 from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign.tests import TestData
+from REvoDesign.tools.customized_widgets import (get_widget_value,
+                                                 set_widget_value)
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
-
-from immutabledict import immutabledict
-import psutil
-from pytestqt import qtbot
-
-from pymol import cmd, CmdException
-from pymol.Qt import QtWidgets, QtCore, QtGui
-
-from REvoDesign import ConfigBus, REvoDesignPlugin, EXPERIMENTS_CONFIG_DIR
-
-from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
-    set_widget_value,
-)
-from REvoDesign.common.MutantTree import MutantTree
-
-from REvoDesign.tests import *
 
 
 class Counter:
@@ -46,6 +37,11 @@ class Counter:
     def i(self):
         self.count += 1
         return self.count
+
+
+@pytest.fixture
+def counter():
+    return Counter()
 
 
 @pytest.fixture(scope="function")
@@ -96,7 +92,7 @@ class TestWorker:
         )  # Add the plugin's main window to qtbot for automatic cleanup
 
         self.tab_widget_mapping: immutabledict[
-            str, QtWidgets.QWidget
+            str, QtWidgets.QWidget  # type: ignore
         ] = immutabledict(
             {
                 'prepare': self.plugin.ui.tab_prepare,
@@ -181,7 +177,7 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def _fetch_pdb(self, pdb_code: str, spell: str):
+    def _fetch_pdb(self, pdb_code: Optional[str] = None, spell: Optional[str] = None):
         if not pdb_code:
             pdb_code = self.test_data.molecule
         if not spell:
@@ -209,10 +205,10 @@ class TestWorker:
 
     def load_session_and_check(
         self,
-        pdb_code: str = None,
-        spell: str = None,
+        pdb_code: Optional[str] = None,
+        spell: Optional[str] = None,
         from_rcsb=False,
-        customized_session: str = None,
+        customized_session: Optional[str] = None,
     ):
         self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
@@ -242,7 +238,7 @@ class TestWorker:
         self.plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
 
-    def save_new_experiment(self, experiment_name: str = None):
+    def save_new_experiment(self, experiment_name: Optional[str] = None):
         import shutil
 
         if not experiment_name:
@@ -264,7 +260,7 @@ class TestWorker:
         shutil.copy(experiment_file, new_cfg_file)
         print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
 
-    def click(self, widget: QtWidgets.QWidget, times: int = 1):
+    def click(self, widget: QtWidgets.QWidget, times: int = 1):  # type: ignore
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
@@ -280,7 +276,7 @@ class TestWorker:
         self.qtbot.wait(time)
 
     def do_typing(
-        self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False
+        self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False  # type: ignore
     ):
         set_widget_value(widget=widget, value='')
         # if text is short enough or in strict mode
@@ -297,7 +293,7 @@ class TestWorker:
         self.sleep(100)
 
     def _navigate_to_tab(
-        self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
+        self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget  # type: ignore
     ):
         tab.setCurrentWidget(page)
 
@@ -308,7 +304,7 @@ class TestWorker:
         )
         self.sleep(5)
 
-    def check_molecule_after_loaded(self, molecule: str = None):
+    def check_molecule_after_loaded(self, molecule: Optional[str] = None):
         if molecule and isinstance(molecule, str):
             assert (
                 self.plugin.bus.get_value('ui.header_panel.input.molecule')
@@ -406,7 +402,7 @@ class TestWorker:
 
     def save_screenshot(
         self,
-        widget: QtWidgets.QWidget,
+        widget: QtWidgets.QWidget,  # type: ignore
         basename: str = 'default',
     ):
         if self.is_in_ci_runner:
@@ -422,7 +418,7 @@ class TestWorker:
         basename: str = 'default',
         dpi: int = 300,
         use_ray: int = 0,
-        spells: str = None,
+        spells: Optional[str] = None,
         focus=True,
         focus_method='orient',
     ):
@@ -447,7 +443,7 @@ class TestWorker:
         cmd.png(png_file, dpi=dpi, ray=use_ray)
 
     def wait_for_file(
-        self, file: str, interval: str = 100, timeout: float = 61.0
+        self, file: str, interval: int = 100, timeout: float = 61.0
     ) -> Union[bool, None]:
         started_moment = time.perf_counter()
         while True:
@@ -494,7 +490,7 @@ class TestWorker:
 
 
 @pytest.fixture(scope="function")
-def WORKER(
+def worker(
     qtbot: qtbot.QtBot,
     plugin,
     request,

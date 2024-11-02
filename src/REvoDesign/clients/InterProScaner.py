@@ -7,8 +7,10 @@ Code: https://raw.githubusercontent.com/ebi-wp/webservice-clients/master/python/
 import os
 import platform
 import time
+
 import requests
 from lxml import etree
+
 from REvoDesign import root_logger
 
 logging = root_logger.getChild(__name__)

@@ -3,27 +3,18 @@ import os
 import tempfile
 import warnings
 
+import matplotlib
 import pandas as pd
 from Bio import SeqIO
-import matplotlib
 
+from REvoDesign import issues, root_logger
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.ProfileParsers import ProfileManager
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
-from REvoDesign import root_logger
-from REvoDesign.common.MutantTree import MutantTree
-
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.tools.utils import (
-    get_color,
-    run_command,
-)
-
-from REvoDesign.tools.mutant_tools import (
-    extract_mutants_from_mutant_id,
-    extract_mutant_from_sequences,
-)
-
-from REvoDesign import issues
+from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
+                                           extract_mutants_from_mutant_id)
+from REvoDesign.tools.utils import get_color, run_command
 
 matplotlib.use('Agg')
 logging = root_logger.getChild(__name__)
@@ -143,7 +134,8 @@ class MutantVisualizer:
         cmd.hide('cartoon', f'{new_obj_name}')
         cmd.show(
             "sticks",
-            f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and (sidechain or n. CA) and (not hydrogen)',
+            f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and '
+            '(sidechain or n. CA) and (not hydrogen)',
         )
 
         cmd.hide('everything', 'hydrogens and polymer.protein')
@@ -262,7 +254,7 @@ class MutantVisualizer:
                     chain_id=self.chain_id,
                 )
                 for mut_record in SeqIO.parse(
-                    open(self.mutfile, 'r'), format='fasta'
+                    open(self.mutfile), format='fasta'
                 )
             ]
 
@@ -376,7 +368,8 @@ class MutantVisualizer:
         - self: Instance of the class containing the method.
 
         Notes:
-        - This method initiates and manages the execution of mutagenesis tasks using parallel processing if self.parallel_run is True.
+        - This method initiates and manages the execution of mutagenesis tasks using parallel processing
+        if self.parallel_run is True.
         - The method uses multiprocessing for parallel execution of tasks.
         - If parallel_run is True:
             - It initializes a ParallelExecutor with specified parameters and starts the execution.
@@ -387,7 +380,7 @@ class MutantVisualizer:
         """
 
         if not self.mutate_runner:
-            raise RuntimeError(f'no mutate runner is instantiated yet.')
+            raise RuntimeError('no mutate runner is instantiated yet.')
 
         if any(
             not (m.pdb_fp and os.path.isfile(m.pdb_fp))

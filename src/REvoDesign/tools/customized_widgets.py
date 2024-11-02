@@ -1,9 +1,9 @@
 import os
-from contextlib import contextmanager
 from collections.abc import Iterable
+from contextlib import contextmanager
 from typing import Any, Callable, Union
 
-from pymol.Qt import QtWidgets, QtGui, QtCore
+from pymol.Qt import QtCore, QtGui, QtWidgets
 
 from REvoDesign import root_logger
 
@@ -15,7 +15,7 @@ PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 # Custom widget for displaying images
 class ImageWidget(QtWidgets.QWidget):
     def __init__(self, image_path, parent=None):
-        super(ImageWidget, self).__init__(parent)
+        super().__init__(parent)
         self.image_path = image_path
 
     def paintEvent(self, event):
@@ -123,6 +123,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
             QColor: Color based on the mapped value.
         """
         import matplotlib.pyplot as plt
+
         from REvoDesign import ConfigBus
         from REvoDesign.tools.utils import cmap_reverser
 
@@ -400,8 +401,9 @@ def get_widget_value(widget):
 def refresh_widget_while_another_changed(
     trigger_widget, target_widget, target_data_group: dict[str, list]
 ):
-    from REvoDesign import reload_config_file
     from omegaconf import OmegaConf
+
+    from REvoDesign import reload_config_file
 
     cfg = reload_config_file()
     trigger_value = get_widget_value(widget=trigger_widget)
@@ -436,7 +438,7 @@ class ParallelExecutor:
         self.kwargs = kwargs
         self.n_jobs = n_jobs
 
-        os_type = CLIENT_INFO.OS_TYPE
+        CLIENT_INFO.OS_TYPE
         # guessing backend according to OS
         if not backend == 'auto':
             self.backend = backend

@@ -1,5 +1,8 @@
 from abc import abstractmethod
+
 from REvoDesign.citations import CitableModules
+
+from .colabdesign import ColabDesigner_MPNN
 
 '''
 #### Hot replacement of designers ####
@@ -69,7 +72,6 @@ class ExternalDesignerAbstract(CitableModules):
         The implementation should define how these weights are calculated or retrieved.
         """
 
-
     @abstractmethod
     def initialize(self, *args, **kwargs):
         """
@@ -79,7 +81,6 @@ class ExternalDesignerAbstract(CitableModules):
         Parameters:
             *args, **kwargs: Flexible arguments that can be passed to perform specific initialization tasks.
         """
-
 
     def designer(self, *args, **kwargs):
         """
@@ -101,6 +102,3 @@ class ExternalDesignerAbstract(CitableModules):
             *args, **kwargs: Additional parameters for scoring, if required.
         """
         raise NotImplementedError("Scorer method not implemented")
-
-
-from .colabdesign import ColabDesigner_MPNN

@@ -1,4 +1,4 @@
-from typing import List, Union, Protocol, Iterable
+from typing import Iterable, List, Protocol, Union
 
 from REvoDesign.common.Mutant import Mutant
 

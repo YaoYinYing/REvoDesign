@@ -3,20 +3,13 @@ from functools import partial
 
 from pymol import cmd
 
-from REvoDesign import ConfigBus
+from REvoDesign import ConfigBus, root_logger
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
-    decide,
-    set_widget_value,
-)
-
-from REvoDesign import root_logger
-from REvoDesign.tools.mutant_tools import (
-    existed_mutant_tree,
-    extract_mutant_from_pymol_object,
-    save_mutant_choices,
-)
+from REvoDesign.tools.customized_widgets import (decide, get_widget_value,
+                                                 set_widget_value)
+from REvoDesign.tools.mutant_tools import (existed_mutant_tree,
+                                           extract_mutant_from_pymol_object,
+                                           save_mutant_choices)
 
 logging = root_logger.getChild(__name__)
 
@@ -204,10 +197,10 @@ class Evalutator:
 
         branch = get_widget_value(comboBox_group_ids)
         if not branch:
-            logging.warning(f'Branch id is empty or null, skipped.')
+            logging.warning('Branch id is empty or null, skipped.')
             return
         elif not self.mutant_tree_candidates:
-            logging.error(f'Mutant tree is invalid.')
+            logging.error('Mutant tree is invalid.')
             return
         else:
             logging.info(f'Jump to {branch} as required.')
@@ -306,19 +299,19 @@ class Evalutator:
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         if self.mutant_tree_candidates.empty:
             logging.error(
-                f'No available mutant tree. Please reinitialize it before picking mutants.'
+                'No available mutant tree. Please reinitialize it before picking mutants.'
             )
             return
 
         if not self.mutant_tree_pssm_selected.empty:
             logging.warning(
-                f'Your current mutant selection will be overrided!'
+                'Your current mutant selection will be overrided!'
             )
 
             # Ask whether to overide
             confirmed = decide(
                 title="Override existed mutant table choices?",
-                description=f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
+                description="You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
                     Are you really sure? ",
             )
 
@@ -382,7 +375,7 @@ class Evalutator:
             return
 
         mutants_from_checkpoint = (
-            open(mutant_choice_checkpoint_fn, 'r').read().strip().split('\n')
+            open(mutant_choice_checkpoint_fn).read().strip().split('\n')
         )
 
         self.mutant_tree_pssm_selected = (

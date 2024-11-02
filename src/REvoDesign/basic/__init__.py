@@ -1,6 +1,6 @@
 from abc import ABC
-from typing import Tuple, TypeVar, Generic
 from dataclasses import dataclass
+from typing import Generic, Tuple, TypeVar
 
 T = TypeVar('T')
 
@@ -24,7 +24,7 @@ class SingletonAbstract(ABC):
         # Check if an instance of the class already exists
         if not cls._instance:
             # If not, create a new instance and assign it to the _instance class variable
-            cls._instance = super(SingletonAbstract, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         # Return the existing instance
         return cls._instance
 

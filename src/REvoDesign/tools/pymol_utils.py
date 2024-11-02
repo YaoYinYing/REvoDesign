@@ -1,12 +1,10 @@
 import os
 import warnings
 
-from pymol import cmd
-from pymol import get_version_message
+from pymol import cmd, get_version_message
 from pymol.parsing import QuietException
 
-from REvoDesign import issues
-from REvoDesign import root_logger
+from REvoDesign import issues, root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -370,12 +368,10 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
         return None
     residues = '_'.join(
         list(
-            set(
-                [
-                    f'{at.resn.upper()}{at.resi}'
-                    for at in cmd.get_model(f'{selection} and n. CA').atom
-                ]
-            )
+            {
+                f'{at.resn.upper()}{at.resi}'
+                for at in cmd.get_model(f'{selection} and n. CA').atom
+            }
         )
     )
     autodock_flexible_residues = f'{molecule}:{chain_id}:{residues}'
@@ -404,7 +400,7 @@ def refresh_all_selections():
     ]
 
     for sel in selections:
-        _resi = sorted(list(set([at.resi for at in cmd.get_model(sel).atom])))
+        _resi = sorted(list({at.resi for at in cmd.get_model(sel).atom}))
         logging.info(f'{sel}: i. {shorter_range([int(x) for x in _resi])}')
     return selections
 

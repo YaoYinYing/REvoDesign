@@ -1,9 +1,7 @@
 # ALL External designners must get registed at here.
 
-from REvoDesign.external_designer.designers import (
-    ExternalDesignerAbstract,
-    ColabDesigner_MPNN,
-)
+from REvoDesign.external_designer.designers import (ColabDesigner_MPNN,
+                                                    ExternalDesignerAbstract)
 
 EXTERNAL_DESIGNERS = {'ProteinMPNN': ColabDesigner_MPNN}
 

@@ -3,8 +3,8 @@ import os
 
 from joblib import Parallel, delayed
 
-from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
+from REvoDesign.common.Mutant import Mutant
 
 from . import MutateRunnerAbstract
 
@@ -154,7 +154,6 @@ class DLPacker_worker(MutateRunnerAbstract):
         - List of targets for reconstruction
         """
         from Bio.Data import IUPACData
-
         from DLPacker.dlpacker import DLPacker
 
         dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
@@ -213,10 +212,8 @@ class DLPacker_worker(MutateRunnerAbstract):
         gc.collect()
         return results
 
-    @property
-    def __bibtex__(self):
-        return {
-            'DLPacker': """@article{https://doi.org/10.1002/prot.26311,
+    __bibtex__ = {
+        'DLPacker': r"""@article{https://doi.org/10.1002/prot.26311,
 author = {Misiura, Mikita and Shroff, Raghav and Thyer, Ross and Kolomeisky, Anatoly B.},
 title = {DLPacker: Deep learning for prediction of amino acid side chain conformations in proteins},
 journal = {Proteins: Structure, Function, and Bioinformatics},
@@ -232,4 +229,4 @@ year = {2022}
 }
 
 """
-        }
+    }

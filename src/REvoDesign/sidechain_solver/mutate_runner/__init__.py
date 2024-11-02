@@ -1,10 +1,14 @@
-from abc import abstractmethod
 import os
+from abc import abstractmethod
 from typing import Iterable
 
 from REvoDesign.citations import CitableModules
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
+
+from .DLPacker import DLPacker_worker
+from .DunbrackRotamerLib import PyMOL_mutate
+from .PIPPack import PIPPack_worker
 
 
 class MutateRunnerAbstract(CitableModules):
@@ -84,10 +88,6 @@ class MutateRunnerAbstract(CitableModules):
 
     # Add any other common methods or properties that should be shared by all subclasses.
 
-
-from .DunbrackRotamerLib import PyMOL_mutate
-from .DLPacker import DLPacker_worker
-from .PIPPack import PIPPack_worker
 
 __all__ = [
     'MutateRunnerAbstract',

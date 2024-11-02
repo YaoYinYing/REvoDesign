@@ -3,8 +3,9 @@ import os
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
 
-from REvoDesign.common.Mutant import Mutant
 from REvoDesign import root_logger
+from REvoDesign.common.Mutant import Mutant
+
 from . import MutateRunnerAbstract
 
 logging = root_logger.getChild(__name__)
@@ -90,13 +91,13 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 # cmd.do("refresh_wizard")
                 p.cmd.refresh_wizard()
                 p.cmd.get_wizard().set_mode("%s" % target)
-                p.selection = "/%s//%s/%s" % (
+                p.selection = "/{}//{}/{}".format(
                     new_obj_name,
                     chain_id,
                     position,
                 )
                 p.cmd.get_wizard().do_select(p.selection)
-                p.cmd.frame(str("1"))
+                p.cmd.frame("1")
                 p.cmd.get_wizard().apply()
                 p.cmd.set_wizard()
 
@@ -125,10 +126,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
         return results
 
     # https://www.bruot.org/ris2bib/
-    @property
-    def __bibtex__(self):
-        return {
-            'Dunbrack Rotamer Library': """@Article{Shapovalov2011,
+    __bibtex__ = {
+        'Dunbrack Rotamer Library': """@Article{Shapovalov2011,
 author={Shapovalov, Maxim V.
 and Dunbrack Jr., Roland L.,},
 title={A Smoothed Backbone-Dependent Rotamer Library for Proteins Derived from Adaptive Kernel Density Estimates and Regressions},
@@ -147,4 +146,4 @@ url={https://doi.org/10.1016/j.str.2011.03.019}
 }
 
 """
-        }
+    }

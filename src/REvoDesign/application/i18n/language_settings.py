@@ -2,9 +2,9 @@
 Internationalization settings
 '''
 
+import os
 from dataclasses import dataclass
 from functools import partial
-import os
 from typing import Any
 
 from pymol.Qt import QtWidgets
@@ -19,7 +19,7 @@ language_dir = os.path.join(self_dir, '..', '..', 'UI', 'language')
 class LanguageItem:
     """
     A frozen data class representing a language item.
-    
+
     Attributes:
         name (str): The name of the language.
         id (str): The unique identifier for the language.
@@ -34,7 +34,7 @@ class LanguageItem:
         """
         Returns the absolute path to the language file.
 
-        This property constructs and returns the absolute path to the language file 
+        This property constructs and returns the absolute path to the language file
         based on the language ID and a predefined directory.
 
         Returns:
@@ -42,19 +42,21 @@ class LanguageItem:
         """
         return os.path.abspath(os.path.join(language_dir, f'{self.id}.qm'))
 
+
 class LanguageSwitch(QtWidgets.QWidget):
     """
     Language switching component, manages the language settings and switching for the application.
-    
+
     Attributes:
         bus: Configuration bus for communication with other components.
         window: Main window of the application.
         language_settings: Dictionary containing language related settings.
     """
+
     def __init__(self, window):
         """
         Initializes the language switching component.
-        
+
         Args:
             window: Main window of the application.
         """
@@ -97,7 +99,7 @@ class LanguageSwitch(QtWidgets.QWidget):
     def language_items(self) -> tuple[LanguageItem, ...]:
         """
         Returns a tuple of all language items.
-        
+
         Returns:
             Tuple of all language items.
         """
@@ -114,7 +116,7 @@ class LanguageSwitch(QtWidgets.QWidget):
     def _bind_to_action(self, language: LanguageItem):
         """
         Binds the language switching action to the specified language.
-        
+
         Args:
             language: Language item to bind the action to.
         """
@@ -135,7 +137,7 @@ class LanguageSwitch(QtWidgets.QWidget):
     def switch_language(self, language: LanguageItem):
         """
         Switches to the specified language.
-        
+
         Args:
             language: Language item to switch to.
         """
@@ -159,7 +161,7 @@ class LanguageSwitch(QtWidgets.QWidget):
     def _set_action_checked(self, language: LanguageItem):
         """
         Sets the checked state of the language actions.
-        
+
         Args:
             language: Currently selected language item.
         """

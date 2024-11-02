@@ -1,51 +1,37 @@
 import asyncio
-from functools import partial
+import itertools
 import os
 import traceback
-import itertools
 import warnings
 from dataclasses import dataclass
-
+from functools import partial
 from typing import Dict, List, Literal, Tuple, Union
 
-from joblib import Parallel, delayed
-from pymol import cmd, CmdException
 from immutabledict import immutabledict
+from joblib import Parallel, delayed
+from pymol import CmdException, cmd
 
-from REvoDesign import ConfigBus
+from REvoDesign import ConfigBus, issues, root_logger
 from REvoDesign.basic import IterableLoop
+from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
-from REvoDesign.citations import CitationManager
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (
-    QbuttonMatrix,
-    hold_trigger_button,
-    refresh_window,
-    set_widget_value,
-)
+from REvoDesign.tools.customized_widgets import (QbuttonMatrix,
+                                                 hold_trigger_button,
+                                                 refresh_window,
+                                                 set_widget_value)
 from REvoDesign.tools.mutant_tools import save_mutant_choices
-
-from REvoDesign.tools.pymol_utils import (
-    any_posision_has_been_selected,
-    is_a_REvoDesign_session,
-    make_temperal_input_pdb,
-)
-from REvoDesign.tools.utils import (
-    cmap_reverser,
-    dirname_does_exist,
-    get_color,
-    rescale_number,
-    run_worker_thread_with_progress,
-    timing,
-)
-
-from REvoDesign import root_logger
-from REvoDesign import issues
+from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
+                                          is_a_REvoDesign_session,
+                                          make_temperal_input_pdb)
+from REvoDesign.tools.utils import (cmap_reverser, dirname_does_exist,
+                                    get_color, rescale_number,
+                                    run_worker_thread_with_progress, timing)
 
 logging = root_logger.getChild(__name__)
 
@@ -848,7 +834,7 @@ class GREMLIN_Analyser:
             )
 
         self.mark_pair_state(
-            pairs=tuple((p for p in i_out_of_range)),
+            pairs=tuple(p for p in i_out_of_range),
             state='out_of_range',
         )
 

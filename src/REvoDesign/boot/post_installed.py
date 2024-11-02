@@ -1,9 +1,9 @@
+import glob
 import importlib
 import os
-from dataclasses import dataclass
-from typing import Any, Optional, Union
-import glob
 import shutil
+from dataclasses import dataclass
+from typing import Any, Optional
 
 import hydra
 from omegaconf import DictConfig, OmegaConf

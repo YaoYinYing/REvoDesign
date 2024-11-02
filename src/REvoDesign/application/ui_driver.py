@@ -1,29 +1,21 @@
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
-from functools import partial
 import warnings
+from dataclasses import dataclass
+from functools import partial
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
 
+from REvoDesign import issues, root_logger
 from REvoDesign.citations import CitableModules
-from REvoDesign.tools.customized_widgets import (
-    create_cmap_icon,
-    get_widget_value,
-    set_widget_value,
-)
-
-from REvoDesign import root_logger
-
+from REvoDesign.tools.customized_widgets import (create_cmap_icon,
+                                                 get_widget_value,
+                                                 set_widget_value)
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
-
-from REvoDesign import issues
-
-
-from ..boot import reload_config_file
 from ..basic import SingletonAbstract
+from ..boot import reload_config_file
 
 logging = root_logger.getChild(__name__)
 
@@ -338,11 +330,11 @@ class ConfigBus(SingletonAbstract, CitableModules):
     def __bibtex__(self):
         return {
             'hydra': """@Misc{Yadan2019Hydra,
-  author =       {Omry Yadan},
-  title =        {Hydra - A framework for elegantly configuring complex applications},
-  howpublished = {Github},
-  year =         {2019},
-  url =          {https://github.com/facebookresearch/hydra}
+author =       {Omry Yadan},
+title =        {Hydra - A framework for elegantly configuring complex applications},
+howpublished = {Github},
+year =         {2019},
+url =          {https://github.com/facebookresearch/hydra}
 }"""
         }
 
@@ -650,9 +642,7 @@ class Widget2ConfigMapper:
                     return getattr(layout, attr)
 
         raise issues.UnknownWidgetError(
-            (
-                f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
-            )
+            f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
         )
 
     def get_button_from_id(self, button_id, prefix='pushButton'):
@@ -720,8 +710,9 @@ class CallableGroupValues:
 
     @staticmethod
     def score_matrix() -> list:
-        from Bio.Align import substitution_matrices
         import os
+
+        from Bio.Align import substitution_matrices
 
         score_matrix = [
             mtx

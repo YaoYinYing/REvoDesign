@@ -1,14 +1,10 @@
-from abc import ABC
 import os
 import time
-from typing import List, Mapping, Union, Dict, Any
-
 import warnings
+from abc import ABC
+from typing import Any, Dict, List, Mapping, Union
 
-from REvoDesign import root_logger
-from REvoDesign import issues
-
-from REvoDesign import SingletonAbstract
+from REvoDesign import SingletonAbstract, issues, root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -111,9 +107,8 @@ class CitationManager(SingletonAbstract):
 
 
 class CitableModules(ABC):
-    @property
-    def __bibtex__(self) -> dict[str, Union[str, tuple]]:
-        return {}
+
+    __bibtex__: dict[str, Union[str, tuple]]
 
     def notice(self):
         if not self.__bibtex__:

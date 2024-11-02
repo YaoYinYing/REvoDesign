@@ -1,20 +1,18 @@
+import json
 import os
 import re
-import json
 import time
-from typing import List, Tuple, Union
 import warnings
+from typing import List, Tuple, Union
 
 from Bio.Data import IUPACData
 from pymol import cmd
 
-from REvoDesign import ConfigBus, FileExtentions
+from REvoDesign import ConfigBus, FileExtentions, issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign import root_logger
 
-from REvoDesign import issues
 from .utils import get_color
 
 logging = root_logger.getChild(__name__)
@@ -23,10 +21,11 @@ logging = root_logger.getChild(__name__)
 # It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.
 protein_letters_3to1 = {
     v.upper(): k.upper()  # Mapping the 3-letter code (value) to its corresponding 1-letter code (key)
-    for k, v in IUPACData.protein_letters_1to3.items()  # Looping through the items in the 1-to-3-letter amino acid dictionary
+    # Looping through the items in the 1-to-3-letter amino acid dictionary
+    for k, v in IUPACData.protein_letters_1to3.items()
 }
 
-NOT_ALLOWED_GROUP_ID_PREFIX: tuple[str] = (
+NOT_ALLOWED_GROUP_ID_PREFIX: Tuple[str] = (
     'RDPM',
     'multi_design',
     'cep',
@@ -355,8 +354,8 @@ def extract_mutant_from_pymol_object(pymol_object, sequences: dict) -> Mutant:
                     }
                 )
             except IndexError:
-                warnings.warn(issues.BadDataWarning(f'{at.resn} at {at.resi} (chain {chain_id}) is out of range of sequence length.')
-                )
+                warnings.warn(issues.BadDataWarning(
+                    f'{at.resn} at {at.resi} (chain {chain_id}) is out of range of sequence length.'))
                 continue
 
     mutant_obj = Mutant(mutant_info=mutant_info)
@@ -383,7 +382,7 @@ def read_customized_indice(custom_indices_from_input='') -> str:
 
     if filepath_does_exists(custom_indices_from_input):
         custom_indices_str = (
-            open(custom_indices_from_input, 'r').read().strip()
+            open(custom_indices_from_input).read().strip()
         )
         return custom_indices_str
 
@@ -509,6 +508,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
         mutant_tree (MutantTree): input mutant tree object.
     """
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
+
     from .pymol_utils import make_temperal_input_pdb
     from .utils import timing
 

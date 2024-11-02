@@ -1,22 +1,17 @@
-import random
+import itertools
 import os
+import random
 import warnings
 
-import itertools
 from pymol import cmd, util
 
-from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign import ConfigBus, issues, root_logger
 from REvoDesign.common.Mutant import Mutant
-
-from REvoDesign import ConfigBus, root_logger
-from REvoDesign.tools.utils import get_color, cmap_reverser
-from REvoDesign.tools.pymol_utils import is_distal_residue_pair
-from REvoDesign.tools.mutant_tools import existed_mutant_tree
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-
-from REvoDesign import issues
-
+from REvoDesign.tools.mutant_tools import existed_mutant_tree
+from REvoDesign.tools.pymol_utils import is_distal_residue_pair
+from REvoDesign.tools.utils import cmap_reverser, get_color
 
 logging = root_logger.getChild(__name__)
 
@@ -214,7 +209,7 @@ class MultiMutantDesigner:
         if not self.external_scorer:
             warnings.warn(
                 issues.ConflictWarning(
-                    f'Abord design evaluation because no external scorer is defined.'
+                    'Abord design evaluation because no external scorer is defined.'
                 )
             )
 
@@ -523,7 +518,7 @@ class MultiMutantDesigner:
             f"Design case {self.in_design_multi_design_case.all_mutant_ids}"
         )
 
-        logging.info(f'Stopping current design and start a new one.')
+        logging.info('Stopping current design and start a new one.')
         self.design_case_variant_objects.append(self.design_case_id_in_pymol)
 
         self.all_design_multi_design_cases.append(

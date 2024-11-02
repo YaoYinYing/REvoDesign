@@ -1,6 +1,7 @@
 import os
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
+
 from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
 
 
@@ -14,8 +15,7 @@ class GenerateVariantsinFastafile:
         self.filename_id = ""
 
     def getdata(self, inputfile):
-        fasta_seq = []
-        with open(inputfile, 'r') as f:
+        with open(inputfile) as f:
             for line in f:
                 if line[0] == '>':
                     continue
@@ -24,7 +24,7 @@ class GenerateVariantsinFastafile:
 
     def get_fastasequence_from_file(self, inputfile):
         fasta_seq = ""
-        with open(inputfile, 'r') as f:
+        with open(inputfile) as f:
             for line in f:
                 if line[0] == '>':
                     continue
@@ -50,7 +50,7 @@ class GenerateVariantsinFastafile:
                 # print("WT,POS,AA: ",self.fastaseq[aa],aa,native,self.fastaseq[aa] == native)
                 assert aa == native
                 newfasta = (
-                    newfasta[0 : position - 1]
+                    newfasta[0: position - 1]
                     + newmutation
                     + newfasta[position:]
                 )
@@ -73,7 +73,7 @@ class GenerateVariantsinFastafile:
                 # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
                 assert aa == native
                 newfasta = (
-                    newfasta[0 : position - 1]
+                    newfasta[0: position - 1]
                     + newmutation
                     + newfasta[position:]
                 )
@@ -240,7 +240,7 @@ class Combinations:
             eval = self.getUniquePositions(list(j))
             if self.debug == 1:
                 print(j)
-            if eval == True:
+            if eval:
                 mutations.append(j)
 
         # rewrite to parallel

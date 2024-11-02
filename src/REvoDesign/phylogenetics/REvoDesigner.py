@@ -1,39 +1,29 @@
-import os
-import json
-import hashlib
-import time
-import re
-import random
 import collections
+import hashlib
+import json
+import os
+import random
+import re
+import time
 
 import matplotlib
 import matplotlib.pylab as plt
 
-from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign import WITH_DEPENDENCIES, root_logger
 from REvoDesign.citations import CitationManager
-from REvoDesign import root_logger
-from REvoDesign import WITH_DEPENDENCIES
-from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-from REvoDesign.tools.utils import (
-    random_deduplicate,
-)
-
-from REvoDesign.tools.pymol_utils import (
-    get_molecule_sequence,
-    find_all_protein_chain_ids_in_protein,
-)
-
-from REvoDesign.tools.mutant_tools import (
-    expand_range,
-    read_customized_indice,
-    shorter_range,
-    extract_mutant_from_sequences,
-    read_profile_design_mutations,
-)
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
+from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.tools.mutant_tools import (expand_range,
+                                           extract_mutant_from_sequences,
+                                           read_customized_indice,
+                                           read_profile_design_mutations,
+                                           shorter_range)
+from REvoDesign.tools.pymol_utils import (
+    find_all_protein_chain_ids_in_protein, get_molecule_sequence)
+from REvoDesign.tools.utils import random_deduplicate
 
 matplotlib.use('Agg')
 logging = root_logger.getChild(__name__)
@@ -306,7 +296,7 @@ class REvoDesigner:
         """
         from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
-        if not self.input_profile_format in EXTERNAL_DESIGNERS:
+        if self.input_profile_format not in EXTERNAL_DESIGNERS:
             logging.error(
                 f'External design {self.input_profile_format} is not registed in `ExternalDesigners.py`'
             )
@@ -708,7 +698,7 @@ class REvoDesigner:
         )
 
         if self.mutant_tree.empty:
-            logging.warning(f'No available designs!')
+            logging.warning('No available designs!')
             return
 
         self.mutant_tree.run_mutate_parallel(
