@@ -2,8 +2,7 @@
 
 
 from REvoDesign.basic import ExternalDesignerAbstract
-from REvoDesign.external_designer.designers import (ColabDesigner_MPNN,
-                                                    )
+from REvoDesign.external_designer.designers import ColabDesigner_MPNN
 
 EXTERNAL_DESIGNERS = {'ProteinMPNN': ColabDesigner_MPNN}
 

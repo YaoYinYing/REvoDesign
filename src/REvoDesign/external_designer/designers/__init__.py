@@ -1,5 +1,3 @@
-
-
 '''
 #### Hot replacement of designers ####
 

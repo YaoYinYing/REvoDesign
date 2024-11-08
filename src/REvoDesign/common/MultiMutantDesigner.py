@@ -328,7 +328,7 @@ class MultiMutantDesigner:
         This method selects the next mutant to be included in the design process.
         """
         if not self.design_pool_tree:
-            logging.error(f'Mutant Tree is not found.')
+            logging.error('Mutant Tree is not found.')
             return
         if self.design_pool_tree.empty:
             logging.error('Mutant Tree for multi-design is empty!')

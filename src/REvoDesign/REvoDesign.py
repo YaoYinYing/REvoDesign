@@ -14,23 +14,22 @@ from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.Qt.utils import getSaveFileNameWithExt
 from requests.auth import HTTPBasicAuth
-import REvoDesign
 
-from REvoDesign import (ConfigBus,
-                        FileExtentions, Widget2Widget, issues,
+import REvoDesign
+from REvoDesign import (ConfigBus, FileExtentions, Widget2Widget, issues,
                         reload_config_file, save_configuration,
                         set_REvoDesign_config_file)
-from REvoDesign.boot import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.logger import root_logger,LoggerT
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
 from REvoDesign.evaluate import Evalutator
+from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
@@ -53,7 +52,7 @@ from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
-logging: LoggerT = None # type: ignore
+logging: LoggerT = None  # type: ignore
 
 IO_MODE = Literal['r', 'w']
 
@@ -88,7 +87,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         try:
             # if QtWebsockets is available, teamwork is activated.
-            from PyQt5 import QtWebSockets # type: ignore
+            from PyQt5 import QtWebSockets  # type: ignore
 
             logging.info(f"Find QtWebSockets in {QtWebSockets.__file__}")
 

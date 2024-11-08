@@ -1,6 +1,6 @@
 from REvoDesign import ConfigBus
-from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitationManager
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import set_widget_value
 
 logging = root_logger.getChild(__name__)

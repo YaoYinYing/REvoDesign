@@ -11,11 +11,11 @@ from typing import Any, Dict, Iterable, List, Literal, Mapping, Union
 
 import msgpack
 from pymol import cmd
-from PyQt5 import QtCore, QtNetwork, QtWebSockets # type: ignore
+from PyQt5 import QtCore, QtNetwork, QtWebSockets  # type: ignore
 
-from REvoDesign.logger import root_logger
 from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.client_tools import SSLCertificateManager
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
 from REvoDesign.tools.utils import run_worker_thread_with_progress
@@ -976,7 +976,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
     def handleViewUpdate(self, view):
         if not self.receive_view_broadcast:
-            logging.warning(f'View update is disabled.')
+            logging.warning('View update is disabled.')
             return
 
         # logging.debug('update pymol view')

@@ -12,13 +12,13 @@ from joblib import Parallel, delayed
 from pymol import CmdException, cmd
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.logger import root_logger
 from REvoDesign.basic import IterableLoop
 from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
+from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 from REvoDesign.sidechain_solver import SidechainSolver
@@ -204,7 +204,7 @@ class MutateWorker:
             if not dirname_does_exist(self.design.output_pse):
                 warnings.warn(
                     issues.NoResultsWarning(
-                        f'No output PyMOL session is created.'
+                        'No output PyMOL session is created.'
                     )
                 )
                 return

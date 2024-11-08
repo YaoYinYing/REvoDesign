@@ -28,8 +28,8 @@ from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitableModules
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 matplotlib.use('Agg')

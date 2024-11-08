@@ -483,7 +483,7 @@ def make_temperal_input_pdb(
         cmd.save(input_file, selection_str, -1)
     except QuietException:
         raise issues.MoleculeUnloadedError(
-            f'Could not save molecule because it is not loaded yet.'
+            'Could not save molecule because it is not loaded yet.'
         )
 
     if reload:

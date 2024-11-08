@@ -3,17 +3,14 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Mapping
 
-
-from REvoDesign import (WITH_DEPENDENCIES, ConfigBus, SingletonAbstract,
-                        issues)
-
+from REvoDesign import WITH_DEPENDENCIES, ConfigBus, SingletonAbstract, issues
 from REvoDesign.logger import root_logger
-from REvoDesign.sidechain_solver.mutate_runner import (MutateRunnerAbstract,DLPacker_worker,
+from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
+                                                       MutateRunnerAbstract,
                                                        PIPPack_worker,
                                                        PyMOL_mutate)
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import timing
-
 
 logging = root_logger.getChild(__name__)
 

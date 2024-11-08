@@ -7,7 +7,7 @@ import pytest
 from pymol import cmd
 
 import REvoDesign
-import REvoDesign.boot.post_installed
+import REvoDesign.bootstrap.set_config
 import REvoDesign.tools
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
@@ -1551,14 +1551,14 @@ class TestREvoDesignPlugin_TabConfig:
 
         test_worker.check_existed_mutant_tree()
 
-    @patch('REvoDesign.boot.post_installed.WITH_DEPENDENCIES.PIPPACK', False)
+    @patch('REvoDesign.bootstrap.set_config.WITH_DEPENDENCIES.PIPPACK', False)
     def test_sidechain_solver_fallback_mpnn(self, test_worker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name='config')
 
         assert (
-            REvoDesign.boot.post_installed.WITH_DEPENDENCIES.PIPPACK == False
+            REvoDesign.bootstrap.set_config.WITH_DEPENDENCIES.PIPPACK
         )
 
         set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, 'PIPPack')

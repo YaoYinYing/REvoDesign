@@ -3,8 +3,8 @@ import traceback
 
 import biolib
 
-from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitableModules
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.utils import timing
 
 logging = root_logger.getChild(__name__)

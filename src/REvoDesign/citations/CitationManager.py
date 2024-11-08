@@ -4,7 +4,7 @@ import warnings
 from abc import ABC
 from typing import Any, Dict, List, Mapping, Union
 
-from RosettaPy.utils.escape import Colors, render,zip_render,print_diff
+from RosettaPy.utils.escape import Colors, print_diff, render, zip_render
 
 from REvoDesign import issues
 from REvoDesign.basic import SingletonAbstract
@@ -149,6 +149,6 @@ class CitableModules(ABC):
 
         citations = self.__bibtex__
         if not isinstance(citations, Mapping):
-            raise TypeError(f'citation must be a dict.')
+            raise TypeError('citation must be a dict.')
         CitationManager().update(new_citations=dict(citations))
         self.notice()

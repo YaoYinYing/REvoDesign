@@ -1,6 +1,7 @@
 import os
 
-from pymol.Qt import QtGui # type: ignore
+from pymol.Qt import QtGui  # type: ignore
+
 from REvoDesign.tools.system_tools import CLIENT_INFO
 
 
@@ -19,7 +20,6 @@ class IconSetter:
         )
 
         icon = QtGui.QIcon(icon_path)
-        
 
         if CLIENT_INFO().os == 'Darwin':
             main_window.setWindowFilePath(icon_path)

@@ -10,12 +10,12 @@ import matplotlib
 import matplotlib.pylab as plt
 
 from REvoDesign import WITH_DEPENDENCIES
-from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,

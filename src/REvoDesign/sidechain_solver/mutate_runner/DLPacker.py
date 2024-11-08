@@ -4,11 +4,9 @@ import os
 from joblib import Parallel, delayed
 
 from REvoDesign.basic import MutateRunnerAbstract
-from REvoDesign.logger import root_logger
 from REvoDesign.common.Mutant import Mutant
+from REvoDesign.logger import root_logger
 
-
-from REvoDesign.basic import MutateRunnerAbstract
 logging = root_logger.getChild(__name__)
 
 
@@ -44,7 +42,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         """
         super().__init__(pdb_file)
 
-        from REvoDesign.boot import set_cache_dir
+        from REvoDesign.bootstrap import set_cache_dir
 
         cache_dir = set_cache_dir()
 

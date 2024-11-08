@@ -1,4 +1,3 @@
-
 import os
 from abc import abstractmethod
 from typing import List
@@ -6,6 +5,7 @@ from typing import List
 from ..citations import CitableModules
 from ..common.Mutant import Mutant
 from ..common.MutantTree import MutantTree
+
 
 class MutateRunnerAbstract(CitableModules):
     """
@@ -82,4 +82,3 @@ class MutateRunnerAbstract(CitableModules):
         """
 
     # Add any other common methods or properties that should be shared by all subclasses.
-

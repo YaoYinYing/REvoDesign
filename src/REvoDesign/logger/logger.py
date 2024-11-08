@@ -10,7 +10,7 @@ from typing import Union
 from omegaconf import DictConfig
 from typing_extensions import override
 
-from ..boot import reload_config_file
+from ..bootstrap import reload_config_file
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",
@@ -187,4 +187,4 @@ def setup_logging() -> python_logging.Logger:
 # 3. initialize logging config and root logger, depending on config
 root_logger = setup_logging()
 
-LoggerT=python_logging.Logger
+LoggerT = python_logging.Logger

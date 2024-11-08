@@ -4,7 +4,7 @@ Utils to manage fonts in Plugin windows
 from dataclasses import dataclass
 
 from immutabledict import immutabledict
-from pymol.Qt import QtGui # type: ignore
+from pymol.Qt import QtGui  # type: ignore
 
 from REvoDesign.tools.system_tools import CLIENT_INFO
 

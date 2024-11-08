@@ -3,9 +3,9 @@ from functools import partial
 
 from pymol import cmd
 
-from REvoDesign.logger import root_logger
 from REvoDesign import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (decide, get_widget_value,
                                                  set_widget_value)
 from REvoDesign.tools.mutant_tools import (existed_mutant_tree,
@@ -13,7 +13,6 @@ from REvoDesign.tools.mutant_tools import (existed_mutant_tree,
                                            save_mutant_choices)
 
 logging = root_logger.getChild(__name__)
-
 
 
 class Evalutator:
@@ -318,7 +317,7 @@ class Evalutator:
             )
 
             if not confirmed:
-                logging.warning(f'Cancelled.')
+                logging.warning('Cancelled.')
                 return
 
         original_branch_id = get_widget_value(comboBox_group_ids)

@@ -1,7 +1,5 @@
-
 from dataclasses import dataclass
 from typing import Generic, Tuple, TypeVar
-
 
 T = TypeVar('T')
 

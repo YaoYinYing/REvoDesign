@@ -8,10 +8,10 @@ from typing import List, Tuple, Union
 from Bio.Data import IUPACData
 from pymol import cmd
 
-from REvoDesign.logger import root_logger
 from REvoDesign import ConfigBus, FileExtentions, issues
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import SidechainSolver
 
 from .utils import get_color
@@ -524,7 +524,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     nproc = bus.get_value('ui.header_panel.nproc')
 
     if mutant_tree.empty:
-        warnings.warn(issues.NoResultsWarning(f'Mutant tree is empty!'))
+        warnings.warn(issues.NoResultsWarning('Mutant tree is empty!'))
         return
 
     score_list = [
@@ -587,11 +587,11 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
 def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
     if not mutant_tree:
-        raise issues.NoInputError(f"No Mutant tree is given!")
+        raise issues.NoInputError("No Mutant tree is given!")
 
     if mutant_tree.empty:
         warnings.warn(
-            issues.NoResultsWarning(f'mutant tree is empty. save nothing.')
+            issues.NoResultsWarning('mutant tree is empty. save nothing.')
         )
         return
 

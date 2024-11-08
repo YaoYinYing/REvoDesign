@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from typing import Any, Callable, Union
 
-from pymol.Qt import QtCore, QtGui, QtWidgets # type: ignore
+from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.logger import root_logger
 
@@ -91,7 +91,6 @@ class QbuttonMatrix(QtWidgets.QWidget):
         import numpy as np
 
         try:
-
 
             df = self.pair.df
 

@@ -4,31 +4,25 @@
 
 import gc
 
-
 # 1. import basic
 from REvoDesign.basic import SingletonAbstract
-
-
 # 2. import post install module and methods
-from REvoDesign.boot import (WITH_DEPENDENCIES, experiment_config,
-                             reload_config_file, save_configuration,
-                             set_cache_dir, set_REvoDesign_config_file,REVODESIGN_CONFIG_FILE)
+from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE, WITH_DEPENDENCIES,
+                                  experiment_config, reload_config_file,
+                                  save_configuration, set_cache_dir,
+                                  set_REvoDesign_config_file)
 # 3. import FileExtentions
 from REvoDesign.common.FileExtentions import \
     REvoDesignFileExtentions as FileExtentions
-
 # 4. import UI bus, depending on SingletonAbstract, logger, configuration
 from REvoDesign.driver.ui_driver import ConfigBus, Widget2Widget
-from REvoDesign.logger import setup_logging,root_logger
-
+from REvoDesign.logger import root_logger, setup_logging
 # 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
-from REvoDesign.shortcuts import *
 
 # 6. Set version info
 
 __version__ = '1.5.11.post-2'
-
 
 
 # 8. enable garbage collection
@@ -46,6 +40,6 @@ __all__ = [
     'reload_config_file',
     'set_cache_dir',
     'save_configuration',
-    'root_logger','setup_logging',
-    'REVODESIGN_CONFIG_FILE','set_REvoDesign_config_file','experiment_config'
+    'root_logger', 'setup_logging',
+    'REVODESIGN_CONFIG_FILE', 'set_REvoDesign_config_file', 'experiment_config'
 ]

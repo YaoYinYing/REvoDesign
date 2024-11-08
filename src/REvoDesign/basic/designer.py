@@ -1,5 +1,7 @@
 from abc import abstractmethod
+
 from ..citations import CitableModules
+
 
 class ExternalDesignerAbstract(CitableModules):
     """

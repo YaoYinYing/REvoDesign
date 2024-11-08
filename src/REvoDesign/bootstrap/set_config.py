@@ -7,8 +7,7 @@ from typing import Any, Optional
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
-
-from platformdirs import user_data_dir,user_cache_dir
+from platformdirs import user_cache_dir, user_data_dir
 
 
 def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
@@ -52,7 +51,7 @@ def reload_config_file(config_name: str = 'global_config') -> DictConfig:
 def save_configuration(
     new_cfg: DictConfig, config_name: Optional[str] = 'global_config'
 ):
-    from ..boot import REVODESIGN_CONFIG_FILE
+    from . import REVODESIGN_CONFIG_FILE
 
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
     cfg_save_fp = os.path.join(cfg_save_dir, f'{config_name}.yaml')
@@ -62,7 +61,7 @@ def save_configuration(
 
 
 def experiment_config():
-    from ..boot import REVODESIGN_CONFIG_FILE
+    from . import REVODESIGN_CONFIG_FILE
 
     experiments_dir = os.path.join(
         os.path.dirname(REVODESIGN_CONFIG_FILE), 'experiments'
@@ -109,8 +108,6 @@ class ConfigConverter:
             "Input must be an instance of omegaconf.DictConfig"
         )
 
-        
-
     @staticmethod
     def _recursive_convert(config: Any) -> Any:
         """
@@ -155,4 +152,3 @@ class WITH_DEPENDENCIES:
     COLABDESIGN = is_package_installed('colabdesign')
     DLPACKER = is_package_installed('DLPacker')
     PIPPACK = is_package_installed('pippack')
-
