@@ -15,7 +15,7 @@ from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE, WITH_DEPENDENCIES,
 from REvoDesign.common.FileExtentions import \
     REvoDesignFileExtentions as FileExtentions
 # 4. import UI bus, depending on SingletonAbstract, logger, configuration
-from REvoDesign.driver.ui_driver import ConfigBus, Widget2Widget
+from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.logger import root_logger, setup_logging
 # 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
@@ -33,7 +33,6 @@ gc.enable()
 __all__ = [
     'REvoDesignPlugin',
     'SingletonAbstract',
-    'Widget2Widget',
     'ConfigBus',
     'WITH_DEPENDENCIES',
     'FileExtentions',

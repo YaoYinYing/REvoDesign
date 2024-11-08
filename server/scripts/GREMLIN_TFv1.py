@@ -273,7 +273,8 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
         sess.run(V.assign(V_ini))
 
         # compute loss across all data
-        def get_loss(): return round(sess.run(loss, feed(feed_all=True)) * msa["neff"], 2)
+        def get_loss():
+            return round(sess.run(loss, feed(feed_all=True)) * msa["neff"], 2)
         print("starting", get_loss())
 
         if opt_type == "lbfgs":

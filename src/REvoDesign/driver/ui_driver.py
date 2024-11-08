@@ -90,15 +90,16 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
                 if isinstance(values, list):
                     group_values.extend(values)
-                elif isinstance(values, dict) and not group_values:
-                    group_values = values.copy()
-                elif isinstance(values, dict) and group_values:
-                    if not isinstance(group_values, dict):
-                        raise TypeError(
-                            f'{group_cfg} returns a dict while group_values is'
+                elif isinstance(values, dict):
+                    if not group_values:
+                        group_values = values.copy()
+                    else:
+                        if not isinstance(group_values, dict):
+                            raise TypeError(
+                                f'{group_cfg} returns a dict while group_values is'
                             f' a {type(group_cfg)=}, not a dict.'
                         )
-                    group_values.update(values)
+                        group_values.update(values)
 
             if not group_values:
                 continue
@@ -674,27 +675,6 @@ class Widget2ConfigMapper:
         return widget
 
 
-@dataclass(frozen=True)
-class Widget2Widget:
-    """
-    This class defines mappings between different UI widgets for interaction purposes.
-
-    Attributes:
-        sidechain_solver2model (dict): A mapping of sidechain solver options to their corresponding model options.
-    """
-
-    sidechain_solver2model: immutabledict = immutabledict(
-        {
-            'PIPPack': [
-                'ui.config.sidechain_solver.pippack.model_names.group',
-                'ui.config.sidechain_solver.pippack.model_names.default',
-            ],
-            'DLPacker': [''],
-            'Dunbrack Rotamer Library': [''],
-        }
-    )
-
-
 class CallableGroupValues:
     """
     This class provides static methods to generate dynamic values for group configuration items.
@@ -713,7 +693,7 @@ class CallableGroupValues:
         score_matrix = [
             mtx
             for mtx in os.listdir(
-                os.path.join(substitution_matrices.__path__[0], 'data')
+                os.path.join(substitution_matrices.__path__[0], 'data') # type: ignore
             )
         ]
         return score_matrix
@@ -722,7 +702,7 @@ class CallableGroupValues:
     def color_map() -> dict:
         # color map
         import matplotlib
-        from pymol.Qt import QtGui
+        from pymol.Qt import QtGui # type: ignore
 
         cmap_group = {
             _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))

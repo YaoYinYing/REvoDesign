@@ -4,6 +4,7 @@ import os
 from joblib import Parallel, delayed
 
 from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.logger import root_logger
 
@@ -32,6 +33,8 @@ class DLPacker_worker(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
+    name: str = 'DLPacker'
+    installed: bool = is_package_installed('DLPacker')
 
     def __init__(self, pdb_file: str, radius: float = 0.0, **kwargs):
         """

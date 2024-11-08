@@ -1,6 +1,6 @@
 import os
 from abc import abstractmethod
-from typing import List
+from typing import List, Tuple
 
 from ..citations import CitableModules
 from ..common.Mutant import Mutant
@@ -14,6 +14,11 @@ class MutateRunnerAbstract(CitableModules):
     Subclasses should implement the specific methods for protein mutation,
     and optionally, reconstruction.
     """
+    name: str = ''
+    installed: bool = False
+
+    weights_preset: Tuple[str, ...] = tuple()
+    default_weight_preset: str = ''
 
     def __init__(self, pdb_file: str):
         """

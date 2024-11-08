@@ -1558,7 +1558,7 @@ class TestREvoDesignPlugin_TabConfig:
         test_worker.go_to_tab(tab_name='config')
 
         assert (
-            REvoDesign.bootstrap.set_config.WITH_DEPENDENCIES.PIPPACK
+            REvoDesign.bootstrap.set_config.WITH_DEPENDENCIES.PIPPACK is False
         )
 
         set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, 'PIPPack')

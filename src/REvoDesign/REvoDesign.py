@@ -16,9 +16,8 @@ from pymol.Qt.utils import getSaveFileNameWithExt
 from requests.auth import HTTPBasicAuth
 
 import REvoDesign
-from REvoDesign import (ConfigBus, FileExtentions, Widget2Widget, issues,
-                        reload_config_file, save_configuration,
-                        set_REvoDesign_config_file)
+from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
+                        save_configuration, set_REvoDesign_config_file)
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
@@ -32,6 +31,7 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
+from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (
     WorkerThread, decide, getExistingDirectory, getOpenFileNameWithExt,
@@ -68,7 +68,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
         self.PWD = os.getcwd()
 
-        self.widget2widget = Widget2Widget()
         self.bus: ConfigBus = None
 
         self.designable_sequences = {}
@@ -713,7 +712,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.bus.get_widget_from_cfg_item(
                     'ui.config.sidechain_solver.model'
                 ),
-                self.widget2widget.sidechain_solver2model,
+                {c.name: [c.weights_preset, c.default_weight_preset] for c in all_runner_c if c.installed},
             )
         )
 

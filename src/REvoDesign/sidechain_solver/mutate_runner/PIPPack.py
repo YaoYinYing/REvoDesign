@@ -1,7 +1,9 @@
 import os
+from typing import Tuple
 
 from REvoDesign import reload_config_file, set_cache_dir
 from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.logger import root_logger
 
@@ -15,6 +17,13 @@ class PIPPack_worker(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
+    name: str = 'PIPPack'
+    installed: bool = is_package_installed('pippack')
+
+    weights_preset: Tuple[str, ...] = (
+        'pippack_model_1', 'pippack_model_2', 'pippack_model_3', 'ensemble',
+    )
+    default_weight_preset: str = 'ensemble'
 
     def __init__(self, pdb_file: str, use_model='ensemble', **kwargs):
         """

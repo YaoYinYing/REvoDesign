@@ -12,7 +12,7 @@ from platformdirs import user_cache_dir, user_data_dir
 from pymol import CmdException, cmd
 
 from REvoDesign import (REVODESIGN_CONFIG_FILE, WITH_DEPENDENCIES, ConfigBus,
-                        Widget2Widget, reload_config_file, save_configuration,
+                        reload_config_file, save_configuration,
                         set_cache_dir, set_REvoDesign_config_file)
 from REvoDesign.bootstrap.set_config import ConfigConverter
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
@@ -241,32 +241,6 @@ class TestSurfaceFinder(absltest.TestCase):
         surface_finder.process_surface_residues()
         self.assertTrue(os.path.isfile(self.expected_surface_pse))
         self.assertTrue(os.path.isfile(self.expected_residue_filename))
-
-
-class TestWidget2Widget(absltest.TestCase):
-    """
-    Tests for the Widget2Widget class to ensure that related widget mappings are correctly handled.
-    """
-
-    def setUp(self):
-        self.widget2widget = Widget2Widget()
-        super().setUp()
-
-    def test_sidechain_solver2model_mapping(self):
-        """
-        Test if the mapping from sidechain solver to its models is correctly established.
-        """
-        # Example test for PIPPack solver
-        expected_models = [
-            "ui.config.sidechain_solver.pippack.model_names.group",
-            "ui.config.sidechain_solver.pippack.model_names.default",
-        ]
-        actual_models = self.widget2widget.sidechain_solver2model["PIPPack"]
-        self.assertEqual(
-            expected_models,
-            actual_models,
-            "The mapping for PIPPack models is incorrect.",
-        )
 
 
 class TestREvoDesignConfigFile(absltest.TestCase):

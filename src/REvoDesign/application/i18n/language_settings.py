@@ -5,7 +5,7 @@ Internationalization settings
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
+from typing import Any, Tuple
 
 from pymol.Qt import QtWidgets
 
@@ -28,6 +28,7 @@ class LanguageItem:
     name: str
     id: str
     action: Any
+    action_name: str
 
     @property
     def language_file(self):
@@ -64,14 +65,16 @@ class LanguageSwitch(QtWidgets.QWidget):
         self.window = window
 
         # language mapping
-        self.language_settings: dict[str, dict[str, Any]] = {
+        self.language_settings: dict[str, dict[str, str]] = {
             'eng-eng': {
                 'name': 'English',
-                'action': self.bus.ui.actionEnglish,
+                'action': 'actionEnglish',
             },
-            'eng-chs': {'name': '中文', 'action': self.bus.ui.actionChinese},
-            'eng-fr': {'name': 'français', 'action': self.bus.ui.actionFrench},
+            'eng-chs': {'name': '中文', 'action': 'actionChinese'},
+            'eng-fr': {'name': 'français', 'action': 'actionFrench'},
         }
+
+        self.language_items = self.get_language_items()
 
         self.register_language()
         self._set_action_clickable()
@@ -95,8 +98,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         self.switch_language(language=lan)
         self._set_action_checked(language=lan)
 
-    @property
-    def language_items(self) -> tuple[LanguageItem, ...]:
+    def get_language_items(self) -> Tuple[LanguageItem, ...]:
         """
         Returns a tuple of all language items.
 
@@ -105,9 +107,10 @@ class LanguageSwitch(QtWidgets.QWidget):
         """
         all_language_items = [
             LanguageItem(
-                name=lan_opts.get('name'),
+                name=lan_opts['name'],
                 id=language_id,
-                action=lan_opts.get('action'),
+                action=self.add_lan_to_menu(action_name=lan_opts['action']),
+                action_name=lan_opts['action'],
             )
             for language_id, lan_opts in self.language_settings.items()
         ]
@@ -123,6 +126,17 @@ class LanguageSwitch(QtWidgets.QWidget):
         language.action.triggered.connect(
             partial(self.switch_language, language)
         )
+
+    def add_lan_to_menu(self, action_name: str):
+        """
+        Adds the language item to the language menu.
+        """
+        new_action = QtWidgets.QAction()
+        new_action.setEnabled(False)
+        new_action.setObjectName(action_name)
+        setattr(self.bus.ui, action_name, new_action)
+        self.bus.ui.menuLanguage.addAction(new_action)
+        return new_action
 
     def register_language(self):
         """

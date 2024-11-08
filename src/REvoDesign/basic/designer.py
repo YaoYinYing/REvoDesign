@@ -15,6 +15,9 @@ class ExternalDesignerAbstract(CitableModules):
         reload (bool): A flag indicating whether to reload the design, defaults to False.
 
     """
+    name: str = ''
+    installed: bool = False
+
 
     def __init__(self, molecule):
         """

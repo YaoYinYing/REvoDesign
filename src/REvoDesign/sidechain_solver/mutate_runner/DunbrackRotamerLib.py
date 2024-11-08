@@ -20,6 +20,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
+    name: str = 'Dunbrack Rotamer Library'
+    installed: bool = True
 
     def __init__(self, pdb_file, molecule='', **kwargs):
         """

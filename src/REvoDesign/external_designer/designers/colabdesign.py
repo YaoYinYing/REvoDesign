@@ -1,11 +1,17 @@
 # pylint: disable=import-outside-toplevel
 import os
 
+from ...bootstrap.set_config import is_package_installed
+
 from ...basic import ExternalDesignerAbstract
 
 
 # Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN(ExternalDesignerAbstract):
+    name: str = 'ProteinMPNN'
+    installed: bool = is_package_installed('colabdesign')
+
+
     def __init__(self, molecule):
         self.pdb_filename = None
         self.mpnn_model = None

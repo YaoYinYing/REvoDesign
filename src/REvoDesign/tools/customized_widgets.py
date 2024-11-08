@@ -1,8 +1,9 @@
 import os
 from collections.abc import Iterable
 from contextlib import contextmanager
-from typing import Any, Callable, Union
+from typing import Any, Callable, Dict, Union
 
+from omegaconf import OmegaConf
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.logger import root_logger
@@ -398,24 +399,19 @@ def get_widget_value(widget):
 
 
 def refresh_widget_while_another_changed(
-    trigger_widget, target_widget, target_data_group: dict[str, list]
+    trigger_widget, target_widget, target_data_group: Dict[str, list]
 ):
-    from omegaconf import OmegaConf
 
     from REvoDesign import reload_config_file
 
-    cfg = reload_config_file()
+    reload_config_file()
     trigger_value = get_widget_value(widget=trigger_widget)
-    if trigger_value in target_data_group:
-        for idx, target_data_cfg in enumerate(
-            target_data_group.get(trigger_value)
-        ):
-            # print(f'Get: {target_data} from {target_data_cfg}')
-            if not target_data_cfg:
-                target_data = ['']
-            else:
-                target_data = OmegaConf.select(cfg, target_data_cfg)
 
+    if trigger_value in target_data_group:
+
+        for _, target_data in enumerate(
+            target_data_group.get(trigger_value, '')
+        ):
             set_widget_value(widget=target_widget, value=target_data)
 
 
@@ -531,7 +527,7 @@ class QtParallelExecutor(QtCore.QThread):
         self.result_signal.emit(self.results)
 
     def handle_result(self):
-        logging.debug(f'Sending results ...')
+        logging.debug('Sending results ...')
         return self.results
 
 

@@ -147,14 +147,6 @@ ui:
       model: ''
       repack_radius: 0.0
 
-      pippack:
-        model_names: 
-          group:
-            - pippack_model_1
-            - pippack_model_2
-            - pippack_model_3
-            - ensemble
-          default: ensemble
 
 profile:
   group:
