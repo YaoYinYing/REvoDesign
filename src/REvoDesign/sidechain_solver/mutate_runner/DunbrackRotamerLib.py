@@ -3,10 +3,11 @@ import os
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
 
-from REvoDesign import root_logger
+
+from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.logger import root_logger
 from REvoDesign.common.Mutant import Mutant
 
-from . import MutateRunnerAbstract
 
 logging = root_logger.getChild(__name__)
 

@@ -4,7 +4,8 @@ import warnings
 from pymol import cmd, get_version_message
 from pymol.parsing import QuietException
 
-from REvoDesign import issues, root_logger
+from REvoDesign import issues
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 

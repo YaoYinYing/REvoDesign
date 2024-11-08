@@ -3,7 +3,8 @@ from functools import partial
 
 from pymol import cmd
 
-from REvoDesign import ConfigBus, root_logger
+from REvoDesign.logger import root_logger
+from REvoDesign import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.tools.customized_widgets import (decide, get_widget_value,
                                                  set_widget_value)
@@ -12,6 +13,7 @@ from REvoDesign.tools.mutant_tools import (existed_mutant_tree,
                                            save_mutant_choices)
 
 logging = root_logger.getChild(__name__)
+
 
 
 class Evalutator:

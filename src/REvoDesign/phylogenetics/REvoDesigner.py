@@ -9,7 +9,8 @@ import time
 import matplotlib
 import matplotlib.pylab as plt
 
-from REvoDesign import WITH_DEPENDENCIES, root_logger
+from REvoDesign import WITH_DEPENDENCIES
+from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree

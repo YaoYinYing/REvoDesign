@@ -2,6 +2,7 @@ import platform
 import warnings
 from dataclasses import dataclass
 
+import REvoDesign
 from REvoDesign import issues
 
 
@@ -57,8 +58,6 @@ class CLIENT_INFO:
         import os
         import socket
 
-        from REvoDesign import VERSION
-
         from .customized_widgets import PYQT_VERSION_STR
         from .pymol_utils import PYMOL_BUILD, PYMOL_VERSION
 
@@ -76,7 +75,7 @@ class CLIENT_INFO:
         self.os: str = self.OS_INFO.system
         self.os_build: str = self.OS_INFO.version
         self.machine_arch: str = self.OS_INFO.machine
-        self.revodesign_version: str = VERSION
+        self.revodesign_version: str = REvoDesign.__version__
         self.pymol_version = PYMOL_VERSION
         self.pymol_build = PYMOL_BUILD
         self.python_version: str = platform.python_version()

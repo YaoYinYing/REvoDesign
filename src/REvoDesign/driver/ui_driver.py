@@ -7,15 +7,14 @@ from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
 
-from REvoDesign import issues, root_logger
+from REvoDesign import issues, SingletonAbstract, reload_config_file
 from REvoDesign.citations import CitableModules
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (create_cmap_icon,
                                                  get_widget_value,
                                                  set_widget_value)
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
-from ..basic import SingletonAbstract
-from ..boot import reload_config_file
 
 logging = root_logger.getChild(__name__)
 
@@ -150,12 +149,12 @@ class ConfigBus(SingletonAbstract, CitableModules):
                     f'{widget} {type(widget)} is not supported yet'
                 )
 
-    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
+    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its ID.
 
         return self.w2c.widget_id2widget_map.get(widget_id)
 
-    def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:
+    def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its corresponding configuration item.
         return self.w2c.config2widget_map.get(cfg_item)
 
@@ -326,17 +325,15 @@ class ConfigBus(SingletonAbstract, CitableModules):
             self.w2c.push_buttons.get(button_id) for button_id in button_ids
         )
 
-    @property
-    def __bibtex__(self):
-        return {
-            'hydra': """@Misc{Yadan2019Hydra,
+    __bibtex__ = {
+        'hydra': """@Misc{Yadan2019Hydra,
 author =       {Omry Yadan},
 title =        {Hydra - A framework for elegantly configuring complex applications},
 howpublished = {Github},
 year =         {2019},
 url =          {https://github.com/facebookresearch/hydra}
 }"""
-        }
+    }
 
 
 @dataclass(frozen=True)
@@ -348,7 +345,7 @@ class PushButtons:
         button_ids (list[str]): A list of button IDs.
     """
 
-    button_ids: tuple[str] = (
+    button_ids: Tuple = (
         'submit_pssm_gremlin_job',
         'cancel_pssm_gremlin_job',
         'download_pssm_gremlin_job',
@@ -670,7 +667,7 @@ class Widget2ConfigMapper:
         widget_id = self.config_widget_id_map.get(config_item)
         return widget_id
 
-    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
+    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:  # type: ignore
         widget = self.find_child(
             self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
         )

@@ -2,7 +2,8 @@ import os
 
 from pymol import cmd
 
-from REvoDesign import ConfigBus, root_logger
+from REvoDesign import ConfigBus
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 

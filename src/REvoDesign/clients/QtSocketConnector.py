@@ -11,9 +11,10 @@ from typing import Any, Dict, Iterable, List, Literal, Mapping, Union
 
 import msgpack
 from pymol import cmd
-from PyQt5 import QtCore, QtNetwork, QtWebSockets
+from PyQt5 import QtCore, QtNetwork, QtWebSockets # type: ignore
 
-from REvoDesign import ConfigBus, SingletonAbstract, issues, root_logger
+from REvoDesign.logger import root_logger
+from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.tools.client_tools import SSLCertificateManager
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
@@ -86,7 +87,7 @@ class MeetingRoom:
         return client in self.current_clients
 
     @property
-    def peer_table(self) -> Dict[Dict]:
+    def peer_table(self) -> Dict[str, Any]:
         if self.empty:
             return {}
 

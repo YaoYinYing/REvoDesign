@@ -3,6 +3,7 @@ import os
 import warnings
 
 from Bio.Align import substitution_matrices
+from Bio.Align.substitution_matrices import Array
 from Bio.Data import IUPACData
 from immutabledict import immutabledict
 from pymol import cmd, util

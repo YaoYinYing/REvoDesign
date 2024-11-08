@@ -7,18 +7,21 @@ import traceback
 import warnings
 # using partial module to reduce duplicate code.
 from functools import partial
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
-from pymol.Qt import QtCore, QtGui, QtWidgets
+from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.Qt.utils import getSaveFileNameWithExt
 from requests.auth import HTTPBasicAuth
+import REvoDesign
 
-from REvoDesign import (EXPERIMENTS_CONFIG_DIR, VERSION, ConfigBus,
+from REvoDesign import (ConfigBus,
                         FileExtentions, Widget2Widget, issues,
-                        reload_config_file, root_logger, save_configuration,
+                        reload_config_file, save_configuration,
                         set_REvoDesign_config_file)
+from REvoDesign.boot import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.logger import root_logger,LoggerT
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
@@ -50,7 +53,7 @@ from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
-logging = None
+logging: LoggerT = None # type: ignore
 
 IO_MODE = Literal['r', 'w']
 
@@ -66,9 +69,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
         self.PWD = os.getcwd()
 
-        self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign.ui')
         self.widget2widget = Widget2Widget()
-        self.bus = None
+        self.bus: ConfigBus = None
 
         self.designable_sequences = {}
         self.design_molecule = ''
@@ -86,7 +88,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         try:
             # if QtWebsockets is available, teamwork is activated.
-            from PyQt5 import QtWebSockets
+            from PyQt5 import QtWebSockets # type: ignore
 
             logging.info(f"Find QtWebSockets in {QtWebSockets.__file__}")
 
@@ -128,7 +130,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.set_working_directory(pwd)
                 return
 
-    def set_working_directory(self, new_dir: str = None):
+    def set_working_directory(self, new_dir: Optional[str] = None):
         """Set working directory for the current REvoDesign Session
 
         Args:
@@ -249,7 +251,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.actionVersion.triggered.connect(
             partial(
                 notify_box,
-                message=f'REvoDesign v.{VERSION}\nSrc: {REPO_URL}',
+                message=f'REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}',
             )
         )
 
@@ -1403,7 +1405,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def reduce_current_session(
         self,
-        session: str = None,
+        session: Optional[str] = None,
         reduce_disabled: bool = False,
         overwrite: bool = False,
     ):
@@ -1812,7 +1814,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
         self.ws_client.close_connection()
 
-    def reload_configurations(self, experiment: str = None):
+    def reload_configurations(self, experiment: Optional[str] = None):
         """Reloading configurations based on different scenarios such as
         reconfiguring with changes, initializing configurations, loading
         specific experiment configurations, or reloading from default
@@ -1867,7 +1869,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 widget, OmegaConf.select(self.bus.cfg, config_item)
             )
 
-    def save_configuration_from_ui(self, experiment: str = None):
+    def save_configuration_from_ui(self, experiment: Optional[str] = None):
         """Saves a configuration from the user interface with an optional
         experiment name.
 
@@ -1894,7 +1896,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not new_cfg_file:
             return
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
-        new_cfg_prefix = new_cfg_base_name.replace('.yaml', '')
+        new_cfg_prefix = new_cfg_base_name.rstrip('.yaml')
         experiment_file = os.path.join(
             EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
         )

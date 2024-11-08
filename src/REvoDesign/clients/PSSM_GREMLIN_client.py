@@ -5,7 +5,7 @@ from typing import Union
 import requests
 from requests.auth import HTTPBasicAuth
 
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.client_tools import check_response_code
 
 logging = root_logger.getChild(__name__)

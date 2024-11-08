@@ -44,6 +44,7 @@ dependencies = [
     "msgpack",
     "RosettaPy>=0.2.6",
     "bibtexparser @ git+https://github.com/sciunto-org/python-bibtexparser.git@v2.0.0b7#egg=bibtexparser",
+    "platformdirs",
 ]
 
 [project.optional-dependencies]

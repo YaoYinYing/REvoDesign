@@ -11,7 +11,8 @@ from immutabledict import immutabledict
 from joblib import Parallel, delayed
 from pymol import CmdException, cmd
 
-from REvoDesign import ConfigBus, issues, root_logger
+from REvoDesign import ConfigBus, issues
+from REvoDesign.logger import root_logger
 from REvoDesign.basic import IterableLoop
 from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer

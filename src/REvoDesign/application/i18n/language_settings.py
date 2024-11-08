@@ -9,7 +9,7 @@ from typing import Any
 
 from pymol.Qt import QtWidgets
 
-from ..ui_driver import ConfigBus
+from ...driver.ui_driver import ConfigBus
 
 self_dir = os.path.dirname(__file__)
 language_dir = os.path.join(self_dir, '..', '..', 'UI', 'language')

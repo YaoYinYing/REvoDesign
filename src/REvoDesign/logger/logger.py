@@ -182,3 +182,9 @@ def setup_logging() -> python_logging.Logger:
     os.makedirs(notebook_dir, exist_ok=True)
     logger = setup_logging_from_dictconfig(log_config=cfg.log)
     return logger
+
+
+# 3. initialize logging config and root logger, depending on config
+root_logger = setup_logging()
+
+LoggerT=python_logging.Logger

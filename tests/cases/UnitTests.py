@@ -9,6 +9,7 @@ from typing import Any, Dict
 from absl.testing import absltest
 from omegaconf import DictConfig, OmegaConf
 from pymol import CmdException, cmd
+from platformdirs import user_cache_dir, user_data_dir
 
 from REvoDesign import (
     REVODESIGN_CONFIG_FILE,
@@ -20,7 +21,7 @@ from REvoDesign import (
     set_cache_dir,
     set_REvoDesign_config_file,
 )
-from REvoDesign.application.ui_driver import Widget2ConfigMapper
+from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.boot.post_installed import ConfigConverter
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.common.Mutant import Mutant
@@ -293,8 +294,9 @@ class TestREvoDesignConfigFile(absltest.TestCase):
     def setUp(self):
         self.bus: ConfigBus = ConfigBus()
         # Setup necessary variables for the test
-        self.expected_default_storage_path = os.path.expanduser("~/.REvoDesign/")
-        self.expected_config_dir = os.path.join(self.expected_default_storage_path, "config")
+        self.expected_default_data_path = user_data_dir(appname='REvoDesign')
+        self.expected_default_cache_path = user_cache_dir(appname='REvoDesign')
+        self.expected_config_dir = os.path.join(self.expected_default_data_path, "config")
         self.expected_main_config_file = os.path.join(self.expected_config_dir, "global_config.yaml")
         self.expected_global_cfg = self.bus.cfg
         self.expected_pippack_cfg = reload_config_file("sidechain-solver/pippack")["sidechain-solver"]
@@ -361,7 +363,7 @@ class TestREvoDesignConfigFile(absltest.TestCase):
         self.expected_global_cfg.cache_dir.customized = ""
         save_configuration(self.expected_global_cfg)
         expected_old_cache_dir = set_cache_dir()
-        self.assertEqual(expected_old_cache_dir, self.expected_default_storage_path)
+        self.assertEqual(expected_old_cache_dir, self.expected_default_cache_path)
 
     def tearDown(self):
         if self.bus:

@@ -12,7 +12,7 @@ from typing import Union
 import matplotlib
 import numpy as np
 
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 
 from .customized_widgets import WorkerThread, refresh_window
 

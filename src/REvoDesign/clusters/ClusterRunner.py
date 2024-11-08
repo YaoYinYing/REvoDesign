@@ -1,4 +1,5 @@
-from REvoDesign import ConfigBus, root_logger
+from REvoDesign import ConfigBus
+from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitationManager
 from REvoDesign.tools.customized_widgets import set_widget_value
 

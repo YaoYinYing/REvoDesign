@@ -3,7 +3,7 @@ import traceback
 
 import biolib
 
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitableModules
 from REvoDesign.tools.utils import timing
 
@@ -47,10 +47,8 @@ class PythiaBiolib(CitableModules):
             logging.error(f'{e=}')
             traceback.print_exc()
 
-    @property
-    def __bibtex__(self):
-        return {
-            'pythia-ddg': """@article {Sun2023.08.09.552725,
+    __bibtex__ = {
+        'pythia-ddg': """@article {Sun2023.08.09.552725,
 author = {Jinyuan Sun and Tong Zhu and Yinglu Cui and Bian Wu},
 title = {Structure-based self-supervised learning enables ultrafast prediction of stability changes upon mutation at the protein universe scale},
 elocation-id = {2023.08.09.552725},
@@ -63,4 +61,4 @@ eprint = {https://www.biorxiv.org/content/early/2023/08/14/2023.08.09.552725.ful
 journal = {bioRxiv}
 }
 """
-        }
+    }

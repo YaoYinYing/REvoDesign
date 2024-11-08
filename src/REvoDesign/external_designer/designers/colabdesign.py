@@ -1,7 +1,7 @@
 # pylint: disable=import-outside-toplevel
 import os
 
-from . import ExternalDesignerAbstract
+from ...basic import ExternalDesignerAbstract
 
 
 # Designer wrapper to ColabDesign MPNN

@@ -3,9 +3,9 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from typing import Any, Callable, Union
 
-from pymol.Qt import QtCore, QtGui, QtWidgets
+from pymol.Qt import QtCore, QtGui, QtWidgets # type: ignore
 
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -91,7 +91,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
         import numpy as np
 
         try:
-            import pandas as pd  # Import pandas here
+
 
             df = self.pair.df
 

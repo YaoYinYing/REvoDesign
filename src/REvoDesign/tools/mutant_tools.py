@@ -8,7 +8,8 @@ from typing import List, Tuple, Union
 from Bio.Data import IUPACData
 from pymol import cmd
 
-from REvoDesign import ConfigBus, FileExtentions, issues, root_logger
+from REvoDesign.logger import root_logger
+from REvoDesign import ConfigBus, FileExtentions, issues
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver

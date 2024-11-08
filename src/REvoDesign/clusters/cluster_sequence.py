@@ -10,7 +10,7 @@ import pandas as pd
 from Bio import SeqIO
 from matplotlib import pyplot as plt
 
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 from REvoDesign.citations import CitableModules
 from REvoDesign.tools.customized_widgets import refresh_window
 from REvoDesign.tools.utils import minibatches_generator

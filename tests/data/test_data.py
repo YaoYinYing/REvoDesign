@@ -1,8 +1,7 @@
 import os
 from dataclasses import dataclass
-from typing import Tuple, Union
+from typing import Tuple
 
-    
 
 @dataclass
 class TestData:
@@ -169,7 +168,7 @@ class TestData:
     def multi_mut_txt_mpnn(self):
         return f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mpnn_mut.txt'
 
-    gremlin_monomer_clicks_a2a: Tuple[Union[Tuple, int]] = (
+    gremlin_monomer_clicks_a2a: Tuple = (
         2,
         (
             6,
@@ -179,7 +178,7 @@ class TestData:
         2,
         -7,
     )
-    gremlin_monomer_clicks_o2a: Tuple[Union[Tuple[int], int]] = (
+    gremlin_monomer_clicks_o2a: Tuple = (
         1,
         (
             0,
@@ -204,7 +203,7 @@ class TestData:
 
     gremlin_homomer_chains: str = 'ABCD'
 
-    gremlin_homomer_clicks_a2a: Tuple[Union[Tuple[int], int]] = (
+    gremlin_homomer_clicks_a2a: Tuple = (
         2,
         (1, 6),
         14,
@@ -213,7 +212,7 @@ class TestData:
         (3, 11),
     )
 
-    gremlin_homomer_clicks_o2a: Tuple[Union[Tuple[int], int]] = (
+    gremlin_homomer_clicks_o2a: Tuple = (
         2,
         (15, 15),
         1,

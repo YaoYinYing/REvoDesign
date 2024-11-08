@@ -1,9 +1,11 @@
 import os
 
-from REvoDesign import reload_config_file, root_logger, set_cache_dir
+
+from REvoDesign import reload_config_file, set_cache_dir
+from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.logger import root_logger
 from REvoDesign.common.Mutant import Mutant
 
-from . import MutateRunnerAbstract
 
 logging = root_logger.getChild(__name__)
 
