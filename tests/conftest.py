@@ -16,15 +16,11 @@ from pymol.Qt import QtCore, QtWidgets  # type: ignore
 from pytestqt import qtbot
 
 from REvoDesign import ConfigBus, REvoDesignPlugin
-from REvoDesign.boot import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.citations import CitationManager
-from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
-from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.evaluate.Evaluator import Evalutator
-from REvoDesign.phylogenetics.EvoMutator import GREMLIN_Analyser
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
