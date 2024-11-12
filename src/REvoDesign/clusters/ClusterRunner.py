@@ -1,10 +1,7 @@
 from REvoDesign import ConfigBus
 from REvoDesign.citations import CitationManager
-from REvoDesign.tools.customized_widgets import (
-    set_widget_value,
-)
-
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
+from REvoDesign.tools.customized_widgets import set_widget_value
 
 logging = root_logger.getChild(__name__)
 
@@ -48,8 +45,8 @@ class ClusterRunner:
     # combination and clustering
     def run_clustering(self):
         # lazy module loading to fasten plugin initializing
-        from .combine_positions import Combinations
         from .cluster_sequence import Clustering
+        from .combine_positions import Combinations
 
         # output space
         self.plot_space = self.bus.ui.stackedWidget

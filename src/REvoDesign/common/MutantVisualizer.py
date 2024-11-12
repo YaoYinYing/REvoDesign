@@ -3,27 +3,19 @@ import os
 import tempfile
 import warnings
 
+import matplotlib
 import pandas as pd
 from Bio import SeqIO
-import matplotlib
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 
+from REvoDesign import issues, root_logger
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.ProfileParsers import ProfileManager
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
-from REvoDesign import root_logger
-from REvoDesign.common.MutantTree import MutantTree
-
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.tools.utils import (
-    get_color,
-    run_command,
-)
-
-from REvoDesign.tools.mutant_tools import (
-    extract_mutants_from_mutant_id,
-    extract_mutant_from_sequences,
-)
-
-from REvoDesign import issues
+from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
+                                           extract_mutants_from_mutant_id)
+from REvoDesign.tools.utils import get_color, run_command
 
 matplotlib.use('Agg')
 logging = root_logger.getChild(__name__)
@@ -33,7 +25,7 @@ class MutantVisualizer:
     def __init__(self, molecule, chain_id):
         self.molecule = molecule
         self.chain_id = chain_id
-        self.designable_sequences: dict[str, str] = {}
+        self.designable_sequences: RosettaPyProteinSequence
         self.mutfile = ''
         self.input_session = ''
         self.save_session = None
@@ -118,8 +110,8 @@ class MutantVisualizer:
         )
 
         mut_pos = [
-            f'(c. {mut_info["chain_id"]} and i. {str(mut_info["position"])})'
-            for mut_info in mutant_obj.mutant_info
+            f'(c. {mut_info.chain_id} and i. {str(mut_info.position)})'
+            for mut_info in mutant_obj.mutations
         ]
 
         if not self.mutate_runner:
@@ -128,7 +120,7 @@ class MutantVisualizer:
         # use precomputed pdb if it exists. otherwise run the runner to get one.
         if not (temp_mutant_pdb_path := mutant_obj.pdb_fp):
             temp_mutant_pdb_path = self.mutate_runner.run_mutate(
-                mutant_obj=mutant_obj,
+                mutant=mutant_obj,
             )
             mutant_obj.pdb_fp = temp_mutant_pdb_path
 
@@ -143,7 +135,8 @@ class MutantVisualizer:
         cmd.hide('cartoon', f'{new_obj_name}')
         cmd.show(
             "sticks",
-            f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and (sidechain or n. CA) and (not hydrogen)',
+            f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and '
+            '(sidechain or n. CA) and (not hydrogen)',
         )
 
         cmd.hide('everything', 'hydrogens and polymer.protein')
@@ -258,21 +251,18 @@ class MutantVisualizer:
             _mutation_objs = [
                 extract_mutant_from_sequences(
                     mutant_sequence=str(mut_record.seq),
-                    wt_sequence=self.sequence,
+                    wt_sequences=self.designable_sequences,
                     chain_id=self.chain_id,
                 )
                 for mut_record in SeqIO.parse(
-                    open(self.mutfile, 'r'), format='fasta'
+                    open(self.mutfile), format='fasta'
                 )
             ]
 
-            # Remove None items
-            while None in mutation_data:
-                _mutation_objs.pop(None)
             mutation_data = pd.DataFrame.from_dict(
                 {
                     self.key_col: [
-                        mut_obj.short_mutant_id for mut_obj in _mutation_objs
+                        mut_obj.short_mutant_id for mut_obj in _mutation_objs if mut_obj is not None
                     ]
                 }
             )
@@ -305,9 +295,9 @@ class MutantVisualizer:
             if variant_obj.empty:
                 continue
 
-            _variant_info = variant_obj.mutant_info
+            _variant_info = variant_obj.mutations
 
-            variant_obj.wt_sequences = self.designable_sequences
+            variant_obj.wt_protein_sequence = self.designable_sequences
 
             # external scorer stays highest priority.
             if self.scorer:
@@ -315,7 +305,7 @@ class MutantVisualizer:
                     chain_id=self.chain_id, ignore_missing=True
                 )
 
-                _score = self.scorer.scorer(sequence=_sequence)
+                _score = self.scorer.scorer(sequence=_sequence.sequence)
                 logging.debug(
                     f'Reading profile score for scorcer {type(self.scorer)}: {_score}'
                 )
@@ -328,8 +318,8 @@ class MutantVisualizer:
                 and (not self.profile_scoring_df.empty)
             ):
                 _score = self.profile_scoring_df.loc[
-                    _variant_info[0]['mut_res'],
-                    str(int(_variant_info[0]['position']) - 1),
+                    _variant_info[0].mut_res,
+                    str(_variant_info[0].position - 1),
                 ]
                 logging.warning(
                     f'Reading profile score for variant {variant_obj.short_mutant_id}: {_score}'
@@ -341,7 +331,7 @@ class MutantVisualizer:
                     f'Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}'
                 )
 
-            variant_obj.mutant_score = float(_score)
+            variant_obj.mutant_score = float(_score)  # type: ignore
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,
                 mutant=variant_obj.short_mutant_id,
@@ -376,7 +366,8 @@ class MutantVisualizer:
         - self: Instance of the class containing the method.
 
         Notes:
-        - This method initiates and manages the execution of mutagenesis tasks using parallel processing if self.parallel_run is True.
+        - This method initiates and manages the execution of mutagenesis tasks using parallel processing
+        if self.parallel_run is True.
         - The method uses multiprocessing for parallel execution of tasks.
         - If parallel_run is True:
             - It initializes a ParallelExecutor with specified parameters and starts the execution.
@@ -387,7 +378,7 @@ class MutantVisualizer:
         """
 
         if not self.mutate_runner:
-            raise RuntimeError(f'no mutate runner is instantiated yet.')
+            raise RuntimeError('no mutate runner is instantiated yet.')
 
         if any(
             not (m.pdb_fp and os.path.isfile(m.pdb_fp))
@@ -399,7 +390,7 @@ class MutantVisualizer:
 
             self.mutant_tree.run_mutate_parallel(
                 mutate_runner=self.mutate_runner,
-                n_jobs=self.nproc,
+                nproc=self.nproc,  # type: ignore
             )
 
         self.mutagenesis_sessions = []

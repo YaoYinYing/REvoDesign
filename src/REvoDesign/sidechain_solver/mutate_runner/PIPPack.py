@@ -1,11 +1,11 @@
 import os
+from typing import List, Tuple
 
-from REvoDesign import root_logger
-from REvoDesign.common.Mutant import Mutant
 from REvoDesign import reload_config_file, set_cache_dir
-
-from . import MutateRunnerAbstract
-
+from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -17,10 +17,17 @@ class PIPPack_worker(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
+    name: str = 'PIPPack'
+    installed: bool = is_package_installed('pippack')
+
+    weights_preset: Tuple[str, ...] = (
+        'pippack_model_1', 'pippack_model_2', 'pippack_model_3', 'ensemble',
+    )
+    default_weight_preset: str = 'ensemble'
 
     def __init__(self, pdb_file: str, use_model='ensemble', **kwargs):
         """
-        Initialize DLPacker_worker with a PDB file.
+        Initialize PIPPack with a PDB file.
 
         Args:
         - pdb_file: Path to the PDB file
@@ -37,7 +44,7 @@ class PIPPack_worker(MutateRunnerAbstract):
         ]
         self.pippack_worker = PIPPack(model=self.use_model)
 
-        logging.info(f'Initializing PIPPack_worker.')
+        logging.info('Initializing PIPPack_worker.')
         self.pippack_worker.n_recycle = ppcfg.inference.n_recycle
         self.pippack_worker.temperature = ppcfg.inference.temperature
         self.pippack_worker.force_cpu = ppcfg.inference.force_cpu
@@ -58,19 +65,18 @@ class PIPPack_worker(MutateRunnerAbstract):
 
     def run_mutate(
         self,
-        mutant_obj: Mutant,
-        **kwargs,
-    ):
-        logging.debug(f'Mutating {mutant_obj=}')
-        new_obj_name = mutant_obj.short_mutant_id
+        mutant: Mutant,
+    ) -> str:
+        logging.debug(f'Mutating {mutant=}')
+        new_obj_name = mutant.short_mutant_id
 
         mutant_sequence = [
             [
-                seq.replace('X', '')
-                for seq in mutant_obj.mutant_sequences.values()
+                chain.sequence.replace('X', '')
+                for chain in mutant.mutant_sequences.chains
             ]
         ]
-        logging.debug(f'Mutated: {mutant_obj.mutant_sequences}')
+        logging.debug(f'Mutated: {mutant.mutant_sequences}')
 
         temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
@@ -82,14 +88,16 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         return temp_pdb_path
 
-    def run_mutate_parallel(self, mutants: list[Mutant], *args, **kwargs):
+    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int = 2) -> List[str]:
         mutant_sequences = [
             [
-                seq.replace('X', '')
-                for seq in mutant_obj.mutant_sequences.values()
+                chain.sequence.replace('X', '')
+                for chain in mutant_obj.mutant_sequences.chains
             ]
             for mutant_obj in mutants
         ]
+
+        logging.warning(f'Nproc({nproc}) will not be used by PIPPack.')
 
         pdbs = self.pippack_worker._run_repack_batch(
             pdb_path=self.pdb_file,
@@ -110,13 +118,11 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         return renamed_pdbs
 
-    @property
-    def __bibtex__(self):
-        return {
-            'PIPPack': """@article{randolph2023pippack,
-  title={Invariant point message passing for protein side chain packing},
-  author={Randolph, Nicholas and Kuhlman, Brian},
-  journal={bioRxiv preprint bioRxiv:10.1101/2023.08.03.551328},
-  year={2023}
+    __bibtex__ = {
+        'PIPPack': """@article{randolph2023pippack,
+title={Invariant point message passing for protein side chain packing},
+author={Randolph, Nicholas and Kuhlman, Brian},
+journal={bioRxiv preprint bioRxiv:10.1101/2023.08.03.551328},
+year={2023}
 }"""
-        }
+    }

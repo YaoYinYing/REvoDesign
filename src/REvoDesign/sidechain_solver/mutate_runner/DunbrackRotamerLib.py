@@ -1,11 +1,12 @@
 import os
+from typing import List
 
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
 
+from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign import root_logger
-from . import MutateRunnerAbstract
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -20,6 +21,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
+    name: str = 'Dunbrack Rotamer Library'
+    installed: bool = True
 
     def __init__(self, pdb_file, molecule='', **kwargs):
         """
@@ -35,12 +38,12 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         self.temp_dir = self.new_cache_dir
 
-    def run_mutate(self, mutant_obj: Mutant, **kwargs) -> str:
+    def run_mutate(self, mutant: Mutant) -> str:
         """
         Run mutation on the molecule using PyMOL.
 
         Args:
-        - mutant_obj: Object containing mutation information
+        - mutant: Object containing mutation information
 
         A standalone instance of PyMOL will perform a series of work:
         1. reinitialize workspace (session)
@@ -57,8 +60,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         import pymol2
 
-        new_obj_name = mutant_obj.short_mutant_id
-        logging.debug(f'Mutating {mutant_obj=}')
+        new_obj_name = mutant.short_mutant_id
+        logging.debug(f'Mutating {mutant=}')
 
         temp_mutant_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
@@ -74,13 +77,10 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
             p.cmd.delete(self.molecule)
 
-            for mut_info in mutant_obj.mutant_info:
-                chain_id = mut_info['chain_id']
-                position = mut_info['position']
-                new_residue = mut_info['mut_res']
+            for mut_info in mutant.mutations:
 
                 new_residue_3 = IUPACData.protein_letters_1to3[
-                    new_residue
+                    mut_info.mut_res
                 ].upper()
 
                 # a variant from rotkit mutate function that uses pymol2 context manager
@@ -90,13 +90,9 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 # cmd.do("refresh_wizard")
                 p.cmd.refresh_wizard()
                 p.cmd.get_wizard().set_mode("%s" % target)
-                p.selection = "/%s//%s/%s" % (
-                    new_obj_name,
-                    chain_id,
-                    position,
-                )
+                p.selection = f"/{new_obj_name}//{mut_info.chain_id}/{mut_info.position}"  # type: ignore
                 p.cmd.get_wizard().do_select(p.selection)
-                p.cmd.frame(str("1"))
+                p.cmd.frame("1")
                 p.cmd.get_wizard().apply()
                 p.cmd.set_wizard()
 
@@ -105,30 +101,28 @@ class PyMOL_mutate(MutateRunnerAbstract):
         return temp_mutant_path
 
     def run_mutate_parallel(
-        self, mutants: list[Mutant], n_jobs: int = 2, **kwargs
-    ):
+        self, mutants: List[Mutant], nproc: int = 2
+    ) -> List[str]:
         """
         Perform mutation on the protein in parallel.
 
         Args:
         - mutants: List of Mutant objects containing mutation information
-        - n_jobs: Number of parallel jobs to run (default: -1, which means using all available cores)
+        - nproc: Number of parallel jobs to run (default: -1, which means using all available cores)
         - **kwargs: Additional keyword arguments to pass to the run_mutate method
 
         Returns:
         - List of paths to the mutated PDB files
         """
 
-        results = Parallel(n_jobs=n_jobs)(
+        results = Parallel(n_jobs=nproc, return_as='list')(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
-        return results
+        return list(results)  # type: ignore
 
     # https://www.bruot.org/ris2bib/
-    @property
-    def __bibtex__(self):
-        return {
-            'Dunbrack Rotamer Library': """@Article{Shapovalov2011,
+    __bibtex__ = {
+        'Dunbrack Rotamer Library': """@Article{Shapovalov2011,
 author={Shapovalov, Maxim V.
 and Dunbrack Jr., Roland L.,},
 title={A Smoothed Backbone-Dependent Rotamer Library for Proteins Derived from Adaptive Kernel Density Estimates and Regressions},
@@ -147,4 +141,4 @@ url={https://doi.org/10.1016/j.str.2011.03.019}
 }
 
 """
-        }
+    }

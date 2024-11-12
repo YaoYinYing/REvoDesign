@@ -1,33 +1,24 @@
 import base64
-from functools import partial
 import pickle
 import socket
 import time
 import traceback
-from types import MappingProxyType
-from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Mapping,
-    Union,
-)
 import warnings
+from dataclasses import dataclass, field
+from functools import partial
+from types import MappingProxyType
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Union
 
 import msgpack
 from pymol import cmd
-from PyQt5 import QtWebSockets, QtNetwork, QtCore
+from PyQt5 import QtCore, QtNetwork, QtWebSockets  # type: ignore
 
-from REvoDesign import ConfigBus, root_logger
-from REvoDesign import SingletonAbstract
-from REvoDesign.tools.utils import run_worker_thread_with_progress
-from REvoDesign.tools.client_tools import SSLCertificateManager
+from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.logger import root_logger
+from REvoDesign.tools.client_tools import SSLCertificateManager
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
-from REvoDesign import issues
+from REvoDesign.tools.utils import run_worker_thread_with_progress
 
 logging = root_logger.getChild(__name__)
 
@@ -96,7 +87,7 @@ class MeetingRoom:
         return client in self.current_clients
 
     @property
-    def peer_table(self) -> dict[dict]:
+    def peer_table(self) -> Dict[str, Any]:
         if self.empty:
             return {}
 
@@ -174,7 +165,7 @@ class Broadcaster:
     def compose_dict(
         self, obj: Any, datatype: supported_datatypes, final: bool = True
     ) -> Dict[str, Union[supported_datatypes, str, bool]]:
-        if not datatype in self.supported_datatypes_mapping:
+        if datatype not in self.supported_datatypes_mapping:
             raise issues.FobbidenDataTypeError(f'{datatype=} is not allowed.')
         return {'datatype': datatype, 'obj': self.encode(obj), 'final': final}
 
@@ -300,7 +291,7 @@ class Broadcaster:
         if not datatype:
             warnings.warn(
                 issues.BadDataWarning(
-                    f'Bad data received with unexpected none datatype.'
+                    'Bad data received with unexpected none datatype.'
                 )
             )
             return None, None
@@ -317,7 +308,7 @@ class Broadcaster:
             return datatype, stacked_data
 
         raise issues.FobbidenDataTypeError(
-            f'Nested MessageStack is not allowd.'
+            'Nested MessageStack is not allowd.'
         )
 
 
@@ -581,8 +572,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         username, node, user_id = self.client_name_and_node(client=client)
 
         if client not in self.meetingroom.current_clients:
-            from REvoDesign.tools.system_tools import CLIENT_INFO
             from REvoDesign.tools.client_tools import UUIDGenerator
+            from REvoDesign.tools.system_tools import CLIENT_INFO
 
             if not self.use_authentication or not self.authentication_key:
                 authenticated = True
@@ -944,7 +935,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                 s.settimeout(3)  # Set a timeout for the connection attempt
                 s.connect((self.server_url, self.server_port))
             return True
-        except socket.error as e:
+        except OSError as e:
             logging.error(f"Socket error: {e}")
             return False
 
@@ -975,8 +966,8 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         if self.receive_mutagenesis_broadcast:
             logging.info(
                 'Building Mutagenesis from differential mutant tree: \n '
-                f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, {len(diff_mutant_tree.all_mutant_ids)} mutants'
-            )
+                f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, '
+                f'{len(diff_mutant_tree.all_mutant_ids)} mutants')
 
             run_worker_thread_with_progress(
                 worker_function=self.mutagenesis_from_mutant_tree,
@@ -985,7 +976,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
     def handleViewUpdate(self, view):
         if not self.receive_view_broadcast:
-            logging.warning(f'View update is disabled.')
+            logging.warning('View update is disabled.')
             return
 
         # logging.debug('update pymol view')
@@ -1022,8 +1013,8 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             self.uuid = msg_content
             return
 
-        if not msg_type == 'MessageStack' and (l := len(msg_content)):
-            logging.info(f'Get a new MessageStack with {l} messages')
+        if not msg_type == 'MessageStack' and (len_msg_content := len(msg_content)):
+            logging.info(f'Get a new MessageStack with {len_msg_content} messages')
 
             if not isinstance(msg_content, Iterable):
                 warnings.warn(
@@ -1033,23 +1024,24 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                 )
                 return
 
-            for d in msg_content:
-                if not isinstance(d, tuple):
+            for msg_data_item in msg_content:
+                if not isinstance(msg_data_item, tuple):
                     warnings.warn(
                         issues.FobbidenDataTypeError(
-                            f'The content of a MessageStack item {d=} is expected to be a tuple with 2 item instead of a {type(msg_content)}'
+                            f'The content of a MessageStack item {msg_data_item=} is expected to be '
+                            f'a tuple with 2 item instead of a {type(msg_content)}'
                         )
                     )
                     continue
-                if (l := len(d)) != 2:
+                if (len_msg_content := len(msg_data_item)) != 2:
                     warnings.warn(
                         issues.FobbidenDataTypeError(
-                            f'The MessageStack item has invalid length {l}'
+                            f'The MessageStack item has invalid length {len_msg_content}'
                         )
                     )
                     continue
 
-                self.messageDispatcher(msg_type=d[0], msg_content=d[1])
+                self.messageDispatcher(msg_type=msg_data_item[0], msg_content=msg_data_item[1])
 
             return
 
@@ -1068,7 +1060,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             )
         except issues.FobbidenDataTypeError:
             warnings.warn(
-                issues.BadDataWarning(f'Bad data from Host is discarded.')
+                issues.BadDataWarning('Bad data from Host is discarded.')
             )
             return
 

@@ -1,11 +1,10 @@
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import os
 
 import pandas as pd
 
-from REvoDesign import issues
-from REvoDesign import root_logger
+from REvoDesign import issues, root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -45,7 +44,8 @@ class ProfileManager:
 @dataclass
 class ProfileParserAbstract(ABC):
     """
-    `ProfileParserAbstract` is an abstract base class designed to parse profile data associated with molecular structures.
+    `ProfileParserAbstract` is an abstract base class designed to parse profile data associated with
+    molecular structures.
 
     Attributes:
     - `profile_input`: str, the path to the input profile file.
@@ -232,16 +232,16 @@ class CSVProfileParser(ProfileParserAbstract):
         # try to transpose if the shape is 20 col x N row
         if len(df.columns) == 20:
             df = df.T
-            logging.debug(f'Profile data is transposed.')
+            logging.debug('Profile data is transposed.')
 
             column_rename_mapping = {pos: str(pos) for pos in df.columns}
             logging.debug(f'Rename column : {column_rename_mapping}')
             df.rename(columns=column_rename_mapping, inplace=True)
 
         if str(df.columns[0]) != "0":
-            logging.debug(f'Profile data does not matche default format.')
+            logging.debug('Profile data does not matche default format.')
             # Calculate the number of columns (N) in the DataFrame
-            N = len(df.columns)
+            len(df.columns)
 
             logging.debug(f'Column : {df.columns}')
 
@@ -286,7 +286,7 @@ class CSVProfileParser(ProfileParserAbstract):
             logging.debug(f'Filled: {df.columns}')
 
         if len(df.columns) > 20 and str(df.columns[0]) == '0':
-            logging.debug(f'Profile data matches default format.')
+            logging.debug('Profile data matches default format.')
 
             return df
         else:
@@ -309,11 +309,14 @@ class TSVProfileParser(ProfileParserAbstract):
 
 class Pythia_ddG_Parser(ProfileParserAbstract):
     """
-    The `Pythia_ddG_Parser` class is designed to parse the binding free energy (ddG) predictions from Pythia and convert them into a DataFrame format.
+    The `Pythia_ddG_Parser` class is designed to parse the binding free energy (ddG) predictions from Pythia
+    and convert them into a DataFrame format.
 
     Methods:
-    - `parse`: Parses the ddG data and returns it as a pandas DataFrame. If the expected output does not exist, triggers a cloud computation.
-    - `_run_cloud`: Internal method to initiate Pythia calculations in case the output is not found locally. Sets up the working directory and handles the execution and citation of Pythia.
+    - `parse`: Parses the ddG data and returns it as a pandas DataFrame. If the expected output does not exist,
+    triggers a cloud computation.
+    - `_run_cloud`: Internal method to initiate Pythia calculations in case the output is not found locally.
+    Sets up the working directory and handles the execution and citation of Pythia.
     """
 
     def parse(self) -> pd.DataFrame:
@@ -323,7 +326,8 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
         Returns:
         - `pd.DataFrame`: DataFrame containing parsed ddG data.
 
-        If the expected Pythia output file does not exist, the `_run_cloud` method is invoked to generate the predictions remotely.
+        If the expected Pythia output file does not exist, the `_run_cloud` method is invoked to generate
+        the predictions remotely.
         """
         self.profile_input = os.path.join(
             os.path.abspath('.'),
@@ -357,7 +361,8 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
         """
         Internal method that triggers Pythia calculations in a remote environment when local output is missing.
 
-        Establishes the working directory for Pythia, initiates the prediction process, and handles result storage and citation.
+        Establishes the working directory for Pythia, initiates the prediction process, and handles result
+        storage and citation.
         In case of errors during Pythia execution, logs an error message.
         """
         from REvoDesign.clients.PythiaBiolibClient import PythiaBiolib

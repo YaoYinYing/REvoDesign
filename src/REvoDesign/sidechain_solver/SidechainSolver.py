@@ -1,24 +1,34 @@
 import warnings
-from typing import Mapping
+from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
-from dataclasses import dataclass, field
+from typing import List, Mapping, Optional
 
-from REvoDesign.sidechain_solver.mutate_runner import (
-    MutateRunnerAbstract,
+from RosettaPy.utils.escape import print_diff
+
+from REvoDesign import ConfigBus, SingletonAbstract, issues
+from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.logger import root_logger
+from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
+                                                       PIPPack_worker,
+                                                       PyMOL_mutate)
+from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
+from REvoDesign.tools.utils import timing
+
+logging = root_logger.getChild(__name__)
+all_runner_c: List[type[MutateRunnerAbstract]] = [
     PyMOL_mutate,
     DLPacker_worker,
     PIPPack_worker,
+]
+
+
+# create table of implemented runners
+implemented_runner: Mapping[str, type[MutateRunnerAbstract]] = MappingProxyType(
+    {
+        c.name: c
+        for c in all_runner_c
+    }
 )
-
-from REvoDesign import WITH_DEPENDENCIES, ConfigBus, SingletonAbstract
-from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-
-from REvoDesign import root_logger
-from REvoDesign import issues
-from REvoDesign.tools.utils import timing
-
-
-logging = root_logger.getChild(__name__)
 
 __all__ = [
     'MutateRunnerAbstract',
@@ -26,86 +36,54 @@ __all__ = [
     'PyMOL_mutate',
     'DLPacker_worker',
     'PIPPack_worker',
+    'all_runner_c',
+    'implemented_runner'
 ]
 
 
 @dataclass(frozen=True)
 class MutateRunnerManager:
-    # Append installed runner here
-    installed_worker: Mapping = field(
-        default_factory=lambda: MappingProxyType(
-            {
-                'Dunbrack Rotamer Library': True,
-                'DLPacker': WITH_DEPENDENCIES.DLPACKER,
-                'PIPPack': WITH_DEPENDENCIES.PIPPACK,
-            }
-        )
+    # create list of installed runners here
+    installed_worker: List[str] = field(
+        default_factory=lambda: [c.name
+                                 for c in all_runner_c if c.installed]
     )
 
-    # Append implemented runner here
-    implemented_runner: Mapping = field(
-        default_factory=lambda: MappingProxyType(
-            {
-                'Dunbrack Rotamer Library': PyMOL_mutate,
-                'DLPacker': DLPacker_worker,
-                'PIPPack': PIPPack_worker,
-            }
-        )
-    )
-
-    def _runner_is_implemented(self, sidechain_solver_name: str) -> bool:
-        if not sidechain_solver_name in self.implemented_runner:
-            raise issues.PluginNotImplementedError(
-                f'sidechain_solver is not available: {sidechain_solver_name=}: {self.implemented_runner=}'
-            )
-        return True
-
-    def _runner_installed(self, sidechain_solver_name: str) -> bool:
+    def installed(self, sidechain_solver_name: str) -> bool:
         if not (
             sidechain_solver_name in self.installed_worker
-            and self.installed_worker.get(sidechain_solver_name)
         ):
             raise issues.DependencyError(
                 f'{sidechain_solver_name} is not available in your installation. Aborted..'
             )
         return True
 
-    def avaliable(self, sidechain_solver_name: str) -> bool:
-        return self._runner_installed(
-            sidechain_solver_name
-        ) and self._runner_is_implemented(sidechain_solver_name)
-
-    def get_runner(
+    def get(
         self, sidechain_solver_name: str, **kwargs
     ) -> MutateRunnerAbstract:
-        if self.avaliable(sidechain_solver_name):
-            runner_class = self.implemented_runner[sidechain_solver_name]
+        if self.installed(sidechain_solver_name):
+            runner_class = implemented_runner[sidechain_solver_name]
             return runner_class(**kwargs)
+        raise issues.DependencyError(
+            f'{sidechain_solver_name} is not available in your installation. Aborted..'
+        )
 
 
 @dataclass(frozen=True)
 class SidechainSolverConfig:
     molecule: str
     sidechain_solver_name: str
-    sidechain_solver_radius: float
-    sidechain_solver_model: str
-
-    def dump(self) -> tuple[str, float]:
-        return (
-            self.molecule,
-            self.sidechain_solver_name,
-            self.sidechain_solver_radius,
-            self.sidechain_solver_model,
-        )
+    sidechain_solver_radius: Optional[float]
+    sidechain_solver_model: Optional[str]
 
     def reconfigured(self, new_config: 'SidechainSolverConfig') -> bool:
         reconfigured = False
-        for _new_cfg, _old_cfg in zip(new_config.dump(), self.dump()):
-            if _new_cfg != _old_cfg:
-                logging.warning(
-                    f'SC solver changed: {_old_cfg=} -> {_new_cfg=}'
-                )
-                reconfigured = True
+        if new_config != self:
+            for (k1, v1), (k2, v2) in zip(asdict(self).items(), asdict(new_config).items()):
+                if v1 == v2:
+                    continue
+                print_diff(k1, {'Before': v1, 'After': v2})
+            reconfigured = True
         return reconfigured
 
 
@@ -115,7 +93,7 @@ class SidechainSolver(SingletonAbstract):
         if not hasattr(self, 'initialized'):
             # If not, set the instance attributes
             self.bus: ConfigBus = ConfigBus()
-            self.mutate_runner: MutateRunnerAbstract = None
+            self.mutate_runner: MutateRunnerAbstract = None  # type: ignore
             self.runner_manager = MutateRunnerManager()
             self.cfg: SidechainSolverConfig = self.get_config()
             # Mark the instance as initialized to prevent reinitialization
@@ -132,7 +110,7 @@ class SidechainSolver(SingletonAbstract):
 
         with timing('Setting up sidechain solver'):
             try:
-                self.mutate_runner = self.runner_manager.get_runner(
+                self.mutate_runner = self.runner_manager.get(
                     self.cfg.sidechain_solver_name,
                     pdb_file=input_pdb,
                     use_model=self.cfg.sidechain_solver_model,

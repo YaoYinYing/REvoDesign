@@ -1,14 +1,14 @@
 import datetime
-from dataclasses import dataclass
-from typing import Literal
 import os
 import ssl
 import uuid
+from dataclasses import dataclass
+from typing import Literal
 
 from OpenSSL import crypto
 
 from REvoDesign import issues
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -30,7 +30,7 @@ def check_response_code(response, successfull_opt='Submitted'):
     elif response.status_code == 401:
         # Log a warning for unauthorized access if status code is 401
         raise issues.UnauthorizedError(
-            f"Unauthorized.\n please retry with available username and password."
+            "Unauthorized.\n please retry with available username and password."
         )
     else:
         # Log a warning with status code and content for other status codes

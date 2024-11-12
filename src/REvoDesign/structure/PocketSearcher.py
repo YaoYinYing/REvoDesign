@@ -2,14 +2,15 @@ import os
 from typing import Tuple
 
 from pymol import cmd
-from REvoDesign import ConfigBus, root_logger
+
+from REvoDesign import ConfigBus
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
 """
 This module is used to search pocket residues for a given molecule.
 """
-
 
 
 class PocketSearcher:
@@ -62,7 +63,7 @@ class PocketSearcher:
             # If the input string is empty, return two empty strings.
             return '', ''
 
-        if not ',' in selection:
+        if ',' not in selection:
             # If there are no commas in the input, return the input as is and a formatted version.
             return selection, f'r. {selection}'
 
@@ -71,8 +72,6 @@ class PocketSearcher:
 
         # Join the elements with underscores and create a descriptive string.
         return '_'.join([_sel for _sel in _sele]), ' or '.join([f'r. {_sel}' for _sel in _sele])
-            
-
 
     def search_pockets(self):
         cmd.load(self.input_pse)
@@ -108,7 +107,6 @@ class PocketSearcher:
             design_shell_id,
         ]
 
-        
         if self.cofactor and self.cofactor_radius > 0:
             cofact_label, cofact_sele = self.process_multiple_resn(self.cofactor)
             logging.debug(f'cofactor info {self.cofactor} ({cofact_label}: {cofact_sele}): {self.cofactor_radius}')
@@ -131,7 +129,7 @@ class PocketSearcher:
 
         for i in selections:
             atoms = cmd.get_model(i)
-            resi = list(set([int(atom.resi) for atom in atoms.atom]))
+            resi = list({int(atom.resi) for atom in atoms.atom})
             resi.sort()
 
             # Save pocket residue records

@@ -1,74 +1,42 @@
-import gc
-import os
-
-import hydra
-
-# -2. import basic
-from REvoDesign.basic import SingletonAbstract
-
-# -1. import FileExtentions
-from REvoDesign.common.FileExtentions import (
-    REvoDesignFileExtentions as FileExtentions,
-)
-
-# 0. import version info
-
-__version__ = '1.5.11.post-2'
-VERSION = __version__
-
 # -=-=-=-=-=-=-=-= the importing stack begins -=-=-=-=-=-=-=-=
 
-# 1. import post install module and methods
-from REvoDesign.boot import (
-    experiment_config,
-    set_REvoDesign_config_file,
-    WITH_DEPENDENCIES,
-    reload_config_file,
-    set_cache_dir,
-    save_configuration,
-)
+# 0. build-in plugin: garbage collector
 
-# 2. initialize config file
-REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()
-hydra.initialize_config_dir(
-    version_base=None, config_dir=os.path.dirname(REVODESIGN_CONFIG_FILE)
-)
+import gc
 
-# 2.5. initialize experiments directory, depending on config
-EXPERIMENTS_CONFIG_DIR = experiment_config()
-
-# 3. initialize logging config and root logger, depending on config
-from REvoDesign.logger import setup_logging
-
-root_logger = setup_logging()
-
+# 1. import basic
+from REvoDesign.basic import SingletonAbstract
+# 2. import post install module and methods
+from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE, experiment_config,
+                                  reload_config_file, save_configuration,
+                                  set_cache_dir, set_REvoDesign_config_file)
+# 3. import FileExtentions
+from REvoDesign.common.FileExtentions import \
+    REvoDesignFileExtentions as FileExtentions
 # 4. import UI bus, depending on SingletonAbstract, logger, configuration
-from REvoDesign.application.ui_driver import (
-    Widget2Widget,
-    ConfigBus,
-)
-
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.logger import root_logger, setup_logging
 # 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
 
+# 6. Set version info
 
-# 6. enable garbage collection
+__version__ = '1.6.0'
+
+
+# 8. enable garbage collection
 gc.enable()
 
 # 7. add shortcuts to PyMOL commandline prompt
-from REvoDesign.shortcuts import *
-
 
 __all__ = [
     'REvoDesignPlugin',
     'SingletonAbstract',
-    'Widget2Widget',
     'ConfigBus',
-    'WITH_DEPENDENCIES',
     'FileExtentions',
     'reload_config_file',
     'set_cache_dir',
     'save_configuration',
-    'tests',
-    'VERSION',
+    'root_logger', 'setup_logging',
+    'REVODESIGN_CONFIG_FILE', 'set_REvoDesign_config_file', 'experiment_config'
 ]

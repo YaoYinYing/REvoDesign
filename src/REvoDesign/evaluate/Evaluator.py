@@ -2,21 +2,16 @@ import os
 from functools import partial
 
 from pymol import cmd
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
-    decide,
-    set_widget_value,
-)
-
-from REvoDesign import root_logger
-from REvoDesign.tools.mutant_tools import (
-    existed_mutant_tree,
-    extract_mutant_from_pymol_object,
-    save_mutant_choices,
-)
+from REvoDesign.logger import root_logger
+from REvoDesign.tools.customized_widgets import (decide, get_widget_value,
+                                                 set_widget_value)
+from REvoDesign.tools.mutant_tools import (existed_mutant_tree,
+                                           extract_mutant_from_pymol_object,
+                                           save_mutant_choices)
 
 logging = root_logger.getChild(__name__)
 
@@ -31,10 +26,10 @@ class Evalutator:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences: dict = self.bus.get_value(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
-        )
-        self.design_sequence: str = self.designable_sequences.get(
+        )))
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
         )
 
@@ -46,12 +41,11 @@ class Evalutator:
             f'Current Mutant ID: {self.mutant_tree_candidates.current_mutant_id}'
         )
 
-        if molecule and chain_id:
-            mut_obj = extract_mutant_from_pymol_object(
-                pymol_object=self.mutant_tree_candidates.current_mutant_id,
-                sequences=self.designable_sequences,
-            )
-            resi = mut_obj.mutant_info[0]['position']
+        mut_obj = extract_mutant_from_pymol_object(
+            pymol_object=self.mutant_tree_candidates.current_mutant_id,
+            sequences=self.designable_sequences,
+        )
+        resi = mut_obj.mutations[0].position
 
         if self.mutant_tree_candidates.current_mutant_id:
             cmd.enable(self.mutant_tree_candidates.current_mutant_id)
@@ -204,10 +198,10 @@ class Evalutator:
 
         branch = get_widget_value(comboBox_group_ids)
         if not branch:
-            logging.warning(f'Branch id is empty or null, skipped.')
+            logging.warning('Branch id is empty or null, skipped.')
             return
         elif not self.mutant_tree_candidates:
-            logging.error(f'Mutant tree is invalid.')
+            logging.error('Mutant tree is invalid.')
             return
         else:
             logging.info(f'Jump to {branch} as required.')
@@ -306,24 +300,24 @@ class Evalutator:
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         if self.mutant_tree_candidates.empty:
             logging.error(
-                f'No available mutant tree. Please reinitialize it before picking mutants.'
+                'No available mutant tree. Please reinitialize it before picking mutants.'
             )
             return
 
         if not self.mutant_tree_pssm_selected.empty:
             logging.warning(
-                f'Your current mutant selection will be overrided!'
+                'Your current mutant selection will be overrided!'
             )
 
             # Ask whether to overide
             confirmed = decide(
                 title="Override existed mutant table choices?",
-                description=f"You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
+                description="You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
                     Are you really sure? ",
             )
 
             if not confirmed:
-                logging.warning(f'Cancelled.')
+                logging.warning('Cancelled.')
                 return
 
         original_branch_id = get_widget_value(comboBox_group_ids)
@@ -382,7 +376,7 @@ class Evalutator:
             return
 
         mutants_from_checkpoint = (
-            open(mutant_choice_checkpoint_fn, 'r').read().strip().split('\n')
+            open(mutant_choice_checkpoint_fn).read().strip().split('\n')
         )
 
         self.mutant_tree_pssm_selected = (

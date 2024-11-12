@@ -1,26 +1,21 @@
 #! /mnt/data/envs/conda_env/envs/REvoDesign/bin/python
 
-import os
-import subprocess
-import hashlib
-import shutil
 import glob
+import hashlib
 import os
+import shutil
 import signal
-import os
+import subprocess
 from datetime import datetime
-
-import docker
-from absl import app
-from absl import logging
-from docker import types
 from typing import Tuple
 
-from flask import Flask, request, jsonify, redirect, send_from_directory
-from flask import render_template
-
+import docker
+from absl import app, logging
 from celery import Celery
 from celery.result import AsyncResult
+from docker import types
+from flask import (Flask, jsonify, redirect, render_template, request,
+                   send_from_directory)
 
 app = Flask(__name__, template_folder="./templates")
 
@@ -64,7 +59,7 @@ app.config["STATE_FOLDER"] = STATE_FOLDER
 
 try:
     _ROOT_MOUNT_DIRECTORY = f"/home/{os.getlogin()}"
-except:
+except BaseException:
     _ROOT_MOUNT_DIRECTORY = os.path.abspath("/tmp/")
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
@@ -189,7 +184,7 @@ def run_gremlin_task(md5sum, filename):
     output_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
     state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
     uploaded_file = os.path.join(output_dir, filename)
-    with open(state_file, "r") as f:
+    with open(state_file) as f:
         status = f.read().strip()
 
     # early return if not in queue or in processing
@@ -267,7 +262,7 @@ def upload_file():
         # early return for running tasks
         if (
             os.path.exists(state_file)
-            and ((job_state:=open(state_file, "r").read().strip()) == "running" or job_state == "queued")
+            and ((job_state := open(state_file).read().strip()) == "running" or job_state == "queued")
         ):
             return (
                 jsonify(
@@ -309,7 +304,7 @@ def run_gremlin(md5sum):
 
     # Check the status in the state marker file
     if os.path.exists(state_file):
-        with open(state_file, "r") as f:
+        with open(state_file) as f:
             status = f.read().strip()
         # early return if the status is not running
         if status == "finished":
@@ -343,7 +338,7 @@ def get_results(md5sum):
 
     # Check if the task has finished
     if os.path.exists(state_file):
-        with open(state_file, "r") as f:
+        with open(state_file) as f:
             status = f.read().strip()
 
         # Create a zip file with all the result files
@@ -404,7 +399,7 @@ def cancel_task(md5sum):
     state_file = os.path.join(STATE_FOLDER, f"{md5sum}.state")
 
     if os.path.exists(state_file):
-        with open(state_file, "r") as f:
+        with open(state_file) as f:
             status = f.read().strip()
 
         if status in ["queued", "running"]:
@@ -436,7 +431,7 @@ def cancel_task(md5sum):
                             jsonify({"status": "killed", "md5sum": md5sum}),
                             200,
                         )
-                    except:
+                    except BaseException:
                         return (
                             jsonify(
                                 {
@@ -447,7 +442,7 @@ def cancel_task(md5sum):
                             200,
                         )
 
-            except Exception as e:
+            except Exception:
                 return jsonify({"error": "Failed to cancel the task"}), 500
         else:
             return (
@@ -473,7 +468,7 @@ def task_dashboard():
     for filename in os.listdir(state_folder):
         if filename.endswith(".state"):
             md5sum = filename.replace(".state", "")
-            with open(os.path.join(state_folder, filename), "r") as f:
+            with open(os.path.join(state_folder, filename)) as f:
                 status = f.read().strip()
             fasta_fp = glob.glob(f"{results_folder}/{md5sum}/*.fasta")[0]
             fasta_fn = os.path.basename(fasta_fp)

@@ -1,16 +1,17 @@
 import atexit
 import datetime as dt
 import json
-import logging.handlers as python_logging_handlers
 import logging as python_logging
+import logging.handlers as python_logging_handlers
 import os
 import queue
 from typing import Union
-from typing_extensions import override
+
 from omegaconf import DictConfig
+from platformdirs import user_log_path
+from typing_extensions import override
 
-from ..boot import reload_config_file
-
+from ..bootstrap import reload_config_file
 
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",
@@ -100,6 +101,8 @@ def setup_logging_from_dictconfig(
     notebook_maxBytes = log_config.handlers.notebook.maxBytes
     notebook_backupCount = log_config.handlers.notebook.backupCount
 
+    log_handlers = []
+
     # Create a queue for the QueueHandler
     log_queue = queue.Queue(10_000)
 
@@ -109,6 +112,7 @@ def setup_logging_from_dictconfig(
     stdout_handler.setFormatter(
         python_logging.Formatter(log_config.formatters.simple.format)
     )
+    log_handlers.append(stdout_handler)
 
     # stderr_handler = python_logging.StreamHandler()
     # stderr_handler.setLevel(log_config.handlers.stderr.level)
@@ -116,31 +120,35 @@ def setup_logging_from_dictconfig(
     #     python_logging.Formatter(log_config.formatters.simple.format)
     # )
 
-    file_handler = python_logging_handlers.RotatingFileHandler(
-        filename=file_filename,
-        maxBytes=file_maxBytes,
-        backupCount=file_backupCount,
-    )
-    file_handler.setLevel(log_config.handlers.file.level)
-    # Custom formatter needs to be implemented accordingly
-    file_handler.setFormatter(
-        REvoDesignLogFormatter(
-            fmt_keys=dict(log_config.formatters.json.fmt_keys)
+    if file_filename is not None:
+        file_handler = python_logging_handlers.RotatingFileHandler(
+            filename=file_filename,
+            maxBytes=file_maxBytes,
+            backupCount=file_backupCount,
         )
-    )
+        file_handler.setLevel(log_config.handlers.file.level)
+        # Custom formatter needs to be implemented accordingly
+        file_handler.setFormatter(
+            REvoDesignLogFormatter(
+                fmt_keys=dict(log_config.formatters.json.fmt_keys)
+            )
+        )
+        log_handlers.append(file_handler)
 
-    notebook_handler = python_logging_handlers.RotatingFileHandler(
-        filename=notebook_filename,
-        maxBytes=notebook_maxBytes,
-        backupCount=notebook_backupCount,
-    )
-    notebook_handler.setLevel(log_config.handlers.notebook.level)
-    # Custom formatter needs to be implemented accordingly
-    notebook_handler.setFormatter(
-        REvoDesignLogFormatter(
-            fmt_keys=dict(log_config.formatters.json.fmt_keys)
+    if notebook_filename is not None:
+        notebook_handler = python_logging_handlers.RotatingFileHandler(
+            filename=notebook_filename,
+            maxBytes=notebook_maxBytes,
+            backupCount=notebook_backupCount,
         )
-    )
+        notebook_handler.setLevel(log_config.handlers.notebook.level)
+        # Custom formatter needs to be implemented accordingly
+        notebook_handler.setFormatter(
+            REvoDesignLogFormatter(
+                fmt_keys=dict(log_config.formatters.json.fmt_keys)
+            )
+        )
+        log_handlers.append(notebook_handler)
 
     # Set up the QueueHandler
     queue_handler = python_logging_handlers.QueueHandler(log_queue)
@@ -149,10 +157,7 @@ def setup_logging_from_dictconfig(
     # Initialize the QueueListener with the handlers
     listener = python_logging_handlers.QueueListener(
         log_queue,
-        stdout_handler,
-        # stderr_handler,
-        file_handler,
-        notebook_handler,
+        *log_handlers,
         respect_handler_level=True,
     )
 
@@ -172,13 +177,35 @@ def setup_logging_from_dictconfig(
 
 def setup_logging() -> python_logging.Logger:
     cfg: DictConfig = reload_config_file()
-    logging_dir = os.path.dirname(
-        os.path.abspath(cfg.log.handlers.file.filename)
-    )
-    notebook_dir = os.path.dirname(
-        os.path.abspath(cfg.log.handlers.notebook.filename)
-    )
-    os.makedirs(logging_dir, exist_ok=True)
-    os.makedirs(notebook_dir, exist_ok=True)
+
+    logfile = cfg.log.handlers.file.filename
+    notebookfile = cfg.log.handlers.notebook.filename
+
+    if logfile == 'AUTO':
+        logfile = user_log_path('REvoDesign', ensure_exists=True)
+        cfg.log.handlers.file.filename = os.path.join(logfile, 'REvoDesign.runtime.log')
+
+    if notebookfile == 'AUTO':
+        notebookfile = user_log_path('REvoDesign', ensure_exists=True)
+        cfg.log.handlers.notebook.filename = os.path.join(notebookfile, 'REvoDesign.notebook.log')
+
+    if logfile is not None:
+        logging_dir = os.path.dirname(
+            os.path.abspath(logfile)
+        )
+        os.makedirs(logging_dir, exist_ok=True)
+
+    if notebookfile is not None:
+        notebook_dir = os.path.dirname(
+            os.path.abspath(notebookfile)
+        )
+
+        os.makedirs(notebook_dir, exist_ok=True)
     logger = setup_logging_from_dictconfig(log_config=cfg.log)
     return logger
+
+
+# 3. initialize logging config and root logger, depending on config
+root_logger = setup_logging()
+
+LoggerT = python_logging.Logger

@@ -1,14 +1,15 @@
-from abc import ABC
 import os
 import time
-from typing import List, Mapping, Union, Dict, Any
-
 import warnings
+from abc import ABC
+from typing import Any, Dict, List, Mapping, Union
 
-from REvoDesign import root_logger
+from RosettaPy.utils.escape import Colors, print_diff, render, zip_render
+
 from REvoDesign import issues
+from REvoDesign.logger import root_logger
 
-from REvoDesign import SingletonAbstract
+from ..basic import SingletonAbstract
 
 logging = root_logger.getChild(__name__)
 
@@ -111,9 +112,8 @@ class CitationManager(SingletonAbstract):
 
 
 class CitableModules(ABC):
-    @property
-    def __bibtex__(self) -> dict[str, Union[str, tuple]]:
-        return {}
+
+    __bibtex__: dict[str, Union[str, tuple]]
 
     def notice(self):
         if not self.__bibtex__:
@@ -128,25 +128,28 @@ class CitableModules(ABC):
         logging.info(
             f'{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n'
         )
-        for i, c in self.__bibtex__.items():
+        for i, citation_item in self.__bibtex__.items():
             # notify it just once then dismiss
             if i in CitationManager().silenced_citation_modules:
                 continue
-            if isinstance(c, str):
+            if isinstance(citation_item, str):
                 logging.info(
-                    f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{c}{RESET}\n"
+                    f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{citation_item}{RESET}\n"
                 )
-            elif isinstance(c, (tuple, list)):
-                for j, _c in enumerate:
+            elif isinstance(citation_item, (tuple, list)):
+                for j, _c in enumerate(citation_item):
                     logging.info(
                         f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n"
                     )
             CitationManager().dismiss(i)
 
     def cite(self):
+        '''
+        Add citation to the citation manager.
+        '''
 
         citations = self.__bibtex__
         if not isinstance(citations, Mapping):
-            raise TypeError(f'citation must be a dict.')
+            raise TypeError('citation must be a dict.')
         CitationManager().update(new_citations=dict(citations))
         self.notice()

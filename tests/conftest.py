@@ -1,41 +1,42 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
 import gc
 import os
 import time
-from typing import Union
 import warnings
+from dataclasses import dataclass
+from typing import Optional
+from unittest.mock import MagicMock
 
+import psutil
 import pytest
+from _pytest.nodes import Item
+from immutabledict import immutabledict
+from pymol import CmdException, cmd
+from pymol.Qt import QtCore, QtWidgets  # type: ignore
+from pytestqt import qtbot
 
+from REvoDesign import ConfigBus, REvoDesignPlugin
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.citations import CitationManager
-from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
-from REvoDesign.clients.QtSocketConnector import (
-    REvoDesignWebSocketClient,
-    REvoDesignWebSocketServer,
-)
-from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
-from REvoDesign.evaluate.Evaluator import Evalutator
-from REvoDesign.phylogenetics.EvoMutator import GREMLIN_Analyser
+from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
+                                                  REvoDesignWebSocketServer)
+from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign.tools.customized_widgets import (get_widget_value,
+                                                 set_widget_value)
+
+from .data import TestData
 
 os.environ['PYTEST_QT_API'] = 'pyqt5'
 
-from immutabledict import immutabledict
-import psutil
-from pytestqt import qtbot
 
-from pymol import cmd, CmdException
-from pymol.Qt import QtWidgets, QtCore, QtGui
-
-from REvoDesign import ConfigBus, REvoDesignPlugin, EXPERIMENTS_CONFIG_DIR
-
-from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
-    set_widget_value,
-)
-from REvoDesign.common.MutantTree import MutantTree
-
-from REvoDesign.tests import *
+def pytest_collection_modifyitems(items: list[Item]):
+    for item in items:
+        if "spark" in item.nodeid:
+            item.add_marker(pytest.mark.spark)
+        elif "_int_" in item.nodeid:
+            item.add_marker(pytest.mark.integration)
 
 
 class Counter:
@@ -46,6 +47,11 @@ class Counter:
     def i(self):
         self.count += 1
         return self.count
+
+
+@pytest.fixture
+def counter():
+    return Counter()
 
 
 @pytest.fixture(scope="function")
@@ -96,7 +102,7 @@ class TestWorker:
         )  # Add the plugin's main window to qtbot for automatic cleanup
 
         self.tab_widget_mapping: immutabledict[
-            str, QtWidgets.QWidget
+            str, QtWidgets.QWidget  # type: ignore
         ] = immutabledict(
             {
                 'prepare': self.plugin.ui.tab_prepare,
@@ -181,7 +187,7 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def _fetch_pdb(self, pdb_code: str, spell: str):
+    def _fetch_pdb(self, pdb_code: Optional[str] = None, spell: Optional[str] = None):
         if not pdb_code:
             pdb_code = self.test_data.molecule
         if not spell:
@@ -209,10 +215,10 @@ class TestWorker:
 
     def load_session_and_check(
         self,
-        pdb_code: str = None,
-        spell: str = None,
-        from_rcsb=False,
-        customized_session: str = None,
+        pdb_code: Optional[str] = None,
+        spell: Optional[str] = None,
+        from_rcsb: bool = False,
+        customized_session: Optional[str] = None,
     ):
         self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
@@ -242,7 +248,7 @@ class TestWorker:
         self.plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
 
-    def save_new_experiment(self, experiment_name: str = None):
+    def save_new_experiment(self, experiment_name: Optional[str] = None):
         import shutil
 
         if not experiment_name:
@@ -264,7 +270,7 @@ class TestWorker:
         shutil.copy(experiment_file, new_cfg_file)
         print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
 
-    def click(self, widget: QtWidgets.QWidget, times: int = 1):
+    def click(self, widget: QtWidgets.QWidget, times: int = 1):  # type: ignore
         if isinstance(widget, QtWidgets.QAction):
             for t in range(times):
                 widget.trigger()
@@ -280,7 +286,7 @@ class TestWorker:
         self.qtbot.wait(time)
 
     def do_typing(
-        self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False
+        self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False  # type: ignore
     ):
         set_widget_value(widget=widget, value='')
         # if text is short enough or in strict mode
@@ -297,7 +303,7 @@ class TestWorker:
         self.sleep(100)
 
     def _navigate_to_tab(
-        self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget
+        self, tab: QtWidgets.QWidget, page: QtWidgets.QWidget  # type: ignore
     ):
         tab.setCurrentWidget(page)
 
@@ -308,7 +314,7 @@ class TestWorker:
         )
         self.sleep(5)
 
-    def check_molecule_after_loaded(self, molecule: str = None):
+    def check_molecule_after_loaded(self, molecule: Optional[str] = None):
         if molecule and isinstance(molecule, str):
             assert (
                 self.plugin.bus.get_value('ui.header_panel.input.molecule')
@@ -406,7 +412,7 @@ class TestWorker:
 
     def save_screenshot(
         self,
-        widget: QtWidgets.QWidget,
+        widget: QtWidgets.QWidget,  # type: ignore
         basename: str = 'default',
     ):
         if self.is_in_ci_runner:
@@ -422,7 +428,7 @@ class TestWorker:
         basename: str = 'default',
         dpi: int = 300,
         use_ray: int = 0,
-        spells: str = None,
+        spells: Optional[str] = None,
         focus=True,
         focus_method='orient',
     ):
@@ -447,8 +453,8 @@ class TestWorker:
         cmd.png(png_file, dpi=dpi, ray=use_ray)
 
     def wait_for_file(
-        self, file: str, interval: str = 100, timeout: float = 61.0
-    ) -> Union[bool, None]:
+        self, file: str, interval: int = 100, timeout: float = 61.0
+    ) -> bool:
         started_moment = time.perf_counter()
         while True:
             self.qtbot.wait(interval)
@@ -493,8 +499,8 @@ class TestWorker:
         gc.collect()
 
 
-@pytest.fixture(scope="function")
-def WORKER(
+@pytest.fixture
+def test_worker(
     qtbot: qtbot.QtBot,
     plugin,
     request,
@@ -506,3 +512,230 @@ def WORKER(
 
     yield w
     request.addfinalizer(final_action)
+
+
+# mocks on qt widgets
+
+@pytest.fixture
+def mock_push_button():
+    def _mock_push_button(text=''):
+        mock_button = MagicMock(spec=QtWidgets.QPushButton)
+        mock_button.text.return_value = text
+        mock_button.setText = MagicMock()
+        mock_button.clicked = MagicMock()
+        return mock_button
+    return _mock_push_button
+
+
+@pytest.fixture
+def mock_line_edit():
+    def _mock_line_edit(initial_text=''):
+        mock_line_edit = MagicMock(spec=QtWidgets.QLineEdit)
+        # Internal state
+        _text = initial_text
+
+        def _setText(value):
+            nonlocal _text
+            _text = str(value)
+
+        def _text_method():
+            return _text
+
+        def _clear():
+            nonlocal _text
+            _text = ''
+
+        mock_line_edit.setText.side_effect = _setText
+        mock_line_edit.text.side_effect = _text_method
+        mock_line_edit.clear.side_effect = _clear
+
+        return mock_line_edit
+    return _mock_line_edit
+
+
+@pytest.fixture
+def mock_combo_box():
+    def _mock_combo_box(items=None, current_index=0):
+        if items is None:
+            items = []
+        mock_combo = MagicMock(spec=QtWidgets.QComboBox)
+        # Internal state
+        _items = items.copy()
+        _current_index = current_index
+
+        def _clear():
+            nonlocal _items, _current_index
+            _items.clear()
+            _current_index = -1
+
+        def _addItems(new_items):
+            nonlocal _items
+            _items.extend(map(str, new_items))
+
+        def _addItem(item_text, user_data=None):
+            nonlocal _items
+            _items.append(str(item_text))
+
+        def _setCurrentText(text):
+            nonlocal _current_index
+            text = str(text)
+            if text in _items:
+                _current_index = _items.index(text)
+            else:
+                _current_index = -1
+
+        def _currentText():
+            if 0 <= _current_index < len(_items):
+                return _items[_current_index]
+            return ''
+
+        mock_combo.clear.side_effect = _clear
+        mock_combo.addItems.side_effect = _addItems
+        mock_combo.addItem.side_effect = _addItem
+        mock_combo.setCurrentText.side_effect = _setCurrentText
+        mock_combo.currentText.side_effect = _currentText
+
+        # Mock properties
+        mock_combo.count.side_effect = lambda: len(_items)
+        mock_combo.currentIndex.side_effect = lambda: _current_index
+
+        return mock_combo
+    return _mock_combo_box
+
+
+@pytest.fixture
+def mock_spin_box():
+    def _mock_spin_box(initial_value=0):
+        mock_spin = MagicMock(spec=QtWidgets.QSpinBox)
+        # Internal state
+        _value = initial_value
+        _min = 0
+        _max = 100
+
+        def _setValue(value):
+            nonlocal _value
+            if _min <= int(value) <= _max:
+                _value = int(value)
+            else:
+                raise ValueError('Value out of range')
+
+        def _value_method():
+            return _value
+
+        def _setRange(min_value, max_value):
+            nonlocal _min, _max
+            _min = int(min_value)
+            _max = int(max_value)
+
+        mock_spin.setValue.side_effect = _setValue
+        mock_spin.value.side_effect = _value_method
+        mock_spin.setRange.side_effect = _setRange
+
+        return mock_spin
+    return _mock_spin_box
+
+
+@pytest.fixture
+def mock_double_spin_box():
+    def _mock_double_spin_box(initial_value=0.0):
+        mock_double_spin = MagicMock(spec=QtWidgets.QDoubleSpinBox)
+        # Internal state
+        _value = initial_value
+        _min = 0.0
+        _max = 100.0
+
+        def _setValue(value):
+            nonlocal _value
+            if _min <= float(value) <= _max:
+                _value = float(value)
+            else:
+                raise ValueError('Value out of range')
+
+        def _value_method():
+            return _value
+
+        def _setRange(min_value, max_value):
+            nonlocal _min, _max
+            _min = float(min_value)
+            _max = float(max_value)
+
+        mock_double_spin.setValue.side_effect = _setValue
+        mock_double_spin.value.side_effect = _value_method
+        mock_double_spin.setRange.side_effect = _setRange
+
+        return mock_double_spin
+    return _mock_double_spin_box
+
+
+@pytest.fixture
+def mock_check_box():
+    def _mock_check_box(initial_checked=False):
+        mock_check = MagicMock(spec=QtWidgets.QCheckBox)
+        # Internal state
+        _checked = initial_checked
+
+        def _setChecked(value):
+            nonlocal _checked
+            _checked = bool(value)
+
+        def _isChecked():
+            return _checked
+
+        mock_check.setChecked.side_effect = _setChecked
+        mock_check.isChecked.side_effect = _isChecked
+
+        return mock_check
+    return _mock_check_box
+
+
+@pytest.fixture
+def mock_progress_bar():
+    def _mock_progress_bar(initial_value=0):
+        mock_progress = MagicMock(spec=QtWidgets.QProgressBar)
+        # Internal state
+        _value = initial_value
+        _min = 0
+        _max = 100
+
+        def _setValue(value):
+            nonlocal _value
+            if _min <= int(value) <= _max:
+                _value = int(value)
+            else:
+                raise ValueError('Value out of range')
+
+        def _value_method():
+            return _value
+
+        def _setRange(min_value, max_value):
+            nonlocal _min, _max
+            _min = int(min_value)
+            _max = int(max_value)
+
+        mock_progress.setValue.side_effect = _setValue
+        mock_progress.value.side_effect = _value_method
+        mock_progress.setRange.side_effect = _setRange
+
+        return mock_progress
+    return _mock_progress_bar
+
+
+@pytest.fixture
+def mock_lcd_number():
+    def _mock_lcd_number(initial_value=0):
+        mock_lcd = MagicMock(spec=QtWidgets.QLCDNumber)
+        # Internal state
+        _value = initial_value
+
+        def _display(value):
+            nonlocal _value
+            _value = float(value)
+
+        def _value_method():
+            return _value
+
+        mock_lcd.display.side_effect = _display
+        mock_lcd.value.side_effect = _value_method  # Assuming value() returns the displayed value
+
+        return mock_lcd
+    return _mock_lcd_number

@@ -147,14 +147,6 @@ ui:
       model: ''
       repack_radius: 0.0
 
-      pippack:
-        model_names: 
-          group:
-            - pippack_model_1
-            - pippack_model_2
-            - pippack_model_3
-            - ensemble
-          default: ensemble
 
 profile:
   group:
@@ -200,14 +192,14 @@ log:
       class: logging.handlers.RotatingFileHandler
       level: DEBUG
       formatter: json
-      filename: logs/revodesign.log.jsonl
+      filename: AUTO
       maxBytes: 1000_000
       backupCount: 10
     notebook:
       class: logging.handlers.RotatingFileHandler
       level: WARNING
       formatter: json
-      filename: logs/revodesign.notebook.jsonl
+      filename: AUTO
       maxBytes: 1000_000
       backupCount: 30
 

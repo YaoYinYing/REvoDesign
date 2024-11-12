@@ -1,7 +1,8 @@
-from dataclasses import dataclass
 import platform
-
 import warnings
+from dataclasses import dataclass
+
+import REvoDesign
 from REvoDesign import issues
 
 
@@ -56,9 +57,9 @@ class CLIENT_INFO:
     def __post_init__(self):
         import os
         import socket
-        from REvoDesign import VERSION
-        from .pymol_utils import PYMOL_VERSION, PYMOL_BUILD
+
         from .customized_widgets import PYQT_VERSION_STR
+        from .pymol_utils import PYMOL_BUILD, PYMOL_VERSION
 
         self.node: str = self.OS_INFO.node
         try:
@@ -74,7 +75,7 @@ class CLIENT_INFO:
         self.os: str = self.OS_INFO.system
         self.os_build: str = self.OS_INFO.version
         self.machine_arch: str = self.OS_INFO.machine
-        self.revodesign_version: str = VERSION
+        self.revodesign_version: str = REvoDesign.__version__
         self.pymol_version = PYMOL_VERSION
         self.pymol_build = PYMOL_BUILD
         self.python_version: str = platform.python_version()

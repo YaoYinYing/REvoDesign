@@ -7,7 +7,7 @@ on:
         description: 'Test image tags'
         required: true
         type: string
-        default: '2024-04-29'
+        default: 'latest'
       useSelfHostedRunnerOnly:
         description: 'Use self-hosted runners only'
         required: false
@@ -54,7 +54,7 @@ jobs:
       lint-svg-path: ${{ steps.pylint-scanning.outputs.expected_badge_file}}
 
     container: 
-      image: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}-${{ inputs.imageTag || '2024-04-29' }}
+      image: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}-${{ inputs.imageTag || 'latest' }}
 
     env:
       OS: ${{ matrix.os }}

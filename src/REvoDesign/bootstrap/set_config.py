@@ -1,12 +1,12 @@
-import importlib
-import os
-from dataclasses import dataclass
-from typing import Any, Optional, Union
 import glob
+import importlib.util
+import os
 import shutil
+from typing import Any, Optional
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from platformdirs import user_cache_dir, user_data_dir
 
 
 def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
@@ -16,12 +16,12 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
         'config',
     )
 
-    default_storage_path = os.path.expanduser('~/.REvoDesign/')
+    default_storage_path = user_data_dir(appname='REvoDesign')
     config_dir = os.path.join(default_storage_path, 'config')
 
     if delete_user_config_tree and os.path.exists(config_dir):
         print(
-            f'WARNING: The configuration directory will be deleted as required'
+            'WARNING: The configuration directory will be deleted as required'
         )
         shutil.rmtree(config_dir)
 
@@ -50,7 +50,7 @@ def reload_config_file(config_name: str = 'global_config') -> DictConfig:
 def save_configuration(
     new_cfg: DictConfig, config_name: Optional[str] = 'global_config'
 ):
-    from REvoDesign import REVODESIGN_CONFIG_FILE
+    from . import REVODESIGN_CONFIG_FILE
 
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
     cfg_save_fp = os.path.join(cfg_save_dir, f'{config_name}.yaml')
@@ -60,7 +60,7 @@ def save_configuration(
 
 
 def experiment_config():
-    from REvoDesign import REVODESIGN_CONFIG_FILE
+    from . import REVODESIGN_CONFIG_FILE
 
     experiments_dir = os.path.join(
         os.path.dirname(REVODESIGN_CONFIG_FILE), 'experiments'
@@ -70,7 +70,7 @@ def experiment_config():
 
 
 def set_cache_dir() -> str:
-    from REvoDesign import ConfigBus
+    from REvoDesign.driver.ui_driver import ConfigBus
 
     bus: ConfigBus = ConfigBus()
     cfg: DictConfig = bus.cfg
@@ -78,7 +78,7 @@ def set_cache_dir() -> str:
         raise ValueError('You must specify a custom cache directory!')
 
     if cfg.cache_dir.under_home_dir:
-        cache_dir = os.path.expanduser('~/.REvoDesign/')
+        cache_dir = user_cache_dir(appname='REvoDesign')
     else:
         cache_dir = os.path.expanduser(cfg.cache_dir.customized)
     return cache_dir
@@ -101,12 +101,11 @@ class ConfigConverter:
         :param config: The DictConfig object to convert.
         :return: A standard Python dictionary representation of the input DictConfig.
         """
-        if not isinstance(config, DictConfig):
-            raise ValueError(
-                "Input must be an instance of omegaconf.DictConfig"
-            )
-
-        return ConfigConverter._recursive_convert(config)
+        if isinstance(config, DictConfig):
+            return ConfigConverter._recursive_convert(config)
+        raise ValueError(
+            "Input must be an instance of omegaconf.DictConfig"
+        )
 
     @staticmethod
     def _recursive_convert(config: Any) -> Any:
@@ -145,10 +144,3 @@ def is_package_installed(package):
     """
     package_loader = importlib.util.find_spec(package)
     return package_loader is not None
-
-
-@dataclass(frozen=True)
-class WITH_DEPENDENCIES:
-    COLABDESIGN = is_package_installed('colabdesign')
-    DLPACKER = is_package_installed('DLPacker')
-    PIPPACK = is_package_installed('pippack')

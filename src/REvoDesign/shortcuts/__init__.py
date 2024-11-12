@@ -1,11 +1,15 @@
+import itertools
 import os
 import warnings
-from pymol import cmd, util
-import itertools
-from REvoDesign import root_logger, issues
-from REvoDesign.common.ProfileParsers import PSSM_Parser
-from immutabledict import immutabledict
 
+from Bio.Align import substitution_matrices
+from Bio.Align.substitution_matrices import Array
+from Bio.Data import IUPACData
+from immutabledict import immutabledict
+from pymol import cmd, util
+
+from REvoDesign import issues, root_logger
+from REvoDesign.common.ProfileParsers import PSSM_Parser
 from REvoDesign.data.protein_code import rAA
 
 logging = root_logger.getChild(__name__)
@@ -147,7 +151,8 @@ def color_by_plddt(selection="all", align_target=0, chain_to_align='A'):
         chain_list = cmd.get_chains(selection=target)
         if chain_to_align not in chain_list:
             print(
-                f'You set chain_to_align as {chain_to_align}, while this chain is not available in object {target} chains: {chain_list}.'
+                f'You set chain_to_align as {chain_to_align}, while this chain is not available '
+                f'in object {target} chains: {chain_list}.'
             )
             print(f'Trying to set target chain as {chain_list[0]}')
             chain_to_align = chain_list[0]
@@ -197,7 +202,7 @@ def find_interface(
                     find_interface protein_ranked_*, 4
 
     '''
-    print(f'Searching interface ...')
+    print('Searching interface ...')
     for x in cmd.get_names(selection=f"({selection})"):
         chains_in_this_obj = cmd.get_chains(x)
         if len(chains_in_this_obj) <= 1:
@@ -211,14 +216,12 @@ def find_interface(
                 f"({x} and chain {ch[1]} and byres /{x}//{ch[0]} around {interact_dist} ) or ({x} and chain {ch[0]} and byres /{x}//{ch[1]} around {interact_dist} )",
             )
             ifc_residues = list(
-                set(
-                    [
-                        f"{atom.chain}_{atom.resi}{rAA[atom.resn] if len(atom.resn) >1 and atom.resn in rAA.keys() else atom.resn}"
-                        for atom in cmd.get_model(
-                            f"{x}_interface_{ch_combination}_{interact_dist}"
-                        ).atom
-                    ]
-                )
+                {
+                    f"{atom.chain}_{atom.resi}{rAA[atom.resn] if len(atom.resn) >1 and atom.resn in rAA.keys() else atom.resn}"
+                    for atom in cmd.get_model(
+                        f"{x}_interface_{ch_combination}_{interact_dist}"
+                    ).atom
+                }
             )
             if len(ifc_residues) == 0:
                 print(
@@ -247,9 +250,6 @@ to visualize their differences.
 
 '''
 
-from pymol import cmd
-from Bio.Data import IUPACData
-from Bio.Align import substitution_matrices
 
 # Yinying replaced the original blosum90 matrix with biopython code.
 blosum90 = substitution_matrices.load('BLOSUM90')
@@ -286,7 +286,6 @@ def getBlosum90ColorName(aa1, aa2):
     b = 1.0 - (b / 10.0)
 
     # red = [1.0, 0.0, 0.0], blue = [0.0, 0.0, 1.0]
-    colvec = [(0.0, 0.0, 1.0), (1.0, 0.0, 0.0)]
     bcolor = (1.0 - b, 0.0, b)
     col_name = '0x%02x%02x%02x' % tuple(int(b * 0xFF) for b in bcolor)
     return col_name
@@ -328,7 +327,7 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
 
                     super
     '''
-    from pymol import stored, CmdException
+    from pymol import CmdException, stored
 
     if cmd.count_atoms(obj1) == 0:
         print('%s is empty' % obj1)
@@ -400,7 +399,7 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
             # get the similarity (according to the blosum matrix) of the two residues and
             c = getBlosum90ColorName(n1, n2)
             colors.append(
-                (c, '%s and resi %s and chain %s and elem C' % (obj2, i2, c2))
+                (c, f'{obj2} and resi {i2} and chain {c2} and elem C')
             )
 
     if mutant_selection == '':
@@ -411,19 +410,19 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.select('non_mutations', non_mutant_selection[:-4])
     cmd.select(
         'not_aligned',
-        '(%s or %s) and not mutations and not non_mutations' % (obj1, obj2),
+        f'({obj1} or {obj2}) and not mutations and not non_mutations',
     )
 
     # create the view and coloring
-    cmd.hide('everything', '%s or %s' % (obj1, obj2))
-    cmd.show('cartoon', '%s or %s' % (obj1, obj2))
+    cmd.hide('everything', f'{obj1} or {obj2}')
+    cmd.show('cartoon', f'{obj1} or {obj2}')
     cmd.show(
         'lines',
         '(%s or %s) and ((non_mutations or not_aligned) and not name c+o+n)'
         % (obj1, obj2),
     )
     cmd.show(
-        'sticks', '(%s or %s) and mutations and not name c+o+n' % (obj1, obj2)
+        'sticks', f'({obj1} or {obj2}) and mutations and not name c+o+n'
     )
     cmd.color('gray', 'elem C and not_aligned')
     cmd.color('white', 'elem C and non_mutations')
@@ -431,13 +430,13 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
     for col, sel in colors:
         cmd.color(col, sel)
 
-    cmd.hide('everything', '(hydro) and (%s or %s)' % (obj1, obj2))
-    cmd.center('%s or %s' % (obj1, obj2))
+    cmd.hide('everything', f'(hydro) and ({obj1} or {obj2})')
+    cmd.center(f'{obj1} or {obj2}')
     if labels:
         cmd.label('mutations and name CA', '"(%s-%s-%s)"%(chain, resi, resn)')
     if waters:
         cmd.set('sphere_scale', '0.1')
-        cmd.show('spheres', 'resn HOH and (%s or %s)' % (obj1, obj2))
+        cmd.show('spheres', f'resn HOH and ({obj1} or {obj2})')
         cmd.color('red', 'resn HOH and %s' % obj1)
         cmd.color('salmon', 'resn HOH and %s' % obj2)
     print(
@@ -460,7 +459,7 @@ cmd.extend("color_by_mutation", color_by_mutation)
 
 def dump_sidechains(
     sele: str,
-    enabled_only: bool=False,
+    enabled_only: bool = False,
     save_dir: str = 'png/sidechain_dump/',
     height: int = 1280,
     width: int = 1280,
@@ -480,7 +479,6 @@ def dump_sidechains(
     Returns:
       None
     '''
-    
 
     all_models = cmd.get_names('objects', int(enabled_only), sele)
     os.makedirs(save_dir, exist_ok=True)
@@ -499,4 +497,3 @@ def dump_sidechains(
 
 
 cmd.extend("dump_sidechains", dump_sidechains)
-

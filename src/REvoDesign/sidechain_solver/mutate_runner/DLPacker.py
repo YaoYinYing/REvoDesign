@@ -1,12 +1,13 @@
 import gc
 import os
+from typing import List
 
 from joblib import Parallel, delayed
 
+from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign import root_logger
-
-from . import MutateRunnerAbstract
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -33,6 +34,8 @@ class DLPacker_worker(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
+    name: str = 'DLPacker'
+    installed: bool = is_package_installed('DLPacker')
 
     def __init__(self, pdb_file: str, radius: float = 0.0, **kwargs):
         """
@@ -43,7 +46,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         """
         super().__init__(pdb_file)
 
-        from REvoDesign.boot import set_cache_dir
+        from REvoDesign.bootstrap import set_cache_dir
 
         cache_dir = set_cache_dir()
 
@@ -85,14 +88,13 @@ class DLPacker_worker(MutateRunnerAbstract):
 
     def run_mutate(
         self,
-        mutant_obj: Mutant,
-        **kwargs,
+        mutant: Mutant,
     ):
         """
         Run mutation on the protein using DLPacker.
 
         Args:
-        - mutant_obj: Object containing mutation information
+        - mutant: Object containing mutation information
         - reconstruct_area_radius: Radius for reconstructing mutated area (default: -1)
         - relax_order: Order for relaxation (default: 'sequence')
 
@@ -104,27 +106,23 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
 
-        logging.debug(f'Mutating {mutant_obj=}')
-        new_obj_name = mutant_obj.short_mutant_id
+        logging.debug(f'Mutating {mutant=}')
+        new_obj_name = mutant.short_mutant_id
 
         temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
-        for mut_info in mutant_obj.mutant_info:
-            chain_id = mut_info['chain_id']
-            position = mut_info['position']
-            new_residue = mut_info['mut_res']
-            wt_residue = mut_info['wt_res']
+        for mut_info in mutant.mutations:
 
-            new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
-            wt_residue_3 = IUPACData.protein_letters_1to3[wt_residue].upper()
+            new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
+            wt_residue_3 = IUPACData.protein_letters_1to3[mut_info.wt_res].upper()
 
             dlpacker_worker.mutate_sequence(
-                target=(position, chain_id, wt_residue_3),
+                target=(mut_info.position, mut_info.chain_id, wt_residue_3),
                 new_label=new_residue_3,
             )
 
         reconstruct_area = self._get_reconstruct_area(
-            mutant_obj=mutant_obj,
+            mutant_obj=mutant,
             reconstruct_area_radius=self.reconstruct_area_radius,
         )
         logging.debug(
@@ -141,7 +139,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         return temp_pdb_path
 
     def _get_reconstruct_area(
-        self, mutant_obj: Mutant, reconstruct_area_radius: int = -1
+        self, mutant_obj: Mutant, reconstruct_area_radius: float = -1
     ):
         """
         Get the area for reconstruction based on mutation information.
@@ -154,25 +152,22 @@ class DLPacker_worker(MutateRunnerAbstract):
         - List of targets for reconstruction
         """
         from Bio.Data import IUPACData
-
         from DLPacker.dlpacker import DLPacker
 
         dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
 
         reconstruct_area = []
-        for mut_info in mutant_obj.mutant_info:
-            chain_id = mut_info['chain_id']
-            position = mut_info['position']
-            new_residue = mut_info['mut_res']
-            new_residue_3 = IUPACData.protein_letters_1to3[new_residue].upper()
+        for mut_info in mutant_obj.mutations:
+
+            new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
             if reconstruct_area_radius <= 0:
                 logging.debug(
-                    f'Adding {(position, chain_id, new_residue_3)} for relax...'
+                    f'Adding {(mut_info.position, mut_info.chain_id, new_residue_3)} for reconstruction ...'
                 )
-                reconstruct_area.append((position, chain_id, new_residue_3))
+                reconstruct_area.append((mut_info.position, mut_info.chain_id, new_residue_3))
             else:
                 _ = dlpacker_worker.get_targets(
-                    target=(position, chain_id, new_residue_3),
+                    target=(mut_info.position, mut_info.chain_id, new_residue_3),
                     radius=reconstruct_area_radius,
                 )
                 print(f'Adding {_} for relax...')
@@ -185,38 +180,35 @@ class DLPacker_worker(MutateRunnerAbstract):
         return reconstruct_area
 
     def run_mutate_parallel(
-        self, mutants: list[Mutant], n_jobs: int = 2, **kwargs
-    ):
+        self, mutants: List[Mutant], nproc: int = 2,
+    ) -> List[str]:
         """
         Perform mutation on the protein in parallel.
 
         Args:
         - mutants: List of Mutant objects containing mutation information
-        - n_jobs: Number of parallel jobs to run (default: -1, which means using all available cores)
-        - **kwargs: Additional keyword arguments to pass to the run_mutate method
+        - nproc: Number of parallel jobs to run (default: -1, which means using all available cores)
 
         Returns:
         - List of paths to the mutated PDB files
         """
 
-        if n_jobs is None:
-            n_jobs = os.cpu_count()
+        if nproc is None:
+            nproc = os.cpu_count()
 
-        if n_jobs > (num_task := len(mutants)):
-            logging.warning(f"Fixed {n_jobs=} to {num_task=}")
-            n_jobs = num_task
+        if nproc > (num_task := len(mutants)):
+            logging.warning(f"Fixed {nproc=} to {num_task=}")
+            nproc = num_task
 
-        results = Parallel(n_jobs=n_jobs)(
+        results = Parallel(n_jobs=nproc, return_as='list')(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
 
         gc.collect()
-        return results
+        return list(results)  # type: ignore
 
-    @property
-    def __bibtex__(self):
-        return {
-            'DLPacker': """@article{https://doi.org/10.1002/prot.26311,
+    __bibtex__ = {
+        'DLPacker': r"""@article{https://doi.org/10.1002/prot.26311,
 author = {Misiura, Mikita and Shroff, Raghav and Thyer, Ross and Kolomeisky, Anatoly B.},
 title = {DLPacker: Deep learning for prediction of amino acid side chain conformations in proteins},
 journal = {Proteins: Structure, Function, and Bioinformatics},
@@ -232,4 +224,4 @@ year = {2022}
 }
 
 """
-        }
+    }

@@ -1,29 +1,19 @@
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
-from functools import partial
 import warnings
+from dataclasses import dataclass
+from functools import partial
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
 
+from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModules
-from REvoDesign.tools.customized_widgets import (
-    create_cmap_icon,
-    get_widget_value,
-    set_widget_value,
-)
-
-from REvoDesign import root_logger
-
+from REvoDesign.logger import root_logger
+from REvoDesign.tools.customized_widgets import (create_cmap_icon,
+                                                 get_widget_value,
+                                                 set_widget_value)
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
-
-
-from REvoDesign import issues
-
-
-from ..boot import reload_config_file
-from ..basic import SingletonAbstract
 
 logging = root_logger.getChild(__name__)
 
@@ -100,15 +90,16 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
                 if isinstance(values, list):
                     group_values.extend(values)
-                elif isinstance(values, dict) and not group_values:
-                    group_values = values.copy()
-                elif isinstance(values, dict) and group_values:
-                    if not isinstance(group_values, dict):
-                        raise TypeError(
-                            f'{group_cfg} returns a dict while group_values is'
-                            f' a {type(group_cfg)=}, not a dict.'
-                        )
-                    group_values.update(values)
+                elif isinstance(values, dict):
+                    if not group_values:
+                        group_values = values.copy()
+                    else:
+                        if not isinstance(group_values, dict):
+                            raise TypeError(
+                                f'{group_cfg} returns a dict while group_values is'
+                                f' a {type(group_cfg)=}, not a dict.'
+                            )
+                        group_values.update(values)
 
             if not group_values:
                 continue
@@ -158,12 +149,12 @@ class ConfigBus(SingletonAbstract, CitableModules):
                     f'{widget} {type(widget)} is not supported yet'
                 )
 
-    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
+    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its ID.
 
         return self.w2c.widget_id2widget_map.get(widget_id)
 
-    def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:
+    def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its corresponding configuration item.
         return self.w2c.config2widget_map.get(cfg_item)
 
@@ -217,7 +208,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
     def get_cfg_item(self, widget_id: str) -> str:
         # Retrieves the configuration item corresponding to a UI widget ID.
-        return self.w2c.widget_id2config_dict.get(widget_id)
+        return self.w2c.widget_id2config_dict.get(widget_id)  # type: ignore
 
     def get_value(
         self,
@@ -225,7 +216,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         converter: Union[Callable, Any] = None,
         reject_none: bool = False,
         default_value: Any = None,
-    ) -> Union[Any, list[Any], dict]:
+    ):
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
 
@@ -334,17 +325,15 @@ class ConfigBus(SingletonAbstract, CitableModules):
             self.w2c.push_buttons.get(button_id) for button_id in button_ids
         )
 
-    @property
-    def __bibtex__(self):
-        return {
-            'hydra': """@Misc{Yadan2019Hydra,
-  author =       {Omry Yadan},
-  title =        {Hydra - A framework for elegantly configuring complex applications},
-  howpublished = {Github},
-  year =         {2019},
-  url =          {https://github.com/facebookresearch/hydra}
+    __bibtex__ = {
+        'hydra': """@Misc{Yadan2019Hydra,
+author =       {Omry Yadan},
+title =        {Hydra - A framework for elegantly configuring complex applications},
+howpublished = {Github},
+year =         {2019},
+url =          {https://github.com/facebookresearch/hydra}
 }"""
-        }
+    }
 
 
 @dataclass(frozen=True)
@@ -356,7 +345,7 @@ class PushButtons:
         button_ids (list[str]): A list of button IDs.
     """
 
-    button_ids: tuple[str] = (
+    button_ids: Tuple = (
         'submit_pssm_gremlin_job',
         'cancel_pssm_gremlin_job',
         'download_pssm_gremlin_job',
@@ -650,9 +639,7 @@ class Widget2ConfigMapper:
                     return getattr(layout, attr)
 
         raise issues.UnknownWidgetError(
-            (
-                f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
-            )
+            f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
         )
 
     def get_button_from_id(self, button_id, prefix='pushButton'):
@@ -680,33 +667,12 @@ class Widget2ConfigMapper:
         widget_id = self.config_widget_id_map.get(config_item)
         return widget_id
 
-    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:
+    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:  # type: ignore
         widget = self.find_child(
             self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
         )
         assert isinstance(widget, QtWidgets.QWidget)
         return widget
-
-
-@dataclass(frozen=True)
-class Widget2Widget:
-    """
-    This class defines mappings between different UI widgets for interaction purposes.
-
-    Attributes:
-        sidechain_solver2model (dict): A mapping of sidechain solver options to their corresponding model options.
-    """
-
-    sidechain_solver2model: immutabledict = immutabledict(
-        {
-            'PIPPack': [
-                'ui.config.sidechain_solver.pippack.model_names.group',
-                'ui.config.sidechain_solver.pippack.model_names.default',
-            ],
-            'DLPacker': [''],
-            'Dunbrack Rotamer Library': [''],
-        }
-    )
 
 
 class CallableGroupValues:
@@ -720,13 +686,14 @@ class CallableGroupValues:
 
     @staticmethod
     def score_matrix() -> list:
-        from Bio.Align import substitution_matrices
         import os
+
+        from Bio.Align import substitution_matrices
 
         score_matrix = [
             mtx
             for mtx in os.listdir(
-                os.path.join(substitution_matrices.__path__[0], 'data')
+                os.path.join(substitution_matrices.__path__[0], 'data')  # type: ignore
             )
         ]
         return score_matrix
@@ -735,7 +702,7 @@ class CallableGroupValues:
     def color_map() -> dict:
         # color map
         import matplotlib
-        from pymol.Qt import QtGui
+        from pymol.Qt import QtGui  # type: ignore
 
         cmap_group = {
             _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))

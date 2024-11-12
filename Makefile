@@ -2,7 +2,7 @@
 PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0
-PYTEST_CASES_PATH=../REvoDesign/tests/cases/
+PYTEST_CASES_PATH=../tests/cases
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
 BLACK_STYLE=-l 79 -t py39 -t py310 -t py311
@@ -138,7 +138,7 @@ macos-rosetta-test:
 pymol-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); if command -v pymol;then pymol ../tests/PyMOLTests.pml; else PyMOL.exe ../tests/PyMOLTests.pml;fi 
+	cd $(TESTDIR); if command -v pymol;then pymol ../tests/pymol/PyMOLTests.pml; else PyMOL.exe ../tests/pymol/PyMOLTests.pml;fi 
 	
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version

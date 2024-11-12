@@ -1,13 +1,14 @@
-from __future__ import print_function
 import os
 
 from pymol import cmd
-from REvoDesign import ConfigBus, root_logger
+
+from REvoDesign import ConfigBus
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
 '''
-This is a slightly modified version of the code on: 
+This is a slightly modified version of the code on:
 http://pymolwiki.org/index.php/FindSurfaceResidues
 '''
 
@@ -198,12 +199,10 @@ class SurfaceFinder:
 
         # Save residue IDs to a text file
         surface_residue_ids = list(
-            set(
-                [
-                    int(atom.resi)
-                    for atom in cmd.get_model(er_ca_selection).atom
-                ]
-            )
+            {
+                int(atom.resi)
+                for atom in cmd.get_model(er_ca_selection).atom
+            }
         )
         surface_residue_ids.sort()
         residue_filename = os.path.join(

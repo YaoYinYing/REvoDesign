@@ -1,30 +1,31 @@
 #!/usr/bin/env python
-# coding: utf-8
 
-# # GREMLIN_TF 
-# 
+# # GREMLIN_TF
+#
 # GREMLIN implemented in tensorflow based on paper by Hetu Kamisetty and Sergey Ochinnikov.
 # Need a multiple sequence alignment for it to compute couplings.
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pylab as plt
+import os
+import pathlib
+import pickle
 import sys
+
+import matplotlib
+import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 from tensorflow.python.framework import ops
-import os
-import pathlib
-import pickle
 
-MSA_pth =pathlib.Path(sys.argv[1]).resolve()
+matplotlib.use('Agg')
+
+
+MSA_pth = pathlib.Path(sys.argv[1]).resolve()
 pth = pathlib.Path(sys.argv[2]).resolve()
-instance=MSA_pth.stem
-gremlin_iter=int(sys.argv[3])
-
+instance = MSA_pth.stem
+gremlin_iter = int(sys.argv[3])
 
 
 # for HPC multi-processors in single node
@@ -34,9 +35,9 @@ cpu_num = int(os.environ.get('GREMLIN_CALC_CPU_NUM', 1))
 
 config = tf.ConfigProto(
     device_count={"CPU": cpu_num},
-    inter_op_parallelism_threads = cpu_num,
-    intra_op_parallelism_threads = cpu_num,
-    #log_device_placement=True,
+    inter_op_parallelism_threads=cpu_num,
+    intra_op_parallelism_threads=cpu_num,
+    # log_device_placement=True,
     allow_soft_placement=True)
 
 
@@ -74,7 +75,7 @@ def parse_fasta(filename, limit=-1):
     '''function to parse fasta'''
     header = []
     sequence = []
-    lines = open(filename, "r")
+    lines = open(filename)
     for line in lines:
         line = line.rstrip()
         if line[0] == ">":
@@ -99,7 +100,7 @@ def filt_gaps(msa, gap_cutoff=0.5):
 
 def get_eff(msa, eff_cutoff=0.8):
     '''compute effective weight for each sequence'''
-    ncol = msa.shape[1]
+    msa.shape[1]
 
     # pairwise identity
     msa_sm = 1.0 - squareform(pdist(msa, "hamming"))
@@ -159,9 +160,11 @@ def opt_adam(loss, name, var_list=None, lr=1.0, b1=0.9, b2=0.999, b_fix=False):
     # with sum(g*g) instead of (g*g). Furthmore, we find that disabling the bias correction
     # (b_fix=False) speeds up convergence for our case.
 
-    if var_list is None: var_list = tf.trainable_variables()
+    if var_list is None:
+        var_list = tf.trainable_variables()
     gradients = tf.gradients(loss, var_list)
-    if b_fix: t = tf.Variable(1.0, "t")
+    if b_fix:
+        t = tf.Variable(1.0, "t")
     opt = []
     for n, (x, g) in enumerate(zip(var_list, gradients)):
         if g is not None:
@@ -173,13 +176,15 @@ def opt_adam(loss, name, var_list=None, lr=1.0, b1=0.9, b2=0.999, b_fix=False):
             vt_tmp = b2 * vt + (1 - b2) * tf.reduce_sum(tf.square(g))
             lr_tmp = lr / tf.sqrt(vt_tmp)
 
-            if b_fix: lr_tmp = lr_tmp * tf.sqrt(1 - tf.pow(b2, t)) / (1 - tf.pow(b1, t))
+            if b_fix:
+                lr_tmp = lr_tmp * tf.sqrt(1 - tf.pow(b2, t)) / (1 - tf.pow(b1, t))
 
             opt.append(x.assign_add(-lr_tmp * mt_tmp))
             opt.append(vt.assign(vt_tmp))
             opt.append(mt.assign(mt_tmp))
 
-    if b_fix: t.assign_add(1.0)
+    if b_fix:
+        t.assign_add(1.0)
     return (tf.group(opt))
 
 
@@ -268,7 +273,8 @@ def GREMLIN(msa, opt_type="adam", opt_iter=100, opt_rate=1.0, batch_size=None):
         sess.run(V.assign(V_ini))
 
         # compute loss across all data
-        get_loss = lambda: round(sess.run(loss, feed(feed_all=True)) * msa["neff"], 2)
+        def get_loss():
+            return round(sess.run(loss, feed(feed_all=True)) * msa["neff"], 2)
         print("starting", get_loss())
 
         if opt_type == "lbfgs":
@@ -310,14 +316,14 @@ print("Alignment has been parsed!")
 # process input sequences
 msa = mk_msa(seqs)
 
-mrf = GREMLIN(msa,opt_iter=gremlin_iter)
+mrf = GREMLIN(msa, opt_iter=gremlin_iter)
 
 
 # ## Explore the contact map
 # ### Contact prediction:
-# 
+#
 # For contact prediction, the W matrix is reduced from LxLx21x21 to LxL matrix (by taking the L2norm for each of the 20x20). In the code below, you can access this as mtx["raw"]. Further correction (average product correction) is then performed to the mtx["raw"] to remove the effects of entropy, mtx["apc"]. The relative ranking of mtx["apc"] is used to assess importance. When there are enough effective sequences (>1000), we find that the top 1.0L contacts are ~90% accurate! When the number of effective sequences is lower, NN can help clean noise and fill in missing contacts.
-# 
+#
 
 # ## Functions for extracting contacts from MRF
 
@@ -357,8 +363,9 @@ def plot_mtx(mtx, key="zscore", vmin=1, vmax=3):
     plt.show()
     plt.savefig(f"{pth}/{instance}_GREMLIN_mtx.png")
 
-# save mtx file 
-pickle.dump(mrf,open(f'{pth}/{instance}.GREMLIN.mrf.pkl','wb'))
+
+# save mtx file
+pickle.dump(mrf, open(f'{pth}/{instance}.GREMLIN.mrf.pkl', 'wb'))
 
 mtx = get_mtx(mrf)
 plot_mtx(mtx)
@@ -377,8 +384,6 @@ plot_mtx(mtx)
 # adding amino acid to index
 mtx["i_aa"] = np.array([alphabet[msa['msa_ori'][0][i]] + "_" + str(i + 1) for i in mtx["i"]])
 mtx["j_aa"] = np.array([alphabet[msa['msa_ori'][0][j]] + "_" + str(j + 1) for j in mtx["j"]])
-
-
 
 
 # load mtx into pandas dataframe
@@ -449,8 +454,12 @@ for n in range(50):
     plot_w(mrf, i, j, i_aa, j_aa)
 
 # ## Useful input features for NN (Neural Networks)
-# 
-# The "apc" values are typically used as input to the NN for contact cleaning or structure prediction. Though in recent advances (aka DeepMind/Alphafold), the entire MRF was used as the input. More specificially LxLx442. The 442 channels are the 21x21 + (raw and/or apc) value.
+#
+# The "apc" values are typically used as input to the NN for contact
+# cleaning or structure prediction. Though in recent advances (aka
+# DeepMind/Alphafold), the entire MRF was used as the input. More
+# specificially LxLx442. The 442 channels are the 21x21 + (raw and/or apc)
+# value.
 
 
 w_out = np.zeros((msa["ncol_ori"], msa["ncol_ori"], 442))

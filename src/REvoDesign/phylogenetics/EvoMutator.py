@@ -1,51 +1,39 @@
 import asyncio
-from functools import partial
+import itertools
 import os
 import traceback
-import itertools
 import warnings
 from dataclasses import dataclass
+from functools import partial
+from typing import List, Literal, Tuple, Union
 
-from typing import Dict, List, Literal, Tuple, Union
-
-from joblib import Parallel, delayed
-from pymol import cmd, CmdException
 from immutabledict import immutabledict
+from joblib import Parallel, delayed
+from pymol import CmdException, cmd
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
-from REvoDesign import ConfigBus
+from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import IterableLoop
+from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common.MutantVisualizer import MutantVisualizer
+from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
-from REvoDesign.citations import CitationManager
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (
-    QbuttonMatrix,
-    hold_trigger_button,
-    refresh_window,
-    set_widget_value,
-)
+from REvoDesign.tools.customized_widgets import (QbuttonMatrix,
+                                                 hold_trigger_button,
+                                                 refresh_window,
+                                                 set_widget_value)
 from REvoDesign.tools.mutant_tools import save_mutant_choices
-
-from REvoDesign.tools.pymol_utils import (
-    any_posision_has_been_selected,
-    is_a_REvoDesign_session,
-    make_temperal_input_pdb,
-)
-from REvoDesign.tools.utils import (
-    cmap_reverser,
-    dirname_does_exist,
-    get_color,
-    rescale_number,
-    run_worker_thread_with_progress,
-    timing,
-)
-
-from REvoDesign import root_logger
-from REvoDesign import issues
+from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
+                                          is_a_REvoDesign_session,
+                                          make_temperal_input_pdb)
+from REvoDesign.tools.utils import (cmap_reverser, dirname_does_exist,
+                                    get_color, rescale_number,
+                                    run_worker_thread_with_progress, timing)
 
 logging = root_logger.getChild(__name__)
 
@@ -98,10 +86,10 @@ class MutateWorker:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences: dict = self.bus.get_value(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
-        )
-        self.design_sequence: str = self.designable_sequences.get(
+        )))
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
         )
 
@@ -217,7 +205,7 @@ class MutateWorker:
             if not dirname_does_exist(self.design.output_pse):
                 warnings.warn(
                     issues.NoResultsWarning(
-                        f'No output PyMOL session is created.'
+                        'No output PyMOL session is created.'
                     )
                 )
                 return
@@ -257,10 +245,11 @@ class VisualizingWorker:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences: dict = self.bus.get_value(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
-        )
-        self.design_sequence: str = self.designable_sequences.get(
+        )))
+
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
         )
 
@@ -406,7 +395,7 @@ class ChainBinder:
     # record chain binding: distances and maximum distance to be accepted
     def bind_chains(
         self, coevolved_pairs: tuple[CoevolvedPair]
-    ) -> tuple[CoevolvedPair]:
+    ) -> Tuple[CoevolvedPair]:
         self.input_pdb = self.get_input_pdb()
 
         if not (self.chain_binding_enabled and self.chains_to_bind):
@@ -456,7 +445,7 @@ class GREMLIN_Analyser:
         # Check if the instance has already been initialized
 
         self.bus: ConfigBus = ConfigBus()
-        self.alphabet: str = None
+        self.alphabet: str = None  # type: ignore
 
         self.PWD: str = self.bus.get_value('work_dir', str)
         self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
@@ -467,10 +456,10 @@ class GREMLIN_Analyser:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences: dict = self.bus.get_value(
-            'designable_sequences', dict
-        )
-        self.design_sequence: str = self.designable_sequences.get(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
+            'designable_sequences'
+        )))
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
         )
         self.ce_object_group_valid: str = None
@@ -848,7 +837,7 @@ class GREMLIN_Analyser:
             )
 
         self.mark_pair_state(
-            pairs=tuple((p for p in i_out_of_range)),
+            pairs=tuple(p for p in i_out_of_range),
             state='out_of_range',
         )
 
@@ -1010,7 +999,7 @@ class GREMLIN_Analyser:
 
         if accept:
             logging.debug(
-                f'Accepting  co-evolved mutant {picked_gremlin_mutant_id}'
+                f'Accepting co-evolved mutant {picked_gremlin_mutant_id}'
             )
             cmd.enable(picked_gremlin_mutant_id)
 
@@ -1185,7 +1174,7 @@ class GREMLIN_Analyser:
         mut_j = self.alphabet[row]
 
         # construct this Mutant obj from scratch.
-        _mutant: List[Dict[str, Union[str, int]]] = []
+        _mutant: List[Mutation] = []
 
         for chain_id_pair in pair.homochains:
             for chain_id, mut, idx, wt in zip(
@@ -1194,12 +1183,7 @@ class GREMLIN_Analyser:
                 [pair.i_1, pair.j_1],
                 [wt_i, wt_j],
             ):
-                expected_mutant = {
-                    'chain_id': chain_id,
-                    'position': int(idx),
-                    'wt_res': wt,
-                    'mut_res': mut,
-                }
+                expected_mutant = Mutation(chain_id=chain_id, position=int(idx), wt_res=wt, mut_res=mut)
                 if expected_mutant in _mutant:
                     logging.warning(
                         f'Ignore existed mutagenese {expected_mutant}'
@@ -1226,8 +1210,7 @@ class GREMLIN_Analyser:
             )
             return
 
-        mutant_obj: Mutant = Mutant(mutant_info=_mutant)
-        mutant_obj.wt_sequences = self.designable_sequences
+        mutant_obj = Mutant(mutations=_mutant, wt_protein_sequence=self.designable_sequences)
 
         # call scorer to evaluate wt and mutant
         if not self.gremlin_external_scorer:
@@ -1245,7 +1228,7 @@ class GREMLIN_Analyser:
                 worker_function=self.gremlin_external_scorer.scorer,
                 sequence=mutant_obj.get_mutant_sequence_single_chain(
                     chain_id=self.design_chain_id, ignore_missing=True
-                ),
+                ).sequence,
                 progress_bar=self.bus.ui.progressBar,
             )
 

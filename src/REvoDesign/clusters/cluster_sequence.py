@@ -5,24 +5,20 @@ import pathlib
 import random
 import time
 
+import matplotlib
 import pandas as pd
 from Bio import SeqIO
+from matplotlib import pyplot as plt
 
-
-from REvoDesign import root_logger
 from REvoDesign.citations import CitableModules
+from REvoDesign.logger import root_logger
+from REvoDesign.tools.customized_widgets import refresh_window
+from REvoDesign.tools.utils import minibatches_generator
 
 logging = root_logger.getChild(__name__)
 
 
-import matplotlib
-
 matplotlib.use('Agg')
-from matplotlib import pyplot as plt
-
-
-from REvoDesign.tools.utils import minibatches_generator
-from REvoDesign.tools.customized_widgets import refresh_window
 
 
 class Clustering(CitableModules):
@@ -52,8 +48,7 @@ class Clustering(CitableModules):
         self.cluster_output_fp = {}
 
     def initialize_aligner(self):
-        from Bio.Align import PairwiseAligner
-        from Bio.Align import substitution_matrices
+        from Bio.Align import PairwiseAligner, substitution_matrices
 
         # Add other instance variables here
         self.aligner = PairwiseAligner(
@@ -117,12 +112,13 @@ class Clustering(CitableModules):
         return results  # Store the results for further processing
 
     def set_and_write_clusters(self, progressbar):
+        from joblib import parallel_backend
         from sklearn.cluster import AgglomerativeClustering
         from sklearn.neighbors import NearestCentroid
-        from REvoDesign.tools.customized_widgets import QtParallelExecutor
-        from joblib import parallel_backend
 
-        handle = open(self.fastafile, "r")
+        from REvoDesign.tools.customized_widgets import QtParallelExecutor
+
+        handle = open(self.fastafile)
         self.records = list(SeqIO.parse(handle, "fasta"))
         if self.shuffle_variant:
             # random.shuffle(self.records)
@@ -232,8 +228,6 @@ class Clustering(CitableModules):
         logging.info("Calculating...")
         processing(paramlist, indexlist, self.batch_size, 'w')
 
-        dfs = []
-        columns = ["S1", "S2", "Score", "Start", "End", "i", "j"]
         # with open(buffer_file, 'r', newline='\n') as br:
         logging.info('reading buffer ...')
 
@@ -256,7 +250,7 @@ class Clustering(CitableModules):
             )
             logging.info('Clustering is done.')
             y_hc = hc.fit_predict(self.scores)
-            cluster_labels = hc.labels_
+            hc.labels_
 
             clf = NearestCentroid()
             clf.fit(self.scores, y_hc)
@@ -321,33 +315,31 @@ class Clustering(CitableModules):
         logging.info(f'fix batch_size {self._batch_size} to {self.batch_size}')
         self.set_and_write_clusters(progressbar)
 
-    @property
-    def __bibtex__(self):
-        return {
-            'biopython': """@article{10.1093/bioinformatics/btp163,
-    author = {Cock, Peter J. A. and Antao, Tiago and Chang, Jeffrey T. and Chapman, Brad A. and Cox, Cymon J. and Dalke, Andrew and Friedberg, Iddo and Hamelryck, Thomas and Kauff, Frank and Wilczynski, Bartek and de Hoon, Michiel J. L.},
-    title = "{Biopython: freely available Python tools for computational molecular biology and bioinformatics}",
-    journal = {Bioinformatics},
-    volume = {25},
-    number = {11},
-    pages = {1422-1423},
-    year = {2009},
-    month = {03},
-    abstract = "{Summary: The Biopython project is a mature open source international collaboration of volunteer developers, providing Python libraries for a wide range of bioinformatics problems. Biopython includes modules for reading and writing different sequence file formats and multiple sequence alignments, dealing with 3D macro molecular structures, interacting with common tools such as BLAST, ClustalW and EMBOSS, accessing key online databases, as well as providing numerical methods for statistical learning.Availability: Biopython is freely available, with documentation and source code at www.biopython.org under the Biopython license.Contact: All queries should be directed to the Biopython mailing lists, see www.biopython.org/wiki/\_Mailing\_listspeter.cock@scri.ac.uk.}",
-    issn = {1367-4803},
-    doi = {10.1093/bioinformatics/btp163},
-    url = {https://doi.org/10.1093/bioinformatics/btp163},
-    eprint = {https://academic.oup.com/bioinformatics/article-pdf/25/11/1422/48989335/bioinformatics\_25\_11\_1422.pdf},
+    __bibtex__ = {
+        'biopython': r"""@article{10.1093/bioinformatics/btp163,
+author = {Cock, Peter J. A. and Antao, Tiago and Chang, Jeffrey T. and Chapman, Brad A. and Cox, Cymon J. and Dalke, Andrew and Friedberg, Iddo and Hamelryck, Thomas and Kauff, Frank and Wilczynski, Bartek and de Hoon, Michiel J. L.},
+title = "{Biopython: freely available Python tools for computational molecular biology and bioinformatics}",
+journal = {Bioinformatics},
+volume = {25},
+number = {11},
+pages = {1422-1423},
+year = {2009},
+month = {03},
+abstract = "{Summary: The Biopython project is a mature open source international collaboration of volunteer developers, providing Python libraries for a wide range of bioinformatics problems. Biopython includes modules for reading and writing different sequence file formats and multiple sequence alignments, dealing with 3D macro molecular structures, interacting with common tools such as BLAST, ClustalW and EMBOSS, accessing key online databases, as well as providing numerical methods for statistical learning.Availability: Biopython is freely available, with documentation and source code at www.biopython.org under the Biopython license.Contact: All queries should be directed to the Biopython mailing lists, see www.biopython.org/wiki/\_Mailing\_listspeter.cock@scri.ac.uk.}",
+issn = {1367-4803},
+doi = {10.1093/bioinformatics/btp163},
+url = {https://doi.org/10.1093/bioinformatics/btp163},
+eprint = {https://academic.oup.com/bioinformatics/article-pdf/25/11/1422/48989335/bioinformatics\_25\_11\_1422.pdf},
 }""",
-            'sklearn': """@article{scikit-learn,
-  title={Scikit-learn: Machine Learning in {P}ython},
-  author={Pedregosa, F. and Varoquaux, G. and Gramfort, A. and Michel, V.
-          and Thirion, B. and Grisel, O. and Blondel, M. and Prettenhofer, P.
-          and Weiss, R. and Dubourg, V. and Vanderplas, J. and Passos, A. and
-          Cournapeau, D. and Brucher, M. and Perrot, M. and Duchesnay, E.},
-  journal={Journal of Machine Learning Research},
-  volume={12},
-  pages={2825--2830},
-  year={2011}
+        'sklearn': """@article{scikit-learn,
+title={Scikit-learn: Machine Learning in {P}ython},
+author={Pedregosa, F. and Varoquaux, G. and Gramfort, A. and Michel, V.
+        and Thirion, B. and Grisel, O. and Blondel, M. and Prettenhofer, P.
+        and Weiss, R. and Dubourg, V. and Vanderplas, J. and Passos, A. and
+        Cournapeau, D. and Brucher, M. and Perrot, M. and Duchesnay, E.},
+journal={Journal of Machine Learning Research},
+volume={12},
+pages={2825--2830},
+year={2011}
 }""",
-        }
+    }

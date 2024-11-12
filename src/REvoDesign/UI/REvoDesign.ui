@@ -4624,9 +4624,6 @@
      <property name="title">
       <string>Language</string>
      </property>
-     <addaction name="actionEnglish"/>
-     <addaction name="actionChinese"/>
-     <addaction name="actionFrench"/>
     </widget>
     <addaction name="actionCheck_PyMOL_session"/>
     <addaction name="actionSet_Working_Directory"/>

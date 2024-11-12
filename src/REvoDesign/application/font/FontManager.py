@@ -3,8 +3,8 @@ Utils to manage fonts in Plugin windows
 '''
 from dataclasses import dataclass
 
-from pymol.Qt import QtGui
 from immutabledict import immutabledict
+from pymol.Qt import QtGui  # type: ignore
 
 from REvoDesign.tools.system_tools import CLIENT_INFO
 
@@ -13,27 +13,28 @@ from REvoDesign.tools.system_tools import CLIENT_INFO
 class FlavoredFonts:
     """
     A frozen dataclass representing a collection of fonts associated with different operating system types.
-    
-    This class uses the `dataclass` decorator to automatically generate special methods like `__init__`, `__repr__`, 
+
+    This class uses the `dataclass` decorator to automatically generate special methods like `__init__`, `__repr__`,
     and `__eq__`.
 
     Attributes:
-        OS_TYPE_FONT_TABLE (immutabledict): A dictionary containing font recommendations for different operating 
+        OS_TYPE_FONT_TABLE (immutabledict): A dictionary containing font recommendations for different operating
         system types.
-            - The dictionary uses operating system names as keys (e.g., 'Windows', 'Linux') and tuples of font 
+            - The dictionary uses operating system names as keys (e.g., 'Windows', 'Linux') and tuples of font
             names as values.
-            - The use of `immutabledict` ensures that the dictionary is immutable, aligning with the immutable 
+            - The use of `immutabledict` ensures that the dictionary is immutable, aligning with the immutable
             nature of the class instances.
-            - Note: The font recommendations for 'Darwin' (macOS) are currently commented out, indicating that 
+            - Note: The font recommendations for 'Darwin' (macOS) are currently commented out, indicating that
             this part of the data may still be under consideration or not yet finalized.
     """
     OS_TYPE_FONT_TABLE: immutabledict = immutabledict(
         {
             'Windows': ('Microsoft YaHei', 'Century Gothic'),
             'Linux': ('Nimbus Sans', 'DejaVu Sans'),
-            #'Darwin': ['Chalkboard']
+            # 'Darwin': ['Chalkboard']
         }
     )
+
 
 class FontSetter:
     def __init__(self, main_window):

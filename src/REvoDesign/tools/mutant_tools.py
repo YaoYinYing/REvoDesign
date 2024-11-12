@@ -1,20 +1,21 @@
+import json
 import os
 import re
-import json
 import time
-from typing import List, Tuple, Union
 import warnings
+from typing import List, Mapping, Optional, Tuple, Union
 
 from Bio.Data import IUPACData
 from pymol import cmd
+from RosettaPy.common.mutation import Chain, Mutation, RosettaPyProteinSequence
 
-from REvoDesign import ConfigBus, FileExtentions
+from REvoDesign import ConfigBus, FileExtentions, issues
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign import root_logger
+from REvoDesign.tools.pymol_utils import is_hidden_object
 
-from REvoDesign import issues
 from .utils import get_color
 
 logging = root_logger.getChild(__name__)
@@ -23,10 +24,11 @@ logging = root_logger.getChild(__name__)
 # It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.
 protein_letters_3to1 = {
     v.upper(): k.upper()  # Mapping the 3-letter code (value) to its corresponding 1-letter code (key)
-    for k, v in IUPACData.protein_letters_1to3.items()  # Looping through the items in the 1-to-3-letter amino acid dictionary
+    # Looping through the items in the 1-to-3-letter amino acid dictionary
+    for k, v in IUPACData.protein_letters_1to3.items()
 }
 
-NOT_ALLOWED_GROUP_ID_PREFIX: tuple[str] = (
+NOT_ALLOWED_GROUP_ID_PREFIX: Tuple[str] = (
     'RDPM',
     'multi_design',
     'cep',
@@ -35,7 +37,7 @@ NOT_ALLOWED_GROUP_ID_PREFIX: tuple[str] = (
 
 
 def extract_mutants_from_mutant_id(
-    mutant_string: str, sequences: dict[str, str] = {}
+    mutant_string: str, sequences: Union[Mapping[str, str], RosettaPyProteinSequence]
 ) -> Mutant:
     '''
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
@@ -50,11 +52,13 @@ def extract_mutants_from_mutant_id(
         Mutant : Mutant object.
     '''
     logging.debug(f'Parsing {mutant_string}')
+    if isinstance(sequences, Mapping):
+        sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
 
     # Use regular expression to find all mutants in the string
     mutants = re.findall(r'([A-Z]{0,2}\d+[A-Z]{1})', mutant_string)
 
-    mutant_info = []
+    mutations = []
     for mut in mutants:
         # full description of mutation, <chain_id><wt_res><pos><mut>
         if re.match(r'[A-Z]{2}\d+[A-Z]{1}', mut):
@@ -69,16 +73,10 @@ def extract_mutants_from_mutant_id(
         # reduced description of mutation, <wt_res><pos><mut>, missing <chain_id>
         elif re.match(r'[A-Z]{1}\d+[A-Z]{1}', mut):
             logging.debug(f'reduced description: {mut}')
-            if not (mutant_info or sequences):
-                warnings.warn(
-                    issues.BadDataWarning(
-                        f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
-                    )
-                )
-                continue
+
             _mut = re.match(r'([A-Z]{1})(\d+)([A-Z]{1})', mut)
 
-            _chain_id = list(sequences.keys())[0]
+            _chain_id = sequences.all_chain_ids[0]  # expected as the first chain.
             _position = int(_mut.group(2))
             _wt_res = _mut.group(1)
             _mut_res = _mut.group(3)
@@ -86,20 +84,12 @@ def extract_mutants_from_mutant_id(
         # fuzzy description of mutation, <pos><mut>, missing <chain_id> and <wt_res>
         elif re.match(r'\d+[A-Z]{1}', mut):
             logging.debug(f'fuzzy description: {mut}')
-            # silent error report while mismatching the score term
-            if not (mutant_info or sequences):
-                warnings.warn(
-                    issues.BadDataWarning(
-                        f'Error while processing mutant id {mut}: Invalid sequences: {sequences}'
-                    )
-                )
-                continue
 
             _mut = re.match(r'(\d+)([A-Z]{1})', mut)
 
-            _chain_id = list(sequences.keys())[0]
+            _chain_id = sequences.all_chain_ids[0]  # expected as the first chain.
             _position = int(_mut.group(1))
-            _wt_res = list(sequences.values())[0][_position - 1]
+            _wt_res = list(sequences.get_sequence_by_chain(_chain_id))[_position - 1]
             _mut_res = _mut.group(2)
 
         else:
@@ -110,28 +100,22 @@ def extract_mutants_from_mutant_id(
             )
             continue
 
-        mutant_info.append(
-            {
-                'chain_id': _chain_id,
-                'position': int(_position),
-                'wt_res': _wt_res,
-                'mut_res': _mut_res,
-            }
+        mutations.append(
+            Mutation(chain_id=_chain_id, position=int(_position), wt_res=_wt_res, mut_res=_mut_res)
+
         )
 
-    if not mutant_info:
-        # early return if the input string failes to be parsed
-        return Mutant(mutant_info, 0)
+    if not mutations:
+        raise issues.InvalidInputError(f'No valid mutations found in `{mutant_string}`')
+
+    mutant_obj = Mutant(mutations, sequences)
 
     # if the mutation has a position of score, we need to extract it.
     mutant_score = extract_mutant_score_from_string(
         mutant_string=mutant_string
     )
-
-    # Instantializing a Mutant obj
-    mutant_obj = Mutant(mutant_info, mutant_score)
-    if sequences:
-        mutant_obj.wt_sequences = sequences
+    if mutant_score:
+        mutant_obj.mutant_score = mutant_score
 
     logging.debug(mutant_obj)
 
@@ -139,7 +123,7 @@ def extract_mutants_from_mutant_id(
     return mutant_obj
 
 
-def extract_mutant_score_from_string(mutant_string: str) -> Union[float, None]:
+def extract_mutant_score_from_string(mutant_string: str) -> Optional[float]:
     '''
     Extract mutant score from an mutant string
 
@@ -162,10 +146,10 @@ def extract_mutant_score_from_string(mutant_string: str) -> Union[float, None]:
 
 def extract_mutant_from_sequences(
     mutant_sequence: str,
-    wt_sequence: str,
+    wt_sequences: RosettaPyProteinSequence,
     chain_id: str = 'A',
     fix_missing: bool = False,
-) -> Mutant:
+) -> Optional[Mutant]:
     '''
     Extract mutant from mutant sequence.
 
@@ -178,6 +162,8 @@ def extract_mutant_from_sequences(
     Returns:
     Mutant: Mutant object
     '''
+
+    wt_sequence = wt_sequences.get_sequence_by_chain(chain_id=chain_id)
     _wt_sequence = wt_sequence.replace('X', '')
     _mutant_sequence = mutant_sequence.replace('X', '')
 
@@ -188,7 +174,7 @@ def extract_mutant_from_sequences(
 
     if mutant_sequence == wt_sequence:
         logging.warning('WT and mutant sequences are identical.')
-        return None
+        return
 
     if 'X' in wt_sequence and not fix_missing:
         warnings.warn(
@@ -211,23 +197,17 @@ def extract_mutant_from_sequences(
             raise issues.NoInputError(
                 f'Lengths of WT and fixed mutant are not equal to each other: {len(wt_sequence)}: {len(_mutant_sequence)}'
             )
-            return None
 
         mutant_sequence = _mutant_sequence
 
     mut_info = [
-        {
-            'chain_id': chain_id,
-            'position': i + 1,
-            'wt_res': res,
-            'mut_res': mutant_sequence[i],
-        }
+        Mutation(chain_id=chain_id, position=i + 1, wt_res=res, mut_res=mutant_sequence[i])
         for i, res in enumerate(wt_sequence)
         if res != mutant_sequence[i]
     ]
     logging.debug(mut_info)
 
-    mutant_obj = Mutant(mutant_info=mut_info)
+    mutant_obj = Mutant(mutations=mut_info, wt_protein_sequence=wt_sequences)
     mutant_obj.mutant_score = 0
 
     return mutant_obj
@@ -266,7 +246,7 @@ def shorter_range(
     input_list = sorted([item for item in input_list if isinstance(item, int)])
 
     if not input_list:
-        return
+        raise issues.NoInputError('Input list is empty.')
 
     range_pairs = []
     start, end = input_list[0], input_list[0]
@@ -292,7 +272,7 @@ def shorter_range(
 
 def expand_range(
     shortened_str: str, connector: str = '-', seperator: str = '+'
-) -> list[int]:
+) -> List[int]:
     """
     Expand a shortened string expression representing a list of integers to the original list.
 
@@ -327,7 +307,7 @@ def expand_range(
     return expanded_list
 
 
-def extract_mutant_from_pymol_object(pymol_object, sequences: dict) -> Mutant:
+def extract_mutant_from_pymol_object(pymol_object, sequences: RosettaPyProteinSequence) -> Mutant:
     '''
     Extract mutant info from an existing pymol object.
 
@@ -342,26 +322,20 @@ def extract_mutant_from_pymol_object(pymol_object, sequences: dict) -> Mutant:
 
     mutant_info = []
 
-    for chain_id in sequences:
-        sequence = sequences[chain_id]
-        for at in cmd.get_model(f'{pymol_object} and c. {chain_id} and n. CA').atom:
+    for _, chain in enumerate(sequences.chains):
+        sequence = chain.sequence
+        for at in cmd.get_model(f'{pymol_object} and c. {chain.chain_id} and n. CA').atom:
             try:
-                mutant_info.append(
-                    {
-                        'chain_id': at.chain,
-                        'position': int(at.resi),
-                        'wt_res': sequence[int(at.resi) - 1] if sequence else 'X',
-                        'mut_res': protein_letters_3to1[at.resn],
-                    }
-                )
+                mutant_info.append(Mutation(chain_id=at.chain, position=int(at.resi), wt_res=sequence[int(
+                    at.resi) - 1] if sequence else 'X', mut_res=protein_letters_3to1[at.resn],))
+
             except IndexError:
-                warnings.warn(issues.BadDataWarning(f'{at.resn} at {at.resi} (chain {chain_id}) is out of range of sequence length.')
-                )
+                warnings.warn(issues.BadDataWarning(
+                    f'{at.resn} at {at.resi} (chain {chain.chain_id}) is out of range of sequence length.'))
                 continue
 
-    mutant_obj = Mutant(mutant_info=mutant_info)
+    mutant_obj = Mutant(mutations=mutant_info, wt_protein_sequence=sequences)
     mutant_obj.mutant_score = extract_mutant_score_from_string(pymol_object)
-    mutant_obj.wt_sequences = sequences
 
     return mutant_obj
 
@@ -383,7 +357,7 @@ def read_customized_indice(custom_indices_from_input='') -> str:
 
     if filepath_does_exists(custom_indices_from_input):
         custom_indices_str = (
-            open(custom_indices_from_input, 'r').read().strip()
+            open(custom_indices_from_input).read().strip()
         )
         return custom_indices_str
 
@@ -460,7 +434,7 @@ def read_profile_design_mutations(filename):
 
 
 def existed_mutant_tree(
-    sequences: dict[str, str], enabled_only: Union[int, bool] = 1
+    sequences: Union[Mapping[str, str], RosettaPyProteinSequence], enabled_only: Union[int, bool] = 1
 ) -> MutantTree:
     """
     Creates a tree structure of existing mutants based on PyMOL objects.
@@ -474,7 +448,8 @@ def existed_mutant_tree(
     - MutantTree
         An instance of MutantTree class containing the mutant tree structure.
     """
-    from REvoDesign.tools.pymol_utils import is_hidden_object
+    if isinstance(sequences, Mapping):
+        sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
 
     group_ids: list[str] = cmd.get_names(
         type='group_objects', enabled_only=enabled_only
@@ -509,6 +484,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
         mutant_tree (MutantTree): input mutant tree object.
     """
     from REvoDesign.common.MutantVisualizer import MutantVisualizer
+
     from .pymol_utils import make_temperal_input_pdb
     from .utils import timing
 
@@ -523,7 +499,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     nproc = bus.get_value('ui.header_panel.nproc')
 
     if mutant_tree.empty:
-        warnings.warn(issues.NoResultsWarning(f'Mutant tree is empty!'))
+        warnings.warn(issues.NoResultsWarning('Mutant tree is empty!'))
         return
 
     score_list = [
@@ -586,11 +562,11 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
 def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
     if not mutant_tree:
-        raise issues.NoInputError(f"No Mutant tree is given!")
+        raise issues.NoInputError("No Mutant tree is given!")
 
     if mutant_tree.empty:
         warnings.warn(
-            issues.NoResultsWarning(f'mutant tree is empty. save nothing.')
+            issues.NoResultsWarning('mutant tree is empty. save nothing.')
         )
         return
 

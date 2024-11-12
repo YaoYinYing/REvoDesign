@@ -42,8 +42,9 @@ dependencies = [
     "omegaconf>=2.3.0",
     "rdkit>=2023.9.4",
     "msgpack",
-    "RosettaPy>=0.2.6",
+    "RosettaPy>=0.2.8",
     "bibtexparser @ git+https://github.com/sciunto-org/python-bibtexparser.git@v2.0.0b7#egg=bibtexparser",
+    "platformdirs",
 ]
 
 [project.optional-dependencies]
@@ -219,7 +220,7 @@ extension-pkg-whitelist= [
     "scipy"
 ]
 ignore="CVS"
-ignore-patterns="test.*?py,conftest.py"
+ignore-patterns="test.*?py,conftest.py,test_*?py,TestData.py,*?Test.py"
 limit-inference-results=100
 
 [tool.pylint.'MESSAGES CONTROL']
@@ -298,8 +299,8 @@ contextmanager-decorators="contextlib.contextmanager"
 generated-members="numpy.*,np.*,pyspark.sql.functions,collect_list"
 ignore-none="yes"
 ignore-on-opaque-inference="yes"
-ignored-classes="optparse.Values,thread._local,_thread._local,numpy,torch,swagger_client,Ui_Dialog,QtProgressBarHint"
-ignored-modules="numpy,torch,swagger_client,netCDF4,scipy"
+ignored-classes="optparse.Values,thread._local,_thread._local,numpy,torch,swagger_client,Ui_Dialog,QtProgressBarHint,"
+ignored-modules="numpy,torch,swagger_client,netCDF4,scipy,Ui_REvoDesign-PyMOL-entry"
 missing-member-hint="yes"
 missing-member-hint-distance=1
 missing-member-max-choices=1

@@ -1,11 +1,12 @@
 import os
-from contextlib import contextmanager
 from collections.abc import Iterable
-from typing import Any, Callable, Union
+from contextlib import contextmanager
+from typing import Any, Callable, Dict, Union
 
-from pymol.Qt import QtWidgets, QtGui, QtCore
+from omegaconf import OmegaConf
+from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
@@ -15,7 +16,7 @@ PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 # Custom widget for displaying images
 class ImageWidget(QtWidgets.QWidget):
     def __init__(self, image_path, parent=None):
-        super(ImageWidget, self).__init__(parent)
+        super().__init__(parent)
         self.image_path = image_path
 
     def paintEvent(self, event):
@@ -91,7 +92,6 @@ class QbuttonMatrix(QtWidgets.QWidget):
         import numpy as np
 
         try:
-            import pandas as pd  # Import pandas here
 
             df = self.pair.df
 
@@ -123,6 +123,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
             QColor: Color based on the mapped value.
         """
         import matplotlib.pyplot as plt
+
         from REvoDesign import ConfigBus
         from REvoDesign.tools.utils import cmap_reverser
 
@@ -398,23 +399,19 @@ def get_widget_value(widget):
 
 
 def refresh_widget_while_another_changed(
-    trigger_widget, target_widget, target_data_group: dict[str, list]
+    trigger_widget, target_widget, target_data_group: Dict[str, list]
 ):
+
     from REvoDesign import reload_config_file
-    from omegaconf import OmegaConf
 
-    cfg = reload_config_file()
+    reload_config_file()
     trigger_value = get_widget_value(widget=trigger_widget)
-    if trigger_value in target_data_group:
-        for idx, target_data_cfg in enumerate(
-            target_data_group.get(trigger_value)
-        ):
-            # print(f'Get: {target_data} from {target_data_cfg}')
-            if not target_data_cfg:
-                target_data = ['']
-            else:
-                target_data = OmegaConf.select(cfg, target_data_cfg)
 
+    if trigger_value in target_data_group:
+
+        for _, target_data in enumerate(
+            target_data_group.get(trigger_value, '')
+        ):
             set_widget_value(widget=target_widget, value=target_data)
 
 
@@ -436,7 +433,7 @@ class ParallelExecutor:
         self.kwargs = kwargs
         self.n_jobs = n_jobs
 
-        os_type = CLIENT_INFO.OS_TYPE
+        CLIENT_INFO.OS_TYPE
         # guessing backend according to OS
         if not backend == 'auto':
             self.backend = backend
@@ -530,7 +527,7 @@ class QtParallelExecutor(QtCore.QThread):
         self.result_signal.emit(self.results)
 
     def handle_result(self):
-        logging.debug(f'Sending results ...')
+        logging.debug('Sending results ...')
         return self.results
 
 

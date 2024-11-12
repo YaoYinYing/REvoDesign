@@ -1,12 +1,11 @@
-import os
 import hashlib
+import os
 from typing import Union
 
 import requests
-
 from requests.auth import HTTPBasicAuth
 
-from REvoDesign import root_logger
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.client_tools import check_response_code
 
 logging = root_logger.getChild(__name__)
@@ -18,7 +17,6 @@ class PSSMGremlinCalculator:
         self.user = ''
         self.password = ''
         self.auth: Union[HTTPBasicAuth, None] = None
-        pass
 
     def setup_calculator(
         self, working_directory, molecule, chain_id, sequence

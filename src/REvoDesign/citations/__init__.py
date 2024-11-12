@@ -1,3 +1,3 @@
-from .CitationManager import CitationManager, CitableModules
+from .CitationManager import CitableModules, CitationManager
 
 __all__ = ['CitationManager', 'CitableModules']

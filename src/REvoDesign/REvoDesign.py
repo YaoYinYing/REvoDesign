@@ -1,96 +1,59 @@
-import os
 import asyncio
-import shutil
 import gc
+import os
+import shutil
+import tempfile
 import traceback
 import warnings
-import tempfile
-
-
 # using partial module to reduce duplicate code.
 from functools import partial
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
-from pymol.Qt import QtCore, QtGui, QtWidgets
+from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.Qt.utils import getSaveFileNameWithExt
 from requests.auth import HTTPBasicAuth
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
-from REvoDesign import (
-    EXPERIMENTS_CONFIG_DIR,
-    VERSION,
-    ConfigBus,
-    FileExtentions,
-    Widget2Widget,
-    issues,
-    reload_config_file,
-    root_logger,
-    save_configuration,
-    set_REvoDesign_config_file,
-)
-
-
+import REvoDesign
+from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
+                        save_configuration, set_REvoDesign_config_file)
+from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
-from REvoDesign.application.font import FontSetter
-from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
-from REvoDesign.tools.customized_widgets import (
-    decide,
-    getExistingDirectory,
-    getOpenFileNameWithExt,
-    hold_trigger_button,
-    notify_box,
-    refresh_widget_while_another_changed,
-    set_widget_value,
-    WorkerThread,
-)
-from REvoDesign.tools.mutant_tools import (
-    determine_profile_type,
-    existed_mutant_tree,
-    get_mutant_table_columns,
-    save_mutant_choices,
-)
-from REvoDesign.tools.pymol_utils import (
-    fetch_exclusion_expressions,
-    find_all_protein_chain_ids_in_protein,
-    find_design_molecules,
-    find_small_molecules_in_protein,
-    get_molecule_sequence,
-    is_empty_session,
-)
-from REvoDesign.tools.system_tools import CLIENT_INFO
-from REvoDesign.tools.utils import (
-    extract_archive,
-    generate_strong_password,
-    run_worker_thread_with_progress,
-    timing,
-)
-
-from REvoDesign.clients.PSSM_GREMLIN_client import (
-    PSSMGremlinCalculator,
-)
-
-from REvoDesign.clients.QtSocketConnector import (
-    REvoDesignWebSocketClient,
-    REvoDesignWebSocketServer,
-)
-
-from REvoDesign.structure import SurfaceFinder, PocketSearcher
-
-from REvoDesign.phylogenetics import (
-    MutateWorker,
-    VisualizingWorker,
-    GREMLIN_Analyser,
-)
-
-from REvoDesign.evaluate import Evalutator
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
+from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
+                                                  REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
+from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.evaluate import Evalutator
+from REvoDesign.logger import LoggerT, root_logger
+from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
+                                      VisualizingWorker)
+from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
+from REvoDesign.structure import PocketSearcher, SurfaceFinder
+from REvoDesign.tools.customized_widgets import (
+    WorkerThread, decide, getExistingDirectory, getOpenFileNameWithExt,
+    hold_trigger_button, notify_box, refresh_widget_while_another_changed,
+    set_widget_value)
+from REvoDesign.tools.mutant_tools import (determine_profile_type,
+                                           existed_mutant_tree,
+                                           get_mutant_table_columns,
+                                           save_mutant_choices)
+from REvoDesign.tools.pymol_utils import (
+    fetch_exclusion_expressions, find_all_protein_chain_ids_in_protein,
+    find_design_molecules, find_small_molecules_in_protein,
+    get_molecule_sequence, is_empty_session)
+from REvoDesign.tools.system_tools import CLIENT_INFO
+from REvoDesign.tools.utils import (extract_archive, generate_strong_password,
+                                    run_worker_thread_with_progress, timing)
+from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
-logging = None
+logging: LoggerT = None  # type: ignore
 
 IO_MODE = Literal['r', 'w']
 
@@ -99,18 +62,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
         self,
     ):
-        super(REvoDesignPlugin, self).__init__()
+        super().__init__()
         # global reference to avoid garbage collection of our dialog
         self.window = None
 
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
         self.PWD = os.getcwd()
 
-        self.ui_file = os.path.join(self.RUN_DIR, 'UI', 'REvoDesign.ui')
-        self.widget2widget = Widget2Widget()
-        self.bus = None
+        self.bus: ConfigBus = None
 
-        self.designable_sequences = {}
+        self.designable_sequences: RosettaPyProteinSequence = None
         self.design_molecule = ''
         self.design_chain_id = ''
         self.design_sequence = ''
@@ -126,7 +87,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         try:
             # if QtWebsockets is available, teamwork is activated.
-            from PyQt5 import QtWebSockets
+            from PyQt5 import QtWebSockets  # type: ignore
 
             logging.info(f"Find QtWebSockets in {QtWebSockets.__file__}")
 
@@ -168,7 +129,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.set_working_directory(pwd)
                 return
 
-    def set_working_directory(self, new_dir: str = None):
+    def set_working_directory(self, new_dir: Optional[str] = None):
         """Set working directory for the current REvoDesign Session
 
         Args:
@@ -289,7 +250,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.actionVersion.triggered.connect(
             partial(
                 notify_box,
-                message=f'REvoDesign v.{VERSION}\nSrc: {REPO_URL}',
+                message=f'REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}',
             )
         )
 
@@ -752,7 +713,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.bus.get_widget_from_cfg_item(
                     'ui.config.sidechain_solver.model'
                 ),
-                self.widget2widget.sidechain_solver2model,
+                {c.name: [c.weights_preset, c.default_weight_preset] for c in all_runner_c if c.installed},
             )
         )
 
@@ -920,14 +881,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
             return
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
-        self.designable_sequences = {
+        self.designable_sequences = RosettaPyProteinSequence.from_dict({
             chain_id: get_molecule_sequence(
                 molecule=molecule,
                 chain_id=chain_id,
                 keep_missing=True,
             )
             for chain_id in chain_ids
-        }
+        })
         if chain_ids:
             self.bus.set_widget_value(
                 'ui.header_panel.input.chain_id', chain_ids
@@ -938,11 +899,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
             '''
             TODO
-            omegaconf.errors.ConfigKeyError while trying to override 
+            omegaconf.errors.ConfigKeyError while trying to override
             a loaded designable sequences dict with another molecule
             '''
             self.bus.set_value(
-                'designable_sequences', self.designable_sequences
+                'designable_sequences', self.designable_sequences.as_dict
             )
 
         self.setup_pssm_gremlin_calculator()
@@ -1443,7 +1404,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def reduce_current_session(
         self,
-        session: str = None,
+        session: Optional[str] = None,
         reduce_disabled: bool = False,
         overwrite: bool = False,
     ):
@@ -1852,7 +1813,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
         self.ws_client.close_connection()
 
-    def reload_configurations(self, experiment: str = None):
+    def reload_configurations(self, experiment: Optional[str] = None):
         """Reloading configurations based on different scenarios such as
         reconfiguring with changes, initializing configurations, loading
         specific experiment configurations, or reloading from default
@@ -1907,7 +1868,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 widget, OmegaConf.select(self.bus.cfg, config_item)
             )
 
-    def save_configuration_from_ui(self, experiment: str = None):
+    def save_configuration_from_ui(self, experiment: Optional[str] = None):
         """Saves a configuration from the user interface with an optional
         experiment name.
 
@@ -1934,7 +1895,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not new_cfg_file:
             return
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
-        new_cfg_prefix = new_cfg_base_name.replace('.yaml', '')
+        new_cfg_prefix = new_cfg_base_name.rstrip('.yaml')
         experiment_file = os.path.join(
             EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
         )

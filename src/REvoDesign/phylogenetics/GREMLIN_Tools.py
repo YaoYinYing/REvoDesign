@@ -13,13 +13,12 @@
 https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 '''
 
-import traceback
-from typing import Dict, List, Literal
-import pickle
 import os
-
+import pickle
+import traceback
 import warnings
 from dataclasses import dataclass, field
+from typing import Dict, List, Literal, Optional
 
 import matplotlib
 import matplotlib.pylab as plt
@@ -28,10 +27,9 @@ import pandas as pd
 from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 
-from REvoDesign import ConfigBus, root_logger
+from REvoDesign import ConfigBus, issues
 from REvoDesign.citations import CitableModules
-from REvoDesign import issues
-
+from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 matplotlib.use('Agg')
@@ -128,7 +126,7 @@ class CoevolvedPair:
         self,
         chain_pair: str,
     ) -> tuple[str]:
-        if not chain_pair in self.homochains_dist:
+        if chain_pair not in self.homochains_dist:
             raise ValueError(
                 f'No such {chain_pair=} in {self.homochains_dist=}'
             )
@@ -234,15 +232,8 @@ class GREMLIN_Tools(CitableModules):
         mrf = pickle.load(open(mrf_fp, 'rb'))
         return mrf
 
-    # ## Explore the contact map
-    # ### Contact prediction:
-    #
-    # For contact prediction, the W matrix is reduced from LxLx21x21 to LxL matrix (by taking the L2norm for each of the 20x20). In the code below, you can access this as mtx["raw"]. Further correction (average product correction) is then performed to the mtx["raw"] to remove the effects of entropy, mtx["apc"]. The relative ranking of mtx["apc"] is used to assess importance. When there are enough effective sequences (>1000), we find that the top 1.0L contacts are ~90% accurate! When the number of effective sequences is lower, NN can help clean noise and fill in missing contacts.
-    #
-
-    # ## Functions for extracting contacts from MRF
-
     ###################
+
     @staticmethod
     def normalize(x):
         x = stats.boxcox(x - np.amin(x) + 1.0)[0]
@@ -351,7 +342,7 @@ class GREMLIN_Tools(CitableModules):
 
     def plot_w(
         self, i: int, j: int, i_aa: str, j_aa: str, idx: int = 0
-    ) -> CoevolvedPair:
+    ) -> Optional[CoevolvedPair]:
         # mark if the df should be transposed
         transposed = True
 
@@ -421,7 +412,7 @@ class GREMLIN_Tools(CitableModules):
         try:
             wt_i_index = self.alphabet.index(wt_i_aa)
             wt_j_index = self.alphabet.index(wt_j_aa)
-        except ValueError as e:
+        except ValueError:
             traceback.print_exc()
             logging.error(
                 f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}"
@@ -523,11 +514,9 @@ class GREMLIN_Tools(CitableModules):
 
         return tuple(plot_w_fps)
 
-    @property
-    def __bibtex__(self) -> dict[str, str]:
-        return {
-            matplotlib.__name__: matplotlib.__bibtex__,
-            "GREMLIN": """@article{
+    __bibtex__ = {
+        matplotlib.__name__: matplotlib.__bibtex__,
+        "GREMLIN": r"""@article{
 doi:10.1073/pnas.1314045110,
 author = {Hetunandan Kamisetty  and Sergey Ovchinnikov  and David Baker },
 title = {Assessing the utility of coevolution-based residue–residue contact predictions in a sequence- and structure-rich era},
@@ -540,21 +529,4 @@ doi = {10.1073/pnas.1314045110},
 URL = {https://www.pnas.org/doi/abs/10.1073/pnas.1314045110},
 eprint = {https://www.pnas.org/doi/pdf/10.1073/pnas.1314045110},
 abstract = {Recently developed methods have shown considerable promise in predicting residue–residue contacts in protein 3D structures using evolutionary covariance information. However, these methods require large numbers of evolutionarily related sequences to robustly assess the extent of residue covariation, and the larger the protein family, the more likely that contact information is unnecessary because a reasonable model can be built based on the structure of a homolog. Here we describe a method that integrates sequence coevolution and structural context information using a pseudolikelihood approach, allowing more accurate contact predictions from fewer homologous sequences. We rigorously assess the utility of predicted contacts for protein structure prediction using large and representative sequence and structure databases from recent structure prediction experiments. We find that contact predictions are likely to be accurate when the number of aligned sequences (with sequence redundancy reduced to 90\%) is greater than five times the length of the protein, and that accurate predictions are likely to be useful for structure modeling if the aligned sequences are more similar to the protein of interest than to the closest homolog of known structure. These conditions are currently met by 422 of the protein families collected in the Pfam database.}}""",
-        }
-
-    # ## Useful input features for NN (Neural Networks)
-    #
-    # The "apc" values are typically used as input to the NN for contact cleaning or structure prediction. Though in recent advances (aka DeepMind/Alphafold), the entire MRF was used as the input. More specificially LxLx442. The 442 channels are the 21x21 + (raw and/or apc) value.
-
-    # w_out = np.zeros((msa["ncol_ori"], msa["ncol_ori"], 442))
-    # v_out = np.zeros((msa["ncol_ori"], 21))
-
-    # mrf_ = np.reshape(mrf["w"], (-1, 441))
-    # mtx_ = np.expand_dims(mtx["apc"], -1)
-
-    # w_out[(mtx["i"], mtx["j"])] = np.concatenate((mrf_, mtx_), -1)
-    # w_out += np.transpose(w_out, (1, 0, 2))
-    # v_out[mrf["v_idx"]] = mrf["v"]
-
-    # print("w_out", w_out.shape)
-    # print("v_out", v_out.shape)
+    }

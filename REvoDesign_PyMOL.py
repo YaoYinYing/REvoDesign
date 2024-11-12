@@ -28,7 +28,8 @@ import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Dict, Iterable, List, Mapping, Optional, Protocol, Tuple, TypeVar, Union
+from typing import (Callable, Dict, Iterable, List, Mapping, Optional,
+                    Protocol, Tuple, TypeVar, Union)
 from urllib.error import HTTPError, URLError
 
 import pip
@@ -44,7 +45,7 @@ AVAILABLE_EXTRAS: Dict[str, str] = {
     "Sidechain Solvers": "",  # Separator line
     "DLPacker": "dlpacker",
     "PIPPack": "pippack",
-    
+
     "Designers": "",  # Separator line
     "ColabDesign": "colabdesign",
 
@@ -75,7 +76,8 @@ def run_command(
     Execute a specified command in the shell.
 
     Parameters:
-    - cmd: A tuple or string representing the command to be executed. If it's a tuple, it represents the command and its parameters.
+    - cmd: A tuple or string representing the command to be executed. If it's a tuple, it represents the command
+    and its parameters.
     - verbose: A boolean indicating whether to print detailed execution information.
     - env: A mapping object containing environment variables for the command.
 
@@ -92,11 +94,10 @@ def run_command(
     # Execute the command using subprocess.run()
     result = subprocess.run(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         encoding="utf-8",
         env=env if env else None,
-        universal_newlines=True,
+        text=True,
         check=False,
     )
 
@@ -113,7 +114,7 @@ def run_command(
 
 
 # translated UI Dialog from UI file\
-class Ui_Dialog(object):
+class Ui_Dialog:
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(490, 534)
@@ -437,14 +438,19 @@ class Ui_Dialog(object):
         self.radioButton_from_local_file.toggled["bool"].connect(self.comboBox_version.setDisabled)  # type: ignore
         self.checkBox_use_proxy.toggled["bool"].connect(self.lineEdit_proxy_url.setEnabled)  # type: ignore
         self.checkBox_use_mirror.toggled["bool"].connect(self.lineEdit_mirror_url.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(self.checkBox_specified_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(
+            self.checkBox_specified_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_file.toggled["bool"].connect(
+            self.checkBox_specified_commit.setDisabled)  # type: ignore
         self.radioButton_from_local_file.toggled["bool"].connect(self.lineEdit_commit.setDisabled)  # type: ignore
         self.radioButton_from_local_clone.toggled["bool"].connect(self.comboBox_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(self.checkBox_specified_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(
+            self.checkBox_specified_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled["bool"].connect(
+            self.checkBox_specified_commit.setDisabled)  # type: ignore
         self.radioButton_from_local_clone.toggled["bool"].connect(self.lineEdit_commit.setDisabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled["bool"].connect(self.lineEdit_customized_cache_dir.setEnabled)  # type: ignore
+        self.checkBox_user_cache_dir.toggled["bool"].connect(
+            self.lineEdit_customized_cache_dir.setEnabled)  # type: ignore
         self.checkBox_user_cache_dir.toggled["bool"].connect(self.pushButton_open_cache_dir.setEnabled)  # type: ignore
         self.checkBox_user_cache_dir.toggled["bool"].connect(self.pushButton_set_cache_dir.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -518,7 +524,7 @@ class CheckableListView(QtWidgets.QWidget):
         model: The data model instance used by the list view.
     """
 
-    def __init__(self, list_view, items:Optional[Dict[str,str]]=None, parent=None):
+    def __init__(self, list_view, items: Optional[Dict[str, str]] = None, parent=None):
         """
         Initializes the CheckableListView instance.
 
@@ -546,13 +552,11 @@ class CheckableListView(QtWidgets.QWidget):
         # Add items to the model with optional separators
         if not items:
             return
-        
-        self.items=items
-        
 
+        self.items = items
 
-        for k,v in items.items():
-            if not v:  
+        for k, v in items.items():
+            if not v:
                 # Add as a separator
                 separator_item = QtGui.QStandardItem(k)
                 separator_item.setEnabled(False)  # Non-interactive
@@ -882,7 +886,8 @@ class REvoDesignInstaller:
         """
         Retrieves the tags of a GitHub repository and sets them as the value of the version combo box.
 
-        This method calls the `get_github_repo_tags` function to obtain the tags information of the specified GitHub repository,
+        This method calls the `get_github_repo_tags` function to obtain the tags information of the
+        specified GitHub repository,
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
         set_widget_value(self.installer_ui.comboBox_version, get_github_repo_tags(repo_url=REPO_URL))
@@ -933,7 +938,8 @@ class REvoDesignInstaller:
         If the directory exists, it updates the UI with the directory path.
 
         Returns:
-            The method returns the result of `set_widget_value` function, which is typically None or a status indicating success.
+            The method returns the result of `set_widget_value` function, which is typically None or a
+            status indicating success.
         """
         # Retrieve the existing directory path
         cache_dir = self.get_existing_directory()
@@ -946,7 +952,8 @@ class REvoDesignInstaller:
         """
         Opens files or directories based on user selection from the UI.
 
-        This function checks which radio button is selected (local clone or local file) and then opens the corresponding directory or file.
+        This function checks which radio button is selected (local clone or local file) and then opens
+        the corresponding directory or file.
 
         Returns:
             None: The function updates the UI with the selected directory or file path.
@@ -1123,8 +1130,8 @@ class REvoDesignInstaller:
             # Provide feedback on the installation result
             if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
                 notify_box(
-                    message="Installation succeeded. \nIf this is an upgrade, please restart PyMOL for it to take effect.",
-                )
+                    message="Installation succeeded. \nIf this is an upgrade, "
+                    "please restart PyMOL for it to take effect.", )
                 return
 
             notify_box(
@@ -1136,7 +1143,8 @@ class REvoDesignInstaller:
         """
         Set up the custom cache directory.
 
-        This function attempts to import `ConfigBus` and `save_configuration` from the REvoDesign library to update the cache directory settings.
+        This function attempts to import `ConfigBus` and `save_configuration` from the REvoDesign library
+        to update the cache directory settings.
         If the specified cache directory is valid, it updates the configuration and saves it.
 
         Returns:
@@ -1224,7 +1232,8 @@ class WorkerThread(QtCore.QThread):
         """
         Executes the task and handles the results.
 
-        This function checks if an interruption has been requested. If not, it runs the specified function with given arguments and keyword arguments.
+        This function checks if an interruption has been requested. If not, it runs the specified function with
+        given arguments and keyword arguments.
         The result is then emitted through a signal if available, and a completion signal is emitted at the end.
 
         Parameters:
@@ -1234,7 +1243,8 @@ class WorkerThread(QtCore.QThread):
             - kwargs: A dictionary of keyword arguments for the function.
             - result_signal: A signal to emit the results.
             - finished_signal: A signal to indicate the task has finished.
-            - isInterruptionRequested: A method that returns True if an interruption has been requested, otherwise False.
+            - isInterruptionRequested: A method that returns True if an interruption has been requested,
+            otherwise False.
         """
         # Check if an interruption has been requested
         if not self.isInterruptionRequested():
@@ -1269,7 +1279,7 @@ class WorkerThread(QtCore.QThread):
 class QtProgressBarHint(Protocol):
     """
     Defines a protocol class to specify the behavior of a progress bar.
-    This class outlines the methods that a progress bar should have, allowing other classes to implement this protocol.
+    This class outlines the methods that a progress bar should have, allowing static typing checker to analyse.
     """
 
     def minimum(self) -> int: ...
@@ -1682,7 +1692,6 @@ def install_via_pip(
     if ensurepip.returncode:
         notify_box("ensurepip failed.", RuntimeError)
         return
-        
 
     if uninstall:
         pip_cmd = [

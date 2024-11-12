@@ -1,4 +1,5 @@
 from datetime import timedelta
+
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.sensors.filesystem import FileSensor
@@ -33,9 +34,11 @@ file_sensor_task = FileSensor(
     dag=dag,
 )
 
+
 def validate_file(file_path):
     # Code to validate the file
     pass
+
 
 validate_file_task = PythonOperator(
     task_id='validate_file',
@@ -44,9 +47,11 @@ validate_file_task = PythonOperator(
     dag=dag,
 )
 
+
 def process_file(file_path):
     # Code to process the file
     pass
+
 
 process_file_task = PythonOperator(
     task_id='process_file',
@@ -55,9 +60,11 @@ process_file_task = PythonOperator(
     dag=dag,
 )
 
+
 def compile_results(md5sum):
     # Code to compile results
     pass
+
 
 compile_results_task = PythonOperator(
     task_id='compile_results',
