@@ -380,7 +380,7 @@ class TestMutant(absltest.TestCase):
         self.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
         self.mutant_score = 0.95
         self.mutant_obj = Mutant(self.mutant_info, self.wt_protein_sequence)
-        self.mutant_obj.mutations = self.mutant_info # squeeze method will get the list out of order
+        self.mutant_obj.mutations = self.mutant_info  # squeeze method will get the list out of order
         self.mutant_obj.mutant_score = self.mutant_score
 
     def test_mutant_score(self):

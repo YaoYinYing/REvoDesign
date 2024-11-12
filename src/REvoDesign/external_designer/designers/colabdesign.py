@@ -61,7 +61,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         for k in aa:
             self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5
 
-    def scorer(self, sequence: str):
+    def scorer(self, sequence: str) -> float:
         """
         Compute the score for a given sequence.
 

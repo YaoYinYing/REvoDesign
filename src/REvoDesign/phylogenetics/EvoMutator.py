@@ -1228,7 +1228,7 @@ class GREMLIN_Analyser:
                 worker_function=self.gremlin_external_scorer.scorer,
                 sequence=mutant_obj.get_mutant_sequence_single_chain(
                     chain_id=self.design_chain_id, ignore_missing=True
-                ),
+                ).sequence,
                 progress_bar=self.bus.ui.progressBar,
             )
 
