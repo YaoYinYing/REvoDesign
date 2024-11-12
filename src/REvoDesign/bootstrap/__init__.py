@@ -2,7 +2,7 @@ import os
 
 import hydra
 
-from .set_config import (WITH_DEPENDENCIES, experiment_config,
+from .set_config import (experiment_config,
                          reload_config_file, save_configuration, set_cache_dir,
                          set_REvoDesign_config_file)
 
@@ -19,7 +19,6 @@ EXPERIMENTS_CONFIG_DIR = experiment_config()
 __all__ = [
     'experiment_config',
     'set_REvoDesign_config_file',
-    'WITH_DEPENDENCIES',
     'reload_config_file',
     'set_cache_dir',
     'save_configuration',

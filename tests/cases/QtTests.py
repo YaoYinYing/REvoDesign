@@ -1551,14 +1551,15 @@ class TestREvoDesignPlugin_TabConfig:
 
         test_worker.check_existed_mutant_tree()
 
-    @patch('REvoDesign.bootstrap.set_config.WITH_DEPENDENCIES.PIPPACK', False)
+    @patch('REvoDesign.sidechain_solver.mutate_runner.PIPPack.PIPPack_worker.installed', False)
     def test_sidechain_solver_fallback_mpnn(self, test_worker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name='config')
+        from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
 
         assert (
-            REvoDesign.bootstrap.set_config.WITH_DEPENDENCIES.PIPPACK is False
+            PIPPack_worker.installed is False
         )
 
         set_widget_value(test_worker.plugin.ui.comboBox_sidechain_solver, 'PIPPack')

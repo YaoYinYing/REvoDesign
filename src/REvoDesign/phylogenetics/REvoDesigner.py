@@ -11,7 +11,6 @@ import matplotlib.pylab as plt
 
 from RosettaPy.common.mutation import RosettaPyProteinSequence,Mutation
 
-from REvoDesign import WITH_DEPENDENCIES
 from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree

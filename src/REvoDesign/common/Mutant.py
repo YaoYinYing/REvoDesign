@@ -33,7 +33,7 @@ class Mutant(RpMutant):
     @property
     def wt_sequences(self) -> RosettaPyProteinSequence:
         """
-        Retrieves a dictionary of wild-type sequences.
+        Retrieves a RosettaPyProteinSequence of wild-type sequences.
 
         This method takes no parameters and returns a dictionary where keys are sample IDs and
         values are the corresponding wild-type sequences.

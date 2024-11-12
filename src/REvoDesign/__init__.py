@@ -7,7 +7,7 @@ import gc
 # 1. import basic
 from REvoDesign.basic import SingletonAbstract
 # 2. import post install module and methods
-from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE, WITH_DEPENDENCIES,
+from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE,
                                   experiment_config, reload_config_file,
                                   save_configuration, set_cache_dir,
                                   set_REvoDesign_config_file)
@@ -34,7 +34,6 @@ __all__ = [
     'REvoDesignPlugin',
     'SingletonAbstract',
     'ConfigBus',
-    'WITH_DEPENDENCIES',
     'FileExtentions',
     'reload_config_file',
     'set_cache_dir',

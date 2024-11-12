@@ -10,7 +10,7 @@ jobs:
         type: string
         default: "3.9"
     docker:
-      - image: yaoyinying/revodesign-test-image:py<< parameters.python-version >>-2024-04-29
+      - image: yaoyinying/revodesign-test-image:py<< parameters.python-version >>-latest
     environment:
       DISPLAY: ':99.0'
     steps:

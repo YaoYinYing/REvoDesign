@@ -97,7 +97,7 @@ class PIPPack_worker(MutateRunnerAbstract):
             for mutant_obj in mutants
         ]
 
-        self.pippack_worker.batch_size = nproc
+        logging.warning(f'Nproc({nproc}) will not be used by PIPPack.')
 
         pdbs = self.pippack_worker._run_repack_batch(
             pdb_path=self.pdb_file,

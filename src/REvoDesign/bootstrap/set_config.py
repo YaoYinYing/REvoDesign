@@ -145,10 +145,3 @@ def is_package_installed(package):
     """
     package_loader = importlib.util.find_spec(package)
     return package_loader is not None
-
-
-@dataclass(frozen=True)
-class WITH_DEPENDENCIES:
-    COLABDESIGN = is_package_installed('colabdesign')
-    DLPACKER = is_package_installed('DLPacker')
-    PIPPACK = is_package_installed('pippack')
