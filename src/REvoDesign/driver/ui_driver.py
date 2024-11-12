@@ -208,7 +208,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
     def get_cfg_item(self, widget_id: str) -> str:
         # Retrieves the configuration item corresponding to a UI widget ID.
-        return self.w2c.widget_id2config_dict.get(widget_id)
+        return self.w2c.widget_id2config_dict.get(widget_id) # type: ignore
 
     def get_value(
         self,
@@ -216,7 +216,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         converter: Union[Callable, Any] = None,
         reject_none: bool = False,
         default_value: Any = None,
-    ) -> Union[Any, list[Any], dict]:
+    ):
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
 

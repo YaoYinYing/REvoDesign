@@ -2,6 +2,14 @@ import itertools
 import os
 import random
 import warnings
+try:
+    from itertools import pairwise
+except ImportError:
+    def pairwise(iterable):
+        """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
+        a, b = itertools.tee(iterable)
+        next(b, None)
+        return zip(a, b)
 
 from pymol import cmd, util
 
@@ -218,7 +226,7 @@ class MultiMutantDesigner:
                 sequence=tmp_mutant_obj.get_mutant_sequence_single_chain(
                     chain_id=self.chain_id,
                     ignore_missing=bool('X' in self.sequence),
-                )
+                ).sequence
             )
 
         for m in self.in_design_multi_design_case.all_mutant_objects:
@@ -380,7 +388,7 @@ class MultiMutantDesigner:
                     self.in_design_multi_design_case.all_mutant_objects[-2]
                 )
                 resi_second_mutant_to_the_last = (
-                    second_mutant_to_the_last.mutant_info[-1]['position']
+                    second_mutant_to_the_last.mutations[-1].position
                 )
 
                 cmd.bond(
@@ -389,12 +397,12 @@ class MultiMutantDesigner:
                 )
 
             # bond internal CAs in a multi-design mutant.
-            current_mutant_info = mutant_obj.mutant_info
+            current_mutant_info = mutant_obj.mutations
             if len(current_mutant_info) > 1:
                 positions_pairwise = [
                     x
-                    for x in itertools.pairwise(
-                        [_mut['position'] for _mut in current_mutant_info]
+                    for x in pairwise(
+                        [_mut.position for _mut in current_mutant_info]
                     )
                 ]
                 logging.info(f'Pairwised position: {positions_pairwise}')
@@ -470,7 +478,7 @@ class MultiMutantDesigner:
                 last_mutant = (
                     self.in_design_multi_design_case.all_mutant_objects[-1]
                 )
-                resi_last_mutant = last_mutant.mutant_info[-1]['position']
+                resi_last_mutant = last_mutant.mutations[-1].position
 
                 cmd.unbond(
                     atom1=f'{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA',
@@ -478,12 +486,12 @@ class MultiMutantDesigner:
                 )
 
             # bond internal CA in a multi-design mutant.
-            current_mutant_info = undo_mutant_obj.mutant_info
+            current_mutant_info = undo_mutant_obj.mutations
             if len(current_mutant_info) > 1:
                 positions_pairwise = [
                     x
-                    for x in itertools.pairwise(
-                        [_mut['position'] for _mut in current_mutant_info]
+                    for x in pairwise(
+                        [_mut.position for _mut in current_mutant_info]
                     )
                 ]
                 logging.info(f'Pairwised position: {positions_pairwise}')
@@ -617,10 +625,10 @@ class MultiMutantDesigner:
         existed_mutant_obj = self.in_design_multi_design_case.asOneMutant
 
         mutant_id = mutant.mutant_description
-        for _picked_residue in mutant.mutant_info:
+        for _picked_residue in mutant.mutations:
             if any(
-                _picked_residue["position"] == _existed_residue["position"]
-                for _existed_residue in existed_mutant_obj.mutant_info
+                _picked_residue.position == _existed_residue.position
+                for _existed_residue in existed_mutant_obj.mutations
             ):
                 logging.warning(
                     f'Mutant has residue id existed in the previous design: \n'
@@ -632,12 +640,12 @@ class MultiMutantDesigner:
                 not is_distal_residue_pair(
                     molecule=self.molecule,
                     chain_id=self.chain_id,
-                    resi_1=_picked_residue["position"],
-                    resi_2=_existed_residue["position"],
+                    resi_1=_picked_residue.position,
+                    resi_2=_existed_residue.position,
                     minimal_distance=self.minimal_distance,
                     use_sidechain_angle=self.use_sidechain_angle,
                 )
-                for _existed_residue in existed_mutant_obj.mutant_info
+                for _existed_residue in existed_mutant_obj.mutations
             ):
                 logging.warning(
                     f'Mutant has residue id not distal with one position in the previous design: \n'

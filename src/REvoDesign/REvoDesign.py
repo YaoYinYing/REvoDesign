@@ -15,6 +15,8 @@ from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.Qt.utils import getSaveFileNameWithExt
 from requests.auth import HTTPBasicAuth
 
+from RosettaPy.common.mutation import RosettaPyProteinSequence
+
 import REvoDesign
 from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
                         save_configuration, set_REvoDesign_config_file)
@@ -70,7 +72,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.bus: ConfigBus = None
 
-        self.designable_sequences = {}
+        self.designable_sequences: RosettaPyProteinSequence=None
         self.design_molecule = ''
         self.design_chain_id = ''
         self.design_sequence = ''
@@ -880,14 +882,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
             return
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
-        self.designable_sequences = {
+        self.designable_sequences = RosettaPyProteinSequence.from_dict({
             chain_id: get_molecule_sequence(
                 molecule=molecule,
                 chain_id=chain_id,
                 keep_missing=True,
             )
             for chain_id in chain_ids
-        }
+        })
         if chain_ids:
             self.bus.set_widget_value(
                 'ui.header_panel.input.chain_id', chain_ids
@@ -902,7 +904,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             a loaded designable sequences dict with another molecule
             '''
             self.bus.set_value(
-                'designable_sequences', self.designable_sequences
+                'designable_sequences', self.designable_sequences.as_dict
             )
 
         self.setup_pssm_gremlin_calculator()

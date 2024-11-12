@@ -11,6 +11,8 @@ from immutabledict import immutabledict
 from joblib import Parallel, delayed
 from pymol import CmdException, cmd
 
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
+
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import IterableLoop
 from REvoDesign.citations import CitationManager
@@ -85,10 +87,10 @@ class MutateWorker:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences: dict = self.bus.get_value(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
-        )
-        self.design_sequence: str = self.designable_sequences.get(
+        )))
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
         )
 
@@ -393,7 +395,7 @@ class ChainBinder:
     # record chain binding: distances and maximum distance to be accepted
     def bind_chains(
         self, coevolved_pairs: tuple[CoevolvedPair]
-    ) -> tuple[CoevolvedPair]:
+    ) -> Tuple[CoevolvedPair]:
         self.input_pdb = self.get_input_pdb()
 
         if not (self.chain_binding_enabled and self.chains_to_bind):
@@ -997,7 +999,7 @@ class GREMLIN_Analyser:
 
         if accept:
             logging.debug(
-                f'Accepting  co-evolved mutant {picked_gremlin_mutant_id}'
+                f'Accepting co-evolved mutant {picked_gremlin_mutant_id}'
             )
             cmd.enable(picked_gremlin_mutant_id)
 
@@ -1172,7 +1174,7 @@ class GREMLIN_Analyser:
         mut_j = self.alphabet[row]
 
         # construct this Mutant obj from scratch.
-        _mutant: List[Dict[str, Union[str, int]]] = []
+        _mutant: List[Mutation] = []
 
         for chain_id_pair in pair.homochains:
             for chain_id, mut, idx, wt in zip(
@@ -1181,12 +1183,7 @@ class GREMLIN_Analyser:
                 [pair.i_1, pair.j_1],
                 [wt_i, wt_j],
             ):
-                expected_mutant = {
-                    'chain_id': chain_id,
-                    'position': int(idx),
-                    'wt_res': wt,
-                    'mut_res': mut,
-                }
+                expected_mutant = Mutation(chain_id=chain_id,position=int(idx),wt_res=wt, mut_res=mut)
                 if expected_mutant in _mutant:
                     logging.warning(
                         f'Ignore existed mutagenese {expected_mutant}'
@@ -1213,7 +1210,7 @@ class GREMLIN_Analyser:
             )
             return
 
-        mutant_obj: Mutant = Mutant(mutant_info=_mutant)
+        mutant_obj: Mutant = Mutant(mutations=_mutant, wt_protein_sequence=RosettaPyProteinSequence(chains=[Chain]))
         mutant_obj.wt_sequences = self.designable_sequences
 
         # call scorer to evaluate wt and mutant

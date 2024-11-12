@@ -1,61 +1,20 @@
 import hashlib
 import os
 import warnings
-from dataclasses import dataclass, field
-from typing import Dict, List, Mapping, Optional, Union
+from dataclasses import dataclass
+from typing import Any, Dict, List, Mapping, TypeVar, Union
+
+from RosettaPy.common.mutation import Mutant as RpMutant,RosettaPyProteinSequence,Chain
 
 from REvoDesign import issues
 
+T = TypeVar('T')
 
 @dataclass
-class Mutant:
-    mutant_info: List[Dict[str, Union[str, int]]]
-    _mutant_score: Optional[float] = field(
-        default_factory=float
-    )  # Note the underscore, indicating "private"
-    _mutant_description: str = ''
-    _pdb_fp: str = ''
-    _mutant_id: str = ''
-    _wt_sequences: Dict[str, str] = field(default_factory=dict)
-    _wt_score: float = 0.0  # Note the underscore, indicating "private"
-
-    def __post_init__(self):
-        """
-        This method is automatically called after the initialization of the instance.
-        It validates the mutant information stored within the instance to ensure its correctness and consistency.
-
-        The `__post_init__` method is a special method in Python data classes that allows for additional
-        initialization steps after the regular `__init__` method has executed. In this case, it calls
-        the `validate_mutant_info` method which should contain the logic to validate the state of the
-        object based on the provided mutant information.
-
-        Note: No parameters are taken besides `self`, and there is no return value as it operates by modifying
-        the instance's state directly or raising exceptions if validation fails.
-        """
-        self.validate_mutant_info()
-
-    def validate_mutant_info(self):
-        """
-        Validates the structure of the mutant information.
-
-        Iterate through each mutation in the `mutant_info` list and ensure that all
-        the required keys ('chain_id', 'position', 'wt_res', 'mut_res') are present.
-        Raises a MoleculeError if any key is missing.
-
-        Args:
-            self: An instance of the class containing the `mutant_info` attribute, which is a list of
-            dictionaries representing mutations.
-
-        Raises:
-            issues.MoleculeError: If any dictionary in `mutant_info` is missing one or more of the required keys.
-        """
-        for mutation in self.mutant_info:
-            required_keys = ['chain_id', 'position', 'wt_res', 'mut_res']
-            if not all(key in mutation for key in required_keys):
-                raise issues.MoleculeError("Missing keys in mutant_info.")
+class Mutant(RpMutant):
 
     def __str__(self):
-        return f"Mutant Info: {self.mutant_info}, Mutant Score: {self.mutant_score}"
+        return f"Mutant Info: {self.mutations}, Mutant Score: {self.mutant_score}"
 
     @property
     def empty(self) -> bool:
@@ -69,10 +28,10 @@ class Mutant:
             bool: Returns True if the object is empty; False otherwise.
         """
         # Evaluates if `mutant_info` is empty, returning True if so, and False otherwise.
-        return not bool(self.mutant_info)
+        return not bool(self.mutations)
 
     @property
-    def wt_sequences(self) -> Dict[str, str]:
+    def wt_sequences(self) -> RosettaPyProteinSequence:
         """
         Retrieves a dictionary of wild-type sequences.
 
@@ -82,10 +41,10 @@ class Mutant:
         :return: A dictionary with string keys representing sample IDs and string values representing
         the wild-type sequences.
         """
-        return self._wt_sequences
+        return self.wt_protein_sequence
 
     @wt_sequences.setter
-    def wt_sequences(self, new_wt_sequences: Mapping[str, str]):
+    def wt_sequences(self, new_wt_sequences: Union[Mapping[str, str], RosettaPyProteinSequence]):
         """
         Updates or sets the object's wild-type sequences.
 
@@ -101,10 +60,10 @@ class Mutant:
             OverridesWarning: If `new_wt_sequences` is not a `dict`, it will be converted to one.
 
         """
-        if not isinstance(new_wt_sequences, Mapping):
-            raise issues.InvalidInputError(
-                f'new_wt_sequences must be a Dict, not {type(new_wt_sequences)=}!'
-            )
+        if isinstance(new_wt_sequences, RosettaPyProteinSequence ):
+            self.wt_sequences = new_wt_sequences
+            return
+
         if not isinstance(new_wt_sequences, Dict):
             warnings.warn(
                 issues.OverridesWarning(
@@ -112,7 +71,7 @@ class Mutant:
                 )
             )
             new_wt_sequences = dict(new_wt_sequences)
-        self._wt_sequences = new_wt_sequences
+        self._wt_sequences = RosettaPyProteinSequence(chains=[Chain(chain_id=c,sequence=s) for c,s in new_wt_sequences.items()])
 
     @property
     def mutant_description(self) -> str:
@@ -125,6 +84,7 @@ class Mutant:
         Return:
             str: The description of the mutant as a string.
         """
+        return self._mutant_description
 
     @mutant_description.setter
     def mutant_description(self, new_description: str):
@@ -192,8 +152,8 @@ class Mutant:
         """
         _raw_mutant_id = '_'.join(
             [
-                f'{mutant["chain_id"]}{mutant["wt_res"]}{mutant["position"]}{mutant["mut_res"]}'
-                for mutant in self.mutant_info
+                f'{mutant.chain_id}{mutant.wt_res}{mutant.position}{mutant.mut_res}'
+                for mutant in self.mutations
             ]
         )
         return _raw_mutant_id
@@ -246,11 +206,11 @@ class Mutant:
         """
         Set the wild-type score to a new value.
         """
-        self._wt_score = value
+        self._wt_score = float(value)
 
     def get_mutant_sequence_single_chain(
         self, chain_id: str, ignore_missing=False
-    ) -> str:
+    ) -> Chain:
         """
         Generates a mutated sequence for a single chain based on the provided chain ID and mutation information.
 
@@ -269,33 +229,33 @@ class Mutant:
 
         Note: If `ignore_missing` is True, any 'X' residues in the sequence will be removed.
         """
-        if chain_id not in self.wt_sequences:
+        if chain_id not in self.wt_sequences.all_chain_ids:
             raise issues.InvalidInputError(
                 f'Chain {chain_id} does not exist in wt sequence.'
             )
 
-        wt_sequence = self.wt_sequences[chain_id]
-        if not self.mutant_info or not wt_sequence:
+        wt_sequence = self.wt_sequences.get_sequence_by_chain(chain_id)
+        if not self.mutations or not wt_sequence:
             raise issues.InvalidInputError(
                 "No available mutant information or WT sequence is empty."
             )
 
         sequence = list(wt_sequence)
-        for mutant in self.mutant_info:
-            if mutant['chain_id'] != chain_id:
+        for mutant in self.mutations:
+            if mutant.chain_id != chain_id:
                 continue
-            pos = int(mutant['position'])
+            pos = int(mutant.position)
             if pos > (len_seq := len(sequence)):
                 raise issues.MoleculeError(
                     f"Position {pos} out of sequence range ({len_seq})."
                 )
             if (wt_res_in_seq := sequence[pos - 1]) != (
-                wt_res_in_mut := mutant['wt_res']
+                wt_res_in_mut := mutant.wt_res
             ):
                 raise issues.MoleculeError(
                     f"WT residue at position {pos} does not match mutant info: {wt_res_in_seq=} - {wt_res_in_mut=}."
                 )
-            sequence[pos - 1] = mutant['mut_res']
+            sequence[pos - 1] = mutant.mut_res
 
         if ignore_missing:
             while True:
@@ -303,10 +263,10 @@ class Mutant:
                     break
                 sequence.remove('X')
 
-        return ''.join(sequence)
+        return Chain(chain_id=chain_id, sequence=''.join(sequence))
 
     @property
-    def mutant_sequences(self) -> dict[str, str]:
+    def mutant_sequences(self) -> RosettaPyProteinSequence:
         """
         Generates a dictionary of mutant sequences for each chain.
 
@@ -316,7 +276,5 @@ class Mutant:
         Returns:
             dict[str, str]: A dictionary where keys are chain IDs and values are the corresponding mutated sequences.
         """
-        return {
-            chain: self.get_mutant_sequence_single_chain(chain_id=chain)
-            for chain in self.wt_sequences.keys()
-        }
+        return RosettaPyProteinSequence(chains=[self.get_mutant_sequence_single_chain(chain_id=chain) for chain in self.wt_protein_sequence.all_chain_ids])
+

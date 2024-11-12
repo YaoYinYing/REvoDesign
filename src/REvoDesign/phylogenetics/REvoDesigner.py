@@ -9,6 +9,8 @@ import time
 import matplotlib
 import matplotlib.pylab as plt
 
+from RosettaPy.common.mutation import RosettaPyProteinSequence,Mutation
+
 from REvoDesign import WITH_DEPENDENCIES
 from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
@@ -35,7 +37,7 @@ class REvoDesigner:
         self.input_pse = ''
         self.output_pse = ''
         self.molecule = ''
-        self.designable_sequences: dict[str, str] = {}
+        self.designable_sequences: RosettaPyProteinSequence
         self.chain_id = 'A'
 
         self.input_profile = input_profile
@@ -66,7 +68,7 @@ class REvoDesigner:
         self.nproc = 1
         self.max_abs_profile = 0
         self.create_full_pdb = False
-        self.mutant_tree = None
+        self.mutant_tree: MutantTree = None
 
         self.mutagenesis_tasks = []
 
@@ -448,13 +450,13 @@ class REvoDesigner:
         counter_2 = collections.Counter(seqs)
 
         for seq, score in zip(seqs, scores):
-            mutant_obj: Mutant = extract_mutant_from_sequences(
+            mutant_obj = extract_mutant_from_sequences(
                 mutant_sequence=seq,
                 chain_id=self.chain_id,
-                wt_sequence=self.sequence,
+                wt_sequences=self.designable_sequences,
                 fix_missing=bool('X' in self.sequence),
             )
-            if not mutant_obj:
+            if mutant_obj is None:
                 logging.warning('Skipped.')
                 continue
             if counter_2.get(seq) > 1:
@@ -482,7 +484,7 @@ class REvoDesigner:
         logging.debug(f'MutantTree: {str(self.mutant_tree)}')
 
         self.mutant_tree.run_mutate_parallel(
-            mutate_runner=self.mutate_runner, n_jobs=self.nproc
+            mutate_runner=self.mutate_runner, nproc=self.nproc
         )
 
         if not self.visualizer:
@@ -592,7 +594,6 @@ class REvoDesigner:
             self.external_designer
             or self.input_profile_format in EXTERNAL_DESIGNERS
         ):
-            assert not self.mutant_tree.empty
             score_list = [
                 mut_obj.mutant_score
                 for mut_obj in self.mutant_tree.all_mutant_objects
@@ -671,20 +672,10 @@ class REvoDesigner:
             }
 
             for mut_res, mut_score in candidates.items():
-                mutant_obj = Mutant(
-                    mutant_info=[
-                        {
-                            'chain_id': self.chain_id,
-                            'position': int(position),
-                            'wt_res': wt_res,
-                            'mut_res': mut_res,
-                        }
-                    ]
-                )
+                mutant_obj = Mutant(mutations=[Mutation(chain_id=self.chain_id, position=int(position),wt_res=wt_res, mut_res=mut_res)], wt_protein_sequence=self.designable_sequences)
                 mutant_obj.mutant_score = float(mut_score)
-                mutant_obj.wt_sequences = {self.chain_id: self.sequence}
-
                 mutant_obj.wt_score = float(wt_score)
+                
                 self.mutagenesis_tasks.append([mutant_obj])
                 self.mutant_tree.add_mutant_to_branch(
                     branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.wt_score)}",

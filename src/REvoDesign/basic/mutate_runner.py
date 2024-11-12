@@ -37,7 +37,7 @@ class MutateRunnerAbstract(CitableModules):
         return temp_dir
 
     @staticmethod
-    def mutated_pdb_mapping(mutants: MutantTree, pdb_fps: List[str]):
+    def mutated_pdb_mapping(mutants: MutantTree, pdb_fps: List[str])->MutantTree:
         if mutants.mutant_num != len(pdb_fps):
             raise RuntimeError(f"Mutant number does not match pdb_fps: {mutants.mutant_num=} != {len(pdb_fps)=}")
 
@@ -58,9 +58,9 @@ class MutateRunnerAbstract(CitableModules):
         raise NotImplementedError("This tool does not support reconstruction.")
 
     @abstractmethod
-    def run_mutate(self, mutant: Mutant):
+    def run_mutate(self, mutant: Mutant) -> str:
         """
-        Perform mutation on the protein.
+        Perform mutation on the protein and return the PDB path
 
         Args:
             mutant: An object or data structure representing the mutation.
@@ -72,11 +72,11 @@ class MutateRunnerAbstract(CitableModules):
     @abstractmethod
     def run_mutate_parallel(
         self,
-        mutants: list[Mutant],
+        mutants: List[Mutant],
         nproc: int = 2,
-    ):
+    ) -> List[str]:
         """
-        Perform mutation on the protein in parallel.
+        Perform mutation on the protein in parallel and return the PDB paths
 
         Args:
             nproc: Nproc

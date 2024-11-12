@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
@@ -37,12 +38,12 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         self.temp_dir = self.new_cache_dir
 
-    def run_mutate(self, mutant_obj: Mutant, **kwargs) -> str:
+    def run_mutate(self, mutant: Mutant) -> str:
         """
         Run mutation on the molecule using PyMOL.
 
         Args:
-        - mutant_obj: Object containing mutation information
+        - mutant: Object containing mutation information
 
         A standalone instance of PyMOL will perform a series of work:
         1. reinitialize workspace (session)
@@ -59,8 +60,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
         import pymol2
 
-        new_obj_name = mutant_obj.short_mutant_id
-        logging.debug(f'Mutating {mutant_obj=}')
+        new_obj_name = mutant.short_mutant_id
+        logging.debug(f'Mutating {mutant=}')
 
         temp_mutant_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
@@ -76,13 +77,11 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
             p.cmd.delete(self.molecule)
 
-            for mut_info in mutant_obj.mutant_info:
-                chain_id = mut_info['chain_id']
-                position = mut_info['position']
-                new_residue = mut_info['mut_res']
+            for mut_info in mutant.mutations:
+
 
                 new_residue_3 = IUPACData.protein_letters_1to3[
-                    new_residue
+                    mut_info.mut_res
                 ].upper()
 
                 # a variant from rotkit mutate function that uses pymol2 context manager
@@ -92,11 +91,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 # cmd.do("refresh_wizard")
                 p.cmd.refresh_wizard()
                 p.cmd.get_wizard().set_mode("%s" % target)
-                p.selection = "/{}//{}/{}".format(
-                    new_obj_name,
-                    chain_id,
-                    position,
-                )
+                p.selection = f"/{new_obj_name}//{mut_info.chain_id}/{mut_info.position}" # type: ignore
                 p.cmd.get_wizard().do_select(p.selection)
                 p.cmd.frame("1")
                 p.cmd.get_wizard().apply()
@@ -107,24 +102,24 @@ class PyMOL_mutate(MutateRunnerAbstract):
         return temp_mutant_path
 
     def run_mutate_parallel(
-        self, mutants: list[Mutant], n_jobs: int = 2, **kwargs
-    ):
+        self, mutants: List[Mutant], nproc: int = 2
+    )-> List[str]:
         """
         Perform mutation on the protein in parallel.
 
         Args:
         - mutants: List of Mutant objects containing mutation information
-        - n_jobs: Number of parallel jobs to run (default: -1, which means using all available cores)
+        - nproc: Number of parallel jobs to run (default: -1, which means using all available cores)
         - **kwargs: Additional keyword arguments to pass to the run_mutate method
 
         Returns:
         - List of paths to the mutated PDB files
         """
 
-        results = Parallel(n_jobs=n_jobs)(
+        results = Parallel(n_jobs=nproc)(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
-        return results
+        return list[results] # type: ignore
 
     # https://www.bruot.org/ris2bib/
     __bibtex__ = {

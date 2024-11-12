@@ -1,5 +1,5 @@
 import os
-from typing import Tuple
+from typing import List, Tuple
 
 from REvoDesign import reload_config_file, set_cache_dir
 from REvoDesign.basic import MutateRunnerAbstract
@@ -27,7 +27,7 @@ class PIPPack_worker(MutateRunnerAbstract):
 
     def __init__(self, pdb_file: str, use_model='ensemble', **kwargs):
         """
-        Initialize DLPacker_worker with a PDB file.
+        Initialize PIPPack with a PDB file.
 
         Args:
         - pdb_file: Path to the PDB file
@@ -65,19 +65,18 @@ class PIPPack_worker(MutateRunnerAbstract):
 
     def run_mutate(
         self,
-        mutant_obj: Mutant,
-        **kwargs,
-    ):
-        logging.debug(f'Mutating {mutant_obj=}')
-        new_obj_name = mutant_obj.short_mutant_id
+        mutant: Mutant,
+    )-> str:
+        logging.debug(f'Mutating {mutant=}')
+        new_obj_name = mutant.short_mutant_id
 
         mutant_sequence = [
             [
-                seq.replace('X', '')
-                for seq in mutant_obj.mutant_sequences.values()
+                chain.sequence.replace('X', '')
+                for chain in mutant.mutant_sequences.chains
             ]
         ]
-        logging.debug(f'Mutated: {mutant_obj.mutant_sequences}')
+        logging.debug(f'Mutated: {mutant.mutant_sequences}')
 
         temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
@@ -89,14 +88,16 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         return temp_pdb_path
 
-    def run_mutate_parallel(self, mutants: list[Mutant], *args, **kwargs):
+    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int=2) -> List[str]:
         mutant_sequences = [
             [
-                seq.replace('X', '')
-                for seq in mutant_obj.mutant_sequences.values()
+                chain.sequence.replace('X', '')
+                for chain in mutant_obj.mutant_sequences.chains
             ]
             for mutant_obj in mutants
         ]
+
+        self.pippack_worker.batch_size = nproc
 
         pdbs = self.pippack_worker._run_repack_batch(
             pdb_path=self.pdb_file,

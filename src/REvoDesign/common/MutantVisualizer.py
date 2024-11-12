@@ -7,6 +7,8 @@ import matplotlib
 import pandas as pd
 from Bio import SeqIO
 
+from RosettaPy.common.mutation import RosettaPyProteinSequence
+
 from REvoDesign import issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
@@ -24,7 +26,7 @@ class MutantVisualizer:
     def __init__(self, molecule, chain_id):
         self.molecule = molecule
         self.chain_id = chain_id
-        self.designable_sequences: dict[str, str] = {}
+        self.designable_sequences: RosettaPyProteinSequence
         self.mutfile = ''
         self.input_session = ''
         self.save_session = None
@@ -109,8 +111,8 @@ class MutantVisualizer:
         )
 
         mut_pos = [
-            f'(c. {mut_info["chain_id"]} and i. {str(mut_info["position"])})'
-            for mut_info in mutant_obj.mutant_info
+            f'(c. {mut_info.chain_id} and i. {str(mut_info.position)})'
+            for mut_info in mutant_obj.mutations
         ]
 
         if not self.mutate_runner:
@@ -119,7 +121,7 @@ class MutantVisualizer:
         # use precomputed pdb if it exists. otherwise run the runner to get one.
         if not (temp_mutant_pdb_path := mutant_obj.pdb_fp):
             temp_mutant_pdb_path = self.mutate_runner.run_mutate(
-                mutant_obj=mutant_obj,
+                mutant=mutant_obj,
             )
             mutant_obj.pdb_fp = temp_mutant_pdb_path
 
@@ -250,7 +252,7 @@ class MutantVisualizer:
             _mutation_objs = [
                 extract_mutant_from_sequences(
                     mutant_sequence=str(mut_record.seq),
-                    wt_sequence=self.sequence,
+                    wt_sequences=self.designable_sequences,
                     chain_id=self.chain_id,
                 )
                 for mut_record in SeqIO.parse(
@@ -258,13 +260,11 @@ class MutantVisualizer:
                 )
             ]
 
-            # Remove None items
-            while None in mutation_data:
-                _mutation_objs.pop(None)
+
             mutation_data = pd.DataFrame.from_dict(
                 {
                     self.key_col: [
-                        mut_obj.short_mutant_id for mut_obj in _mutation_objs
+                        mut_obj.short_mutant_id for mut_obj in _mutation_objs if mut_obj is not None
                     ]
                 }
             )
@@ -297,7 +297,7 @@ class MutantVisualizer:
             if variant_obj.empty:
                 continue
 
-            _variant_info = variant_obj.mutant_info
+            _variant_info = variant_obj.mutations
 
             variant_obj.wt_sequences = self.designable_sequences
 
@@ -307,7 +307,7 @@ class MutantVisualizer:
                     chain_id=self.chain_id, ignore_missing=True
                 )
 
-                _score = self.scorer.scorer(sequence=_sequence)
+                _score = self.scorer.scorer(sequence=_sequence.sequence)
                 logging.debug(
                     f'Reading profile score for scorcer {type(self.scorer)}: {_score}'
                 )
@@ -320,8 +320,8 @@ class MutantVisualizer:
                 and (not self.profile_scoring_df.empty)
             ):
                 _score = self.profile_scoring_df.loc[
-                    _variant_info[0]['mut_res'],
-                    str(int(_variant_info[0]['position']) - 1),
+                    _variant_info[0].mut_res,
+                    str(_variant_info[0].position - 1),
                 ]
                 logging.warning(
                     f'Reading profile score for variant {variant_obj.short_mutant_id}: {_score}'
@@ -333,7 +333,7 @@ class MutantVisualizer:
                     f'Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}'
                 )
 
-            variant_obj.mutant_score = float(_score)
+            variant_obj.mutant_score = float(_score) # type: ignore
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,
                 mutant=variant_obj.short_mutant_id,
@@ -392,7 +392,7 @@ class MutantVisualizer:
 
             self.mutant_tree.run_mutate_parallel(
                 mutate_runner=self.mutate_runner,
-                n_jobs=self.nproc,
+                nproc=self.nproc, # type: ignore
             )
 
         self.mutagenesis_sessions = []

@@ -4,6 +4,7 @@ import os
 from ...bootstrap.set_config import is_package_installed
 
 from ...basic import ExternalDesignerAbstract
+from ...tools.pymol_utils import make_temperal_input_pdb
 
 
 # Designer wrapper to ColabDesign MPNN
@@ -13,8 +14,9 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
 
 
     def __init__(self, molecule):
+        from colabdesign.mpnn import mk_mpnn_model
         self.pdb_filename = None
-        self.mpnn_model = None
+        self.mpnn_model:mk_mpnn_model = None # type: ignore
         self.initialized = False
         self.molecule = molecule
         self.reload = False
@@ -32,7 +34,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         """
         from colabdesign.mpnn import mk_mpnn_model
 
-        from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
+        
 
         self.pdb_filename = make_temperal_input_pdb(
             molecule=self.molecule, reload=self.reload
@@ -63,7 +65,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         for k in aa:
             self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5
 
-    def scorer(self, sequence):
+    def scorer(self, sequence: str):
         """
         Compute the score for a given sequence.
 
