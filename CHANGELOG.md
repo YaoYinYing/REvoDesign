@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `LanguageSwitch`: now auto registered without hard coding in UI
 - Configuration YAML file: `user_data_dir` by default.
 - Cache dir: `user_cache_dir` by default.
+- CircleCI: upgrade docker image as `latest`
 
 ### Fixed
 
