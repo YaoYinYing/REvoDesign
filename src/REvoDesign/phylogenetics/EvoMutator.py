@@ -246,10 +246,12 @@ class VisualizingWorker:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences: dict = self.bus.get_value(
+        self.designable_sequences=RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
-        )
-        self.design_sequence: str = self.designable_sequences.get(
+        )))
+
+
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
         )
 
@@ -445,7 +447,7 @@ class GREMLIN_Analyser:
         # Check if the instance has already been initialized
 
         self.bus: ConfigBus = ConfigBus()
-        self.alphabet: str = None
+        self.alphabet: str = None # type: ignore
 
         self.PWD: str = self.bus.get_value('work_dir', str)
         self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
@@ -457,9 +459,9 @@ class GREMLIN_Analyser:
             'ui.header_panel.input.chain_id'
         )
         self.designable_sequences= RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
-            'designable_sequences', dict
+            'designable_sequences'
         )))
-        self.design_sequence: str = self.designable_sequences.get(
+        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
         )
         self.ce_object_group_valid: str = None
