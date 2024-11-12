@@ -30,49 +30,7 @@ class Mutant(RpMutant):
         # Evaluates if `mutant_info` is empty, returning True if so, and False otherwise.
         return not bool(self.mutations)
 
-    @property
-    def wt_sequences(self) -> RosettaPyProteinSequence:
-        """
-        Retrieves a RosettaPyProteinSequence of wild-type sequences.
-
-        This method takes no parameters and returns a dictionary where keys are sample IDs and
-        values are the corresponding wild-type sequences.
-
-        :return: A dictionary with string keys representing sample IDs and string values representing
-        the wild-type sequences.
-        """
-        return self.wt_protein_sequence
-
-    @wt_sequences.setter
-    def wt_sequences(self, new_wt_sequences: Union[Mapping[str, str], RosettaPyProteinSequence]):
-        """
-        Updates or sets the object's wild-type sequences.
-
-        This method allows users to provide a mapping (dictionary) of sequence identifiers to their
-        corresponding wild-type sequences.
-
-        Args:
-            new_wt_sequences (Mapping[str, str]): A dictionary where keys are sequence identifiers and
-            values are the wild-type sequences.
-
-        Raises:
-            InvalidInputError: If `new_wt_sequences` is not a `dict`.
-            OverridesWarning: If `new_wt_sequences` is not a `dict`, it will be converted to one.
-
-        """
-        if isinstance(new_wt_sequences, RosettaPyProteinSequence ):
-            self.wt_sequences = new_wt_sequences
-            return
-
-        if not isinstance(new_wt_sequences, Dict):
-            warnings.warn(
-                issues.OverridesWarning(
-                    f'{type(new_wt_sequences)=} is converted as a Dict'
-                )
-            )
-            new_wt_sequences = dict(new_wt_sequences)
-        self._wt_sequences = RosettaPyProteinSequence(chains=[Chain(chain_id=c,sequence=s) for c,s in new_wt_sequences.items()])
-
+    
     @property
     def mutant_description(self) -> str:
         """
@@ -229,12 +187,12 @@ class Mutant(RpMutant):
 
         Note: If `ignore_missing` is True, any 'X' residues in the sequence will be removed.
         """
-        if chain_id not in self.wt_sequences.all_chain_ids:
+        if chain_id not in self.wt_protein_sequence.all_chain_ids:
             raise issues.InvalidInputError(
                 f'Chain {chain_id} does not exist in wt sequence.'
             )
 
-        wt_sequence = self.wt_sequences.get_sequence_by_chain(chain_id)
+        wt_sequence = self.wt_protein_sequence.get_sequence_by_chain(chain_id)
         if not self.mutations or not wt_sequence:
             raise issues.InvalidInputError(
                 "No available mutant information or WT sequence is empty."

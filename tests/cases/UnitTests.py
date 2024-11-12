@@ -419,13 +419,13 @@ class TestMutant(absltest.TestCase):
 
 
     def test_mutant_sequence_mismatch(self):
-        self.mutant_obj.wt_sequences = {"A": "MABCDEFGHIJKLMNO"}
+        self.mutant_obj.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHIJKLMNO"})
         self.mutant_obj.mutations = [Mutation(chain_id="A", position=10, wt_res="Q", mut_res="L")]
         with self.assertRaises(ValueError):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id="A")
 
     def test_mutant_sequence_short(self):
-        self.mutant_obj.wt_sequences = {"A": "MABCDEFGHIJKLMNO"}
+        self.mutant_obj.wt_protein_sequence =RosettaPyProteinSequence.from_dict( {"A": "MABCDEFGHIJKLMNO"})
         self.mutant_obj.mutations = [Mutation(chain_id="A", position=30, wt_res="Q", mut_res="L")]
         with self.assertRaises(ValueError):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id="A")

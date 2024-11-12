@@ -299,7 +299,7 @@ class MutantVisualizer:
 
             _variant_info = variant_obj.mutations
 
-            variant_obj.wt_sequences = self.designable_sequences
+            variant_obj.wt_protein_sequence = self.designable_sequences
 
             # external scorer stays highest priority.
             if self.scorer:

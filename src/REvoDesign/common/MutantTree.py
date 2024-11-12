@@ -566,7 +566,7 @@ class MutantTree:
                 for _mut_obj in self.all_mutant_objects
                 for _mut_info in _mut_obj.mutations
             ]),
-            wt_protein_sequence = self.all_mutant_objects[0].wt_sequences
+            wt_protein_sequence = self.all_mutant_objects[0].wt_protein_sequence
         )
         return tmp_mutant_obj
 

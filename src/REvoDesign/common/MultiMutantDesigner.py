@@ -155,7 +155,7 @@ class MultiMutantDesigner:
         else:
             # color via scorer
             for mut_obj in self.all_design_multi_design_mutant_object:
-                mut_obj.wt_sequences = self.designable_sequences
+                mut_obj.wt_protein_sequence = self.designable_sequences
                 if mut_obj.mutant_score:
                     continue
 
@@ -214,7 +214,7 @@ class MultiMutantDesigner:
         """
         tmp_mutant_obj = self.in_design_multi_design_case.asOneMutant
         tmp_mutant_obj.mutant_score = 0.0
-        tmp_mutant_obj.wt_sequences = self.designable_sequences
+        tmp_mutant_obj.wt_protein_sequence = self.designable_sequences
 
         if not self.external_scorer:
             warnings.warn(
