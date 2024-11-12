@@ -18,7 +18,7 @@ import pickle
 import traceback
 import warnings
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Optional
 
 import matplotlib
 import matplotlib.pylab as plt
@@ -342,7 +342,7 @@ class GREMLIN_Tools(CitableModules):
 
     def plot_w(
         self, i: int, j: int, i_aa: str, j_aa: str, idx: int = 0
-    ) -> CoevolvedPair:
+    ) -> Optional[CoevolvedPair]:
         # mark if the df should be transposed
         transposed = True
 

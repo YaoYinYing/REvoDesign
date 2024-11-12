@@ -456,9 +456,9 @@ class GREMLIN_Analyser:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences: dict = self.bus.get_value(
+        self.designable_sequences= RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences', dict
-        )
+        )))
         self.design_sequence: str = self.designable_sequences.get(
             self.design_chain_id
         )
@@ -1210,8 +1210,7 @@ class GREMLIN_Analyser:
             )
             return
 
-        mutant_obj: Mutant = Mutant(mutations=_mutant, wt_protein_sequence=RosettaPyProteinSequence(chains=[Chain]))
-        mutant_obj.wt_sequences = self.designable_sequences
+        mutant_obj = Mutant(mutations=_mutant, wt_protein_sequence=self.designable_sequences)
 
         # call scorer to evaluate wt and mutant
         if not self.gremlin_external_scorer:

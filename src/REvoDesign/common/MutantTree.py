@@ -11,7 +11,7 @@ class MutateRunner(Protocol):
         ...
 
     def mutated_pdb_mapping(
-        self, mutants: 'MutantTree', pdb_fps: List[str]
+        self, mutant_tree: 'MutantTree', pdb_fps: List[str]
     ) -> 'MutantTree':
         ...
 
@@ -579,6 +579,6 @@ class MutantTree:
             )
 
         self = mutate_runner.mutated_pdb_mapping(
-            mutants=self, pdb_fps=all_mutants_pdb_fp
+            mutant_tree=self, pdb_fps=all_mutants_pdb_fp
         )
         mutate_runner.cite()

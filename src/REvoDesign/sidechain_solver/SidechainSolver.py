@@ -94,7 +94,7 @@ class SidechainSolver(SingletonAbstract):
         if not hasattr(self, 'initialized'):
             # If not, set the instance attributes
             self.bus: ConfigBus = ConfigBus()
-            self.mutate_runner: Optional[MutateRunnerAbstract] = None
+            self.mutate_runner: MutateRunnerAbstract = None # type: ignore
             self.runner_manager = MutateRunnerManager()
             self.cfg: SidechainSolverConfig = self.get_config()
             # Mark the instance as initialized to prevent reinitialization

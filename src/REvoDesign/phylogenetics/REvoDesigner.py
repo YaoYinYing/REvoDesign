@@ -305,14 +305,6 @@ class REvoDesigner:
             )
             return
 
-        # help msg if MPNN is called yet not installed.
-        if self.input_profile_format == 'ProteinMPNN':
-            if not WITH_DEPENDENCIES.COLABDESIGN:
-                logging.error(
-                    'ColabDesign is not available. Please install it manually then restart pymol for taking effort.'
-                    '`system pip -q install git+https://github.com/sokrypton/ColabDesign.git@v1.1.1`'
-                )
-                return
 
         # expand design residue index
         expanded_custom_indices = expand_range(
@@ -694,7 +686,7 @@ class REvoDesigner:
             return
 
         self.mutant_tree.run_mutate_parallel(
-            mutate_runner=self.mutate_runner, n_jobs=self.nproc
+            mutate_runner=self.mutate_runner, nproc=self.nproc
         )
 
         self.results = []

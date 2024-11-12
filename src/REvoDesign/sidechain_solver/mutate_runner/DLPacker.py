@@ -201,7 +201,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             logging.warning(f"Fixed {nproc=} to {num_task=}")
             nproc = num_task
 
-        results = Parallel(n_jobs=nproc)(
+        results = Parallel(n_jobs=nproc, return_as='list')(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
 

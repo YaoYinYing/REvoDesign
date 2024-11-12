@@ -116,10 +116,10 @@ class PyMOL_mutate(MutateRunnerAbstract):
         - List of paths to the mutated PDB files
         """
 
-        results = Parallel(n_jobs=nproc)(
+        results = Parallel(n_jobs=nproc, return_as='list')(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
-        return list[results] # type: ignore
+        return list(results) # type: ignore
 
     # https://www.bruot.org/ris2bib/
     __bibtex__ = {

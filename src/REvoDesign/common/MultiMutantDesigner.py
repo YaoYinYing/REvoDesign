@@ -13,6 +13,8 @@ except ImportError:
 
 from pymol import cmd, util
 
+from RosettaPy.common.mutation import RosettaPyProteinSequence
+
 from REvoDesign import ConfigBus, issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
@@ -45,12 +47,12 @@ class MultiMutantDesigner:
 
     def refresh_options(self):
         # bootstrap options
-        self.molecule = self.bus.get_value('ui.header_panel.input.molecule')
-        self.chain_id = self.bus.get_value('ui.header_panel.input.chain_id')
-        self.designable_sequences: dict = self.bus.get_value(
+        self.molecule = str(self.bus.get_value('ui.header_panel.input.molecule'))
+        self.chain_id = str(self.bus.get_value('ui.header_panel.input.chain_id'))
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
-        )
-        self.sequence: str = self.designable_sequences.get(self.chain_id)
+        )))
+        self.sequence: str = self.designable_sequences.get_sequence_by_chain(self.chain_id)
 
         self.cmap = self.bus.get_value('ui.header_panel.cmap.default')
         self.external_scorer_reversed_score = self.bus.get_value(
@@ -161,7 +163,7 @@ class MultiMutantDesigner:
                     sequence=mut_obj.get_mutant_sequence_single_chain(
                         chain_id=self.chain_id,
                         ignore_missing=bool('X' in self.sequence),
-                    )
+                    ).sequence
                 )
 
             all_scores = [
@@ -370,7 +372,7 @@ class MultiMutantDesigner:
         mutant_id = self.in_design_multi_design_case.all_mutant_ids[-1]
         mutant_obj = self.in_design_multi_design_case.all_mutant_objects[-1]
 
-        resi_last_mutant = mutant_obj.mutant_info[0]['position']
+        resi_last_mutant = mutant_obj.mutations[0].position
         cmd.set(
             'sphere_scale',
             0.4,
@@ -465,7 +467,7 @@ class MultiMutantDesigner:
 
         # recover the whole mutant tree, as the deleted branch might be used in the future.
         self.design_pool_tree_copy = self.design_pool_tree.__deepcopy__
-        resi_undo_mutant = undo_mutant_obj.mutant_info[0]['position']
+        resi_undo_mutant = undo_mutant_obj.mutations[0].position
 
         cmd.hide(
             'sphere',
@@ -582,7 +584,7 @@ class MultiMutantDesigner:
 
         os.makedirs(os.path.dirname(self.save_mutant_table), exist_ok=True)
 
-        with open(self.save_mutant_table, 'w') as f:
+        with open(self.save_mutant_table, 'w', encoding='utf8') as f:
             f.write('\n'.join(mutant_list))
 
     def _select_random_mutant(self) -> tuple[str, tuple[str, Mutant]]:
