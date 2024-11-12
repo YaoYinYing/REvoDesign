@@ -1,13 +1,14 @@
-from typing import Iterable, List, Mapping, Optional, Protocol, Tuple, Union
+from typing import List, Mapping, Optional, Protocol, Tuple, Union
 
-from RosettaPy.utils.tools import squeeze
 from joblib_progress import joblib_progress
-from REvoDesign.common.Mutant import Mutant
+from RosettaPy.utils.tools import squeeze
+
 from REvoDesign import issues
+from REvoDesign.common.Mutant import Mutant
 
 
 class MutateRunner(Protocol):
-    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int=2) -> List[str]:
+    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int = 2) -> List[str]:
         ...
 
     def mutated_pdb_mapping(
@@ -239,7 +240,7 @@ class MutantTree:
         tree.update_tree_with_new_branches({'new_branch': {'mutant1': info1, 'mutant2': info2}})
         """
         if isinstance(new_branches, Mapping):
-            
+
             for branch, leaves in new_branches.items():
                 if branch not in self.all_mutant_branch_ids:
                     self.mutant_tree[branch] = leaves
@@ -379,7 +380,7 @@ class MutantTree:
         ) = self._walk_the_mutants(walk_forward=walf_forward)
 
     # internal function that returns instead of changes the current stored values
-    def _walk_the_mutants(self, walk_forward: bool = True) -> Tuple[int,int]:
+    def _walk_the_mutants(self, walk_forward: bool = True) -> Tuple[int, int]:
         # store the last one
         last_branch_id = self.current_branch_id
         last_mutant_id = self.current_mutant_id
@@ -558,20 +559,18 @@ class MutantTree:
         mutants in the tree. It combines the mutant info of all mutants into one.
         """
 
-        
-
         tmp_mutant_obj = Mutant(
             mutations=squeeze([
                 _mut_info
                 for _mut_obj in self.all_mutant_objects
                 for _mut_info in _mut_obj.mutations
             ]),
-            wt_protein_sequence = self.all_mutant_objects[0].wt_protein_sequence
+            wt_protein_sequence=self.all_mutant_objects[0].wt_protein_sequence
         )
         return tmp_mutant_obj
 
     def run_mutate_parallel(
-        self, mutate_runner: MutateRunner, nproc: int=2,
+        self, mutate_runner: MutateRunner, nproc: int = 2,
     ) -> None:
         with joblib_progress("Packing ...", total=len(self.all_mutant_objects)):
             all_mutants_pdb_fp = mutate_runner.run_mutate_parallel(

@@ -1556,7 +1556,8 @@ class TestREvoDesignPlugin_TabConfig:
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name='config')
-        from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
+        from REvoDesign.sidechain_solver.mutate_runner.PIPPack import \
+            PIPPack_worker
 
         assert (
             PIPPack_worker.installed is False

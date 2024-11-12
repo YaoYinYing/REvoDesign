@@ -1,14 +1,16 @@
 import hashlib
 import os
-import warnings
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, TypeVar, Union
+from typing import TypeVar, Union
 
-from RosettaPy.common.mutation import Mutant as RpMutant,RosettaPyProteinSequence,Chain
+from RosettaPy.common.mutation import Chain
+from RosettaPy.common.mutation import Mutant as RpMutant
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
 
 T = TypeVar('T')
+
 
 @dataclass
 class Mutant(RpMutant):
@@ -30,7 +32,6 @@ class Mutant(RpMutant):
         # Evaluates if `mutant_info` is empty, returning True if so, and False otherwise.
         return not bool(self.mutations)
 
-    
     @property
     def mutant_description(self) -> str:
         """
@@ -234,5 +235,5 @@ class Mutant(RpMutant):
         Returns:
             dict[str, str]: A dictionary where keys are chain IDs and values are the corresponding mutated sequences.
         """
-        return RosettaPyProteinSequence(chains=[self.get_mutant_sequence_single_chain(chain_id=chain) for chain in self.wt_protein_sequence.all_chain_ids])
-
+        return RosettaPyProteinSequence(chains=[self.get_mutant_sequence_single_chain(
+            chain_id=chain) for chain in self.wt_protein_sequence.all_chain_ids])

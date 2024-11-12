@@ -14,7 +14,6 @@ from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.Qt.utils import getSaveFileNameWithExt
 from requests.auth import HTTPBasicAuth
-
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
@@ -72,7 +71,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.bus: ConfigBus = None
 
-        self.designable_sequences: RosettaPyProteinSequence=None
+        self.designable_sequences: RosettaPyProteinSequence = None
         self.design_molecule = ''
         self.design_chain_id = ''
         self.design_sequence = ''

@@ -37,7 +37,7 @@ class MutateRunnerAbstract(CitableModules):
         return temp_dir
 
     @staticmethod
-    def mutated_pdb_mapping(mutant_tree: MutantTree, pdb_fps: List[str])->MutantTree:
+    def mutated_pdb_mapping(mutant_tree: MutantTree, pdb_fps: List[str]) -> MutantTree:
         if mutant_tree.mutant_num != len(pdb_fps):
             raise RuntimeError(f"Mutant number does not match pdb_fps: {mutant_tree.mutant_num=} != {len(pdb_fps)=}")
 

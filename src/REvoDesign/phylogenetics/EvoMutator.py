@@ -5,12 +5,11 @@ import traceback
 import warnings
 from dataclasses import dataclass
 from functools import partial
-from typing import Dict, List, Literal, Tuple, Union
+from typing import List, Literal, Tuple, Union
 
 from immutabledict import immutabledict
 from joblib import Parallel, delayed
 from pymol import CmdException, cmd
-
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, issues
@@ -246,10 +245,9 @@ class VisualizingWorker:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences=RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
         )))
-
 
         self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
             self.design_chain_id
@@ -447,7 +445,7 @@ class GREMLIN_Analyser:
         # Check if the instance has already been initialized
 
         self.bus: ConfigBus = ConfigBus()
-        self.alphabet: str = None # type: ignore
+        self.alphabet: str = None  # type: ignore
 
         self.PWD: str = self.bus.get_value('work_dir', str)
         self.ws_server: REvoDesignWebSocketServer = REvoDesignWebSocketServer()
@@ -458,7 +456,7 @@ class GREMLIN_Analyser:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences= RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
         )))
         self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
@@ -1185,7 +1183,7 @@ class GREMLIN_Analyser:
                 [pair.i_1, pair.j_1],
                 [wt_i, wt_j],
             ):
-                expected_mutant = Mutation(chain_id=chain_id,position=int(idx),wt_res=wt, mut_res=mut)
+                expected_mutant = Mutation(chain_id=chain_id, position=int(idx), wt_res=wt, mut_res=mut)
                 if expected_mutant in _mutant:
                     logging.warning(
                         f'Ignore existed mutagenese {expected_mutant}'

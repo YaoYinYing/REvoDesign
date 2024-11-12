@@ -6,22 +6,25 @@ import os
 import random
 from typing import Any, Dict
 
+import pytest
 from absl.testing import absltest
 from omegaconf import DictConfig, OmegaConf
 from platformdirs import user_cache_dir, user_data_dir
 from pymol import CmdException, cmd
-import pytest
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
-from RosettaPy.common.mutation import Mutation,RosettaPyProteinSequence
 from REvoDesign import (REVODESIGN_CONFIG_FILE, ConfigBus, issues,
-                        reload_config_file, save_configuration,
-                        set_cache_dir, set_REvoDesign_config_file)
+                        reload_config_file, save_configuration, set_cache_dir,
+                        set_REvoDesign_config_file)
 from REvoDesign.bootstrap.set_config import ConfigConverter
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
+from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
+                                                       DunbrackRotamerLib,
+                                                       PIPPack_worker)
 from REvoDesign.structure.PocketSearcher import PocketSearcher
 from REvoDesign.structure.SurfaceFinder import SurfaceFinder
 from REvoDesign.tools.mutant_tools import (expand_range,
@@ -35,7 +38,6 @@ from REvoDesign.tools.pymol_utils import (
     get_molecule_sequence, is_a_REvoDesign_session, is_distal_residue_pair,
     is_empty_session, is_hidden_object, is_polymer_protein,
     make_temperal_input_pdb, refresh_all_selections)
-from REvoDesign.sidechain_solver.mutate_runner import (DunbrackRotamerLib, DLPacker_worker, PIPPack_worker)
 
 TEST_DATA = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(TEST_DATA, "testdata")
@@ -374,13 +376,12 @@ class TestMutant(absltest.TestCase):
         super().setUp()  # Call the superclass setup method
         self.mutant_info = [Mutation(chain_id="A", position=10, wt_res="P", mut_res="L"),
                             Mutation(chain_id="A", position=20, wt_res="S", mut_res="T")
-                            
-        ]
-        self.wt_protein_sequence=RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
+
+                            ]
+        self.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
         self.mutant_score = 0.95
         self.mutant_obj = Mutant(self.mutant_info, self.wt_protein_sequence)
-        self.mutant_obj.mutant_score =  self.mutant_score
-
+        self.mutant_obj.mutant_score = self.mutant_score
 
     def test_mutant_score(self):
         self.assertEqual(self.mutant_obj.mutant_score, self.mutant_score)
@@ -417,7 +418,6 @@ class TestMutant(absltest.TestCase):
         self.mutant_obj.wt_score = 5.0
         self.assertEqual(self.mutant_obj.wt_score, 5.0)
 
-
     def test_mutant_sequence_mismatch(self):
         self.mutant_obj.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHIJKLMNO"})
         self.mutant_obj.mutations = [Mutation(chain_id="A", position=10, wt_res="Q", mut_res="L")]
@@ -425,7 +425,7 @@ class TestMutant(absltest.TestCase):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id="A")
 
     def test_mutant_sequence_short(self):
-        self.mutant_obj.wt_protein_sequence =RosettaPyProteinSequence.from_dict( {"A": "MABCDEFGHIJKLMNO"})
+        self.mutant_obj.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHIJKLMNO"})
         self.mutant_obj.mutations = [Mutation(chain_id="A", position=30, wt_res="Q", mut_res="L")]
         with self.assertRaises(ValueError):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id="A")
@@ -433,13 +433,13 @@ class TestMutant(absltest.TestCase):
 
 class TestMutantTree(absltest.TestCase):
     def setUp(self):
-        self.wt_protein_sequence=RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
+        self.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
         # Creating mock Mutant objects with necessary kwargs
-        mutant1 = Mutant(mutations=[Mutation('A',1,'M','N')], wt_protein_sequence=self.wt_protein_sequence)
+        mutant1 = Mutant(mutations=[Mutation('A', 1, 'M', 'N')], wt_protein_sequence=self.wt_protein_sequence)
         mutant1.mutant_score = 0.5
-        mutant2 = Mutant(mutations=[Mutation('A',2,'A','C')], wt_protein_sequence=self.wt_protein_sequence)
+        mutant2 = Mutant(mutations=[Mutation('A', 2, 'A', 'C')], wt_protein_sequence=self.wt_protein_sequence)
         mutant2.mutant_score = 0.8
-        mutant3 = Mutant(mutations=[Mutation('A',3,'B','T')], wt_protein_sequence=self.wt_protein_sequence)
+        mutant3 = Mutant(mutations=[Mutation('A', 3, 'B', 'T')], wt_protein_sequence=self.wt_protein_sequence)
         mutant3.mutant_score = 0.3
 
         self.mutant_tree = {
@@ -491,13 +491,34 @@ class TestMutantTree(absltest.TestCase):
         self.assertNotEqual(self.mutant_tree_obj.current_branch_id, "")
 
     def test_extend_tree_with_new_branches(self):
-        
-        new_branches = {"branch3": {"mutant4": Mutant(mutations=[Mutation('A',4,'C','X')], wt_protein_sequence=self.wt_protein_sequence, _mutant_score=0.6)}}
+
+        new_branches = {
+            "branch3": {
+                "mutant4": Mutant(
+                    mutations=[
+                        Mutation(
+                            'A',
+                            4,
+                            'C',
+                            'X')],
+                    wt_protein_sequence=self.wt_protein_sequence,
+                    _mutant_score=0.6)}}
         self.mutant_tree_obj.update_tree_with_new_branches(new_branches)
         self.assertIn("branch3", self.mutant_tree_obj.all_mutant_branch_ids)
 
     def test_add_mutant_to_branch(self):
-        self.mutant_tree_obj.add_mutant_to_branch("branch1", "mutant3", Mutant(mutations=[Mutation('A',5, 'D','P')], wt_protein_sequence=self.wt_protein_sequence, _mutant_score=0.4))
+        self.mutant_tree_obj.add_mutant_to_branch(
+            "branch1",
+            "mutant3",
+            Mutant(
+                mutations=[
+                    Mutation(
+                        'A',
+                        5,
+                        'D',
+                        'P')],
+                wt_protein_sequence=self.wt_protein_sequence,
+                _mutant_score=0.4))
         self.assertIn("mutant3", self.mutant_tree_obj.mutant_tree["branch1"])
 
     def test_remove_mutant_from_branch(self):
@@ -528,7 +549,8 @@ class TestMutantTree(absltest.TestCase):
         self.assertIsInstance(mutants_list, list)
 
     def test_diff_tree_from(self):
-        other_tree = MutantTree({"branch2": {"mutant3": Mutant(mutations=[Mutation('A',10,'P','Q')], wt_protein_sequence=self.wt_protein_sequence, _mutant_score=0.3)}})
+        other_tree = MutantTree({"branch2": {"mutant3": Mutant(
+            mutations=[Mutation('A', 10, 'P', 'Q')], wt_protein_sequence=self.wt_protein_sequence, _mutant_score=0.3)}})
         diff_tree = self.mutant_tree_obj.diff_tree_from(other_tree)
         self.assertIsInstance(diff_tree, MutantTree)
         self.assertEqual(len(diff_tree.all_mutant_branch_ids), 1)
@@ -775,9 +797,9 @@ class TestMutantTools(absltest.TestCase):
     def test_extract_mutants_from_mutant_id_invalid(self):
         mutant_string = "AUVET_0.4567"
 
-        wt_protein_sequence=RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
+        wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
         with pytest.raises(issues.InvalidInputError, match='No valid mutations found in'):
-            _o = extract_mutants_from_mutant_id(mutant_string=mutant_string,sequences=wt_protein_sequence)
+            _o = extract_mutants_from_mutant_id(mutant_string=mutant_string, sequences=wt_protein_sequence)
 
     def test_extract_mutant_score_from_string(self):
         mutant_string = "I5R_K26T_0.4567"
@@ -787,7 +809,7 @@ class TestMutantTools(absltest.TestCase):
         )
 
     def test_extract_mutant_from_sequences(self):
-        wt_sequences=RosettaPyProteinSequence.from_dict({CHAIN_ID:SEQUENCE})
+        wt_sequences = RosettaPyProteinSequence.from_dict({CHAIN_ID: SEQUENCE})
         mutant_sequence = "XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP"
         _o1 = extract_mutant_from_sequences(
             wt_sequences=wt_sequences,
@@ -931,7 +953,6 @@ class TestSidechainSolver(absltest.TestCase):
     @pytest.mark.skipif(not DLPacker_worker.installed, reason="DLPacker not installed")
     def test_dlpacker_mutate(self):
 
-
         mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb)
         mutate_pdb_path = mutate_runner.run_mutate(mutant=self.mutant_obj)
 
@@ -962,7 +983,7 @@ class TestSidechainSolver(absltest.TestCase):
 
     @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")
     def test_pippack_mutate_model_1(self):
-        
+
         mutate_runner = PIPPack_worker(pdb_file=self.wt_pdb, use_model="pippack_model_1")
         mutate_pdb_path = mutate_runner.run_mutate(mutant=self.mutant_obj)
 

@@ -1,9 +1,8 @@
 # pylint: disable=import-outside-toplevel
 import os
 
-from ...bootstrap.set_config import is_package_installed
-
 from ...basic import ExternalDesignerAbstract
+from ...bootstrap.set_config import is_package_installed
 from ...tools.pymol_utils import make_temperal_input_pdb
 
 
@@ -12,11 +11,10 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
     name: str = 'ProteinMPNN'
     installed: bool = is_package_installed('colabdesign')
 
-
     def __init__(self, molecule):
         from colabdesign.mpnn import mk_mpnn_model
         self.pdb_filename = None
-        self.mpnn_model:mk_mpnn_model = None # type: ignore
+        self.mpnn_model: mk_mpnn_model = None  # type: ignore
         self.initialized = False
         self.molecule = molecule
         self.reload = False
@@ -33,8 +31,6 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         - Initializes attributes required for the ColabDesigner_MPNN class.
         """
         from colabdesign.mpnn import mk_mpnn_model
-
-        
 
         self.pdb_filename = make_temperal_input_pdb(
             molecule=self.molecule, reload=self.reload

@@ -7,15 +7,14 @@ from typing import List, Mapping, Optional, Tuple, Union
 
 from Bio.Data import IUPACData
 from pymol import cmd
-
-from RosettaPy.common.mutation import Mutation, Chain, RosettaPyProteinSequence
-from REvoDesign.tools.pymol_utils import is_hidden_object
+from RosettaPy.common.mutation import Chain, Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, FileExtentions, issues
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign.tools.pymol_utils import is_hidden_object
 
 from .utils import get_color
 
@@ -54,8 +53,7 @@ def extract_mutants_from_mutant_id(
     '''
     logging.debug(f'Parsing {mutant_string}')
     if isinstance(sequences, Mapping):
-        sequences=RosettaPyProteinSequence.from_dict(dict(sequences))
-
+        sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
 
     # Use regular expression to find all mutants in the string
     mutants = re.findall(r'([A-Z]{0,2}\d+[A-Z]{1})', mutant_string)
@@ -78,7 +76,7 @@ def extract_mutants_from_mutant_id(
 
             _mut = re.match(r'([A-Z]{1})(\d+)([A-Z]{1})', mut)
 
-            _chain_id = sequences.all_chain_ids[0] # expected as the first chain.
+            _chain_id = sequences.all_chain_ids[0]  # expected as the first chain.
             _position = int(_mut.group(2))
             _wt_res = _mut.group(1)
             _mut_res = _mut.group(3)
@@ -89,7 +87,7 @@ def extract_mutants_from_mutant_id(
 
             _mut = re.match(r'(\d+)([A-Z]{1})', mut)
 
-            _chain_id = sequences.all_chain_ids[0] # expected as the first chain.
+            _chain_id = sequences.all_chain_ids[0]  # expected as the first chain.
             _position = int(_mut.group(1))
             _wt_res = list(sequences.get_sequence_by_chain(_chain_id))[_position - 1]
             _mut_res = _mut.group(2)
@@ -103,14 +101,14 @@ def extract_mutants_from_mutant_id(
             continue
 
         mutations.append(
-            Mutation(chain_id=_chain_id, position=int(_position),wt_res=_wt_res, mut_res=_mut_res)
-            
+            Mutation(chain_id=_chain_id, position=int(_position), wt_res=_wt_res, mut_res=_mut_res)
+
         )
 
     if not mutations:
         raise issues.InvalidInputError(f'No valid mutations found in `{mutant_string}`')
-    
-    mutant_obj= Mutant(mutations, sequences)
+
+    mutant_obj = Mutant(mutations, sequences)
 
     # if the mutation has a position of score, we need to extract it.
     mutant_score = extract_mutant_score_from_string(
@@ -165,7 +163,7 @@ def extract_mutant_from_sequences(
     Mutant: Mutant object
     '''
 
-    wt_sequence=wt_sequences.get_sequence_by_chain(chain_id=chain_id)
+    wt_sequence = wt_sequences.get_sequence_by_chain(chain_id=chain_id)
     _wt_sequence = wt_sequence.replace('X', '')
     _mutant_sequence = mutant_sequence.replace('X', '')
 
@@ -176,7 +174,7 @@ def extract_mutant_from_sequences(
 
     if mutant_sequence == wt_sequence:
         logging.warning('WT and mutant sequences are identical.')
-        return 
+        return
 
     if 'X' in wt_sequence and not fix_missing:
         warnings.warn(
@@ -203,7 +201,7 @@ def extract_mutant_from_sequences(
         mutant_sequence = _mutant_sequence
 
     mut_info = [
-        Mutation(chain_id=chain_id,position=i + 1, wt_res=res, mut_res= mutant_sequence[i])
+        Mutation(chain_id=chain_id, position=i + 1, wt_res=res, mut_res=mutant_sequence[i])
         for i, res in enumerate(wt_sequence)
         if res != mutant_sequence[i]
     ]
@@ -328,7 +326,8 @@ def extract_mutant_from_pymol_object(pymol_object, sequences: RosettaPyProteinSe
         sequence = chain.sequence
         for at in cmd.get_model(f'{pymol_object} and c. {chain.chain_id} and n. CA').atom:
             try:
-                mutant_info.append(Mutation(chain_id=at.chain,position=int(at.resi), wt_res=sequence[int(at.resi) - 1] if sequence else 'X',mut_res=protein_letters_3to1[at.resn],))
+                mutant_info.append(Mutation(chain_id=at.chain, position=int(at.resi), wt_res=sequence[int(
+                    at.resi) - 1] if sequence else 'X', mut_res=protein_letters_3to1[at.resn],))
 
             except IndexError:
                 warnings.warn(issues.BadDataWarning(
@@ -435,7 +434,7 @@ def read_profile_design_mutations(filename):
 
 
 def existed_mutant_tree(
-    sequences: Union[Mapping[str, str],RosettaPyProteinSequence], enabled_only: Union[int, bool] = 1
+    sequences: Union[Mapping[str, str], RosettaPyProteinSequence], enabled_only: Union[int, bool] = 1
 ) -> MutantTree:
     """
     Creates a tree structure of existing mutants based on PyMOL objects.

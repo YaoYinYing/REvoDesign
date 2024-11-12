@@ -113,7 +113,6 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         for mut_info in mutant.mutations:
 
-
             new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
             wt_residue_3 = IUPACData.protein_letters_1to3[mut_info.wt_res].upper()
 
@@ -181,7 +180,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         return reconstruct_area
 
     def run_mutate_parallel(
-        self, mutants: List[Mutant], nproc: int = 2, 
+        self, mutants: List[Mutant], nproc: int = 2,
     ) -> List[str]:
         """
         Perform mutation on the protein in parallel.
@@ -206,7 +205,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         )
 
         gc.collect()
-        return list(results) # type: ignore
+        return list(results)  # type: ignore
 
     __bibtex__ = {
         'DLPacker': r"""@article{https://doi.org/10.1002/prot.26311,

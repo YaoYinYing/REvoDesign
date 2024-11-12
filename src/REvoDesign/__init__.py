@@ -7,10 +7,9 @@ import gc
 # 1. import basic
 from REvoDesign.basic import SingletonAbstract
 # 2. import post install module and methods
-from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE,
-                                  experiment_config, reload_config_file,
-                                  save_configuration, set_cache_dir,
-                                  set_REvoDesign_config_file)
+from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE, experiment_config,
+                                  reload_config_file, save_configuration,
+                                  set_cache_dir, set_REvoDesign_config_file)
 # 3. import FileExtentions
 from REvoDesign.common.FileExtentions import \
     REvoDesignFileExtentions as FileExtentions

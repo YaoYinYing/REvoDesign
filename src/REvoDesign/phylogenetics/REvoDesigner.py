@@ -8,8 +8,7 @@ import time
 
 import matplotlib
 import matplotlib.pylab as plt
-
-from RosettaPy.common.mutation import RosettaPyProteinSequence,Mutation
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
@@ -303,7 +302,6 @@ class REvoDesigner:
                 f'External design {self.input_profile_format} is not registed in `ExternalDesigners.py`'
             )
             return
-
 
         # expand design residue index
         expanded_custom_indices = expand_range(
@@ -663,10 +661,17 @@ class REvoDesigner:
             }
 
             for mut_res, mut_score in candidates.items():
-                mutant_obj = Mutant(mutations=[Mutation(chain_id=self.chain_id, position=int(position),wt_res=wt_res, mut_res=mut_res)], wt_protein_sequence=self.designable_sequences)
+                mutant_obj = Mutant(
+                    mutations=[
+                        Mutation(
+                            chain_id=self.chain_id,
+                            position=int(position),
+                            wt_res=wt_res,
+                            mut_res=mut_res)],
+                    wt_protein_sequence=self.designable_sequences)
                 mutant_obj.mutant_score = float(mut_score)
                 mutant_obj.wt_score = float(wt_score)
-                
+
                 self.mutagenesis_tasks.append([mutant_obj])
                 self.mutant_tree.add_mutant_to_branch(
                     branch=f"mt_{wt_res}{int(position)}_{str(mutant_obj.wt_score)}",

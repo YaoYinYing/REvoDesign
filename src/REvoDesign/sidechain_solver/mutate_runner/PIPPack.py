@@ -66,7 +66,7 @@ class PIPPack_worker(MutateRunnerAbstract):
     def run_mutate(
         self,
         mutant: Mutant,
-    )-> str:
+    ) -> str:
         logging.debug(f'Mutating {mutant=}')
         new_obj_name = mutant.short_mutant_id
 
@@ -88,7 +88,7 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         return temp_pdb_path
 
-    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int=2) -> List[str]:
+    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int = 2) -> List[str]:
         mutant_sequences = [
             [
                 chain.sequence.replace('X', '')

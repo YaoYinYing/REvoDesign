@@ -28,7 +28,6 @@ repos:
           - --py38-plus
           - --py36-plus
           - --py37-plus
-          # - --keep-runtime-typing
 
   - repo: https://github.com/hadialqattan/pycln
     rev: v2.4.0

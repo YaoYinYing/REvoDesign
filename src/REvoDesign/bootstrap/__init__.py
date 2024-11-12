@@ -2,8 +2,8 @@ import os
 
 import hydra
 
-from .set_config import (experiment_config,
-                         reload_config_file, save_configuration, set_cache_dir,
+from .set_config import (experiment_config, reload_config_file,
+                         save_configuration, set_cache_dir,
                          set_REvoDesign_config_file)
 
 # 2. initialize config file

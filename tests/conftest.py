@@ -3,6 +3,7 @@ from __future__ import annotations
 import gc
 import os
 import time
+from typing import Optional
 import warnings
 from dataclasses import dataclass
 from unittest.mock import MagicMock
@@ -186,7 +187,7 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def _fetch_pdb(self, pdb_code: str | None = None, spell: str | None = None):
+    def _fetch_pdb(self, pdb_code: Optional[str]= None, spell: Optional[str]= None):
         if not pdb_code:
             pdb_code = self.test_data.molecule
         if not spell:
@@ -214,10 +215,10 @@ class TestWorker:
 
     def load_session_and_check(
         self,
-        pdb_code: str | None = None,
-        spell: str | None = None,
-        from_rcsb=False,
-        customized_session: str | None = None,
+        pdb_code: Optional[str] = None,
+        spell: Optional[str]= None,
+        from_rcsb:bool=False,
+        customized_session: Optional[str]= None,
     ):
         self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
@@ -247,7 +248,7 @@ class TestWorker:
         self.plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
 
-    def save_new_experiment(self, experiment_name: str | None = None):
+    def save_new_experiment(self, experiment_name: Optional[str] = None):
         import shutil
 
         if not experiment_name:
@@ -313,7 +314,7 @@ class TestWorker:
         )
         self.sleep(5)
 
-    def check_molecule_after_loaded(self, molecule: str | None = None):
+    def check_molecule_after_loaded(self, molecule: Optional[str]=None):
         if molecule and isinstance(molecule, str):
             assert (
                 self.plugin.bus.get_value('ui.header_panel.input.molecule')
@@ -427,7 +428,7 @@ class TestWorker:
         basename: str = 'default',
         dpi: int = 300,
         use_ray: int = 0,
-        spells: str | None = None,
+        spells: Optional[str] = None,
         focus=True,
         focus_method='orient',
     ):
@@ -453,7 +454,7 @@ class TestWorker:
 
     def wait_for_file(
         self, file: str, interval: int = 100, timeout: float = 61.0
-    ) -> bool | None:
+    ) -> bool:
         started_moment = time.perf_counter()
         while True:
             self.qtbot.wait(interval)

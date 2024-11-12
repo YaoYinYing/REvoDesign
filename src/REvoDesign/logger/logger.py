@@ -8,8 +8,8 @@ import queue
 from typing import Union
 
 from omegaconf import DictConfig
-from typing_extensions import override
 from platformdirs import user_log_path
+from typing_extensions import override
 
 from ..bootstrap import reload_config_file
 
@@ -101,7 +101,7 @@ def setup_logging_from_dictconfig(
     notebook_maxBytes = log_config.handlers.notebook.maxBytes
     notebook_backupCount = log_config.handlers.notebook.backupCount
 
-    log_handlers=[]
+    log_handlers = []
 
     # Create a queue for the QueueHandler
     log_queue = queue.Queue(10_000)
@@ -178,16 +178,15 @@ def setup_logging_from_dictconfig(
 def setup_logging() -> python_logging.Logger:
     cfg: DictConfig = reload_config_file()
 
-    logfile=cfg.log.handlers.file.filename
-    notebookfile=cfg.log.handlers.notebook.filename
-
+    logfile = cfg.log.handlers.file.filename
+    notebookfile = cfg.log.handlers.notebook.filename
 
     if logfile == 'AUTO':
-        logfile=user_log_path('REvoDesign', ensure_exists=True)
+        logfile = user_log_path('REvoDesign', ensure_exists=True)
         cfg.log.handlers.file.filename = os.path.join(logfile, 'REvoDesign.runtime.log')
 
     if notebookfile == 'AUTO':
-        notebookfile=user_log_path('REvoDesign', ensure_exists=True)
+        notebookfile = user_log_path('REvoDesign', ensure_exists=True)
         cfg.log.handlers.notebook.filename = os.path.join(notebookfile, 'REvoDesign.notebook.log')
 
     if logfile is not None:
@@ -200,7 +199,7 @@ def setup_logging() -> python_logging.Logger:
         notebook_dir = os.path.dirname(
             os.path.abspath(notebookfile)
         )
-        
+
         os.makedirs(notebook_dir, exist_ok=True)
     logger = setup_logging_from_dictconfig(log_config=cfg.log)
     return logger

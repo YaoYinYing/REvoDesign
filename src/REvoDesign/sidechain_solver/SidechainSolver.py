@@ -24,11 +24,11 @@ all_runner_c: List[type[MutateRunnerAbstract]] = [
 
 # create table of implemented runners
 implemented_runner: Mapping[str, type[MutateRunnerAbstract]] = MappingProxyType(
-        {
-            c.name: c
-            for c in all_runner_c
-        }
-    )
+    {
+        c.name: c
+        for c in all_runner_c
+    }
+)
 
 __all__ = [
     'MutateRunnerAbstract',
@@ -46,7 +46,7 @@ class MutateRunnerManager:
     # create list of installed runners here
     installed_worker: List[str] = field(
         default_factory=lambda: [c.name
-                for c in all_runner_c if c.installed]
+                                 for c in all_runner_c if c.installed]
     )
 
     def installed(self, sidechain_solver_name: str) -> bool:
@@ -57,7 +57,6 @@ class MutateRunnerManager:
                 f'{sidechain_solver_name} is not available in your installation. Aborted..'
             )
         return True
-
 
     def get(
         self, sidechain_solver_name: str, **kwargs
@@ -94,7 +93,7 @@ class SidechainSolver(SingletonAbstract):
         if not hasattr(self, 'initialized'):
             # If not, set the instance attributes
             self.bus: ConfigBus = ConfigBus()
-            self.mutate_runner: MutateRunnerAbstract = None # type: ignore
+            self.mutate_runner: MutateRunnerAbstract = None  # type: ignore
             self.runner_manager = MutateRunnerManager()
             self.cfg: SidechainSolverConfig = self.get_config()
             # Mark the instance as initialized to prevent reinitialization

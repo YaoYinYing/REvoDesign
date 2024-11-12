@@ -20,19 +20,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Hooks: Pre-commit hooks
+- MutateRunnerCollections:
+  - `all_runner_c`: Implemented
+  - `implemented_runner`: Installed
+- `PocketSearcher`: `process_multiple_resn` to support multiple resn selection in PyMOL
+
 ### Changed
 
 - Installer: Refactors, Cleanups, Docs, Lints
 - Source Dir: move into `src`
 - `pyproject.toml`: use `flit_core` instead.
 - extras `unittest` -> `test`
+- move basic classes to `REvoDesign.basic`
+- Installable Plugins classes(Mutant Runner and Designer):
+  - attr: str `name` for naming
+  - attr: str `installed` for checking if installed via extras
+- `Mutant`: 
+  - inherits from `RosettaPy.common.mutation.Mutant`
+  - use `RosettaPy.common.mutation.Mutation` to replace mutant info dicts.
+- `**.designable_sequences`: `RosettaPyProteinSequence` objects now
+- `MutateRunnerManager`: deduplicates
+- `LanguageSwitch`: now auto registered without hard coding in UI
+- Configuration YAML file: `user_data_dir` by default.
+- Cache dir: `user_cache_dir` by default.
 
 ### Fixed
+
+- Logger: 
+  - File handles are now optional and can be set as 'AUTO' to avoid spamming.
+  - `root_logger` now initialized in `REvoDesign.logger`
+- Imports sorted with multiple cyclic imports fixed.
 
 ### Removed
 
 - `REvoDesign/__version__.py`: no longer needed for versioning
+- `VERSION` alias in `__init__.py`
 - `tools/release_tag.sh`: drop `pyproject.toml` version rewriting bcs no longer needed.
+- `Widget2Widget`
+- `WITH_DEPENDENCIES`
+- Configuration YAML: drop sidechain solver groups.
 
 ## [1.5.11.post-1] - 2024-08-02
 
@@ -55,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: runners and test env images.
 - Lints, typing hints and imports.
 - Small molecule searching
+- Multiple format errors
+- Multiple issues with `REvoDesign/tools/mutant_tools.py` while `Mutant` is refactored
 
 ## [1.5.10] - 2024-04-17
 ### Added

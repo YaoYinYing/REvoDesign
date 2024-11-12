@@ -2,6 +2,7 @@ import itertools
 import os
 import random
 import warnings
+
 try:
     from itertools import pairwise
 except ImportError:
@@ -12,7 +13,6 @@ except ImportError:
         return zip(a, b)
 
 from pymol import cmd, util
-
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, issues, root_logger

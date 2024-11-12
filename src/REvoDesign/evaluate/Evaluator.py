@@ -2,8 +2,8 @@ import os
 from functools import partial
 
 from pymol import cmd
-
 from RosettaPy.common.mutation import RosettaPyProteinSequence
+
 from REvoDesign import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.logger import root_logger
@@ -26,7 +26,7 @@ class Evalutator:
         self.design_chain_id: str = self.bus.get_value(
             'ui.header_panel.input.chain_id'
         )
-        self.designable_sequences=RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
             'designable_sequences'
         )))
         self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
@@ -41,7 +41,6 @@ class Evalutator:
             f'Current Mutant ID: {self.mutant_tree_candidates.current_mutant_id}'
         )
 
-        
         mut_obj = extract_mutant_from_pymol_object(
             pymol_object=self.mutant_tree_candidates.current_mutant_id,
             sequences=self.designable_sequences,

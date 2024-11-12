@@ -18,7 +18,6 @@ class ExternalDesignerAbstract(CitableModules):
     name: str = ''
     installed: bool = False
 
-
     def __init__(self, molecule):
         """
         Initialize the External Designer with a given molecule.

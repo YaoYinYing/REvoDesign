@@ -79,7 +79,6 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
             for mut_info in mutant.mutations:
 
-
                 new_residue_3 = IUPACData.protein_letters_1to3[
                     mut_info.mut_res
                 ].upper()
@@ -91,7 +90,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 # cmd.do("refresh_wizard")
                 p.cmd.refresh_wizard()
                 p.cmd.get_wizard().set_mode("%s" % target)
-                p.selection = f"/{new_obj_name}//{mut_info.chain_id}/{mut_info.position}" # type: ignore
+                p.selection = f"/{new_obj_name}//{mut_info.chain_id}/{mut_info.position}"  # type: ignore
                 p.cmd.get_wizard().do_select(p.selection)
                 p.cmd.frame("1")
                 p.cmd.get_wizard().apply()
@@ -103,7 +102,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
     def run_mutate_parallel(
         self, mutants: List[Mutant], nproc: int = 2
-    )-> List[str]:
+    ) -> List[str]:
         """
         Perform mutation on the protein in parallel.
 
@@ -119,7 +118,7 @@ class PyMOL_mutate(MutateRunnerAbstract):
         results = Parallel(n_jobs=nproc, return_as='list')(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
-        return list(results) # type: ignore
+        return list(results)  # type: ignore
 
     # https://www.bruot.org/ris2bib/
     __bibtex__ = {

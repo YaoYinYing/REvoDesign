@@ -6,7 +6,6 @@ import warnings
 import matplotlib
 import pandas as pd
 from Bio import SeqIO
-
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues, root_logger
@@ -260,7 +259,6 @@ class MutantVisualizer:
                 )
             ]
 
-
             mutation_data = pd.DataFrame.from_dict(
                 {
                     self.key_col: [
@@ -333,7 +331,7 @@ class MutantVisualizer:
                     f'Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}'
                 )
 
-            variant_obj.mutant_score = float(_score) # type: ignore
+            variant_obj.mutant_score = float(_score)  # type: ignore
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,
                 mutant=variant_obj.short_mutant_id,
@@ -392,7 +390,7 @@ class MutantVisualizer:
 
             self.mutant_tree.run_mutate_parallel(
                 mutate_runner=self.mutate_runner,
-                nproc=self.nproc, # type: ignore
+                nproc=self.nproc,  # type: ignore
             )
 
         self.mutagenesis_sessions = []

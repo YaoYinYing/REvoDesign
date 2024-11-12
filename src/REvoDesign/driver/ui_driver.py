@@ -97,8 +97,8 @@ class ConfigBus(SingletonAbstract, CitableModules):
                         if not isinstance(group_values, dict):
                             raise TypeError(
                                 f'{group_cfg} returns a dict while group_values is'
-                            f' a {type(group_cfg)=}, not a dict.'
-                        )
+                                f' a {type(group_cfg)=}, not a dict.'
+                            )
                         group_values.update(values)
 
             if not group_values:
@@ -208,7 +208,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
     def get_cfg_item(self, widget_id: str) -> str:
         # Retrieves the configuration item corresponding to a UI widget ID.
-        return self.w2c.widget_id2config_dict.get(widget_id) # type: ignore
+        return self.w2c.widget_id2config_dict.get(widget_id)  # type: ignore
 
     def get_value(
         self,
@@ -693,7 +693,7 @@ class CallableGroupValues:
         score_matrix = [
             mtx
             for mtx in os.listdir(
-                os.path.join(substitution_matrices.__path__[0], 'data') # type: ignore
+                os.path.join(substitution_matrices.__path__[0], 'data')  # type: ignore
             )
         ]
         return score_matrix
@@ -702,7 +702,7 @@ class CallableGroupValues:
     def color_map() -> dict:
         # color map
         import matplotlib
-        from pymol.Qt import QtGui # type: ignore
+        from pymol.Qt import QtGui  # type: ignore
 
         cmap_group = {
             _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
