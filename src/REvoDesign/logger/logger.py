@@ -9,6 +9,7 @@ from typing import Union
 
 from omegaconf import DictConfig
 from typing_extensions import override
+from platformdirs import user_log_path
 
 from ..bootstrap import reload_config_file
 
@@ -172,11 +173,20 @@ def setup_logging_from_dictconfig(
 
 def setup_logging() -> python_logging.Logger:
     cfg: DictConfig = reload_config_file()
+
+    if (logfile:=cfg.log.handlers.file.filename) is None:
+        logfile=user_log_path('REvoDesign', ensure_exists=True)
+        cfg.log.handlers.file.filename = os.path.join(logfile, 'REvoDesign.runtime.log')
+
+    if (notebookfile:=cfg.log.handlers.notebook.filename) is None:
+        notebookfile=user_log_path('REvoDesign', ensure_exists=True)
+        cfg.log.handlers.notebook.filename = os.path.join(notebookfile, 'REvoDesign.notebook.log')
+
     logging_dir = os.path.dirname(
-        os.path.abspath(cfg.log.handlers.file.filename)
+        os.path.abspath(logfile)
     )
     notebook_dir = os.path.dirname(
-        os.path.abspath(cfg.log.handlers.notebook.filename)
+        os.path.abspath(notebookfile)
     )
     os.makedirs(logging_dir, exist_ok=True)
     os.makedirs(notebook_dir, exist_ok=True)
