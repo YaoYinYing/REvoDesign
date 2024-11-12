@@ -3,9 +3,9 @@ from __future__ import annotations
 import gc
 import os
 import time
-from typing import Optional
 import warnings
 from dataclasses import dataclass
+from typing import Optional
 from unittest.mock import MagicMock
 
 import psutil
@@ -187,7 +187,7 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def _fetch_pdb(self, pdb_code: Optional[str]= None, spell: Optional[str]= None):
+    def _fetch_pdb(self, pdb_code: Optional[str] = None, spell: Optional[str] = None):
         if not pdb_code:
             pdb_code = self.test_data.molecule
         if not spell:
@@ -216,9 +216,9 @@ class TestWorker:
     def load_session_and_check(
         self,
         pdb_code: Optional[str] = None,
-        spell: Optional[str]= None,
-        from_rcsb:bool=False,
-        customized_session: Optional[str]= None,
+        spell: Optional[str] = None,
+        from_rcsb: bool = False,
+        customized_session: Optional[str] = None,
     ):
         self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
@@ -314,7 +314,7 @@ class TestWorker:
         )
         self.sleep(5)
 
-    def check_molecule_after_loaded(self, molecule: Optional[str]=None):
+    def check_molecule_after_loaded(self, molecule: Optional[str] = None):
         if molecule and isinstance(molecule, str):
             assert (
                 self.plugin.bus.get_value('ui.header_panel.input.molecule')
