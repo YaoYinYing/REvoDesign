@@ -139,14 +139,20 @@ class ddg(ExternalDesignerAbstract):
 
     def parallel_scorer(self, mutants:List[Mutant], nproc = 2, **kwargs) -> List[Mutant]:
 
-        mutfile_paths=[os.path.join(
+        mutfile_paths=[os.path.abspath(os.path.join(
                 "cart_ddg_results",
                 "mutfiles",
                 f"{mutant.raw_mutant_id}.mutfile",
-            ) for mutant in mutants]
+            )) for mutant in mutants]
+        
         
 
         non_xtal_mutants=[mutant.non_xtal for mutant in mutants]
+
+
+        for nx_m,mfp in zip(non_xtal_mutants, mutfile_paths):
+            mutants2mutfile(mutants=[nx_m], file_path=mfp)
+        
         ddg_value_df = self.ddg_runner.cartesian_ddg(
             input_pdb=self.relaxed_pdb,
             mutfiles=mutfile_paths,
