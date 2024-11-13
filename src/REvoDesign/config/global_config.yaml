@@ -129,12 +129,9 @@ ui:
       mutagenesis: True
       view: False
 
-
     receive:
       mutagenesis: True
       view: False
-
-
 
   config: 
     sidechain_solver:
@@ -149,6 +146,8 @@ rosetta:
 
   cart_ddg:
     use_legacy: False
+    relax:
+      nstruct: 4
     iterations: 3
 
 

@@ -10,11 +10,14 @@ from REvoDesign.logger import root_logger
 from REvoDesign.tools.utils import timing
 
 from ..basic import ExternalDesignerAbstract
+
+# implement and import the designer
 from .designers import ColabDesigner_MPNN
 from .designers.cart_ddg import ddg
 
 logging = root_logger.getChild(__name__)
 
+# add the designer class to this list
 all_designer_classes: List[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,
@@ -39,7 +42,7 @@ class MagicianManager:
         ]
     )
 
-    def get(self, name, **kwargs):
+    def get(self, name, **kwargs) -> ExternalDesignerAbstract:
         designer_class = implemented_designers[name]
         return designer_class(**kwargs)
 
@@ -89,6 +92,9 @@ class Magician(SingletonAbstract):
                     )
                     self.magician.initialize(**kwargs)
                     return self
+                except KeyError:
+                    # not a valid class, return with cooled down.
+                    return self.setup()
                 except Exception as e:
                     raise issues.DependencyError(
                         f"Failed to setup Magician {name}"

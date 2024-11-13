@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 import warnings
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import docker
 import docker.errors
@@ -80,12 +80,17 @@ class ddg(ExternalDesignerAbstract):
         self.molecule = molecule
         self.reload = False
 
+        
+
         self.unrelaxed_pdb: Optional[str] = None
         self.relaxed_pdb: Optional[str] = None
 
         self.bus: ConfigBus = ConfigBus()
 
-        self.node_hint: Optional[NodeHintT] = self.bus.get_value("rosetta.node_hint")  # type: ignore
+        self.nproc: int=int(self.bus.get_value('ui.header_panel.nproc'))
+        self.node_hint: Optional[NodeHintT] = self.bus.get_value("rosetta.node_hint", default_value='native')  # type: ignore
+
+        self.relax_nstruct:int=self.bus.get_value("rosetta.cart_ddg.relax.nstruct")  # type: ignore
         self.use_legacy: bool = bool(
             self.bus.get_value(
                 "rosetta.cart_ddg.use_legacy", default_value=False
@@ -93,17 +98,19 @@ class ddg(ExternalDesignerAbstract):
         )
         self.ddg_iterations: int = int(
             self.bus.get_value(
-                "rosetta.cart_ddg.iterations", converter=int, default_value=3
+                "rosetta.cart_ddg.iterations", default_value=3
             )
         )
-        self.node_config: Optional[Dict[str, str]] = dict(
-            self.bus.get_value("rosetta.node_config")
-        )
+        self.node_config: Optional[Dict[str, Any]] = self.bus.get_value("rosetta.node_config")
+        if self.node_config is None:
+            self.node_config = {}
 
     def initialize(self, **kwargs):
 
         if self.node_config is None:
             self.node_config = {}
+
+        self.node_config.update({'nproc': self.nproc})
 
         if self.unrelaxed_pdb is None or not os.path.isfile(
             self.unrelaxed_pdb
@@ -127,7 +134,7 @@ class ddg(ExternalDesignerAbstract):
         ):
             return
         logging.info(f"Relaxing {self.molecule} ...")
-        self.relaxed_pdb = self.ddg_runner.relax()
+        self.relaxed_pdb = self.ddg_runner.relax(nstruct_relax=self.relax_nstruct)
 
         self.initialized = True
         self.cite()
@@ -136,20 +143,21 @@ class ddg(ExternalDesignerAbstract):
         self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
     ) -> float:
         if isinstance(mutant, Mutant):
-            mutfile = mutants2mutfile(
-                [mutant],
-                file_path=os.path.join(
+            mutfile_path=os.path.join(
                     "cart_ddg_results",
                     "mutfiles",
                     f"{mutant.raw_mutant_id}.mutfile",
-                ),
+                )
+            mutants2mutfile(
+                [mutant],
+                file_path=mutfile_path
             )
         else:
             raise NotImplementedError
 
         ddg_value_df = self.ddg_runner.cartesian_ddg(
             input_pdb=self.relaxed_pdb,
-            mutfiles=[mutfile],
+            mutfiles=[mutfile_path],
             mutants=[mutant],
             use_legacy=self.use_legacy,
             ddg_iteration=self.ddg_iterations,

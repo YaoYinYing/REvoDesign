@@ -176,13 +176,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         gc.collect()
 
         if delete:
-            set_REvoDesign_config_file(delete_user_config_tree=True)
-            warnings.warn(
-                issues.ConflictWarning(
-                    "Reinitialized with default configuration. "
-                    "Restart REvoDesign to take effort."
+            if decide("DANGEROUS!!!", 'You are reinitializing REvoDesign by DELETING the user configuration file.'):
+                set_REvoDesign_config_file(delete_user_config_tree=True)
+                warnings.warn(
+                    issues.ConflictWarning(
+                        "Reinitialized with default configuration. "
+                        "Restart REvoDesign to take effort."
+                    )
                 )
-            )
 
     def __del__(self):
         """Shutting down."""

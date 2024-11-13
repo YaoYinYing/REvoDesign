@@ -1,6 +1,7 @@
 from abc import abstractmethod
-from typing import Any, Union
+from typing import Any, List, Union
 
+from joblib import Parallel, delayed
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.common.Mutant import Mutant
@@ -80,3 +81,22 @@ class ExternalDesignerAbstract(CitableModules):
         raise NotImplementedError("Scorer method not implemented")
 
     def preffer_substitutions(self, aa: Any): ...
+
+    def parallel_scorer(self, mutants:List[Mutant], nproc:int=2, **kwargs)-> List[Mutant]:
+        """
+        Parallelize the scoring of a list of mutants.
+        """
+        mutants=[mutant for mutant in mutants if not mutant.empty]
+        res=Parallel(n_jobs=nproc)(delayed(self.scorer)(mutant) for mutant in mutants)
+        scores: List[float]=list(res) # type: ignore
+        return self.score_mutant_mapping(mutants, scores)
+    
+    @staticmethod
+    def score_mutant_mapping(mutants: List[Mutant], scores: List[float])-> List[Mutant]:
+        """
+        Assign scores to mutants.
+        """
+        for mutant, score in zip(mutants, scores):
+            mutant.mutant_score=score
+        return mutants
+    
