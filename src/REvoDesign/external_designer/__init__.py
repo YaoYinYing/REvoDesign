@@ -5,13 +5,13 @@ from types import MappingProxyType
 from typing import List, Mapping, Optional
 
 from REvoDesign import ConfigBus, issues
+from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.utils import timing
 
-from REvoDesign.basic import ExternalDesignerAbstract
 # 1. implement and import the designer
-from .designers import ColabDesigner_MPNN,ddg
+from .designers import ColabDesigner_MPNN, ddg
 
 logging = root_logger.getChild(__name__)
 

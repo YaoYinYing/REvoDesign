@@ -6,10 +6,9 @@ from typing import Union
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
-from REvoDesign.common.Mutant import Mutant
-
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 

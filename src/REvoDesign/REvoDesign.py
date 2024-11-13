@@ -231,8 +231,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
         self.bus.ui.actionSave_Configurations.triggered.connect(
             partial(
-            self.save_configuration_from_ui,
-            experiment = "global_config")
+                self.save_configuration_from_ui, experiment="global_config"
+            )
         )
 
         self.bus.ui.action_LoadExperiment.triggered.connect(

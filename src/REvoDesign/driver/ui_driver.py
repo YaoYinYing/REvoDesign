@@ -518,7 +518,7 @@ class Config2WidgetIds:
             "ui.interact.input.gremlin_pkl": "lineEdit_input_gremlin_mtx",
             "ui.interact.input.to_mutant_txt": "lineEdit_output_mutant_table",
             "ui.socket.input.key": "lineEdit_ws_server_key",
-            "rosetta.node_hint": "comboBox_rosetta_node_hint"
+            "rosetta.node_hint": "comboBox_rosetta_node_hint",
         }
     )
 
@@ -590,12 +590,12 @@ class Widget2ConfigMapper:
                     ),
                     # Tab Interact
                     "comboBox_external_scorer": (
-                        ('',),
+                        ("",),
                         CallableGroupValues.list_all_scorers,
                     ),
                     "comboBox_rosetta_node_hint": (
                         CallableGroupValues.list_all_rosetta_node_hints,
-                    )
+                    ),
                 }
             )
         )
@@ -760,23 +760,24 @@ class CallableGroupValues:
         from REvoDesign.external_designer import all_designer_classes
 
         return [dc.name for dc in all_designer_classes if dc.installed]
-    
+
     @staticmethod
     def list_all_rosetta_node_hints() -> List[str]:
 
+        from REvoDesign.external_designer.designers.cart_ddg import \
+            is_run_node_available
 
-        from REvoDesign.external_designer.designers.cart_ddg import is_run_node_available
-
-
-        node_hints: List[NodeHintT]= [
+        node_hints: List[NodeHintT] = [
             "native",
-            "docker" , 
+            "docker",
             "docker_mpi",
             "mpi",
             "wsl",
             "wsl_mpi",
         ]
 
-        available_run_node_hints=[n for n in node_hints if is_run_node_available(n)]
-        
+        available_run_node_hints = [
+            n for n in node_hints if is_run_node_available(n)
+        ]
+
         return available_run_node_hints

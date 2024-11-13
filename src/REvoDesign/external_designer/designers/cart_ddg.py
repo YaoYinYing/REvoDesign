@@ -21,7 +21,7 @@ from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 
-def is_run_node_available(node_hint:Optional[NodeHintT]) -> bool:
+def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
 
     if node_hint is None or node_hint == "native":
         return not os.environ.get("ROSETTA_BIN", "") == ""
@@ -88,16 +88,13 @@ class ddg(ExternalDesignerAbstract):
     prefer_lower = True
 
     def __init__(self, molecule: str, **kwargs):
-        
-        
+
         self.molecule = molecule
         self.reload = False
 
         # Qt is unpickable
         bus: ConfigBus = ConfigBus()
         self.node_hint: Optional[NodeHintT] = bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
-
-
 
         self.installed = is_run_node_available(self.node_hint)
         self.pdb_filename = None
@@ -106,10 +103,8 @@ class ddg(ExternalDesignerAbstract):
         self.unrelaxed_pdb: Optional[str] = None
         self.relaxed_pdb: Optional[str] = None
 
-        
-
         self.nproc: int = int(bus.get_value("ui.header_panel.nproc"))
-        
+
         self.relax_nstruct: int = bus.get_value("rosetta.cart_ddg.relax.nstruct")  # type: ignore
         self.use_legacy: bool = bool(
             bus.get_value("rosetta.cart_ddg.use_legacy", default_value=False)
@@ -229,4 +224,3 @@ eprint = {https://doi.org/10.1021/acs.jctc.6b00819}
 }
 """
     }
-

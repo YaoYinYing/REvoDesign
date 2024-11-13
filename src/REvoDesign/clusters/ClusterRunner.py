@@ -103,14 +103,15 @@ class ClusterRunner:
             cluster_outputs.update({num_mut: clustering.cluster_output_fp})
 
             if self.run_mutate_relax:
-                pdb_file=make_temperal_input_pdb(
+                pdb_file = make_temperal_input_pdb(
                     molecule=self.design_molecule,
                     chain_id=self.design_chain_id,
-                    selection='not hetatm',
+                    selection="not hetatm",
                     reload=False,
                 )
 
-                node_hint: Optional[NodeHintT] = self.bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
+                node_hint: Optional[NodeHintT] = self.bus.get_value(
+                    "rosetta.node_hint", default_value="native")  # type: ignore
 
                 cluster_scores = score_clusters(
                     pdb=pdb_file,
@@ -118,7 +119,6 @@ class ClusterRunner:
                     node_hint=node_hint,
                     tasks_dir=str(clustering.save_dir),
                 )
-
 
             clustering.cite()
 

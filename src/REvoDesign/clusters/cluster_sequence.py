@@ -8,14 +8,13 @@ import time
 import matplotlib
 import pandas as pd
 from Bio import SeqIO
-from matplotlib import pyplot as plt
 from Bio.Align import PairwiseAligner, substitution_matrices
+from matplotlib import pyplot as plt
 
 from REvoDesign.citations import CitableModules
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import refresh_window
 from REvoDesign.tools.utils import minibatches_generator
-
 
 logging = root_logger.getChild(__name__)
 
@@ -50,7 +49,6 @@ class Clustering(CitableModules):
         self.cluster_output_fp = {}
 
     def initialize_aligner(self):
-        
 
         # Add other instance variables here
         self.aligner = PairwiseAligner(
@@ -65,7 +63,6 @@ class Clustering(CitableModules):
     def global_alignment(self, seqs, indexes):
         (i, j) = indexes
         (seqA, seqB) = seqs
-
 
         r = self.aligner.align(seqA, seqB)
 
