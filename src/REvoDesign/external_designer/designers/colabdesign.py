@@ -8,9 +8,9 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign import issues
 from REvoDesign.common.Mutant import Mutant
 
-from ...basic import ExternalDesignerAbstract
-from ...bootstrap.set_config import is_package_installed
-from ...tools.pymol_utils import make_temperal_input_pdb
+from REvoDesign.basic import ExternalDesignerAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 
 # Designer wrapper to ColabDesign MPNN

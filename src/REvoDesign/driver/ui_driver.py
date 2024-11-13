@@ -9,6 +9,7 @@ from Bio.Align import substitution_matrices
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtGui, QtWidgets  # type: ignore
+from RosettaPy.node import NodeHintT
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModules
@@ -464,6 +465,7 @@ class Config2WidgetIds:
             "ui.cluster.mut_num_min": "spinBox_num_mut_minimun",
             "ui.cluster.num_cluster": "spinBox_num_cluster",
             "ui.cluster.batch_size": "spinBox_cluster_batchsize",
+            "ui.cluster.mutate_relax": "checkBox_cluster_mutate_and_relax",
             "ui.visualize.global_score_policy": "checkBox_global_score_policy",
             "ui.interact.chain_binding.enabled": "checkBox_interact_bind_chain_mode",
             "ui.interact.chain_binding.chains_to_bind": "lineEdit_interact_chain_binding",
@@ -478,7 +480,7 @@ class Config2WidgetIds:
             "ui.socket.broadcast.view": "checkBox_ws_broadcast_view",
             "ui.socket.receive.mutagenesis": "checkBox_ws_recieve_mutagenesis_broadcast",
             "ui.socket.receive.view": "checkBox_ws_recieve_view_broadcast",
-            "ui.config.sidechain_solver.default": "comboBox_sidechain_solver",
+            "ui.config.sidechain_solver.use": "comboBox_sidechain_solver",
             "ui.config.sidechain_solver.repack_radius": "doubleSpinBox_sidechain_solver_radius",
             "ui.config.sidechain_solver.model": "comboBox_sidechain_solver_model",
             "ui.header_panel.input.molecule": "comboBox_design_molecule",
@@ -516,6 +518,7 @@ class Config2WidgetIds:
             "ui.interact.input.gremlin_pkl": "lineEdit_input_gremlin_mtx",
             "ui.interact.input.to_mutant_txt": "lineEdit_output_mutant_table",
             "ui.socket.input.key": "lineEdit_ws_server_key",
+            "rosetta.node_hint": "comboBox_rosetta_node_hint"
         }
     )
 
@@ -587,9 +590,12 @@ class Widget2ConfigMapper:
                     ),
                     # Tab Interact
                     "comboBox_external_scorer": (
-                        "",
+                        ('',),
                         CallableGroupValues.list_all_scorers,
                     ),
+                    "comboBox_rosetta_node_hint": (
+                        CallableGroupValues.list_all_rosetta_node_hints,
+                    )
                 }
             )
         )
@@ -754,3 +760,23 @@ class CallableGroupValues:
         from REvoDesign.external_designer import all_designer_classes
 
         return [dc.name for dc in all_designer_classes if dc.installed]
+    
+    @staticmethod
+    def list_all_rosetta_node_hints() -> List[str]:
+
+
+        from REvoDesign.external_designer.designers.cart_ddg import is_run_node_available
+
+
+        node_hints: List[NodeHintT]= [
+            "native",
+            "docker" , 
+            "docker_mpi",
+            "mpi",
+            "wsl",
+            "wsl_mpi",
+        ]
+
+        available_run_node_hints=[n for n in node_hints if is_run_node_available(n)]
+        
+        return available_run_node_hints

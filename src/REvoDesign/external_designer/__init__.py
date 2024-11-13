@@ -9,15 +9,13 @@ from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.utils import timing
 
-from ..basic import ExternalDesignerAbstract
-
-# implement and import the designer
-from .designers import ColabDesigner_MPNN
-from .designers.cart_ddg import ddg
+from REvoDesign.basic import ExternalDesignerAbstract
+# 1. implement and import the designer
+from .designers import ColabDesigner_MPNN,ddg
 
 logging = root_logger.getChild(__name__)
 
-# add the designer class to this list
+# 2. add the designer class to this list
 all_designer_classes: List[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,

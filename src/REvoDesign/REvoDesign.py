@@ -176,7 +176,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         gc.collect()
 
         if delete:
-            if decide("DANGEROUS!!!", 'You are reinitializing REvoDesign by DELETING the user configuration file.'):
+            if decide(
+                "DANGEROUS!!!",
+                "You are reinitializing REvoDesign by DELETING the user configuration file.",
+            ):
                 set_REvoDesign_config_file(delete_user_config_tree=True)
                 warnings.warn(
                     issues.ConflictWarning(
@@ -227,7 +230,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.reload_configurations
         )
         self.bus.ui.actionSave_Configurations.triggered.connect(
-            self.save_configuration_from_ui
+            partial(
+            self.save_configuration_from_ui,
+            experiment = "global_config")
         )
 
         self.bus.ui.action_LoadExperiment.triggered.connect(
@@ -709,7 +714,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             partial(
                 refresh_widget_while_another_changed,
                 self.bus.get_widget_from_cfg_item(
-                    "ui.config.sidechain_solver.default"
+                    "ui.config.sidechain_solver.use"
                 ),
                 self.bus.get_widget_from_cfg_item(
                     "ui.config.sidechain_solver.model"
@@ -1878,7 +1883,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 widget, OmegaConf.select(self.bus.cfg, config_item)
             )
 
-    def save_configuration_from_ui(self, experiment: Optional[str] = None):
+    def save_configuration_from_ui(self, experiment: str = "global_config"):
         """Saves a configuration from the user interface with an optional
         experiment name.
 
@@ -1887,6 +1892,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             experiment being saved. It is an optional parameter, meaning
             it can be None if not provided. Defaults to None.
         """
+        logging.warning(f"Saving configuration as {experiment}")
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
 
     def load_and_save_experiment(self, mode: IO_MODE = "r"):

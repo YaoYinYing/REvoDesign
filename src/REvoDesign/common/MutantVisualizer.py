@@ -30,7 +30,7 @@ class MutantVisualizer:
         self.mutfile = ""
         self.input_session = ""
         self.save_session = None
-        self.nproc:int = os.cpu_count() # type: ignore
+        self.nproc: int = os.cpu_count()  # type: ignore
         self.full = False
         self.cmap = "bwr_r"
         self.key_col = "best_leaf"
@@ -272,39 +272,46 @@ class MutantVisualizer:
             )
             mutation_data[self.score_col] = 1
 
-        variant_objs=[extract_mutants_from_mutant_id(
+        variant_objs = [
+            extract_mutants_from_mutant_id(
                 mutant_string=row[self.key_col],
                 sequences=self.designable_sequences,
-            ) for _, row in mutation_data.iterrows()]
-        
+            )
+            for _, row in mutation_data.iterrows()
+        ]
+
         # margician stays highest priority.
         if self.magician.magician is not None:
-            self.magician.magician.parallel_scorer(variant_objs, nproc=self.nproc)
+            self.magician.magician.parallel_scorer(
+                variant_objs, nproc=self.nproc
+            )
 
         # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
         # so we have to igore it here.
         elif (
-                all(len(variant_obj.mutations) == 1 for variant_obj in variant_objs)
-                and self.profile_scoring_df is not None
-                and (not self.profile_scoring_df.empty)
-            ):
-                for variant_obj in variant_objs:
-                    _score = self.profile_scoring_df.loc[
-                        variant_obj.mutations[0].mut_res,
-                        str(variant_obj.mutations[0].position - 1),
-                    ]
-                    logging.warning(
-                        f"Reading profile score for variant {variant_obj.short_mutant_id}: {_score}"
-                    )
-                    variant_obj.mutant_score = float(_score) # type: ignore
+            all(
+                len(variant_obj.mutations) == 1 for variant_obj in variant_objs
+            )
+            and self.profile_scoring_df is not None
+            and (not self.profile_scoring_df.empty)
+        ):
+            for variant_obj in variant_objs:
+                _score = self.profile_scoring_df.loc[
+                    variant_obj.mutations[0].mut_res,
+                    str(variant_obj.mutations[0].position - 1),
+                ]
+                logging.warning(
+                    f"Reading profile score for variant {variant_obj.short_mutant_id}: {_score}"
+                )
+                variant_obj.mutant_score = float(_score)  # type: ignore
 
         else:
-            variant_objs=[]
+            variant_objs = []
             for _, row in mutation_data.iterrows():
-                variant_obj=extract_mutants_from_mutant_id(
-                mutant_string=row[self.key_col],
-                sequences=self.designable_sequences,
-            )
+                variant_obj = extract_mutants_from_mutant_id(
+                    mutant_string=row[self.key_col],
+                    sequences=self.designable_sequences,
+                )
                 _score = row[self.score_col]
                 logging.debug(
                     f"Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}"
@@ -312,7 +319,7 @@ class MutantVisualizer:
 
                 variant_obj.mutant_score = float(_score)  # type: ignore
                 variant_objs.append(variant_obj)
-        
+
         for variant_obj in variant_objs:
             self.mutant_tree.add_mutant_to_branch(
                 branch=self.group_name,

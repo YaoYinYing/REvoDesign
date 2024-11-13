@@ -48,14 +48,15 @@ def reload_config_file(config_name: str = "global_config") -> DictConfig:
 
 
 def save_configuration(
-    new_cfg: DictConfig, config_name: Optional[str] = "global_config"
+    new_cfg: DictConfig, config_name: str = "global_config"
 ):
     from . import REVODESIGN_CONFIG_FILE
+
 
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
     cfg_save_fp = os.path.join(cfg_save_dir, f"{config_name}.yaml")
     OmegaConf.save(new_cfg, cfg_save_fp)
-    print("Saved configuration.")
+    print(f"Saved configuration: {cfg_save_fp}")
     return
 
 

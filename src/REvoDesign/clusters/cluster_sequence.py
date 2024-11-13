@@ -9,11 +9,13 @@ import matplotlib
 import pandas as pd
 from Bio import SeqIO
 from matplotlib import pyplot as plt
+from Bio.Align import PairwiseAligner, substitution_matrices
 
 from REvoDesign.citations import CitableModules
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import refresh_window
 from REvoDesign.tools.utils import minibatches_generator
+
 
 logging = root_logger.getChild(__name__)
 
@@ -48,7 +50,7 @@ class Clustering(CitableModules):
         self.cluster_output_fp = {}
 
     def initialize_aligner(self):
-        from Bio.Align import PairwiseAligner, substitution_matrices
+        
 
         # Add other instance variables here
         self.aligner = PairwiseAligner(
@@ -64,18 +66,8 @@ class Clustering(CitableModules):
         (i, j) = indexes
         (seqA, seqB) = seqs
 
-        # logging.debug(f'Getting mutants {seqA} and {seqB}...')
-        # start_time = time.perf_counter()
-        # i=self.records_seqs.index(seqA)
-        # j=self.records_seqs.index(seqB)
-
-        # end_time = time.perf_counter()
-
-        # logging.debug(f'{seqA} and {seqB} are found. elapse time: {end_time - start_time}')
 
         r = self.aligner.align(seqA, seqB)
-
-        # logging.debug(f'{i} and {j} are aligned. elapse time: {time.perf_counter() - end_time}')
 
         return (
             "".join(str(r.sequences[0]).split("-")),

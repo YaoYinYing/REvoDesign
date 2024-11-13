@@ -70,6 +70,7 @@ ui:
       default: PAM30
     batch_size: 100
     shuffle: True
+    mutate_relax: False
     
   
   visualize:
@@ -135,6 +136,7 @@ ui:
 
   config: 
     sidechain_solver:
+      use: "Dunbrack Rotamer Library"
       model: ''
       repack_radius: 0.0
 

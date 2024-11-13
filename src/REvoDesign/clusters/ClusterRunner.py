@@ -1,7 +1,14 @@
+from typing import Optional
+
+from RosettaPy.node import NodeHintT
+
 from REvoDesign import ConfigBus
 from REvoDesign.citations import CitationManager
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import set_widget_value
+from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
+
+from .score_clusters import score_clusters
 
 logging = root_logger.getChild(__name__)
 
@@ -39,6 +46,7 @@ class ClusterRunner:
         )
 
         self.shuffle_variant = self.bus.get_value("ui.cluster.shuffle")
+        self.run_mutate_relax = self.bus.get_value("ui.cluster.mutate_relax")
 
         self.nproc = self.bus.get_value("ui.header_panel.nproc", int)
 
@@ -93,6 +101,25 @@ class ClusterRunner:
 
             clustering.run_clustering(progressbar=progressbar)
             cluster_outputs.update({num_mut: clustering.cluster_output_fp})
+
+            if self.run_mutate_relax:
+                pdb_file=make_temperal_input_pdb(
+                    molecule=self.design_molecule,
+                    chain_id=self.design_chain_id,
+                    selection='not hetatm',
+                    reload=False,
+                )
+
+                node_hint: Optional[NodeHintT] = self.bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
+
+                cluster_scores = score_clusters(
+                    pdb=pdb_file,
+                    chain_id=self.design_chain_id,
+                    node_hint=node_hint,
+                    tasks_dir=str(clustering.save_dir),
+                )
+
+
             clustering.cite()
 
         cluster_imgs = [
