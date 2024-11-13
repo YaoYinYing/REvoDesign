@@ -18,21 +18,21 @@ def get_system_info(os_info: platform.uname_result):
     """
     os_name = os_info.system
 
-    if os_name == 'Darwin':
+    if os_name == "Darwin":
         is_arm_macos = "ARM64" in os_info.version
-        is_recognized_as_x86 = os_info.machine == 'x86_64'
+        is_recognized_as_x86 = os_info.machine == "x86_64"
 
-        print(f'Does it ARMed? {is_arm_macos}')
-        print(f'Does it Rosetta-ed? {is_recognized_as_x86}')
+        print(f"Does it ARMed? {is_arm_macos}")
+        print(f"Does it Rosetta-ed? {is_recognized_as_x86}")
 
         if is_arm_macos and is_recognized_as_x86:
             warnings.warn(
                 issues.AppleSiliconRosetta2Warning(
-                    'Oops! You are in Rosetta-translated PyMOL bundle from official channel. '
-                    'This might limit the performance of joblib, causing MutantVisualizer slower.'
+                    "Oops! You are in Rosetta-translated PyMOL bundle from official channel. "
+                    "This might limit the performance of joblib, causing MutantVisualizer slower."
                 )
             )
-            os_name += '_Rosetta'
+            os_name += "_Rosetta"
     return os_name
 
 
@@ -67,10 +67,10 @@ class CLIENT_INFO:
         except OSError as e:
             warnings.warn(
                 issues.CIRunnerWarning(
-                    f'Failed to fetch user, maybe in CI runners? \nError: {e}'
+                    f"Failed to fetch user, maybe in CI runners? \nError: {e}"
                 )
             )
-            user: str = 'CI'
+            user: str = "CI"
         self.user: str = user
         self.os: str = self.OS_INFO.system
         self.os_build: str = self.OS_INFO.version
@@ -80,24 +80,24 @@ class CLIENT_INFO:
         self.pymol_build = PYMOL_BUILD
         self.python_version: str = platform.python_version()
         self.OS_TYPE: str = get_system_info(os_info=self.OS_INFO)
-        self.is_translated_arm_mac: bool = 'Rosetta' in self.OS_TYPE
+        self.is_translated_arm_mac: bool = "Rosetta" in self.OS_TYPE
         try:
             self.nproc = os.cpu_count()
         except Exception as e:
             warnings.warn(
                 issues.PlatformNotSupportedWarning(
-                    f'Failed to fetch CPU count: {e}'
+                    f"Failed to fetch CPU count: {e}"
                 )
             )
 
         try:
             self.ip = socket.gethostbyname_ex(socket.gethostname())[2]
-            if '127.0.0.1' in self.ip:
-                self.ip.remove('127.0.0.1')
+            if "127.0.0.1" in self.ip:
+                self.ip.remove("127.0.0.1")
         except Exception as e:
             warnings.warn(
                 issues.PlatformNotSupportedWarning(
-                    f'Failed to fetch client ip: {e}'
+                    f"Failed to fetch client ip: {e}"
                 )
             )
             self.ip = []

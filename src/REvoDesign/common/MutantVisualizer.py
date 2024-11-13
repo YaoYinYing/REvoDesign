@@ -14,12 +14,14 @@ from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.ProfileParsers import ProfileManager
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
-from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
-                                           extract_mutants_from_mutant_id)
+from REvoDesign.tools.mutant_tools import (
+    extract_mutant_from_sequences,
+    extract_mutants_from_mutant_id,
+)
 from REvoDesign.tools.utils import get_color, run_command
 from REvoDesign.external_designer import Magician, implemented_designers
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 logging = root_logger.getChild(__name__)
 
 
@@ -28,19 +30,18 @@ class MutantVisualizer:
         self.molecule = molecule
         self.chain_id = chain_id
         self.designable_sequences: RosettaPyProteinSequence
-        self.mutfile = ''
-        self.input_session = ''
+        self.mutfile = ""
+        self.input_session = ""
         self.save_session = None
         self.nproc = os.cpu_count()
         self.full = False
         self.cmap = "bwr_r"
         self.key_col = "best_leaf"
         self.score_col = "totalscore"
-        self.group_name = 'default_group'
-        self.sequence = ''
-        self.profile = ''
-        self.profile_format: str = 'PSSM'
-        self.scorer = None
+        self.group_name = "default_group"
+        self.sequence = ""
+        self.profile = ""
+        self.profile_format: str = "PSSM"
         self.mutate_runner: MutateRunnerAbstract = None
 
         self.profile_scoring_df: pd.DataFrame = None
@@ -53,8 +54,7 @@ class MutantVisualizer:
         self.mutant_tree: MutantTree = MutantTree({})
 
         self.consider_global_score_from_profile = False
-
-        self.magician=Magician()
+        self.magician = Magician()
 
     def process_mutant(self, mutant_obj: Mutant):
         """
@@ -108,18 +108,18 @@ class MutantVisualizer:
         new_obj_name = mutant_obj.short_mutant_id
         score = mutant_obj.mutant_score
 
-        temp_dir = tempfile.mkdtemp(prefix='RD_design_')
+        temp_dir = tempfile.mkdtemp(prefix="RD_design_")
         temp_mutant_path = os.path.join(
             temp_dir, f"{self.molecule}_{new_obj_name}.pse"
         )
 
         mut_pos = [
-            f'(c. {mut_info.chain_id} and i. {str(mut_info.position)})'
+            f"(c. {mut_info.chain_id} and i. {str(mut_info.position)})"
             for mut_info in mutant_obj.mutations
         ]
 
         if not self.mutate_runner:
-            raise RuntimeError('no mutate runner is instantiated yet.')
+            raise RuntimeError("no mutate runner is instantiated yet.")
 
         # use precomputed pdb if it exists. otherwise run the runner to get one.
         if not (temp_mutant_pdb_path := mutant_obj.pdb_fp):
@@ -135,20 +135,20 @@ class MutantVisualizer:
 
         cmd.load(temp_mutant_pdb_path, new_obj_name)
 
-        cmd.hide('lines', f'{new_obj_name}')
-        cmd.hide('cartoon', f'{new_obj_name}')
+        cmd.hide("lines", f"{new_obj_name}")
+        cmd.hide("cartoon", f"{new_obj_name}")
         cmd.show(
             "sticks",
             f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and '
-            '(sidechain or n. CA) and (not hydrogen)',
+            "(sidechain or n. CA) and (not hydrogen)",
         )
 
-        cmd.hide('everything', 'hydrogens and polymer.protein')
+        cmd.hide("everything", "hydrogens and polymer.protein")
 
         if score:
             cmd.alter(
                 f' {new_obj_name} and ( {" or ".join([f"( {pos} )" for pos in mut_pos])} ) and (sidechain or n. CA) ',
-                f'b={score}',
+                f"b={score}",
             )
 
         if not self.full:
@@ -158,9 +158,9 @@ class MutantVisualizer:
             )
 
         # set backbone color
-        cmd.set_color(f'color_{new_obj_name}', color)
+        cmd.set_color(f"color_{new_obj_name}", color)
         cmd.color(
-            f'color_{new_obj_name}',
+            f"color_{new_obj_name}",
             f'({new_obj_name} and ({" or ".join(mut_pos)}) )',
         )
         util.cnc(f'{new_obj_name} and ({" or ".join(mut_pos)})', _self=cmd)
@@ -193,7 +193,6 @@ class MutantVisualizer:
         - Returns the processed DataFrame or None based on the profile format.
         """
 
-
         args = {
             "profile_input": profile_fp,
             "molecule": self.molecule,
@@ -224,17 +223,17 @@ class MutantVisualizer:
 
         """
         # Check the file format and read data accordingly
-        if self.mutfile.lower().endswith('.csv'):
+        if self.mutfile.lower().endswith(".csv"):
             # Read mutation data from CSV file using pandas
             mutation_data = pd.read_csv(self.mutfile)
-        elif self.mutfile.lower().endswith('.txt'):
+        elif self.mutfile.lower().endswith(".txt"):
             # Read mutation data from TXT file using pandas and use 'key_col' as the column name
             mutation_data = pd.read_csv(
-                self.mutfile, sep='\t', names=[self.key_col]
+                self.mutfile, sep="\t", names=[self.key_col]
             )
         elif any(
             self.mutfile.lower().endswith(ext)
-            for ext in ['.fasta', '.fas', '.fa']
+            for ext in [".fasta", ".fas", ".fa"]
         ):
             # Read mutant data from fasta file.
             _mutation_objs = [
@@ -244,14 +243,16 @@ class MutantVisualizer:
                     chain_id=self.chain_id,
                 )
                 for mut_record in SeqIO.parse(
-                    open(self.mutfile), format='fasta'
+                    open(self.mutfile), format="fasta"
                 )
             ]
 
             mutation_data = pd.DataFrame.from_dict(
                 {
                     self.key_col: [
-                        mut_obj.short_mutant_id for mut_obj in _mutation_objs if mut_obj is not None
+                        mut_obj.short_mutant_id
+                        for mut_obj in _mutation_objs
+                        if mut_obj is not None
                     ]
                 }
             )
@@ -288,11 +289,11 @@ class MutantVisualizer:
 
             variant_obj.wt_protein_sequence = self.designable_sequences
 
-            # external scorer stays highest priority.
-            if self.scorer:
-                _score = self.scorer.scorer(variant_obj)
+            # margician stays highest priority.
+            if self.magician.magician is not None:
+                _score = self.magician.magician.scorer(variant_obj)
                 logging.debug(
-                    f'Reading profile score for scorcer {type(self.scorer)}: {_score}'
+                    f"Evaluated by magician {self.magician.magician.name}: {_score}"
                 )
 
             # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
@@ -307,13 +308,13 @@ class MutantVisualizer:
                     str(_variant_info[0].position - 1),
                 ]
                 logging.warning(
-                    f'Reading profile score for variant {variant_obj.short_mutant_id}: {_score}'
+                    f"Reading profile score for variant {variant_obj.short_mutant_id}: {_score}"
                 )
 
             else:
                 _score = row[self.score_col]
                 logging.debug(
-                    f'Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}'
+                    f"Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}"
                 )
 
             variant_obj.mutant_score = float(_score)  # type: ignore
@@ -326,13 +327,13 @@ class MutantVisualizer:
         # Determine the range for color bar
         score_list = self.mutant_tree.all_mutant_scores
 
-        logging.debug(f'Scores: {score_list}')
+        logging.debug(f"Scores: {score_list}")
 
         if (
             self.consider_global_score_from_profile  # Toggle the global score flag
             and (self.profile_scoring_df is not None)  # profile df is not None
             and (not self.profile_scoring_df.empty)  # profile df is not empty
-            and (not self.scorer)  # no external scorer enabled
+            and (self.magician.magician is None)  # no magician enabled
         ):
             self.min_score = self.min_score_profile
             self.max_score = self.max_score_profile
@@ -363,14 +364,14 @@ class MutantVisualizer:
         """
 
         if not self.mutate_runner:
-            raise RuntimeError('no mutate runner is instantiated yet.')
+            raise RuntimeError("no mutate runner is instantiated yet.")
 
         if any(
             not (m.pdb_fp and os.path.isfile(m.pdb_fp))
             for m in self.mutant_tree.all_mutant_objects
         ):
             logging.warning(
-                f're-compute sidechain for {self.mutant_tree.branch_num}: {self.mutant_tree.mutant_num} MutantTree.'
+                f"re-compute sidechain for {self.mutant_tree.branch_num}: {self.mutant_tree.mutant_num} MutantTree."
             )
 
             self.mutant_tree.run_mutate_parallel(
@@ -386,7 +387,7 @@ class MutantVisualizer:
         self.merge_sessions_via_commandline()
 
     def merge_sessions_via_commandline(self):
-        '''
+        """
         To call this commandline interface of session merger:
 
         # Instantialize `MutantVisualizer`. molecule and chain_id can be set as empty str.
@@ -405,41 +406,41 @@ class MutantVisualizer:
         #session merger will save a temperal sesion based on given output session file path.
 
 
-        '''
+        """
         from REvoDesign.tools import SessionMerger
 
-        logging.debug(f'mutangesis_sessions: {self.mutagenesis_sessions}')
+        logging.debug(f"mutangesis_sessions: {self.mutagenesis_sessions}")
         merged_temp_session = os.path.join(
             os.path.dirname(self.save_session),
-            'temp_sessions',
-            f'mutate_only.{os.path.basename(self.save_session)}',
+            "temp_sessions",
+            f"mutate_only.{os.path.basename(self.save_session)}",
         )
         os.makedirs(os.path.dirname(merged_temp_session), exist_ok=True)
 
         tmp_merge_command = [
             SessionMerger.__file__,
-            '--save_path',
+            "--save_path",
             merged_temp_session,
-            '--mode',
+            "--mode",
             str(2),
-            '--delete',
-            '--quiet',
+            "--delete",
+            "--quiet",
         ] + self.mutagenesis_sessions
 
         merge_results = run_command(
-            excutable='python', command_list=tmp_merge_command
+            excutable="python", command_list=tmp_merge_command
         )
         if merge_results.returncode == 0:
             logging.info(
-                f'Temperal merged result is successfully created at {merged_temp_session}'
+                f"Temperal merged result is successfully created at {merged_temp_session}"
             )
             os.rename(merged_temp_session, self.save_session)
         else:
             warnings.warn(
                 issues.InvalidSessionWarning(
-                    f'Temperal merged result is failed to create. Try again with a clean PyMOL session. \n'
-                    f'STDOUT:\n{merge_results.stdout}\n'
-                    f'STDERR:\n{merge_results.stderr}'
+                    f"Temperal merged result is failed to create. Try again with a clean PyMOL session. \n"
+                    f"STDOUT:\n{merge_results.stdout}\n"
+                    f"STDERR:\n{merge_results.stderr}"
                 )
             )
             return

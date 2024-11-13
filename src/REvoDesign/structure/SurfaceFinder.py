@@ -7,10 +7,10 @@ from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
-'''
+"""
 This is a slightly modified version of the code on:
 http://pymolwiki.org/index.php/FindSurfaceResidues
-'''
+"""
 
 
 def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
@@ -112,107 +112,104 @@ class SurfaceFinder:
         self.bus = ConfigBus()
         self.input_pse = input_pse
         self.output_pse = self.bus.get_value(
-            'ui.prepare.input.surface.to_pse', str
+            "ui.prepare.input.surface.to_pse", str
         )
         self.molecule = self.bus.get_value(
-            'ui.header_panel.input.molecule', str
+            "ui.header_panel.input.molecule", str
         )
         self.chain_id = self.bus.get_value(
-            'ui.header_panel.input.chain_id', str
+            "ui.header_panel.input.chain_id", str
         )
 
         self.exclude_residue_selection = self.bus.get_value(
-            'ui.prepare.input.surface.exclusion', str, default_value=''
+            "ui.prepare.input.surface.exclusion", str, default_value=""
         )
         self.cutoff = self.bus.get_value(
-            'ui.prepare.surface_probe_radius', float, default_value=15.0
+            "ui.prepare.surface_probe_radius", float, default_value=15.0
         )
         self.do_show_surf_CA = True
 
     def process_surface_residues(self):
         cmd.save(self.input_pse)
         logging.debug(
-            f'exclude_residue_selection = {self.exclude_residue_selection}'
+            f"exclude_residue_selection = {self.exclude_residue_selection}"
         )
 
         if (
             self.exclude_residue_selection
-            or self.exclude_residue_selection != ''
+            or self.exclude_residue_selection != ""
         ):
             sel_exclude_residue_selection = (
-                f'and (not {self.exclude_residue_selection})'
+                f"and (not {self.exclude_residue_selection})"
             )
             ray_selection_list = [
                 self.exclude_residue_selection,
                 self.molecule,
             ]
         else:
-            sel_exclude_residue_selection = ''
+            sel_exclude_residue_selection = ""
             ray_selection_list = [self.molecule]
 
         if self.do_show_surf_CA:
-            cmd.disable('all')
+            cmd.disable("all")
             cmd.enable(self.molecule)
-            cmd.set('sphere_scale', 0.5)
+            cmd.set("sphere_scale", 0.5)
 
-        molecule_selection = f'{self.molecule} and c. {self.chain_id}'
+        molecule_selection = f"{self.molecule} and c. {self.chain_id}"
 
-        cmd.scene('initial_scene', 'store')
+        cmd.scene("initial_scene", "store")
 
         os.makedirs(
-            'surface_residue_records', exist_ok=True
+            "surface_residue_records", exist_ok=True
         )  # Create a directory for residue records
 
-        cmd.scene('initial_scene')
+        cmd.scene("initial_scene")
         surface_selection = findSurfaceResidues(
             selection=self.molecule, cutoff=self.cutoff, return_selection=1
         )
 
-        ner_ca_selection = f'ner_ca_{self.cutoff:.1f}'
-        er_ca_selection = f'er_ca_{self.cutoff:.1f}'
+        ner_ca_selection = f"ner_ca_{self.cutoff:.1f}"
+        er_ca_selection = f"er_ca_{self.cutoff:.1f}"
 
         cmd.create(
             ner_ca_selection,
-            f'{molecule_selection} and (not {surface_selection}) and n. CA {sel_exclude_residue_selection}',
+            f"{molecule_selection} and (not {surface_selection}) and n. CA {sel_exclude_residue_selection}",
         )
         cmd.create(
             er_ca_selection,
-            f'{molecule_selection} and {surface_selection} and n. CA {sel_exclude_residue_selection}',
+            f"{molecule_selection} and {surface_selection} and n. CA {sel_exclude_residue_selection}",
         )
 
         if self.do_show_surf_CA:
-            cmd.hide('everything', f'{ner_ca_selection} or {er_ca_selection}')
-            cmd.show('spheres', ner_ca_selection)
-            cmd.set('sphere_color', 'salmon', ner_ca_selection)
-            cmd.show('spheres', er_ca_selection)
-            cmd.set('sphere_color', 'aquamarine', er_ca_selection)
+            cmd.hide("everything", f"{ner_ca_selection} or {er_ca_selection}")
+            cmd.show("spheres", ner_ca_selection)
+            cmd.set("sphere_color", "salmon", ner_ca_selection)
+            cmd.show("spheres", er_ca_selection)
+            cmd.set("sphere_color", "aquamarine", er_ca_selection)
 
         for obj in ray_selection_list:
             cmd.zoom(obj)
-            scene_id = f'{obj[:20]}_cutoff_{self.cutoff:.1f}'
+            scene_id = f"{obj[:20]}_cutoff_{self.cutoff:.1f}"
             cmd.refresh()
             cmd.scene(
-                scene_id, 'store', message=f'surface_cutoff: {self.cutoff:.1f}'
+                scene_id, "store", message=f"surface_cutoff: {self.cutoff:.1f}"
             )
 
         cmd.refresh()
 
         # Save residue IDs to a text file
         surface_residue_ids = list(
-            {
-                int(atom.resi)
-                for atom in cmd.get_model(er_ca_selection).atom
-            }
+            {int(atom.resi) for atom in cmd.get_model(er_ca_selection).atom}
         )
         surface_residue_ids.sort()
         residue_filename = os.path.join(
-            'surface_residue_records',
-            f'{self.molecule}_residues_cutoff_{self.cutoff:.1f}.txt',
+            "surface_residue_records",
+            f"{self.molecule}_residues_cutoff_{self.cutoff:.1f}.txt",
         )
-        with open(residue_filename, 'w') as f:
-            f.write(','.join(map(str, surface_residue_ids)))
+        with open(residue_filename, "w") as f:
+            f.write(",".join(map(str, surface_residue_ids)))
 
         if self.do_show_surf_CA:
-            cmd.hide('spheres', f'{ner_ca_selection} or {er_ca_selection}')
+            cmd.hide("spheres", f"{ner_ca_selection} or {er_ca_selection}")
 
         cmd.save(self.output_pse)

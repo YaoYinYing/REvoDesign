@@ -8,16 +8,15 @@ from REvoDesign.common.Mutant import Mutant
 
 
 class MutateRunner(Protocol):
-    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int = 2) -> List[str]:
-        ...
+    def run_mutate_parallel(
+        self, mutants: List[Mutant], nproc: int = 2
+    ) -> List[str]: ...
 
     def mutated_pdb_mapping(
-        self, mutant_tree: 'MutantTree', pdb_fps: List[str]
-    ) -> 'MutantTree':
-        ...
+        self, mutant_tree: "MutantTree", pdb_fps: List[str]
+    ) -> "MutantTree": ...
 
-    def cite(self) -> None:
-        ...
+    def cite(self) -> None: ...
 
 
 class MutantTree:
@@ -31,8 +30,8 @@ class MutantTree:
         Usage:
         tree = MutantTree(mutant_tree_dict)
         """
-        self.current_branch_id = ''
-        self.current_mutant_id = ''
+        self.current_branch_id = ""
+        self.current_mutant_id = ""
 
         self.mutant_tree = mutant_tree
 
@@ -101,7 +100,7 @@ class MutantTree:
         return tree_str
 
     @property
-    def __copy__(self) -> 'MutantTree':
+    def __copy__(self) -> "MutantTree":
         """
         Returns a shallow copy of the MutantTree object.
 
@@ -111,7 +110,7 @@ class MutantTree:
         return MutantTree(self.mutant_tree.copy())
 
     @property
-    def __deepcopy__(self) -> 'MutantTree':
+    def __deepcopy__(self) -> "MutantTree":
         """
         Returns a deep copy of the MutantTree object.
 
@@ -228,7 +227,7 @@ class MutantTree:
                 return
 
     def update_tree_with_new_branches(
-        self, new_branches: Union[dict[str, dict[str, Mutant]], 'MutantTree']
+        self, new_branches: Union[dict[str, dict[str, Mutant]], "MutantTree"]
     ) -> None:
         """
         Update the MutantTree object with new branches.
@@ -267,7 +266,7 @@ class MutantTree:
             self.mutant_tree[branch] = {}
 
         if mutant in self.get_a_branch(branch_id=branch):
-            print(f'Mutant {mutant} already exists and will be updated.')
+            print(f"Mutant {mutant} already exists and will be updated.")
 
         self.mutant_tree[branch].update({mutant: mutant_obj})
         self.refresh_mutants()
@@ -287,16 +286,16 @@ class MutantTree:
             self.mutant_tree[branch].pop(mutant)
         else:
             print(
-                f'Mutant {mutant} does not exist in this branch and there\'s no need to remove it.'
+                f"Mutant {mutant} does not exist in this branch and there's no need to remove it."
             )
 
         if self.is_this_branch_empty(branch):
             self.mutant_tree.pop(branch)
-            print(f'Branch {branch} is empty and has been removed.')
+            print(f"Branch {branch} is empty and has been removed.")
 
         self.refresh_mutants()
 
-    def create_mutant_tree_from_list(self, mutant_id_list) -> 'MutantTree':
+    def create_mutant_tree_from_list(self, mutant_id_list) -> "MutantTree":
         """
         Creates a new MutantTree instance from a filtered list of mutant IDs.
 
@@ -452,10 +451,10 @@ class MutantTree:
         tree.jump_to_branch('branch_id')
         """
         if branch_id not in self.all_mutant_branch_ids:
-            print(f'Could not find a branch with the specified id {branch_id}')
+            print(f"Could not find a branch with the specified id {branch_id}")
             return
         elif self.is_this_branch_empty(branch_id):
-            print(f'Branch {branch_id} is empty')
+            print(f"Branch {branch_id} is empty")
             return
         else:
             self.current_branch_id = branch_id
@@ -469,9 +468,9 @@ class MutantTree:
 
         return [
             {
-                'branch': branch_id,
-                'mutant_id': mutant_id,
-                'mutant_obj': mutant_obj,
+                "branch": branch_id,
+                "mutant_id": mutant_id,
+                "mutant_obj": mutant_obj,
             }
             for branch_id in self.all_mutant_branch_ids
             for mutant_id, mutant_obj in self.get_a_branch(
@@ -479,7 +478,9 @@ class MutantTree:
             ).items()
         ]
 
-    def diff_tree_from(self, incoming_tree: 'MutantTree') -> Optional['MutantTree']:
+    def diff_tree_from(
+        self, incoming_tree: "MutantTree"
+    ) -> Optional["MutantTree"]:
         """
         Compares two MutantTree objects and returns the differences as a new MutantTree.
 
@@ -560,19 +561,25 @@ class MutantTree:
         """
 
         tmp_mutant_obj = Mutant(
-            mutations=squeeze([
-                _mut_info
-                for _mut_obj in self.all_mutant_objects
-                for _mut_info in _mut_obj.mutations
-            ]),
-            wt_protein_sequence=self.all_mutant_objects[0].wt_protein_sequence
+            mutations=squeeze(
+                [
+                    _mut_info
+                    for _mut_obj in self.all_mutant_objects
+                    for _mut_info in _mut_obj.mutations
+                ]
+            ),
+            wt_protein_sequence=self.all_mutant_objects[0].wt_protein_sequence,
         )
         return tmp_mutant_obj
 
     def run_mutate_parallel(
-        self, mutate_runner: MutateRunner, nproc: int = 2,
+        self,
+        mutate_runner: MutateRunner,
+        nproc: int = 2,
     ) -> None:
-        with joblib_progress("Packing ...", total=len(self.all_mutant_objects)):
+        with joblib_progress(
+            "Packing ...", total=len(self.all_mutant_objects)
+        ):
             all_mutants_pdb_fp = mutate_runner.run_mutate_parallel(
                 mutants=self.all_mutant_objects, nproc=nproc
             )

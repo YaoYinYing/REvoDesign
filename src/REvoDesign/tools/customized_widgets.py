@@ -72,7 +72,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
             self.max_value,
         ) = self.load_matrix_from_pair()
 
-        self.sequence = ''
+        self.sequence = ""
 
         # if self.pair.transposed:
         #     self.pos_i, self.pos_j = self.pair.j, self.pair.i
@@ -129,14 +129,14 @@ class QbuttonMatrix(QtWidgets.QWidget):
 
         self.bus = ConfigBus()
         self._cmap: str = self.bus.get_value(
-            'ui.header_panel.cmap.default', str
+            "ui.header_panel.cmap.default", str
         )
 
         # follow the original cmap style. bwr_r -> bwr
         self.cmap = cmap_reverser(
             cmap=self._cmap,
             reverse=not self.bus.get_value(
-                'ui.header_panel.cmap.reverse_score', bool
+                "ui.header_panel.cmap.reverse_score", bool
             ),
         )
 
@@ -189,7 +189,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
                 )
 
                 button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
-                button.setObjectName(f'matrixButton_{row}_vs_{col}')
+                button.setObjectName(f"matrixButton_{row}_vs_{col}")
                 button.setSizePolicy(size_policy)
                 button.setStyleSheet(
                     f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''}"
@@ -234,7 +234,7 @@ def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(
         None,
         "Open Directory",
-        os.path.expanduser('~'),
+        os.path.expanduser("~"),
         QtWidgets.QFileDialog.ShowDirsOnly
         | QtWidgets.QFileDialog.DontResolveSymlinks,
     )
@@ -250,10 +250,10 @@ def getOpenFileNameWithExt(*args, **kwargs):
     fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
 
     if not fname:
-        return ''
+        return ""
 
-    if '.' not in os.path.split(fname)[-1]:
-        m = re.search(r'\*(\.[\w\.]+)', filter)
+    if "." not in os.path.split(fname)[-1]:
+        m = re.search(r"\*(\.[\w\.]+)", filter)
         if m:
             # append first extension from filter
             fname += m.group(1)
@@ -283,7 +283,7 @@ def set_widget_value(widget, value):
 
     def set_value_error(widget, value):
         logging.warning(
-            f'FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}'
+            f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}"
         )
 
     # Preprocess values according to types
@@ -410,7 +410,7 @@ def refresh_widget_while_another_changed(
     if trigger_value in target_data_group:
 
         for _, target_data in enumerate(
-            target_data_group.get(trigger_value, '')
+            target_data_group.get(trigger_value, "")
         ):
             set_widget_value(widget=target_widget, value=target_data)
 
@@ -421,7 +421,7 @@ class ParallelExecutor:
         func: Callable,
         args: Iterable[Any],
         n_jobs: int,
-        backend: str = 'auto',
+        backend: str = "auto",
         verbose: bool = 0,
         kwargs: Union[tuple[dict], list[dict], None] = None,
     ):
@@ -435,10 +435,10 @@ class ParallelExecutor:
 
         CLIENT_INFO.OS_TYPE
         # guessing backend according to OS
-        if not backend == 'auto':
+        if not backend == "auto":
             self.backend = backend
         else:
-            self.backend = 'loky'
+            self.backend = "loky"
 
         self.verbose = verbose
         logging.debug(
@@ -448,7 +448,7 @@ class ParallelExecutor:
     def run(self):
         from joblib import Parallel, delayed
 
-        logging.info(f'Workload in this run: {len(self.args)}')
+        logging.info(f"Workload in this run: {len(self.args)}")
         if not self.kwargs:
             return Parallel(
                 n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose
@@ -456,7 +456,7 @@ class ParallelExecutor:
 
         if len(self.kwargs) != len(self.args):
             raise ValueError(
-                f'Workload kwargs mismatch: {len(self.kwargs)=} != {len(self.args)=}'
+                f"Workload kwargs mismatch: {len(self.kwargs)=} != {len(self.args)=}"
             )
 
         return Parallel(
@@ -468,8 +468,7 @@ class ParallelExecutor:
 
 
 class QtParallelExecutor(QtCore.QThread):
-
-    '''
+    """
     USAGE:
         # 1. set a bouncing progressbar
         progress_bar.setRange(0, 0)
@@ -501,7 +500,7 @@ class QtParallelExecutor(QtCore.QThread):
         # 7. continue the following code
         self.merging_sessions()
 
-    '''
+    """
 
     progress_signal = QtCore.pyqtSignal(int)
     result_signal = QtCore.pyqtSignal(list)
@@ -512,7 +511,7 @@ class QtParallelExecutor(QtCore.QThread):
         func,
         args,
         n_jobs,
-        backend='auto',
+        backend="auto",
         verbose=0,
     ):
         super().__init__()
@@ -527,7 +526,7 @@ class QtParallelExecutor(QtCore.QThread):
         self.result_signal.emit(self.results)
 
     def handle_result(self):
-        logging.debug('Sending results ...')
+        logging.debug("Sending results ...")
         return self.results
 
 
@@ -591,7 +590,7 @@ class WorkerThread(QtCore.QThread):
 
 
 def notify_box(
-    message: str = '',
+    message: str = "",
 ):
     # A notify message.
     msg = QtWidgets.QMessageBox()
@@ -602,7 +601,7 @@ def notify_box(
     msg.exec_()
 
 
-def decide(title='', description=''):
+def decide(title="", description=""):
     """
     Function: proceed_with_confirm_msg_box
     Usage: result = proceed_with_confirm_msg_box(title='', description='')
@@ -696,7 +695,7 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     if not user_tree:
         return
 
-    host_info = user_tree.pop('Host')
+    host_info = user_tree.pop("Host")
     host_node = QtWidgets.QTreeWidgetItem(treeWidget_ws_peers)
     host_node.setText(0, f"Host: {host_info['user']}@{host_info['node']}")
 
@@ -710,7 +709,7 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     # Sort the user data by joined_time_stamp including UUIDs
     sorted_users = sorted(
         user_tree.items(),
-        key=lambda x: x[1]['joined_time_stamp'],
+        key=lambda x: x[1]["joined_time_stamp"],
         reverse=True,
     )
 

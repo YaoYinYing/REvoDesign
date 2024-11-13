@@ -68,9 +68,11 @@ class REvoDesignLogFormatter(python_logging.Formatter):
             always_fields["stack_info"] = self.formatStack(record.stack_info)
 
         message = {
-            key: msg_val
-            if (msg_val := always_fields.pop(val, None)) is not None
-            else getattr(record, val)
+            key: (
+                msg_val
+                if (msg_val := always_fields.pop(val, None)) is not None
+                else getattr(record, val)
+            )
             for key, val in self.fmt_keys.items()
         }
         message.update(always_fields)
@@ -181,24 +183,24 @@ def setup_logging() -> python_logging.Logger:
     logfile = cfg.log.handlers.file.filename
     notebookfile = cfg.log.handlers.notebook.filename
 
-    if logfile == 'AUTO':
-        logfile = user_log_path('REvoDesign', ensure_exists=True)
-        cfg.log.handlers.file.filename = os.path.join(logfile, 'REvoDesign.runtime.log')
+    if logfile == "AUTO":
+        logfile = user_log_path("REvoDesign", ensure_exists=True)
+        cfg.log.handlers.file.filename = os.path.join(
+            logfile, "REvoDesign.runtime.log"
+        )
 
-    if notebookfile == 'AUTO':
-        notebookfile = user_log_path('REvoDesign', ensure_exists=True)
-        cfg.log.handlers.notebook.filename = os.path.join(notebookfile, 'REvoDesign.notebook.log')
+    if notebookfile == "AUTO":
+        notebookfile = user_log_path("REvoDesign", ensure_exists=True)
+        cfg.log.handlers.notebook.filename = os.path.join(
+            notebookfile, "REvoDesign.notebook.log"
+        )
 
     if logfile is not None:
-        logging_dir = os.path.dirname(
-            os.path.abspath(logfile)
-        )
+        logging_dir = os.path.dirname(os.path.abspath(logfile))
         os.makedirs(logging_dir, exist_ok=True)
 
     if notebookfile is not None:
-        notebook_dir = os.path.dirname(
-            os.path.abspath(notebookfile)
-        )
+        notebook_dir = os.path.dirname(os.path.abspath(notebookfile))
 
         os.makedirs(notebook_dir, exist_ok=True)
     logger = setup_logging_from_dictconfig(log_config=cfg.log)

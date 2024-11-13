@@ -52,6 +52,6 @@ class SingletonAbstract(ABC):
         This method checks if the instance has been initialized and sets instance attributes accordingly.
         """
         # Check if the instance has already been initialized
-        if not hasattr(self, 'initialized'):
+        if not hasattr(self, "initialized"):
             # If not, set the instance attributes
             self.initialized = True

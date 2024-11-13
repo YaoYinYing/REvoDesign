@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Union
+from typing import Any, Union
 
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign.common.Mutant import Mutant
@@ -19,10 +19,11 @@ class ExternalDesignerAbstract(CitableModules):
         reload (bool): A flag indicating whether to reload the design, defaults to False.
 
     """
-    name: str = ''
+
+    name: str = ""
     installed: bool = False
     scorer_only: bool = False
-    no_need_to_score_wt:bool = False
+    no_need_to_score_wt: bool = False
     # whether lower scores are preferred
     prefer_lower: bool = False
 
@@ -64,7 +65,9 @@ class ExternalDesignerAbstract(CitableModules):
         """
         raise NotImplementedError("Designer method not implemented")
 
-    def scorer(self, mutant: Union[Mutant, RosettaPyProteinSequence ],  **kwargs):
+    def scorer(
+        self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
+    ):
         """
         Abstract method to evaluate or score a given sequence design.
         Determines the quality or fitness of the designed sequence.
@@ -74,3 +77,5 @@ class ExternalDesignerAbstract(CitableModules):
             *args, **kwargs: Additional parameters for scoring, if required.
         """
         raise NotImplementedError("Scorer method not implemented")
+
+    def preffer_substitutions(self, aa: Any): ...

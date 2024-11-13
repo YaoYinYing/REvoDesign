@@ -1,4 +1,4 @@
-'''
+"""
 #### Hot replacement of designers ####
 
 from REvoDesign.external_designer import EXTERNAL_DESIGNERS
@@ -32,9 +32,8 @@ else:
     self.scorer = None
 
 
-'''
-
+"""
 
 from .colabdesign import ColabDesigner_MPNN
 
-__all__ = ['ColabDesigner_MPNN']
+__all__ = ["ColabDesigner_MPNN"]

@@ -1,3 +1,3 @@
 from .Evaluator import Evalutator
 
-__all__ = ['Evalutator']
+__all__ = ["Evalutator"]

@@ -68,29 +68,29 @@ class PyMOLSessionMerger:
 
         print(f"Saving merged session: {self.save_path}")
         cmd.save(self.save_path, quiet=self.quiet)
-        print('Done.')
+        print("Done.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Merge PyMOL sessions.')
+    parser = argparse.ArgumentParser(description="Merge PyMOL sessions.")
     parser.add_argument(
-        'session_paths',
-        nargs='+',
-        help='Paths to PyMOL sessions to be merged.',
+        "session_paths",
+        nargs="+",
+        help="Paths to PyMOL sessions to be merged.",
     )
     parser.add_argument(
-        '--save_path', required=True, help='Path to save the merged session.'
+        "--save_path", required=True, help="Path to save the merged session."
     )
     parser.add_argument(
-        '--mode', type=int, default=1, help='Loading mode (default: 1).'
+        "--mode", type=int, default=1, help="Loading mode (default: 1)."
     )
     parser.add_argument(
-        '--delete',
-        action='store_true',
-        help='Delete session files after loading.',
+        "--delete",
+        action="store_true",
+        help="Delete session files after loading.",
     )
     parser.add_argument(
-        '--quiet', action='store_true', help='Run in quiet mode.'
+        "--quiet", action="store_true", help="Run in quiet mode."
     )
 
     args = parser.parse_args()

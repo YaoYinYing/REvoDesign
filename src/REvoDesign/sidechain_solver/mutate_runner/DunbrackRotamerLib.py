@@ -21,10 +21,11 @@ class PyMOL_mutate(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
-    name: str = 'Dunbrack Rotamer Library'
+
+    name: str = "Dunbrack Rotamer Library"
     installed: bool = True
 
-    def __init__(self, pdb_file, molecule='', **kwargs):
+    def __init__(self, pdb_file, molecule="", **kwargs):
         """
         Initialize PyMOL_mutate with a molecule and input session.
 
@@ -61,16 +62,16 @@ class PyMOL_mutate(MutateRunnerAbstract):
         import pymol2
 
         new_obj_name = mutant.short_mutant_id
-        logging.debug(f'Mutating {mutant=}')
+        logging.debug(f"Mutating {mutant=}")
 
         temp_mutant_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
         with pymol2.PyMOL() as p:
             p.cmd.reinitialize()
             p.cmd.load(self.input_session, object=self.molecule)
-            p.cmd.hide('surface')
+            p.cmd.hide("surface")
             logging.debug(
-                f'creating {new_obj_name=} copyed from  {self.molecule=}: {p.cmd.get_names()=}'
+                f"creating {new_obj_name=} copyed from  {self.molecule=}: {p.cmd.get_names()=}"
             )
 
             p.cmd.create(new_obj_name, self.molecule, quiet=0)
@@ -115,14 +116,14 @@ class PyMOL_mutate(MutateRunnerAbstract):
         - List of paths to the mutated PDB files
         """
 
-        results = Parallel(n_jobs=nproc, return_as='list')(
+        results = Parallel(n_jobs=nproc, return_as="list")(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
         return list(results)  # type: ignore
 
     # https://www.bruot.org/ris2bib/
     __bibtex__ = {
-        'Dunbrack Rotamer Library': """@Article{Shapovalov2011,
+        "Dunbrack Rotamer Library": """@Article{Shapovalov2011,
 author={Shapovalov, Maxim V.
 and Dunbrack Jr., Roland L.,},
 title={A Smoothed Backbone-Dependent Rotamer Library for Proteins Derived from Adaptive Kernel Density Estimates and Regressions},

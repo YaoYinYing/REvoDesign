@@ -9,9 +9,9 @@
 # --Sergey Ovchinnikov and Peter Koo
 # ------------------------------------------------------------
 
-'''
+"""
 https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
-'''
+"""
 
 import os
 import pickle
@@ -32,7 +32,7 @@ from REvoDesign.citations import CitableModules
 from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 
 @dataclass
@@ -48,10 +48,10 @@ class CoevolvedPair:
     transposed: bool = False
     raw_df: pd.DataFrame = None
 
-    png: str = ''
-    csv: str = ''
+    png: str = ""
+    csv: str = ""
 
-    selection_string: str = ''
+    selection_string: str = ""
 
     dist_cutoff: float = 0
 
@@ -74,7 +74,7 @@ class CoevolvedPair:
     def min_dist(self):
         if self.empty:
             warnings.warn(
-                issues.NoInputWarning(f'Pair {repr(self)} is empty! ')
+                issues.NoInputWarning(f"Pair {repr(self)} is empty! ")
             )
             return -1
         return min(d for d in self.homochains_dist.values() if d > 0)
@@ -83,7 +83,7 @@ class CoevolvedPair:
         dist = self.homochains_dist.get(chain_pair)
         if not dist:
             raise issues.NoResultsError(
-                f'{chain_pair=} not in {self.homochains_dist=}'
+                f"{chain_pair=} not in {self.homochains_dist=}"
             )
         return float(dist)
 
@@ -106,19 +106,19 @@ class CoevolvedPair:
         return f'{"homo" if self.homochain_mode else "mono"}.{self.i_1}{self.wt("i")}_{self.j_1}{self.wt("j")}'
 
     def __str__(self):
-        dist = {c: f'{float(d):.2f}' for c, d in self.homochains_dist.items()}
-        return f'{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {dist}/{self.dist_cutoff:.2f} Å'
+        dist = {c: f"{float(d):.2f}" for c, d in self.homochains_dist.items()}
+        return f"{self.i}-{self.j} ({self.i_aa}/{self.j_aa}): {self.zscore:.5f} - {dist}/{self.dist_cutoff:.2f} Å"
 
-    def wt(self, resi: Literal['i', 'j']) -> str:
-        res: str = getattr(self, f'{resi}_aa')
+    def wt(self, resi: Literal["i", "j"]) -> str:
+        res: str = getattr(self, f"{resi}_aa")
         wt_resn = res[0]
         return wt_resn
 
-    def pos(self, resi: Literal['i', 'j']) -> str:
-        res: str = getattr(self, f'{resi}_aa')
-        wt_resn = res.split('_')[-1]
+    def pos(self, resi: Literal["i", "j"]) -> str:
+        res: str = getattr(self, f"{resi}_aa")
+        wt_resn = res.split("_")[-1]
         if not wt_resn.isdigit():
-            raise ValueError(f'Failed to parse {wt_resn=} from {res=}')
+            raise ValueError(f"Failed to parse {wt_resn=} from {res=}")
 
         return int(wt_resn)
 
@@ -128,13 +128,13 @@ class CoevolvedPair:
     ) -> tuple[str]:
         if chain_pair not in self.homochains_dist:
             raise ValueError(
-                f'No such {chain_pair=} in {self.homochains_dist=}'
+                f"No such {chain_pair=} in {self.homochains_dist=}"
             )
 
-        assert len(chain_pair) == 2, f'{len(chain_pair)=} != 2'
+        assert len(chain_pair) == 2, f"{len(chain_pair)=} != 2"
         res_pair = (
-            f'(c. {chain_pair[0]} and i. {self.i_1})',
-            f'(c. {chain_pair[1]} and i. {self.j_1})',
+            f"(c. {chain_pair[0]} and i. {self.i_1})",
+            f"(c. {chain_pair[1]} and i. {self.j_1})",
         )
 
         # logging.debug(f'{res_pair=}')
@@ -146,7 +146,7 @@ class CoevolvedPair:
         chain_pair: str,
     ) -> str:
         res_1, res_2 = self.res_pair(chain_pair)
-        return f'({res_1} or {res_2})'
+        return f"({res_1} or {res_2})"
 
     @property
     def all_res_pairs(self) -> dict[str, tuple[str]]:
@@ -182,21 +182,21 @@ class GREMLIN_Tools(CitableModules):
         self.bus = ConfigBus()
 
         self._cmap: str = self.bus.get_value(
-            'ui.header_panel.cmap.default', str
+            "ui.header_panel.cmap.default", str
         )
 
         # follow the original cmap style. bwr_r -> bwr
         self.cmap = cmap_reverser(
             cmap=self._cmap,
             reverse=not self.bus.get_value(
-                'ui.header_panel.cmap.reverse_score', bool
+                "ui.header_panel.cmap.reverse_score", bool
             ),
         )
 
         self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
         self.states = len(self.alphabet)
         self.molecule = molecule
-        self.sequence = ''
+        self.sequence = ""
 
         self.a2n = {}
         for a, n in zip(self.alphabet, range(self.states)):
@@ -221,7 +221,7 @@ class GREMLIN_Tools(CitableModules):
         else:
             logging.info("GREMLIN mrf is loading ...")
             self.mrf = self.load_mrf(mrf_path)
-            logging.info('Done')
+            logging.info("Done")
 
     # Other initialization tasks can go here
     # Yinying Note here that all of these following methods are copied from the original GREMLIN with tfv1.
@@ -229,7 +229,7 @@ class GREMLIN_Tools(CitableModules):
 
     @staticmethod
     def load_mrf(mrf_fp):
-        mrf = pickle.load(open(mrf_fp, 'rb'))
+        mrf = pickle.load(open(mrf_fp, "rb"))
         return mrf
 
     ###################
@@ -242,7 +242,7 @@ class GREMLIN_Tools(CitableModules):
         return (x - x_mean) / x_std
 
     def get_mtx(self):
-        '''get mtx given mrf'''
+        """get mtx given mrf"""
 
         # l2norm of 20x20 matrices (note: we ignore gaps)
         raw = np.sqrt(np.sum(np.square(self.mrf["w"][:, :-1, :-1]), (1, 2)))
@@ -266,12 +266,12 @@ class GREMLIN_Tools(CitableModules):
         return mtx
 
     def plot_mtx(self, key="zscore", vmin=1, vmax=3):
-        '''plot the mtx'''
+        """plot the mtx"""
         plt.figure(figsize=(5, 5))
         plt.imshow(
             squareform(self.mtx[key]),
-            cmap='Blues',
-            interpolation='none',
+            cmap="Blues",
+            interpolation="none",
             vmin=vmin,
             vmax=vmax,
         )
@@ -314,7 +314,7 @@ class GREMLIN_Tools(CitableModules):
         # get contacts with sequence seperation > 5
         # sort by zscore, show top 10
         self.top = self.pd_mtx.loc[
-            self.pd_mtx['j'] - self.pd_mtx['i'] > 5
+            self.pd_mtx["j"] - self.pd_mtx["i"] > 5
         ].sort_values("zscore", ascending=False)
         self.top.head(5)
 
@@ -374,8 +374,8 @@ class GREMLIN_Tools(CitableModules):
         w = self.mrf["w"][n]
 
         # Extract WT residue positions
-        wt_i_aa = a_pair.wt('i')
-        wt_j_aa = a_pair.wt('j')
+        wt_i_aa = a_pair.wt("i")
+        wt_j_aa = a_pair.wt("j")
 
         csv_fp = f"{self.pwd}/Top.{idx:02}.W_for_positions_{a_pair.i_aa}_{a_pair.j_aa}.csv"
 
@@ -418,16 +418,16 @@ class GREMLIN_Tools(CitableModules):
                 f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}"
             )
             # early return to skip ploting
-            warnings.warn(issues.BadDataWarning(f'Bad pair: {str(a_pair)}'))
+            warnings.warn(issues.BadDataWarning(f"Bad pair: {str(a_pair)}"))
             return None
 
         plt.text(
             wt_j_index,
             wt_i_index,
-            'WT',
-            color='k',
-            ha='center',
-            va='center',
+            "WT",
+            color="k",
+            ha="center",
+            va="center",
             fontsize=6,
         )
 
@@ -473,14 +473,14 @@ class GREMLIN_Tools(CitableModules):
         for idx in matching_indices:
             w_idx = self.mrf["w_idx"][idx]
 
-            if abs(self.pd_mtx['j'][idx] - self.pd_mtx['i'][idx]) > 5:
+            if abs(self.pd_mtx["j"][idx] - self.pd_mtx["i"][idx]) > 5:
                 coevolving_pairs.append(
                     (
                         int(w_idx[0]),
                         int(w_idx[1]),
-                        self.pd_mtx['i_aa'][idx],
-                        self.pd_mtx['j_aa'][idx],
-                        self.pd_mtx['zscore'][idx],
+                        self.pd_mtx["i_aa"][idx],
+                        self.pd_mtx["j_aa"][idx],
+                        self.pd_mtx["zscore"][idx],
                     )
                 )
 
@@ -494,11 +494,11 @@ class GREMLIN_Tools(CitableModules):
 
         if not top_N_pairs:
             warnings.warn(
-                issues.NoResultsWarning('No coevolving pairs found!')
+                issues.NoResultsWarning("No coevolving pairs found!")
             )
             return {}
 
-        logging.info(f'top {self.topN} items selected: {str(top_N_pairs)}')
+        logging.info(f"top {self.topN} items selected: {str(top_N_pairs)}")
 
         # Step 5: Calculate and plot for each pair
         plot_w_fps: List[CoevolvedPair] = []

@@ -7,11 +7,16 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign import ConfigBus
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.logger import root_logger
-from REvoDesign.tools.customized_widgets import (decide, get_widget_value,
-                                                 set_widget_value)
-from REvoDesign.tools.mutant_tools import (existed_mutant_tree,
-                                           extract_mutant_from_pymol_object,
-                                           save_mutant_choices)
+from REvoDesign.tools.customized_widgets import (
+    decide,
+    get_widget_value,
+    set_widget_value,
+)
+from REvoDesign.tools.mutant_tools import (
+    existed_mutant_tree,
+    extract_mutant_from_pymol_object,
+    save_mutant_choices,
+)
 
 logging = root_logger.getChild(__name__)
 
@@ -21,16 +26,18 @@ class Evalutator:
         self.bus: ConfigBus = ConfigBus()
 
         self.design_molecule: str = self.bus.get_value(
-            'ui.header_panel.input.molecule'
+            "ui.header_panel.input.molecule"
         )
         self.design_chain_id: str = self.bus.get_value(
-            'ui.header_panel.input.chain_id'
+            "ui.header_panel.input.chain_id"
         )
-        self.designable_sequences = RosettaPyProteinSequence.from_dict(dict(self.bus.get_value(
-            'designable_sequences'
-        )))
-        self.design_sequence: str = self.designable_sequences.get_sequence_by_chain(
-            self.design_chain_id
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(
+            dict(self.bus.get_value("designable_sequences"))
+        )
+        self.design_sequence: str = (
+            self.designable_sequences.get_sequence_by_chain(
+                self.design_chain_id
+            )
         )
 
     def activate_focused(self):
@@ -38,7 +45,7 @@ class Evalutator:
         chain_id = self.design_chain_id
 
         logging.debug(
-            f'Current Mutant ID: {self.mutant_tree_candidates.current_mutant_id}'
+            f"Current Mutant ID: {self.mutant_tree_candidates.current_mutant_id}"
         )
 
         mut_obj = extract_mutant_from_pymol_object(
@@ -50,28 +57,28 @@ class Evalutator:
         if self.mutant_tree_candidates.current_mutant_id:
             cmd.enable(self.mutant_tree_candidates.current_mutant_id)
             cmd.show(
-                'mesh',
-                f'{self.mutant_tree_candidates.current_mutant_id} and (sidechain or n. CA)',
+                "mesh",
+                f"{self.mutant_tree_candidates.current_mutant_id} and (sidechain or n. CA)",
             )
             cmd.show(
-                'sticks',
-                f'{self.mutant_tree_candidates.current_mutant_id} and (sidechain or n. CA) and not hydrogen',
+                "sticks",
+                f"{self.mutant_tree_candidates.current_mutant_id} and (sidechain or n. CA) and not hydrogen",
             )
             cmd.hide(
-                'cartoon', f'{self.mutant_tree_candidates.current_mutant_id}'
+                "cartoon", f"{self.mutant_tree_candidates.current_mutant_id}"
             )
-            if self.bus.get_value('ui.evaluate.show_wt') and resi:
+            if self.bus.get_value("ui.evaluate.show_wt") and resi:
                 cmd.show(
-                    'lines',
-                    f'{molecule} and c. {chain_id} and i. {resi} and (sidechain or n. CA) and not hydrogens',
+                    "lines",
+                    f"{molecule} and c. {chain_id} and i. {resi} and (sidechain or n. CA) and not hydrogens",
                 )
 
-        all_enabled_mutant_ids = cmd.get_names('nongroup_objects', 1)
+        all_enabled_mutant_ids = cmd.get_names("nongroup_objects", 1)
 
         all_enabled_mutants_in_current_group = [
             mutant
             for mutant in cmd.get_object_list(
-                f'({self.mutant_tree_candidates.current_branch_id})'
+                f"({self.mutant_tree_candidates.current_branch_id})"
             )
             if mutant != self.mutant_tree_candidates.current_mutant_id
             and mutant in all_enabled_mutant_ids
@@ -82,19 +89,19 @@ class Evalutator:
 
         other_opened_group = [
             group
-            for group in cmd.get_names('group_objects', 1)
+            for group in cmd.get_names("group_objects", 1)
             if group != self.mutant_tree_candidates.current_branch_id
         ]
 
         for group_id in other_opened_group:
             cmd.disable(group_id)
-            cmd.group(group_id, action='close')
+            cmd.group(group_id, action="close")
 
         # expand group object if activated
         if self.mutant_tree_candidates.current_branch_id:
             cmd.enable(self.mutant_tree_candidates.current_branch_id)
             cmd.group(
-                self.mutant_tree_candidates.current_branch_id, action='open'
+                self.mutant_tree_candidates.current_branch_id, action="open"
             )
 
         self.center_design_area(self.mutant_tree_candidates.current_mutant_id)
@@ -105,7 +112,7 @@ class Evalutator:
             self.mutant_tree_candidates.current_mutant_id
         ):
             logging.warning(
-                f'Ingoring non mutant {self.mutant_tree_candidates.current_mutant_id}'
+                f"Ingoring non mutant {self.mutant_tree_candidates.current_mutant_id}"
             )
             return
 
@@ -128,7 +135,7 @@ class Evalutator:
                 not in self.mutant_tree_pssm_selected.all_mutant_branch_ids
             ):
                 logging.warning(
-                    f'{self.mutant_tree_candidates.current_branch_id} does not exist. skipped'
+                    f"{self.mutant_tree_candidates.current_branch_id} does not exist. skipped"
                 )
                 return
 
@@ -143,7 +150,7 @@ class Evalutator:
         )
 
         save_mutant_choices(
-            self.bus.get_value('ui.evaluate.input.to_mutant_txt'),
+            self.bus.get_value("ui.evaluate.input.to_mutant_txt"),
             self.mutant_tree_pssm_selected,
         )
 
@@ -198,13 +205,13 @@ class Evalutator:
 
         branch = get_widget_value(comboBox_group_ids)
         if not branch:
-            logging.warning('Branch id is empty or null, skipped.')
+            logging.warning("Branch id is empty or null, skipped.")
             return
         elif not self.mutant_tree_candidates:
-            logging.error('Mutant tree is invalid.')
+            logging.error("Mutant tree is invalid.")
             return
         else:
-            logging.info(f'Jump to {branch} as required.')
+            logging.info(f"Jump to {branch} as required.")
             self.mutant_tree_candidates.jump_to_branch(branch_id=branch)
 
             progress = (
@@ -213,7 +220,7 @@ class Evalutator:
                 )
             )
             logging.info(
-                f'Progressbar set to {progress}: {self.mutant_tree_candidates.current_mutant_id}'
+                f"Progressbar set to {progress}: {self.mutant_tree_candidates.current_mutant_id}"
             )
             set_widget_value(progressBar_mutant_choosing, progress)
 
@@ -254,14 +261,14 @@ class Evalutator:
             branch_id=branch_id
         ):
             logging.error(
-                f'Mutant ID {branch_id} is not belong to this branch {self.mutant_tree_candidates.current_branch_id}.'
+                f"Mutant ID {branch_id} is not belong to this branch {self.mutant_tree_candidates.current_branch_id}."
             )
             return
 
         if branch_id != self.mutant_tree_candidates.current_branch_id:
             self.mutant_tree_candidates.current_branch_id = branch_id
 
-        logging.info(f'Jump to {mutant_id} as required.')
+        logging.info(f"Jump to {mutant_id} as required.")
         self.mutant_tree_candidates.current_mutant_id = mutant_id
 
         self.activate_focused()
@@ -271,7 +278,7 @@ class Evalutator:
             self.mutant_tree_candidates.current_mutant_id
         )
         logging.info(
-            f'Progressbar set to {progress}: {self.mutant_tree_candidates.current_mutant_id}'
+            f"Progressbar set to {progress}: {self.mutant_tree_candidates.current_mutant_id}"
         )
         set_widget_value(progressBar_mutant_choosing, progress)
 
@@ -287,11 +294,11 @@ class Evalutator:
             self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
                 branch_id=branch_id,
                 ascending_order=self.bus.get_value(
-                    'ui.header_panel.cmap.reverse_score'
+                    "ui.header_panel.cmap.reverse_score"
                 ),
             )
         )
-        logging.info(f'Jump to the best hit of {branch_id}: {best_mutant_id}')
+        logging.info(f"Jump to the best hit of {branch_id}: {best_mutant_id}")
 
         set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
@@ -300,14 +307,12 @@ class Evalutator:
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
         if self.mutant_tree_candidates.empty:
             logging.error(
-                'No available mutant tree. Please reinitialize it before picking mutants.'
+                "No available mutant tree. Please reinitialize it before picking mutants."
             )
             return
 
         if not self.mutant_tree_pssm_selected.empty:
-            logging.warning(
-                'Your current mutant selection will be overrided!'
-            )
+            logging.warning("Your current mutant selection will be overrided!")
 
             # Ask whether to overide
             confirmed = decide(
@@ -317,7 +322,7 @@ class Evalutator:
             )
 
             if not confirmed:
-                logging.warning('Cancelled.')
+                logging.warning("Cancelled.")
                 return
 
         original_branch_id = get_widget_value(comboBox_group_ids)
@@ -326,7 +331,7 @@ class Evalutator:
         self.mutant_tree_pssm_selected = MutantTree({})
 
         for branch_id in self.mutant_tree_candidates.all_mutant_branch_ids:
-            logging.info(f'Jump to {branch_id} as required.')
+            logging.info(f"Jump to {branch_id} as required.")
 
             set_widget_value(comboBox_group_ids, branch_id)
 
@@ -334,24 +339,24 @@ class Evalutator:
                 self.mutant_tree_candidates._jump_to_the_best_mutant_in_branch(
                     branch_id=branch_id,
                     ascending_order=self.bus.get_value(
-                        'ui.header_panel.cmap.reverse_score'
+                        "ui.header_panel.cmap.reverse_score"
                     ),
                 )
             )
             logging.info(
-                f'Jump to the best hit of {branch_id}: {best_mutant_id}'
+                f"Jump to the best hit of {branch_id}: {best_mutant_id}"
             )
             set_widget_value(comboBox_mutant_ids, best_mutant_id)
 
             self.mutant_decision(decision_to_accept=True)
             logging.info(
-                f'Best hit of {self.mutant_tree_candidates.current_mutant_id} accepted.'
+                f"Best hit of {self.mutant_tree_candidates.current_mutant_id} accepted."
             )
         # set back orignal values befor clicking this button
         set_widget_value(comboBox_group_ids, original_branch_id)
         set_widget_value(comboBox_mutant_ids, original_mutant_id)
 
-        logging.info('Done.')
+        logging.info("Done.")
 
     # basic function that works for mutant_tree instantiation
     def is_this_pymol_object_a_mutant(self, mutant):
@@ -376,7 +381,7 @@ class Evalutator:
             return
 
         mutants_from_checkpoint = (
-            open(mutant_choice_checkpoint_fn).read().strip().split('\n')
+            open(mutant_choice_checkpoint_fn).read().strip().split("\n")
         )
 
         self.mutant_tree_pssm_selected = (
@@ -385,7 +390,7 @@ class Evalutator:
             )
         )
         logging.info(
-            f'Recover mutants from checkpoint: {mutant_choice_checkpoint_fn}'
+            f"Recover mutants from checkpoint: {mutant_choice_checkpoint_fn}"
         )
         logging.info(mutants_from_checkpoint)
 
@@ -404,10 +409,10 @@ class Evalutator:
             pushButton_accept_this_mutant,
         ) = self.bus.buttons(
             (
-                'previous_mutant',
-                'next_mutant',
-                'reject_this_mutant',
-                'accept_this_mutant',
+                "previous_mutant",
+                "next_mutant",
+                "reject_this_mutant",
+                "accept_this_mutant",
             )
         )
 
@@ -417,13 +422,13 @@ class Evalutator:
         comboBox_group_ids = self.bus.ui.comboBox_group_ids
 
         lineEdit_output_mut_txt = self.bus.get_widget_from_cfg_item(
-            'ui.evaluate.input.to_mutant_txt'
+            "ui.evaluate.input.to_mutant_txt"
         )
         self.mutant_tree_candidates = existed_mutant_tree(
             sequences=self.designable_sequences, enabled_only=False
         )
         if self.mutant_tree_candidates.empty:
-            logging.error('This sesion may not contain an mutant tree.')
+            logging.error("This sesion may not contain an mutant tree.")
             return None
 
         self.mutant_tree_pssm_selected = MutantTree({})
@@ -436,18 +441,18 @@ class Evalutator:
 
         if not self.mutant_tree_candidates:
             logging.warning(
-                'Could not initialize mutant tree! This session may not be a REvoDesign session!'
+                "Could not initialize mutant tree! This session may not be a REvoDesign session!"
             )
             return
 
         # clean the view
         cmd.disable(
-            ' or '.join(self.mutant_tree_candidates.all_mutant_branch_ids)
+            " or ".join(self.mutant_tree_candidates.all_mutant_branch_ids)
         )
         cmd.hide(
-            'sticks', ' or '.join(self.mutant_tree_candidates.all_mutant_ids)
+            "sticks", " or ".join(self.mutant_tree_candidates.all_mutant_ids)
         )
-        cmd.disable(' or '.join(self.mutant_tree_candidates.all_mutant_ids))
+        cmd.disable(" or ".join(self.mutant_tree_candidates.all_mutant_ids))
 
         set_widget_value(
             progressBar_mutant_choosing,
@@ -490,7 +495,7 @@ class Evalutator:
             try:
                 pushButton.clicked.disconnect()
             except Exception as e:
-                logging.warning(f'Already disconnected. Do nothing. {e}')
+                logging.warning(f"Already disconnected. Do nothing. {e}")
             pushButton.setEnabled(bool(not self.mutant_tree_candidates.empty))
 
         pushButton_accept_this_mutant.clicked.connect(
@@ -517,11 +522,11 @@ class Evalutator:
         )
 
     def set_pymol_session_rock(self):
-        cmd.set('rock', self.bus.get_value('ui.evaluate.rock'))
+        cmd.set("rock", self.bus.get_value("ui.evaluate.rock"))
 
     def center_design_area(self, mutant_id):
         if self.mutant_tree_candidates and mutant_id:
-            logging.debug(f'Centering design area: {mutant_id}')
+            logging.debug(f"Centering design area: {mutant_id}")
             cmd.center(mutant_id, animate=1)
         else:
-            logging.debug(f'Giving up centering design area: {mutant_id}')
+            logging.debug(f"Giving up centering design area: {mutant_id}")

@@ -3,7 +3,7 @@ from .DunbrackRotamerLib import PyMOL_mutate
 from .PIPPack import PIPPack_worker
 
 __all__ = [
-    'PyMOL_mutate',
-    'DLPacker_worker',
-    'PIPPack_worker',
+    "PyMOL_mutate",
+    "DLPacker_worker",
+    "PIPPack_worker",
 ]

@@ -12,35 +12,35 @@ from platformdirs import user_cache_dir, user_data_dir
 def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     template_config_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        '..',
-        'config',
+        "..",
+        "config",
     )
 
-    default_storage_path = user_data_dir(appname='REvoDesign')
-    config_dir = os.path.join(default_storage_path, 'config')
+    default_storage_path = user_data_dir(appname="REvoDesign")
+    config_dir = os.path.join(default_storage_path, "config")
 
     if delete_user_config_tree and os.path.exists(config_dir):
         print(
-            'WARNING: The configuration directory will be deleted as required'
+            "WARNING: The configuration directory will be deleted as required"
         )
         shutil.rmtree(config_dir)
 
-    if not glob.glob(os.path.join(config_dir, '*.yaml')):
+    if not glob.glob(os.path.join(config_dir, "*.yaml")):
         print(
-            f'Copied configuratiosn from {template_config_dir} to {config_dir}'
+            f"Copied configuratiosn from {template_config_dir} to {config_dir}"
         )
         shutil.copytree(
             src=template_config_dir, dst=config_dir, dirs_exist_ok=True
         )
     else:
-        print(f'Config file is already located at `{config_dir}`, do nothing.')
+        print(f"Config file is already located at `{config_dir}`, do nothing.")
 
-    main_config_file = os.path.join(config_dir, 'global_config.yaml')
-    print(f'Main config: {main_config_file}')
+    main_config_file = os.path.join(config_dir, "global_config.yaml")
+    print(f"Main config: {main_config_file}")
     return main_config_file
 
 
-def reload_config_file(config_name: str = 'global_config') -> DictConfig:
+def reload_config_file(config_name: str = "global_config") -> DictConfig:
     return hydra.compose(
         config_name=config_name,
         return_hydra_config=False,
@@ -48,14 +48,14 @@ def reload_config_file(config_name: str = 'global_config') -> DictConfig:
 
 
 def save_configuration(
-    new_cfg: DictConfig, config_name: Optional[str] = 'global_config'
+    new_cfg: DictConfig, config_name: Optional[str] = "global_config"
 ):
     from . import REVODESIGN_CONFIG_FILE
 
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
-    cfg_save_fp = os.path.join(cfg_save_dir, f'{config_name}.yaml')
+    cfg_save_fp = os.path.join(cfg_save_dir, f"{config_name}.yaml")
     OmegaConf.save(new_cfg, cfg_save_fp)
-    print('Saved configuration.')
+    print("Saved configuration.")
     return
 
 
@@ -63,7 +63,7 @@ def experiment_config():
     from . import REVODESIGN_CONFIG_FILE
 
     experiments_dir = os.path.join(
-        os.path.dirname(REVODESIGN_CONFIG_FILE), 'experiments'
+        os.path.dirname(REVODESIGN_CONFIG_FILE), "experiments"
     )
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
@@ -75,10 +75,10 @@ def set_cache_dir() -> str:
     bus: ConfigBus = ConfigBus()
     cfg: DictConfig = bus.cfg
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
-        raise ValueError('You must specify a custom cache directory!')
+        raise ValueError("You must specify a custom cache directory!")
 
     if cfg.cache_dir.under_home_dir:
-        cache_dir = user_cache_dir(appname='REvoDesign')
+        cache_dir = user_cache_dir(appname="REvoDesign")
     else:
         cache_dir = os.path.expanduser(cfg.cache_dir.customized)
     return cache_dir
@@ -103,9 +103,7 @@ class ConfigConverter:
         """
         if isinstance(config, DictConfig):
             return ConfigConverter._recursive_convert(config)
-        raise ValueError(
-            "Input must be an instance of omegaconf.DictConfig"
-        )
+        raise ValueError("Input must be an instance of omegaconf.DictConfig")
 
     @staticmethod
     def _recursive_convert(config: Any) -> Any:

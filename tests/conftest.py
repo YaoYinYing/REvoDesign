@@ -19,16 +19,20 @@ from pytestqt import qtbot
 from REvoDesign import ConfigBus, REvoDesignPlugin
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.citations import CitationManager
-from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
-                                                  REvoDesignWebSocketServer)
+from REvoDesign.clients.QtSocketConnector import (
+    REvoDesignWebSocketClient,
+    REvoDesignWebSocketServer,
+)
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (get_widget_value,
-                                                 set_widget_value)
+from REvoDesign.tools.customized_widgets import (
+    get_widget_value,
+    set_widget_value,
+)
 
 from .data import TestData
 
-os.environ['PYTEST_QT_API'] = 'pyqt5'
+os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
 def pytest_collection_modifyitems(items: list[Item]):
@@ -94,7 +98,7 @@ class TestWorker:
     def __init__(self, qtbot: qtbot.QtBot, plugin: REvoDesignPlugin):
         from REvoDesign.tools.system_tools import CLIENT_INFO
 
-        self.test_id = 'default'
+        self.test_id = "default"
         self.qtbot = qtbot
         self.plugin = plugin
         self.qtbot.addWidget(
@@ -105,15 +109,15 @@ class TestWorker:
             str, QtWidgets.QWidget  # type: ignore
         ] = immutabledict(
             {
-                'prepare': self.plugin.ui.tab_prepare,
-                'mutate': self.plugin.ui.tab_mutate,
-                'evaluate': self.plugin.ui.tab_evaluate,
-                'cluster': self.plugin.ui.tab_cluster,
-                'visualize': self.plugin.ui.tab_visualize,
-                'interact': self.plugin.ui.tab_interact,
-                'client': self.plugin.ui.tab_client,
-                'socket': self.plugin.ui.tab_socket,
-                'config': self.plugin.ui.tab_config,
+                "prepare": self.plugin.ui.tab_prepare,
+                "mutate": self.plugin.ui.tab_mutate,
+                "evaluate": self.plugin.ui.tab_evaluate,
+                "cluster": self.plugin.ui.tab_cluster,
+                "visualize": self.plugin.ui.tab_visualize,
+                "interact": self.plugin.ui.tab_interact,
+                "client": self.plugin.ui.tab_client,
+                "socket": self.plugin.ui.tab_socket,
+                "config": self.plugin.ui.tab_config,
             }
         )
 
@@ -123,14 +127,14 @@ class TestWorker:
 
         # determine which runner carries this test
         self.in_which_runner: dict[str, bool] = {
-            'CIRCLECI': bool(os.environ.get('CIRCLE_OIDC_TOKEN')),
-            'GITHUB': bool(os.environ.get('GITHUB_ACTION')),
-            'MACBOOKPRO': bool(os.environ.get('PROTEIN_DESIGN_KIT')),
+            "CIRCLECI": bool(os.environ.get("CIRCLE_OIDC_TOKEN")),
+            "GITHUB": bool(os.environ.get("GITHUB_ACTION")),
+            "MACBOOKPRO": bool(os.environ.get("PROTEIN_DESIGN_KIT")),
         }
 
         self.is_in_ci_runner = self.in_which_runner.get(
-            'CIRCLECI'
-        ) or self.in_which_runner.get('GITHUB')
+            "CIRCLECI"
+        ) or self.in_which_runner.get("GITHUB")
 
         self.SKIP_PYMOL_PNG = bool(
             int(os.environ.get("RD_TEST_SKIP_PYMOL_PNG", 0))
@@ -138,7 +142,7 @@ class TestWorker:
 
         self.c = Counter()
 
-        TEST_DIR = os.path.abspath('.')
+        TEST_DIR = os.path.abspath(".")
 
         @dataclass
         class AUTO_TEST_DATA(TestData):
@@ -148,29 +152,29 @@ class TestWorker:
         self.test_data = AUTO_TEST_DATA()
 
         # test data directories.
-        self.DOWNLOAD_DIR = os.path.abspath('../tests/downloaded')
+        self.DOWNLOAD_DIR = os.path.abspath("../tests/downloaded")
         self.EXPANDED_DIR = os.path.abspath(
-            '../tests/expanded_compressed_files'
+            "../tests/expanded_compressed_files"
         )
 
         # test results directories
-        self.SCREENSHOT_DIR = os.path.join(os.path.abspath('.'), 'screenshots')
+        self.SCREENSHOT_DIR = os.path.join(os.path.abspath("."), "screenshots")
         self.PYMOL_PNG_DIR = os.path.join(
-            os.path.abspath('.'), 'pymol_screenshots'
+            os.path.abspath("."), "pymol_screenshots"
         )
 
-        self.EXPERIMENT_DIR = os.path.join(os.path.abspath('.'), 'experiments')
+        self.EXPERIMENT_DIR = os.path.join(os.path.abspath("."), "experiments")
 
-        self.ANALYSIS_DIR = os.path.join(os.path.abspath('.'), 'analysis')
-        self.POCKET_DIR = os.path.join(os.path.abspath('.'), 'pockets')
+        self.ANALYSIS_DIR = os.path.join(os.path.abspath("."), "analysis")
+        self.POCKET_DIR = os.path.join(os.path.abspath("."), "pockets")
         self.SURFACE_DIR = os.path.join(
-            os.path.abspath('.'), 'surface_residue_records'
+            os.path.abspath("."), "surface_residue_records"
         )
-        self.MUTAGENESIS_DIR = os.path.join(os.path.abspath('.'), 'mutagenese')
+        self.MUTAGENESIS_DIR = os.path.join(os.path.abspath("."), "mutagenese")
 
         # performance checks
         self.PERFORMANCE_DIR = os.path.join(
-            os.path.abspath('.'), 'performance'
+            os.path.abspath("."), "performance"
         )
 
         dirs = {
@@ -187,7 +191,9 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def _fetch_pdb(self, pdb_code: Optional[str] = None, spell: Optional[str] = None):
+    def _fetch_pdb(
+        self, pdb_code: Optional[str] = None, spell: Optional[str] = None
+    ):
         if not pdb_code:
             pdb_code = self.test_data.molecule
         if not spell:
@@ -195,19 +201,19 @@ class TestWorker:
 
         try:
             molecules = cmd.get_names()
-            print(f'Before fetch: {molecules}')
+            print(f"Before fetch: {molecules}")
             cmd.fetch(pdb_code)
             cmd.do(spell)
 
             molecules = cmd.get_names()
-            print(f'After fetch: {molecules}')
+            print(f"After fetch: {molecules}")
         except CmdException:
             pass
 
     def _load_pocket_pse(self, pse_file):
         try:
             assert os.path.exists(pse_file)
-            print(f'loading {pse_file}')
+            print(f"loading {pse_file}")
             cmd.reinitialize()
             cmd.load(pse_file)
         except CmdException:
@@ -222,13 +228,13 @@ class TestWorker:
     ):
         self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
-        print(f'nproc: {nproc}')
+        print(f"nproc: {nproc}")
         if (
-            self.in_which_runner.get('CIRCLECI')
+            self.in_which_runner.get("CIRCLECI")
             and nproc > self.test_data.nproc_circleci
         ):
             print(
-                f'Fix nproc to reduce performance for CircleCI: {nproc} {os.cpu_count()}-> {self.test_data.nproc_circleci}'
+                f"Fix nproc to reduce performance for CircleCI: {nproc} {os.cpu_count()}-> {self.test_data.nproc_circleci}"
             )
             set_widget_value(
                 self.plugin.ui.spinBox_nproc,
@@ -255,7 +261,7 @@ class TestWorker:
             experiment_name = self.test_id
 
         new_cfg_file = os.path.join(
-            self.EXPERIMENT_DIR, f'{experiment_name}.yaml'
+            self.EXPERIMENT_DIR, f"{experiment_name}.yaml"
         )
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
         new_cfg_prefix = experiment_name
@@ -264,11 +270,11 @@ class TestWorker:
         )
 
         self.plugin.save_configuration_from_ui(
-            experiment=f'experiments/{new_cfg_prefix}'
+            experiment=f"experiments/{new_cfg_prefix}"
         )
         # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
         shutil.copy(experiment_file, new_cfg_file)
-        print(f'saved config at {new_cfg_file}, backup at {experiment_file}')
+        print(f"saved config at {new_cfg_file}, backup at {experiment_file}")
 
     def click(self, widget: QtWidgets.QWidget, times: int = 1):  # type: ignore
         if isinstance(widget, QtWidgets.QAction):
@@ -288,7 +294,7 @@ class TestWorker:
     def do_typing(
         self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False  # type: ignore
     ):
-        set_widget_value(widget=widget, value='')
+        set_widget_value(widget=widget, value="")
         # if text is short enough or in strict mode
         # type one after another
         if (len(text) < 10) or strict_mode:
@@ -317,7 +323,7 @@ class TestWorker:
     def check_molecule_after_loaded(self, molecule: Optional[str] = None):
         if molecule and isinstance(molecule, str):
             assert (
-                self.plugin.bus.get_value('ui.header_panel.input.molecule')
+                self.plugin.bus.get_value("ui.header_panel.input.molecule")
                 == molecule
             )
             assert (
@@ -327,7 +333,7 @@ class TestWorker:
             return
 
         assert (
-            self.plugin.bus.get_value('ui.header_panel.input.molecule')
+            self.plugin.bus.get_value("ui.header_panel.input.molecule")
             in self.test_data.used_molecules
         )
 
@@ -355,7 +361,7 @@ class TestWorker:
         return expected_downloaded_file
 
     def expand_zip(self, compressed_file):
-        sub_dirname = os.path.basename(compressed_file).split('.')[0]
+        sub_dirname = os.path.basename(compressed_file).split(".")[0]
         dist_dir = os.path.join(self.EXPANDED_DIR, sub_dirname)
         os.makedirs(dist_dir, exist_ok=True)
 
@@ -363,7 +369,7 @@ class TestWorker:
         if not expanded_dirs:
             import zipfile
 
-            with zipfile.ZipFile(compressed_file, mode='r') as z:
+            with zipfile.ZipFile(compressed_file, mode="r") as z:
                 z.extractall(path=dist_dir)
 
         extracted_files = os.listdir(dist_dir)
@@ -383,17 +389,17 @@ class TestWorker:
     def check_existed_mutant_tree(self):
         assert not self.existed_mutant_tree.empty
 
-    def focus_on_tree(self, method='orient'):
+    def focus_on_tree(self, method="orient"):
         objs = self.existed_mutant_tree.all_mutant_ids
-        sele = ' or '.join(objs)
+        sele = " or ".join(objs)
 
-        if method == 'orient':
+        if method == "orient":
             cmd.orient(sele)
             return
-        if method == 'center':
+        if method == "center":
             cmd.center(sele)
             return
-        if method == 'zoom':
+        if method == "zoom":
             cmd.zoom(sele)
             return
 
@@ -405,45 +411,45 @@ class TestWorker:
     @staticmethod
     def non_emtpy_list(input_list: list) -> list:
         while True:
-            if '' in input_list:
-                input_list.remove('')
+            if "" in input_list:
+                input_list.remove("")
             else:
                 return input_list
 
     def save_screenshot(
         self,
         widget: QtWidgets.QWidget,  # type: ignore
-        basename: str = 'default',
+        basename: str = "default",
     ):
         if self.is_in_ci_runner:
             return
         png_file = self.qtbot.screenshot(widget=widget)
         moved_file = os.rename(
-            png_file, os.path.join(self.SCREENSHOT_DIR, f'{basename}.png')
+            png_file, os.path.join(self.SCREENSHOT_DIR, f"{basename}.png")
         )
         return moved_file
 
     def save_pymol_png(
         self,
-        basename: str = 'default',
+        basename: str = "default",
         dpi: int = 300,
         use_ray: int = 0,
         spells: Optional[str] = None,
         focus=True,
-        focus_method='orient',
+        focus_method="orient",
     ):
         if self.is_in_ci_runner:
-            warnings.warn('Skip PyMOL png because CI runner is detected')
+            warnings.warn("Skip PyMOL png because CI runner is detected")
             return
         if self.SKIP_PYMOL_PNG:
             warnings.warn(
-                f'Skip PyMOL png because an environment variable is set: {self.SKIP_PYMOL_PNG=}'
+                f"Skip PyMOL png because an environment variable is set: {self.SKIP_PYMOL_PNG=}"
             )
             return
 
         if spells:
             cmd.do(spells)
-        png_file = os.path.join(self.PYMOL_PNG_DIR, f'{basename}.png')
+        png_file = os.path.join(self.PYMOL_PNG_DIR, f"{basename}.png")
         if focus and not self.existed_mutant_tree.empty:
             try:
                 self.focus_on_tree(method=focus_method)
@@ -463,7 +469,7 @@ class TestWorker:
             check_moment = time.perf_counter()
             if check_moment - started_moment > timeout:
                 raise TimeoutError(
-                    f'File {file} is not available within timeout limit ({timeout} sec).'
+                    f"File {file} is not available within timeout limit ({timeout} sec)."
                 )
 
     def performace_report(self):
@@ -479,10 +485,10 @@ class TestWorker:
         p = psutil.Process()
         procs = [p] + p.children(recursive=True)
         mem_count_file = os.path.join(
-            'performance', f'ram_usage_{self.run_time}.log'
+            "performance", f"ram_usage_{self.run_time}.log"
         )
-        with open(mem_count_file, 'w') as mc:
-            mc.write('\n'.join([self.print_mem(p) for p in procs]))
+        with open(mem_count_file, "w") as mc:
+            mc.write("\n".join([self.print_mem(p) for p in procs]))
 
     def teardown(self):
         self.performace_report()
@@ -516,20 +522,22 @@ def test_worker(
 
 # mocks on qt widgets
 
+
 @pytest.fixture
 def mock_push_button():
-    def _mock_push_button(text=''):
+    def _mock_push_button(text=""):
         mock_button = MagicMock(spec=QtWidgets.QPushButton)
         mock_button.text.return_value = text
         mock_button.setText = MagicMock()
         mock_button.clicked = MagicMock()
         return mock_button
+
     return _mock_push_button
 
 
 @pytest.fixture
 def mock_line_edit():
-    def _mock_line_edit(initial_text=''):
+    def _mock_line_edit(initial_text=""):
         mock_line_edit = MagicMock(spec=QtWidgets.QLineEdit)
         # Internal state
         _text = initial_text
@@ -543,13 +551,14 @@ def mock_line_edit():
 
         def _clear():
             nonlocal _text
-            _text = ''
+            _text = ""
 
         mock_line_edit.setText.side_effect = _setText
         mock_line_edit.text.side_effect = _text_method
         mock_line_edit.clear.side_effect = _clear
 
         return mock_line_edit
+
     return _mock_line_edit
 
 
@@ -587,7 +596,7 @@ def mock_combo_box():
         def _currentText():
             if 0 <= _current_index < len(_items):
                 return _items[_current_index]
-            return ''
+            return ""
 
         mock_combo.clear.side_effect = _clear
         mock_combo.addItems.side_effect = _addItems
@@ -600,6 +609,7 @@ def mock_combo_box():
         mock_combo.currentIndex.side_effect = lambda: _current_index
 
         return mock_combo
+
     return _mock_combo_box
 
 
@@ -617,7 +627,7 @@ def mock_spin_box():
             if _min <= int(value) <= _max:
                 _value = int(value)
             else:
-                raise ValueError('Value out of range')
+                raise ValueError("Value out of range")
 
         def _value_method():
             return _value
@@ -632,6 +642,7 @@ def mock_spin_box():
         mock_spin.setRange.side_effect = _setRange
 
         return mock_spin
+
     return _mock_spin_box
 
 
@@ -649,7 +660,7 @@ def mock_double_spin_box():
             if _min <= float(value) <= _max:
                 _value = float(value)
             else:
-                raise ValueError('Value out of range')
+                raise ValueError("Value out of range")
 
         def _value_method():
             return _value
@@ -664,6 +675,7 @@ def mock_double_spin_box():
         mock_double_spin.setRange.side_effect = _setRange
 
         return mock_double_spin
+
     return _mock_double_spin_box
 
 
@@ -685,6 +697,7 @@ def mock_check_box():
         mock_check.isChecked.side_effect = _isChecked
 
         return mock_check
+
     return _mock_check_box
 
 
@@ -702,7 +715,7 @@ def mock_progress_bar():
             if _min <= int(value) <= _max:
                 _value = int(value)
             else:
-                raise ValueError('Value out of range')
+                raise ValueError("Value out of range")
 
         def _value_method():
             return _value
@@ -717,6 +730,7 @@ def mock_progress_bar():
         mock_progress.setRange.side_effect = _setRange
 
         return mock_progress
+
     return _mock_progress_bar
 
 
@@ -735,7 +749,10 @@ def mock_lcd_number():
             return _value
 
         mock_lcd.display.side_effect = _display
-        mock_lcd.value.side_effect = _value_method  # Assuming value() returns the displayed value
+        mock_lcd.value.side_effect = (
+            _value_method  # Assuming value() returns the displayed value
+        )
 
         return mock_lcd
+
     return _mock_lcd_number

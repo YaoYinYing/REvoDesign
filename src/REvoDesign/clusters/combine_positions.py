@@ -17,7 +17,7 @@ class GenerateVariantsinFastafile:
     def getdata(self, inputfile):
         with open(inputfile) as f:
             for line in f:
-                if line[0] == '>':
+                if line[0] == ">":
                     continue
                 else:
                     self.fastaseq = self.fastaseq + line.strip()
@@ -26,20 +26,20 @@ class GenerateVariantsinFastafile:
         fasta_seq = ""
         with open(inputfile) as f:
             for line in f:
-                if line[0] == '>':
+                if line[0] == ">":
                     continue
                 else:
                     fasta_seq += line.strip()
         return fasta_seq
 
     def insert_mutations(self, position, native, newmutation, newfasta):
-        '''
+        """
         :param position:
         :param native:
         :param newmutation:
         :param newfasta:
         :return: fastafile with mutation inserted
-        '''
+        """
         # print "Input to method: ", position, native, newmutation, newfasta
         for aa_idx, aa in enumerate(self.fastaseq):
             # print aa, position-1
@@ -50,7 +50,7 @@ class GenerateVariantsinFastafile:
                 # print("WT,POS,AA: ",self.fastaseq[aa],aa,native,self.fastaseq[aa] == native)
                 assert aa == native
                 newfasta = (
-                    newfasta[0: position - 1]
+                    newfasta[0 : position - 1]
                     + newmutation
                     + newfasta[position:]
                 )
@@ -60,20 +60,20 @@ class GenerateVariantsinFastafile:
     def get_mutated_fasta_string(
         self, position, native, newmutation, fastasequence
     ):
-        '''
+        """
         :param position:
         :param native:
         :param newmutation:
         :param newfasta:
         :return: fastafile with mutation inserted
-        '''
+        """
         newfasta = fastasequence
         for aa_idx, aa in enumerate(fastasequence):
             if aa_idx == position - 1:
                 # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
                 assert aa == native
                 newfasta = (
-                    newfasta[0: position - 1]
+                    newfasta[0 : position - 1]
                     + newmutation
                     + newfasta[position:]
                 )
@@ -88,18 +88,18 @@ class GenerateVariantsinFastafile:
             filename = self.name + self.group + ".fasta"
             # print filename
 
-        with open(filename + self.filename_id, 'w') as f:
-            f.write(">" + filename.split('.')[0] + '\n')
+        with open(filename + self.filename_id, "w") as f:
+            f.write(">" + filename.split(".")[0] + "\n")
             f.write(self.newfasta)
 
     def run_analysis(self, fastafile, mutation, native, position):
-        '''
+        """
         :param fastafile: native fastafile - i think need to be a sequnce
         :param mutations: mutations string separated with comma
         :param native: native amino acids
         :param position: positions to mutate
         :return: fasta sequence with new mutations
-        '''
+        """
         # self.fastaseq
         self.getdata(fastafile)
 
@@ -117,12 +117,12 @@ class Combinations:
     def __init__(self):
         # contain mutations
         self.list_of_mutations = []
-        self.path = './'
+        self.path = "./"
         self.sequence_variants = {}
 
         # number of combinations
         self.debug = 0
-        self.chain_id = 'A'
+        self.chain_id = "A"
 
         self.init_name = ""
         self.modulus = 21000
@@ -132,11 +132,11 @@ class Combinations:
         self.dummy_count = False
 
         # input mut.txt
-        self.inputfile = ''
+        self.inputfile = ""
         # the number of desired combination
         self.combi = 1
         # target fasta file
-        self.fastafile = ''
+        self.fastafile = ""
 
     def combinations(self, iterable, r):
         # combinations('ABCD', 2) --> AB AC AD BC BD CD
@@ -159,18 +159,18 @@ class Combinations:
             yield tuple(pool[i] for i in indices)
 
     def setdata(self, datafile):
-        '''
+        """
         Make sure that there are no redundant mutations in the input
-        '''
+        """
         with open(datafile) as f:
             for line in f:
                 _line = line.strip()
                 mut_obj = extract_mutants_from_mutant_id(
                     _line, sequences={self.chain_id: self.fastasequence}
                 )
-                mut_id = ''.join(
+                mut_id = "".join(
                     [
-                        f'{_mut.wt_res}{_mut.position}{_mut.mut_res}'
+                        f"{_mut.wt_res}{_mut.position}{_mut.mut_res}"
                         for _mut in mut_obj.mutations
                     ]
                 )
@@ -259,7 +259,7 @@ class Combinations:
                 f"{fastafile_stem}_{inputfile_stem}_designs_{str(self.combi)}.fasta"
             )
         )
-        with open(self.expected_output_fasta, 'w') as f:
+        with open(self.expected_output_fasta, "w") as f:
             for i in name_seq:
                 f.write(">" + i[0] + "\n")
                 f.write(i[1] + "\n")

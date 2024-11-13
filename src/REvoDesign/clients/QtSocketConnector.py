@@ -22,11 +22,11 @@ from REvoDesign.tools.utils import run_worker_thread_with_progress
 
 logging = root_logger.getChild(__name__)
 
-'''
+"""
 helpful:
 https://stackoverflow.com/questions/15092076/pyqt-and-websocket-client-listen-websocket-in-background
 https://stackoverflow.com/questions/26270681/can-an-asyncio-event-loop-run-in-the-background-without-suspending-the-python-in
-'''
+"""
 
 
 @dataclass
@@ -56,7 +56,7 @@ class MeetingRoom:
     def add_user(self, uuid: str, user: Client):
         if uuid in self.clients:
             warnings.warn(
-                issues.SocketUserAlreadyExists('user already joined.')
+                issues.SocketUserAlreadyExists("user already joined.")
             )
             return
         self.clients[uuid] = user
@@ -74,7 +74,7 @@ class MeetingRoom:
     def user_tree(self) -> Dict[str, Any]:
         return {
             uuid: {
-                k: v for k, v in client.client_info.items() if k != 'client'
+                k: v for k, v in client.client_info.items() if k != "client"
             }
             for uuid, client in self.clients.items()
         }
@@ -94,7 +94,7 @@ class MeetingRoom:
         from REvoDesign.tools.system_tools import CLIENT_INFO
 
         user_tree = self.user_tree
-        user_tree['Host'] = CLIENT_INFO().__dict__
+        user_tree["Host"] = CLIENT_INFO().__dict__
         return user_tree
 
     @property
@@ -107,47 +107,47 @@ class Broadcaster:
     supported_datatypes_mapping: Mapping = field(
         default_factory=lambda: MappingProxyType(
             {
-                'MutantTree': MutantTree,
-                'PyMOL_prompt': str,
-                'PyMOL_selection': Iterable,
-                'ViewUpdate': tuple,
-                'ConfigItem': dict,
-                'ClientInfo': dict,
-                'Text': str,
-                'Key': str,
-                'RequireKey': str,
+                "MutantTree": MutantTree,
+                "PyMOL_prompt": str,
+                "PyMOL_selection": Iterable,
+                "ViewUpdate": tuple,
+                "ConfigItem": dict,
+                "ClientInfo": dict,
+                "Text": str,
+                "Key": str,
+                "RequireKey": str,
                 "UserTree": dict,
                 "UUID": str,
-                'PyMOL_session': bytes,
-                'Color': Any,
-                'MessageStack': List,
+                "PyMOL_session": bytes,
+                "Color": Any,
+                "MessageStack": List,
             }
         )
     )
 
     supported_datatypes = Literal[
-        'MutantTree',
-        'PyMOL_prompt',
-        'PyMOL_selection',
-        'ViewUpdate',
-        'ConfigItem',
-        'ClientInfo',
-        'Text',
-        'RequireKey',
+        "MutantTree",
+        "PyMOL_prompt",
+        "PyMOL_selection",
+        "ViewUpdate",
+        "ConfigItem",
+        "ClientInfo",
+        "Text",
+        "RequireKey",
         "UserTree",
         "UUID",
-        'PyMOL_session',
-        'Color',
-        'MessageStack',
+        "PyMOL_session",
+        "Color",
+        "MessageStack",
     ]
 
     readble_type: tuple[supported_datatypes] = tuple(
         [
-            'PyMOL_prompt',
-            'ConfigItem',
-            'ClientInfo',
-            'Text',
-            'RequireKey',
+            "PyMOL_prompt",
+            "ConfigItem",
+            "ClientInfo",
+            "Text",
+            "RequireKey",
             "UUID",
         ]
     )
@@ -166,8 +166,8 @@ class Broadcaster:
         self, obj: Any, datatype: supported_datatypes, final: bool = True
     ) -> Dict[str, Union[supported_datatypes, str, bool]]:
         if datatype not in self.supported_datatypes_mapping:
-            raise issues.FobbidenDataTypeError(f'{datatype=} is not allowed.')
-        return {'datatype': datatype, 'obj': self.encode(obj), 'final': final}
+            raise issues.FobbidenDataTypeError(f"{datatype=} is not allowed.")
+        return {"datatype": datatype, "obj": self.encode(obj), "final": final}
 
     @staticmethod
     def pack(msg_dict: dict[str, str]) -> bytes:
@@ -180,21 +180,21 @@ class Broadcaster:
     def digest_dict(
         self, unpacked_msg_dict: dict[str, str]
     ) -> tuple[Union[supported_datatypes, None], Any]:
-        datatype: self.supported_datatypes = unpacked_msg_dict.get('datatype')
+        datatype: self.supported_datatypes = unpacked_msg_dict.get("datatype")
         if not datatype:
             warnings.warn(
                 issues.BadDataWarning(
-                    f'bad data {datatype=} has been discarded'
+                    f"bad data {datatype=} has been discarded"
                 )
             )
             return None, None
-        obj_encoded = unpacked_msg_dict.get('obj')
+        obj_encoded = unpacked_msg_dict.get("obj")
         obj = self.decode(obj_encoded)
         expected_obj_type = self.supported_datatypes_mapping.get(datatype)
         if not isinstance(obj, expected_obj_type):
             warnings.warn(
                 issues.BadDataWarning(
-                    f'Bad data type mismatch: {datatype=}: {expected_obj_type=}'
+                    f"Bad data type mismatch: {datatype=}: {expected_obj_type=}"
                 )
             )
             return None, None
@@ -212,7 +212,7 @@ class Broadcaster:
         ],
         obj_type: Union[
             supported_datatypes, List[supported_datatypes]
-        ] = 'Text',
+        ] = "Text",
         obj: Union[Any, List[Any]] = None,
         final=True,
     ) -> None:
@@ -224,7 +224,7 @@ class Broadcaster:
         elif isinstance(meetingroom, MeetingRoom):
             if not meetingroom or meetingroom.empty:
                 warnings.warn(
-                    issues.SocketMeetingRoomIsEmpty('Empty meeting room.')
+                    issues.SocketMeetingRoomIsEmpty("Empty meeting room.")
                 )
                 return
             all_clients = meetingroom.current_clients
@@ -234,7 +234,7 @@ class Broadcaster:
             ]
         else:
             raise issues.InvalidInputError(
-                f'typing of {meetingroom=} ({type(meetingroom)} is not supported.)'
+                f"typing of {meetingroom=} ({type(meetingroom)} is not supported.)"
             )
 
         if not isinstance(obj_type, List):
@@ -248,7 +248,7 @@ class Broadcaster:
                 for o, d in zip(obj, obj_type)
             ]
             stacked_msg_dict = self.compose_dict(
-                obj=stacked_data, datatype='MessageStack', final=final
+                obj=stacked_data, datatype="MessageStack", final=final
             )
             packed_msg = self.pack(msg_dict=stacked_msg_dict)
 
@@ -258,7 +258,7 @@ class Broadcaster:
     def wisper(
         self,
         client: Union[Client, QtWebSockets.QWebSocket],
-        obj_type: supported_datatypes = 'Text',
+        obj_type: supported_datatypes = "Text",
         obj: Any = None,
         final: bool = True,
     ):
@@ -277,7 +277,7 @@ class Broadcaster:
         return expected_type is not None and pass_check
 
     def is_nestedstack(self, stacked_data: dict) -> bool:
-        stacked_lable: self.supported_datatypes = 'MessageStack'
+        stacked_lable: self.supported_datatypes = "MessageStack"
         for d in stacked_data:
             if stacked_lable in d:
                 return True
@@ -291,11 +291,11 @@ class Broadcaster:
         if not datatype:
             warnings.warn(
                 issues.BadDataWarning(
-                    'Bad data received with unexpected none datatype.'
+                    "Bad data received with unexpected none datatype."
                 )
             )
             return None, None
-        if datatype != 'MessageStack':
+        if datatype != "MessageStack":
             return datatype, obj
 
         assert isinstance(obj, List)
@@ -308,7 +308,7 @@ class Broadcaster:
             return datatype, stacked_data
 
         raise issues.FobbidenDataTypeError(
-            'Nested MessageStack is not allowd.'
+            "Nested MessageStack is not allowd."
         )
 
 
@@ -345,7 +345,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
     def __init__(self):
         # Check if the instance has already been initialized
-        if not hasattr(self, 'initialized'):
+        if not hasattr(self, "initialized"):
             # If not, set the instance attributes
 
             self.bus: ConfigBus = ConfigBus()
@@ -354,19 +354,19 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             self.server = None  # Initialize server as None
             self.server_url = self.bus.get_value(
-                'ui.socket.server_url',
+                "ui.socket.server_url",
                 converter=str,
-                default_value='localhost',
+                default_value="localhost",
             )
             self.port = self.bus.get_value(
-                'ui.socket.server_port', converter=int, default_value=7890
+                "ui.socket.server_port", converter=int, default_value=7890
             )
 
             self.use_authentication = self.bus.get_value(
-                'ui.socket.use_key', converter=bool
+                "ui.socket.use_key", converter=bool
             )
             self.authentication_key = self.bus.get_value(
-                'ui.socket.input.key', converter=str
+                "ui.socket.input.key", converter=str
             )
 
             self.bc_worker: Broadcaster = Broadcaster()
@@ -374,13 +374,13 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             self.view_broadcast_on_air = False
             self.view_broadcast_worker = None
             self.view_broadcast_interval = self.bus.get_value(
-                'ui.socket.broadcast.interval',
+                "ui.socket.broadcast.interval",
                 converter=float,
                 default_value=0.1,
             )
 
             self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
-            self.ssl_manager = SSLCertificateManager(role='server')
+            self.ssl_manager = SSLCertificateManager(role="server")
             self.ssl_manager.get_certificate()
 
             # Mark the instance as initialized to prevent reinitialization
@@ -435,9 +435,9 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         None
         """
 
-        logging.info(f'Asking {client} for authentication...')
+        logging.info(f"Asking {client} for authentication...")
         self.bc_worker.wisper(
-            obj_type='RequireKey', obj='Key please.', client=client
+            obj_type="RequireKey", obj="Key please.", client=client
         )
 
         return
@@ -461,31 +461,31 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         """
         username, node, user_id = self.client_name_and_node(client=client)
         logging.info(
-            f'>>> {username}@{node}({user_id}): [TextMessage] {str(message)}'
+            f">>> {username}@{node}({user_id}): [TextMessage] {str(message)}"
         )
 
-        self.messageDispatcher(self, client, msg_type='Text', message=message)
+        self.messageDispatcher(self, client, msg_type="Text", message=message)
 
     def messageDispatcher(
         self, client: QtWebSockets.QWebSocket, msg_type: str, msg_content: Any
     ):
         # matching msg_type
-        if msg_type == 'ClientInfo':
+        if msg_type == "ClientInfo":
             if client in self.meetingroom.current_clients:
                 logging.warning(
-                    f'Client {client} has already joined in chat room.'
+                    f"Client {client} has already joined in chat room."
                 )
                 self.bc_worker.wisper(
-                    obj_type='Text',
-                    obj='You are already joined.',
+                    obj_type="Text",
+                    obj="You are already joined.",
                     client=client,
                 )
                 return
 
-            logging.info(f'Authenticating... {client}')
+            logging.info(f"Authenticating... {client}")
             self.bc_worker.wisper(
-                obj_type='Text',
-                obj='Authenticating...',
+                obj_type="Text",
+                obj="Authenticating...",
                 client=client,
             )
             self.handleAuthentication(
@@ -497,8 +497,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         if client not in self.meetingroom.current_clients:
             if client not in self.waiting_room:
                 self.waiting_room.add(client)
-                logging.warning(f'Client {client} joins waiting room')
-            self.bc_worker.wisper(client, obj_type='Text', obj='Waiting ...')
+                logging.warning(f"Client {client} joins waiting room")
+            self.bc_worker.wisper(client, obj_type="Text", obj="Waiting ...")
             self.askUserAuthentication(client)
             return
 
@@ -525,7 +525,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         except issues.FobbidenDataTypeError:
             warnings.warn(
                 issues.BadDataWarning(
-                    f'Bad data from {username}@{node}({user_id}) is discarded.'
+                    f"Bad data from {username}@{node}({user_id}) is discarded."
                 )
             )
             return
@@ -535,7 +535,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         ):
             warnings.warn(
                 issues.BadDataWarning(
-                    f'Bad data from socket discarded: {msg_type=},{msg_content=}'
+                    f"Bad data from socket discarded: {msg_type=},{msg_content=}"
                 )
             )
             return
@@ -543,7 +543,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         # printout readable msgs
         if msg_type in self.bc_worker.readble_type:
             logging.info(
-                f'>>> {username}@{node}({user_id}): [{str(msg_type)}] {str(msg_content)}'
+                f">>> {username}@{node}({user_id}): [{str(msg_type)}] {str(msg_content)}"
             )
 
         self.messageDispatcher(client, msg_type, msg_content)
@@ -552,11 +552,11 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         if self.meetingroom.is_logged_in(client=client):
             user_id: str = self.meetingroom.get_user_uuid(client=client)
             user_info = self.meetingroom.get_user_by_uuid(user_id).client_info
-            user: str = user_info.get('user')
-            user_node: str = user_info.get('node')
+            user: str = user_info.get("user")
+            user_node: str = user_info.get("node")
 
         else:
-            user_id = 'Unautherized'
+            user_id = "Unautherized"
             user: str = client.peerName()
             user_node: str = client.peerAddress()
 
@@ -578,7 +578,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             if not self.use_authentication or not self.authentication_key:
                 authenticated = True
             elif self.use_authentication and (
-                user_key := message.get('auth_key')
+                user_key := message.get("auth_key")
             ):
                 authenticated = user_key == self.authentication_key
             else:
@@ -588,7 +588,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
                 logging.info(f"Authentication failed for client:{client}")
                 self.bc_worker.wisper(
                     client=client,
-                    obj=f'Key authentication is failed. {username} from {node} is rejected.',
+                    obj=f"Key authentication is failed. {username} from {node} is rejected.",
                 )
                 client.close()
 
@@ -599,13 +599,13 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             joined_time_stamp = time.time()
             joined_time_str = time.strftime(
-                '%Y-%m-%d %H:%M:%S', time.localtime(joined_time_stamp)
+                "%Y-%m-%d %H:%M:%S", time.localtime(joined_time_stamp)
             )
 
-            message['joined_time_stamp'] = joined_time_stamp
-            message['joined_time'] = joined_time_str
+            message["joined_time_stamp"] = joined_time_stamp
+            message["joined_time"] = joined_time_str
 
-            message.pop('auth_key')
+            message.pop("auth_key")
 
             self.meetingroom.add_user(
                 uuid=uuid,
@@ -622,7 +622,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             )
 
             self.bc_worker.wisper(
-                obj=uuid, obj_type='UUID', client=client, final=True
+                obj=uuid, obj_type="UUID", client=client, final=True
             )
 
             # once the authentcation finished, the client should leave waiting room
@@ -643,7 +643,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             peer_table = self.meetingroom.peer_table
 
         self.bc_worker.broadcast(
-            self.meetingroom, obj=peer_table, obj_type='UserTree'
+            self.meetingroom, obj=peer_table, obj_type="UserTree"
         )
 
         refresh_tree_widget(
@@ -677,7 +677,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         None
         """
         self.bc_worker.broadcast(
-            self.meetingroom, obj='Host is shutting down, bye-bye.'
+            self.meetingroom, obj="Host is shutting down, bye-bye."
         )
 
         for client in self.meetingroom.current_clients:
@@ -703,7 +703,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         None
         """
         if not self.is_running:
-            warnings.warn(issues.SocketWarning('Host is not running'))
+            warnings.warn(issues.SocketWarning("Host is not running"))
             return
 
         self.bc_worker.broadcast(
@@ -713,29 +713,29 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     def setup_ws_server(self):
         from REvoDesign.tools.system_tools import CLIENT_INFO
 
-        self.use_authentication = self.bus.get_value('ui.socket.use_key')
-        self.authentication_key = self.bus.get_value('ui.socket.input.key')
+        self.use_authentication = self.bus.get_value("ui.socket.use_key")
+        self.authentication_key = self.bus.get_value("ui.socket.input.key")
         if self.use_authentication and not self.authentication_key:
-            raise ValueError('Key for authentication is empty!')
+            raise ValueError("Key for authentication is empty!")
 
-        requested_port = self.bus.get_value('ui.socket.server_port', int)
+        requested_port = self.bus.get_value("ui.socket.server_port", int)
 
         if not requested_port:
-            raise ValueError(f'Port {requested_port} is not valid')
+            raise ValueError(f"Port {requested_port} is not valid")
 
         if not self.is_port_available(requested_port):
             raise ValueError(
-                f'Port {requested_port} is already in use. Please choose another port.'
+                f"Port {requested_port} is already in use. Please choose another port."
             )
 
         self.port = requested_port
 
-        self.do_broadcast_view = self.bus.get_value('ui.socket.broadcast.view')
+        self.do_broadcast_view = self.bus.get_value("ui.socket.broadcast.view")
         self.view_broadcast_interval = self.bus.get_value(
-            'ui.socket.broadcast.interval', float
+            "ui.socket.broadcast.interval", float
         )
         logging.info(
-            f'Server is reconfigured! \n ' f'Key: {self.authentication_key}\n'
+            f"Server is reconfigured! \n " f"Key: {self.authentication_key}\n"
         )
 
         if not self.server:
@@ -745,10 +745,10 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
             if not self.server.listen(QtNetwork.QHostAddress.Any, self.port):
                 self.meetingroom = None
-                raise issues.SocketError('Unable to start the server.')
+                raise issues.SocketError("Unable to start the server.")
 
             logging.info(
-                f'Listening: {self.server.serverAddress().toString()}:{str(self.server.serverPort())}'
+                f"Listening: {self.server.serverAddress().toString()}:{str(self.server.serverPort())}"
             )
 
             self.meetingroom = MeetingRoom(
@@ -802,7 +802,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
                 return
 
             self.bc_worker.broadcast(
-                self.meetingroom, obj_type='ViewUpdate', obj=view_data
+                self.meetingroom, obj_type="ViewUpdate", obj=view_data
             )
 
     def is_port_available(self, port):
@@ -827,10 +827,10 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 class REvoDesignWebSocketClient(SingletonAbstract):
     def __init__(self):
         # Check if the instance has already been initialized
-        if not hasattr(self, 'initialized'):
+        if not hasattr(self, "initialized"):
             # If not, set the instance attributes
             self.bus: ConfigBus = ConfigBus()
-            self.server_url = 'localhost'
+            self.server_url = "localhost"
             self.server_port = 7890
 
             self.bc_worker = Broadcaster()
@@ -838,7 +838,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             self.receive_view_broadcast = False
             self.receive_mutagenesis_broadcast = True
 
-            self.uuid = ''
+            self.uuid = ""
 
             self.client = None
             self.treeWidget_ws_peers = None
@@ -847,28 +847,28 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             self.initialized = True
 
     def setup_ws_client(self):
-        self.server_url = self.bus.get_value('ui.socket.server_url')
+        self.server_url = self.bus.get_value("ui.socket.server_url")
 
-        server_port = self.bus.get_value('ui.socket.server_port', int)
+        server_port = self.bus.get_value("ui.socket.server_port", int)
         if not server_port:
-            raise ValueError(f'Invalid server port {server_port}')
+            raise ValueError(f"Invalid server port {server_port}")
         self.server_port = server_port
 
         if not self.server_url or not self.server_port:
-            raise ValueError('Invalid server configurations!')
+            raise ValueError("Invalid server configurations!")
 
-        self.authentication_key = self.bus.get_value('ui.socket.input.key')
+        self.authentication_key = self.bus.get_value("ui.socket.input.key")
         self.receive_mutagenesis_broadcast = self.bus.get_value(
-            'ui.socket.receive.mutagenesis'
+            "ui.socket.receive.mutagenesis"
         )
         self.receive_view_broadcast = self.bus.get_value(
-            'ui.socket.receive.view'
+            "ui.socket.receive.view"
         )
 
         self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
 
         logging.info(
-            'Setting up client is done. Preparing to connect to the server.'
+            "Setting up client is done. Preparing to connect to the server."
         )
 
     def connect_to_server(self):
@@ -877,7 +877,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             return
 
         server_uri = f"ws://{self.server_url}:{self.server_port}"
-        logging.info(f'Connecting to server: {server_uri}')
+        logging.info(f"Connecting to server: {server_uri}")
         try:
             self.client = QtWebSockets.QWebSocket(
                 "", QtWebSockets.QWebSocketProtocol.Version13, None
@@ -888,14 +888,14 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                 partial(
                     self.bc_worker.wisper,
                     client=self.client,
-                    obj='hello, server.',
+                    obj="hello, server.",
                 )
             )
             self.client.textMessageReceived.connect(self.handleTextMessage)
             self.client.binaryMessageReceived.connect(self.handleBinaryMessage)
             self.client.disconnected.connect(self.close_connection)
 
-            logging.info('Connection established.')
+            logging.info("Connection established.")
 
         except Exception:
             logging.error("Unexpected error during connection:")
@@ -911,12 +911,12 @@ class REvoDesignWebSocketClient(SingletonAbstract):
     def close_connection(self):
         if not self.connected:
             logging.warning(
-                'Client is not connected to any server. Doing nothing.'
+                "Client is not connected to any server. Doing nothing."
             )
             return
 
         try:
-            self.bc_worker.wisper(self.client, obj='Leaving, bye-bye.')
+            self.bc_worker.wisper(self.client, obj="Leaving, bye-bye.")
             self.client.close()
 
             refresh_tree_widget(
@@ -925,7 +925,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
         except Exception:
             traceback.print_exc()
-            logging.error('Client disconnection failed.')
+            logging.error("Client disconnection failed.")
 
     @property
     def server_is_reachable(self):
@@ -945,11 +945,11 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         greeting_message = CLIENT_INFO().__dict__
 
         if self.authentication_key:
-            greeting_message['auth_key'] = self.authentication_key
+            greeting_message["auth_key"] = self.authentication_key
 
-        logging.info(f'Authentication is sent: {greeting_message}')
+        logging.info(f"Authentication is sent: {greeting_message}")
         self.bc_worker.wisper(
-            self.client, obj_type='ClientInfo', obj=greeting_message
+            self.client, obj_type="ClientInfo", obj=greeting_message
         )
 
     def handleMutantTree(self, mutant_tree: MutantTree):
@@ -960,14 +960,15 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         received_mutant_tree = mutant_tree.__deepcopy__
         diff_mutant_tree = received_mutant_tree.diff_tree_from(
             existed_mutant_tree(
-                sequences=self.bus.get_value('designable_sequences')
+                sequences=self.bus.get_value("designable_sequences")
             )
         )
         if self.receive_mutagenesis_broadcast:
             logging.info(
-                'Building Mutagenesis from differential mutant tree: \n '
-                f'{len(diff_mutant_tree.all_mutant_branch_ids)} branches, '
-                f'{len(diff_mutant_tree.all_mutant_ids)} mutants')
+                "Building Mutagenesis from differential mutant tree: \n "
+                f"{len(diff_mutant_tree.all_mutant_branch_ids)} branches, "
+                f"{len(diff_mutant_tree.all_mutant_ids)} mutants"
+            )
 
             run_worker_thread_with_progress(
                 worker_function=self.mutagenesis_from_mutant_tree,
@@ -976,7 +977,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
     def handleViewUpdate(self, view):
         if not self.receive_view_broadcast:
-            logging.warning('View update is disabled.')
+            logging.warning("View update is disabled.")
             return
 
         # logging.debug('update pymol view')
@@ -984,42 +985,46 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         return
 
     def handleTextMessage(self, message):
-        logging.info(f'>>> Host: {message}')
+        logging.info(f">>> Host: {message}")
 
     def messageDispatcher(self, msg_type: str, msg_content: Any):
-        if msg_type == 'Text':
+        if msg_type == "Text":
             return
 
-        if msg_type == 'RequireKey':
+        if msg_type == "RequireKey":
             self.authenticate_client()
             return
 
-        if msg_type == 'MutantTree':
+        if msg_type == "MutantTree":
             self.handleMutantTree(mutant_tree=msg_content)
             return
-        if msg_type == 'ViewUpdate':
+        if msg_type == "ViewUpdate":
             self.handleViewUpdate(view=msg_content)
             return
 
-        if msg_type == 'UserTree':
+        if msg_type == "UserTree":
             refresh_tree_widget(
                 user_tree=msg_content,
                 treeWidget_ws_peers=self.treeWidget_ws_peers,
             )
             return
 
-        if msg_type == 'UUID':
-            logging.info(f'Get a new UUID: {msg_content}')
+        if msg_type == "UUID":
+            logging.info(f"Get a new UUID: {msg_content}")
             self.uuid = msg_content
             return
 
-        if not msg_type == 'MessageStack' and (len_msg_content := len(msg_content)):
-            logging.info(f'Get a new MessageStack with {len_msg_content} messages')
+        if not msg_type == "MessageStack" and (
+            len_msg_content := len(msg_content)
+        ):
+            logging.info(
+                f"Get a new MessageStack with {len_msg_content} messages"
+            )
 
             if not isinstance(msg_content, Iterable):
                 warnings.warn(
                     issues.FobbidenDataTypeError(
-                        f'The content of a MessageStack is expected to be an Iterable instead of a {type(msg_content)}'
+                        f"The content of a MessageStack is expected to be an Iterable instead of a {type(msg_content)}"
                     )
                 )
                 return
@@ -1028,27 +1033,29 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                 if not isinstance(msg_data_item, tuple):
                     warnings.warn(
                         issues.FobbidenDataTypeError(
-                            f'The content of a MessageStack item {msg_data_item=} is expected to be '
-                            f'a tuple with 2 item instead of a {type(msg_content)}'
+                            f"The content of a MessageStack item {msg_data_item=} is expected to be "
+                            f"a tuple with 2 item instead of a {type(msg_content)}"
                         )
                     )
                     continue
                 if (len_msg_content := len(msg_data_item)) != 2:
                     warnings.warn(
                         issues.FobbidenDataTypeError(
-                            f'The MessageStack item has invalid length {len_msg_content}'
+                            f"The MessageStack item has invalid length {len_msg_content}"
                         )
                     )
                     continue
 
-                self.messageDispatcher(msg_type=msg_data_item[0], msg_content=msg_data_item[1])
+                self.messageDispatcher(
+                    msg_type=msg_data_item[0], msg_content=msg_data_item[1]
+                )
 
             return
 
         ...
         # process more data objects ....
 
-        logging.warning(f'Unknow data in type {msg_type}: {msg_content}')
+        logging.warning(f"Unknow data in type {msg_type}: {msg_content}")
         return
 
     def handleBinaryMessage(self, message: QtCore.QByteArray):
@@ -1060,7 +1067,7 @@ class REvoDesignWebSocketClient(SingletonAbstract):
             )
         except issues.FobbidenDataTypeError:
             warnings.warn(
-                issues.BadDataWarning('Bad data from Host is discarded.')
+                issues.BadDataWarning("Bad data from Host is discarded.")
             )
             return
 
@@ -1069,13 +1076,13 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         ):
             warnings.warn(
                 issues.BadDataWarning(
-                    f'Bad data from socket discarded: {msg_type=},{msg_content=}'
+                    f"Bad data from socket discarded: {msg_type=},{msg_content=}"
                 )
             )
             return
 
         if msg_type in self.bc_worker.readble_type:
-            logging.info(f'>>> Host: [{str(msg_type)}] {str(msg_content)}')
+            logging.info(f">>> Host: [{str(msg_type)}] {str(msg_content)}")
 
         self.messageDispatcher(msg_type=msg_type, msg_content=msg_content)
 

@@ -9,14 +9,16 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 @dataclass
 class Mutant(RpMutant):
 
     def __str__(self):
-        return f"Mutant Info: {self.mutations}, Mutant Score: {self.mutant_score}"
+        return (
+            f"Mutant Info: {self.mutations}, Mutant Score: {self.mutant_score}"
+        )
 
     @property
     def empty(self) -> bool:
@@ -70,7 +72,7 @@ class Mutant(RpMutant):
             str: The path to the PDB file, or an empty string if the file doesn't exist.
         """
         if not (self._pdb_fp and os.path.exists(self._pdb_fp)):
-            self._pdb_fp = ''
+            self._pdb_fp = ""
         return self._pdb_fp
 
     @pdb_fp.setter
@@ -92,7 +94,7 @@ class Mutant(RpMutant):
 
     @property
     def full_mutant_id(self) -> str:
-        return f'{self.raw_mutant_id}_{self.mutant_score}'
+        return f"{self.raw_mutant_id}_{self.mutant_score}"
 
     @property
     def raw_mutant_id(self) -> str:
@@ -109,9 +111,9 @@ class Mutant(RpMutant):
             _raw_mutant_id (str): A concatenated string of all mutant identifiers,
                                 separated by underscores.
         """
-        _raw_mutant_id = '_'.join(
+        _raw_mutant_id = "_".join(
             [
-                f'{mutant.chain_id}{mutant.wt_res}{mutant.position}{mutant.mut_res}'
+                f"{mutant.chain_id}{mutant.wt_res}{mutant.position}{mutant.mut_res}"
                 for mutant in self.mutations
             ]
         )
@@ -137,7 +139,7 @@ class Mutant(RpMutant):
         else:
             short_id = full_id
 
-        return f'{short_id}_{self.mutant_score}'  # Combine the short ID with the mutant score
+        return f"{short_id}_{self.mutant_score}"  # Combine the short ID with the mutant score
 
     @property
     def mutant_score(self) -> float:
@@ -190,7 +192,7 @@ class Mutant(RpMutant):
         """
         if chain_id not in self.wt_protein_sequence.all_chain_ids:
             raise issues.InvalidInputError(
-                f'Chain {chain_id} does not exist in wt sequence.'
+                f"Chain {chain_id} does not exist in wt sequence."
             )
 
         wt_sequence = self.wt_protein_sequence.get_sequence_by_chain(chain_id)
@@ -218,11 +220,11 @@ class Mutant(RpMutant):
 
         if ignore_missing:
             while True:
-                if 'X' not in sequence:
+                if "X" not in sequence:
                     break
-                sequence.remove('X')
+                sequence.remove("X")
 
-        return Chain(chain_id=chain_id, sequence=''.join(sequence))
+        return Chain(chain_id=chain_id, sequence="".join(sequence))
 
     @property
     def mutant_sequences(self) -> RosettaPyProteinSequence:
@@ -235,5 +237,9 @@ class Mutant(RpMutant):
         Returns:
             dict[str, str]: A dictionary where keys are chain IDs and values are the corresponding mutated sequences.
         """
-        return RosettaPyProteinSequence(chains=[self.get_mutant_sequence_single_chain(
-            chain_id=chain) for chain in self.wt_protein_sequence.all_chain_ids])
+        return RosettaPyProteinSequence(
+            chains=[
+                self.get_mutant_sequence_single_chain(chain_id=chain)
+                for chain in self.wt_protein_sequence.all_chain_ids
+            ]
+        )

@@ -1,8 +1,8 @@
-'''
+"""
 An rewriten class based on the official REST API script.
 Doc: https://www.ebi.ac.uk/seqdb/confluence/display/JDSAT/InterProScan+5+Help+and+Documentation#InterProScan5HelpandDocumentation-RESTAPI
 Code: https://raw.githubusercontent.com/ebi-wp/webservice-clients/master/python/iprscan5.py
-'''
+"""
 
 import os
 import platform
@@ -18,13 +18,13 @@ logging = root_logger.getChild(__name__)
 
 class InterProScanner:
     def __init__(self):
-        self.base_url = 'https://www.ebi.ac.uk/Tools/services/rest/iprscan5'
+        self.base_url = "https://www.ebi.ac.uk/Tools/services/rest/iprscan5"
 
-        self.email = ''
-        self.title = ''
-        self.sequence = ''
+        self.email = ""
+        self.title = ""
+        self.sequence = ""
 
-        self.version = '2023-05-12 14:28'
+        self.version = "2023-05-12 14:28"
         self.pwd = os.getcwd()
 
         self.poll_freq = 3
@@ -38,7 +38,7 @@ class InterProScanner:
 
     def service_run(self, params):
         user_agent = self.get_user_agent()
-        self.http_headers = {'User-Agent': user_agent}
+        self.http_headers = {"User-Agent": user_agent}
         request_url = f"{self.base_url}/run/"
         logging.info(f"Request URL: {request_url}")
         response = requests.post(
@@ -46,7 +46,7 @@ class InterProScanner:
         )
         response_text = response.text
         print(response_text)
-        if response_text.startswith('iprscan5-'):
+        if response_text.startswith("iprscan5-"):
             self.job_id = response_text
 
     def service_get_status(self, job_id):
@@ -58,11 +58,11 @@ class InterProScanner:
         return status
 
     def service_get_result_types(self, job_id):
-        logging.info('Begin service_get_result_types')
-        logging.info('job_id: %s', job_id)
+        logging.info("Begin service_get_result_types")
+        logging.info("job_id: %s", job_id)
 
-        request_url = f'{self.base_url}/resulttypes/{job_id}'
-        logging.info('request_url: %s', request_url)
+        request_url = f"{self.base_url}/resulttypes/{job_id}"
+        logging.info("request_url: %s", request_url)
 
         response = requests.get(request_url)
 
@@ -73,35 +73,35 @@ class InterProScanner:
             # Parse the XML response using lxml
             root = etree.fromstring(xml_data)
 
-            for result_type in root.findall('type'):
+            for result_type in root.findall("type"):
                 logging.debug(
                     f"{result_type.find('identifier').text} - {result_type.find('description').text if result_type.find('description') is not None else None}"
                 )
-                result_types.append(result_type.find('identifier').text)
+                result_types.append(result_type.find("identifier").text)
 
-            logging.info('End service_get_result_types')
+            logging.info("End service_get_result_types")
             return result_types
         else:
             logging.warning(
-                'Error: Failed to get result types. Status code: %d',
+                "Error: Failed to get result types. Status code: %d",
                 response.status_code,
             )
             return []
 
     def get_user_agent(self):
-        urllib_agent = f'Python-urllib/{requests.__version__}'
+        urllib_agent = f"Python-urllib/{requests.__version__}"
         client_revision = self.version
         user_agent = (
-            f'EBI-Sample-Client/{client_revision} ({os.path.basename(__file__)} '
-            f'Python {platform.python_version()}; {platform.system()}) {urllib_agent}'
+            f"EBI-Sample-Client/{client_revision} ({os.path.basename(__file__)} "
+            f"Python {platform.python_version()}; {platform.system()}) {urllib_agent}"
         )
         return user_agent
 
     def submit_job(self):
         self.params = {
-            'email': self.email,
-            'title': self.title,
-            'sequence': self.sequence,  # Include other required parameters
+            "email": self.email,
+            "title": self.title,
+            "sequence": self.sequence,  # Include other required parameters
         }
 
         response_text = self.service_run(self.params)
@@ -118,7 +118,7 @@ class InterProScanner:
         while True:
             status = self.service_get_status(self.job_id)
             logging.info(status)
-            if status != 'QUEUED' and status != 'RUNNING':
+            if status != "QUEUED" and status != "RUNNING":
                 break
             time.sleep(self.poll_freq)
 
@@ -135,7 +135,7 @@ class InterProScanner:
         response = requests.get(request_url)
         result = response.content
         filename = self.get_result_filename(result_type)
-        with open(os.path.join(self.pwd, filename), 'wb') as file:
+        with open(os.path.join(self.pwd, filename), "wb") as file:
             file.write(result)
         logging.info(f"Creating result file: {filename}")
 
@@ -147,14 +147,14 @@ class InterProScanner:
         return filename
 
 
-if __name__ == '__main__':
-    logging.info('Starting InterProScanner...')
+if __name__ == "__main__":
+    logging.info("Starting InterProScanner...")
     scanner = InterProScanner()
     # Set the class variables accordingly
-    scanner.email = 'your_email@example.com'
-    scanner.title = 'Protein Analysis Job'
-    scanner.sequence = 'protein_sequence_data'
-    scanner.outformat = 'html'  # Set the desired output format (optional)
+    scanner.email = "your_email@example.com"
+    scanner.title = "Protein Analysis Job"
+    scanner.sequence = "protein_sequence_data"
+    scanner.outformat = "html"  # Set the desired output format (optional)
     scanner.async_job = True  # Set to True for asynchronous job
 
     scanner.submit_job()

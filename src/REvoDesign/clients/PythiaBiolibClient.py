@@ -15,7 +15,7 @@ class PythiaBiolib(CitableModules):
         self.molecule = molecule
         self.chain_id = chain_id
 
-        self.work_dir = os.path.abspath('.')
+        self.work_dir = os.path.abspath(".")
 
     def predict(self):
         from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
@@ -28,27 +28,29 @@ class PythiaBiolib(CitableModules):
         )
 
         try:
-            with timing('Pythia-ddG from biolib'):
-                res = biolib.load('YaoYinYing/pythia_wubianlab').cli(f'--pdb_filename {input_pdb}')
+            with timing("Pythia-ddG from biolib"):
+                res = biolib.load("YaoYinYing/pythia_wubianlab").cli(
+                    f"--pdb_filename {input_pdb}"
+                )
 
             expected_output = os.path.join(
                 self.work_dir,
-                f'{self.molecule}_pred_mask.csv',
+                f"{self.molecule}_pred_mask.csv",
             )
             res.save_files(os.path.dirname(expected_output))
             logging.info(
-                f'Result is saved at `{os.path.dirname(expected_output)}`'
+                f"Result is saved at `{os.path.dirname(expected_output)}`"
             )
             assert os.path.exists(expected_output)
             return expected_output
         except AssertionError:
-            logging.error('Failed to run Pythia via biolib remote command!')
+            logging.error("Failed to run Pythia via biolib remote command!")
         except Exception as e:
-            logging.error(f'{e=}')
+            logging.error(f"{e=}")
             traceback.print_exc()
 
     __bibtex__ = {
-        'pythia-ddg': """@article {Sun2023.08.09.552725,
+        "pythia-ddg": """@article {Sun2023.08.09.552725,
 author = {Jinyuan Sun and Tong Zhu and Yinglu Cui and Bian Wu},
 title = {Structure-based self-supervised learning enables ultrafast prediction of stability changes upon mutation at the protein universe scale},
 elocation-id = {2023.08.09.552725},
