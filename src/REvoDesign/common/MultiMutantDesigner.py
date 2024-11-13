@@ -18,7 +18,7 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign import ConfigBus, issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+from REvoDesign.external_designer import EXTERNAL_DESIGNERS,Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
 from REvoDesign.tools.utils import cmap_reverser, get_color
@@ -41,7 +41,6 @@ class MultiMutantDesigner:
         """
         # get the bus
         self.bus = ConfigBus()
-        self.external_scorer = None
         self.refresh_options()
         self.get_input_and_initialize()
 
@@ -55,9 +54,9 @@ class MultiMutantDesigner:
         self.sequence: str = self.designable_sequences.get_sequence_by_chain(self.chain_id)
 
         self.cmap = self.bus.get_value('ui.header_panel.cmap.default')
-        self.external_scorer_reversed_score = self.bus.get_value(
+        self.external_scorer_reversed_score:bool = bool(self.bus.get_value(
             'ui.header_panel.cmap.reverse_score'
-        )
+        ))
         self.color_style = cmap_reverser(
             cmap=self.cmap, reverse=self.external_scorer_reversed_score
         )
@@ -66,7 +65,6 @@ class MultiMutantDesigner:
             'ui.visualize.multi_design.num_variant_max'
         )
 
-        self.scorer = self.bus.get_value('ui.visualize.input.profile_type')
         self.use_external_scorer = self.bus.get_value(
             'ui.visualize.multi_design.use_external_scorer'
         )
@@ -91,6 +89,11 @@ class MultiMutantDesigner:
         self.save_mutant_table = self.bus.get_value(
             'ui.visualize.input.multi_design.to_mutant_txt'
         )
+        self.magician = Magician().setup(
+                name_cfg_term='ui.visualize.input.profile_type', 
+                ignore_missing=bool('X' in self.sequence),
+                molecule=self.molecule,chain=self.chain_id
+            )
 
     def get_input_and_initialize(self):
         # Initialize mutant tree for design
@@ -141,29 +144,16 @@ class MultiMutantDesigner:
             self.total_design_cases, len(self.design_case_variant_objects)
         )
 
-        # if scorer is not specified, color them one after another
-        if not (self.color_by_scores and self.external_scorer):
-            for i, item in enumerate(self.design_case_variant_objects):
-                color = get_color(
-                    cmap=self.color_style,
-                    data=i + 1,
-                    min_value=0,
-                    max_value=_total_num_design_cases,
-                )
-                self.recolor_pymol_obj(i=i, color=color, item=item)
-
-        else:
-            # color via scorer
+        
+        # color via scorer
+        if self.color_by_scores and self.magician.magician is not None:
             for mut_obj in self.all_design_multi_design_mutant_object:
                 mut_obj.wt_protein_sequence = self.designable_sequences
                 if mut_obj.mutant_score:
                     continue
 
-                mut_obj.mutant_score = self.external_scorer.scorer(
-                    sequence=mut_obj.get_mutant_sequence_single_chain(
-                        chain_id=self.chain_id,
-                        ignore_missing=bool('X' in self.sequence),
-                    ).sequence
+                mut_obj.mutant_score = self.magician.magician.scorer(
+                    mutant=mut_obj
                 )
 
             all_scores = [
@@ -187,6 +177,20 @@ class MultiMutantDesigner:
                 )
 
                 self.recolor_pymol_obj(i=i_obj, color=color, item=obj)
+        # if scorer is not specified, color them one after another
+        else:
+            for i, item in enumerate(self.design_case_variant_objects):
+                color = get_color(
+                    cmap=self.color_style,
+                    data=i + 1,
+                    min_value=0,
+                    max_value=_total_num_design_cases,
+                )
+                self.recolor_pymol_obj(i=i, color=color, item=item)
+
+
+           
+            
 
         logging.debug('All design with score: \n')
         logging.debug('-' * 60)
@@ -216,7 +220,7 @@ class MultiMutantDesigner:
         tmp_mutant_obj.mutant_score = 0.0
         tmp_mutant_obj.wt_protein_sequence = self.designable_sequences
 
-        if not self.external_scorer:
+        if not self.magician.magician:
             warnings.warn(
                 issues.ConflictWarning(
                     'Abord design evaluation because no external scorer is defined.'
@@ -224,11 +228,8 @@ class MultiMutantDesigner:
             )
 
         else:
-            tmp_mutant_obj.mutant_score = self.external_scorer.scorer(
-                sequence=tmp_mutant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.chain_id,
-                    ignore_missing=bool('X' in self.sequence),
-                ).sequence
+            tmp_mutant_obj.mutant_score = self.magician.magician.scorer(
+                mutant=tmp_mutant_obj
             )
 
         for m in self.in_design_multi_design_case.all_mutant_objects:
@@ -236,35 +237,7 @@ class MultiMutantDesigner:
 
         return
 
-    def initialize_scorer(self):
-        """
-        Initialize the external scorer for mutant designs.
-
-        This method initializes the external scorer for mutant designs if available.
-        """
-        # early return for non-scorer
-        if self.scorer not in EXTERNAL_DESIGNERS:
-            if self.external_scorer:
-                logging.info(
-                    f'Cooling down {self.external_scorer.__class__.__name__} ...'
-                )
-            self.external_scorer = None
-            return
-
-        magician = EXTERNAL_DESIGNERS[self.scorer]
-        if (
-            not self.external_scorer
-            or magician.__name__ != self.external_scorer.__class__.__name__
-        ):
-            logging.info(
-                f'Pre-heating {self.scorer} ... This could take a while...'
-            )
-            self.external_scorer = magician(molecule=self.molecule)
-            self.external_scorer.initialize(
-                ignore_missing=bool('X' in self.sequence)
-            )
-
-        return
+    
 
     def start_new_design(self):
         """
@@ -534,10 +507,6 @@ class MultiMutantDesigner:
         self.all_design_multi_design_cases.append(
             self.in_design_multi_design_case
         )
-
-        # initialize scorer
-        if self.color_by_scores and self.scorer and self.use_external_scorer:
-            self.initialize_scorer()
 
         self.evaluate_design()
         # evaluate mutant design after design case is closed.

@@ -141,6 +141,16 @@ ui:
       model: ''
       repack_radius: 0.0
 
+rosetta: 
+  node_hint: native
+  native: 
+    bin_path: 
+  node_config: 
+
+  cart_ddg:
+    use_legacy: False
+    iterations: 3
+
 
 log:
   version: 1

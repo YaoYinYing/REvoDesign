@@ -14,11 +14,13 @@ from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import IterableLoop
+from REvoDesign.basic.designer import ExternalDesignerAbstract
 from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
+from REvoDesign.external_designer import Magician
 from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
@@ -475,8 +477,10 @@ class GREMLIN_Analyser:
         self.mutant_tree_coevolved = MutantTree({})
         self.picked_gremlin_mutant: Mutant = None
 
+        self.magician: Magician= Magician()
+
     def load_gremlin_mrf(self):
-        self.gremlin_external_scorer = None
+        
         gremlin_mrf_fp = self.bus.get_value('ui.interact.input.gremlin_pkl')
 
         topN_gremlin_candidates = self.bus.get_value(
@@ -1094,50 +1098,23 @@ class GREMLIN_Analyser:
 
         return
 
-    def refresh_scorer(self):
-        external_scorer = self.bus.get_value('ui.interact.use_external_scorer')
+    def refresh_magician(self):
 
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-        # if scorer is specified and available
-        if external_scorer and external_scorer in EXTERNAL_DESIGNERS:
-            magician = EXTERNAL_DESIGNERS[external_scorer]
-            # if it is ready
-            if (
-                self.gremlin_external_scorer  # scorer is set
-                and magician.__name__  # scorer is not switched to another
-                == self.gremlin_external_scorer.__class__.__name__
-            ):
-                logging.info(f'Using the same scorer {magician.__name__}')
-                return
-
-            # if not ready, initialize it and return
-            logging.info(
-                f'Pre-heating {external_scorer} ... This could take a while ...'
-            )
-            self.gremlin_external_scorer = magician(
-                molecule=self.design_molecule
-            )
-            run_worker_thread_with_progress(
-                worker_function=self.gremlin_external_scorer.initialize,
-                ignore_missing=bool('X' in self.design_sequence),
-                chain=','.join(
-                    self.chains_to_bind
-                    if self.chain_binding_enabled
-                    else self.design_chain_id
-                ),
-                homooligomeric=self.chain_binding_enabled
-                and self.chains_to_bind,
-                progress_bar=self.bus.ui.progressBar,
-            )
-            return
-
-        # otherwise, cancel the external scorer
-        if self.gremlin_external_scorer:
-            logging.info(
-                f'Cooling down {self.gremlin_external_scorer.__class__.__name__} ...'
-            )
-        self.gremlin_external_scorer = None
+        self.magician = run_worker_thread_with_progress(
+            worker_function=self.magician.setup,
+            name_cfg_item='ui.interact.use_external_scorer',
+            molecule=self.design_molecule,
+            ignore_missing=bool('X' in self.design_sequence),
+            chain=','.join(
+                self.chains_to_bind
+                if self.chain_binding_enabled
+                else self.design_chain_id
+            ),
+            homooligomeric=self.chain_binding_enabled
+            and self.chains_to_bind,
+            progress_bar=self.bus.ui.progressBar,)
+    
+        return
 
     def mutate_with_gridbuttons(
         self,
@@ -1153,7 +1130,7 @@ class GREMLIN_Analyser:
 
         matplotlib.use('Agg')
 
-        self.refresh_scorer()
+        self.refresh_magician()
 
         self.picked_gremlin_group_id = '_vs_'.join(
             [
@@ -1213,22 +1190,23 @@ class GREMLIN_Analyser:
         mutant_obj = Mutant(mutations=_mutant, wt_protein_sequence=self.designable_sequences)
 
         # call scorer to evaluate wt and mutant
-        if not self.gremlin_external_scorer:
+        if not self.magician.magician:
             wt_score = matrix[self.alphabet.index(wt_i)][
                 self.alphabet.index(wt_j)
             ]
             mut_score = matrix[col][row]
         else:
-            wt_score = run_worker_thread_with_progress(
-                worker_function=self.gremlin_external_scorer.scorer,
-                sequence=self.design_sequence.replace('X', ''),
-                progress_bar=self.bus.ui.progressBar,
-            )
+            if self.magician.magician.no_need_to_score_wt:
+                wt_score = 0
+            else:
+                wt_score = run_worker_thread_with_progress(
+                    worker_function=self.magician.magician.scorer,
+                    mutant=self.designable_sequences
+                    progress_bar=self.bus.ui.progressBar,
+                )
             mut_score = run_worker_thread_with_progress(
-                worker_function=self.gremlin_external_scorer.scorer,
-                sequence=mutant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.design_chain_id, ignore_missing=True
-                ).sequence,
+                worker_function=self.magician.magician.scorer,
+                mutant=mutant_obj,
                 progress_bar=self.bus.ui.progressBar,
             )
 

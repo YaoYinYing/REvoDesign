@@ -570,7 +570,7 @@ class Widget2ConfigMapper:
                     CallableGroupValues.list_all_profile_parsers,
                     CallableGroupValues.list_all_designers,
                 ),
-                'comboBox_external_scorer': (CallableGroupValues.list_all_designers,),
+                'comboBox_external_scorer': (CallableGroupValues.list_all_scorers,),
             }
         )
 
@@ -721,6 +721,12 @@ class CallableGroupValues:
     
     @staticmethod
     def list_all_designers() -> List[str]:
+        from REvoDesign.external_designer import all_designer_classes
+
+        return [dc.name for dc in all_designer_classes if dc.installed and not dc.scorer_only ]
+    
+    @staticmethod
+    def list_all_scorers() -> List[str]:
         from REvoDesign.external_designer import all_designer_classes
 
         return [dc.name for dc in all_designer_classes if dc.installed]

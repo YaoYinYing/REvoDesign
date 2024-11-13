@@ -1,6 +1,13 @@
 # pylint: disable=import-outside-toplevel
 import os
+from typing import Union
+import warnings
 
+from REvoDesign import issues
+
+from REvoDesign.common.Mutant import Mutant
+
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 from ...basic import ExternalDesignerAbstract
 from ...bootstrap.set_config import is_package_installed
 from ...tools.pymol_utils import make_temperal_input_pdb
@@ -11,7 +18,11 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
     name: str = 'ProteinMPNN'
     installed: bool = is_package_installed('colabdesign')
 
-    def __init__(self, molecule):
+    # lower score is better.
+    # https://github.com/dauparas/ProteinMPNN/issues/44#issuecomment-1475522598
+    prefer_lower=True
+
+    def __init__(self, molecule, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
         self.pdb_filename = None
         self.mpnn_model: mk_mpnn_model = None  # type: ignore
@@ -61,12 +72,12 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         for k in aa:
             self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5
 
-    def scorer(self, sequence: str) -> float:
+    def scorer(self, mutant: Union[Mutant, RosettaPyProteinSequence ]) -> float:
         """
         Compute the score for a given sequence.
 
         Args:
-        - sequence: Mutant sequence.
+        - mutant: Mutant object.
 
         Returns:
         - float: Score value for the given mutant sequence.
@@ -74,9 +85,16 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         Notes:
         - Computes the score using the MPNN model.
         """
+
+        if isinstance(mutant, Mutant):
+            if len(mutant.wt_protein_sequence.all_chain_ids)>1:
+                warnings.warn(issues.REvoDesignWarning("MPNN only supports single chain sequences"))
+            sequence= mutant.get_mutant_sequence_single_chain(chain_id=mutant.wt_protein_sequence.all_chain_ids[0], ignore_missing=True)
+        else:
+            if len(mutant.all_chain_ids)>1:
+                warnings.warn(issues.REvoDesignWarning("MPNN only supports single chain sequences"))
+            sequence= mutant.get_sequence_by_chain(chain_id=mutant.all_chain_ids[0]).replace('X','')
         # scorer must return a float score value given a mutant sequence.
-        # lower score is better.
-        # https://github.com/dauparas/ProteinMPNN/issues/44#issuecomment-1475522598
         return self.mpnn_model.score(seq=sequence)['score']
 
     def designer(self, *args, **kwargs):

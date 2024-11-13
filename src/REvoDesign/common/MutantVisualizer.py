@@ -301,11 +301,7 @@ class MutantVisualizer:
 
             # external scorer stays highest priority.
             if self.scorer:
-                _sequence = variant_obj.get_mutant_sequence_single_chain(
-                    chain_id=self.chain_id, ignore_missing=True
-                )
-
-                _score = self.scorer.scorer(sequence=_sequence.sequence)
+                _score = self.scorer.scorer(variant_obj)
                 logging.debug(
                     f'Reading profile score for scorcer {type(self.scorer)}: {_score}'
                 )

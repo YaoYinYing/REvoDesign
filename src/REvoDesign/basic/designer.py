@@ -1,4 +1,8 @@
 from abc import abstractmethod
+from typing import Union
+
+from RosettaPy.common.mutation import RosettaPyProteinSequence
+from REvoDesign.common.Mutant import Mutant
 
 from ..citations import CitableModules
 
@@ -17,6 +21,10 @@ class ExternalDesignerAbstract(CitableModules):
     """
     name: str = ''
     installed: bool = False
+    scorer_only: bool = False
+    no_need_to_score_wt:bool = False
+    # whether lower scores are preferred
+    prefer_lower: bool = False
 
     def __init__(self, molecule):
         """
@@ -56,13 +64,13 @@ class ExternalDesignerAbstract(CitableModules):
         """
         raise NotImplementedError("Designer method not implemented")
 
-    def scorer(self, sequence,):
+    def scorer(self, mutant: Union[Mutant, RosettaPyProteinSequence ],  **kwargs):
         """
         Abstract method to evaluate or score a given sequence design.
         Determines the quality or fitness of the designed sequence.
 
         Parameters:
-            sequence: The molecular sequence being evaluated.
+            mutant: The molecular sequence being evaluated.
             *args, **kwargs: Additional parameters for scoring, if required.
         """
         raise NotImplementedError("Scorer method not implemented")

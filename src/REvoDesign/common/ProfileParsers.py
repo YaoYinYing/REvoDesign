@@ -369,7 +369,7 @@ all_parser_classes=(PSSM_Parser, CSVProfileParser, TSVProfileParser,Pythia_ddG_P
 class ProfileManager:
     def __init__(self, profile_type: str):
         self.profile_type = profile_type
-        self.parser: ProfileParserAbstract = None
+        self.parser: ProfileParserAbstract = None # type: ignore
 
     def _initialize_parser(self, kwargs) -> 'ProfileParserAbstract':
 
