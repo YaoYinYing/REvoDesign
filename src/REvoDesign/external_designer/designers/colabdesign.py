@@ -1,13 +1,13 @@
 # pylint: disable=import-outside-toplevel
 import os
-from typing import Union
 import warnings
-
-from REvoDesign import issues
-
-from REvoDesign.common.Mutant import Mutant
+from typing import Union
 
 from RosettaPy.common.mutation import RosettaPyProteinSequence
+
+from REvoDesign import issues
+from REvoDesign.common.Mutant import Mutant
+
 from ...basic import ExternalDesignerAbstract
 from ...bootstrap.set_config import is_package_installed
 from ...tools.pymol_utils import make_temperal_input_pdb

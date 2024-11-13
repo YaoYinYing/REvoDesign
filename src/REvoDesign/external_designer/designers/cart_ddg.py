@@ -1,20 +1,19 @@
 import logging
 import os
-from typing import Dict, Optional, Union
-import warnings
 import shutil
+import warnings
+from typing import Dict, Optional, Union
 
 import docker
 import docker.errors
-
 from Bio.Data import IUPACData
-
-from REvoDesign import ConfigBus, issues
 from RosettaPy.analyser.ddg import RosettaCartesianddGAnalyser
 from RosettaPy.app.cart_ddg import CartesianDDG
+from RosettaPy.common.mutation import RosettaPyProteinSequence, mutants2mutfile
 from RosettaPy.node import Native, NodeHintT, node_picker
 from RosettaPy.node.wsl import which_wsl
-from RosettaPy.common.mutation import RosettaPyProteinSequence, mutants2mutfile
+
+from REvoDesign import ConfigBus, issues
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
@@ -33,7 +32,7 @@ def is_run_node_available() -> bool:
         try:
             wsl_bin = which_wsl()
             return wsl_bin is not None
-        except RuntimeError as e:
+        except RuntimeError:
             warnings.warn(
                 issues.PlatformNotSupportedWarning(
                     f"Invalid Node configuration: {node_hint}"
@@ -178,11 +177,11 @@ year = {2016},
 doi = {10.1021/acs.jctc.6b00819},
     note ={PMID: 27766851},
 
-URL = { 
+URL = {
         https://doi.org/10.1021/acs.jctc.6b00819
 },
-eprint = { 
-    
+eprint = {
+
         https://doi.org/10.1021/acs.jctc.6b00819
 }
 

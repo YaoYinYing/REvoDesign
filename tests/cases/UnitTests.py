@@ -13,49 +13,31 @@ from platformdirs import user_cache_dir, user_data_dir
 from pymol import CmdException, cmd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
-from REvoDesign import (
-    REVODESIGN_CONFIG_FILE,
-    ConfigBus,
-    issues,
-    reload_config_file,
-    save_configuration,
-    set_cache_dir,
-    set_REvoDesign_config_file,
-)
+from REvoDesign import (REVODESIGN_CONFIG_FILE, ConfigBus, issues,
+                        reload_config_file, save_configuration, set_cache_dir,
+                        set_REvoDesign_config_file)
 from REvoDesign.bootstrap.set_config import ConfigConverter
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
-from REvoDesign.sidechain_solver.mutate_runner import (
-    DLPacker_worker,
-    DunbrackRotamerLib,
-    PIPPack_worker,
-)
+from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
+                                                       DunbrackRotamerLib,
+                                                       PIPPack_worker)
 from REvoDesign.structure.PocketSearcher import PocketSearcher
 from REvoDesign.structure.SurfaceFinder import SurfaceFinder
-from REvoDesign.tools.mutant_tools import (
-    expand_range,
-    extract_mutant_from_sequences,
-    extract_mutant_score_from_string,
-    extract_mutants_from_mutant_id,
-    shorter_range,
-)
+from REvoDesign.tools.mutant_tools import (expand_range,
+                                           extract_mutant_from_sequences,
+                                           extract_mutant_score_from_string,
+                                           extract_mutants_from_mutant_id,
+                                           shorter_range)
 from REvoDesign.tools.pymol_utils import (
-    any_posision_has_been_selected,
-    find_all_protein_chain_ids_in_protein,
-    find_design_molecules,
-    find_small_molecules_in_protein,
-    get_molecule_sequence,
-    is_a_REvoDesign_session,
-    is_distal_residue_pair,
-    is_empty_session,
-    is_hidden_object,
-    is_polymer_protein,
-    make_temperal_input_pdb,
-    refresh_all_selections,
-)
+    any_posision_has_been_selected, find_all_protein_chain_ids_in_protein,
+    find_design_molecules, find_small_molecules_in_protein,
+    get_molecule_sequence, is_a_REvoDesign_session, is_distal_residue_pair,
+    is_empty_session, is_hidden_object, is_polymer_protein,
+    make_temperal_input_pdb, refresh_all_selections)
 
 TEST_DATA = os.path.dirname(__file__)
 TEST_DATA_DIR = os.path.join(TEST_DATA, "testdata")

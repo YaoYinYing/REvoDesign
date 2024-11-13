@@ -1,18 +1,15 @@
 import glob
 import os
 import random
-from unittest.mock import patch
 
 import pytest
 from pymol import cmd
 
 import REvoDesign.bootstrap.set_config
-from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
 import REvoDesign.tools
-from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
-    set_widget_value,
-)
+from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
+from REvoDesign.tools.customized_widgets import (get_widget_value,
+                                                 set_widget_value)
 
 from ..data.test_data import KeyDataDuringTests
 

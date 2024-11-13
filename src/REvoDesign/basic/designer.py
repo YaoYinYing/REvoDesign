@@ -2,6 +2,7 @@ from abc import abstractmethod
 from typing import Any, Union
 
 from RosettaPy.common.mutation import RosettaPyProteinSequence
+
 from REvoDesign.common.Mutant import Mutant
 
 from ..citations import CitableModules

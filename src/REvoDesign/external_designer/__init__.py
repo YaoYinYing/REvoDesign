@@ -5,12 +5,11 @@ from types import MappingProxyType
 from typing import List, Mapping, Optional
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.logger import root_logger
-
 from REvoDesign.basic.abc_singleton import SingletonAbstract
+from REvoDesign.logger import root_logger
 from REvoDesign.tools.utils import timing
-from ..basic import ExternalDesignerAbstract
 
+from ..basic import ExternalDesignerAbstract
 from .designers import ColabDesigner_MPNN
 from .designers.cart_ddg import ddg
 

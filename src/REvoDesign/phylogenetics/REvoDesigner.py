@@ -17,17 +17,13 @@ from REvoDesign.common.MutantVisualizer import MutantVisualizer
 from REvoDesign.external_designer import Magician, implemented_designers
 from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
-from REvoDesign.tools.mutant_tools import (
-    expand_range,
-    extract_mutant_from_sequences,
-    read_customized_indice,
-    read_profile_design_mutations,
-    shorter_range,
-)
+from REvoDesign.tools.mutant_tools import (expand_range,
+                                           extract_mutant_from_sequences,
+                                           read_customized_indice,
+                                           read_profile_design_mutations,
+                                           shorter_range)
 from REvoDesign.tools.pymol_utils import (
-    find_all_protein_chain_ids_in_protein,
-    get_molecule_sequence,
-)
+    find_all_protein_chain_ids_in_protein, get_molecule_sequence)
 from REvoDesign.tools.utils import random_deduplicate
 
 matplotlib.use("Agg")

@@ -19,16 +19,12 @@ from pytestqt import qtbot
 from REvoDesign import ConfigBus, REvoDesignPlugin
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.citations import CitationManager
-from REvoDesign.clients.QtSocketConnector import (
-    REvoDesignWebSocketClient,
-    REvoDesignWebSocketServer,
-)
+from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
+                                                  REvoDesignWebSocketServer)
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
-    set_widget_value,
-)
+from REvoDesign.tools.customized_widgets import (get_widget_value,
+                                                 set_widget_value)
 
 from .data import TestData
 

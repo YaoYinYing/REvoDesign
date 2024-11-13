@@ -1,7 +1,6 @@
 import gc
 import os
 import tempfile
-from typing import Optional
 import warnings
 
 import matplotlib
@@ -13,13 +12,11 @@ from REvoDesign import issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.ProfileParsers import ProfileManager
-from REvoDesign.sidechain_solver import MutateRunnerAbstract
-from REvoDesign.tools.mutant_tools import (
-    extract_mutant_from_sequences,
-    extract_mutants_from_mutant_id,
-)
-from REvoDesign.tools.utils import get_color, run_command
 from REvoDesign.external_designer import Magician, implemented_designers
+from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
+                                           extract_mutants_from_mutant_id)
+from REvoDesign.tools.utils import get_color, run_command
 
 matplotlib.use("Agg")
 logging = root_logger.getChild(__name__)

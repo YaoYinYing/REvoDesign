@@ -1,7 +1,5 @@
-from REvoDesign.tools.customized_widgets import (
-    get_widget_value,
-    set_widget_value,
-)
+from REvoDesign.tools.customized_widgets import (get_widget_value,
+                                                 set_widget_value)
 
 
 def test_set_and_get_widget_value(
