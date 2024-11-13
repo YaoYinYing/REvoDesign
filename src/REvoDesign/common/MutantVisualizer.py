@@ -1,6 +1,7 @@
 import gc
 import os
 import tempfile
+from typing import Optional
 import warnings
 
 import matplotlib
@@ -16,6 +17,7 @@ from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
                                            extract_mutants_from_mutant_id)
 from REvoDesign.tools.utils import get_color, run_command
+from REvoDesign.external_designer import Magician, implemented_designers
 
 matplotlib.use('Agg')
 logging = root_logger.getChild(__name__)
@@ -51,6 +53,8 @@ class MutantVisualizer:
         self.mutant_tree: MutantTree = MutantTree({})
 
         self.consider_global_score_from_profile = False
+
+        self.magician=Magician()
 
     def process_mutant(self, mutant_obj: Mutant):
         """
@@ -170,7 +174,7 @@ class MutantVisualizer:
 
         return temp_mutant_path
 
-    def parse_profile(self, profile_fp, profile_format):
+    def parse_profile(self, profile_fp, profile_format) -> pd.DataFrame:
         """
         Parse the profile data based on the specified format and return the processed DataFrame.
 
@@ -188,22 +192,7 @@ class MutantVisualizer:
         - Logs debug information during the processing for easier debugging.
         - Returns the processed DataFrame or None based on the profile format.
         """
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
 
-        # select the designer
-        if profile_format in EXTERNAL_DESIGNERS.keys():
-            logging.debug(
-                f'Will use {profile_format} as sequence scoring method.'
-            )
-            magician = EXTERNAL_DESIGNERS[profile_format]
-
-            self.scorer = magician(molecule=self.molecule)
-            self.scorer.initialize(ignore_missing=bool('X' in self.sequence))
-            if not self.scorer:
-                raise issues.DependencyError(
-                    f'Failed to initialize designer from `{profile_format}`: {self.scorer.__class__.__name__}'
-                )
-            return
 
         args = {
             "profile_input": profile_fp,

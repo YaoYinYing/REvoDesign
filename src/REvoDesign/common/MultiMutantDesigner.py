@@ -18,7 +18,7 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign import ConfigBus, issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.external_designer import EXTERNAL_DESIGNERS,Magician
+from REvoDesign.external_designer import Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
 from REvoDesign.tools.utils import cmap_reverser, get_color

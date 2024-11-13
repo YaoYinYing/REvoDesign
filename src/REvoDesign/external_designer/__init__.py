@@ -17,7 +17,7 @@ from .designers.cart_ddg import ddg
 logging = root_logger.getChild(__name__)
 
 all_designer_classes: List[type[ExternalDesignerAbstract]]=[ColabDesigner_MPNN, ddg]
-implemented_designer: Mapping[str, type[ExternalDesignerAbstract]] = MappingProxyType(
+implemented_designers: Mapping[str, type[ExternalDesignerAbstract]] = MappingProxyType(
     {
         c.name: c
         for c in all_designer_classes
@@ -25,9 +25,6 @@ implemented_designer: Mapping[str, type[ExternalDesignerAbstract]] = MappingProx
 )
 
 
-
-# TODO: deprecation
-EXTERNAL_DESIGNERS = {'ProteinMPNN': ColabDesigner_MPNN}
 
 __all__ = ['ExternalDesignerAbstract', 'ColabDesigner_MPNN']
 
@@ -41,7 +38,7 @@ class MagicianManager:
     )
 
     def get(self, name, **kwargs):
-        designer_class=implemented_designer[name]
+        designer_class=implemented_designers[name]
         return designer_class(**kwargs)
     
 
@@ -55,16 +52,18 @@ class Magician(SingletonAbstract):
 
             self.initialized=True
 
-    def setup(self,name_badget_id:Optional[str]='', name_cfg_term:Optional[str]='',**kwargs) -> 'Magician':
+    def setup(self,name_badget_id:Optional[str]='', name_cfg_term:Optional[str]='',magician_name:Optional[str]='',**kwargs) -> 'Magician':
         if name_badget_id:
             name: str=str(self.bus.get_widget_value(name_badget_id))
         elif name_cfg_term:
             name: str=str(self.bus.get_value(name_cfg_term))
+        elif magician_name:
+            name=magician_name
         else:
-            raise issues.InvalidInputError('At lease one of name_badget_id or name_cfg_term should be provided.')
+            raise issues.InvalidInputError('At lease one of name_badget_id/name_cfg_term/magician_name should be provided.')
 
         # if the name is empty and the magician is initialized, cool it down
-        if name is None or name =='' or name not in implemented_designer:
+        if name is None or name =='' or name not in implemented_designers:
             if self.magician is not None:
                 logging.info(
                 f'Cooling down {self.magician.name} ...'
@@ -78,9 +77,7 @@ class Magician(SingletonAbstract):
             with timing(f'Pre-heating up Magician {name}'):
                 try:
                     # if not ready, initialize it and return
-                    logging.info(
-                        'This could take a while ...'
-                    )
+                    logging.info('This could take a while ...')
                     self.magician = self.magician_manager.get(name=name,**kwargs)
                     self.magician.initialize(**kwargs)
                     return self

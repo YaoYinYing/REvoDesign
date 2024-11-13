@@ -60,13 +60,14 @@ def is_docker_available() -> bool:
 class ddg(ExternalDesignerAbstract):
 
     name= 'Cartesian-ddG'
-    installed=is_run_node_available()
+    installed=True
 
     scorer_only =True
     no_need_to_score_wt=True
     prefer_lower=True
 
     def __init__(self, molecule: str, **kwargs):
+        self.installed=is_run_node_available()
         self.pdb_filename = None
         self.initialized = False
         self.molecule = molecule

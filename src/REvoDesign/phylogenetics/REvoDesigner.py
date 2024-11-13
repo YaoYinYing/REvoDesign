@@ -14,7 +14,7 @@ from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+from REvoDesign.external_designer import Magician, implemented_designers
 from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (expand_range,
@@ -295,13 +295,8 @@ class REvoDesigner:
         - Initializes the external designer with specified parameters.
         - Handles different types of external designers.
         """
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+        
 
-        if self.input_profile_format not in EXTERNAL_DESIGNERS:
-            logging.error(
-                f'External design {self.input_profile_format} is not registed in `ExternalDesigners.py`'
-            )
-            return
 
         # expand design residue index
         expanded_custom_indices = expand_range(
@@ -326,43 +321,27 @@ class REvoDesigner:
             logging.error('Missing input for external designer')
             return
 
-        magician = EXTERNAL_DESIGNERS[self.input_profile_format]
-
-        # setup MPNN designer
-
-        if (
-            not self.external_designer  # non-designer is set
-            or magician.__name__
-            != self.external_designer.__class__.__name__  # designer is switched to another
-        ):
-            # Magician ProteinMPNN
-            if self.input_profile_format == 'ProteinMPNN':
-                self.external_designer = magician(
-                    molecule=self.molecule,
-                )
-                self.external_designer.initialize(
-                    fix_pos=','.join(
+        self.magician= Magician().setup(
+            magician_name=self.input_profile_format,
+            fix_pos=','.join(
                         [
                             f"{self.chain_id}{indice}"
-                            for indice in shorter_range(
-                                expanded_custom_indices, connector='-'
-                            ).split('+')
-                        ]
-                        if expanded_custom_indices
-                        else None
-                    ),
-                    inverse=True,
-                    rm_aa=','.join(list(self.reject_aa))
-                    if self.reject_aa
-                    else None,
-                    chain=','.join(self.design_chain_id),
-                    homooligomeric=self.homooligomeric,
-                    ignore_missing=bool('X' in self.sequence),
-                )
+                    for indice in shorter_range(
+                        expanded_custom_indices, connector='-'
+                    ).split('+')
+                ]
+                if expanded_custom_indices
+                else None
+            ),
+            inverse=True,
+            rm_aa=','.join(list(self.reject_aa))
+            if self.reject_aa
+            else None,
+            chain=','.join(self.design_chain_id),
+            homooligomeric=self.homooligomeric,
+            ignore_missing=bool('X' in self.sequence)
+            )
 
-            # register more Magician at here.
-            # elif .....
-            return
 
     def design_protein_using_external_designer(self, custom_indices_fp):
         """
@@ -581,7 +560,7 @@ class REvoDesigner:
 
         if (
             self.external_designer
-            or self.input_profile_format in EXTERNAL_DESIGNERS
+            or self.input_profile_format in implemented_designers
         ):
             score_list = [
                 mut_obj.mutant_score

@@ -20,7 +20,7 @@ from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.external_designer import Magician
+from REvoDesign.external_designer import Magician,implemented_designers
 from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
@@ -181,9 +181,11 @@ class MutateWorker:
             self.design.cmap = cmap
             self.design.create_full_pdb = False
 
-            from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+            
 
-            if design_profile_format in EXTERNAL_DESIGNERS.keys():
+
+
+            if design_profile_format in implemented_designers:
                 run_worker_thread_with_progress(
                     worker_function=self.design.design_protein_using_external_designer,
                     custom_indices_fp=custom_indices_fp,
@@ -1201,7 +1203,7 @@ class GREMLIN_Analyser:
             else:
                 wt_score = run_worker_thread_with_progress(
                     worker_function=self.magician.magician.scorer,
-                    mutant=self.designable_sequences
+                    mutant=self.designable_sequences,
                     progress_bar=self.bus.ui.progressBar,
                 )
             mut_score = run_worker_thread_with_progress(
