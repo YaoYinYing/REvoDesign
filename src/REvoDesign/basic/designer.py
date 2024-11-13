@@ -82,6 +82,7 @@ class ExternalDesignerAbstract(CitableModules):
 
     def preffer_substitutions(self, aa: Any): ...
 
+    
     def parallel_scorer(self, mutants:List[Mutant], nproc:int=2, **kwargs)-> List[Mutant]:
         """
         Parallelize the scoring of a list of mutants.

@@ -2,15 +2,14 @@ import logging
 import os
 import shutil
 import warnings
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import docker
 import docker.errors
 from Bio.Data import IUPACData
-from RosettaPy.analyser.ddg import RosettaCartesianddGAnalyser
 from RosettaPy.app.cart_ddg import CartesianDDG
 from RosettaPy.common.mutation import RosettaPyProteinSequence, mutants2mutfile
-from RosettaPy.node import Native, NodeHintT, node_picker
+from RosettaPy.node import NodeHintT, node_picker
 from RosettaPy.node.wsl import which_wsl
 
 from REvoDesign import ConfigBus, issues
@@ -80,28 +79,27 @@ class ddg(ExternalDesignerAbstract):
         self.molecule = molecule
         self.reload = False
 
-        
-
         self.unrelaxed_pdb: Optional[str] = None
         self.relaxed_pdb: Optional[str] = None
 
-        self.bus: ConfigBus = ConfigBus()
+        # Qt is unpickable
+        bus: ConfigBus = ConfigBus()
 
-        self.nproc: int=int(self.bus.get_value('ui.header_panel.nproc'))
-        self.node_hint: Optional[NodeHintT] = self.bus.get_value("rosetta.node_hint", default_value='native')  # type: ignore
+        self.nproc: int=int(bus.get_value('ui.header_panel.nproc'))
+        self.node_hint: Optional[NodeHintT] = bus.get_value("rosetta.node_hint", default_value='native')  # type: ignore
 
-        self.relax_nstruct:int=self.bus.get_value("rosetta.cart_ddg.relax.nstruct")  # type: ignore
+        self.relax_nstruct:int=bus.get_value("rosetta.cart_ddg.relax.nstruct")  # type: ignore
         self.use_legacy: bool = bool(
-            self.bus.get_value(
+            bus.get_value(
                 "rosetta.cart_ddg.use_legacy", default_value=False
             )
         )
         self.ddg_iterations: int = int(
-            self.bus.get_value(
+            bus.get_value(
                 "rosetta.cart_ddg.iterations", default_value=3
             )
         )
-        self.node_config: Optional[Dict[str, Any]] = self.bus.get_value("rosetta.node_config")
+        self.node_config: Optional[Dict[str, Any]] = bus.get_value("rosetta.node_config")
         if self.node_config is None:
             self.node_config = {}
 
@@ -116,7 +114,7 @@ class ddg(ExternalDesignerAbstract):
             self.unrelaxed_pdb
         ):
             self.unrelaxed_pdb = make_temperal_input_pdb(
-                molecule=self.molecule, reload=False
+                molecule=self.molecule, reload=False, selection='not hetatm'
             )
 
         self.ddg_runner = CartesianDDG(
@@ -137,41 +135,53 @@ class ddg(ExternalDesignerAbstract):
         self.relaxed_pdb = self.ddg_runner.relax(nstruct_relax=self.relax_nstruct)
 
         self.initialized = True
-        self.cite()
+        
 
-    def scorer(
-        self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
-    ) -> float:
-        if isinstance(mutant, Mutant):
-            mutfile_path=os.path.join(
-                    "cart_ddg_results",
-                    "mutfiles",
-                    f"{mutant.raw_mutant_id}.mutfile",
-                )
-            mutants2mutfile(
-                [mutant],
-                file_path=mutfile_path
-            )
-        else:
-            raise NotImplementedError
+    def parallel_scorer(self, mutants:List[Mutant], nproc = 2, **kwargs) -> List[Mutant]:
 
+        mutfile_paths=[os.path.join(
+                "cart_ddg_results",
+                "mutfiles",
+                f"{mutant.raw_mutant_id}.mutfile",
+            ) for mutant in mutants]
+        
+
+        non_xtal_mutants=[mutant.non_xtal for mutant in mutants]
         ddg_value_df = self.ddg_runner.cartesian_ddg(
             input_pdb=self.relaxed_pdb,
-            mutfiles=[mutfile_path],
-            mutants=[mutant],
+            mutfiles=mutfile_paths,
+            mutants=non_xtal_mutants,
             use_legacy=self.use_legacy,
             ddg_iteration=self.ddg_iterations,
         )
 
-        # TODO: jump positions for rosetta
-        ddg_mut_id = "MUT_" + "_".join(
-            f"{m.position}{IUPACData.protein_letters_1to3[m.mut_res]}"
-            for m in mutant.mutations
-        )
-        score = ddg_value_df[ddg_value_df["Baseline"] == ddg_mut_id][
-            "ddG_cart"
-        ].values[0]
-        return float(score)
+        for nx_m,m in zip(non_xtal_mutants,mutants):
+            # TODO: jump positions for rosetta
+            ddg_mut_id = "MUT_" + "_".join(
+                f"{_m.position}{IUPACData.protein_letters_1to3[_m.mut_res]}"
+                for _m in nx_m.mutations
+            )
+            score = ddg_value_df[ddg_value_df["Baseline"] == ddg_mut_id][
+                "ddG_cart"
+            ].values[0]
+
+            m.mutant_score=score
+            m.wt_score=0
+
+        self.cite()
+
+        return mutants
+
+    def scorer(
+        self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
+    ) -> float:
+        if isinstance(mutant, RosettaPyProteinSequence):
+            raise NotImplementedError
+        
+        
+        updated_mutant=self.parallel_scorer(mutants=[mutant],nproc=1)
+        
+        return float(updated_mutant[0].mutant_score)
 
     __bibtex__ = {
         "Cartesian-ddG": """@article{doi:10.1021/acs.jctc.6b00819,
@@ -184,15 +194,8 @@ pages = {6201-6212},
 year = {2016},
 doi = {10.1021/acs.jctc.6b00819},
     note ={PMID: 27766851},
-
-URL = {
-        https://doi.org/10.1021/acs.jctc.6b00819
-},
-eprint = {
-
-        https://doi.org/10.1021/acs.jctc.6b00819
-}
-
+URL = {https://doi.org/10.1021/acs.jctc.6b00819},
+eprint = {https://doi.org/10.1021/acs.jctc.6b00819}
 }
 """
     }
