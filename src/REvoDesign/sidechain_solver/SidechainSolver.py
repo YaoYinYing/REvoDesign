@@ -1,4 +1,3 @@
-import warnings
 from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
 from typing import List, Mapping, Optional
@@ -49,25 +48,11 @@ class MutateRunnerManager:
                                  for c in all_runner_c if c.installed]
     )
 
-    def installed(self, sidechain_solver_name: str) -> bool:
-        if not (
-            sidechain_solver_name in self.installed_worker
-        ):
-            raise issues.DependencyError(
-                f'{sidechain_solver_name} is not available in your installation. Aborted..'
-            )
-        return True
-
     def get(
         self, sidechain_solver_name: str, **kwargs
     ) -> MutateRunnerAbstract:
-        if self.installed(sidechain_solver_name):
-            runner_class = implemented_runner[sidechain_solver_name]
-            return runner_class(**kwargs)
-        raise issues.DependencyError(
-            f'{sidechain_solver_name} is not available in your installation. Aborted..'
-        )
-
+        runner_class = implemented_runner[sidechain_solver_name]
+        return runner_class(**kwargs)
 
 @dataclass(frozen=True)
 class SidechainSolverConfig:
@@ -118,23 +103,8 @@ class SidechainSolver(SingletonAbstract):
                     molecule=self.cfg.molecule,
                 )
                 return self
-            except issues.DependencyError:
-                self.fallback().setup()
-                return self
-
-    def fallback(self) -> 'SidechainSolver':
-        warnings.warn(
-            issues.FallingBackWarning(
-                f'{self.cfg.sidechain_solver_name=} can not be accessed, fallback to `Dunbrack Rotamer Library`'
-            )
-        )
-        self.bus.set_widget_value(
-            'ui.config.sidechain_solver.default',
-            'Dunbrack Rotamer Library',
-            hard=True,
-        )
-        self.cfg = self.get_config()
-        return self
+            except Exception as e:
+                raise issues.DependencyError(f'Error occurs while trying to get a mutate runner: {e}') from e
 
     def get_config(self) -> SidechainSolverConfig:
         cfg = SidechainSolverConfig(

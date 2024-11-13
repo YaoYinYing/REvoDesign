@@ -138,26 +138,8 @@ ui:
 
   config: 
     sidechain_solver:
-      group:
-        - Dunbrack Rotamer Library
-        - DLPacker
-        - PIPPack
-      default: DLPacker
-
       model: ''
       repack_radius: 0.0
-
-
-profile:
-  group:
-    - PSSM
-    - CSV
-    - TSV
-    - Pythia-ddG
-designer:
-  group:
-    - ''
-    - ProteinMPNN
 
 
 log:

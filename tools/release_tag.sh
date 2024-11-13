@@ -41,7 +41,7 @@ echo '## Change log:' >> changelog_tag.md
 echo >> changelog_tag.md
 $SED -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
 
-cat changelog_tag.md
+cat changelog_tag.md src/REvoDesign/__init__.py
 
 echo  collect version files and creating new commit...
 git add ./CHANGELOG.md

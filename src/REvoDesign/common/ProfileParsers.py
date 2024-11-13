@@ -9,39 +9,7 @@ from REvoDesign import issues, root_logger
 logging = root_logger.getChild(__name__)
 
 
-class ProfileManager:
-    def __init__(self, profile_type: str):
-        self.profile_type = profile_type
-        self.parser: ProfileParserAbstract = None
 
-    def _initialize_parser(self, kwargs) -> 'ProfileParserAbstract':
-        if self.profile_type == 'Pythia-ddG':
-            return Pythia_ddG_Parser(**kwargs)
-
-        if self.profile_type == 'PSSM':
-            return PSSM_Parser(**kwargs)
-
-        elif self.profile_type == 'CSV':
-            return CSVProfileParser(**kwargs)
-        elif self.profile_type == 'TSV':
-            return TSVProfileParser(**kwargs)
-
-        else:
-            raise issues.InvalidInputError(
-                f'Unknown profile format {self.profile_type}: {kwargs=}'
-            )
-
-    def parse(self, kwargs):
-        if not (parser := self._initialize_parser(kwargs)):
-            raise issues.ConfigureError(
-                f'Failed to parse profile in {self.profile_type} with config ({kwargs=})'
-            )
-
-        self.parser = parser
-        self.parser.parse()
-
-
-@dataclass
 class ProfileParserAbstract(ABC):
     """
     `ProfileParserAbstract` is an abstract base class designed to parse profile data associated with
@@ -64,13 +32,20 @@ class ProfileParserAbstract(ABC):
     - `profile_input_bn`: str, returns the basename of `profile_input` if it exists as a file.
     - `is_valid_profile`: bool, checks if the `profile_input` file exists.
     """
+    name: str
 
-    profile_input: str
-    molecule: str
-    chain_id: str
-    sequence: str
+    def __init__(self,profile_input: str,
+        molecule: str,
+        chain_id: str,
+        sequence: str,):
 
-    df: pd.DataFrame = None
+        self.profile_input=profile_input
+        self.molecule=molecule
+        self.chain_id=chain_id
+        self.sequence=sequence
+
+        # internal variables
+        self.df: pd.DataFrame = None # type: ignore
 
     @abstractmethod
     def parse(self) -> pd.DataFrame:
@@ -144,6 +119,7 @@ class ProfileParserAbstract(ABC):
 
 
 class PSSM_Parser(ProfileParserAbstract):
+    name='PSSM'
     @staticmethod
     def convert_PSSM_file_to_df(input_pssm_file):
         """
@@ -213,6 +189,7 @@ class PSSM_Parser(ProfileParserAbstract):
 
 
 class CSVProfileParser(ProfileParserAbstract):
+    name='CSV'
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
             raise issues.NoResultsError(
@@ -298,6 +275,7 @@ class CSVProfileParser(ProfileParserAbstract):
 
 # TODO this may not work
 class TSVProfileParser(ProfileParserAbstract):
+    name='TSV'
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
             raise issues.NoResultsError(
@@ -318,6 +296,7 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
     - `_run_cloud`: Internal method to initiate Pythia calculations in case the output is not found locally.
     Sets up the working directory and handles the execution and citation of Pythia.
     """
+    name='Pythia-ddG'
 
     def parse(self) -> pd.DataFrame:
         """
@@ -382,3 +361,33 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
 
         logging.debug(f'The result file is stored at: {self.profile_input}')
         ddg_runner.cite()
+
+
+
+all_parser_classes=(PSSM_Parser, CSVProfileParser, TSVProfileParser,Pythia_ddG_Parser,)
+
+class ProfileManager:
+    def __init__(self, profile_type: str):
+        self.profile_type = profile_type
+        self.parser: ProfileParserAbstract = None
+
+    def _initialize_parser(self, kwargs) -> 'ProfileParserAbstract':
+
+        try:
+            parser_class=[parser for parser in all_parser_classes if parser.name==self.profile_type][0]
+            return parser_class(**kwargs)
+
+        except IndexError:
+            raise issues.InvalidInputError(
+                f'Unknown profile format {self.profile_type}: {kwargs=}'
+            )
+
+    def parse(self, kwargs):
+        if not (parser := self._initialize_parser(kwargs)):
+            raise issues.ConfigureError(
+                f'Failed to parse profile in {self.profile_type} with config ({kwargs=})'
+            )
+
+        self.parser = parser
+        self.parser.parse()
+

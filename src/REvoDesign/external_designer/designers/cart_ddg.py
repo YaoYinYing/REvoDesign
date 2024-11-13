@@ -9,6 +9,9 @@ from .. import ExternalDesignerAbstract
 
 class ddg(ExternalDesignerAbstract):
 
+    name= 'Cartesian-ddG'
+    installed=True
+
     def __init__(self, molecule: str, node_hint: NodeHintT = 'native', **kwargs):
 
         self.pdb_filename = None

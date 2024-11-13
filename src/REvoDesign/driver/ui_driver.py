@@ -2,10 +2,14 @@ import warnings
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, Dict, List, Tuple, Union
+import os
 
+from Bio.Align import substitution_matrices
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
-from pymol.Qt import QtWidgets
+from pymol.Qt import QtWidgets,QtGui # type: ignore
+
+import matplotlib
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModules
@@ -80,15 +84,18 @@ class ConfigBus(SingletonAbstract, CitableModules):
             if isinstance(widget, str):
                 raise TypeError('widget cannot be string')
 
+            # digest the string to values
             for j, group_cfg in enumerate(group_cfgs):
                 if callable(group_cfg):
                     values = group_cfg()
+                elif isinstance(group_cfg,(list, tuple)):
+                    values =group_cfg
                 else:
                     values = self.get_value(group_cfg)
                 if not values:
                     continue
 
-                if isinstance(values, list):
+                if isinstance(values, (list, tuple)):
                     group_values.extend(values)
                 elif isinstance(values, dict):
                     if not group_values:
@@ -552,20 +559,18 @@ class Widget2ConfigMapper:
             str, tuple[Union[str, Any]]
         ] = immutabledict(
             {
-                'comboBox_cmap': (CallableGroupValues.color_map,),
-                'comboBox_cluster_matrix': (CallableGroupValues.score_matrix,),
-                'comboBox_sidechain_solver': (
-                    'ui.config.sidechain_solver.group',
-                ),
+                'comboBox_cmap': (CallableGroupValues.list_color_map,),
+                'comboBox_cluster_matrix': (CallableGroupValues.list_score_matrix,),
+                'comboBox_sidechain_solver': (CallableGroupValues.list_installed_mutate_runners,),
                 'comboBox_profile_type': (
-                    'profile.group',
-                    'designer.group',
+                    CallableGroupValues.list_all_profile_parsers,
+                    CallableGroupValues.list_all_designers,
                 ),
                 'comboBox_profile_type_2': (
-                    'profile.group',
-                    'designer.group',
+                    CallableGroupValues.list_all_profile_parsers,
+                    CallableGroupValues.list_all_designers,
                 ),
-                'comboBox_external_scorer': ('designer.group',),
+                'comboBox_external_scorer': (CallableGroupValues.list_all_designers,),
             }
         )
 
@@ -685,11 +690,7 @@ class CallableGroupValues:
     """
 
     @staticmethod
-    def score_matrix() -> list:
-        import os
-
-        from Bio.Align import substitution_matrices
-
+    def list_score_matrix() -> List:
         score_matrix = [
             mtx
             for mtx in os.listdir(
@@ -699,13 +700,27 @@ class CallableGroupValues:
         return score_matrix
 
     @staticmethod
-    def color_map() -> dict:
-        # color map
-        import matplotlib
-        from pymol.Qt import QtGui  # type: ignore
-
+    def list_color_map() -> Dict:
         cmap_group = {
             _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
             for _cmap in matplotlib.colormaps()
         }
         return cmap_group
+    
+    @staticmethod
+    def list_installed_mutate_runners() -> List[str]:
+        from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
+
+        return [c.name for c in all_runner_c if c.installed]
+    
+    @staticmethod
+    def list_all_profile_parsers() -> List[str]:
+        from REvoDesign.common.ProfileParsers import all_parser_classes
+
+        return [p.name for p in all_parser_classes]
+    
+    @staticmethod
+    def list_all_designers() -> List[str]:
+        from REvoDesign.external_designer import all_designer_classes
+
+        return [dc.name for dc in all_designer_classes if dc.installed]
