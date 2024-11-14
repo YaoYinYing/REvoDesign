@@ -81,7 +81,7 @@ jobs:
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           source activate REvoDesign
-          make install-no-dept
+          make install
       - 
         name: Set ownership
         run: |

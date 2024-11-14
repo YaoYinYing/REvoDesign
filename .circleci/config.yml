@@ -37,7 +37,6 @@ jobs:
           command: |
             source activate REvoDesign
             make all-test
-            make pymol-test
 
       - run:
           name: Generate Coverage Report
