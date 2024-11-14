@@ -17,11 +17,11 @@ hydra.initialize_config_dir(
 EXPERIMENTS_CONFIG_DIR = experiment_config()
 
 __all__ = [
-    'experiment_config',
-    'set_REvoDesign_config_file',
-    'reload_config_file',
-    'set_cache_dir',
-    'save_configuration',
-    'REVODESIGN_CONFIG_FILE',
-    'EXPERIMENTS_CONFIG_DIR'
+    "experiment_config",
+    "set_REvoDesign_config_file",
+    "reload_config_file",
+    "set_cache_dir",
+    "save_configuration",
+    "REVODESIGN_CONFIG_FILE",
+    "EXPERIMENTS_CONFIG_DIR",
 ]

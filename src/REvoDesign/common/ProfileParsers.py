@@ -1,6 +1,5 @@
 import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 import pandas as pd
 
@@ -9,39 +8,6 @@ from REvoDesign import issues, root_logger
 logging = root_logger.getChild(__name__)
 
 
-class ProfileManager:
-    def __init__(self, profile_type: str):
-        self.profile_type = profile_type
-        self.parser: ProfileParserAbstract = None
-
-    def _initialize_parser(self, kwargs) -> 'ProfileParserAbstract':
-        if self.profile_type == 'Pythia-ddG':
-            return Pythia_ddG_Parser(**kwargs)
-
-        if self.profile_type == 'PSSM':
-            return PSSM_Parser(**kwargs)
-
-        elif self.profile_type == 'CSV':
-            return CSVProfileParser(**kwargs)
-        elif self.profile_type == 'TSV':
-            return TSVProfileParser(**kwargs)
-
-        else:
-            raise issues.InvalidInputError(
-                f'Unknown profile format {self.profile_type}: {kwargs=}'
-            )
-
-    def parse(self, kwargs):
-        if not (parser := self._initialize_parser(kwargs)):
-            raise issues.ConfigureError(
-                f'Failed to parse profile in {self.profile_type} with config ({kwargs=})'
-            )
-
-        self.parser = parser
-        self.parser.parse()
-
-
-@dataclass
 class ProfileParserAbstract(ABC):
     """
     `ProfileParserAbstract` is an abstract base class designed to parse profile data associated with
@@ -65,12 +31,23 @@ class ProfileParserAbstract(ABC):
     - `is_valid_profile`: bool, checks if the `profile_input` file exists.
     """
 
-    profile_input: str
-    molecule: str
-    chain_id: str
-    sequence: str
+    name: str
 
-    df: pd.DataFrame = None
+    def __init__(
+        self,
+        profile_input: str,
+        molecule: str,
+        chain_id: str,
+        sequence: str,
+    ):
+
+        self.profile_input = profile_input
+        self.molecule = molecule
+        self.chain_id = chain_id
+        self.sequence = sequence
+
+        # internal variables
+        self.df: pd.DataFrame = None  # type: ignore
 
     @abstractmethod
     def parse(self) -> pd.DataFrame:
@@ -94,7 +71,7 @@ class ProfileParserAbstract(ABC):
         - UnexpectedWorkflowError: If the DataFrame is not properly initialized or empty.
         """
         if not isinstance(self.df, pd.DataFrame) or self.df.empty:
-            raise issues.UnexpectedWorkflowError('dataframe is not parsed!')
+            raise issues.UnexpectedWorkflowError("dataframe is not parsed!")
         return max(abs(self.df.min().min()), abs(self.df.max().max()))
 
     @property
@@ -130,7 +107,7 @@ class ProfileParserAbstract(ABC):
         """
         if self.profile_input and os.path.exists(self.profile_input):
             return os.path.basename(self.profile_input)
-        raise issues.InvalidInputError(f'Not a file: {self.profile_input=}')
+        raise issues.InvalidInputError(f"Not a file: {self.profile_input=}")
 
     @property
     def is_valid_profile(self) -> bool:
@@ -144,6 +121,8 @@ class ProfileParserAbstract(ABC):
 
 
 class PSSM_Parser(ProfileParserAbstract):
+    name = "PSSM"
+
     @staticmethod
     def convert_PSSM_file_to_df(input_pssm_file):
         """
@@ -160,7 +139,7 @@ class PSSM_Parser(ProfileParserAbstract):
         - Reads the PSSM file, parses the table header, defines column specifications, and reads the table data.
         - Transposes the DataFrame and drops NaN values to clean the data before returning.
         """
-        PSSM_Alphabet = 'ARNDCQEGHILKMFPSTWYV'
+        PSSM_Alphabet = "ARNDCQEGHILKMFPSTWYV"
         # Fetch table header of PSSM
         c = 0
         for line in open(input_pssm_file):
@@ -193,35 +172,37 @@ class PSSM_Parser(ProfileParserAbstract):
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
             raise issues.NoResultsError(
-                f'Profile {self.profile_input} does not exist.'
+                f"Profile {self.profile_input} does not exist."
             )
 
         df_pssm_raw = self.convert_PSSM_file_to_df(
             input_pssm_file=self.profile_input
         )
         csv_fp = os.path.join(
-            os.path.dirname(self.profile_input), f'{self.profile_input_bn}.csv'
+            os.path.dirname(self.profile_input), f"{self.profile_input_bn}.csv"
         )
         df_pssm_raw.to_csv(csv_fp)
-        logging.info(f'Saving CSV at {csv_fp=}')
+        logging.info(f"Saving CSV at {csv_fp=}")
         self.df = pd.read_csv(csv_fp, index_col=0)
         logging.debug(
-            f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
+            f"Profile data: min {self.min_score_profile} max {self.max_score_profile}"
         )
 
         return self.df
 
 
 class CSVProfileParser(ProfileParserAbstract):
+    name = "CSV"
+
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
             raise issues.NoResultsError(
-                f'Profile {self.profile_input} does not exist.'
+                f"Profile {self.profile_input} does not exist."
             )
 
         self.df = self._parse()
         logging.debug(
-            f'Profile data: min {self.min_score_profile} max {self.max_score_profile}'
+            f"Profile data: min {self.min_score_profile} max {self.max_score_profile}"
         )
         return self.df
 
@@ -232,25 +213,25 @@ class CSVProfileParser(ProfileParserAbstract):
         # try to transpose if the shape is 20 col x N row
         if len(df.columns) == 20:
             df = df.T
-            logging.debug('Profile data is transposed.')
+            logging.debug("Profile data is transposed.")
 
             column_rename_mapping = {pos: str(pos) for pos in df.columns}
-            logging.debug(f'Rename column : {column_rename_mapping}')
+            logging.debug(f"Rename column : {column_rename_mapping}")
             df.rename(columns=column_rename_mapping, inplace=True)
 
         if str(df.columns[0]) != "0":
-            logging.debug('Profile data does not matche default format.')
+            logging.debug("Profile data does not matche default format.")
             # Calculate the number of columns (N) in the DataFrame
             len(df.columns)
 
-            logging.debug(f'Column : {df.columns}')
+            logging.debug(f"Column : {df.columns}")
 
             # Create a dictionary to map old column names to new column names
             column_rename_mapping = {
                 str(int(i)): str(int(i) - 1) for i in df.columns
             }
 
-            logging.debug(f'Rename column : {column_rename_mapping}')
+            logging.debug(f"Rename column : {column_rename_mapping}")
 
             # Rename the columns using the mapping
             df.rename(columns=column_rename_mapping, inplace=True)
@@ -258,13 +239,13 @@ class CSVProfileParser(ProfileParserAbstract):
         logging.debug(df.columns)
 
         if (
-            len(df.columns) == len(self.sequence.replace('X', ''))
-            and 'X' in self.sequence
+            len(df.columns) == len(self.sequence.replace("X", ""))
+            and "X" in self.sequence
         ):
-            logging.warning('Missing residues from structure.')
+            logging.warning("Missing residues from structure.")
 
             non_missing_resi = [
-                i for i, j in enumerate(self.sequence) if j != 'X'
+                i for i, j in enumerate(self.sequence) if j != "X"
             ]
             # Create a dictionary to map old column names to new column names
             column_rename_mapping = {
@@ -273,37 +254,39 @@ class CSVProfileParser(ProfileParserAbstract):
             }
             # Rename the columns using the mapping
             df.rename(columns=column_rename_mapping, inplace=True)
-            logging.debug(f'Repaired: {df.columns}')
+            logging.debug(f"Repaired: {df.columns}")
 
             # Fill missing columns with zeros
-            logging.warning('Filling missing with zeros')
+            logging.warning("Filling missing with zeros")
             for i, j in enumerate(self.sequence):
-                if j == 'X':
+                if j == "X":
                     df.insert(
-                        loc=i, column=f'{i}', value=[0 for k in range(20)]
+                        loc=i, column=f"{i}", value=[0 for k in range(20)]
                     )
 
-            logging.debug(f'Filled: {df.columns}')
+            logging.debug(f"Filled: {df.columns}")
 
-        if len(df.columns) > 20 and str(df.columns[0]) == '0':
-            logging.debug('Profile data matches default format.')
+        if len(df.columns) > 20 and str(df.columns[0]) == "0":
+            logging.debug("Profile data matches default format.")
 
             return df
         else:
             logging.debug(
-                f'Failed to process profile data {self.profile_input}..'
+                f"Failed to process profile data {self.profile_input}.."
             )
             return
 
 
 # TODO this may not work
 class TSVProfileParser(ProfileParserAbstract):
+    name = "TSV"
+
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
             raise issues.NoResultsError(
-                f'Profile {self.profile_input} does not exist.'
+                f"Profile {self.profile_input} does not exist."
             )
-        self.df = pd.read_table(self.profile_input, names=['mut', 'score'])
+        self.df = pd.read_table(self.profile_input, names=["mut", "score"])
         return self.df
 
 
@@ -319,6 +302,8 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
     Sets up the working directory and handles the execution and citation of Pythia.
     """
 
+    name = "Pythia-ddG"
+
     def parse(self) -> pd.DataFrame:
         """
         Parses the Pythia ddG prediction file and returns its content as a pandas DataFrame.
@@ -330,9 +315,9 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
         the predictions remotely.
         """
         self.profile_input = os.path.join(
-            os.path.abspath('.'),
-            'pythia',
-            f'{self.molecule}_pred_mask.csv',
+            os.path.abspath("."),
+            "pythia",
+            f"{self.molecule}_pred_mask.csv",
         )
 
         # Check for existing Pythia output; if not present, initiate cloud computation.
@@ -340,7 +325,7 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
             self._run_cloud()
         else:
             logging.warning(
-                f'Found expected Pythia output: `{self.profile_input}`, skipping computation.'
+                f"Found expected Pythia output: `{self.profile_input}`, skipping computation."
             )
 
         # Instantiate and use CSVProfileParser to convert the CSV into a DataFrame.
@@ -370,15 +355,53 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
         ddg_runner = PythiaBiolib(
             molecule=self.molecule, chain_id=self.chain_id
         )
-        ddg_runner.work_dir = os.path.join(os.path.abspath('.'), 'pythia')
+        ddg_runner.work_dir = os.path.join(os.path.abspath("."), "pythia")
         os.makedirs(ddg_runner.work_dir, exist_ok=True)
 
         # Execute Pythia prediction and handle potential errors.
         self.profile_input = ddg_runner.predict()
 
         if not self.profile_input:
-            logging.error('An error occurred during the Pythia run!')
+            logging.error("An error occurred during the Pythia run!")
             return
 
-        logging.debug(f'The result file is stored at: {self.profile_input}')
+        logging.debug(f"The result file is stored at: {self.profile_input}")
         ddg_runner.cite()
+
+
+all_parser_classes = (
+    PSSM_Parser,
+    CSVProfileParser,
+    TSVProfileParser,
+    Pythia_ddG_Parser,
+)
+
+
+class ProfileManager:
+    def __init__(self, profile_type: str):
+        self.profile_type = profile_type
+        self.parser: ProfileParserAbstract = None  # type: ignore
+
+    def _initialize_parser(self, kwargs) -> "ProfileParserAbstract":
+
+        try:
+            parser_class = [
+                parser
+                for parser in all_parser_classes
+                if parser.name == self.profile_type
+            ][0]
+            return parser_class(**kwargs)
+
+        except IndexError:
+            raise issues.InvalidInputError(
+                f"Unknown profile format {self.profile_type}: {kwargs=}"
+            )
+
+    def parse(self, kwargs):
+        if not (parser := self._initialize_parser(kwargs)):
+            raise issues.ConfigureError(
+                f"Failed to parse profile in {self.profile_type} with config ({kwargs=})"
+            )
+
+        self.parser = parser
+        self.parser.parse()

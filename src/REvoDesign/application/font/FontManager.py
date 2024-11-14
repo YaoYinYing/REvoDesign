@@ -1,6 +1,7 @@
-'''
+"""
 Utils to manage fonts in Plugin windows
-'''
+"""
+
 from dataclasses import dataclass
 
 from immutabledict import immutabledict
@@ -27,10 +28,11 @@ class FlavoredFonts:
             - Note: The font recommendations for 'Darwin' (macOS) are currently commented out, indicating that
             this part of the data may still be under consideration or not yet finalized.
     """
+
     OS_TYPE_FONT_TABLE: immutabledict = immutabledict(
         {
-            'Windows': ('Microsoft YaHei', 'Century Gothic'),
-            'Linux': ('Nimbus Sans', 'DejaVu Sans'),
+            "Windows": ("Microsoft YaHei", "Century Gothic"),
+            "Linux": ("Nimbus Sans", "DejaVu Sans"),
             # 'Darwin': ['Chalkboard']
         }
     )

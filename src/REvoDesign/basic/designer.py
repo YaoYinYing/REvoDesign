@@ -1,6 +1,12 @@
 from abc import abstractmethod
+from typing import Any, List, Union
 
-from ..citations import CitableModules
+from joblib import Parallel, delayed
+from RosettaPy.common.mutation import RosettaPyProteinSequence
+
+from REvoDesign.common.Mutant import Mutant
+
+from REvoDesign.citations import CitableModules
 
 
 class ExternalDesignerAbstract(CitableModules):
@@ -15,8 +21,13 @@ class ExternalDesignerAbstract(CitableModules):
         reload (bool): A flag indicating whether to reload the design, defaults to False.
 
     """
-    name: str = ''
+
+    name: str = ""
     installed: bool = False
+    scorer_only: bool = False
+    no_need_to_score_wt: bool = False
+    # whether lower scores are preferred
+    prefer_lower: bool = False
 
     def __init__(self, molecule):
         """
@@ -56,13 +67,41 @@ class ExternalDesignerAbstract(CitableModules):
         """
         raise NotImplementedError("Designer method not implemented")
 
-    def scorer(self, sequence,):
+    def scorer(
+        self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
+    ):
         """
         Abstract method to evaluate or score a given sequence design.
         Determines the quality or fitness of the designed sequence.
 
         Parameters:
-            sequence: The molecular sequence being evaluated.
+            mutant: The molecular sequence being evaluated.
             *args, **kwargs: Additional parameters for scoring, if required.
         """
         raise NotImplementedError("Scorer method not implemented")
+
+    def preffer_substitutions(self, aa: Any): ...
+
+    def parallel_scorer(
+        self, mutants: List[Mutant], nproc: int = 2, **kwargs
+    ) -> List[Mutant]:
+        """
+        Parallelize the scoring of a list of mutants.
+        """
+        mutants = [mutant for mutant in mutants if not mutant.empty]
+        res = Parallel(n_jobs=nproc)(
+            delayed(self.scorer)(mutant) for mutant in mutants
+        )
+        scores: List[float] = list(res)  # type: ignore
+        return self.score_mutant_mapping(mutants, scores)
+
+    @staticmethod
+    def score_mutant_mapping(
+        mutants: List[Mutant], scores: List[float]
+    ) -> List[Mutant]:
+        """
+        Assign scores to mutants.
+        """
+        for mutant, score in zip(mutants, scores):
+            mutant.mutant_score = score
+        return mutants

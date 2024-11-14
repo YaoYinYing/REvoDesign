@@ -21,7 +21,7 @@ from REvoDesign.REvoDesign import REvoDesignPlugin
 
 # 6. Set version info
 
-__version__ = '1.5.11.post-2'
+__version__ = "1.6.0"
 
 
 # 8. enable garbage collection
@@ -30,13 +30,16 @@ gc.enable()
 # 7. add shortcuts to PyMOL commandline prompt
 
 __all__ = [
-    'REvoDesignPlugin',
-    'SingletonAbstract',
-    'ConfigBus',
-    'FileExtentions',
-    'reload_config_file',
-    'set_cache_dir',
-    'save_configuration',
-    'root_logger', 'setup_logging',
-    'REVODESIGN_CONFIG_FILE', 'set_REvoDesign_config_file', 'experiment_config'
+    "REvoDesignPlugin",
+    "SingletonAbstract",
+    "ConfigBus",
+    "FileExtentions",
+    "reload_config_file",
+    "set_cache_dir",
+    "save_configuration",
+    "root_logger",
+    "setup_logging",
+    "REVODESIGN_CONFIG_FILE",
+    "set_REvoDesign_config_file",
+    "experiment_config",
 ]

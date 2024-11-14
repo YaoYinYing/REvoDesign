@@ -1,22 +1,35 @@
 # pylint: disable=import-outside-toplevel
 import os
+import warnings
+from typing import Union
 
-from ...basic import ExternalDesignerAbstract
-from ...bootstrap.set_config import is_package_installed
-from ...tools.pymol_utils import make_temperal_input_pdb
+from RosettaPy.common.mutation import RosettaPyProteinSequence
+
+from REvoDesign import issues
+from REvoDesign.basic import ExternalDesignerAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 
 # Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN(ExternalDesignerAbstract):
-    name: str = 'ProteinMPNN'
-    installed: bool = is_package_installed('colabdesign')
+    name: str = "ProteinMPNN"
+    installed: bool = is_package_installed("colabdesign")
 
-    def __init__(self, molecule):
+    # lower score is better.
+    # https://github.com/dauparas/ProteinMPNN/issues/44#issuecomment-1475522598
+    prefer_lower = True
+
+    def __init__(self, molecule, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
-        self.pdb_filename = None
+
+        self.molecule = molecule
+
+        # internal variables
         self.mpnn_model: mk_mpnn_model = None  # type: ignore
         self.initialized = False
-        self.molecule = molecule
+        self.pdb_filename = None
         self.reload = False
 
     # initializing takes time so it should be sent to run_worker_thread_with_progress so UI will not be frozen.
@@ -46,7 +59,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         self.initialized = True
         self.cite()
 
-    def preffer_substitutions(self, aa=''):
+    def preffer_substitutions(self, aa=""):
         """
         Set preferred substitutions for the model.
 
@@ -61,12 +74,14 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         for k in aa:
             self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5
 
-    def scorer(self, sequence: str) -> float:
+    def scorer(
+        self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
+    ) -> float:
         """
         Compute the score for a given sequence.
 
         Args:
-        - sequence: Mutant sequence.
+        - mutant: Mutant object.
 
         Returns:
         - float: Score value for the given mutant sequence.
@@ -74,10 +89,30 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         Notes:
         - Computes the score using the MPNN model.
         """
+
+        if isinstance(mutant, Mutant):
+            if len(mutant.wt_protein_sequence.all_chain_ids) > 1:
+                warnings.warn(
+                    issues.REvoDesignWarning(
+                        "MPNN only supports single chain sequences"
+                    )
+                )
+            sequence: str = mutant.get_mutant_sequence_single_chain(
+                chain_id=mutant.wt_protein_sequence.all_chain_ids[0],
+                ignore_missing=True,
+            ).sequence
+        else:
+            if len(mutant.all_chain_ids) > 1:
+                warnings.warn(
+                    issues.REvoDesignWarning(
+                        "MPNN only supports single chain sequences"
+                    )
+                )
+            sequence: str = mutant.get_sequence_by_chain(
+                chain_id=mutant.all_chain_ids[0]
+            ).replace("X", "")
         # scorer must return a float score value given a mutant sequence.
-        # lower score is better.
-        # https://github.com/dauparas/ProteinMPNN/issues/44#issuecomment-1475522598
-        return self.mpnn_model.score(seq=sequence)['score']
+        return self.mpnn_model.score(seq=sequence)["score"]
 
     def designer(self, *args, **kwargs):
         """
@@ -98,7 +133,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         return design_results
 
     __bibtex__ = {
-        'ProteinMPNN': r"""@article{
+        "ProteinMPNN": r"""@article{
 doi:10.1126/science.add2187,
 author = {J. Dauparas  and I. Anishchenko  and N. Bennett  and H. Bai  and R. J. Ragotte  and L. F. Milles  and B. I. M. Wicky  and A. Courbet  and R. J. de Haas  and N. Bethel  and P. J. Y. Leung  and T. F. Huddy  and S. Pellock  and D. Tischer  and F. Chan  and B. Koepnick  and H. Nguyen  and A. Kang  and B. Sankaran  and A. K. Bera  and N. P. King  and D. Baker },
 title = {Robust deep learning–based protein sequence design using ProteinMPNN},

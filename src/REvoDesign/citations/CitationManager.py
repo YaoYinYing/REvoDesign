@@ -29,7 +29,7 @@ MAGENTA_BG = "\033[0;45m"
 class CitationManager(SingletonAbstract):
     def __init__(self):
         # Check if the instance has already been initialized
-        if not hasattr(self, 'initialized'):
+        if not hasattr(self, "initialized"):
             self.called_citations: dict[str, Any] = {}
             self.silenced_citation_modules: list[str] = []
             # Mark the instance as initialized to prevent reinitialization
@@ -46,7 +46,7 @@ class CitationManager(SingletonAbstract):
                 _.extend(c)
             else:
                 raise issues.BadDataWarning(
-                    f'{c=} must be either a dict or a str, instead of {type(c)}'
+                    f"{c=} must be either a dict or a str, instead of {type(c)}"
                 )
 
         return _
@@ -55,7 +55,7 @@ class CitationManager(SingletonAbstract):
         if not (new_citations and isinstance(new_citations, dict)):
             warnings.warn(
                 issues.NoInputWarning(
-                    f'{new_citations=} is not a valid dictionary.'
+                    f"{new_citations=} is not a valid dictionary."
                 )
             )
             return
@@ -69,7 +69,7 @@ class CitationManager(SingletonAbstract):
         if modulename not in self.called_citations:
             warnings.warn(
                 issues.REvoDesignWarning(
-                    issues.REvoDesignWarning(f'{modulename} is not in called.')
+                    issues.REvoDesignWarning(f"{modulename} is not in called.")
                 )
             )
             return
@@ -77,34 +77,35 @@ class CitationManager(SingletonAbstract):
             self.called_citations.pop(modulename)
             warnings.warn(
                 issues.REvoDesignWarning(
-                    issues.REvoDesignWarning(f'Will not cite {modulename}.')
+                    issues.REvoDesignWarning(f"Will not cite {modulename}.")
                 )
             )
 
-    def format(self) -> Union[str, Dict, List]:
-        ...
+    def format(self) -> Union[str, Dict, List]: ...
 
-    def output(self, cwd: str = '.'):
+    def output(self, cwd: str = "."):
         import bibtexparser
 
         library = bibtexparser.parse_string(
-            '\n'.join(self.collected_citations)
+            "\n".join(self.collected_citations)
         )
         if library.failed_blocks:
             warnings.warn(
                 issues.REvoDesignWarning(
-                    f'Could not parse {library.failed_blocks=}'
+                    f"Could not parse {library.failed_blocks=}"
                 )
             )
 
         citation_output = os.path.join(
             cwd,
-            'citations',
+            "citations",
             f'{time.strftime("%Y%m%d", time.localtime())}.bib',
         )
         os.makedirs(os.path.dirname(citation_output), exist_ok=True)
-        bibtexparser.write_file(file=open(citation_output, 'w', encoding='utf8'), library=library)
-        logging.info(f'Citation is created at {citation_output}')
+        bibtexparser.write_file(
+            file=open(citation_output, "w", encoding="utf8"), library=library
+        )
+        logging.info(f"Citation is created at {citation_output}")
 
     def dismiss(self, modulename: str):
         if modulename not in self.silenced_citation_modules:
@@ -117,7 +118,7 @@ class CitableModules(ABC):
 
     def notice(self):
         if not self.__bibtex__:
-            logging.debug('Nothing has to be cited with this module.')
+            logging.debug("Nothing has to be cited with this module.")
             return
         if all(
             k in CitationManager().silenced_citation_modules
@@ -126,7 +127,7 @@ class CitableModules(ABC):
             return
 
         logging.info(
-            f'{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n'
+            f"{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n"
         )
         for i, citation_item in self.__bibtex__.items():
             # notify it just once then dismiss
@@ -144,12 +145,12 @@ class CitableModules(ABC):
             CitationManager().dismiss(i)
 
     def cite(self):
-        '''
+        """
         Add citation to the citation manager.
-        '''
+        """
 
         citations = self.__bibtex__
         if not isinstance(citations, Mapping):
-            raise TypeError('citation must be a dict.')
+            raise TypeError("citation must be a dict.")
         CitationManager().update(new_citations=dict(citations))
         self.notice()

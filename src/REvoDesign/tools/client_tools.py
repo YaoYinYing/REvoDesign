@@ -13,7 +13,7 @@ from REvoDesign.logger import root_logger
 logging = root_logger.getChild(__name__)
 
 
-def check_response_code(response, successfull_opt='Submitted'):
+def check_response_code(response, successfull_opt="Submitted"):
     """
     Check the HTTP response code and log information based on different status codes.
 
@@ -40,7 +40,7 @@ def check_response_code(response, successfull_opt='Submitted'):
 
 @dataclass
 class SSLCertificateManager:
-    peer_roles = Literal['server', 'client']
+    peer_roles = Literal["server", "client"]
     role: peer_roles
 
     def __post_init__(self):
@@ -48,13 +48,13 @@ class SSLCertificateManager:
 
         self.cache_dir: str = set_cache_dir()
         self.crt_dir: str = (
-            os.path.expanduser('~/.REvoDesign/crts/')
+            os.path.expanduser("~/.REvoDesign/crts/")
             if not self.cache_dir
-            else os.path.join(self.cache_dir, 'crts')
+            else os.path.join(self.cache_dir, "crts")
         )
         os.makedirs(self.crt_dir, exist_ok=True)
-        self.crt_path = os.path.join(self.crt_dir, f'{self.role}.crt')
-        self.key_path = os.path.join(self.crt_dir, f'{self.role}.key')
+        self.crt_path = os.path.join(self.crt_dir, f"{self.role}.crt")
+        self.key_path = os.path.join(self.crt_dir, f"{self.role}.key")
 
     def generate_ssl_context(self):
         """
@@ -75,15 +75,15 @@ class SSLCertificateManager:
 
         self.get_certificate()
 
-        if self.role == 'server':
+        if self.role == "server":
             context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             context.load_cert_chain(self.crt_path, self.key_path)
-        elif self.role == 'client':
+        elif self.role == "client":
             context = ssl.create_default_context(
                 ssl.Purpose.SERVER_AUTH, cafile=self.crt_path
             )
         else:
-            raise ValueError(f'Unknown role of ssl context: {self.role}')
+            raise ValueError(f"Unknown role of ssl context: {self.role}")
         return context
 
     def get_certificate(self):
@@ -105,7 +105,7 @@ class SSLCertificateManager:
             self.create_new_certificate()
             return
 
-        with open(self.crt_path, 'rb') as f:
+        with open(self.crt_path, "rb") as f:
             existing_cert_data = f.read()
             existing_cert = crypto.load_certificate(
                 crypto.FILETYPE_PEM, existing_cert_data
@@ -113,7 +113,7 @@ class SSLCertificateManager:
 
             # Get the expiration date of the existing certificate
             expiration_date = datetime.datetime.strptime(
-                existing_cert.get_notAfter().decode('utf-8'), '%Y%m%d%H%M%SZ'
+                existing_cert.get_notAfter().decode("utf-8"), "%Y%m%d%H%M%SZ"
             )
 
         # Check if the certificate has expired
@@ -141,8 +141,8 @@ class SSLCertificateManager:
         from REvoDesign.tools.system_tools import CLIENT_INFO
 
         OS_INFO = CLIENT_INFO()
-        node = OS_INFO.node if OS_INFO.node else 'UnknownNode'
-        user = OS_INFO.user if OS_INFO.user else 'UnknownUser'
+        node = OS_INFO.node if OS_INFO.node else "UnknownNode"
+        user = OS_INFO.user if OS_INFO.user else "UnknownUser"
 
         # Generate RSA key
         k = crypto.PKey()
@@ -164,12 +164,12 @@ class SSLCertificateManager:
         cert.gmtime_adj_notAfter(7 * 24 * 60 * 60)
         cert.set_issuer(cert.get_subject())
         cert.set_pubkey(k)
-        cert.sign(k, 'sha256')
+        cert.sign(k, "sha256")
 
         # Write the certificate and private key to files in PEM format
-        with open(self.crt_path, 'wb') as f:
+        with open(self.crt_path, "wb") as f:
             f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
-        with open(self.key_path, 'wb') as f:
+        with open(self.key_path, "wb") as f:
             f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
 
 

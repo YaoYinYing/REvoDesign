@@ -14,7 +14,7 @@ from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.external_designer import EXTERNAL_DESIGNERS
+from REvoDesign.external_designer import Magician, implemented_designers
 from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (expand_range,
@@ -26,41 +26,40 @@ from REvoDesign.tools.pymol_utils import (
     find_all_protein_chain_ids_in_protein, get_molecule_sequence)
 from REvoDesign.tools.utils import random_deduplicate
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 logging = root_logger.getChild(__name__)
 
 
 class REvoDesigner:
     def __init__(self, input_profile):
-        self.input_pse = ''
-        self.output_pse = ''
-        self.molecule = ''
+        self.input_pse = ""
+        self.output_pse = ""
+        self.molecule = ""
         self.designable_sequences: RosettaPyProteinSequence
-        self.chain_id = 'A'
+        self.chain_id = "A"
 
         self.input_profile = input_profile
-        self.input_profile_format = 'PSSM'
+        self.input_profile_format = "PSSM"
 
-        self.external_designer = None
-        self.external_designer_temperature = 0.1
-        self.external_designer_num_samples = 1
+        self.magician_temperature = 0.1
+        self.magician_num_samples = 1
         self.batch = 1
         self.homooligomeric = False
         self.deduplicate_designs = False
         self.randomized_sample = False
         self.randomized_sample_num = 10
-        self.mutate_runner: MutateRunnerAbstract = None
+        self.mutate_runner: MutateRunnerAbstract = None  # type: ignore
 
-        self.pwd = '.'
-        self.sequence = ''
+        self.pwd = "."
+        self.sequence = ""
 
-        self.design_case = 'default'
+        self.design_case = "default"
 
-        self.preffered_substitutions = ''
-        self.reject_aa = ''
+        self.preffered_substitutions = ""
+        self.reject_aa = ""
 
         # use PSSM alphabet as default
-        self.profile_alphabet = 'ARNDCQEGHILKMFPSTWYV'
+        self.profile_alphabet = "ARNDCQEGHILKMFPSTWYV"
         self.cmap = "bwr_r"
         self.results = []
         self.nproc = 1
@@ -72,11 +71,12 @@ class REvoDesigner:
 
         self.visualizer: MutantVisualizer = None
         self.citations: CitationManager = CitationManager()
+        self.magician: Magician = Magician()
 
     def plot_custom_indices_segments(
         self,
         df_ori,
-        custom_indices_str='',
+        custom_indices_str="",
         cutoff=[-100, 100],
         preferred_substitutions=None,
     ):
@@ -100,12 +100,12 @@ class REvoDesigner:
 
         logging.debug(custom_indices_str)
 
-        if custom_indices_str == '':
-            custom_indices_str = f'1-{len(self.sequence)}'
-            logging.debug(f' --> {custom_indices_str}')
+        if custom_indices_str == "":
+            custom_indices_str = f"1-{len(self.sequence)}"
+            logging.debug(f" --> {custom_indices_str}")
 
         custom_indices = expand_range(
-            shortened_str=custom_indices_str, seperator=',', connector='-'
+            shortened_str=custom_indices_str, seperator=",", connector="-"
         )
         logging.info(custom_indices)
 
@@ -120,7 +120,7 @@ class REvoDesigner:
 
         sequence = list(self.sequence)
         sequence = [sequence[i - 1] for i in custom_indices[1:] if i >= 1]
-        sequence = ''.join(sequence)
+        sequence = "".join(sequence)
 
         df.pop(0)
 
@@ -161,7 +161,7 @@ class REvoDesigner:
         for _, resid in enumerate(custom_indices[1:]):
             wt_aa = sequence[_]
             profile_scores = df_ori.iloc[:, resid]
-            mutation_candidates['mutations'][resid] = {
+            mutation_candidates["mutations"][resid] = {
                 "wt": wt_aa,
                 "wt_profile_score": profile_scores.loc[wt_aa],
                 "candidates": {},
@@ -181,17 +181,17 @@ class REvoDesigner:
                         wt_aa in preferred_substitutions.keys()
                         and mut_aa in preferred_substitutions[wt_aa]
                     ):
-                        mutation_candidates['mutations'][resid]["candidates"][
+                        mutation_candidates["mutations"][resid]["candidates"][
                             mut_aa
                         ] = profile_score
                         mutations.append(mutation_key)
                 else:
-                    mutation_candidates['mutations'][resid]["candidates"][
+                    mutation_candidates["mutations"][resid]["candidates"][
                         mut_aa
                     ] = profile_score
                     mutations.append(mutation_key)
 
-        os.makedirs(f'{self.pwd}/mutations_design_profile', exist_ok=True)
+        os.makedirs(f"{self.pwd}/mutations_design_profile", exist_ok=True)
 
         indices_hash = hashlib.sha256(
             bytes(custom_indices_str.encode())
@@ -199,13 +199,13 @@ class REvoDesigner:
 
         file_name = f'{time.strftime("%Y%m%d", time.localtime())}_{self.molecule}_{self.design_case}_{indices_hash[:10]}'
         mutation_json_fp = (
-            f'{self.pwd}/mutations_design_profile/{file_name}.json'
+            f"{self.pwd}/mutations_design_profile/{file_name}.json"
         )
         mutation_png_fp = (
-            f'{self.pwd}/mutations_design_profile/{file_name}.png'
+            f"{self.pwd}/mutations_design_profile/{file_name}.png"
         )
 
-        json.dump(mutation_candidates, open(mutation_json_fp, 'w'), indent=2)
+        json.dump(mutation_candidates, open(mutation_json_fp, "w"), indent=2)
 
         plt.savefig(mutation_png_fp)
         plt.close()
@@ -227,8 +227,8 @@ class REvoDesigner:
         """
         pattern = f'^[{"".join(self.profile_alphabet)}]:[{"".join(self.profile_alphabet)}]+$'
         preffered_mutation_string = preffered_mutation_string.replace(
-            '[', ''
-        ).replace(']', '')
+            "[", ""
+        ).replace("]", "")
         if re.match(pattern, preffered_mutation_string):
             return True
         else:
@@ -246,13 +246,13 @@ class REvoDesigner:
         """
         preffered_dict = {
             _preffered_sub[0]: [res for res in _preffered_sub[2:]]
-            for _preffered_sub in preffered_str.split(' ')
+            for _preffered_sub in preffered_str.split(" ")
             if self.validate_preffered_mutation_string(_preffered_sub)
         }
 
         return preffered_dict
 
-    def setup_parameters_for_external_designer(self):
+    def setup_parameters_for_magician(self):
         """
         Set up parameters for the external designer based on molecule and chain ID.
 
@@ -276,14 +276,14 @@ class REvoDesigner:
             ]
             if len(design_chain_id) < 2:
                 logging.warning(
-                    f'No homooligomer found for chain {self.chain_id}, ignore `homooligomeric` setting'
+                    f"No homooligomer found for chain {self.chain_id}, ignore `homooligomeric` setting"
                 )
                 self.homooligomeric = False
         self.design_chain_id = design_chain_id
 
-    def setup_external_designer(
+    def setup_magician(
         self,
-        custom_indices_str='',
+        custom_indices_str="",
     ):
         """
         Set up the external designer for protein design.
@@ -295,17 +295,10 @@ class REvoDesigner:
         - Initializes the external designer with specified parameters.
         - Handles different types of external designers.
         """
-        from REvoDesign.external_designer import EXTERNAL_DESIGNERS
-
-        if self.input_profile_format not in EXTERNAL_DESIGNERS:
-            logging.error(
-                f'External design {self.input_profile_format} is not registed in `ExternalDesigners.py`'
-            )
-            return
 
         # expand design residue index
         expanded_custom_indices = expand_range(
-            shortened_str=custom_indices_str, connector='-', seperator=','
+            shortened_str=custom_indices_str, connector="-", seperator=","
         )
 
         if self.randomized_sample and self.randomized_sample_num > 0:
@@ -313,58 +306,39 @@ class REvoDesigner:
                 expanded_custom_indices, self.randomized_sample_num
             )
             logging.info(
-                f'Generated random sample indices: {expanded_custom_indices}'
+                f"Generated random sample indices: {expanded_custom_indices}"
             )
 
         # setup parameters for external designer
-        self.setup_parameters_for_external_designer()
+        self.setup_parameters_for_magician()
 
-        if not (
-            self.external_designer_temperature
-            and self.external_designer_num_samples
-        ):
-            logging.error('Missing input for external designer')
+        if not (self.magician_temperature and self.magician_num_samples):
+            logging.error(
+                f"Missing input for magician: {self.input_profile_format}"
+            )
             return
 
-        magician = EXTERNAL_DESIGNERS[self.input_profile_format]
+        self.magician = self.magician.setup(
+            magician_name=self.input_profile_format,
+            molecule=self.molecule,
+            fix_pos=",".join(
+                [
+                    f"{self.chain_id}{indice}"
+                    for indice in shorter_range(
+                        expanded_custom_indices, connector="-"
+                    ).split("+")
+                ]
+                if expanded_custom_indices
+                else None
+            ),
+            inverse=True,
+            rm_aa=",".join(list(self.reject_aa)) if self.reject_aa else None,
+            chain=",".join(self.design_chain_id),
+            homooligomeric=self.homooligomeric,
+            ignore_missing=bool("X" in self.sequence),
+        )
 
-        # setup MPNN designer
-
-        if (
-            not self.external_designer  # non-designer is set
-            or magician.__name__
-            != self.external_designer.__class__.__name__  # designer is switched to another
-        ):
-            # Magician ProteinMPNN
-            if self.input_profile_format == 'ProteinMPNN':
-                self.external_designer = magician(
-                    molecule=self.molecule,
-                )
-                self.external_designer.initialize(
-                    fix_pos=','.join(
-                        [
-                            f"{self.chain_id}{indice}"
-                            for indice in shorter_range(
-                                expanded_custom_indices, connector='-'
-                            ).split('+')
-                        ]
-                        if expanded_custom_indices
-                        else None
-                    ),
-                    inverse=True,
-                    rm_aa=','.join(list(self.reject_aa))
-                    if self.reject_aa
-                    else None,
-                    chain=','.join(self.design_chain_id),
-                    homooligomeric=self.homooligomeric,
-                    ignore_missing=bool('X' in self.sequence),
-                )
-
-            # register more Magician at here.
-            # elif .....
-            return
-
-    def design_protein_using_external_designer(self, custom_indices_fp):
+    def design_protein_via_magician(self, custom_indices_fp):
         """
         Design protein using an external designer.
 
@@ -379,62 +353,63 @@ class REvoDesigner:
             custom_indices_from_input=custom_indices_fp
         )
         logging.info(
-            f'Starting {self.input_profile_format}, this may take a while.'
+            f"Starting {self.input_profile_format}, this may take a while."
         )
 
-        self.setup_external_designer(
+        self.setup_magician(
             custom_indices_str=custom_indices_str,
         )
 
-        if not self.external_designer:
+        if self.magician.magician is None:
             logging.error(
-                f'Failed to initialize external designer {self.input_profile_format}'
+                f"Failed to initialize magician {self.input_profile_format}: {self.magician.magician}"
             )
-            self.output_pse = ''
+            self.output_pse = ""
             return
 
         logging.info(
-            f'Setting preffered substitutions {self.preffered_substitutions}.'
+            f"Setting preffered substitutions {self.preffered_substitutions}."
         )
-        self.external_designer.preffer_substitutions(
+
+        self.magician.magician.preffer_substitutions(
             aa=self.preffered_substitutions
         )
 
         logging.info(
-            f'Starting design with {self.input_profile_format}, this may take a while,'
-            'depending on your molecule size, sampling batch and design number that you required.'
+            f"Starting design with {self.input_profile_format}, this may take a while,"
+            "depending on your molecule size, sampling batch and design number that you required."
         )
 
-        designs = self.external_designer.designer(
-            num=self.external_designer_num_samples,
+        designs = self.magician.magician.designer(
+            num=self.magician_num_samples,
             batch=self.batch,
-            temperature=self.external_designer_temperature,
+            temperature=self.magician_temperature,
         )
 
-        logging.info('Design is done. Parsing the results...')
+        logging.info("Design is done. Parsing the results...")
 
         mutant_objs: list[Mutant] = []
         score_list = []
 
-        counter_1 = collections.Counter(designs['seq'])
+        counter_1 = collections.Counter(designs["seq"])
 
-        if any(counter_1.get(seq) > 1 for seq in designs['seq']):
+        if any(counter_1.get(seq) > 1 for seq in designs["seq"]):
             logging.warning(
-                f'Designs from {self.input_profile_format} contains duplicated items.'
+                f"Designs from {self.input_profile_format} contains duplicated items."
             )
 
         if self.deduplicate_designs:
             logging.warning(
-                f'Deduplicating designs from {self.input_profile_format} ...'
+                f"Deduplicating designs from {self.input_profile_format} ..."
             )
             seqs, scores = random_deduplicate(
-                seq=designs['seq'], score=designs['score']
+                seq=designs["seq"], score=designs["score"]
             )
             logging.warning(
                 f'Removed designs: {len(designs["seq"])-len(seqs)}'
             )
         else:
-            seqs, scores = designs['seq'], designs['score']
+            seqs, scores = designs["seq"], designs["score"]
 
         counter_2 = collections.Counter(seqs)
 
@@ -443,25 +418,29 @@ class REvoDesigner:
                 mutant_sequence=seq,
                 chain_id=self.chain_id,
                 wt_sequences=self.designable_sequences,
-                fix_missing=bool('X' in self.sequence),
+                fix_missing=bool("X" in self.sequence),
             )
             if mutant_obj is None:
-                logging.warning('Skipped.')
+                logging.warning("Skipped.")
                 continue
             if counter_2.get(seq) > 1:
                 logging.warning(
-                    f'Design {mutant_obj.raw_mutant_id} has multiple scores!\n'
-                    'See: https://github.com/dauparas/ProteinMPNN/issues/19#issuecomment-1283072787\n'
-                    'Check `De-duplicated` for picking a random unique one.'
+                    f"Design {mutant_obj.raw_mutant_id} has multiple scores!\n"
+                    "See: https://github.com/dauparas/ProteinMPNN/issues/19#issuecomment-1283072787\n"
+                    "Check `De-duplicated` for picking a random unique one."
                 )
 
             mutant_obj.mutant_score = score
-            mutant_obj.wt_protein_sequence = RosettaPyProteinSequence.from_dict({self.chain_id: self.sequence})
+            mutant_obj.wt_protein_sequence = (
+                RosettaPyProteinSequence.from_dict(
+                    {self.chain_id: self.sequence}
+                )
+            )
             score_list.append(score)
             mutant_objs.append(mutant_obj)
 
         if not mutant_objs:
-            logging.warning('No available designs is founded.')
+            logging.warning("No available designs is founded.")
             return
 
         mutant_tree = {
@@ -470,7 +449,7 @@ class REvoDesigner:
             }
         }
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
-        logging.debug(f'MutantTree: {str(self.mutant_tree)}')
+        logging.debug(f"MutantTree: {str(self.mutant_tree)}")
 
         self.mutant_tree.run_mutate_parallel(
             mutate_runner=self.mutate_runner, nproc=self.nproc
@@ -483,10 +462,10 @@ class REvoDesigner:
             group_id=self.design_case
         )
 
-        logging.warning(f'Saving at {external_design_session}')
+        logging.warning(f"Saving at {external_design_session}")
 
         # call MutantVisualizer for merge sessions
-        session_merger = MutantVisualizer(molecule='', chain_id='')
+        session_merger = MutantVisualizer(molecule="", chain_id="")
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
         session_merger.mutagenesis_sessions = [external_design_session]
@@ -497,7 +476,7 @@ class REvoDesigner:
 
     def setup_profile_design(
         self,
-        custom_indices_fp='',
+        custom_indices_fp="",
         cutoff=[-100, 100],
     ):
         """
@@ -530,12 +509,12 @@ class REvoDesigner:
 
         if df is None or df.empty:
             logging.error(
-                f'Error occurs while parsing profile {self.input_profile} with format {self.input_profile_format}'
+                f"Error occurs while parsing profile {self.input_profile} with format {self.input_profile_format}"
             )
             return
 
         # refresh profile alphabet based on profile reading
-        self.profile_alphabet = ''.join(df.T.columns.to_list())
+        self.profile_alphabet = "".join(df.T.columns.to_list())
 
         logging.debug(df.head())
 
@@ -580,8 +559,8 @@ class REvoDesigner:
         self.visualizer.mutate_runner = self.mutate_runner
 
         if (
-            self.external_designer
-            or self.input_profile_format in EXTERNAL_DESIGNERS
+            self.magician.magician
+            or self.input_profile_format in implemented_designers
         ):
             score_list = [
                 mut_obj.mutant_score
@@ -608,7 +587,7 @@ class REvoDesigner:
         - This method utilizes MutantVisualizer to perform mutagenesis based on the provided parameters.
         - Initializes MutantVisualizer with specific molecule, chain_id, sequence, group_name, and other properties.
         - Sets visualization parameters like cmap, min_score, max_score based on self parameters.
-        - Determines mutagenesis parameters based on external_designer and mutant_tree's branch_id.
+        - Determines mutagenesis parameters based on magician and mutant_tree's branch_id.
         - Sets nproc and parallel_run based on the number of processors available.
         - Saves the resulting session file and returns the file path.
         """
@@ -619,7 +598,7 @@ class REvoDesigner:
 
         self.visualizer.save_session = os.path.join(
             os.path.dirname(self.output_pse),
-            f'group.{group_id}.{os.path.basename(self.output_pse)}',
+            f"group.{group_id}.{os.path.basename(self.output_pse)}",
         )
 
         self.visualizer.mutant_tree = MutantTree(
@@ -667,8 +646,11 @@ class REvoDesigner:
                             chain_id=self.chain_id,
                             position=int(position),
                             wt_res=wt_res,
-                            mut_res=mut_res)],
-                    wt_protein_sequence=self.designable_sequences)
+                            mut_res=mut_res,
+                        )
+                    ],
+                    wt_protein_sequence=self.designable_sequences,
+                )
                 mutant_obj.mutant_score = float(mut_score)
                 mutant_obj.wt_score = float(wt_score)
 
@@ -686,7 +668,7 @@ class REvoDesigner:
         )
 
         if self.mutant_tree.empty:
-            logging.warning('No available designs!')
+            logging.warning("No available designs!")
             return
 
         self.mutant_tree.run_mutate_parallel(
@@ -696,14 +678,14 @@ class REvoDesigner:
         self.results = []
 
         for branch_id in self.mutant_tree.all_mutant_branch_ids:
-            logging.info(f'Creating mutagenesis for {branch_id}')
+            logging.info(f"Creating mutagenesis for {branch_id}")
             result_session = self.run_mutagenesis_via_mutant_visualizer(
                 group_id=branch_id,
             )
             self.results.append(result_session)
 
         # call MutantVisualizer for merge sessions
-        session_merger = MutantVisualizer(molecule='', chain_id='')
+        session_merger = MutantVisualizer(molecule="", chain_id="")
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
         session_merger.mutagenesis_sessions = self.results

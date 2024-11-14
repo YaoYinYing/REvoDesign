@@ -9,104 +9,114 @@ class TestData:
     nproc_circleci: int = 4
 
     # setup dir
-    test_data_repo: str = os.path.join(os.path.dirname(__file__), 'qttests')
+    test_data_repo: str = os.path.join(os.path.dirname(__file__), "qttests")
 
     # common info
-    molecule: str = '1SUO'
-    chain_id: str = 'A'
+    molecule: str = "1SUO"
+    chain_id: str = "A"
 
     # after fetch
-    post_fetch_spell: str = 'remove r. hoh;dss;set cartoon_color, gray70;set cartoon_cylindrical_helices;set cartoon_transparency, .1'
+    post_fetch_spell: str = (
+        "remove r. hoh;dss;set cartoon_color, gray70;set cartoon_cylindrical_helices;set cartoon_transparency, .1"
+    )
 
     # dataset PSSM&GREMLIN
-    PSSM_GREMLIN_DATA_URL: str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip'
-    PSSM_GREMLIN_DATA_MD5: str = 'md5:5fc8ab8f657051ae8117a678924ac471'
+    PSSM_GREMLIN_DATA_URL: str = (
+        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_A_PSSM_GREMLIN_results.zip"
+    )
+    PSSM_GREMLIN_DATA_MD5: str = "md5:5fc8ab8f657051ae8117a678924ac471"
 
-    PYTHIA_DDG_CSV_URL: str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_pred_mask.csv'
-    PYTHIA_DDG_CSV_MD5: str = 'md5:982eda8c8056c388d9741407dea8e750'
+    PYTHIA_DDG_CSV_URL: str = (
+        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO_pred_mask.csv"
+    )
+    PYTHIA_DDG_CSV_MD5: str = "md5:982eda8c8056c388d9741407dea8e750"
 
     # pocket
-    substrate: str = 'CPZ'
-    cofactor: str = 'HEM'
+    substrate: str = "CPZ"
+    cofactor: str = "HEM"
 
     @property
     def pocket_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.pocket.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.pocket.pze"
 
     # surface
     suface_probe: float = 30  # ONLY for faster testing!
-    exclusion_prefix: str = 'pkt_hetatm_'
+    exclusion_prefix: str = "pkt_hetatm_"
 
     @property
     def surface_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.surface.pze"
 
     # surface design
-    entropy_min_score: str = '3'
-    entropy_max_score: str = '20'
+    entropy_min_score: str = "3"
+    entropy_max_score: str = "20"
     entropy_score_reversed: bool = False
-    entropy_design_case: str = 'pssm.ent.surf'
-    entropy_reject: str = 'PC'
-    entropy_accept: str = 'E:DATY K:RATY N:ATY Q:EDATY'
+    entropy_design_case: str = "pssm.ent.surf"
+    entropy_reject: str = "PC"
+    entropy_accept: str = "E:DATY K:RATY N:ATY Q:EDATY"
 
     @property
     def entro_design_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.pze"
 
-    mpnn_profile_type: str = 'ProteinMPNN'
-    mpnn_surface_residues: str = '37,38,39,40'
+    mpnn_profile_type: str = "ProteinMPNN"
+    mpnn_surface_residues: str = "37,38,39,40"
     mpnn_num_designs: int = 5
     mpnn_temperature: float = 0.1
     mpnn_batch_designs: int = 1
     mpnn_deduplicated: bool = True
     mpnn_score_reversed: bool = True
-    mpnn_design_case: str = 'mpnn.surf'
-    mpnn_reject: str = 'PC'
-    mpnn_accept: str = 'DDDDEENQHRKKK'
+    mpnn_design_case: str = "mpnn.surf"
+    mpnn_reject: str = "PC"
+    mpnn_accept: str = "DDDDEENQHRKKK"
 
     @property
     def mpnn_design_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.mpnn.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.surface.mpnn.pze"
 
-    ddg_profile_type_biolib: str = 'Pythia-ddG'
-    ddg_profile_type_local: str = 'CSV'
-    ddg_surface_residues: str = '37,38,39,40'
-    ddg_min_score: str = '-200'
-    ddg_max_score: str = '0.3'
+    ddg_profile_type_biolib: str = "Pythia-ddG"
+    ddg_profile_type_local: str = "CSV"
+    ddg_surface_residues: str = "37,38,39,40"
+    ddg_min_score: str = "-200"
+    ddg_max_score: str = "0.3"
     ddg_score_reversed: bool = True
-    ddg_design_case: str = 'ddg.surf'
+    ddg_design_case: str = "ddg.surf"
 
     @property
     def ddg_design_pse(self):
         return (
-            f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.biolib.pze'
+            f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.biolib.pze"
         )
 
     @property
     def ddg_design_non_biolib_pse(self):
         return (
-            f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.local.pze'
+            f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ddg.local.pze"
         )
 
     # pocket design
     # use dumbrack rotamer lib
-    pocket_pssm_residues: str = '98+100-105+108+114-115+206+209+218+294-303+362-363+365-368+428-429+434+436-439+442+477-478'
-    pocket_pssm_min_score: str = '-2'
-    pocket_pssm_max_score: str = '0'
+    pocket_pssm_residues: str = (
+        "98+100-105+108+114-115+206+209+218+294-303+362-363+365-368+428-429+434+436-439+442+477-478"
+    )
+    pocket_pssm_min_score: str = "-2"
+    pocket_pssm_max_score: str = "0"
     pocket_pssm_score_reversed: bool = False
-    pocket_pssm_design_case: str = 'pssm.pkt'
-    pocket_pssm_reject: str = 'PC'
-    pocket_pssm_accept: str = ''
+    pocket_pssm_design_case: str = "pssm.pkt"
+    pocket_pssm_reject: str = "PC"
+    pocket_pssm_accept: str = ""
 
     @property
     def pocket_design_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.pocket.pssm.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.pocket.pssm.pze"
 
     entropy_to_ddg_score_reversed: bool = True
-    entropy_to_ddg_group_id: str = 'surf.pssm.ddg'
+    entropy_to_ddg_group_id: str = "surf.pssm.ddg"
 
-    EVALUATION_PSE_URL: str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze'
-    EVALUATION_PSE_MD5: str = 'md5:225128f0958ad622de9af6b485de5e86'
+    EVALUATION_PSE_URL: str = (
+        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/1SUO/1SUO.xtal.surface.ent.pssm.2.pze"
+    )
+    EVALUATION_PSE_MD5: str = "md5:225128f0958ad622de9af6b485de5e86"
 
     # cluster
     cluster_num: int = 10
@@ -119,54 +129,54 @@ class TestData:
     # 1. PSSM-ddg
     # 2. PSSM-MPNN
 
-    visualize_1_profile_type: str = 'CSV'
+    visualize_1_profile_type: str = "CSV"
     visualize_1_score_reversed: bool = True
-    visualize_1_design_case: str = 'pssm.ent.ddg'
+    visualize_1_design_case: str = "pssm.ent.ddg"
     visualize_1_use_global_score: bool = True
 
     @property
     def visualize_1_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_1_design_case}.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_1_design_case}.pze"
 
-    visualize_2_profile_type: str = 'ProteinMPNN'
+    visualize_2_profile_type: str = "ProteinMPNN"
     visualize_2_score_reversed: bool = True
-    visualize_2_design_case: str = 'pssm.ent.mpnn'
+    visualize_2_design_case: str = "pssm.ent.mpnn"
     visualize_2_use_global_score: bool = True
 
     @property
     def visualize_2_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_2_design_case}.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_2_design_case}.pze"
 
     @property
     def entropy_best_hits(self):
-        return f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.mutagenesis.besthits.mut.txt'
+        return f"{self.test_data_repo}/mutagenese/1SUO.surf.entro.mutagenesis.besthits.mut.txt"
 
     # visualize: PSSM entropy to ddG
     @property
     def entropy_to_ddg_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.hits.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.surface.ent.pssm.hits.pze"
 
     @property
     def pippack_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.test_pippack.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.test_pippack.pze"
 
     @property
     def sidechain_solver_fallback_pse(self):
-        return f'{self.test_data_repo}/analysis/1SUO.xtal.test_sc_fallback.pze'
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.test_sc_fallback.pze"
 
     @property
     def multi_mut_txt(self):
         return (
-            f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mut.txt'
+            f"{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mut.txt"
         )
 
     multi_design_steps = [2, 3, 5, 3, 4]
 
-    multi_design_scorer: str = 'ProteinMPNN'
+    multi_design_scorer: str = "ProteinMPNN"
 
     @property
     def multi_mut_txt_mpnn(self):
-        return f'{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mpnn_mut.txt'
+        return f"{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mpnn_mut.txt"
 
     gremlin_monomer_clicks_a2a: Tuple = (
         2,
@@ -191,17 +201,21 @@ class TestData:
 
     @property
     def gremlin_monomer_pse(self):
-        return f'{self.test_data_repo}/analysis/{self.molecule}.{self.chain_id}.xtal.test_gremlin_monomer.pze'
+        return f"{self.test_data_repo}/analysis/{self.molecule}.{self.chain_id}.xtal.test_gremlin_monomer.pze"
 
     gremlin_topN: int = 35
-    gremlin_homomer_molecule: str = '4MB8'
-    gremlin_homomer_chain: str = 'A'
+    gremlin_homomer_molecule: str = "4MB8"
+    gremlin_homomer_chain: str = "A"
     gremlin_homomer_o2a_pos: int = 196
-    gremlin_homomer_postfetch_spell: str = 'remove r. hoh;set cartoon_cylindrical_helices;spectrum chain, blue_white_red, 4MB8'
-    gremlin_homomer_profile_url: str = 'https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/4MB8/4MB8_A_PSSM_GREMLIN_results.zip'
-    gremlin_homomer_profile_md5: str = 'md5:999af75bd166b15594ed0435066b4e2d'
+    gremlin_homomer_postfetch_spell: str = (
+        "remove r. hoh;set cartoon_cylindrical_helices;spectrum chain, blue_white_red, 4MB8"
+    )
+    gremlin_homomer_profile_url: str = (
+        "https://github.com/YaoYinYing/REvoDesign-test-data/releases/download/4MB8/4MB8_A_PSSM_GREMLIN_results.zip"
+    )
+    gremlin_homomer_profile_md5: str = "md5:999af75bd166b15594ed0435066b4e2d"
 
-    gremlin_homomer_chains: str = 'ABCD'
+    gremlin_homomer_chains: str = "ABCD"
 
     gremlin_homomer_clicks_a2a: Tuple = (
         2,
@@ -223,15 +237,15 @@ class TestData:
 
     @property
     def gremlin_homomer_o2a_sele(self) -> str:
-        return f'{self.gremlin_homomer_molecule} and c. {self.gremlin_homomer_chain} and i. {self.gremlin_homomer_o2a_pos}'
+        return f"{self.gremlin_homomer_molecule} and c. {self.gremlin_homomer_chain} and i. {self.gremlin_homomer_o2a_pos}"
 
     @property
     def gremlin_homomer_a2a_pse(self):
-        return f'{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.a2a.pze'
+        return f"{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.a2a.pze"
 
     @property
     def gremlin_homomer_o2a_pse(self):
-        return f'{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.o2a.pze'
+        return f"{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.o2a.pze"
 
     @property
     def used_molecules(self):
@@ -256,11 +270,11 @@ class KeyDataDuringTests:
 @dataclass()
 class TestDataOnLocalMac(TestData):
     test_data_repo: str = (
-        '/Users/yyy/Documents/protein_design/REvoDesign-test-data/'
+        "/Users/yyy/Documents/protein_design/REvoDesign-test-data/"
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(TestData.test_data_repo)
     print(TestData.post_fetch_spell)
     print(TestDataOnLocalMac.test_data_repo)

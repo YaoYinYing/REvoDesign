@@ -55,7 +55,7 @@ REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 logging: LoggerT = None  # type: ignore
 
-IO_MODE = Literal['r', 'w']
+IO_MODE = Literal["r", "w"]
 
 
 class REvoDesignPlugin(QtWidgets.QWidget):
@@ -72,9 +72,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus: ConfigBus = None
 
         self.designable_sequences: RosettaPyProteinSequence = None
-        self.design_molecule = ''
-        self.design_chain_id = ''
-        self.design_sequence = ''
+        self.design_molecule = ""
+        self.design_chain_id = ""
+        self.design_sequence = ""
 
         self.gremlin_worker = None
         self.evaluator = None
@@ -95,7 +95,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         except ImportError:
             warnings.warn(
                 issues.DisabledFunctionWarning(
-                    'Teamwork is disabled. Please install PyQt5.'
+                    "Teamwork is disabled. Please install PyQt5."
                 )
             )
             traceback.print_exc()
@@ -104,7 +104,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def fix_wd(self):
         pwd_0 = os.getcwd()
         pwd_2 = (
-            os.path.dirname(cmd.get('session_file'))
+            os.path.dirname(cmd.get("session_file"))
             if not is_empty_session()
             else None
         )
@@ -114,7 +114,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if pwd_2 and all(
             [
                 os.path.abspath(pwd)
-                == os.path.abspath(os.path.expanduser('~'))
+                == os.path.abspath(os.path.expanduser("~"))
                 for pwd in [pwd_0]
             ]
         ):
@@ -138,7 +138,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         # if dir is specified yet same as the PWD, return silently.
         if new_dir and os.path.abspath(new_dir) == os.path.abspath(self.PWD):
-            self.bus.set_value('work_dir', os.path.abspath(self.PWD))
+            self.bus.set_value("work_dir", os.path.abspath(self.PWD))
             return
 
         if new_dir and os.path.exists(new_dir):
@@ -147,7 +147,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.PWD = getExistingDirectory()
         os.chdir(self.PWD)
 
-        self.bus.set_value('work_dir', os.path.abspath(self.PWD))
+        self.bus.set_value("work_dir", os.path.abspath(self.PWD))
 
     def run_plugin_gui(self):
         """PyMOL entry for running the plugin"""
@@ -176,18 +176,22 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         gc.collect()
 
         if delete:
-            set_REvoDesign_config_file(delete_user_config_tree=True)
-            warnings.warn(
-                issues.ConflictWarning(
-                    'Reinitialized with default configuration. '
-                    'Restart REvoDesign to take effort.'
+            if decide(
+                "DANGEROUS!!!",
+                "You are reinitializing REvoDesign by DELETING the user configuration file.",
+            ):
+                set_REvoDesign_config_file(delete_user_config_tree=True)
+                warnings.warn(
+                    issues.ConflictWarning(
+                        "Reinitialized with default configuration. "
+                        "Restart REvoDesign to take effort."
+                    )
                 )
-            )
 
     def __del__(self):
         """Shutting down."""
         # self.reinitialize()
-        logging.warning('REvoDesign is shutting down.')
+        logging.warning("REvoDesign is shutting down.")
         if self.window:
             self.window = None
 
@@ -199,7 +203,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             QtWidgets.QMainWindow: new main window object
         """
         installed_dir = os.path.dirname(__file__)
-        logging.debug(f'REvoDesign is installed in {installed_dir}')
+        logging.debug(f"REvoDesign is installed in {installed_dir}")
 
         main_window = QtWidgets.QMainWindow()
         self.ui = Ui_REvoDesignPyMOL_UI()
@@ -226,15 +230,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.reload_configurations
         )
         self.bus.ui.actionSave_Configurations.triggered.connect(
-            self.save_configuration_from_ui
+            partial(
+                self.save_configuration_from_ui, experiment="global_config"
+            )
         )
 
         self.bus.ui.action_LoadExperiment.triggered.connect(
-            partial(self.load_and_save_experiment, mode='r')
+            partial(self.load_and_save_experiment, mode="r")
         )
 
         self.bus.ui.action_Save_to_Experiment.triggered.connect(
-            partial(self.load_and_save_experiment, mode='w')
+            partial(self.load_and_save_experiment, mode="w")
         )
 
         self.bus.ui.actionReinitialize.triggered.connect(
@@ -250,7 +256,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.actionVersion.triggered.connect(
             partial(
                 notify_box,
-                message=f'REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}',
+                message=f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}",
             )
         )
 
@@ -276,37 +282,37 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # set up nproc
 
         max_proc = CLIENT_INFO().nproc
-        self.bus.set_widget_value('ui.header_panel.nproc', (1, max_proc))
-        self.bus.set_widget_value('ui.header_panel.nproc', max_proc, hard=True)
+        self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
+        self.bus.set_widget_value("ui.header_panel.nproc", max_proc, hard=True)
 
         # Tab Client
         self.bus.ui.comboBox_chain_id.currentIndexChanged.connect(
             self.setup_pssm_gremlin_calculator,
         )
 
-        self.bus.button('submit_pssm_gremlin_job').clicked.connect(
+        self.bus.button("submit_pssm_gremlin_job").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_calc,
-                opt='submit',
+                opt="submit",
                 progress_bar=self.bus.ui.progressBar,
             )
         )
 
-        self.bus.button('cancel_pssm_gremlin_job').clicked.connect(
+        self.bus.button("cancel_pssm_gremlin_job").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_calc,
-                opt='cancel',
+                opt="cancel",
                 progress_bar=self.bus.ui.progressBar,
             )
         )
 
-        self.bus.button('download_pssm_gremlin_job').clicked.connect(
+        self.bus.button("download_pssm_gremlin_job").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.pssm_gremlin_calculator.submit_calc,
-                opt='download',
+                opt="download",
                 progress_bar=self.bus.ui.progressBar,
             )
         )
@@ -314,31 +320,31 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # Set up general arguments
         # Tab `Prepare`
 
-        self.bus.button('open_output_pse_pocket').clicked.connect(
-            partial(self.save_as_a_session, 'ui.prepare.input.pocket.to_pse')
+        self.bus.button("open_output_pse_pocket").clicked.connect(
+            partial(self.save_as_a_session, "ui.prepare.input.pocket.to_pse")
         )
 
-        self.bus.button('open_output_pse_surface').clicked.connect(
-            partial(self.save_as_a_session, 'ui.prepare.input.surface.to_pse')
+        self.bus.button("open_output_pse_surface").clicked.connect(
+            partial(self.save_as_a_session, "ui.prepare.input.surface.to_pse")
         )
 
-        self.bus.button('run_surface_refresh').clicked.connect(
+        self.bus.button("run_surface_refresh").clicked.connect(
             self.update_surface_exclusion
         )
 
         self.bus.ui.lineEdit_output_pse_surface.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.prepare.input.surface.to_pse',
-                'run_surface_detection',
+                "ui.prepare.input.surface.to_pse",
+                "run_surface_detection",
             )
         )
 
         self.bus.ui.lineEdit_output_pse_pocket.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.prepare.input.pocket.to_pse',
-                'run_pocket_detection',
+                "ui.prepare.input.pocket.to_pse",
+                "run_pocket_detection",
             )
         )
 
@@ -347,34 +353,34 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         # Connect run buttons
-        self.bus.button('dump_interfaces').clicked.connect(
+        self.bus.button("dump_interfaces").clicked.connect(
             self.run_chain_interface_detection
         )
-        self.bus.button('run_surface_detection').clicked.connect(
+        self.bus.button("run_surface_detection").clicked.connect(
             self.run_surface_detection
         )
-        self.bus.button('run_pocket_detection').clicked.connect(
+        self.bus.button("run_pocket_detection").clicked.connect(
             self.run_pocket_detection
         )
 
         # Tab `Mutate`
 
-        self.bus.button('open_output_pse_mutate').clicked.connect(
-            partial(self.save_as_a_session, 'ui.mutate.input.to_pse')
+        self.bus.button("open_output_pse_mutate").clicked.connect(
+            partial(self.save_as_a_session, "ui.mutate.input.to_pse")
         )
 
-        self.bus.button('open_customized_indices').clicked.connect(
+        self.bus.button("open_customized_indices").clicked.connect(
             partial(
                 self.open_file,
-                'ui.mutate.input.residue_ids',
+                "ui.mutate.input.residue_ids",
                 [FileExtentions.TXT, FileExtentions.Any],
             )
         )
 
-        self.bus.button('open_input_csv').clicked.connect(
+        self.bus.button("open_input_csv").clicked.connect(
             partial(
                 self.open_file,
-                'ui.mutate.input.profile',
+                "ui.mutate.input.profile",
                 [
                     FileExtentions.PSSM,
                     FileExtentions.Any,
@@ -386,39 +392,39 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.lineEdit_input_csv.textChanged.connect(
             partial(
                 self.determine_profile_format,
-                'ui.mutate.input.profile',
-                'ui.mutate.input.profile_type',
+                "ui.mutate.input.profile",
+                "ui.mutate.input.profile_type",
             )
         )
 
         self.bus.ui.lineEdit_output_pse_mutate.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.mutate.input.to_pse',
-                'run_PSSM_to_pse',
+                "ui.mutate.input.to_pse",
+                "run_PSSM_to_pse",
             )
         )
 
-        self.bus.button('run_PSSM_to_pse').clicked.connect(
+        self.bus.button("run_PSSM_to_pse").clicked.connect(
             self.run_mutant_loading_from_profile
         )
 
         # Tab `Evaluate`
-        self.bus.button('open_mut_table').clicked.connect(
+        self.bus.button("open_mut_table").clicked.connect(
             partial(
-                self.open_mutant_table, 'ui.evaluate.input.to_mutant_txt', 'w'
+                self.open_mutant_table, "ui.evaluate.input.to_mutant_txt", "w"
             )
         )
 
         self.bus.ui.lineEdit_output_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.evaluate.input.to_mutant_txt',
+                "ui.evaluate.input.to_mutant_txt",
                 [
-                    'previous_mutant',
-                    'reject_this_mutant',
-                    'next_mutant',
-                    'accept_this_mutant',
+                    "previous_mutant",
+                    "reject_this_mutant",
+                    "next_mutant",
+                    "accept_this_mutant",
                 ],
             )
         )
@@ -427,15 +433,15 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.set_pymol_session_rock
         )
 
-        self.bus.button('reinitialize_mutant_choosing').clicked.connect(
+        self.bus.button("reinitialize_mutant_choosing").clicked.connect(
             self.initialize_design_candidates,
         )
 
-        self.bus.button('goto_best_hit_in_group').clicked.connect(
+        self.bus.button("goto_best_hit_in_group").clicked.connect(
             self.jump_to_the_best_mutant,
         )
 
-        self.bus.button('load_mutant_choice_checkpoint').clicked.connect(
+        self.bus.button("load_mutant_choice_checkpoint").clicked.connect(
             self.recover_mutant_choices_from_checkpoint,
         )
 
@@ -447,69 +453,69 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.jump_to_a_mutant,
         )
 
-        self.bus.button('choose_lucky_mutant').clicked.connect(
+        self.bus.button("choose_lucky_mutant").clicked.connect(
             self.find_all_best_mutants,
         )
 
         # Tab `Cluster`
 
-        self.bus.button('open_mut_table_2').clicked.connect(
+        self.bus.button("open_mut_table_2").clicked.connect(
             partial(
-                self.open_mutant_table, 'ui.cluster.input.from_mutant_txt', 'r'
+                self.open_mutant_table, "ui.cluster.input.from_mutant_txt", "r"
             )
         )
 
         self.bus.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.cluster.input.from_mutant_txt',
-                'run_cluster',
+                "ui.cluster.input.from_mutant_txt",
+                "run_cluster",
             )
         )
 
-        self.bus.button('run_cluster').clicked.connect(self.run_clustering)
+        self.bus.button("run_cluster").clicked.connect(self.run_clustering)
 
         # Tab Visualize
 
         self.bus.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.visualize.input.to_pse',
-                'run_visualizing',
+                "ui.visualize.input.to_pse",
+                "run_visualizing",
             )
         )
 
         self.bus.ui.lineEdit_input_mut_table_csv.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.visualize.input.from_mutant_txt',
+                "ui.visualize.input.from_mutant_txt",
                 [
-                    'save_this_mutant_table',
-                    'reduce_this_session',
+                    "save_this_mutant_table",
+                    "reduce_this_session",
                 ],
             )
         )
 
-        self.bus.button('save_this_mutant_table').clicked.connect(
+        self.bus.button("save_this_mutant_table").clicked.connect(
             partial(
                 self.save_visualizing_mutant_tree,
-                'ui.visualize.input.from_mutant_txt',
-                'ui.visualize.input.group_name',
+                "ui.visualize.input.from_mutant_txt",
+                "ui.visualize.input.group_name",
             )
         )
 
         self.bus.ui.lineEdit_input_csv_2.textChanged.connect(
             partial(
                 self.determine_profile_format,
-                'ui.visualize.input.profile',
-                'ui.visualize.input.profile_type',
+                "ui.visualize.input.profile",
+                "ui.visualize.input.profile_type",
             )
         )
 
-        self.bus.button('open_input_csv_2').clicked.connect(
+        self.bus.button("open_input_csv_2").clicked.connect(
             partial(
                 self.open_file,
-                'ui.visualize.input.profile',
+                "ui.visualize.input.profile",
                 [
                     FileExtentions.PSSM,
                     FileExtentions.Any,
@@ -518,11 +524,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button('open_mut_table_csv').clicked.connect(
+        self.bus.button("open_mut_table_csv").clicked.connect(
             partial(
                 self.open_mutant_table,
-                'ui.visualize.input.from_mutant_txt',
-                'r',
+                "ui.visualize.input.from_mutant_txt",
+                "r",
             )
         )
 
@@ -530,23 +536,23 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.update_mutant_table_columns,
         )
 
-        self.bus.button('open_output_pse_visualize').clicked.connect(
+        self.bus.button("open_output_pse_visualize").clicked.connect(
             partial(
                 self.save_as_a_session,
-                'ui.visualize.input.to_pse',
+                "ui.visualize.input.to_pse",
             )
         )
 
-        self.bus.set_widget_value('ui.visualize.input.best_leaf', 'best_leaf')
+        self.bus.set_widget_value("ui.visualize.input.best_leaf", "best_leaf")
         self.bus.set_widget_value(
-            'ui.visualize.input.totalscore', 'totalscore'
+            "ui.visualize.input.totalscore", "totalscore"
         )
 
-        self.bus.button('run_visualizing').clicked.connect(
+        self.bus.button("run_visualizing").clicked.connect(
             self.visualize_mutants
         )
 
-        self.bus.button('reduce_this_session').clicked.connect(
+        self.bus.button("reduce_this_session").clicked.connect(
             partial(
                 self.reduce_current_session,
                 session=None,
@@ -559,23 +565,23 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                'ui.visualize.input.multi_design.to_mutant_txt',
+                "ui.visualize.input.multi_design.to_mutant_txt",
                 [
-                    'multi_design_export_mutants_from_table',
-                    'run_multi_design',
+                    "multi_design_export_mutants_from_table",
+                    "run_multi_design",
                 ],
             )
         )
 
-        self.bus.button('open_mut_table_csv_2').clicked.connect(
+        self.bus.button("open_mut_table_csv_2").clicked.connect(
             partial(
                 self.open_mutant_table,
-                'ui.visualize.input.multi_design.to_mutant_txt',
-                'w',
+                "ui.visualize.input.multi_design.to_mutant_txt",
+                "w",
             )
         )
 
-        self.bus.button('multi_design_initialize').clicked.connect(
+        self.bus.button("multi_design_initialize").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_initialize,
@@ -583,7 +589,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button('multi_design_start_new_design').clicked.connect(
+        self.bus.button("multi_design_start_new_design").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_start,
@@ -591,7 +597,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button('multi_design_left').clicked.connect(
+        self.bus.button("multi_design_left").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_undo_picking,
@@ -599,7 +605,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button('multi_design_right').clicked.connect(
+        self.bus.button("multi_design_right").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_pick_next_mut,
@@ -607,7 +613,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button('multi_design_end_this_design').clicked.connect(
+        self.bus.button("multi_design_end_this_design").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_stop_design,
@@ -616,7 +622,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         self.bus.button(
-            'multi_design_export_mutants_from_table'
+            "multi_design_export_mutants_from_table"
         ).clicked.connect(
             partial(
                 run_worker_thread_with_progress,
@@ -625,7 +631,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button('run_multi_design').clicked.connect(
+        self.bus.button("run_multi_design").clicked.connect(
             partial(
                 run_worker_thread_with_progress,
                 worker_function=self.multi_mutagenesis_design_auto,
@@ -635,10 +641,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # Tab Interact
 
-        self.bus.button('open_gremlin_mtx').clicked.connect(
+        self.bus.button("open_gremlin_mtx").clicked.connect(
             partial(
                 self.open_file,
-                'ui.interact.input.gremlin_pkl',
+                "ui.interact.input.gremlin_pkl",
                 [
                     FileExtentions.PickledObject,
                     FileExtentions.Any,
@@ -646,36 +652,36 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button('reinitialize_interact').clicked.connect(
+        self.bus.button("reinitialize_interact").clicked.connect(
             self.load_gremlin_mrf
         )
-        self.bus.button('run_interact_scan').clicked.connect(
+        self.bus.button("run_interact_scan").clicked.connect(
             self.run_gremlin_tool
         )
 
-        self.bus.button('open_save_mutant_table').clicked.connect(
+        self.bus.button("open_save_mutant_table").clicked.connect(
             partial(
                 self.open_mutant_table,
-                'ui.interact.input.to_mutant_txt',
-                'w',
+                "ui.interact.input.to_mutant_txt",
+                "w",
             )
         )
 
-        self.bus.button('interact_reject').clicked.connect(
+        self.bus.button("interact_reject").clicked.connect(
             partial(self.coevoled_mutant_decision, False)
         )
-        self.bus.button('interact_accept').clicked.connect(
+        self.bus.button("interact_accept").clicked.connect(
             partial(self.coevoled_mutant_decision, True)
         )
 
         # Tab socket
         self.generate_ws_server_key()
 
-        self.bus.button('ws_generate_randomized_key').clicked.connect(
+        self.bus.button("ws_generate_randomized_key").clicked.connect(
             self.generate_ws_server_key
         )
         self.bus.get_widget_from_cfg_item(
-            'ui.socket.use_key'
+            "ui.socket.use_key"
         ).stateChanged.connect(self.generate_ws_server_key)
 
         # Connect the partial function to the stateChanged signal
@@ -683,11 +689,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.toggle_ws_server_mode
         )
 
-        self.bus.button('ws_connect_to_server').clicked.connect(
+        self.bus.button("ws_connect_to_server").clicked.connect(
             partial(self.toggle_ws_client_connection, True)
         )
 
-        self.bus.button('ws_disconnect_from_server').clicked.connect(
+        self.bus.button("ws_disconnect_from_server").clicked.connect(
             partial(self.toggle_ws_client_connection, False)
         )
 
@@ -708,12 +714,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             partial(
                 refresh_widget_while_another_changed,
                 self.bus.get_widget_from_cfg_item(
-                    'ui.config.sidechain_solver.default'
+                    "ui.config.sidechain_solver.use"
                 ),
                 self.bus.get_widget_from_cfg_item(
-                    'ui.config.sidechain_solver.model'
+                    "ui.config.sidechain_solver.model"
                 ),
-                {c.name: [c.weights_preset, c.default_weight_preset] for c in all_runner_c if c.installed},
+                {
+                    c.name: [c.weights_preset, c.default_weight_preset]
+                    for c in all_runner_c
+                    if c.installed
+                },
             )
         )
 
@@ -725,7 +735,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     # class public function that can be shared with each tab
     # callback for the "Browse" button
     def browse_filename(
-        self, mode: IO_MODE = 'r', exts: tuple = (FileExtentions.Any,)
+        self, mode: IO_MODE = "r", exts: tuple = (FileExtentions.Any,)
     ):
         """Open Finder/Explorer to browse from a filename
 
@@ -738,16 +748,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             _type_: _description_
         """
 
-        filter_strings = ';;'.join(
+        filter_strings = ";;".join(
             [
-                f'{ext_discrition} ( *.{ext_} )'
+                f"{ext_discrition} ( *.{ext_} )"
                 for ext in exts
                 for ext_, ext_discrition in ext.items()
             ]
         )
 
-        if mode == 'w':
-            browse_title = 'Save As...'
+        if mode == "w":
+            browse_title = "Save As..."
             filename = getSaveFileNameWithExt(
                 self.window, browse_title, filter=filter_strings
             )
@@ -795,7 +805,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Returns:
             str: filepath of opened file.
         """
-        input_fn = self.browse_filename(mode='r', exts=exts)
+        input_fn = self.browse_filename(mode="r", exts=exts)
         if input_fn:
             self.bus.set_widget_value(cfg_item, input_fn)
             return input_fn
@@ -807,18 +817,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not is_empty_session():
             # remove alternative comformations
             cmd.remove('not alt ""+A')
-            cmd.alter('all', 'alt=""')
+            cmd.alter("all", 'alt=""')
             cmd.save(self.temperal_session)
             cmd.reinitialize()
             cmd.load(self.temperal_session)
         else:
             warnings.warn(
                 issues.EmptySessionWarning(
-                    'Current session is empty! Please load one PDB/PSE/PZE!'
+                    "Current session is empty! Please load one PDB/PSE/PZE!"
                 )
             )
             new_session_file = self.browse_filename(
-                mode='r',
+                mode="r",
                 exts=(
                     FileExtentions.Session,
                     FileExtentions.PDB,
@@ -828,14 +838,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             if not new_session_file:
                 warnings.warn(
                     issues.NoInputWarning(
-                        'Abored recognizing sessions from input.'
+                        "Abored recognizing sessions from input."
                     )
                 )
                 return
             elif not os.path.exists(new_session_file):
                 warnings.warn(
                     issues.NoInputWarning(
-                        f'File does not exist: {new_session_file}.'
+                        f"File does not exist: {new_session_file}."
                     )
                 )
                 return
@@ -844,11 +854,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 cmd.load(new_session_file)
                 # remove alternative comformations
                 cmd.remove('not alt ""+A')
-                cmd.alter('all', 'alt=""')
+                cmd.alter("all", 'alt=""')
                 cmd.save(self.temperal_session)
 
         self.bus.set_widget_value(
-            'ui.header_panel.input.molecule', find_design_molecules
+            "ui.header_panel.input.molecule", find_design_molecules
         )
 
     def save_as_a_session(self, cfg_to_pse: str):
@@ -858,7 +868,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             cfg_to_pse (str): Config item in ConfigBus
         """
         output_pse_fn = self.browse_filename(
-            mode='w',
+            mode="w",
             exts=(FileExtentions.Session, FileExtentions.Any),
         )
 
@@ -873,49 +883,51 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def update_chain_id(self):
         """Update chain ids for picked molecule."""
         molecule = self.bus.get_widget_value(
-            'ui.header_panel.input.molecule', str
+            "ui.header_panel.input.molecule", str
         )
         if not molecule:
             warnings.warn(
-                issues.NoInputWarning('No available designable molecule!')
+                issues.NoInputWarning("No available designable molecule!")
             )
             return
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
-        self.designable_sequences = RosettaPyProteinSequence.from_dict({
-            chain_id: get_molecule_sequence(
-                molecule=molecule,
-                chain_id=chain_id,
-                keep_missing=True,
-            )
-            for chain_id in chain_ids
-        })
+        self.designable_sequences = RosettaPyProteinSequence.from_dict(
+            {
+                chain_id: get_molecule_sequence(
+                    molecule=molecule,
+                    chain_id=chain_id,
+                    keep_missing=True,
+                )
+                for chain_id in chain_ids
+            }
+        )
         if chain_ids:
             self.bus.set_widget_value(
-                'ui.header_panel.input.chain_id', chain_ids
+                "ui.header_panel.input.chain_id", chain_ids
             )
             self.bus.set_widget_value(
-                'ui.header_panel.input.chain_id', chain_ids[0]
+                "ui.header_panel.input.chain_id", chain_ids[0]
             )
 
-            '''
+            """
             TODO
             omegaconf.errors.ConfigKeyError while trying to override
             a loaded designable sequences dict with another molecule
-            '''
+            """
             self.bus.set_value(
-                'designable_sequences', self.designable_sequences.as_dict
+                "designable_sequences", self.designable_sequences.as_dict
             )
 
         self.setup_pssm_gremlin_calculator()
 
-    def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = 'r'):
+    def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = "r"):
         """Open a mutant table file
 
         Args:
             cfg_mutant_table (str): Config item in ConfigBus
             mode (IO_MODE, optional): file operator mode. Defaults to 'r'.
         """
-        if mode == 'r':
+        if mode == "r":
             input_mut_txt_fn = self.open_file(
                 cfg_mutant_table,
                 [
@@ -928,7 +940,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.bus.set_widget_value(cfg_mutant_table, input_mut_txt_fn)
             else:
                 logging.warning(
-                    f'Could not open file for reading: {input_mut_txt_fn}'
+                    f"Could not open file for reading: {input_mut_txt_fn}"
                 )
         else:
             output_mut_txt_fn = self.browse_filename(
@@ -952,39 +964,39 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Returns:
             str: session path.
         """
-        session_path: str = cmd.get('session_file')
+        session_path: str = cmd.get("session_file")
 
         if not session_path:
             warnings.warn(
                 issues.EmptySessionWarning(
-                    'Session not found, please use a new session path to save.'
+                    "Session not found, please use a new session path to save."
                 )
             )
             return self.browse_filename(
-                mode='w', exts=(FileExtentions.Session,)
+                mode="w", exts=(FileExtentions.Session,)
             )
 
         if not os.path.exists(session_path):
             warnings.warn(
                 issues.NoInputWarning(
-                    'Invalid session file path, please use a new session path to save.'
+                    "Invalid session file path, please use a new session path to save."
                 )
             )
             return self.browse_filename(
-                mode='w', exts=(FileExtentions.Session,)
+                mode="w", exts=(FileExtentions.Session,)
             )
 
         if os.path.basename(session_path).startswith(
-            'tmp'
-        ) and session_path.endswith('.pse'):
+            "tmp"
+        ) and session_path.endswith(".pse"):
             warnings.warn(
                 issues.InvalidSessionWarning(
-                    f'Found temperal session path: {session_path}, '
-                    'please use a new session path to save.'
+                    f"Found temperal session path: {session_path}, "
+                    "please use a new session path to save."
                 )
             )
             return self.browse_filename(
-                mode='w', exts=(FileExtentions.Session,)
+                mode="w", exts=(FileExtentions.Session,)
             )
 
         return session_path
@@ -1001,28 +1013,28 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         flatten_path = os.path.join(
             self.PWD,
-            'expanded_compressed_files',
+            "expanded_compressed_files",
             os.path.basename(compressed_file),
         )
         os.makedirs(flatten_path, exist_ok=True)
         extract_archive(archive_file=compressed_file, extract_to=flatten_path)
         return flatten_path
 
-    '''
+    """
     Private functions used only in a specific tab.
-    '''
+    """
 
     # Tab Client
     def setup_pssm_gremlin_calculator(self):
         """Setup PSSM/GREMLIN calculation"""
 
         molecule = self.bus.get_widget_value(
-            'ui.header_panel.input.molecule', str
+            "ui.header_panel.input.molecule", str
         )
         chain_id = self.bus.get_widget_value(
-            'ui.header_panel.input.chain_id', str
+            "ui.header_panel.input.chain_id", str
         )
-        designable_sequences = self.bus.get_value('designable_sequences', dict)
+        designable_sequences = self.bus.get_value("designable_sequences", dict)
         if not designable_sequences:
             return
 
@@ -1032,7 +1044,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
 
         logging.debug(
-            f'Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}'
+            f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}"
         )
         if not isinstance(self.pssm_gremlin_calculator, PSSMGremlinCalculator):
             self.pssm_gremlin_calculator = PSSMGremlinCalculator()
@@ -1045,13 +1057,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 sequence=sequence,
             )
         self.pssm_gremlin_calculator.url = self.bus.get_widget_value(
-            'ui.client.pssm_gremlin_url', str
+            "ui.client.pssm_gremlin_url", str
         )
         self.pssm_gremlin_calculator.user = self.bus.get_widget_value(
-            'ui.client.pssm_gremlin_user', str
+            "ui.client.pssm_gremlin_user", str
         )
         self.pssm_gremlin_calculator.password = self.bus.get_widget_value(
-            'ui.client.pssm_gremlin_passwd', str
+            "ui.client.pssm_gremlin_passwd", str
         )
         if (
             self.pssm_gremlin_calculator.user
@@ -1068,24 +1080,24 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def reload_determine_tab_setup(self):
         """Setup pocket determination"""
         molecule = self.bus.get_widget_value(
-            'ui.header_panel.input.molecule', str
+            "ui.header_panel.input.molecule", str
         )
         if not molecule:
-            warnings.warn(issues.NoResultsWarning('No design molecule found.'))
+            warnings.warn(issues.NoResultsWarning("No design molecule found."))
             return
 
-        small_molecules = ['']
+        small_molecules = [""]
         if more_hetatm := find_small_molecules_in_protein(molecule):
             small_molecules.extend(more_hetatm)
             logging.info(f"Small molecules found: {more_hetatm}")
         else:
-            warnings.warn(issues.NoResultsWarning('No small molecule found.'))
+            warnings.warn(issues.NoResultsWarning("No small molecule found."))
 
         self.bus.set_widget_value(
-            'ui.prepare.input.pocket.substrate', small_molecules
+            "ui.prepare.input.pocket.substrate", small_molecules
         )
         self.bus.set_widget_value(
-            'ui.prepare.input.pocket.cofactor', small_molecules
+            "ui.prepare.input.pocket.cofactor", small_molecules
         )
 
     def update_surface_exclusion(self):
@@ -1093,27 +1105,27 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         exclusion_list = fetch_exclusion_expressions()
 
         self.bus.set_widget_value(
-            'ui.prepare.input.surface.exclusion', exclusion_list
+            "ui.prepare.input.surface.exclusion", exclusion_list
         )
         if exclusion_list:
             self.bus.get_widget_from_cfg_item(
-                'ui.prepare.input.surface.exclusion'
+                "ui.prepare.input.surface.exclusion"
             ).setCurrentIndex(0)
 
     def run_chain_interface_detection(self):
         """Setup chain-chain interface determination"""
-        molecule = self.bus.get_value('ui.header_panel.input.molecule')
-        radius = self.bus.get_value('ui.prepare.chain_dist', float)
+        molecule = self.bus.get_value("ui.header_panel.input.molecule")
+        radius = self.bus.get_value("ui.prepare.chain_dist", float)
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
         if not chain_ids or len(chain_ids) <= 1:
             return
 
         for chain_id in chain_ids:
             cmd.select(
-                f'if_{chain_id}',
-                f'({molecule} and c. {chain_id} ) and byres ({molecule} '
-                f'and polymer.protein and (not c. {chain_id})) '
-                f'around {radius} and polymer.protein',
+                f"if_{chain_id}",
+                f"({molecule} and c. {chain_id} ) and byres ({molecule} "
+                f"and polymer.protein and (not c. {chain_id})) "
+                f"around {radius} and polymer.protein",
             )
 
     def run_surface_detection(self):
@@ -1127,7 +1139,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """Run pocket determination"""
         pocketsearcher = PocketSearcher(
             input_pse=self.temperal_session,
-            save_dir=f'{self.PWD}/pockets/',
+            save_dir=f"{self.PWD}/pockets/",
         )
 
         pocketsearcher.search_pockets()
@@ -1145,7 +1157,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         """
         _fp = self.bus.get_widget_value(cfg_input_profile, str)
-        if _fp == 'None' or not _fp:
+        if _fp == "None" or not _fp:
             return
 
         profile_fp = os.path.abspath(_fp)
@@ -1162,10 +1174,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def run_mutant_loading_from_profile(self):
         """Run mutant loading from profile to session"""
 
-        trigger_button = self.bus.button('run_PSSM_to_pse')
+        trigger_button = self.bus.button("run_PSSM_to_pse")
 
-        with hold_trigger_button(trigger_button), timing(
-            'Run Mutant Loading from Profile'
+        with (
+            hold_trigger_button(trigger_button),
+            timing("Run Mutant Loading from Profile"),
         ):
             worker = MutateWorker()
 
@@ -1180,7 +1193,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             asyncio.run(
                 self.ws_broadcast_from_server(
                     data=worker.design.mutant_tree,
-                    data_type='MutantTree',
+                    data_type="MutantTree",
                 )
             )
         del worker
@@ -1190,7 +1203,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """Rock PyMOl view"""
         if not self.evaluator:
             raise issues.UnexpectedWorkflowError(
-                'Faild to call evaluator because it is not initialized.'
+                "Faild to call evaluator because it is not initialized."
             )
         self.evaluator.set_pymol_session_rock()
 
@@ -1209,10 +1222,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         if not self.evaluator:
             raise issues.UnexpectedWorkflowError(
-                'Faild to call evaluator because it is not initialized.'
+                "Faild to call evaluator because it is not initialized."
             )
         mutant_choice_checkpoint_fn = self.browse_filename(
-            mode='r',
+            mode="r",
             exts=(FileExtentions.Mutable, FileExtentions.Any),
         )
 
@@ -1227,7 +1240,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.evaluator:
             raise issues.UnexpectedWorkflowError(
-                'Faild to call evaluator because it is not initialized.'
+                "Faild to call evaluator because it is not initialized."
             )
         self.evaluator.jump_to_the_best_mutant()
 
@@ -1238,7 +1251,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.evaluator:
             raise issues.UnexpectedWorkflowError(
-                'Faild to call evaluator because it is not initialized.'
+                "Faild to call evaluator because it is not initialized."
             )
         self.evaluator.jump_to_branch()
 
@@ -1249,7 +1262,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.evaluator:
             raise issues.UnexpectedWorkflowError(
-                'Faild to call evaluator because it is not initialized.'
+                "Faild to call evaluator because it is not initialized."
             )
         self.evaluator.jump_to_a_mutant()
 
@@ -1260,7 +1273,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.evaluator:
             raise issues.UnexpectedWorkflowError(
-                'Faild to call evaluator because it is not initialized.'
+                "Faild to call evaluator because it is not initialized."
             )
         self.evaluator.find_all_best_mutants()
 
@@ -1270,7 +1283,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         The function `run_clustering` initializes a `ClusterRunner`
         object and runs the clustering process upon triggering a button press.
         """
-        trigger_button = self.bus.button('run_cluster')
+        trigger_button = self.bus.button("run_cluster")
 
         # lazy module loading to fasten plugin initializing
 
@@ -1279,7 +1292,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             PWD=self.PWD,
         )
 
-        with hold_trigger_button(trigger_button), timing('Clustering'):
+        with hold_trigger_button(trigger_button), timing("Clustering"):
             worker.run_clustering()
 
         del worker
@@ -1291,12 +1304,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         and sets them as values in combo boxes.
         """
         mut_table_fp = self.bus.get_widget_value(
-            'ui.visualize.input.from_mutant_txt'
+            "ui.visualize.input.from_mutant_txt"
         )
         if not os.path.exists(mut_table_fp):
             warnings.warn(
                 issues.NoInputWarning(
-                    f'Mutant Table path is not valid: {mut_table_fp}'
+                    f"Mutant Table path is not valid: {mut_table_fp}"
                 )
             )
             return
@@ -1306,16 +1319,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not mut_table_cols:
             warnings.warn(
                 issues.BadDataWarning(
-                    f'Mutant Table column names is not valid: {mut_table_cols}'
+                    f"Mutant Table column names is not valid: {mut_table_cols}"
                 )
             )
             return
 
         comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
-            'ui.visualize.input.best_leaf'
+            "ui.visualize.input.best_leaf"
         )
         comboBox_totalscore = self.bus.get_widget_from_cfg_item(
-            'ui.visualize.input.totalscore'
+            "ui.visualize.input.totalscore"
         )
 
         # set cols to combo boxes
@@ -1352,24 +1365,24 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         if not os.path.exists(mutant_table_fp):
             logging.warning(
-                'Mutant table path is not available. Now we will create one.'
+                "Mutant table path is not available. Now we will create one."
             )
 
         all_available_groups = cmd.get_names(
-            type='group_objects', enabled_only=0
+            type="group_objects", enabled_only=0
         )
         if group_name not in all_available_groups:
             logging.error(
-                f'Group {group_name} is not correct. Available group: {all_available_groups}'
+                f"Group {group_name} is not correct. Available group: {all_available_groups}"
             )
             return
 
-        logging.info('Instantializing MutantTree for current selection ... ')
+        logging.info("Instantializing MutantTree for current selection ... ")
         self.visualizing_mutant_tree = existed_mutant_tree(
             sequences=self.designable_sequences, enabled_only=1
         )
 
-        logging.info(f'Saving mutant table to {mutant_table_fp} ...')
+        logging.info(f"Saving mutant table to {mutant_table_fp} ...")
 
         save_mutant_choices(
             self.bus.get_value(cfg_mutant_table_fp),
@@ -1381,9 +1394,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         The `visualize_mutants` function triggers visualization of
         mutants and broadcasts the mutant tree data if conditions are met.
         """
-        trigger_button = self.bus.button('run_visualizing')
+        trigger_button = self.bus.button("run_visualizing")
 
-        with hold_trigger_button(trigger_button), timing('Visualizng Mutants'):
+        with hold_trigger_button(trigger_button), timing("Visualizng Mutants"):
             worker = VisualizingWorker()
             worker.visualize_mutants()
 
@@ -1396,7 +1409,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             asyncio.run(
                 self.ws_broadcast_from_server(
                     data=worker.visualizer.mutant_tree,
-                    data_type='MutantTree',
+                    data_type="MutantTree",
                 )
             )
 
@@ -1422,12 +1435,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             session = self.find_session_path()
 
         if reduce_disabled:
-            enabled_items = cmd.get_names('nongroup_objects', enabled_only=1)
-            all_items = cmd.get_names('nongroup_objects', enabled_only=0)
+            enabled_items = cmd.get_names("nongroup_objects", enabled_only=1)
+            all_items = cmd.get_names("nongroup_objects", enabled_only=0)
             for item in all_items:
                 if item not in enabled_items:
                     logging.warning(
-                        f'Reducing item {item} from current session ...'
+                        f"Reducing item {item} from current session ..."
                     )
                     cmd.delete(item)
                     cmd.refresh()
@@ -1443,7 +1456,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
                 if not confirmed:
                     session = self.browse_filename(
-                        mode='w', exts=(FileExtentions.Session,)
+                        mode="w", exts=(FileExtentions.Session,)
                     )
 
                 if not session:
@@ -1455,7 +1468,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         The function initializes a MultiMutantDesigner object.
         """
-        with hold_trigger_button(self.bus.button('multi_design_initialize')):
+        with hold_trigger_button(self.bus.button("multi_design_initialize")):
             self.multi_designer = MultiMutantDesigner()
 
     def multi_mutagenesis_design_start(self):
@@ -1463,17 +1476,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         if not self.multi_designer:
             raise issues.UnexpectedWorkflowError(
-                'Multi design is not initialized.'
+                "Multi design is not initialized."
             )
 
         with hold_trigger_button(
-            self.bus.button('multi_design_start_new_design')
+            self.bus.button("multi_design_start_new_design")
         ):
             self.multi_designer.refresh_options()
 
             if not self.multi_designer.in_design_multi_design_case.empty:
                 logging.warning(
-                    'Your current mutant multi-mutagenesis will be discarded!'
+                    "Your current mutant multi-mutagenesis will be discarded!"
                 )
 
                 # Ask whether to overide
@@ -1484,7 +1497,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
 
                 if not confirmed:
-                    logging.warning('Cancelled.')
+                    logging.warning("Cancelled.")
                     return
             self.multi_designer.start_new_design()
 
@@ -1494,12 +1507,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.multi_designer:
             raise issues.UnexpectedWorkflowError(
-                'Multi design is not initialized.'
+                "Multi design is not initialized."
             )
 
         with hold_trigger_button(
             buttons=self.bus.buttons(
-                button_ids=('multi_design_left', 'multi_design_right')
+                button_ids=("multi_design_left", "multi_design_right")
             )
         ):
             self.multi_designer.refresh_options()
@@ -1511,12 +1524,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.multi_designer:
             raise issues.UnexpectedWorkflowError(
-                'Multi design is not initialized.'
+                "Multi design is not initialized."
             )
 
         with hold_trigger_button(
             buttons=self.bus.buttons(
-                ('multi_design_left', 'multi_design_right')
+                ("multi_design_left", "multi_design_right")
             )
         ):
             self.multi_designer.refresh_options()
@@ -1528,11 +1541,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.multi_designer:
             raise issues.UnexpectedWorkflowError(
-                'Multi design is not initialized.'
+                "Multi design is not initialized."
             )
 
         with hold_trigger_button(
-            self.bus.button('multi_design_end_this_design')
+            self.bus.button("multi_design_end_this_design")
         ):
             self.multi_designer.refresh_options()
             if self.multi_designer.in_design_multi_design_case:
@@ -1544,11 +1557,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.multi_designer:
             raise issues.UnexpectedWorkflowError(
-                'Multi design is not initialized.'
+                "Multi design is not initialized."
             )
 
         with hold_trigger_button(
-            self.bus.button('multi_design_export_mutants_from_table')
+            self.bus.button("multi_design_export_mutants_from_table")
         ):
             self.multi_designer.export_designed_variant()
 
@@ -1556,13 +1569,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         Automates the process of designing multiple mutagenesis variants.
         """
-        trigger_button = self.bus.button('run_multi_design')
+        trigger_button = self.bus.button("run_multi_design")
 
         # initialize
         self.multi_mutagenesis_design_initialize()
         if not self.multi_designer:
             raise issues.UnexpectedWorkflowError(
-                'Multi design failed in initializing.'
+                "Multi design failed in initializing."
             )
 
         max_num_multi_design_cases = self.multi_designer.total_design_cases
@@ -1570,16 +1583,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         maximal_mutant_num = self.multi_designer.maximal_mutant_num
         self.multi_designer.refresh_options()
 
-        with hold_trigger_button(trigger_button), timing(
-            'Automatic multi-design'
+        with (
+            hold_trigger_button(trigger_button),
+            timing("Automatic multi-design"),
         ):
             try:
                 for i in range(max_num_multi_design_cases):
-                    logging.info(f'Starting {i}-th mutagenesis variant case')
+                    logging.info(f"Starting {i}-th mutagenesis variant case")
                     self.multi_mutagenesis_design_start()
                     # pick mutant until it reaches the required number
                     for j in range(maximal_mutant_num):
-                        logging.info(f'Picking {j}-th mutagenesis')
+                        logging.info(f"Picking {j}-th mutagenesis")
                         self.multi_mutagenesis_design_pick_next_mut()
                     self.multi_mutagenesis_design_stop_design()
                 self.multi_mutagenesis_design_save_design()
@@ -1591,9 +1605,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         Loads a GREMLIN MRF for interaction analysis.
         """
-        trigger_button = self.bus.button('reinitialize_interact')
+        trigger_button = self.bus.button("reinitialize_interact")
 
-        with hold_trigger_button(trigger_button), timing('Load GREMLIN mrf'):
+        with hold_trigger_button(trigger_button), timing("Load GREMLIN mrf"):
             self.gremlin_worker = GREMLIN_Analyser()
             self.gremlin_worker.load_gremlin_mrf()
 
@@ -1603,13 +1617,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.gremlin_worker:
             raise issues.UnexpectedWorkflowError(
-                'Gremlin tool is not started.'
+                "Gremlin tool is not started."
             )
 
-        trigger_button = self.bus.button('run_interact_scan')
+        trigger_button = self.bus.button("run_interact_scan")
 
-        with hold_trigger_button(trigger_button), timing(
-            'GREMLIN interaction scanning'
+        with (
+            hold_trigger_button(trigger_button),
+            timing("GREMLIN interaction scanning"),
         ):
             self.gremlin_worker.run_gremlin_tool()
 
@@ -1623,7 +1638,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         if not self.gremlin_worker:
             raise issues.UnexpectedWorkflowError(
-                'Gremlin tool is not started.'
+                "Gremlin tool is not started."
             )
         self.gremlin_worker.coevoled_mutant_decision(accept=decision_to_accept)
 
@@ -1631,12 +1646,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         Generates a strong password key for a WebSocket server.
         """
-        use_key = self.bus.get_widget_value('ui.socket.use_key', str)
+        use_key = self.bus.get_widget_value("ui.socket.use_key", str)
         if not use_key:
             return
 
         self.bus.set_widget_value(
-            'ui.socket.input.key', generate_strong_password(length=32)
+            "ui.socket.input.key", generate_strong_password(length=32)
         )
 
     def setup_ws_server(self):
@@ -1653,15 +1668,15 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         # not instantialized or not running
         if not self.ws_server or not self.ws_server.is_running:
-            logging.warning('Server is not in service.')
+            logging.warning("Server is not in service.")
             return
 
         # do changes
         self.ws_server.view_broadcast_enabled = self.bus.get_widget_value(
-            'ui.socket.broadcast.view', bool
+            "ui.socket.broadcast.view", bool
         )
         self.ws_server.view_broadcast_interval = self.bus.get_widget_value(
-            'ui.socket.broadcast.interval', float
+            "ui.socket.broadcast.interval", float
         )
 
         # disabled
@@ -1669,24 +1684,24 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             if self.ws_server.view_broadcast_on_air:
                 self.ws_server.view_broadcast_worker.interrupt()
                 self.ws_server.view_broadcast_on_air = False
-                logging.warning('Stop broadcasting view.')
+                logging.warning("Stop broadcasting view.")
                 return
             logging.warning(
-                'Server is not broadcasting view changes. Do nothing.'
+                "Server is not broadcasting view changes. Do nothing."
             )
             return
 
         # no clients
         if not self.ws_server.meetingroom:
             logging.warning(
-                'Server has no client, ignore view updating. Do nothing.'
+                "Server has no client, ignore view updating. Do nothing."
             )
             self.ws_server.view_broadcast_on_air = False
             return
 
         # already on air
         if self.ws_server.view_broadcast_on_air:
-            logging.warning('Server is broadcasting view changes! Do nothing.')
+            logging.warning("Server is broadcasting view changes! Do nothing.")
             return
 
         # start broadcaster
@@ -1699,7 +1714,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.ws_server.view_broadcast_on_air = True
         self.ws_server.view_broadcast_worker.run()
 
-        logging.warning('Start broadcasting view.')
+        logging.warning("Start broadcasting view.")
         return
 
     # Assuming toggle_ws_server_mode gets triggered on
@@ -1709,7 +1724,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Toggles the WebSocket server mode based on the value of a widget
         and logs the server status.
         """
-        toggled = self.bus.get_widget_value('ui.socket.server_mode', bool)
+        toggled = self.bus.get_widget_value("ui.socket.server_mode", bool)
 
         try:
             if not self.ws_server.initialized:
@@ -1718,17 +1733,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             if toggled:
                 if self.ws_server.is_running:
                     logging.warning(
-                        'Server is already in running state. Do nothing.'
+                        "Server is already in running state. Do nothing."
                     )
                     return
 
                 else:
-                    logging.info('Server is launching...')
+                    logging.info("Server is launching...")
                     self.setup_ws_server()
 
             else:
                 if not self.ws_server.is_running:
-                    logging.warning('Server is already stopped. Do nothing.')
+                    logging.warning("Server is already stopped. Do nothing.")
                     return
                 self.ws_server.stop_server()
         except Exception as e:
@@ -1761,11 +1776,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         connected.
         """
         if not self.ws_client or not self.ws_client.connected:
-            logging.warning('Client is not connected')
+            logging.warning("Client is not connected")
             return
 
         self.ws_client.receive_view_broadcast = self.bus.get_widget_value(
-            'ui.socket.receive.view', bool
+            "ui.socket.receive.view", bool
         )
 
     def toggle_ws_client_connection(self, connect: bool = True):
@@ -1796,7 +1811,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         self.setup_ws_client()
         if self.ws_client.connected:
-            logging.warning('Client has already connected. Do noting.')
+            logging.warning("Client has already connected. Do noting.")
             return
         self.ws_client.connect_to_server()
 
@@ -1806,10 +1821,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         closing the connection.
         """
         if not self.ws_client.initialized:
-            logging.warning('Client is not initialized. Do noting.')
+            logging.warning("Client is not initialized. Do noting.")
             return
         if not self.ws_client.connected:
-            logging.warning('Client has already disconneced. Do noting.')
+            logging.warning("Client has already disconneced. Do noting.")
             return
         self.ws_client.close_connection()
 
@@ -1824,10 +1839,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             configurations need to be reloaded. Defaults to None.
         """
         if self.bus:
-            logging.warning('Reconfiguring with changes...')
+            logging.warning("Reconfiguring with changes...")
             reconfigure = True
         else:
-            logging.warning('Configuration initialized.')
+            logging.warning("Configuration initialized.")
             reconfigure = False
 
         if not reconfigure:
@@ -1835,11 +1850,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # create a bus btw cfg<---> ui
             ConfigBus.initialize(ui=self.ui)
             self.bus = ConfigBus()
-            self.bus.initialize_widget_with_cfg_group()
+            self.bus.initialize_widget_with_group()
 
         elif experiment:
             # while loading experiment
-            expected_experiment_config = f'{experiment}.yaml'
+            expected_experiment_config = f"{experiment}.yaml"
 
             if os.path.exists(
                 os.path.join(
@@ -1847,8 +1862,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             ):
                 self.bus.cfg = reload_config_file(
-                    config_name=f'experiments/{experiment}'
-                )['experiments']
+                    config_name=f"experiments/{experiment}"
+                )["experiments"]
         else:
             # simply reload from default config, discard unsaved.
             self.bus.cfg = reload_config_file()
@@ -1868,7 +1883,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 widget, OmegaConf.select(self.bus.cfg, config_item)
             )
 
-    def save_configuration_from_ui(self, experiment: Optional[str] = None):
+    def save_configuration_from_ui(self, experiment: str = "global_config"):
         """Saves a configuration from the user interface with an optional
         experiment name.
 
@@ -1877,9 +1892,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             experiment being saved. It is an optional parameter, meaning
             it can be None if not provided. Defaults to None.
         """
+        logging.warning(f"Saving configuration as {experiment}")
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
 
-    def load_and_save_experiment(self, mode: IO_MODE = 'r'):
+    def load_and_save_experiment(self, mode: IO_MODE = "r"):
         """Loads and saves experiment configurations, copying files
         between directories based on the specified mode.
 
@@ -1895,23 +1911,23 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not new_cfg_file:
             return
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
-        new_cfg_prefix = new_cfg_base_name.rstrip('.yaml')
+        new_cfg_prefix = new_cfg_base_name.rstrip(".yaml")
         experiment_file = os.path.join(
             EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
         )
-        if mode == 'r':
+        if mode == "r":
             # copy cfg to experiment dir so that hydra can access it
             shutil.copy(new_cfg_file, experiment_file)
             self.reload_configurations(experiment=new_cfg_prefix)
             logging.warning(
-                f'Load config from {new_cfg_file}, backup at {experiment_file}'
+                f"Load config from {new_cfg_file}, backup at {experiment_file}"
             )
         else:
             self.save_configuration_from_ui(
-                experiment=f'experiments/{new_cfg_prefix}'
+                experiment=f"experiments/{new_cfg_prefix}"
             )
             # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
             shutil.copy(experiment_file, new_cfg_file)
             logging.warning(
-                f'saved config at {new_cfg_file}, backup at {experiment_file}'
+                f"saved config at {new_cfg_file}, backup at {experiment_file}"
             )

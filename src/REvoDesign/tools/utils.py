@@ -19,7 +19,7 @@ from .customized_widgets import WorkerThread, refresh_window
 logging = root_logger.getChild(__name__)
 
 
-def run_command(excutable='python', command_list=[]):
+def run_command(excutable="python", command_list=[]):
     """
     Run a command using subprocess and return the result.
 
@@ -35,12 +35,12 @@ def run_command(excutable='python', command_list=[]):
     - Handles the execution of the specified command and arguments.
     - Logs the command_list for debugging purposes.
     """
-    if excutable == 'python':
+    if excutable == "python":
         python_exe = os.path.realpath(sys.executable)
         command_list = [python_exe] + command_list
 
-    while '' in command_list:
-        command_list.remove('')
+    while "" in command_list:
+        command_list.remove("")
 
     if not command_list:
         return
@@ -197,19 +197,19 @@ def extract_archive(archive_file, extract_to):
 
     try:
         if archive_file.endswith(".zip"):
-            with zipfile.ZipFile(archive_file, 'r') as zip_ref:
+            with zipfile.ZipFile(archive_file, "r") as zip_ref:
                 zip_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
         elif archive_file.endswith((".tar.gz", ".tgz")):
-            with tarfile.open(archive_file, 'r:*') as tar_ref:
+            with tarfile.open(archive_file, "r:*") as tar_ref:
                 tar_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
         elif archive_file.endswith((".tar.bz2", ".tbz")):
-            with tarfile.open(archive_file, 'r:bz2') as tar_ref:
+            with tarfile.open(archive_file, "r:bz2") as tar_ref:
                 tar_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
         elif archive_file.endswith(".tar.xz"):
-            with tarfile.open(archive_file, 'r:xz') as tar_ref:
+            with tarfile.open(archive_file, "r:xz") as tar_ref:
                 tar_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
         else:
@@ -261,10 +261,10 @@ def cmap_reverser(cmap: str, reverse: bool = False) -> str:
     - str: Reversed colormap name if 'reverse' is True, otherwise returns the original colormap name.
     """
     if reverse:
-        if cmap.endswith('_r'):
-            cmap = cmap.replace('_r', '')
+        if cmap.endswith("_r"):
+            cmap = cmap.replace("_r", "")
         else:
-            cmap += '_r'
+            cmap += "_r"
 
     return cmap
 
@@ -370,7 +370,7 @@ def generate_strong_password(length=16):
     )
 
     # Generate the password using random characters from the defined set
-    generated_password = ''.join(
+    generated_password = "".join(
         random.choice(password_characters) for _ in range(length)
     )
 
@@ -380,8 +380,8 @@ def generate_strong_password(length=16):
 # modified from AlphaFold
 @contextlib.contextmanager
 def timing(msg: str):
-    logging.info(f'Started {msg}')
+    logging.info(f"Started {msg}")
     tic = time.perf_counter()
     yield
     toc = time.perf_counter()
-    logging.info(f'Finished {msg} in {toc - tic:.3f} seconds')
+    logging.info(f"Finished {msg} in {toc - tic:.3f} seconds")

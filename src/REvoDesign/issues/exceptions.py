@@ -32,7 +32,7 @@ class ConfigureOutofDateError(ConfigureError):
 
 
 class UnexpectedWorkflowError(REvoDesignException):
-    '''Exception raised when an analysis is not run as expected workflow'''
+    """Exception raised when an analysis is not run as expected workflow"""
 
 
 class NoInputError(ValueError):

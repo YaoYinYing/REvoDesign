@@ -34,8 +34,9 @@ class DLPacker_worker(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
-    name: str = 'DLPacker'
-    installed: bool = is_package_installed('DLPacker')
+
+    name: str = "DLPacker"
+    installed: bool = is_package_installed("DLPacker")
 
     def __init__(self, pdb_file: str, radius: float = 0.0, **kwargs):
         """
@@ -51,11 +52,11 @@ class DLPacker_worker(MutateRunnerAbstract):
         cache_dir = set_cache_dir()
 
         expected_dlpacker_weight_cache_dir = os.path.join(
-            os.path.abspath(cache_dir), 'weights', 'DLPacker'
+            os.path.abspath(cache_dir), "weights", "DLPacker"
         )
-        os.environ[
-            'DLPACKER_PRETRAINED_WEIGHT'
-        ] = expected_dlpacker_weight_cache_dir
+        os.environ["DLPACKER_PRETRAINED_WEIGHT"] = (
+            expected_dlpacker_weight_cache_dir
+        )
 
         self.pdb_file = pdb_file
         self.reconstruct_area_radius = radius
@@ -81,7 +82,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             f'{os.path.basename(self.pdb_file).removesuffix(".pdb")}_reconstructed.pdb',
         )
         dlpacker_worker.reconstruct_protein(
-            order='sequence', output_filename=temperal_relaxed_pdb
+            order="sequence", output_filename=temperal_relaxed_pdb
         )
         del dlpacker_worker
         return temperal_relaxed_pdb
@@ -106,15 +107,19 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
 
-        logging.debug(f'Mutating {mutant=}')
+        logging.debug(f"Mutating {mutant=}")
         new_obj_name = mutant.short_mutant_id
 
         temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
         for mut_info in mutant.mutations:
 
-            new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
-            wt_residue_3 = IUPACData.protein_letters_1to3[mut_info.wt_res].upper()
+            new_residue_3 = IUPACData.protein_letters_1to3[
+                mut_info.mut_res
+            ].upper()
+            wt_residue_3 = IUPACData.protein_letters_1to3[
+                mut_info.wt_res
+            ].upper()
 
             dlpacker_worker.mutate_sequence(
                 target=(mut_info.position, mut_info.chain_id, wt_residue_3),
@@ -126,11 +131,11 @@ class DLPacker_worker(MutateRunnerAbstract):
             reconstruct_area_radius=self.reconstruct_area_radius,
         )
         logging.debug(
-            f'Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}'
+            f"Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}"
         )
         dlpacker_worker.reconstruct_region(
             targets=reconstruct_area,
-            order='natoms' if self.reconstruct_area_radius > 0 else 'sequence',
+            order="natoms" if self.reconstruct_area_radius > 0 else "sequence",
             output_filename=temp_pdb_path,
         )
 
@@ -159,18 +164,26 @@ class DLPacker_worker(MutateRunnerAbstract):
         reconstruct_area = []
         for mut_info in mutant_obj.mutations:
 
-            new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
+            new_residue_3 = IUPACData.protein_letters_1to3[
+                mut_info.mut_res
+            ].upper()
             if reconstruct_area_radius <= 0:
                 logging.debug(
-                    f'Adding {(mut_info.position, mut_info.chain_id, new_residue_3)} for reconstruction ...'
+                    f"Adding {(mut_info.position, mut_info.chain_id, new_residue_3)} for reconstruction ..."
                 )
-                reconstruct_area.append((mut_info.position, mut_info.chain_id, new_residue_3))
+                reconstruct_area.append(
+                    (mut_info.position, mut_info.chain_id, new_residue_3)
+                )
             else:
                 _ = dlpacker_worker.get_targets(
-                    target=(mut_info.position, mut_info.chain_id, new_residue_3),
+                    target=(
+                        mut_info.position,
+                        mut_info.chain_id,
+                        new_residue_3,
+                    ),
                     radius=reconstruct_area_radius,
                 )
-                print(f'Adding {_} for relax...')
+                print(f"Adding {_} for relax...")
                 reconstruct_area.extend(_)
 
         if reconstruct_area:
@@ -180,7 +193,9 @@ class DLPacker_worker(MutateRunnerAbstract):
         return reconstruct_area
 
     def run_mutate_parallel(
-        self, mutants: List[Mutant], nproc: int = 2,
+        self,
+        mutants: List[Mutant],
+        nproc: int = 2,
     ) -> List[str]:
         """
         Perform mutation on the protein in parallel.
@@ -200,7 +215,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             logging.warning(f"Fixed {nproc=} to {num_task=}")
             nproc = num_task
 
-        results = Parallel(n_jobs=nproc, return_as='list')(
+        results = Parallel(n_jobs=nproc, return_as="list")(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
 
@@ -208,7 +223,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         return list(results)  # type: ignore
 
     __bibtex__ = {
-        'DLPacker': r"""@article{https://doi.org/10.1002/prot.26311,
+        "DLPacker": r"""@article{https://doi.org/10.1002/prot.26311,
 author = {Misiura, Mikita and Shroff, Raghav and Thyer, Ross and Kolomeisky, Anatoly B.},
 title = {DLPacker: Deep learning for prediction of amino acid side chain conformations in proteins},
 journal = {Proteins: Structure, Function, and Bioinformatics},

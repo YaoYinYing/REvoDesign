@@ -1,7 +1,7 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
-PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0
+PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv
 PYTEST_CASES_PATH=../tests/cases
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
@@ -203,6 +203,6 @@ clean:
 	find . -name "*.cif" -exec rm -v {} \;
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py tests/testdata/pssm/1nww_A_ascii_mtx_file.csv
 	rm -rvf $(TESTDIR) dask-worker-space
-	rm -rvf logs surface_residue_records downloaded mutations_design_profile pockets temperal_pdb expanded_compressed_files analysis screenshots
+	rm -rvf logs surface_residue_records mutations_design_profile pockets temperal_pdb analysis screenshots
 	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ gremlin_co_evolved_pairs/ seg_chain_resn_sel/ seg_chainA_resn_sel/ mutant_pdbs/
 	git clean -ffdx

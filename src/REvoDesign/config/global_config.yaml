@@ -70,6 +70,7 @@ ui:
       default: PAM30
     batch_size: 100
     shuffle: True
+    mutate_relax: False
     
   
   visualize:
@@ -129,35 +130,27 @@ ui:
       mutagenesis: True
       view: False
 
-
     receive:
       mutagenesis: True
       view: False
 
-
-
   config: 
     sidechain_solver:
-      group:
-        - Dunbrack Rotamer Library
-        - DLPacker
-        - PIPPack
-      default: DLPacker
-
+      use: "Dunbrack Rotamer Library"
       model: ''
       repack_radius: 0.0
 
+rosetta: 
+  node_hint: native
+  native: 
+    bin_path: 
+  node_config: 
 
-profile:
-  group:
-    - PSSM
-    - CSV
-    - TSV
-    - Pythia-ddG
-designer:
-  group:
-    - ''
-    - ProteinMPNN
+  cart_ddg:
+    use_legacy: False
+    relax:
+      nstruct: 4
+    iterations: 3
 
 
 log:

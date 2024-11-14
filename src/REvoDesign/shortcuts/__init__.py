@@ -24,21 +24,21 @@ def pssm2csv(pssm: str) -> None:
     Returns:
         None
     """
-    logging.info(f'Converting {pssm}...')
-    p = PSSM_Parser(profile_input=pssm, molecule='', chain_id='', sequence='')
+    logging.info(f"Converting {pssm}...")
+    p = PSSM_Parser(profile_input=pssm, molecule="", chain_id="", sequence="")
     p.parse()
 
-    expected_csv = f'{pssm}.csv'
+    expected_csv = f"{pssm}.csv"
     if not os.path.exists(expected_csv):
-        warnings.warn(issues.NoResultsWarning(f'Expected {expected_csv=}'))
+        warnings.warn(issues.NoResultsWarning(f"Expected {expected_csv=}"))
 
     logging.info(expected_csv)
 
 
-cmd.extend('pssm2csv', pssm2csv)
+cmd.extend("pssm2csv", pssm2csv)
 
 
-def real_sc(selection='(all)', representation='lines', hydrogen=False):
+def real_sc(selection="(all)", representation="lines", hydrogen=False):
     """
     DESCRIPTION
         Set the representation of a molecular structure focusing on the sidechain or alpha carbon.
@@ -60,7 +60,7 @@ def real_sc(selection='(all)', representation='lines', hydrogen=False):
         - The selection is modified to include sidechain or alpha carbon and exclude hydrogens if hydrogen is False.
         - Available representations: 'lines', 'sticks', 'spheres', 'dots'.
     """
-    if representation not in ['lines', 'sticks', 'spheres', 'dots']:
+    if representation not in ["lines", "sticks", "spheres", "dots"]:
         return
     if not selection:
         return
@@ -71,11 +71,11 @@ def real_sc(selection='(all)', representation='lines', hydrogen=False):
     )
 
 
-cmd.extend('real_sc', real_sc)
+cmd.extend("real_sc", real_sc)
 
 
-def color_by_plddt(selection="all", align_target=0, chain_to_align='A'):
-    '''
+def color_by_plddt(selection="all", align_target=0, chain_to_align="A"):
+    """
     AUTHOR
             Yinying Yao
 
@@ -94,7 +94,7 @@ def color_by_plddt(selection="all", align_target=0, chain_to_align='A'):
         EXAMPLE
                         color_by_plddt protein_ranked_*, 1, B
 
-    '''
+    """
     # Alphafold color scheme for plddt
     cmd.set_color("high_lddt_c", [0, 0.325490196078431, 0.843137254901961])
     cmd.set_color(
@@ -151,39 +151,39 @@ def color_by_plddt(selection="all", align_target=0, chain_to_align='A'):
         chain_list = cmd.get_chains(selection=target)
         if chain_to_align not in chain_list:
             print(
-                f'You set chain_to_align as {chain_to_align}, while this chain is not available '
-                f'in object {target} chains: {chain_list}.'
+                f"You set chain_to_align as {chain_to_align}, while this chain is not available "
+                f"in object {target} chains: {chain_list}."
             )
-            print(f'Trying to set target chain as {chain_list[0]}')
+            print(f"Trying to set target chain as {chain_list[0]}")
             chain_to_align = chain_list[0]
 
         # align all decoy to the very best one with only trustable regions
         cmd.select(
-            'align_temp',
-            f'({target}) and chain {chain_to_align} and (high_lddt or normal_lddt)',
+            "align_temp",
+            f"({target}) and chain {chain_to_align} and (high_lddt or normal_lddt)",
         )
 
         # hide other objects if we dont align all to this align template
         cmd.select(
-            'not_aligned_but_enabled', f"(enabled) and not ({selection})"
+            "not_aligned_but_enabled", f"(enabled) and not ({selection})"
         )
-        cmd.disable('not_aligned_but_enabled')
+        cmd.disable("not_aligned_but_enabled")
         # cmd.enable(selection)
 
         # perform an 'alignto' operation to the selection
-        util.mass_align('align_temp', 1, _self=cmd)
+        util.mass_align("align_temp", 1, _self=cmd)
         # cmd.cealign(target='align_temp',mobile=selection)
 
         # re-enable the disabled objects
-        cmd.enable('not_aligned_but_enabled')
-        cmd.delete('not_aligned_but_enabled')
+        cmd.enable("not_aligned_but_enabled")
+        cmd.delete("not_aligned_but_enabled")
 
 
 def find_interface(
-    selection='all',
+    selection="all",
     interact_dist=4,
 ):
-    '''
+    """
     AUTHOR
                     Yinying Yao
 
@@ -201,15 +201,15 @@ def find_interface(
     EXAMPLE
                     find_interface protein_ranked_*, 4
 
-    '''
-    print('Searching interface ...')
+    """
+    print("Searching interface ...")
     for x in cmd.get_names(selection=f"({selection})"):
         chains_in_this_obj = cmd.get_chains(x)
         if len(chains_in_this_obj) <= 1:
-            print(f'{x} may not be a multiple chain protein!')
+            print(f"{x} may not be a multiple chain protein!")
             continue
         for ch in itertools.combinations(chains_in_this_obj, 2):
-            ch_combination = ''.join(ch)
+            ch_combination = "".join(ch)
             print(f"{x} has chain combination {ch_combination}")
             cmd.select(
                 f"{x}_interface_{ch_combination}_{interact_dist}",
@@ -225,7 +225,7 @@ def find_interface(
             )
             if len(ifc_residues) == 0:
                 print(
-                    f'No interact residue is found btw {x} chain {ch_combination} within {interact_dist} angstrom.'
+                    f"No interact residue is found btw {x} chain {ch_combination} within {interact_dist} angstrom."
                 )
                 continue
             ifc_residues.sort()
@@ -239,7 +239,7 @@ cmd.extend("find_interface", find_interface)
 # see https://pymolwiki.org/index.php/Color_By_Mutations
 
 
-'''
+"""
 created by Christoph Malisi.
 
 Creates an alignment of two proteins and superimposes them.
@@ -248,11 +248,11 @@ colored according to their difference in the BLOSUM90 matrix.
 Is meant to be used for similar proteins, e.g. close homologs or point mutants,
 to visualize their differences.
 
-'''
+"""
 
 
 # Yinying replaced the original blosum90 matrix with biopython code.
-blosum90 = substitution_matrices.load('BLOSUM90')
+blosum90 = substitution_matrices.load("BLOSUM90")
 
 aa_3l = {}
 for i, x in enumerate(blosum90.alphabet):
@@ -265,16 +265,16 @@ aa_3l = immutabledict(aa_3l)
 
 
 def getBlosum90ColorName(aa1, aa2):
-    '''returns a rgb color name of a color that represents the similarity of the two residues according to
+    """returns a rgb color name of a color that represents the similarity of the two residues according to
     the BLOSUM90 matrix. the color is on a spectrum from blue to red, where blue is very similar, and
-    red very disimilar.'''
+    red very disimilar."""
     # return red for residues that are not part of the 20 amino acids
     if aa1 not in aa_3l or aa2 not in aa_3l:
-        return 'red'
+        return "red"
 
     # if the two are the same, return blue
     if aa1 == aa2:
-        return 'blue'
+        return "blue"
     i1 = aa_3l[aa1]
     i2 = aa_3l[aa2]
     b = blosum90[i1][i2]
@@ -287,12 +287,12 @@ def getBlosum90ColorName(aa1, aa2):
 
     # red = [1.0, 0.0, 0.0], blue = [0.0, 0.0, 1.0]
     bcolor = (1.0 - b, 0.0, b)
-    col_name = '0x%02x%02x%02x' % tuple(int(b * 0xFF) for b in bcolor)
+    col_name = "0x%02x%02x%02x" % tuple(int(b * 0xFF) for b in bcolor)
     return col_name
 
 
 def color_by_mutation(obj1, obj2, waters=0, labels=0):
-    '''
+    """
     DESCRIPTION
 
                     Creates an alignment of two proteins and superimposes them.
@@ -326,20 +326,20 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
     SEE ALSO
 
                     super
-    '''
+    """
     from pymol import CmdException, stored
 
     if cmd.count_atoms(obj1) == 0:
-        print('%s is empty' % obj1)
+        print("%s is empty" % obj1)
         return
     if cmd.count_atoms(obj2) == 0:
-        print('%s is empty' % obj2)
+        print("%s is empty" % obj2)
         return
     waters = int(waters)
     labels = int(labels)
 
     # align the two proteins
-    aln = '__aln'
+    aln = "__aln"
 
     # first, an alignment with 0 cycles (no atoms are rejected, which maximized the number of aligned residues)
     # for some mutations in the same protein this works fine). This is essentially done to get a
@@ -355,21 +355,21 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
     stored.chain1, stored.chain2 = [], []
 
     # store residue ids, residue names and chains of aligned residues
-    cmd.iterate(obj1 + ' and name CA and ' + aln, 'stored.resn1.append(resn)')
-    cmd.iterate(obj2 + ' and name CA and ' + aln, 'stored.resn2.append(resn)')
+    cmd.iterate(obj1 + " and name CA and " + aln, "stored.resn1.append(resn)")
+    cmd.iterate(obj2 + " and name CA and " + aln, "stored.resn2.append(resn)")
 
-    cmd.iterate(obj1 + ' and name CA and ' + aln, 'stored.resi1.append(resi)')
-    cmd.iterate(obj2 + ' and name CA and ' + aln, 'stored.resi2.append(resi)')
+    cmd.iterate(obj1 + " and name CA and " + aln, "stored.resi1.append(resi)")
+    cmd.iterate(obj2 + " and name CA and " + aln, "stored.resi2.append(resi)")
 
     cmd.iterate(
-        obj1 + ' and name CA and ' + aln, 'stored.chain1.append(chain)'
+        obj1 + " and name CA and " + aln, "stored.chain1.append(chain)"
     )
     cmd.iterate(
-        obj2 + ' and name CA and ' + aln, 'stored.chain2.append(chain)'
+        obj2 + " and name CA and " + aln, "stored.chain2.append(chain)"
     )
 
-    mutant_selection = ''
-    non_mutant_selection = 'none or '
+    mutant_selection = ""
+    non_mutant_selection = "none or "
     colors = []
 
     # loop over the aligned residues
@@ -382,72 +382,70 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
         stored.chain2,
     ):
         # take care of 'empty' chain names
-        if c1 == '':
+        if c1 == "":
             c1 = '""'
-        if c2 == '':
+        if c2 == "":
             c2 = '""'
         if n1 == n2:
             non_mutant_selection += (
-                '((%s and resi %s and chain %s) or (%s and resi %s and chain %s)) or '
+                "((%s and resi %s and chain %s) or (%s and resi %s and chain %s)) or "
                 % (obj1, i1, c1, obj2, i2, c2)
             )
         else:
             mutant_selection += (
-                '((%s and resi %s and chain %s) or (%s and resi %s and chain %s)) or '
+                "((%s and resi %s and chain %s) or (%s and resi %s and chain %s)) or "
                 % (obj1, i1, c1, obj2, i2, c2)
             )
             # get the similarity (according to the blosum matrix) of the two residues and
             c = getBlosum90ColorName(n1, n2)
             colors.append(
-                (c, f'{obj2} and resi {i2} and chain {c2} and elem C')
+                (c, f"{obj2} and resi {i2} and chain {c2} and elem C")
             )
 
-    if mutant_selection == '':
-        raise CmdException('No mutations found')
+    if mutant_selection == "":
+        raise CmdException("No mutations found")
 
     # create selections
-    cmd.select('mutations', mutant_selection[:-4])
-    cmd.select('non_mutations', non_mutant_selection[:-4])
+    cmd.select("mutations", mutant_selection[:-4])
+    cmd.select("non_mutations", non_mutant_selection[:-4])
     cmd.select(
-        'not_aligned',
-        f'({obj1} or {obj2}) and not mutations and not non_mutations',
+        "not_aligned",
+        f"({obj1} or {obj2}) and not mutations and not non_mutations",
     )
 
     # create the view and coloring
-    cmd.hide('everything', f'{obj1} or {obj2}')
-    cmd.show('cartoon', f'{obj1} or {obj2}')
+    cmd.hide("everything", f"{obj1} or {obj2}")
+    cmd.show("cartoon", f"{obj1} or {obj2}")
     cmd.show(
-        'lines',
-        '(%s or %s) and ((non_mutations or not_aligned) and not name c+o+n)'
+        "lines",
+        "(%s or %s) and ((non_mutations or not_aligned) and not name c+o+n)"
         % (obj1, obj2),
     )
-    cmd.show(
-        'sticks', f'({obj1} or {obj2}) and mutations and not name c+o+n'
-    )
-    cmd.color('gray', 'elem C and not_aligned')
-    cmd.color('white', 'elem C and non_mutations')
-    cmd.color('blue', 'elem C and mutations and %s' % obj1)
+    cmd.show("sticks", f"({obj1} or {obj2}) and mutations and not name c+o+n")
+    cmd.color("gray", "elem C and not_aligned")
+    cmd.color("white", "elem C and non_mutations")
+    cmd.color("blue", "elem C and mutations and %s" % obj1)
     for col, sel in colors:
         cmd.color(col, sel)
 
-    cmd.hide('everything', f'(hydro) and ({obj1} or {obj2})')
-    cmd.center(f'{obj1} or {obj2}')
+    cmd.hide("everything", f"(hydro) and ({obj1} or {obj2})")
+    cmd.center(f"{obj1} or {obj2}")
     if labels:
-        cmd.label('mutations and name CA', '"(%s-%s-%s)"%(chain, resi, resn)')
+        cmd.label("mutations and name CA", '"(%s-%s-%s)"%(chain, resi, resn)')
     if waters:
-        cmd.set('sphere_scale', '0.1')
-        cmd.show('spheres', f'resn HOH and ({obj1} or {obj2})')
-        cmd.color('red', 'resn HOH and %s' % obj1)
-        cmd.color('salmon', 'resn HOH and %s' % obj2)
+        cmd.set("sphere_scale", "0.1")
+        cmd.show("spheres", f"resn HOH and ({obj1} or {obj2})")
+        cmd.color("red", "resn HOH and %s" % obj1)
+        cmd.color("salmon", "resn HOH and %s" % obj2)
     print(
-        '''
+        """
              Mutations are highlighted in blue and red.
              All mutated sidechains of %s are colored blue, the corresponding ones from %s are
              colored on a spectrum from blue to red according to how similar the two amino acids are
              (as measured by the BLOSUM90 substitution matrix).
              Aligned regions without mutations are colored white.
              Regions not used for the alignment are gray.
-             NOTE: There could be mutations in the gray regions that were not detected.'''
+             NOTE: There could be mutations in the gray regions that were not detected."""
         % (obj1, obj2)
     )
     cmd.delete(aln)
@@ -460,13 +458,13 @@ cmd.extend("color_by_mutation", color_by_mutation)
 def dump_sidechains(
     sele: str,
     enabled_only: bool = False,
-    save_dir: str = 'png/sidechain_dump/',
+    save_dir: str = "png/sidechain_dump/",
     height: int = 1280,
     width: int = 1280,
     dpi: int = 150,
     ray: bool = True,
 ):
-    '''
+    """
     Dumps sidechain images of selected models to a directory.
     Parameters:
       sele (str): Selection string to choose the models.
@@ -478,20 +476,20 @@ def dump_sidechains(
       ray (bool, optional): If True, uses ray tracing. Defaults to True.
     Returns:
       None
-    '''
+    """
 
-    all_models = cmd.get_names('objects', int(enabled_only), sele)
+    all_models = cmd.get_names("objects", int(enabled_only), sele)
     os.makedirs(save_dir, exist_ok=True)
 
     (cmd.disable(m) for m in all_models)
 
     for m in all_models:
-        print(f'Dumping PNG for {m} ...')
+        print(f"Dumping PNG for {m} ...")
         cmd.enable(m)
-        cmd.show('sticks', m)
-        cmd.show('mesh', m)
-        cmd.center(f'{m}')
-        p = os.path.join(save_dir, f'{m}.png')
+        cmd.show("sticks", m)
+        cmd.show("mesh", m)
+        cmd.center(f"{m}")
+        p = os.path.join(save_dir, f"{m}.png")
         cmd.png(p, height, width, dpi, int(ray))
         cmd.disable(m)
 

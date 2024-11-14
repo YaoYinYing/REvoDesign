@@ -17,15 +17,19 @@ class PIPPack_worker(MutateRunnerAbstract):
 
     # Further usage for other functionalities
     """
-    name: str = 'PIPPack'
-    installed: bool = is_package_installed('pippack')
+
+    name: str = "PIPPack"
+    installed: bool = is_package_installed("pippack")
 
     weights_preset: Tuple[str, ...] = (
-        'pippack_model_1', 'pippack_model_2', 'pippack_model_3', 'ensemble',
+        "pippack_model_1",
+        "pippack_model_2",
+        "pippack_model_3",
+        "ensemble",
     )
-    default_weight_preset: str = 'ensemble'
+    default_weight_preset: str = "ensemble"
 
-    def __init__(self, pdb_file: str, use_model='ensemble', **kwargs):
+    def __init__(self, pdb_file: str, use_model="ensemble", **kwargs):
         """
         Initialize PIPPack with a PDB file.
 
@@ -39,12 +43,12 @@ class PIPPack_worker(MutateRunnerAbstract):
         from pippack import PIPPack
 
         self.pdb_file = pdb_file
-        ppcfg = reload_config_file('sidechain-solver/pippack')[
-            'sidechain-solver'
+        ppcfg = reload_config_file("sidechain-solver/pippack")[
+            "sidechain-solver"
         ]
         self.pippack_worker = PIPPack(model=self.use_model)
 
-        logging.info('Initializing PIPPack_worker.')
+        logging.info("Initializing PIPPack_worker.")
         self.pippack_worker.n_recycle = ppcfg.inference.n_recycle
         self.pippack_worker.temperature = ppcfg.inference.temperature
         self.pippack_worker.force_cpu = ppcfg.inference.force_cpu
@@ -54,7 +58,7 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         cache_dir = set_cache_dir()
         self.pippack_worker.weights_path = os.path.join(
-            cache_dir, 'weights', 'pippack', 'model_weights'
+            cache_dir, "weights", "pippack", "model_weights"
         )
         if not self.pippack_worker.use_ensemble:
             self.pippack_worker._initialize_with_a_model()
@@ -67,16 +71,16 @@ class PIPPack_worker(MutateRunnerAbstract):
         self,
         mutant: Mutant,
     ) -> str:
-        logging.debug(f'Mutating {mutant=}')
+        logging.debug(f"Mutating {mutant=}")
         new_obj_name = mutant.short_mutant_id
 
         mutant_sequence = [
             [
-                chain.sequence.replace('X', '')
+                chain.sequence.replace("X", "")
                 for chain in mutant.mutant_sequences.chains
             ]
         ]
-        logging.debug(f'Mutated: {mutant.mutant_sequences}')
+        logging.debug(f"Mutated: {mutant.mutant_sequences}")
 
         temp_pdb_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
 
@@ -88,16 +92,18 @@ class PIPPack_worker(MutateRunnerAbstract):
 
         return temp_pdb_path
 
-    def run_mutate_parallel(self, mutants: List[Mutant], nproc: int = 2) -> List[str]:
+    def run_mutate_parallel(
+        self, mutants: List[Mutant], nproc: int = 2
+    ) -> List[str]:
         mutant_sequences = [
             [
-                chain.sequence.replace('X', '')
+                chain.sequence.replace("X", "")
                 for chain in mutant_obj.mutant_sequences.chains
             ]
             for mutant_obj in mutants
         ]
 
-        logging.warning(f'Nproc({nproc}) will not be used by PIPPack.')
+        logging.warning(f"Nproc({nproc}) will not be used by PIPPack.")
 
         pdbs = self.pippack_worker._run_repack_batch(
             pdb_path=self.pdb_file,
@@ -106,7 +112,7 @@ class PIPPack_worker(MutateRunnerAbstract):
         )
 
         renamed_pdbs = [
-            os.path.join(self.temp_dir, f'{m.short_mutant_id}.pdb')
+            os.path.join(self.temp_dir, f"{m.short_mutant_id}.pdb")
             for i, m in enumerate(mutants)
         ]
 
@@ -119,7 +125,7 @@ class PIPPack_worker(MutateRunnerAbstract):
         return renamed_pdbs
 
     __bibtex__ = {
-        'PIPPack': """@article{randolph2023pippack,
+        "PIPPack": """@article{randolph2023pippack,
 title={Invariant point message passing for protein side chain packing},
 author={Randolph, Nicholas and Kuhlman, Brian},
 journal={bioRxiv preprint bioRxiv:10.1101/2023.08.03.551328},

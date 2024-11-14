@@ -37,13 +37,13 @@ def test_set_and_get_widget_value(
     assert get_widget_value(spin_box) == 25
 
     # Test QComboBox with list
-    set_widget_value(combo_box, ['Option 1', 'Option 2', 'Option 3'])
-    set_widget_value(combo_box, 'Option 2')
-    assert get_widget_value(combo_box) == 'Option 2'
+    set_widget_value(combo_box, ["Option 1", "Option 2", "Option 3"])
+    set_widget_value(combo_box, "Option 2")
+    assert get_widget_value(combo_box) == "Option 2"
 
     # Test QLineEdit
-    set_widget_value(line_edit, 'Hello, World!')
-    assert get_widget_value(line_edit) == 'Hello, World!'
+    set_widget_value(line_edit, "Hello, World!")
+    assert get_widget_value(line_edit) == "Hello, World!"
 
     # Test QProgressBar
     set_widget_value(progress_bar, 75)

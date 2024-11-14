@@ -14,26 +14,37 @@ class Ui_REvoDesignPyMOL_UI:
         REvoDesignPyMOL_UI.setObjectName("REvoDesignPyMOL_UI")
         REvoDesignPyMOL_UI.setEnabled(True)
         REvoDesignPyMOL_UI.resize(660, 562)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(REvoDesignPyMOL_UI.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            REvoDesignPyMOL_UI.sizePolicy().hasHeightForWidth()
+        )
         REvoDesignPyMOL_UI.setSizePolicy(sizePolicy)
         REvoDesignPyMOL_UI.setMinimumSize(QtCore.QSize(660, 500))
         REvoDesignPyMOL_UI.setMaximumSize(QtCore.QSize(660, 16777215))
         REvoDesignPyMOL_UI.setSizeIncrement(QtCore.QSize(660, 500))
         REvoDesignPyMOL_UI.setMouseTracking(False)
         REvoDesignPyMOL_UI.setTabShape(QtWidgets.QTabWidget.Rounded)
-        REvoDesignPyMOL_UI.setDockOptions(QtWidgets.QMainWindow.AllowTabbedDocks | QtWidgets.QMainWindow.AnimatedDocks)
+        REvoDesignPyMOL_UI.setDockOptions(
+            QtWidgets.QMainWindow.AllowTabbedDocks
+            | QtWidgets.QMainWindow.AnimatedDocks
+        )
         self.centralwidget = QtWidgets.QWidget(REvoDesignPyMOL_UI)
         self.centralwidget.setObjectName("centralwidget")
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         self.tabWidget.setEnabled(True)
         self.tabWidget.setGeometry(QtCore.QRect(10, 70, 641, 401))
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.tabWidget.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.tabWidget.sizePolicy().hasHeightForWidth()
+        )
         self.tabWidget.setSizePolicy(sizePolicy)
         self.tabWidget.setStatusTip("")
         self.tabWidget.setObjectName("tabWidget")
@@ -42,10 +53,14 @@ class Ui_REvoDesignPyMOL_UI:
         self.groupBox_functional = QtWidgets.QGroupBox(self.tab_prepare)
         self.groupBox_functional.setGeometry(QtCore.QRect(10, 10, 611, 161))
         self.groupBox_functional.setObjectName("groupBox_functional")
-        self.verticalLayoutWidget_7 = QtWidgets.QWidget(self.groupBox_functional)
+        self.verticalLayoutWidget_7 = QtWidgets.QWidget(
+            self.groupBox_functional
+        )
         self.verticalLayoutWidget_7.setGeometry(QtCore.QRect(10, 30, 591, 121))
         self.verticalLayoutWidget_7.setObjectName("verticalLayoutWidget_7")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_7)
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_7
+        )
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
@@ -53,106 +68,198 @@ class Ui_REvoDesignPyMOL_UI:
         self.gridLayout_5 = QtWidgets.QGridLayout()
         self.gridLayout_5.setVerticalSpacing(0)
         self.gridLayout_5.setObjectName("gridLayout_5")
-        self.comboBox_ligand_sel = QtWidgets.QComboBox(self.verticalLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_ligand_sel = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_7
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_ligand_sel.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_ligand_sel.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_ligand_sel.setSizePolicy(sizePolicy)
         self.comboBox_ligand_sel.setMinimumSize(QtCore.QSize(0, 0))
-        self.comboBox_ligand_sel.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.comboBox_ligand_sel.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         self.comboBox_ligand_sel.setWhatsThis("")
         self.comboBox_ligand_sel.setEditable(True)
         self.comboBox_ligand_sel.setObjectName("comboBox_ligand_sel")
         self.gridLayout_5.addWidget(self.comboBox_ligand_sel, 0, 1, 1, 1)
-        self.label_cofactor_radius = QtWidgets.QLabel(self.verticalLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        self.label_cofactor_radius = QtWidgets.QLabel(
+            self.verticalLayoutWidget_7
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_cofactor_radius.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_cofactor_radius.sizePolicy().hasHeightForWidth()
+        )
         self.label_cofactor_radius.setSizePolicy(sizePolicy)
-        self.label_cofactor_radius.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_cofactor_radius.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_cofactor_radius.setObjectName("label_cofactor_radius")
         self.gridLayout_5.addWidget(self.label_cofactor_radius, 1, 2, 1, 1)
         self.label_cofactor_sel = QtWidgets.QLabel(self.verticalLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_cofactor_sel.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_cofactor_sel.sizePolicy().hasHeightForWidth()
+        )
         self.label_cofactor_sel.setSizePolicy(sizePolicy)
-        self.label_cofactor_sel.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_cofactor_sel.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_cofactor_sel.setObjectName("label_cofactor_sel")
         self.gridLayout_5.addWidget(self.label_cofactor_sel, 1, 0, 1, 1)
-        self.label_ligand_radius = QtWidgets.QLabel(self.verticalLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        self.label_ligand_radius = QtWidgets.QLabel(
+            self.verticalLayoutWidget_7
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_ligand_radius.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_ligand_radius.sizePolicy().hasHeightForWidth()
+        )
         self.label_ligand_radius.setSizePolicy(sizePolicy)
-        self.label_ligand_radius.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_ligand_radius.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_ligand_radius.setObjectName("label_ligand_radius")
         self.gridLayout_5.addWidget(self.label_ligand_radius, 0, 2, 1, 1)
         self.label_ligand_sel = QtWidgets.QLabel(self.verticalLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_ligand_sel.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_ligand_sel.sizePolicy().hasHeightForWidth()
+        )
         self.label_ligand_sel.setSizePolicy(sizePolicy)
-        self.label_ligand_sel.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_ligand_sel.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_ligand_sel.setObjectName("label_ligand_sel")
         self.gridLayout_5.addWidget(self.label_ligand_sel, 0, 0, 1, 1)
-        self.comboBox_cofactor_sel = QtWidgets.QComboBox(self.verticalLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_cofactor_sel = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_7
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_cofactor_sel.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_cofactor_sel.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_cofactor_sel.setSizePolicy(sizePolicy)
         self.comboBox_cofactor_sel.setMinimumSize(QtCore.QSize(0, 0))
-        self.comboBox_cofactor_sel.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.comboBox_cofactor_sel.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         self.comboBox_cofactor_sel.setEditable(True)
         self.comboBox_cofactor_sel.setObjectName("comboBox_cofactor_sel")
         self.gridLayout_5.addWidget(self.comboBox_cofactor_sel, 1, 1, 1, 1)
-        self.doubleSpinBox_ligand_radius = QtWidgets.QDoubleSpinBox(self.verticalLayoutWidget_7)
-        self.doubleSpinBox_ligand_radius.setMaximumSize(QtCore.QSize(60, 16777215))
+        self.doubleSpinBox_ligand_radius = QtWidgets.QDoubleSpinBox(
+            self.verticalLayoutWidget_7
+        )
+        self.doubleSpinBox_ligand_radius.setMaximumSize(
+            QtCore.QSize(60, 16777215)
+        )
         self.doubleSpinBox_ligand_radius.setDecimals(1)
         self.doubleSpinBox_ligand_radius.setMinimum(1.0)
         self.doubleSpinBox_ligand_radius.setMaximum(25.0)
         self.doubleSpinBox_ligand_radius.setProperty("value", 8.0)
-        self.doubleSpinBox_ligand_radius.setObjectName("doubleSpinBox_ligand_radius")
-        self.gridLayout_5.addWidget(self.doubleSpinBox_ligand_radius, 0, 3, 1, 1)
-        self.doubleSpinBox_cofactor_radius = QtWidgets.QDoubleSpinBox(self.verticalLayoutWidget_7)
-        self.doubleSpinBox_cofactor_radius.setMaximumSize(QtCore.QSize(60, 16777215))
+        self.doubleSpinBox_ligand_radius.setObjectName(
+            "doubleSpinBox_ligand_radius"
+        )
+        self.gridLayout_5.addWidget(
+            self.doubleSpinBox_ligand_radius, 0, 3, 1, 1
+        )
+        self.doubleSpinBox_cofactor_radius = QtWidgets.QDoubleSpinBox(
+            self.verticalLayoutWidget_7
+        )
+        self.doubleSpinBox_cofactor_radius.setMaximumSize(
+            QtCore.QSize(60, 16777215)
+        )
         self.doubleSpinBox_cofactor_radius.setDecimals(1)
         self.doubleSpinBox_cofactor_radius.setMinimum(1.0)
         self.doubleSpinBox_cofactor_radius.setMaximum(25.0)
         self.doubleSpinBox_cofactor_radius.setProperty("value", 7.0)
-        self.doubleSpinBox_cofactor_radius.setObjectName("doubleSpinBox_cofactor_radius")
-        self.gridLayout_5.addWidget(self.doubleSpinBox_cofactor_radius, 1, 3, 1, 1)
+        self.doubleSpinBox_cofactor_radius.setObjectName(
+            "doubleSpinBox_cofactor_radius"
+        )
+        self.gridLayout_5.addWidget(
+            self.doubleSpinBox_cofactor_radius, 1, 3, 1, 1
+        )
         self.horizontalLayout_2.addLayout(self.gridLayout_5)
-        self.pushButton_run_pocket_detection = QtWidgets.QPushButton(self.verticalLayoutWidget_7)
+        self.pushButton_run_pocket_detection = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_7
+        )
         self.pushButton_run_pocket_detection.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_run_pocket_detection.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_run_pocket_detection.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_run_pocket_detection.setSizePolicy(sizePolicy)
-        self.pushButton_run_pocket_detection.setMaximumSize(QtCore.QSize(115, 16777215))
-        self.pushButton_run_pocket_detection.setObjectName("pushButton_run_pocket_detection")
+        self.pushButton_run_pocket_detection.setMaximumSize(
+            QtCore.QSize(115, 16777215)
+        )
+        self.pushButton_run_pocket_detection.setObjectName(
+            "pushButton_run_pocket_detection"
+        )
         self.horizontalLayout_2.addWidget(self.pushButton_run_pocket_detection)
         self.verticalLayout_3.addLayout(self.horizontalLayout_2)
         self.horizontalLayout_26 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_26.setObjectName("horizontalLayout_26")
         self.label_output_pse_4 = QtWidgets.QLabel(self.verticalLayoutWidget_7)
-        self.label_output_pse_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_output_pse_4.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_output_pse_4.setObjectName("label_output_pse_4")
         self.horizontalLayout_26.addWidget(self.label_output_pse_4)
-        self.lineEdit_output_pse_pocket = QtWidgets.QLineEdit(self.verticalLayoutWidget_7)
+        self.lineEdit_output_pse_pocket = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_7
+        )
         self.lineEdit_output_pse_pocket.setText("")
-        self.lineEdit_output_pse_pocket.setObjectName("lineEdit_output_pse_pocket")
+        self.lineEdit_output_pse_pocket.setObjectName(
+            "lineEdit_output_pse_pocket"
+        )
         self.horizontalLayout_26.addWidget(self.lineEdit_output_pse_pocket)
-        self.pushButton_open_output_pse_pocket = QtWidgets.QPushButton(self.verticalLayoutWidget_7)
-        self.pushButton_open_output_pse_pocket.setObjectName("pushButton_open_output_pse_pocket")
-        self.horizontalLayout_26.addWidget(self.pushButton_open_output_pse_pocket)
+        self.pushButton_open_output_pse_pocket = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_7
+        )
+        self.pushButton_open_output_pse_pocket.setObjectName(
+            "pushButton_open_output_pse_pocket"
+        )
+        self.horizontalLayout_26.addWidget(
+            self.pushButton_open_output_pse_pocket
+        )
         self.verticalLayout_3.addLayout(self.horizontalLayout_26)
         self.groupBox_surface = QtWidgets.QGroupBox(self.tab_prepare)
         self.groupBox_surface.setGeometry(QtCore.QRect(10, 190, 611, 161))
@@ -161,7 +268,9 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayoutWidget_8 = QtWidgets.QWidget(self.groupBox_surface)
         self.verticalLayoutWidget_8.setGeometry(QtCore.QRect(10, 30, 591, 124))
         self.verticalLayoutWidget_8.setObjectName("verticalLayoutWidget_8")
-        self.verticalLayout_12 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_8)
+        self.verticalLayout_12 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_8
+        )
         self.verticalLayout_12.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_12.setObjectName("verticalLayout_12")
         self.horizontalLayout_15 = QtWidgets.QHBoxLayout()
@@ -171,132 +280,238 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_27 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_27.setSpacing(0)
         self.horizontalLayout_27.setObjectName("horizontalLayout_27")
-        self.label_surface_cutoff_2 = QtWidgets.QLabel(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Maximum)
+        self.label_surface_cutoff_2 = QtWidgets.QLabel(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Maximum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_surface_cutoff_2.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_surface_cutoff_2.sizePolicy().hasHeightForWidth()
+        )
         self.label_surface_cutoff_2.setSizePolicy(sizePolicy)
         self.label_surface_cutoff_2.setMaximumSize(QtCore.QSize(120, 16777215))
         self.label_surface_cutoff_2.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_surface_cutoff_2.setObjectName("label_surface_cutoff_2")
         self.horizontalLayout_27.addWidget(self.label_surface_cutoff_2)
-        self.doubleSpinBox_interface_cutoff = QtWidgets.QDoubleSpinBox(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.doubleSpinBox_interface_cutoff = QtWidgets.QDoubleSpinBox(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.doubleSpinBox_interface_cutoff.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.doubleSpinBox_interface_cutoff.sizePolicy().hasHeightForWidth()
+        )
         self.doubleSpinBox_interface_cutoff.setSizePolicy(sizePolicy)
-        self.doubleSpinBox_interface_cutoff.setMaximumSize(QtCore.QSize(50, 16777215))
+        self.doubleSpinBox_interface_cutoff.setMaximumSize(
+            QtCore.QSize(50, 16777215)
+        )
         self.doubleSpinBox_interface_cutoff.setDecimals(1)
         self.doubleSpinBox_interface_cutoff.setMinimum(1.0)
         self.doubleSpinBox_interface_cutoff.setMaximum(25.0)
         self.doubleSpinBox_interface_cutoff.setProperty("value", 3.0)
-        self.doubleSpinBox_interface_cutoff.setObjectName("doubleSpinBox_interface_cutoff")
+        self.doubleSpinBox_interface_cutoff.setObjectName(
+            "doubleSpinBox_interface_cutoff"
+        )
         self.horizontalLayout_27.addWidget(self.doubleSpinBox_interface_cutoff)
         self.verticalLayout.addLayout(self.horizontalLayout_27)
-        self.pushButton_dump_interfaces = QtWidgets.QPushButton(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_dump_interfaces = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_dump_interfaces.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_dump_interfaces.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_dump_interfaces.setSizePolicy(sizePolicy)
-        self.pushButton_dump_interfaces.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.pushButton_dump_interfaces.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         font = QtGui.QFont()
         font.setBold(False)
         font.setWeight(50)
         self.pushButton_dump_interfaces.setFont(font)
-        self.pushButton_dump_interfaces.setObjectName("pushButton_dump_interfaces")
+        self.pushButton_dump_interfaces.setObjectName(
+            "pushButton_dump_interfaces"
+        )
         self.verticalLayout.addWidget(self.pushButton_dump_interfaces)
         self.horizontalLayout_15.addLayout(self.verticalLayout)
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.horizontalLayout_10 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_10.setObjectName("horizontalLayout_10")
-        self.label_surface_exclusion = QtWidgets.QLabel(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        self.label_surface_exclusion = QtWidgets.QLabel(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_surface_exclusion.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_surface_exclusion.sizePolicy().hasHeightForWidth()
+        )
         self.label_surface_exclusion.setSizePolicy(sizePolicy)
         self.label_surface_exclusion.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_surface_exclusion.setObjectName("label_surface_exclusion")
         self.horizontalLayout_10.addWidget(self.label_surface_exclusion)
-        self.comboBox_surface_exclusion = QtWidgets.QComboBox(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_surface_exclusion = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_surface_exclusion.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_surface_exclusion.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_surface_exclusion.setSizePolicy(sizePolicy)
-        self.comboBox_surface_exclusion.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.comboBox_surface_exclusion.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         self.comboBox_surface_exclusion.setEditable(True)
-        self.comboBox_surface_exclusion.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
+        self.comboBox_surface_exclusion.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToContentsOnFirstShow
+        )
         self.comboBox_surface_exclusion.setPlaceholderText("")
-        self.comboBox_surface_exclusion.setObjectName("comboBox_surface_exclusion")
+        self.comboBox_surface_exclusion.setObjectName(
+            "comboBox_surface_exclusion"
+        )
         self.horizontalLayout_10.addWidget(self.comboBox_surface_exclusion)
         self.verticalLayout_4.addLayout(self.horizontalLayout_10)
         self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_7.setObjectName("horizontalLayout_7")
-        self.label_surface_cutoff = QtWidgets.QLabel(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        self.label_surface_cutoff = QtWidgets.QLabel(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_surface_cutoff.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_surface_cutoff.sizePolicy().hasHeightForWidth()
+        )
         self.label_surface_cutoff.setSizePolicy(sizePolicy)
-        self.label_surface_cutoff.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label_surface_cutoff.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_surface_cutoff.setObjectName("label_surface_cutoff")
         self.horizontalLayout_7.addWidget(self.label_surface_cutoff)
-        self.doubleSpinBox_surface_cutoff = QtWidgets.QDoubleSpinBox(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.doubleSpinBox_surface_cutoff = QtWidgets.QDoubleSpinBox(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.doubleSpinBox_surface_cutoff.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.doubleSpinBox_surface_cutoff.sizePolicy().hasHeightForWidth()
+        )
         self.doubleSpinBox_surface_cutoff.setSizePolicy(sizePolicy)
-        self.doubleSpinBox_surface_cutoff.setMaximumSize(QtCore.QSize(55, 16777215))
+        self.doubleSpinBox_surface_cutoff.setMaximumSize(
+            QtCore.QSize(55, 16777215)
+        )
         self.doubleSpinBox_surface_cutoff.setDecimals(1)
         self.doubleSpinBox_surface_cutoff.setMinimum(1.0)
         self.doubleSpinBox_surface_cutoff.setMaximum(50.0)
         self.doubleSpinBox_surface_cutoff.setProperty("value", 15.0)
-        self.doubleSpinBox_surface_cutoff.setObjectName("doubleSpinBox_surface_cutoff")
+        self.doubleSpinBox_surface_cutoff.setObjectName(
+            "doubleSpinBox_surface_cutoff"
+        )
         self.horizontalLayout_7.addWidget(self.doubleSpinBox_surface_cutoff)
-        self.pushButton_run_surface_refresh = QtWidgets.QPushButton(self.verticalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_run_surface_refresh = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_run_surface_refresh.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_run_surface_refresh.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_run_surface_refresh.setSizePolicy(sizePolicy)
-        self.pushButton_run_surface_refresh.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.pushButton_run_surface_refresh.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         self.pushButton_run_surface_refresh.setWhatsThis("")
-        self.pushButton_run_surface_refresh.setObjectName("pushButton_run_surface_refresh")
+        self.pushButton_run_surface_refresh.setObjectName(
+            "pushButton_run_surface_refresh"
+        )
         self.horizontalLayout_7.addWidget(self.pushButton_run_surface_refresh)
-        self.pushButton_run_surface_detection = QtWidgets.QPushButton(self.verticalLayoutWidget_8)
+        self.pushButton_run_surface_detection = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_8
+        )
         self.pushButton_run_surface_detection.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_run_surface_detection.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_run_surface_detection.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_run_surface_detection.setSizePolicy(sizePolicy)
-        self.pushButton_run_surface_detection.setMaximumSize(QtCore.QSize(115, 16777215))
-        self.pushButton_run_surface_detection.setObjectName("pushButton_run_surface_detection")
-        self.horizontalLayout_7.addWidget(self.pushButton_run_surface_detection)
+        self.pushButton_run_surface_detection.setMaximumSize(
+            QtCore.QSize(115, 16777215)
+        )
+        self.pushButton_run_surface_detection.setObjectName(
+            "pushButton_run_surface_detection"
+        )
+        self.horizontalLayout_7.addWidget(
+            self.pushButton_run_surface_detection
+        )
         self.verticalLayout_4.addLayout(self.horizontalLayout_7)
         self.horizontalLayout_15.addLayout(self.verticalLayout_4)
         self.verticalLayout_12.addLayout(self.horizontalLayout_15)
         self.horizontalLayout_16 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_16.setObjectName("horizontalLayout_16")
         self.label_output_pse = QtWidgets.QLabel(self.verticalLayoutWidget_8)
-        self.label_output_pse.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_output_pse.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_output_pse.setObjectName("label_output_pse")
         self.horizontalLayout_16.addWidget(self.label_output_pse)
-        self.lineEdit_output_pse_surface = QtWidgets.QLineEdit(self.verticalLayoutWidget_8)
+        self.lineEdit_output_pse_surface = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_8
+        )
         self.lineEdit_output_pse_surface.setText("")
-        self.lineEdit_output_pse_surface.setObjectName("lineEdit_output_pse_surface")
+        self.lineEdit_output_pse_surface.setObjectName(
+            "lineEdit_output_pse_surface"
+        )
         self.horizontalLayout_16.addWidget(self.lineEdit_output_pse_surface)
-        self.pushButton_open_output_pse_surface = QtWidgets.QPushButton(self.verticalLayoutWidget_8)
-        self.pushButton_open_output_pse_surface.setObjectName("pushButton_open_output_pse_surface")
-        self.horizontalLayout_16.addWidget(self.pushButton_open_output_pse_surface)
+        self.pushButton_open_output_pse_surface = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_8
+        )
+        self.pushButton_open_output_pse_surface.setObjectName(
+            "pushButton_open_output_pse_surface"
+        )
+        self.horizontalLayout_16.addWidget(
+            self.pushButton_open_output_pse_surface
+        )
         self.verticalLayout_12.addLayout(self.horizontalLayout_16)
         self.tabWidget.addTab(self.tab_prepare, "")
         self.tab_mutate = QtWidgets.QWidget()
@@ -318,14 +533,22 @@ class Ui_REvoDesignPyMOL_UI:
         self.lineEdit_input_csv.setText("")
         self.lineEdit_input_csv.setObjectName("lineEdit_input_csv")
         self.horizontalLayout_18.addWidget(self.lineEdit_input_csv)
-        self.pushButton_open_input_csv = QtWidgets.QPushButton(self.layoutWidget)
-        self.pushButton_open_input_csv.setObjectName("pushButton_open_input_csv")
+        self.pushButton_open_input_csv = QtWidgets.QPushButton(
+            self.layoutWidget
+        )
+        self.pushButton_open_input_csv.setObjectName(
+            "pushButton_open_input_csv"
+        )
         self.horizontalLayout_18.addWidget(self.pushButton_open_input_csv)
         self.comboBox_profile_type = QtWidgets.QComboBox(self.layoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_profile_type.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_profile_type.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_profile_type.setSizePolicy(sizePolicy)
         self.comboBox_profile_type.setMinimumSize(QtCore.QSize(0, 0))
         self.comboBox_profile_type.setMaximumSize(QtCore.QSize(120, 16777215))
@@ -334,61 +557,116 @@ class Ui_REvoDesignPyMOL_UI:
         self.gridLayout_IO.addLayout(self.horizontalLayout_18, 0, 1, 1, 1)
         self.label_input_pssm_csv_2 = QtWidgets.QLabel(self.layoutWidget)
         self.label_input_pssm_csv_2.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_input_pssm_csv_2.setObjectName("label_input_pssm_csv_2")
         self.gridLayout_IO.addWidget(self.label_input_pssm_csv_2, 1, 0, 1, 1)
         self.horizontalLayout_19 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_19.setObjectName("horizontalLayout_19")
-        self.lineEdit_output_pse_mutate = QtWidgets.QLineEdit(self.layoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.lineEdit_output_pse_mutate = QtWidgets.QLineEdit(
+            self.layoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_output_pse_mutate.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineEdit_output_pse_mutate.sizePolicy().hasHeightForWidth()
+        )
         self.lineEdit_output_pse_mutate.setSizePolicy(sizePolicy)
         self.lineEdit_output_pse_mutate.setText("")
-        self.lineEdit_output_pse_mutate.setObjectName("lineEdit_output_pse_mutate")
+        self.lineEdit_output_pse_mutate.setObjectName(
+            "lineEdit_output_pse_mutate"
+        )
         self.horizontalLayout_19.addWidget(self.lineEdit_output_pse_mutate)
-        self.pushButton_open_output_pse_mutate = QtWidgets.QPushButton(self.layoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_open_output_pse_mutate = QtWidgets.QPushButton(
+            self.layoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_open_output_pse_mutate.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_open_output_pse_mutate.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_open_output_pse_mutate.setSizePolicy(sizePolicy)
-        self.pushButton_open_output_pse_mutate.setObjectName("pushButton_open_output_pse_mutate")
-        self.horizontalLayout_19.addWidget(self.pushButton_open_output_pse_mutate)
-        self.pushButton_run_PSSM_to_pse = QtWidgets.QPushButton(self.layoutWidget)
+        self.pushButton_open_output_pse_mutate.setObjectName(
+            "pushButton_open_output_pse_mutate"
+        )
+        self.horizontalLayout_19.addWidget(
+            self.pushButton_open_output_pse_mutate
+        )
+        self.pushButton_run_PSSM_to_pse = QtWidgets.QPushButton(
+            self.layoutWidget
+        )
         self.pushButton_run_PSSM_to_pse.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_run_PSSM_to_pse.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_run_PSSM_to_pse.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_run_PSSM_to_pse.setSizePolicy(sizePolicy)
-        self.pushButton_run_PSSM_to_pse.setMaximumSize(QtCore.QSize(120, 16777215))
+        self.pushButton_run_PSSM_to_pse.setMaximumSize(
+            QtCore.QSize(120, 16777215)
+        )
         self.pushButton_run_PSSM_to_pse.setCheckable(False)
-        self.pushButton_run_PSSM_to_pse.setObjectName("pushButton_run_PSSM_to_pse")
+        self.pushButton_run_PSSM_to_pse.setObjectName(
+            "pushButton_run_PSSM_to_pse"
+        )
         self.horizontalLayout_19.addWidget(self.pushButton_run_PSSM_to_pse)
         self.gridLayout_IO.addLayout(self.horizontalLayout_19, 2, 1, 1, 1)
         self.label_output_pse_2 = QtWidgets.QLabel(self.layoutWidget)
-        self.label_output_pse_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_output_pse_2.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_output_pse_2.setObjectName("label_output_pse_2")
         self.gridLayout_IO.addWidget(self.label_output_pse_2, 2, 0, 1, 1)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.lineEdit_input_customized_indices = QtWidgets.QLineEdit(self.layoutWidget)
+        self.lineEdit_input_customized_indices = QtWidgets.QLineEdit(
+            self.layoutWidget
+        )
         self.lineEdit_input_customized_indices.setText("")
-        self.lineEdit_input_customized_indices.setObjectName("lineEdit_input_customized_indices")
-        self.horizontalLayout_3.addWidget(self.lineEdit_input_customized_indices)
-        self.pushButton_open_customized_indices = QtWidgets.QPushButton(self.layoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.lineEdit_input_customized_indices.setObjectName(
+            "lineEdit_input_customized_indices"
+        )
+        self.horizontalLayout_3.addWidget(
+            self.lineEdit_input_customized_indices
+        )
+        self.pushButton_open_customized_indices = QtWidgets.QPushButton(
+            self.layoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_open_customized_indices.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_open_customized_indices.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_open_customized_indices.setSizePolicy(sizePolicy)
-        self.pushButton_open_customized_indices.setObjectName("pushButton_open_customized_indices")
-        self.horizontalLayout_3.addWidget(self.pushButton_open_customized_indices)
+        self.pushButton_open_customized_indices.setObjectName(
+            "pushButton_open_customized_indices"
+        )
+        self.horizontalLayout_3.addWidget(
+            self.pushButton_open_customized_indices
+        )
         self.gridLayout_IO.addLayout(self.horizontalLayout_3, 1, 1, 1, 1)
         self.label_input_pssm_csv = QtWidgets.QLabel(self.layoutWidget)
-        self.label_input_pssm_csv.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_input_pssm_csv.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_input_pssm_csv.setObjectName("label_input_pssm_csv")
         self.gridLayout_IO.addWidget(self.label_input_pssm_csv, 0, 0, 1, 1)
         self.groupBox_2 = QtWidgets.QGroupBox(self.tab_mutate)
@@ -397,16 +675,24 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayoutWidget_4 = QtWidgets.QWidget(self.groupBox_2)
         self.verticalLayoutWidget_4.setGeometry(QtCore.QRect(10, 30, 331, 81))
         self.verticalLayoutWidget_4.setObjectName("verticalLayoutWidget_4")
-        self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_4)
+        self.verticalLayout_7 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_4
+        )
         self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
         self.horizontalLayout_36 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_36.setObjectName("horizontalLayout_36")
-        self.lineEdit_score_minima = QtWidgets.QLineEdit(self.verticalLayoutWidget_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.lineEdit_score_minima = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_4
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_score_minima.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineEdit_score_minima.sizePolicy().hasHeightForWidth()
+        )
         self.lineEdit_score_minima.setSizePolicy(sizePolicy)
         self.lineEdit_score_minima.setMaximumSize(QtCore.QSize(60, 16777215))
         font = QtGui.QFont()
@@ -417,19 +703,29 @@ class Ui_REvoDesignPyMOL_UI:
         self.lineEdit_score_minima.setObjectName("lineEdit_score_minima")
         self.horizontalLayout_36.addWidget(self.lineEdit_score_minima)
         self.label_output_pse_3 = QtWidgets.QLabel(self.verticalLayoutWidget_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_output_pse_3.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_output_pse_3.sizePolicy().hasHeightForWidth()
+        )
         self.label_output_pse_3.setSizePolicy(sizePolicy)
         self.label_output_pse_3.setAlignment(QtCore.Qt.AlignCenter)
         self.label_output_pse_3.setObjectName("label_output_pse_3")
         self.horizontalLayout_36.addWidget(self.label_output_pse_3)
-        self.lineEdit_score_maxima = QtWidgets.QLineEdit(self.verticalLayoutWidget_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.lineEdit_score_maxima = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_4
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_score_maxima.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineEdit_score_maxima.sizePolicy().hasHeightForWidth()
+        )
         self.lineEdit_score_maxima.setSizePolicy(sizePolicy)
         self.lineEdit_score_maxima.setMaximumSize(QtCore.QSize(60, 16777215))
         font = QtGui.QFont()
@@ -452,21 +748,37 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_49.setSpacing(0)
         self.horizontalLayout_49.setObjectName("horizontalLayout_49")
         self.label_3 = QtWidgets.QLabel(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_3.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_3.sizePolicy().hasHeightForWidth()
+        )
         self.label_3.setSizePolicy(sizePolicy)
-        self.label_3.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label_3.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_3.setObjectName("label_3")
         self.horizontalLayout_49.addWidget(self.label_3)
         self.spinBox_designer_batch = QtWidgets.QSpinBox(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_designer_batch.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_designer_batch.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_designer_batch.setSizePolicy(sizePolicy)
-        self.spinBox_designer_batch.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.spinBox_designer_batch.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.spinBox_designer_batch.setMinimum(1)
         self.spinBox_designer_batch.setMaximum(999)
         self.spinBox_designer_batch.setSingleStep(1)
@@ -478,111 +790,205 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_47.setSpacing(0)
         self.horizontalLayout_47.setObjectName("horizontalLayout_47")
         self.label = QtWidgets.QLabel(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label.sizePolicy().hasHeightForWidth()
+        )
         self.label.setSizePolicy(sizePolicy)
-        self.label.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label.setObjectName("label")
         self.horizontalLayout_47.addWidget(self.label)
-        self.doubleSpinBox_designer_temperature = QtWidgets.QDoubleSpinBox(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.doubleSpinBox_designer_temperature = QtWidgets.QDoubleSpinBox(
+            self.gridLayoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.doubleSpinBox_designer_temperature.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.doubleSpinBox_designer_temperature.sizePolicy().hasHeightForWidth()
+        )
         self.doubleSpinBox_designer_temperature.setSizePolicy(sizePolicy)
         self.doubleSpinBox_designer_temperature.setAlignment(
-            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.doubleSpinBox_designer_temperature.setMinimum(0.05)
         self.doubleSpinBox_designer_temperature.setMaximum(0.6)
         self.doubleSpinBox_designer_temperature.setSingleStep(0.05)
         self.doubleSpinBox_designer_temperature.setProperty("value", 0.1)
-        self.doubleSpinBox_designer_temperature.setObjectName("doubleSpinBox_designer_temperature")
-        self.horizontalLayout_47.addWidget(self.doubleSpinBox_designer_temperature)
+        self.doubleSpinBox_designer_temperature.setObjectName(
+            "doubleSpinBox_designer_temperature"
+        )
+        self.horizontalLayout_47.addWidget(
+            self.doubleSpinBox_designer_temperature
+        )
         self.gridLayout_6.addLayout(self.horizontalLayout_47, 0, 0, 1, 1)
-        self.checkBox_deduplicate_designs = QtWidgets.QCheckBox(self.gridLayoutWidget)
+        self.checkBox_deduplicate_designs = QtWidgets.QCheckBox(
+            self.gridLayoutWidget
+        )
         self.checkBox_deduplicate_designs.setChecked(True)
-        self.checkBox_deduplicate_designs.setObjectName("checkBox_deduplicate_designs")
-        self.gridLayout_6.addWidget(self.checkBox_deduplicate_designs, 1, 1, 1, 1)
+        self.checkBox_deduplicate_designs.setObjectName(
+            "checkBox_deduplicate_designs"
+        )
+        self.gridLayout_6.addWidget(
+            self.checkBox_deduplicate_designs, 1, 1, 1, 1
+        )
         self.horizontalLayout_50 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_50.setSpacing(0)
         self.horizontalLayout_50.setObjectName("horizontalLayout_50")
         self.label_4 = QtWidgets.QLabel(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_4.sizePolicy().hasHeightForWidth()
+        )
         self.label_4.setSizePolicy(sizePolicy)
-        self.label_4.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label_4.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_4.setObjectName("label_4")
         self.horizontalLayout_50.addWidget(self.label_4)
-        self.spinBox_designer_num_samples = QtWidgets.QSpinBox(self.gridLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.spinBox_designer_num_samples = QtWidgets.QSpinBox(
+            self.gridLayoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_designer_num_samples.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_designer_num_samples.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_designer_num_samples.setSizePolicy(sizePolicy)
         self.spinBox_designer_num_samples.setAlignment(
-            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.spinBox_designer_num_samples.setMinimum(1)
         self.spinBox_designer_num_samples.setMaximum(999)
-        self.spinBox_designer_num_samples.setObjectName("spinBox_designer_num_samples")
+        self.spinBox_designer_num_samples.setObjectName(
+            "spinBox_designer_num_samples"
+        )
         self.horizontalLayout_50.addWidget(self.spinBox_designer_num_samples)
         self.gridLayout_6.addLayout(self.horizontalLayout_50, 2, 0, 1, 1)
-        self.checkBox_designer_homooligomeric = QtWidgets.QCheckBox(self.gridLayoutWidget)
-        self.checkBox_designer_homooligomeric.setObjectName("checkBox_designer_homooligomeric")
-        self.gridLayout_6.addWidget(self.checkBox_designer_homooligomeric, 0, 1, 1, 1)
+        self.checkBox_designer_homooligomeric = QtWidgets.QCheckBox(
+            self.gridLayoutWidget
+        )
+        self.checkBox_designer_homooligomeric.setObjectName(
+            "checkBox_designer_homooligomeric"
+        )
+        self.gridLayout_6.addWidget(
+            self.checkBox_designer_homooligomeric, 0, 1, 1, 1
+        )
         self.horizontalLayout_17 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_17.setObjectName("horizontalLayout_17")
-        self.checkBox_randomized_sampling = QtWidgets.QCheckBox(self.gridLayoutWidget)
-        self.checkBox_randomized_sampling.setObjectName("checkBox_randomized_sampling")
+        self.checkBox_randomized_sampling = QtWidgets.QCheckBox(
+            self.gridLayoutWidget
+        )
+        self.checkBox_randomized_sampling.setObjectName(
+            "checkBox_randomized_sampling"
+        )
         self.horizontalLayout_17.addWidget(self.checkBox_randomized_sampling)
-        self.spinBox_randomized_sampling = QtWidgets.QSpinBox(self.gridLayoutWidget)
+        self.spinBox_randomized_sampling = QtWidgets.QSpinBox(
+            self.gridLayoutWidget
+        )
         self.spinBox_randomized_sampling.setEnabled(False)
         self.spinBox_randomized_sampling.setMinimum(1)
         self.spinBox_randomized_sampling.setProperty("value", 3)
-        self.spinBox_randomized_sampling.setObjectName("spinBox_randomized_sampling")
+        self.spinBox_randomized_sampling.setObjectName(
+            "spinBox_randomized_sampling"
+        )
         self.horizontalLayout_17.addWidget(self.spinBox_randomized_sampling)
         self.gridLayout_6.addLayout(self.horizontalLayout_17, 2, 1, 1, 1)
-        self.groupBox_reject_substitution = QtWidgets.QGroupBox(self.tab_mutate)
-        self.groupBox_reject_substitution.setGeometry(QtCore.QRect(10, 270, 351, 91))
-        self.groupBox_reject_substitution.setObjectName("groupBox_reject_substitution")
-        self.verticalLayoutWidget_14 = QtWidgets.QWidget(self.groupBox_reject_substitution)
+        self.groupBox_reject_substitution = QtWidgets.QGroupBox(
+            self.tab_mutate
+        )
+        self.groupBox_reject_substitution.setGeometry(
+            QtCore.QRect(10, 270, 351, 91)
+        )
+        self.groupBox_reject_substitution.setObjectName(
+            "groupBox_reject_substitution"
+        )
+        self.verticalLayoutWidget_14 = QtWidgets.QWidget(
+            self.groupBox_reject_substitution
+        )
         self.verticalLayoutWidget_14.setGeometry(QtCore.QRect(10, 30, 331, 51))
         self.verticalLayoutWidget_14.setObjectName("verticalLayoutWidget_14")
-        self.verticalLayout_20 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_14)
+        self.verticalLayout_20 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_14
+        )
         self.verticalLayout_20.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_20.setSpacing(0)
         self.verticalLayout_20.setObjectName("verticalLayout_20")
         self.horizontalLayout_53 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_53.setObjectName("horizontalLayout_53")
         self.label_2 = QtWidgets.QLabel(self.verticalLayoutWidget_14)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_2.sizePolicy().hasHeightForWidth()
+        )
         self.label_2.setSizePolicy(sizePolicy)
-        self.label_2.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label_2.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_2.setObjectName("label_2")
         self.horizontalLayout_53.addWidget(self.label_2)
-        self.lineEdit_reject_substitution = QtWidgets.QLineEdit(self.verticalLayoutWidget_14)
-        self.lineEdit_reject_substitution.setObjectName("lineEdit_reject_substitution")
+        self.lineEdit_reject_substitution = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_14
+        )
+        self.lineEdit_reject_substitution.setObjectName(
+            "lineEdit_reject_substitution"
+        )
         self.horizontalLayout_53.addWidget(self.lineEdit_reject_substitution)
         self.verticalLayout_20.addLayout(self.horizontalLayout_53)
         self.horizontalLayout_55 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_55.setObjectName("horizontalLayout_55")
         self.label_5 = QtWidgets.QLabel(self.verticalLayoutWidget_14)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_5.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_5.sizePolicy().hasHeightForWidth()
+        )
         self.label_5.setSizePolicy(sizePolicy)
-        self.label_5.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label_5.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_5.setObjectName("label_5")
         self.horizontalLayout_55.addWidget(self.label_5)
-        self.lineEdit_preffer_substitution = QtWidgets.QLineEdit(self.verticalLayoutWidget_14)
-        self.lineEdit_preffer_substitution.setObjectName("lineEdit_preffer_substitution")
+        self.lineEdit_preffer_substitution = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_14
+        )
+        self.lineEdit_preffer_substitution.setObjectName(
+            "lineEdit_preffer_substitution"
+        )
         self.horizontalLayout_55.addWidget(self.lineEdit_preffer_substitution)
         self.verticalLayout_20.addLayout(self.horizontalLayout_55)
         self.groupBox = QtWidgets.QGroupBox(self.tab_mutate)
@@ -595,35 +1001,61 @@ class Ui_REvoDesignPyMOL_UI:
         self.tab_evaluate = QtWidgets.QWidget()
         self.tab_evaluate.setObjectName("tab_evaluate")
         self.groupBox_design_status = QtWidgets.QGroupBox(self.tab_evaluate)
-        self.groupBox_design_status.setGeometry(QtCore.QRect(10, 110, 261, 251))
+        self.groupBox_design_status.setGeometry(
+            QtCore.QRect(10, 110, 261, 251)
+        )
         self.groupBox_design_status.setObjectName("groupBox_design_status")
-        self.gridLayoutWidget_13 = QtWidgets.QWidget(self.groupBox_design_status)
+        self.gridLayoutWidget_13 = QtWidgets.QWidget(
+            self.groupBox_design_status
+        )
         self.gridLayoutWidget_13.setGeometry(QtCore.QRect(10, 30, 241, 211))
         self.gridLayoutWidget_13.setObjectName("gridLayoutWidget_13")
-        self.gridLayout_design_status = QtWidgets.QGridLayout(self.gridLayoutWidget_13)
+        self.gridLayout_design_status = QtWidgets.QGridLayout(
+            self.gridLayoutWidget_13
+        )
         self.gridLayout_design_status.setContentsMargins(0, 0, 0, 0)
         self.gridLayout_design_status.setObjectName("gridLayout_design_status")
         self.label_total_mutant = QtWidgets.QLabel(self.gridLayoutWidget_13)
-        self.label_total_mutant.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.label_total_mutant.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         font = QtGui.QFont()
         font.setPointSize(22)
         self.label_total_mutant.setFont(font)
-        self.label_total_mutant.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_total_mutant.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_total_mutant.setObjectName("label_total_mutant")
-        self.gridLayout_design_status.addWidget(self.label_total_mutant, 0, 0, 1, 1)
+        self.gridLayout_design_status.addWidget(
+            self.label_total_mutant, 0, 0, 1, 1
+        )
         self.label_selected_mutant = QtWidgets.QLabel(self.gridLayoutWidget_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_selected_mutant.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_selected_mutant.sizePolicy().hasHeightForWidth()
+        )
         self.label_selected_mutant.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setPointSize(22)
         self.label_selected_mutant.setFont(font)
-        self.label_selected_mutant.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_selected_mutant.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_selected_mutant.setObjectName("label_selected_mutant")
-        self.gridLayout_design_status.addWidget(self.label_selected_mutant, 1, 0, 1, 1)
-        self.lcdNumber_total_mutant = QtWidgets.QLCDNumber(self.gridLayoutWidget_13)
+        self.gridLayout_design_status.addWidget(
+            self.label_selected_mutant, 1, 0, 1, 1
+        )
+        self.lcdNumber_total_mutant = QtWidgets.QLCDNumber(
+            self.gridLayoutWidget_13
+        )
         font = QtGui.QFont()
         font.setBold(False)
         font.setWeight(50)
@@ -631,16 +1063,26 @@ class Ui_REvoDesignPyMOL_UI:
         self.lcdNumber_total_mutant.setDigitCount(3)
         self.lcdNumber_total_mutant.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
         self.lcdNumber_total_mutant.setObjectName("lcdNumber_total_mutant")
-        self.gridLayout_design_status.addWidget(self.lcdNumber_total_mutant, 0, 1, 1, 1)
-        self.lcdNumber_selected_mutant = QtWidgets.QLCDNumber(self.gridLayoutWidget_13)
+        self.gridLayout_design_status.addWidget(
+            self.lcdNumber_total_mutant, 0, 1, 1, 1
+        )
+        self.lcdNumber_selected_mutant = QtWidgets.QLCDNumber(
+            self.gridLayoutWidget_13
+        )
         font = QtGui.QFont()
         font.setBold(False)
         font.setWeight(50)
         self.lcdNumber_selected_mutant.setFont(font)
         self.lcdNumber_selected_mutant.setDigitCount(3)
-        self.lcdNumber_selected_mutant.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
-        self.lcdNumber_selected_mutant.setObjectName("lcdNumber_selected_mutant")
-        self.gridLayout_design_status.addWidget(self.lcdNumber_selected_mutant, 1, 1, 1, 1)
+        self.lcdNumber_selected_mutant.setSegmentStyle(
+            QtWidgets.QLCDNumber.Flat
+        )
+        self.lcdNumber_selected_mutant.setObjectName(
+            "lcdNumber_selected_mutant"
+        )
+        self.gridLayout_design_status.addWidget(
+            self.lcdNumber_selected_mutant, 1, 1, 1, 1
+        )
         self.groupBox_IO_2 = QtWidgets.QGroupBox(self.tab_evaluate)
         self.groupBox_IO_2.setGeometry(QtCore.QRect(10, 0, 611, 101))
         self.groupBox_IO_2.setTitle("")
@@ -648,48 +1090,85 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayoutWidget = QtWidgets.QWidget(self.groupBox_IO_2)
         self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 10, 591, 81))
         self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget
+        )
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
         self.horizontalLayout_20 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_20.setObjectName("horizontalLayout_20")
-        self.label_input_mut_table_2 = QtWidgets.QLabel(self.verticalLayoutWidget)
+        self.label_input_mut_table_2 = QtWidgets.QLabel(
+            self.verticalLayoutWidget
+        )
         self.label_input_mut_table_2.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_input_mut_table_2.setObjectName("label_input_mut_table_2")
         self.horizontalLayout_20.addWidget(self.label_input_mut_table_2)
-        self.lineEdit_output_mut_table = QtWidgets.QLineEdit(self.verticalLayoutWidget)
+        self.lineEdit_output_mut_table = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget
+        )
         self.lineEdit_output_mut_table.setText("")
-        self.lineEdit_output_mut_table.setObjectName("lineEdit_output_mut_table")
+        self.lineEdit_output_mut_table.setObjectName(
+            "lineEdit_output_mut_table"
+        )
         self.horizontalLayout_20.addWidget(self.lineEdit_output_mut_table)
-        self.pushButton_open_mut_table = QtWidgets.QPushButton(self.verticalLayoutWidget)
-        self.pushButton_open_mut_table.setObjectName("pushButton_open_mut_table")
+        self.pushButton_open_mut_table = QtWidgets.QPushButton(
+            self.verticalLayoutWidget
+        )
+        self.pushButton_open_mut_table.setObjectName(
+            "pushButton_open_mut_table"
+        )
         self.horizontalLayout_20.addWidget(self.pushButton_open_mut_table)
         self.horizontalLayout_9.addLayout(self.horizontalLayout_20)
         self.verticalLayout_2.addLayout(self.horizontalLayout_9)
         self.horizontalLayout_13 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_13.setObjectName("horizontalLayout_13")
-        self.pushButton_reinitialize_mutant_choosing = QtWidgets.QPushButton(self.verticalLayoutWidget)
-        self.pushButton_reinitialize_mutant_choosing.setObjectName("pushButton_reinitialize_mutant_choosing")
-        self.horizontalLayout_13.addWidget(self.pushButton_reinitialize_mutant_choosing)
-        self.pushButton_load_mutant_choice_checkpoint = QtWidgets.QPushButton(self.verticalLayoutWidget)
-        self.pushButton_load_mutant_choice_checkpoint.setObjectName("pushButton_load_mutant_choice_checkpoint")
-        self.horizontalLayout_13.addWidget(self.pushButton_load_mutant_choice_checkpoint)
-        self.checkBox_rock_pymol = QtWidgets.QCheckBox(self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_reinitialize_mutant_choosing = QtWidgets.QPushButton(
+            self.verticalLayoutWidget
+        )
+        self.pushButton_reinitialize_mutant_choosing.setObjectName(
+            "pushButton_reinitialize_mutant_choosing"
+        )
+        self.horizontalLayout_13.addWidget(
+            self.pushButton_reinitialize_mutant_choosing
+        )
+        self.pushButton_load_mutant_choice_checkpoint = QtWidgets.QPushButton(
+            self.verticalLayoutWidget
+        )
+        self.pushButton_load_mutant_choice_checkpoint.setObjectName(
+            "pushButton_load_mutant_choice_checkpoint"
+        )
+        self.horizontalLayout_13.addWidget(
+            self.pushButton_load_mutant_choice_checkpoint
+        )
+        self.checkBox_rock_pymol = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_rock_pymol.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.checkBox_rock_pymol.sizePolicy().hasHeightForWidth()
+        )
         self.checkBox_rock_pymol.setSizePolicy(sizePolicy)
         self.checkBox_rock_pymol.setObjectName("checkBox_rock_pymol")
         self.horizontalLayout_13.addWidget(self.checkBox_rock_pymol)
         self.checkBox_show_wt = QtWidgets.QCheckBox(self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_show_wt.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.checkBox_show_wt.sizePolicy().hasHeightForWidth()
+        )
         self.checkBox_show_wt.setSizePolicy(sizePolicy)
         self.checkBox_show_wt.setChecked(True)
         self.checkBox_show_wt.setObjectName("checkBox_show_wt")
@@ -701,31 +1180,47 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayoutWidget_5 = QtWidgets.QWidget(self.groupBox_choice)
         self.verticalLayoutWidget_5.setGeometry(QtCore.QRect(10, 30, 321, 211))
         self.verticalLayoutWidget_5.setObjectName("verticalLayoutWidget_5")
-        self.verticalLayout_11 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_5)
+        self.verticalLayout_11 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_5
+        )
         self.verticalLayout_11.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_11.setObjectName("verticalLayout_11")
         self.horizontalLayout_34 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_34.setObjectName("horizontalLayout_34")
-        self.comboBox_group_ids = QtWidgets.QComboBox(self.verticalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_group_ids = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_5
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_group_ids.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_group_ids.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_group_ids.setSizePolicy(sizePolicy)
         self.comboBox_group_ids.setObjectName("comboBox_group_ids")
         self.horizontalLayout_34.addWidget(self.comboBox_group_ids)
-        self.comboBox_mutant_ids = QtWidgets.QComboBox(self.verticalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_mutant_ids = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_5
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_mutant_ids.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_mutant_ids.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_mutant_ids.setSizePolicy(sizePolicy)
         self.comboBox_mutant_ids.setObjectName("comboBox_mutant_ids")
         self.horizontalLayout_34.addWidget(self.comboBox_mutant_ids)
         self.verticalLayout_11.addLayout(self.horizontalLayout_34)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
-        self.pushButton_next_mutant = QtWidgets.QPushButton(self.verticalLayoutWidget_5)
+        self.pushButton_next_mutant = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_5
+        )
         self.pushButton_next_mutant.setEnabled(False)
         self.pushButton_next_mutant.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
@@ -739,7 +1234,9 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_next_mutant.setFlat(False)
         self.pushButton_next_mutant.setObjectName("pushButton_next_mutant")
         self.gridLayout.addWidget(self.pushButton_next_mutant, 1, 0, 1, 1)
-        self.pushButton_reject_this_mutant = QtWidgets.QPushButton(self.verticalLayoutWidget_5)
+        self.pushButton_reject_this_mutant = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_5
+        )
         self.pushButton_reject_this_mutant.setEnabled(False)
         self.pushButton_reject_this_mutant.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
@@ -750,9 +1247,15 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_reject_this_mutant.setWhatsThis("")
         self.pushButton_reject_this_mutant.setAutoDefault(False)
         self.pushButton_reject_this_mutant.setDefault(False)
-        self.pushButton_reject_this_mutant.setObjectName("pushButton_reject_this_mutant")
-        self.gridLayout.addWidget(self.pushButton_reject_this_mutant, 0, 2, 1, 1)
-        self.pushButton_accept_this_mutant = QtWidgets.QPushButton(self.verticalLayoutWidget_5)
+        self.pushButton_reject_this_mutant.setObjectName(
+            "pushButton_reject_this_mutant"
+        )
+        self.gridLayout.addWidget(
+            self.pushButton_reject_this_mutant, 0, 2, 1, 1
+        )
+        self.pushButton_accept_this_mutant = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_5
+        )
         self.pushButton_accept_this_mutant.setEnabled(False)
         self.pushButton_accept_this_mutant.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
@@ -763,9 +1266,15 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_accept_this_mutant.setWhatsThis("")
         self.pushButton_accept_this_mutant.setAutoDefault(False)
         self.pushButton_accept_this_mutant.setDefault(False)
-        self.pushButton_accept_this_mutant.setObjectName("pushButton_accept_this_mutant")
-        self.gridLayout.addWidget(self.pushButton_accept_this_mutant, 1, 2, 1, 1)
-        self.pushButton_previous_mutant = QtWidgets.QPushButton(self.verticalLayoutWidget_5)
+        self.pushButton_accept_this_mutant.setObjectName(
+            "pushButton_accept_this_mutant"
+        )
+        self.gridLayout.addWidget(
+            self.pushButton_accept_this_mutant, 1, 2, 1, 1
+        )
+        self.pushButton_previous_mutant = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_5
+        )
         self.pushButton_previous_mutant.setEnabled(False)
         self.pushButton_previous_mutant.setMinimumSize(QtCore.QSize(0, 50))
         font = QtGui.QFont()
@@ -775,7 +1284,9 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_previous_mutant.setFont(font)
         self.pushButton_previous_mutant.setAutoDefault(False)
         self.pushButton_previous_mutant.setDefault(False)
-        self.pushButton_previous_mutant.setObjectName("pushButton_previous_mutant")
+        self.pushButton_previous_mutant.setObjectName(
+            "pushButton_previous_mutant"
+        )
         self.gridLayout.addWidget(self.pushButton_previous_mutant, 0, 0, 1, 1)
         self.line = QtWidgets.QFrame(self.verticalLayoutWidget_5)
         self.line.setLineWidth(2)
@@ -787,24 +1298,44 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayout_11.addLayout(self.gridLayout)
         self.horizontalLayout_43 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_43.setObjectName("horizontalLayout_43")
-        self.pushButton_goto_best_hit_in_group = QtWidgets.QPushButton(self.verticalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_goto_best_hit_in_group = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_5
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_goto_best_hit_in_group.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_goto_best_hit_in_group.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_goto_best_hit_in_group.setSizePolicy(sizePolicy)
-        self.pushButton_goto_best_hit_in_group.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.pushButton_goto_best_hit_in_group.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         self.pushButton_goto_best_hit_in_group.setFlat(False)
-        self.pushButton_goto_best_hit_in_group.setObjectName("pushButton_goto_best_hit_in_group")
-        self.horizontalLayout_43.addWidget(self.pushButton_goto_best_hit_in_group)
-        self.pushButton_choose_lucky_mutant = QtWidgets.QPushButton(self.verticalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_goto_best_hit_in_group.setObjectName(
+            "pushButton_goto_best_hit_in_group"
+        )
+        self.horizontalLayout_43.addWidget(
+            self.pushButton_goto_best_hit_in_group
+        )
+        self.pushButton_choose_lucky_mutant = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_5
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_choose_lucky_mutant.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_choose_lucky_mutant.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_choose_lucky_mutant.setSizePolicy(sizePolicy)
         self.pushButton_choose_lucky_mutant.setShortcut("")
-        self.pushButton_choose_lucky_mutant.setObjectName("pushButton_choose_lucky_mutant")
+        self.pushButton_choose_lucky_mutant.setObjectName(
+            "pushButton_choose_lucky_mutant"
+        )
         self.horizontalLayout_43.addWidget(self.pushButton_choose_lucky_mutant)
         self.verticalLayout_11.addLayout(self.horizontalLayout_43)
         self.tabWidget.addTab(self.tab_evaluate, "")
@@ -823,58 +1354,91 @@ class Ui_REvoDesignPyMOL_UI:
         self.page_2.setObjectName("page_2")
         self.stackedWidget.addWidget(self.page_2)
         self.groupBox_14 = QtWidgets.QGroupBox(self.tab_cluster)
-        self.groupBox_14.setGeometry(QtCore.QRect(10, 0, 261, 231))
+        self.groupBox_14.setGeometry(QtCore.QRect(10, 0, 261, 271))
         self.groupBox_14.setObjectName("groupBox_14")
         self.verticalLayoutWidget_3 = QtWidgets.QWidget(self.groupBox_14)
-        self.verticalLayoutWidget_3.setGeometry(QtCore.QRect(10, 30, 241, 191))
+        self.verticalLayoutWidget_3.setGeometry(QtCore.QRect(10, 30, 241, 231))
         self.verticalLayoutWidget_3.setObjectName("verticalLayoutWidget_3")
-        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_3)
+        self.verticalLayout_5 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_3
+        )
         self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.horizontalLayout_39 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_39.setObjectName("horizontalLayout_39")
-        self.label_input_mut_table = QtWidgets.QLabel(self.verticalLayoutWidget_3)
-        self.label_input_mut_table.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_input_mut_table = QtWidgets.QLabel(
+            self.verticalLayoutWidget_3
+        )
+        self.label_input_mut_table.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_input_mut_table.setObjectName("label_input_mut_table")
         self.horizontalLayout_39.addWidget(self.label_input_mut_table)
-        self.lineEdit_input_mut_table = QtWidgets.QLineEdit(self.verticalLayoutWidget_3)
+        self.lineEdit_input_mut_table = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_3
+        )
         self.lineEdit_input_mut_table.setText("")
         self.lineEdit_input_mut_table.setObjectName("lineEdit_input_mut_table")
         self.horizontalLayout_39.addWidget(self.lineEdit_input_mut_table)
-        self.pushButton_open_mut_table_2 = QtWidgets.QPushButton(self.verticalLayoutWidget_3)
-        self.pushButton_open_mut_table_2.setObjectName("pushButton_open_mut_table_2")
+        self.pushButton_open_mut_table_2 = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_3
+        )
+        self.pushButton_open_mut_table_2.setObjectName(
+            "pushButton_open_mut_table_2"
+        )
         self.horizontalLayout_39.addWidget(self.pushButton_open_mut_table_2)
         self.verticalLayout_5.addLayout(self.horizontalLayout_39)
         self.horizontalLayout_40 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_40.setObjectName("horizontalLayout_40")
-        self.spinBox_num_mut_minimun = QtWidgets.QSpinBox(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.spinBox_num_mut_minimun = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_3
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_num_mut_minimun.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_num_mut_minimun.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_num_mut_minimun.setSizePolicy(sizePolicy)
         self.spinBox_num_mut_minimun.setMaximumSize(QtCore.QSize(40, 16777215))
         self.spinBox_num_mut_minimun.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.spinBox_num_mut_minimun.setMinimum(1)
         self.spinBox_num_mut_minimun.setMaximum(3)
         self.spinBox_num_mut_minimun.setObjectName("spinBox_num_mut_minimun")
         self.horizontalLayout_40.addWidget(self.spinBox_num_mut_minimun)
         self.label_28 = QtWidgets.QLabel(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_28.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_28.sizePolicy().hasHeightForWidth()
+        )
         self.label_28.setSizePolicy(sizePolicy)
         self.label_28.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_28.setAlignment(QtCore.Qt.AlignCenter)
         self.label_28.setObjectName("label_28")
         self.horizontalLayout_40.addWidget(self.label_28)
-        self.spinBox_num_mut_maximum = QtWidgets.QSpinBox(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.spinBox_num_mut_maximum = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_3
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_num_mut_maximum.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_num_mut_maximum.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_num_mut_maximum.setSizePolicy(sizePolicy)
         self.spinBox_num_mut_maximum.setMaximumSize(QtCore.QSize(40, 16777215))
         self.spinBox_num_mut_maximum.setMinimum(1)
@@ -885,20 +1449,34 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_41 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_41.setObjectName("horizontalLayout_41")
         self.label_41 = QtWidgets.QLabel(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_41.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_41.sizePolicy().hasHeightForWidth()
+        )
         self.label_41.setSizePolicy(sizePolicy)
         self.label_41.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_41.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_41.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_41.setObjectName("label_41")
         self.horizontalLayout_41.addWidget(self.label_41)
-        self.spinBox_num_cluster = QtWidgets.QSpinBox(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.spinBox_num_cluster = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_3
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_num_cluster.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_num_cluster.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_num_cluster.setSizePolicy(sizePolicy)
         self.spinBox_num_cluster.setMinimum(2)
         self.spinBox_num_cluster.setMaximum(150)
@@ -906,68 +1484,136 @@ class Ui_REvoDesignPyMOL_UI:
         self.spinBox_num_cluster.setObjectName("spinBox_num_cluster")
         self.horizontalLayout_41.addWidget(self.spinBox_num_cluster)
         self.label_40 = QtWidgets.QLabel(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_40.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_40.sizePolicy().hasHeightForWidth()
+        )
         self.label_40.setSizePolicy(sizePolicy)
         self.label_40.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_40.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_40.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_40.setObjectName("label_40")
         self.horizontalLayout_41.addWidget(self.label_40)
-        self.spinBox_cluster_batchsize = QtWidgets.QSpinBox(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.spinBox_cluster_batchsize = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_3
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_cluster_batchsize.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_cluster_batchsize.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_cluster_batchsize.setSizePolicy(sizePolicy)
         self.spinBox_cluster_batchsize.setMinimum(100)
         self.spinBox_cluster_batchsize.setMaximum(10000)
         self.spinBox_cluster_batchsize.setSingleStep(100)
         self.spinBox_cluster_batchsize.setProperty("value", 100)
-        self.spinBox_cluster_batchsize.setObjectName("spinBox_cluster_batchsize")
+        self.spinBox_cluster_batchsize.setObjectName(
+            "spinBox_cluster_batchsize"
+        )
         self.horizontalLayout_41.addWidget(self.spinBox_cluster_batchsize)
         self.verticalLayout_5.addLayout(self.horizontalLayout_41)
         self.horizontalLayout_38 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_38.setObjectName("horizontalLayout_38")
         self.label_30 = QtWidgets.QLabel(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_30.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_30.sizePolicy().hasHeightForWidth()
+        )
         self.label_30.setSizePolicy(sizePolicy)
         self.label_30.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.label_30.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_30.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_30.setObjectName("label_30")
         self.horizontalLayout_38.addWidget(self.label_30)
-        self.comboBox_cluster_matrix = QtWidgets.QComboBox(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_cluster_matrix = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_3
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_cluster_matrix.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_cluster_matrix.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_cluster_matrix.setSizePolicy(sizePolicy)
-        self.comboBox_cluster_matrix.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.comboBox_cluster_matrix.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         self.comboBox_cluster_matrix.setObjectName("comboBox_cluster_matrix")
         self.horizontalLayout_38.addWidget(self.comboBox_cluster_matrix)
         self.verticalLayout_5.addLayout(self.horizontalLayout_38)
+        self.horizontalLayout_63 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_63.setObjectName("horizontalLayout_63")
+        self.checkBox_shuffle_clustering = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_3
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.checkBox_shuffle_clustering.sizePolicy().hasHeightForWidth()
+        )
+        self.checkBox_shuffle_clustering.setSizePolicy(sizePolicy)
+        self.checkBox_shuffle_clustering.setChecked(True)
+        self.checkBox_shuffle_clustering.setObjectName(
+            "checkBox_shuffle_clustering"
+        )
+        self.horizontalLayout_63.addWidget(self.checkBox_shuffle_clustering)
+        self.checkBox_cluster_mutate_and_relax = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_3
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.checkBox_cluster_mutate_and_relax.sizePolicy().hasHeightForWidth()
+        )
+        self.checkBox_cluster_mutate_and_relax.setSizePolicy(sizePolicy)
+        self.checkBox_cluster_mutate_and_relax.setChecked(True)
+        self.checkBox_cluster_mutate_and_relax.setObjectName(
+            "checkBox_cluster_mutate_and_relax"
+        )
+        self.horizontalLayout_63.addWidget(
+            self.checkBox_cluster_mutate_and_relax
+        )
+        self.verticalLayout_5.addLayout(self.horizontalLayout_63)
         self.horizontalLayout_22 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_22.setSpacing(0)
         self.horizontalLayout_22.setObjectName("horizontalLayout_22")
-        self.checkBox_shuffle_clustering = QtWidgets.QCheckBox(self.verticalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_shuffle_clustering.sizePolicy().hasHeightForWidth())
-        self.checkBox_shuffle_clustering.setSizePolicy(sizePolicy)
-        self.checkBox_shuffle_clustering.setChecked(True)
-        self.checkBox_shuffle_clustering.setObjectName("checkBox_shuffle_clustering")
-        self.horizontalLayout_22.addWidget(self.checkBox_shuffle_clustering)
-        self.pushButton_run_cluster = QtWidgets.QPushButton(self.verticalLayoutWidget_3)
+        self.pushButton_run_cluster = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_3
+        )
         self.pushButton_run_cluster.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_run_cluster.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_run_cluster.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_run_cluster.setSizePolicy(sizePolicy)
         self.pushButton_run_cluster.setObjectName("pushButton_run_cluster")
         self.horizontalLayout_22.addWidget(self.pushButton_run_cluster)
@@ -980,153 +1626,270 @@ class Ui_REvoDesignPyMOL_UI:
         self.groupBox_20.setTitle("")
         self.groupBox_20.setObjectName("groupBox_20")
         self.horizontalLayoutWidget_7 = QtWidgets.QWidget(self.groupBox_20)
-        self.horizontalLayoutWidget_7.setGeometry(QtCore.QRect(10, 10, 591, 141))
+        self.horizontalLayoutWidget_7.setGeometry(
+            QtCore.QRect(10, 10, 591, 141)
+        )
         self.horizontalLayoutWidget_7.setObjectName("horizontalLayoutWidget_7")
-        self.horizontalLayout_12 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_7)
+        self.horizontalLayout_12 = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget_7
+        )
         self.horizontalLayout_12.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_12.setObjectName("horizontalLayout_12")
         self.gridLayout_16 = QtWidgets.QGridLayout()
         self.gridLayout_16.setVerticalSpacing(0)
         self.gridLayout_16.setObjectName("gridLayout_16")
         self.label_43 = QtWidgets.QLabel(self.horizontalLayoutWidget_7)
-        self.label_43.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_43.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_43.setObjectName("label_43")
         self.gridLayout_16.addWidget(self.label_43, 0, 0, 1, 1)
         self.horizontalLayout_35 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_35.setObjectName("horizontalLayout_35")
-        self.lineEdit_input_csv_2 = QtWidgets.QLineEdit(self.horizontalLayoutWidget_7)
+        self.lineEdit_input_csv_2 = QtWidgets.QLineEdit(
+            self.horizontalLayoutWidget_7
+        )
         self.lineEdit_input_csv_2.setText("")
         self.lineEdit_input_csv_2.setObjectName("lineEdit_input_csv_2")
         self.horizontalLayout_35.addWidget(self.lineEdit_input_csv_2)
-        self.pushButton_open_input_csv_2 = QtWidgets.QPushButton(self.horizontalLayoutWidget_7)
-        self.pushButton_open_input_csv_2.setObjectName("pushButton_open_input_csv_2")
+        self.pushButton_open_input_csv_2 = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget_7
+        )
+        self.pushButton_open_input_csv_2.setObjectName(
+            "pushButton_open_input_csv_2"
+        )
         self.horizontalLayout_35.addWidget(self.pushButton_open_input_csv_2)
-        self.comboBox_profile_type_2 = QtWidgets.QComboBox(self.horizontalLayoutWidget_7)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_profile_type_2 = QtWidgets.QComboBox(
+            self.horizontalLayoutWidget_7
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_profile_type_2.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_profile_type_2.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_profile_type_2.setSizePolicy(sizePolicy)
         self.comboBox_profile_type_2.setMinimumSize(QtCore.QSize(0, 0))
-        self.comboBox_profile_type_2.setMaximumSize(QtCore.QSize(120, 16777215))
+        self.comboBox_profile_type_2.setMaximumSize(
+            QtCore.QSize(120, 16777215)
+        )
         self.comboBox_profile_type_2.setObjectName("comboBox_profile_type_2")
         self.horizontalLayout_35.addWidget(self.comboBox_profile_type_2)
         self.gridLayout_16.addLayout(self.horizontalLayout_35, 2, 1, 1, 1)
         self.horizontalLayout_24 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_24.setObjectName("horizontalLayout_24")
-        self.lineEdit_input_mut_table_csv = QtWidgets.QLineEdit(self.horizontalLayoutWidget_7)
+        self.lineEdit_input_mut_table_csv = QtWidgets.QLineEdit(
+            self.horizontalLayoutWidget_7
+        )
         self.lineEdit_input_mut_table_csv.setText("")
         self.lineEdit_input_mut_table_csv.setDragEnabled(True)
-        self.lineEdit_input_mut_table_csv.setObjectName("lineEdit_input_mut_table_csv")
+        self.lineEdit_input_mut_table_csv.setObjectName(
+            "lineEdit_input_mut_table_csv"
+        )
         self.horizontalLayout_24.addWidget(self.lineEdit_input_mut_table_csv)
-        self.pushButton_open_mut_table_csv = QtWidgets.QPushButton(self.horizontalLayoutWidget_7)
-        self.pushButton_open_mut_table_csv.setObjectName("pushButton_open_mut_table_csv")
+        self.pushButton_open_mut_table_csv = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget_7
+        )
+        self.pushButton_open_mut_table_csv.setObjectName(
+            "pushButton_open_mut_table_csv"
+        )
         self.horizontalLayout_24.addWidget(self.pushButton_open_mut_table_csv)
         self.gridLayout_16.addLayout(self.horizontalLayout_24, 0, 1, 1, 1)
         self.horizontalLayout_25 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_25.setObjectName("horizontalLayout_25")
-        self.lineEdit_output_pse_visualize = QtWidgets.QLineEdit(self.horizontalLayoutWidget_7)
+        self.lineEdit_output_pse_visualize = QtWidgets.QLineEdit(
+            self.horizontalLayoutWidget_7
+        )
         self.lineEdit_output_pse_visualize.setText("")
-        self.lineEdit_output_pse_visualize.setObjectName("lineEdit_output_pse_visualize")
+        self.lineEdit_output_pse_visualize.setObjectName(
+            "lineEdit_output_pse_visualize"
+        )
         self.horizontalLayout_25.addWidget(self.lineEdit_output_pse_visualize)
-        self.pushButton_open_output_pse_visualize = QtWidgets.QPushButton(self.horizontalLayoutWidget_7)
-        self.pushButton_open_output_pse_visualize.setObjectName("pushButton_open_output_pse_visualize")
-        self.horizontalLayout_25.addWidget(self.pushButton_open_output_pse_visualize)
+        self.pushButton_open_output_pse_visualize = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget_7
+        )
+        self.pushButton_open_output_pse_visualize.setObjectName(
+            "pushButton_open_output_pse_visualize"
+        )
+        self.horizontalLayout_25.addWidget(
+            self.pushButton_open_output_pse_visualize
+        )
         self.gridLayout_16.addLayout(self.horizontalLayout_25, 1, 1, 1, 1)
-        self.label_input_pssm_csv_3 = QtWidgets.QLabel(self.horizontalLayoutWidget_7)
+        self.label_input_pssm_csv_3 = QtWidgets.QLabel(
+            self.horizontalLayoutWidget_7
+        )
         self.label_input_pssm_csv_3.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_input_pssm_csv_3.setObjectName("label_input_pssm_csv_3")
         self.gridLayout_16.addWidget(self.label_input_pssm_csv_3, 2, 0, 1, 1)
         self.label_42 = QtWidgets.QLabel(self.horizontalLayoutWidget_7)
-        self.label_42.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_42.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_42.setObjectName("label_42")
         self.gridLayout_16.addWidget(self.label_42, 1, 0, 1, 1)
         self.horizontalLayout_12.addLayout(self.gridLayout_16)
         self.verticalLayout_10 = QtWidgets.QVBoxLayout()
         self.verticalLayout_10.setObjectName("verticalLayout_10")
-        self.pushButton_run_visualizing = QtWidgets.QPushButton(self.horizontalLayoutWidget_7)
+        self.pushButton_run_visualizing = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget_7
+        )
         self.pushButton_run_visualizing.setEnabled(False)
-        self.pushButton_run_visualizing.setObjectName("pushButton_run_visualizing")
+        self.pushButton_run_visualizing.setObjectName(
+            "pushButton_run_visualizing"
+        )
         self.verticalLayout_10.addWidget(self.pushButton_run_visualizing)
-        self.pushButton_save_this_mutant_table = QtWidgets.QPushButton(self.horizontalLayoutWidget_7)
+        self.pushButton_save_this_mutant_table = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget_7
+        )
         self.pushButton_save_this_mutant_table.setEnabled(False)
-        self.pushButton_save_this_mutant_table.setObjectName("pushButton_save_this_mutant_table")
-        self.verticalLayout_10.addWidget(self.pushButton_save_this_mutant_table)
-        self.pushButton_reduce_this_session = QtWidgets.QPushButton(self.horizontalLayoutWidget_7)
+        self.pushButton_save_this_mutant_table.setObjectName(
+            "pushButton_save_this_mutant_table"
+        )
+        self.verticalLayout_10.addWidget(
+            self.pushButton_save_this_mutant_table
+        )
+        self.pushButton_reduce_this_session = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget_7
+        )
         self.pushButton_reduce_this_session.setEnabled(False)
-        self.pushButton_reduce_this_session.setObjectName("pushButton_reduce_this_session")
+        self.pushButton_reduce_this_session.setObjectName(
+            "pushButton_reduce_this_session"
+        )
         self.verticalLayout_10.addWidget(self.pushButton_reduce_this_session)
-        self.pushButton_export_mutant_pdbs = QtWidgets.QPushButton(self.horizontalLayoutWidget_7)
+        self.pushButton_export_mutant_pdbs = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget_7
+        )
         self.pushButton_export_mutant_pdbs.setEnabled(False)
-        self.pushButton_export_mutant_pdbs.setObjectName("pushButton_export_mutant_pdbs")
+        self.pushButton_export_mutant_pdbs.setObjectName(
+            "pushButton_export_mutant_pdbs"
+        )
         self.verticalLayout_10.addWidget(self.pushButton_export_mutant_pdbs)
         self.horizontalLayout_12.addLayout(self.verticalLayout_10)
         self.groupBox_21 = QtWidgets.QGroupBox(self.tab_visualize)
         self.groupBox_21.setGeometry(QtCore.QRect(10, 170, 171, 191))
         self.groupBox_21.setObjectName("groupBox_21")
         self.verticalLayoutWidget_13 = QtWidgets.QWidget(self.groupBox_21)
-        self.verticalLayoutWidget_13.setGeometry(QtCore.QRect(10, 30, 161, 151))
+        self.verticalLayoutWidget_13.setGeometry(
+            QtCore.QRect(10, 30, 161, 151)
+        )
         self.verticalLayoutWidget_13.setObjectName("verticalLayoutWidget_13")
-        self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_13)
+        self.verticalLayout_9 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_13
+        )
         self.verticalLayout_9.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
-        self.checkBox_global_score_policy = QtWidgets.QCheckBox(self.verticalLayoutWidget_13)
+        self.checkBox_global_score_policy = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_13
+        )
         self.checkBox_global_score_policy.setChecked(True)
-        self.checkBox_global_score_policy.setObjectName("checkBox_global_score_policy")
+        self.checkBox_global_score_policy.setObjectName(
+            "checkBox_global_score_policy"
+        )
         self.verticalLayout_9.addWidget(self.checkBox_global_score_policy)
         self.gridLayout_2 = QtWidgets.QGridLayout()
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.label_47 = QtWidgets.QLabel(self.verticalLayoutWidget_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_47.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_47.sizePolicy().hasHeightForWidth()
+        )
         self.label_47.setSizePolicy(sizePolicy)
-        self.label_47.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_47.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_47.setObjectName("label_47")
         self.gridLayout_2.addWidget(self.label_47, 1, 0, 1, 1)
-        self.comboBox_totalscore = QtWidgets.QComboBox(self.verticalLayoutWidget_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_totalscore = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_13
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_totalscore.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_totalscore.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_totalscore.setSizePolicy(sizePolicy)
         self.comboBox_totalscore.setMaximumSize(QtCore.QSize(100, 16777215))
         self.comboBox_totalscore.setObjectName("comboBox_totalscore")
         self.gridLayout_2.addWidget(self.comboBox_totalscore, 2, 1, 1, 1)
-        self.comboBox_best_leaf = QtWidgets.QComboBox(self.verticalLayoutWidget_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_best_leaf = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_13
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_best_leaf.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_best_leaf.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_best_leaf.setSizePolicy(sizePolicy)
         self.comboBox_best_leaf.setMaximumSize(QtCore.QSize(100, 16777215))
         self.comboBox_best_leaf.setObjectName("comboBox_best_leaf")
         self.gridLayout_2.addWidget(self.comboBox_best_leaf, 1, 1, 1, 1)
         self.label_48 = QtWidgets.QLabel(self.verticalLayoutWidget_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_48.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_48.sizePolicy().hasHeightForWidth()
+        )
         self.label_48.setSizePolicy(sizePolicy)
-        self.label_48.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_48.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_48.setObjectName("label_48")
         self.gridLayout_2.addWidget(self.label_48, 2, 0, 1, 1)
         self.label_53 = QtWidgets.QLabel(self.verticalLayoutWidget_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_53.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_53.sizePolicy().hasHeightForWidth()
+        )
         self.label_53.setSizePolicy(sizePolicy)
-        self.label_53.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_53.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_53.setObjectName("label_53")
         self.gridLayout_2.addWidget(self.label_53, 0, 0, 1, 1)
-        self.lineEdit_group_name = QtWidgets.QLineEdit(self.verticalLayoutWidget_13)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.lineEdit_group_name = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_13
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_group_name.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineEdit_group_name.sizePolicy().hasHeightForWidth()
+        )
         self.lineEdit_group_name.setSizePolicy(sizePolicy)
         self.lineEdit_group_name.setMaximumSize(QtCore.QSize(90, 16777215))
         self.lineEdit_group_name.setObjectName("lineEdit_group_name")
@@ -1136,9 +1899,13 @@ class Ui_REvoDesignPyMOL_UI:
         self.groupBox_10.setGeometry(QtCore.QRect(190, 170, 431, 191))
         self.groupBox_10.setObjectName("groupBox_10")
         self.verticalLayoutWidget_12 = QtWidgets.QWidget(self.groupBox_10)
-        self.verticalLayoutWidget_12.setGeometry(QtCore.QRect(10, 30, 411, 151))
+        self.verticalLayoutWidget_12.setGeometry(
+            QtCore.QRect(10, 30, 411, 151)
+        )
         self.verticalLayoutWidget_12.setObjectName("verticalLayoutWidget_12")
-        self.verticalLayout_15 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_12)
+        self.verticalLayout_15 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_12
+        )
         self.verticalLayout_15.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_15.setObjectName("verticalLayout_15")
         self.horizontalLayout_30 = QtWidgets.QHBoxLayout()
@@ -1148,16 +1915,32 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_11.setObjectName("horizontalLayout_11")
         self.label_44 = QtWidgets.QLabel(self.verticalLayoutWidget_12)
-        self.label_44.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_44.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_44.setObjectName("label_44")
         self.horizontalLayout_11.addWidget(self.label_44)
-        self.lineEdit_multi_design_mutant_table = QtWidgets.QLineEdit(self.verticalLayoutWidget_12)
+        self.lineEdit_multi_design_mutant_table = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_12
+        )
         self.lineEdit_multi_design_mutant_table.setText("")
-        self.lineEdit_multi_design_mutant_table.setObjectName("lineEdit_multi_design_mutant_table")
-        self.horizontalLayout_11.addWidget(self.lineEdit_multi_design_mutant_table)
-        self.pushButton_open_mut_table_csv_2 = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
-        self.pushButton_open_mut_table_csv_2.setObjectName("pushButton_open_mut_table_csv_2")
-        self.horizontalLayout_11.addWidget(self.pushButton_open_mut_table_csv_2)
+        self.lineEdit_multi_design_mutant_table.setObjectName(
+            "lineEdit_multi_design_mutant_table"
+        )
+        self.horizontalLayout_11.addWidget(
+            self.lineEdit_multi_design_mutant_table
+        )
+        self.pushButton_open_mut_table_csv_2 = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_12
+        )
+        self.pushButton_open_mut_table_csv_2.setObjectName(
+            "pushButton_open_mut_table_csv_2"
+        )
+        self.horizontalLayout_11.addWidget(
+            self.pushButton_open_mut_table_csv_2
+        )
         self.verticalLayout_13.addLayout(self.horizontalLayout_11)
         self.horizontalLayout_28 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_28.setSpacing(1)
@@ -1165,181 +1948,331 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_32 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_32.setSpacing(2)
         self.horizontalLayout_32.setObjectName("horizontalLayout_32")
-        self.label_ligand_radius_2 = QtWidgets.QLabel(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        self.label_ligand_radius_2 = QtWidgets.QLabel(
+            self.verticalLayoutWidget_12
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_ligand_radius_2.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_ligand_radius_2.sizePolicy().hasHeightForWidth()
+        )
         self.label_ligand_radius_2.setSizePolicy(sizePolicy)
         self.label_ligand_radius_2.setMaximumSize(QtCore.QSize(16777215, 30))
-        self.label_ligand_radius_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_ligand_radius_2.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_ligand_radius_2.setObjectName("label_ligand_radius_2")
         self.horizontalLayout_32.addWidget(self.label_ligand_radius_2)
-        self.spinBox_maximal_mutant_num = QtWidgets.QSpinBox(self.verticalLayoutWidget_12)
+        self.spinBox_maximal_mutant_num = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_12
+        )
         self.spinBox_maximal_mutant_num.setMinimum(2)
         self.spinBox_maximal_mutant_num.setMaximum(30)
         self.spinBox_maximal_mutant_num.setProperty("value", 5)
-        self.spinBox_maximal_mutant_num.setObjectName("spinBox_maximal_mutant_num")
+        self.spinBox_maximal_mutant_num.setObjectName(
+            "spinBox_maximal_mutant_num"
+        )
         self.horizontalLayout_32.addWidget(self.spinBox_maximal_mutant_num)
         self.label_chainid_14 = QtWidgets.QLabel(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_14.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_14.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_14.setSizePolicy(sizePolicy)
         self.label_chainid_14.setMaximumSize(QtCore.QSize(16777215, 30))
-        self.label_chainid_14.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_14.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_14.setObjectName("label_chainid_14")
         self.horizontalLayout_32.addWidget(self.label_chainid_14)
-        self.spinBox_maximal_multi_design_variant_num = QtWidgets.QSpinBox(self.verticalLayoutWidget_12)
+        self.spinBox_maximal_multi_design_variant_num = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_12
+        )
         self.spinBox_maximal_multi_design_variant_num.setMinimum(2)
         self.spinBox_maximal_multi_design_variant_num.setMaximum(100)
         self.spinBox_maximal_multi_design_variant_num.setProperty("value", 20)
-        self.spinBox_maximal_multi_design_variant_num.setObjectName("spinBox_maximal_multi_design_variant_num")
-        self.horizontalLayout_32.addWidget(self.spinBox_maximal_multi_design_variant_num)
+        self.spinBox_maximal_multi_design_variant_num.setObjectName(
+            "spinBox_maximal_multi_design_variant_num"
+        )
+        self.horizontalLayout_32.addWidget(
+            self.spinBox_maximal_multi_design_variant_num
+        )
         self.label_chainid_11 = QtWidgets.QLabel(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_11.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_11.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_11.setSizePolicy(sizePolicy)
         self.label_chainid_11.setMaximumSize(QtCore.QSize(16777215, 30))
-        self.label_chainid_11.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_11.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_11.setObjectName("label_chainid_11")
         self.horizontalLayout_32.addWidget(self.label_chainid_11)
-        self.doubleSpinBox_minmal_mutant_distance = QtWidgets.QDoubleSpinBox(self.verticalLayoutWidget_12)
+        self.doubleSpinBox_minmal_mutant_distance = QtWidgets.QDoubleSpinBox(
+            self.verticalLayoutWidget_12
+        )
         self.doubleSpinBox_minmal_mutant_distance.setDecimals(1)
         self.doubleSpinBox_minmal_mutant_distance.setMinimum(1.0)
         self.doubleSpinBox_minmal_mutant_distance.setProperty("value", 30.0)
-        self.doubleSpinBox_minmal_mutant_distance.setObjectName("doubleSpinBox_minmal_mutant_distance")
-        self.horizontalLayout_32.addWidget(self.doubleSpinBox_minmal_mutant_distance)
+        self.doubleSpinBox_minmal_mutant_distance.setObjectName(
+            "doubleSpinBox_minmal_mutant_distance"
+        )
+        self.horizontalLayout_32.addWidget(
+            self.doubleSpinBox_minmal_mutant_distance
+        )
         self.horizontalLayout_28.addLayout(self.horizontalLayout_32)
         self.verticalLayout_13.addLayout(self.horizontalLayout_28)
         self.horizontalLayout_30.addLayout(self.verticalLayout_13)
         self.verticalLayout_14 = QtWidgets.QVBoxLayout()
         self.verticalLayout_14.setObjectName("verticalLayout_14")
-        self.checkBox_multi_design_bond_CA = QtWidgets.QCheckBox(self.verticalLayoutWidget_12)
+        self.checkBox_multi_design_bond_CA = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_12
+        )
         self.checkBox_multi_design_bond_CA.setChecked(True)
-        self.checkBox_multi_design_bond_CA.setObjectName("checkBox_multi_design_bond_CA")
+        self.checkBox_multi_design_bond_CA.setObjectName(
+            "checkBox_multi_design_bond_CA"
+        )
         self.verticalLayout_14.addWidget(self.checkBox_multi_design_bond_CA)
-        self.checkBox_multi_design_check_sidechain_orientations = QtWidgets.QCheckBox(self.verticalLayoutWidget_12)
-        self.checkBox_multi_design_check_sidechain_orientations.setChecked(True)
+        self.checkBox_multi_design_check_sidechain_orientations = (
+            QtWidgets.QCheckBox(self.verticalLayoutWidget_12)
+        )
+        self.checkBox_multi_design_check_sidechain_orientations.setChecked(
+            True
+        )
         self.checkBox_multi_design_check_sidechain_orientations.setObjectName(
-            "checkBox_multi_design_check_sidechain_orientations")
-        self.verticalLayout_14.addWidget(self.checkBox_multi_design_check_sidechain_orientations)
-        self.checkBox_multi_design_use_external_scorer = QtWidgets.QCheckBox(self.verticalLayoutWidget_12)
+            "checkBox_multi_design_check_sidechain_orientations"
+        )
+        self.verticalLayout_14.addWidget(
+            self.checkBox_multi_design_check_sidechain_orientations
+        )
+        self.checkBox_multi_design_use_external_scorer = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_12
+        )
         self.checkBox_multi_design_use_external_scorer.setChecked(True)
-        self.checkBox_multi_design_use_external_scorer.setObjectName("checkBox_multi_design_use_external_scorer")
-        self.verticalLayout_14.addWidget(self.checkBox_multi_design_use_external_scorer)
-        self.checkBox_multi_design_color_by_scores = QtWidgets.QCheckBox(self.verticalLayoutWidget_12)
+        self.checkBox_multi_design_use_external_scorer.setObjectName(
+            "checkBox_multi_design_use_external_scorer"
+        )
+        self.verticalLayout_14.addWidget(
+            self.checkBox_multi_design_use_external_scorer
+        )
+        self.checkBox_multi_design_color_by_scores = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_12
+        )
         self.checkBox_multi_design_color_by_scores.setChecked(True)
-        self.checkBox_multi_design_color_by_scores.setObjectName("checkBox_multi_design_color_by_scores")
-        self.verticalLayout_14.addWidget(self.checkBox_multi_design_color_by_scores)
+        self.checkBox_multi_design_color_by_scores.setObjectName(
+            "checkBox_multi_design_color_by_scores"
+        )
+        self.verticalLayout_14.addWidget(
+            self.checkBox_multi_design_color_by_scores
+        )
         self.horizontalLayout_30.addLayout(self.verticalLayout_14)
         self.verticalLayout_15.addLayout(self.horizontalLayout_30)
         self.horizontalLayout_23 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_23.setObjectName("horizontalLayout_23")
-        self.pushButton_multi_design_initialize = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_multi_design_initialize = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_12
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_multi_design_initialize.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_multi_design_initialize.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_multi_design_initialize.setSizePolicy(sizePolicy)
-        self.pushButton_multi_design_initialize.setMaximumSize(QtCore.QSize(45, 16777215))
+        self.pushButton_multi_design_initialize.setMaximumSize(
+            QtCore.QSize(45, 16777215)
+        )
         font = QtGui.QFont()
         font.setPointSize(13)
         font.setBold(False)
         font.setItalic(False)
         font.setWeight(50)
         self.pushButton_multi_design_initialize.setFont(font)
-        self.pushButton_multi_design_initialize.setObjectName("pushButton_multi_design_initialize")
-        self.horizontalLayout_23.addWidget(self.pushButton_multi_design_initialize)
-        self.pushButton_multi_design_start_new_design = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_multi_design_initialize.setObjectName(
+            "pushButton_multi_design_initialize"
+        )
+        self.horizontalLayout_23.addWidget(
+            self.pushButton_multi_design_initialize
+        )
+        self.pushButton_multi_design_start_new_design = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_12
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_multi_design_start_new_design.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_multi_design_start_new_design.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_multi_design_start_new_design.setSizePolicy(sizePolicy)
-        self.pushButton_multi_design_start_new_design.setMaximumSize(QtCore.QSize(45, 16777215))
+        self.pushButton_multi_design_start_new_design.setMaximumSize(
+            QtCore.QSize(45, 16777215)
+        )
         font = QtGui.QFont()
         font.setPointSize(13)
         font.setBold(False)
         font.setItalic(False)
         font.setWeight(50)
         self.pushButton_multi_design_start_new_design.setFont(font)
-        self.pushButton_multi_design_start_new_design.setObjectName("pushButton_multi_design_start_new_design")
-        self.horizontalLayout_23.addWidget(self.pushButton_multi_design_start_new_design)
-        self.pushButton_multi_design_left = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_multi_design_start_new_design.setObjectName(
+            "pushButton_multi_design_start_new_design"
+        )
+        self.horizontalLayout_23.addWidget(
+            self.pushButton_multi_design_start_new_design
+        )
+        self.pushButton_multi_design_left = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_12
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_multi_design_left.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_multi_design_left.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_multi_design_left.setSizePolicy(sizePolicy)
-        self.pushButton_multi_design_left.setMaximumSize(QtCore.QSize(45, 16777215))
+        self.pushButton_multi_design_left.setMaximumSize(
+            QtCore.QSize(45, 16777215)
+        )
         font = QtGui.QFont()
         font.setPointSize(13)
         font.setBold(False)
         font.setItalic(False)
         font.setWeight(50)
         self.pushButton_multi_design_left.setFont(font)
-        self.pushButton_multi_design_left.setObjectName("pushButton_multi_design_left")
+        self.pushButton_multi_design_left.setObjectName(
+            "pushButton_multi_design_left"
+        )
         self.horizontalLayout_23.addWidget(self.pushButton_multi_design_left)
-        self.pushButton_multi_design_right = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_multi_design_right = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_12
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_multi_design_right.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_multi_design_right.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_multi_design_right.setSizePolicy(sizePolicy)
-        self.pushButton_multi_design_right.setMaximumSize(QtCore.QSize(45, 16777215))
+        self.pushButton_multi_design_right.setMaximumSize(
+            QtCore.QSize(45, 16777215)
+        )
         font = QtGui.QFont()
         font.setPointSize(13)
         font.setBold(False)
         font.setItalic(False)
         font.setWeight(50)
         self.pushButton_multi_design_right.setFont(font)
-        self.pushButton_multi_design_right.setObjectName("pushButton_multi_design_right")
+        self.pushButton_multi_design_right.setObjectName(
+            "pushButton_multi_design_right"
+        )
         self.horizontalLayout_23.addWidget(self.pushButton_multi_design_right)
-        self.pushButton_multi_design_end_this_design = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_multi_design_end_this_design = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_12
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_multi_design_end_this_design.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_multi_design_end_this_design.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_multi_design_end_this_design.setSizePolicy(sizePolicy)
-        self.pushButton_multi_design_end_this_design.setMaximumSize(QtCore.QSize(45, 16777215))
+        self.pushButton_multi_design_end_this_design.setMaximumSize(
+            QtCore.QSize(45, 16777215)
+        )
         font = QtGui.QFont()
         font.setPointSize(13)
         font.setBold(False)
         font.setItalic(False)
         font.setWeight(50)
         self.pushButton_multi_design_end_this_design.setFont(font)
-        self.pushButton_multi_design_end_this_design.setObjectName("pushButton_multi_design_end_this_design")
-        self.horizontalLayout_23.addWidget(self.pushButton_multi_design_end_this_design)
-        self.pushButton_multi_design_export_mutants_from_table = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
-        self.pushButton_multi_design_export_mutants_from_table.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_multi_design_end_this_design.setObjectName(
+            "pushButton_multi_design_end_this_design"
+        )
+        self.horizontalLayout_23.addWidget(
+            self.pushButton_multi_design_end_this_design
+        )
+        self.pushButton_multi_design_export_mutants_from_table = (
+            QtWidgets.QPushButton(self.verticalLayoutWidget_12)
+        )
+        self.pushButton_multi_design_export_mutants_from_table.setEnabled(
+            False
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(
-            self.pushButton_multi_design_export_mutants_from_table.sizePolicy().hasHeightForWidth())
-        self.pushButton_multi_design_export_mutants_from_table.setSizePolicy(sizePolicy)
-        self.pushButton_multi_design_export_mutants_from_table.setMaximumSize(QtCore.QSize(45, 16777215))
+            self.pushButton_multi_design_export_mutants_from_table.sizePolicy().hasHeightForWidth()
+        )
+        self.pushButton_multi_design_export_mutants_from_table.setSizePolicy(
+            sizePolicy
+        )
+        self.pushButton_multi_design_export_mutants_from_table.setMaximumSize(
+            QtCore.QSize(45, 16777215)
+        )
         font = QtGui.QFont()
         font.setPointSize(13)
         self.pushButton_multi_design_export_mutants_from_table.setFont(font)
         self.pushButton_multi_design_export_mutants_from_table.setObjectName(
-            "pushButton_multi_design_export_mutants_from_table")
-        self.horizontalLayout_23.addWidget(self.pushButton_multi_design_export_mutants_from_table)
-        spacerItem = QtWidgets.QSpacerItem(10, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+            "pushButton_multi_design_export_mutants_from_table"
+        )
+        self.horizontalLayout_23.addWidget(
+            self.pushButton_multi_design_export_mutants_from_table
+        )
+        spacerItem = QtWidgets.QSpacerItem(
+            10,
+            40,
+            QtWidgets.QSizePolicy.Minimum,
+            QtWidgets.QSizePolicy.Preferred,
+        )
         self.horizontalLayout_23.addItem(spacerItem)
-        self.pushButton_run_multi_design = QtWidgets.QPushButton(self.verticalLayoutWidget_12)
+        self.pushButton_run_multi_design = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_12
+        )
         self.pushButton_run_multi_design.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_run_multi_design.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_run_multi_design.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_run_multi_design.setSizePolicy(sizePolicy)
-        self.pushButton_run_multi_design.setMaximumSize(QtCore.QSize(100, 16777215))
-        self.pushButton_run_multi_design.setObjectName("pushButton_run_multi_design")
+        self.pushButton_run_multi_design.setMaximumSize(
+            QtCore.QSize(100, 16777215)
+        )
+        self.pushButton_run_multi_design.setObjectName(
+            "pushButton_run_multi_design"
+        )
         self.horizontalLayout_23.addWidget(self.pushButton_run_multi_design)
         self.verticalLayout_15.addLayout(self.horizontalLayout_23)
         self.tabWidget.addTab(self.tab_visualize, "")
@@ -1348,10 +2281,16 @@ class Ui_REvoDesignPyMOL_UI:
         self.gridLayoutWidget_3 = QtWidgets.QWidget(self.tab_interact)
         self.gridLayoutWidget_3.setGeometry(QtCore.QRect(10, 20, 331, 341))
         self.gridLayoutWidget_3.setObjectName("gridLayoutWidget_3")
-        self.gridLayout_interact_pairs = QtWidgets.QGridLayout(self.gridLayoutWidget_3)
-        self.gridLayout_interact_pairs.setSizeConstraint(QtWidgets.QLayout.SetNoConstraint)
+        self.gridLayout_interact_pairs = QtWidgets.QGridLayout(
+            self.gridLayoutWidget_3
+        )
+        self.gridLayout_interact_pairs.setSizeConstraint(
+            QtWidgets.QLayout.SetNoConstraint
+        )
         self.gridLayout_interact_pairs.setContentsMargins(0, 0, 0, 0)
-        self.gridLayout_interact_pairs.setObjectName("gridLayout_interact_pairs")
+        self.gridLayout_interact_pairs.setObjectName(
+            "gridLayout_interact_pairs"
+        )
         self.groupBox_22 = QtWidgets.QGroupBox(self.tab_interact)
         self.groupBox_22.setGeometry(QtCore.QRect(350, 0, 271, 91))
         self.groupBox_22.setObjectName("groupBox_22")
@@ -1365,35 +2304,65 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_33 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_33.setContentsMargins(-1, -1, -1, 0)
         self.horizontalLayout_33.setObjectName("horizontalLayout_33")
-        self.lineEdit_input_gremlin_mtx = QtWidgets.QLineEdit(self.layoutWidget1)
+        self.lineEdit_input_gremlin_mtx = QtWidgets.QLineEdit(
+            self.layoutWidget1
+        )
         self.lineEdit_input_gremlin_mtx.setText("")
-        self.lineEdit_input_gremlin_mtx.setObjectName("lineEdit_input_gremlin_mtx")
+        self.lineEdit_input_gremlin_mtx.setObjectName(
+            "lineEdit_input_gremlin_mtx"
+        )
         self.horizontalLayout_33.addWidget(self.lineEdit_input_gremlin_mtx)
-        self.pushButton_open_gremlin_mtx = QtWidgets.QPushButton(self.layoutWidget1)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_open_gremlin_mtx = QtWidgets.QPushButton(
+            self.layoutWidget1
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_open_gremlin_mtx.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_open_gremlin_mtx.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_open_gremlin_mtx.setSizePolicy(sizePolicy)
-        self.pushButton_open_gremlin_mtx.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.pushButton_open_gremlin_mtx.setObjectName("pushButton_open_gremlin_mtx")
+        self.pushButton_open_gremlin_mtx.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
+        self.pushButton_open_gremlin_mtx.setObjectName(
+            "pushButton_open_gremlin_mtx"
+        )
         self.horizontalLayout_33.addWidget(self.pushButton_open_gremlin_mtx)
         self.verticalLayout_6.addLayout(self.horizontalLayout_33)
         self.horizontalLayout_29 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_29.setObjectName("horizontalLayout_29")
-        self.lineEdit_output_mutant_table = QtWidgets.QLineEdit(self.layoutWidget1)
+        self.lineEdit_output_mutant_table = QtWidgets.QLineEdit(
+            self.layoutWidget1
+        )
         self.lineEdit_output_mutant_table.setText("")
-        self.lineEdit_output_mutant_table.setObjectName("lineEdit_output_mutant_table")
+        self.lineEdit_output_mutant_table.setObjectName(
+            "lineEdit_output_mutant_table"
+        )
         self.horizontalLayout_29.addWidget(self.lineEdit_output_mutant_table)
-        self.pushButton_open_save_mutant_table = QtWidgets.QPushButton(self.layoutWidget1)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.pushButton_open_save_mutant_table = QtWidgets.QPushButton(
+            self.layoutWidget1
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_open_save_mutant_table.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.pushButton_open_save_mutant_table.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_open_save_mutant_table.setSizePolicy(sizePolicy)
-        self.pushButton_open_save_mutant_table.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.pushButton_open_save_mutant_table.setObjectName("pushButton_open_save_mutant_table")
-        self.horizontalLayout_29.addWidget(self.pushButton_open_save_mutant_table)
+        self.pushButton_open_save_mutant_table.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
+        self.pushButton_open_save_mutant_table.setObjectName(
+            "pushButton_open_save_mutant_table"
+        )
+        self.horizontalLayout_29.addWidget(
+            self.pushButton_open_save_mutant_table
+        )
         self.verticalLayout_6.addLayout(self.horizontalLayout_29)
         self.groupBox_9 = QtWidgets.QGroupBox(self.tab_interact)
         self.groupBox_9.setGeometry(QtCore.QRect(350, 90, 271, 271))
@@ -1401,7 +2370,9 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayoutWidget_6 = QtWidgets.QWidget(self.groupBox_9)
         self.verticalLayoutWidget_6.setGeometry(QtCore.QRect(10, 30, 251, 232))
         self.verticalLayoutWidget_6.setObjectName("verticalLayoutWidget_6")
-        self.verticalLayout_18 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_6)
+        self.verticalLayout_18 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_6
+        )
         self.verticalLayout_18.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_18.setSpacing(0)
         self.verticalLayout_18.setObjectName("verticalLayout_18")
@@ -1412,36 +2383,64 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_8.setSpacing(0)
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         self.label_chainid_7 = QtWidgets.QLabel(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_7.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_7.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_7.setSizePolicy(sizePolicy)
         self.label_chainid_7.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.label_chainid_7.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_7.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_7.setObjectName("label_chainid_7")
         self.horizontalLayout_8.addWidget(self.label_chainid_7)
-        self.doubleSpinBox_max_interact_dist = QtWidgets.QDoubleSpinBox(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.doubleSpinBox_max_interact_dist = QtWidgets.QDoubleSpinBox(
+            self.verticalLayoutWidget_6
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.doubleSpinBox_max_interact_dist.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.doubleSpinBox_max_interact_dist.sizePolicy().hasHeightForWidth()
+        )
         self.doubleSpinBox_max_interact_dist.setSizePolicy(sizePolicy)
         self.doubleSpinBox_max_interact_dist.setPrefix("")
         self.doubleSpinBox_max_interact_dist.setDecimals(1)
         self.doubleSpinBox_max_interact_dist.setMinimum(0.5)
         self.doubleSpinBox_max_interact_dist.setProperty("value", 20.0)
-        self.doubleSpinBox_max_interact_dist.setObjectName("doubleSpinBox_max_interact_dist")
+        self.doubleSpinBox_max_interact_dist.setObjectName(
+            "doubleSpinBox_max_interact_dist"
+        )
         self.horizontalLayout_8.addWidget(self.doubleSpinBox_max_interact_dist)
         self.horizontalLayout_14.addLayout(self.horizontalLayout_8)
         self.horizontalLayout_62 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_62.setObjectName("horizontalLayout_62")
-        self.checkBox_interact_bind_chain_mode = QtWidgets.QCheckBox(self.verticalLayoutWidget_6)
-        self.checkBox_interact_bind_chain_mode.setObjectName("checkBox_interact_bind_chain_mode")
-        self.horizontalLayout_62.addWidget(self.checkBox_interact_bind_chain_mode)
-        self.lineEdit_interact_chain_binding = QtWidgets.QLineEdit(self.verticalLayoutWidget_6)
-        self.lineEdit_interact_chain_binding.setObjectName("lineEdit_interact_chain_binding")
-        self.horizontalLayout_62.addWidget(self.lineEdit_interact_chain_binding)
+        self.checkBox_interact_bind_chain_mode = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_6
+        )
+        self.checkBox_interact_bind_chain_mode.setObjectName(
+            "checkBox_interact_bind_chain_mode"
+        )
+        self.horizontalLayout_62.addWidget(
+            self.checkBox_interact_bind_chain_mode
+        )
+        self.lineEdit_interact_chain_binding = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_6
+        )
+        self.lineEdit_interact_chain_binding.setObjectName(
+            "lineEdit_interact_chain_binding"
+        )
+        self.horizontalLayout_62.addWidget(
+            self.lineEdit_interact_chain_binding
+        )
         self.horizontalLayout_14.addLayout(self.horizontalLayout_62)
         self.verticalLayout_18.addLayout(self.horizontalLayout_14)
         self.horizontalLayout_44 = QtWidgets.QHBoxLayout()
@@ -1450,20 +2449,34 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_5.setSpacing(0)
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.label_chainid_6 = QtWidgets.QLabel(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_6.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_6.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_6.setSizePolicy(sizePolicy)
         self.label_chainid_6.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.label_chainid_6.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_6.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_6.setObjectName("label_chainid_6")
         self.horizontalLayout_5.addWidget(self.label_chainid_6)
-        self.spinBox_gremlin_topN = QtWidgets.QSpinBox(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.spinBox_gremlin_topN = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_6
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_gremlin_topN.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_gremlin_topN.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_gremlin_topN.setSizePolicy(sizePolicy)
         self.spinBox_gremlin_topN.setMinimum(1)
         self.spinBox_gremlin_topN.setMaximum(1000)
@@ -1474,67 +2487,119 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_61 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_61.setObjectName("horizontalLayout_61")
         self.label_chainid_13 = QtWidgets.QLabel(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_13.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_13.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_13.setSizePolicy(sizePolicy)
         self.label_chainid_13.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.label_chainid_13.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_13.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_13.setObjectName("label_chainid_13")
         self.horizontalLayout_61.addWidget(self.label_chainid_13)
-        self.comboBox_external_scorer = QtWidgets.QComboBox(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_external_scorer = QtWidgets.QComboBox(
+            self.verticalLayoutWidget_6
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_external_scorer.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_external_scorer.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_external_scorer.setSizePolicy(sizePolicy)
         self.comboBox_external_scorer.setMinimumSize(QtCore.QSize(0, 0))
-        self.comboBox_external_scorer.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.comboBox_external_scorer.setMaximumSize(
+            QtCore.QSize(100, 16777215)
+        )
         self.comboBox_external_scorer.setObjectName("comboBox_external_scorer")
         self.horizontalLayout_61.addWidget(self.comboBox_external_scorer)
         self.horizontalLayout_44.addLayout(self.horizontalLayout_61)
         self.verticalLayout_18.addLayout(self.horizontalLayout_44)
         self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.pushButton_reinitialize_interact = QtWidgets.QPushButton(self.verticalLayoutWidget_6)
-        self.pushButton_reinitialize_interact.setObjectName("pushButton_reinitialize_interact")
-        self.horizontalLayout_6.addWidget(self.pushButton_reinitialize_interact)
-        self.pushButton_run_interact_scan = QtWidgets.QPushButton(self.verticalLayoutWidget_6)
+        self.pushButton_reinitialize_interact = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_6
+        )
+        self.pushButton_reinitialize_interact.setObjectName(
+            "pushButton_reinitialize_interact"
+        )
+        self.horizontalLayout_6.addWidget(
+            self.pushButton_reinitialize_interact
+        )
+        self.pushButton_run_interact_scan = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_6
+        )
         self.pushButton_run_interact_scan.setEnabled(False)
-        self.pushButton_run_interact_scan.setObjectName("pushButton_run_interact_scan")
+        self.pushButton_run_interact_scan.setObjectName(
+            "pushButton_run_interact_scan"
+        )
         self.horizontalLayout_6.addWidget(self.pushButton_run_interact_scan)
         self.verticalLayout_18.addLayout(self.horizontalLayout_6)
         self.gridLayout_3 = QtWidgets.QGridLayout()
         self.gridLayout_3.setObjectName("gridLayout_3")
-        self.pushButton_next = QtWidgets.QPushButton(self.verticalLayoutWidget_6)
+        self.pushButton_next = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_6
+        )
         self.pushButton_next.setObjectName("pushButton_next")
         self.gridLayout_3.addWidget(self.pushButton_next, 0, 1, 1, 1)
-        self.pushButton_interact_reject = QtWidgets.QPushButton(self.verticalLayoutWidget_6)
-        self.pushButton_interact_reject.setObjectName("pushButton_interact_reject")
-        self.gridLayout_3.addWidget(self.pushButton_interact_reject, 1, 0, 1, 1)
-        self.pushButton_previous = QtWidgets.QPushButton(self.verticalLayoutWidget_6)
+        self.pushButton_interact_reject = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_6
+        )
+        self.pushButton_interact_reject.setObjectName(
+            "pushButton_interact_reject"
+        )
+        self.gridLayout_3.addWidget(
+            self.pushButton_interact_reject, 1, 0, 1, 1
+        )
+        self.pushButton_previous = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_6
+        )
         self.pushButton_previous.setObjectName("pushButton_previous")
         self.gridLayout_3.addWidget(self.pushButton_previous, 0, 0, 1, 1)
-        self.pushButton_interact_accept = QtWidgets.QPushButton(self.verticalLayoutWidget_6)
-        self.pushButton_interact_accept.setObjectName("pushButton_interact_accept")
-        self.gridLayout_3.addWidget(self.pushButton_interact_accept, 1, 1, 1, 1)
+        self.pushButton_interact_accept = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_6
+        )
+        self.pushButton_interact_accept.setObjectName(
+            "pushButton_interact_accept"
+        )
+        self.gridLayout_3.addWidget(
+            self.pushButton_interact_accept, 1, 1, 1, 1
+        )
         self.verticalLayout_18.addLayout(self.gridLayout_3)
         self.horizontalLayout_46 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_46.setObjectName("horizontalLayout_46")
         self.horizontalLayout_56 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_56.setObjectName("horizontalLayout_56")
         self.label_chainid_10 = QtWidgets.QLabel(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_10.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_10.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_10.setSizePolicy(sizePolicy)
         self.label_chainid_10.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.label_chainid_10.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_10.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_10.setObjectName("label_chainid_10")
         self.horizontalLayout_56.addWidget(self.label_chainid_10)
-        self.lineEdit_current_pair = QtWidgets.QLineEdit(self.verticalLayoutWidget_6)
+        self.lineEdit_current_pair = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_6
+        )
         self.lineEdit_current_pair.setEnabled(True)
         self.lineEdit_current_pair.setReadOnly(True)
         self.lineEdit_current_pair.setObjectName("lineEdit_current_pair")
@@ -1543,25 +2608,43 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_58 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_58.setObjectName("horizontalLayout_58")
         self.label_chainid_12 = QtWidgets.QLabel(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_12.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_12.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_12.setSizePolicy(sizePolicy)
         self.label_chainid_12.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.label_chainid_12.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_12.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_12.setObjectName("label_chainid_12")
         self.horizontalLayout_58.addWidget(self.label_chainid_12)
-        self.lineEdit_current_pair_score = QtWidgets.QLineEdit(self.verticalLayoutWidget_6)
+        self.lineEdit_current_pair_score = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_6
+        )
         self.lineEdit_current_pair_score.setEnabled(True)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_current_pair_score.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineEdit_current_pair_score.sizePolicy().hasHeightForWidth()
+        )
         self.lineEdit_current_pair_score.setSizePolicy(sizePolicy)
-        self.lineEdit_current_pair_score.setMaximumSize(QtCore.QSize(70, 16777215))
+        self.lineEdit_current_pair_score.setMaximumSize(
+            QtCore.QSize(70, 16777215)
+        )
         self.lineEdit_current_pair_score.setReadOnly(True)
-        self.lineEdit_current_pair_score.setObjectName("lineEdit_current_pair_score")
+        self.lineEdit_current_pair_score.setObjectName(
+            "lineEdit_current_pair_score"
+        )
         self.horizontalLayout_58.addWidget(self.lineEdit_current_pair_score)
         self.horizontalLayout_46.addLayout(self.horizontalLayout_58)
         self.verticalLayout_18.addLayout(self.horizontalLayout_46)
@@ -1570,38 +2653,64 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_59 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_59.setObjectName("horizontalLayout_59")
         self.label_chainid_9 = QtWidgets.QLabel(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_9.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_9.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_9.setSizePolicy(sizePolicy)
         self.label_chainid_9.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.label_chainid_9.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_9.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_9.setObjectName("label_chainid_9")
         self.horizontalLayout_59.addWidget(self.label_chainid_9)
-        self.lineEdit_current_pair_wt_score = QtWidgets.QLineEdit(self.verticalLayoutWidget_6)
+        self.lineEdit_current_pair_wt_score = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_6
+        )
         self.lineEdit_current_pair_wt_score.setEnabled(True)
         self.lineEdit_current_pair_wt_score.setReadOnly(True)
-        self.lineEdit_current_pair_wt_score.setObjectName("lineEdit_current_pair_wt_score")
+        self.lineEdit_current_pair_wt_score.setObjectName(
+            "lineEdit_current_pair_wt_score"
+        )
         self.horizontalLayout_59.addWidget(self.lineEdit_current_pair_wt_score)
         self.horizontalLayout_45.addLayout(self.horizontalLayout_59)
         self.horizontalLayout_60 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_60.setObjectName("horizontalLayout_60")
         self.label_chainid_8 = QtWidgets.QLabel(self.verticalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(1)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid_8.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid_8.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid_8.setSizePolicy(sizePolicy)
         self.label_chainid_8.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.label_chainid_8.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid_8.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid_8.setObjectName("label_chainid_8")
         self.horizontalLayout_60.addWidget(self.label_chainid_8)
-        self.lineEdit_current_pair_mut_score = QtWidgets.QLineEdit(self.verticalLayoutWidget_6)
+        self.lineEdit_current_pair_mut_score = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_6
+        )
         self.lineEdit_current_pair_mut_score.setEnabled(True)
         self.lineEdit_current_pair_mut_score.setReadOnly(True)
-        self.lineEdit_current_pair_mut_score.setObjectName("lineEdit_current_pair_mut_score")
-        self.horizontalLayout_60.addWidget(self.lineEdit_current_pair_mut_score)
+        self.lineEdit_current_pair_mut_score.setObjectName(
+            "lineEdit_current_pair_mut_score"
+        )
+        self.horizontalLayout_60.addWidget(
+            self.lineEdit_current_pair_mut_score
+        )
         self.horizontalLayout_45.addLayout(self.horizontalLayout_60)
         self.verticalLayout_18.addLayout(self.horizontalLayout_45)
         self.tabWidget.addTab(self.tab_interact, "")
@@ -1613,7 +2722,9 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayoutWidget = QtWidgets.QWidget(self.groupBox_3)
         self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 30, 591, 80))
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
-        self.horizontalLayout_21 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
+        self.horizontalLayout_21 = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget
+        )
         self.horizontalLayout_21.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_21.setObjectName("horizontalLayout_21")
         self.verticalLayout_21 = QtWidgets.QVBoxLayout()
@@ -1622,127 +2733,247 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_66 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_66.setObjectName("horizontalLayout_66")
         self.label_molecule_7 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        self.label_molecule_7.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_7.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_7.setObjectName("label_molecule_7")
         self.horizontalLayout_66.addWidget(self.label_molecule_7)
-        self.lineEdit_pssm_gremlin_url = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
-        self.lineEdit_pssm_gremlin_url.setObjectName("lineEdit_pssm_gremlin_url")
+        self.lineEdit_pssm_gremlin_url = QtWidgets.QLineEdit(
+            self.horizontalLayoutWidget
+        )
+        self.lineEdit_pssm_gremlin_url.setObjectName(
+            "lineEdit_pssm_gremlin_url"
+        )
         self.horizontalLayout_66.addWidget(self.lineEdit_pssm_gremlin_url)
         self.verticalLayout_21.addLayout(self.horizontalLayout_66)
         self.horizontalLayout_65 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_65.setObjectName("horizontalLayout_65")
-        self.pushButton_submit_pssm_gremlin_job = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_submit_pssm_gremlin_job.setObjectName("pushButton_submit_pssm_gremlin_job")
-        self.horizontalLayout_65.addWidget(self.pushButton_submit_pssm_gremlin_job)
-        self.pushButton_cancel_pssm_gremlin_job = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_cancel_pssm_gremlin_job.setObjectName("pushButton_cancel_pssm_gremlin_job")
-        self.horizontalLayout_65.addWidget(self.pushButton_cancel_pssm_gremlin_job)
-        self.pushButton_download_pssm_gremlin_job = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_download_pssm_gremlin_job.setObjectName("pushButton_download_pssm_gremlin_job")
-        self.horizontalLayout_65.addWidget(self.pushButton_download_pssm_gremlin_job)
+        self.pushButton_submit_pssm_gremlin_job = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget
+        )
+        self.pushButton_submit_pssm_gremlin_job.setObjectName(
+            "pushButton_submit_pssm_gremlin_job"
+        )
+        self.horizontalLayout_65.addWidget(
+            self.pushButton_submit_pssm_gremlin_job
+        )
+        self.pushButton_cancel_pssm_gremlin_job = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget
+        )
+        self.pushButton_cancel_pssm_gremlin_job.setObjectName(
+            "pushButton_cancel_pssm_gremlin_job"
+        )
+        self.horizontalLayout_65.addWidget(
+            self.pushButton_cancel_pssm_gremlin_job
+        )
+        self.pushButton_download_pssm_gremlin_job = QtWidgets.QPushButton(
+            self.horizontalLayoutWidget
+        )
+        self.pushButton_download_pssm_gremlin_job.setObjectName(
+            "pushButton_download_pssm_gremlin_job"
+        )
+        self.horizontalLayout_65.addWidget(
+            self.pushButton_download_pssm_gremlin_job
+        )
         self.verticalLayout_21.addLayout(self.horizontalLayout_65)
         self.horizontalLayout_21.addLayout(self.verticalLayout_21)
         self.gridLayout_7 = QtWidgets.QGridLayout()
         self.gridLayout_7.setObjectName("gridLayout_7")
         self.label_molecule_9 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_9.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_9.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule_9.setSizePolicy(sizePolicy)
-        self.label_molecule_9.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_9.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_9.setObjectName("label_molecule_9")
         self.gridLayout_7.addWidget(self.label_molecule_9, 0, 0, 1, 1)
-        self.lineEdit_pssm_gremlin_user = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.lineEdit_pssm_gremlin_user = QtWidgets.QLineEdit(
+            self.horizontalLayoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_pssm_gremlin_user.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineEdit_pssm_gremlin_user.sizePolicy().hasHeightForWidth()
+        )
         self.lineEdit_pssm_gremlin_user.setSizePolicy(sizePolicy)
-        self.lineEdit_pssm_gremlin_user.setObjectName("lineEdit_pssm_gremlin_user")
-        self.gridLayout_7.addWidget(self.lineEdit_pssm_gremlin_user, 0, 1, 1, 1)
+        self.lineEdit_pssm_gremlin_user.setObjectName(
+            "lineEdit_pssm_gremlin_user"
+        )
+        self.gridLayout_7.addWidget(
+            self.lineEdit_pssm_gremlin_user, 0, 1, 1, 1
+        )
         self.label_molecule_10 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_10.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_10.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule_10.setSizePolicy(sizePolicy)
-        self.label_molecule_10.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_10.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_10.setObjectName("label_molecule_10")
         self.gridLayout_7.addWidget(self.label_molecule_10, 1, 0, 1, 1)
-        self.lineEdit_pssm_gremlin_passwd = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        self.lineEdit_pssm_gremlin_passwd = QtWidgets.QLineEdit(
+            self.horizontalLayoutWidget
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_pssm_gremlin_passwd.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.lineEdit_pssm_gremlin_passwd.sizePolicy().hasHeightForWidth()
+        )
         self.lineEdit_pssm_gremlin_passwd.setSizePolicy(sizePolicy)
-        self.lineEdit_pssm_gremlin_passwd.setInputMethodHints(QtCore.Qt.ImhHiddenText)
+        self.lineEdit_pssm_gremlin_passwd.setInputMethodHints(
+            QtCore.Qt.ImhHiddenText
+        )
         self.lineEdit_pssm_gremlin_passwd.setText("")
         self.lineEdit_pssm_gremlin_passwd.setMaxLength(32767)
-        self.lineEdit_pssm_gremlin_passwd.setObjectName("lineEdit_pssm_gremlin_passwd")
-        self.gridLayout_7.addWidget(self.lineEdit_pssm_gremlin_passwd, 1, 1, 1, 1)
+        self.lineEdit_pssm_gremlin_passwd.setObjectName(
+            "lineEdit_pssm_gremlin_passwd"
+        )
+        self.gridLayout_7.addWidget(
+            self.lineEdit_pssm_gremlin_passwd, 1, 1, 1, 1
+        )
         self.horizontalLayout_21.addLayout(self.gridLayout_7)
         self.tabWidget.addTab(self.tab_client, "")
         self.tab_socket = QtWidgets.QWidget()
         self.tab_socket.setObjectName("tab_socket")
         self.groupBox_ws_server_settings = QtWidgets.QGroupBox(self.tab_socket)
         self.groupBox_ws_server_settings.setEnabled(False)
-        self.groupBox_ws_server_settings.setGeometry(QtCore.QRect(350, 0, 271, 71))
-        self.groupBox_ws_server_settings.setObjectName("groupBox_ws_server_settings")
-        self.layoutWidget2 = QtWidgets.QWidget(self.groupBox_ws_server_settings)
+        self.groupBox_ws_server_settings.setGeometry(
+            QtCore.QRect(350, 0, 271, 71)
+        )
+        self.groupBox_ws_server_settings.setObjectName(
+            "groupBox_ws_server_settings"
+        )
+        self.layoutWidget2 = QtWidgets.QWidget(
+            self.groupBox_ws_server_settings
+        )
         self.layoutWidget2.setGeometry(QtCore.QRect(10, 30, 251, 31))
         self.layoutWidget2.setObjectName("layoutWidget2")
         self.horizontalLayout_54 = QtWidgets.QHBoxLayout(self.layoutWidget2)
         self.horizontalLayout_54.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_54.setObjectName("horizontalLayout_54")
         self.label_molecule_11 = QtWidgets.QLabel(self.layoutWidget2)
-        self.label_molecule_11.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_11.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_11.setObjectName("label_molecule_11")
         self.horizontalLayout_54.addWidget(self.label_molecule_11)
-        self.doubleSpinBox_ws_view_broadcast_interval = QtWidgets.QDoubleSpinBox(self.layoutWidget2)
+        self.doubleSpinBox_ws_view_broadcast_interval = (
+            QtWidgets.QDoubleSpinBox(self.layoutWidget2)
+        )
         self.doubleSpinBox_ws_view_broadcast_interval.setDecimals(3)
         self.doubleSpinBox_ws_view_broadcast_interval.setMinimum(0.001)
         self.doubleSpinBox_ws_view_broadcast_interval.setMaximum(60.0)
-        self.doubleSpinBox_ws_view_broadcast_interval.setProperty("value", 0.01)
-        self.doubleSpinBox_ws_view_broadcast_interval.setObjectName("doubleSpinBox_ws_view_broadcast_interval")
-        self.horizontalLayout_54.addWidget(self.doubleSpinBox_ws_view_broadcast_interval)
+        self.doubleSpinBox_ws_view_broadcast_interval.setProperty(
+            "value", 0.01
+        )
+        self.doubleSpinBox_ws_view_broadcast_interval.setObjectName(
+            "doubleSpinBox_ws_view_broadcast_interval"
+        )
+        self.horizontalLayout_54.addWidget(
+            self.doubleSpinBox_ws_view_broadcast_interval
+        )
         self.label_molecule_14 = QtWidgets.QLabel(self.layoutWidget2)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_14.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_14.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule_14.setSizePolicy(sizePolicy)
-        self.label_molecule_14.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label_molecule_14.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_14.setObjectName("label_molecule_14")
         self.horizontalLayout_54.addWidget(self.label_molecule_14)
         self.groupBox_ws_client_settings = QtWidgets.QGroupBox(self.tab_socket)
-        self.groupBox_ws_client_settings.setGeometry(QtCore.QRect(10, 110, 331, 101))
-        self.groupBox_ws_client_settings.setObjectName("groupBox_ws_client_settings")
-        self.verticalLayoutWidget_9 = QtWidgets.QWidget(self.groupBox_ws_client_settings)
+        self.groupBox_ws_client_settings.setGeometry(
+            QtCore.QRect(10, 110, 331, 101)
+        )
+        self.groupBox_ws_client_settings.setObjectName(
+            "groupBox_ws_client_settings"
+        )
+        self.verticalLayoutWidget_9 = QtWidgets.QWidget(
+            self.groupBox_ws_client_settings
+        )
         self.verticalLayoutWidget_9.setGeometry(QtCore.QRect(10, 30, 311, 61))
         self.verticalLayoutWidget_9.setObjectName("verticalLayoutWidget_9")
-        self.verticalLayout_16 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_9)
+        self.verticalLayout_16 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_9
+        )
         self.verticalLayout_16.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_16.setSpacing(0)
         self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.horizontalLayout_48 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_48.setObjectName("horizontalLayout_48")
         self.label_molecule_8 = QtWidgets.QLabel(self.verticalLayoutWidget_9)
-        self.label_molecule_8.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_8.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_8.setObjectName("label_molecule_8")
         self.horizontalLayout_48.addWidget(self.label_molecule_8)
-        self.lineEdit_ws_server_url_to_connect = QtWidgets.QLineEdit(self.verticalLayoutWidget_9)
-        self.lineEdit_ws_server_url_to_connect.setObjectName("lineEdit_ws_server_url_to_connect")
-        self.horizontalLayout_48.addWidget(self.lineEdit_ws_server_url_to_connect)
+        self.lineEdit_ws_server_url_to_connect = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_9
+        )
+        self.lineEdit_ws_server_url_to_connect.setObjectName(
+            "lineEdit_ws_server_url_to_connect"
+        )
+        self.horizontalLayout_48.addWidget(
+            self.lineEdit_ws_server_url_to_connect
+        )
         self.verticalLayout_16.addLayout(self.horizontalLayout_48)
         self.horizontalLayout_51 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_51.setObjectName("horizontalLayout_51")
-        self.pushButton_ws_connect_to_server = QtWidgets.QPushButton(self.verticalLayoutWidget_9)
-        self.pushButton_ws_connect_to_server.setObjectName("pushButton_ws_connect_to_server")
-        self.horizontalLayout_51.addWidget(self.pushButton_ws_connect_to_server)
-        self.pushButton_ws_disconnect_from_server = QtWidgets.QPushButton(self.verticalLayoutWidget_9)
-        self.pushButton_ws_disconnect_from_server.setObjectName("pushButton_ws_disconnect_from_server")
-        self.horizontalLayout_51.addWidget(self.pushButton_ws_disconnect_from_server)
+        self.pushButton_ws_connect_to_server = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_9
+        )
+        self.pushButton_ws_connect_to_server.setObjectName(
+            "pushButton_ws_connect_to_server"
+        )
+        self.horizontalLayout_51.addWidget(
+            self.pushButton_ws_connect_to_server
+        )
+        self.pushButton_ws_disconnect_from_server = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_9
+        )
+        self.pushButton_ws_disconnect_from_server.setObjectName(
+            "pushButton_ws_disconnect_from_server"
+        )
+        self.horizontalLayout_51.addWidget(
+            self.pushButton_ws_disconnect_from_server
+        )
         self.verticalLayout_16.addLayout(self.horizontalLayout_51)
         self.groupBox_13 = QtWidgets.QGroupBox(self.tab_socket)
         self.groupBox_13.setGeometry(QtCore.QRect(10, 0, 331, 111))
@@ -1750,34 +2981,54 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayoutWidget_10 = QtWidgets.QWidget(self.groupBox_13)
         self.verticalLayoutWidget_10.setGeometry(QtCore.QRect(10, 29, 311, 71))
         self.verticalLayoutWidget_10.setObjectName("verticalLayoutWidget_10")
-        self.verticalLayout_17 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_10)
+        self.verticalLayout_17 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_10
+        )
         self.verticalLayout_17.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_17.setSpacing(0)
         self.verticalLayout_17.setObjectName("verticalLayout_17")
         self.horizontalLayout_52 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_52.setObjectName("horizontalLayout_52")
-        self.checkBox_ws_server_mode = QtWidgets.QCheckBox(self.verticalLayoutWidget_10)
+        self.checkBox_ws_server_mode = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_10
+        )
         self.checkBox_ws_server_mode.setObjectName("checkBox_ws_server_mode")
         self.horizontalLayout_52.addWidget(self.checkBox_ws_server_mode)
-        self.checkBox_ws_duplex_mode = QtWidgets.QCheckBox(self.verticalLayoutWidget_10)
+        self.checkBox_ws_duplex_mode = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_10
+        )
         self.checkBox_ws_duplex_mode.setObjectName("checkBox_ws_duplex_mode")
         self.horizontalLayout_52.addWidget(self.checkBox_ws_duplex_mode)
         self.horizontalLayout_31 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_31.setObjectName("horizontalLayout_31")
         self.label_molecule_13 = QtWidgets.QLabel(self.verticalLayoutWidget_10)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_13.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_13.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule_13.setSizePolicy(sizePolicy)
-        self.label_molecule_13.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        self.label_molecule_13.setAlignment(
+            QtCore.Qt.AlignLeading
+            | QtCore.Qt.AlignLeft
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_13.setObjectName("label_molecule_13")
         self.horizontalLayout_31.addWidget(self.label_molecule_13)
-        self.spinBox_ws_server_port = QtWidgets.QSpinBox(self.verticalLayoutWidget_10)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.spinBox_ws_server_port = QtWidgets.QSpinBox(
+            self.verticalLayoutWidget_10
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_ws_server_port.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_ws_server_port.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_ws_server_port.setSizePolicy(sizePolicy)
         self.spinBox_ws_server_port.setMinimum(3000)
         self.spinBox_ws_server_port.setMaximum(65534)
@@ -1788,17 +3039,29 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayout_17.addLayout(self.horizontalLayout_52)
         self.horizontalLayout_42 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_42.setObjectName("horizontalLayout_42")
-        self.checkBox_ws_server_use_key = QtWidgets.QCheckBox(self.verticalLayoutWidget_10)
+        self.checkBox_ws_server_use_key = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_10
+        )
         self.checkBox_ws_server_use_key.setChecked(True)
-        self.checkBox_ws_server_use_key.setObjectName("checkBox_ws_server_use_key")
+        self.checkBox_ws_server_use_key.setObjectName(
+            "checkBox_ws_server_use_key"
+        )
         self.horizontalLayout_42.addWidget(self.checkBox_ws_server_use_key)
-        self.lineEdit_ws_server_key = QtWidgets.QLineEdit(self.verticalLayoutWidget_10)
+        self.lineEdit_ws_server_key = QtWidgets.QLineEdit(
+            self.verticalLayoutWidget_10
+        )
         self.lineEdit_ws_server_key.setText("")
         self.lineEdit_ws_server_key.setObjectName("lineEdit_ws_server_key")
         self.horizontalLayout_42.addWidget(self.lineEdit_ws_server_key)
-        self.pushButton_ws_generate_randomized_key = QtWidgets.QPushButton(self.verticalLayoutWidget_10)
-        self.pushButton_ws_generate_randomized_key.setObjectName("pushButton_ws_generate_randomized_key")
-        self.horizontalLayout_42.addWidget(self.pushButton_ws_generate_randomized_key)
+        self.pushButton_ws_generate_randomized_key = QtWidgets.QPushButton(
+            self.verticalLayoutWidget_10
+        )
+        self.pushButton_ws_generate_randomized_key.setObjectName(
+            "pushButton_ws_generate_randomized_key"
+        )
+        self.horizontalLayout_42.addWidget(
+            self.pushButton_ws_generate_randomized_key
+        )
         self.verticalLayout_17.addLayout(self.horizontalLayout_42)
         self.treeWidget_ws_peers = QtWidgets.QTreeWidget(self.tab_socket)
         self.treeWidget_ws_peers.setGeometry(QtCore.QRect(350, 80, 271, 281))
@@ -1809,43 +3072,81 @@ class Ui_REvoDesignPyMOL_UI:
         self.verticalLayoutWidget_2 = QtWidgets.QWidget(self.groupBox_5)
         self.verticalLayoutWidget_2.setGeometry(QtCore.QRect(10, 30, 141, 111))
         self.verticalLayoutWidget_2.setObjectName("verticalLayoutWidget_2")
-        self.verticalLayout_8 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_2)
+        self.verticalLayout_8 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_2
+        )
         self.verticalLayout_8.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_8.setObjectName("verticalLayout_8")
-        self.checkBox_ws_recieve_mutagenesis_broadcast = QtWidgets.QCheckBox(self.verticalLayoutWidget_2)
+        self.checkBox_ws_recieve_mutagenesis_broadcast = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_2
+        )
         self.checkBox_ws_recieve_mutagenesis_broadcast.setChecked(True)
         self.checkBox_ws_recieve_mutagenesis_broadcast.setTristate(False)
-        self.checkBox_ws_recieve_mutagenesis_broadcast.setObjectName("checkBox_ws_recieve_mutagenesis_broadcast")
-        self.verticalLayout_8.addWidget(self.checkBox_ws_recieve_mutagenesis_broadcast)
-        self.checkBox_ws_recieve_view_broadcast = QtWidgets.QCheckBox(self.verticalLayoutWidget_2)
-        self.checkBox_ws_recieve_view_broadcast.setObjectName("checkBox_ws_recieve_view_broadcast")
-        self.verticalLayout_8.addWidget(self.checkBox_ws_recieve_view_broadcast)
-        self.checkBox_ws_recieve_mutagenesis_selection = QtWidgets.QCheckBox(self.verticalLayoutWidget_2)
+        self.checkBox_ws_recieve_mutagenesis_broadcast.setObjectName(
+            "checkBox_ws_recieve_mutagenesis_broadcast"
+        )
+        self.verticalLayout_8.addWidget(
+            self.checkBox_ws_recieve_mutagenesis_broadcast
+        )
+        self.checkBox_ws_recieve_view_broadcast = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_2
+        )
+        self.checkBox_ws_recieve_view_broadcast.setObjectName(
+            "checkBox_ws_recieve_view_broadcast"
+        )
+        self.verticalLayout_8.addWidget(
+            self.checkBox_ws_recieve_view_broadcast
+        )
+        self.checkBox_ws_recieve_mutagenesis_selection = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_2
+        )
         self.checkBox_ws_recieve_mutagenesis_selection.setChecked(True)
         self.checkBox_ws_recieve_mutagenesis_selection.setTristate(False)
-        self.checkBox_ws_recieve_mutagenesis_selection.setObjectName("checkBox_ws_recieve_mutagenesis_selection")
-        self.verticalLayout_8.addWidget(self.checkBox_ws_recieve_mutagenesis_selection)
+        self.checkBox_ws_recieve_mutagenesis_selection.setObjectName(
+            "checkBox_ws_recieve_mutagenesis_selection"
+        )
+        self.verticalLayout_8.addWidget(
+            self.checkBox_ws_recieve_mutagenesis_selection
+        )
         self.groupBox_12 = QtWidgets.QGroupBox(self.tab_socket)
         self.groupBox_12.setGeometry(QtCore.QRect(10, 210, 161, 151))
         self.groupBox_12.setObjectName("groupBox_12")
         self.verticalLayoutWidget_11 = QtWidgets.QWidget(self.groupBox_12)
-        self.verticalLayoutWidget_11.setGeometry(QtCore.QRect(10, 30, 141, 111))
+        self.verticalLayoutWidget_11.setGeometry(
+            QtCore.QRect(10, 30, 141, 111)
+        )
         self.verticalLayoutWidget_11.setObjectName("verticalLayoutWidget_11")
-        self.verticalLayout_19 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget_11)
+        self.verticalLayout_19 = QtWidgets.QVBoxLayout(
+            self.verticalLayoutWidget_11
+        )
         self.verticalLayout_19.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_19.setObjectName("verticalLayout_19")
-        self.checkBox_ws_broadcast_mutagenesis = QtWidgets.QCheckBox(self.verticalLayoutWidget_11)
+        self.checkBox_ws_broadcast_mutagenesis = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_11
+        )
         self.checkBox_ws_broadcast_mutagenesis.setChecked(True)
         self.checkBox_ws_broadcast_mutagenesis.setTristate(False)
-        self.checkBox_ws_broadcast_mutagenesis.setObjectName("checkBox_ws_broadcast_mutagenesis")
-        self.verticalLayout_19.addWidget(self.checkBox_ws_broadcast_mutagenesis)
-        self.checkBox_ws_broadcast_view = QtWidgets.QCheckBox(self.verticalLayoutWidget_11)
-        self.checkBox_ws_broadcast_view.setObjectName("checkBox_ws_broadcast_view")
+        self.checkBox_ws_broadcast_mutagenesis.setObjectName(
+            "checkBox_ws_broadcast_mutagenesis"
+        )
+        self.verticalLayout_19.addWidget(
+            self.checkBox_ws_broadcast_mutagenesis
+        )
+        self.checkBox_ws_broadcast_view = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_11
+        )
+        self.checkBox_ws_broadcast_view.setObjectName(
+            "checkBox_ws_broadcast_view"
+        )
         self.verticalLayout_19.addWidget(self.checkBox_ws_broadcast_view)
-        self.checkBox_ws_broadcast_selection = QtWidgets.QCheckBox(self.verticalLayoutWidget_11)
+        self.checkBox_ws_broadcast_selection = QtWidgets.QCheckBox(
+            self.verticalLayoutWidget_11
+        )
         self.checkBox_ws_broadcast_selection.setChecked(True)
         self.checkBox_ws_broadcast_selection.setTristate(False)
-        self.checkBox_ws_broadcast_selection.setObjectName("checkBox_ws_broadcast_selection")
+        self.checkBox_ws_broadcast_selection.setObjectName(
+            "checkBox_ws_broadcast_selection"
+        )
         self.verticalLayout_19.addWidget(self.checkBox_ws_broadcast_selection)
         self.tabWidget.addTab(self.tab_socket, "")
         self.tab_config = QtWidgets.QWidget()
@@ -1854,113 +3155,259 @@ class Ui_REvoDesignPyMOL_UI:
         self.groupBox_16.setGeometry(QtCore.QRect(10, 10, 611, 71))
         self.groupBox_16.setObjectName("groupBox_16")
         self.horizontalLayoutWidget_5 = QtWidgets.QWidget(self.groupBox_16)
-        self.horizontalLayoutWidget_5.setGeometry(QtCore.QRect(10, 30, 591, 32))
+        self.horizontalLayoutWidget_5.setGeometry(
+            QtCore.QRect(10, 30, 591, 32)
+        )
         self.horizontalLayoutWidget_5.setObjectName("horizontalLayoutWidget_5")
-        self.horizontalLayout_57 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_5)
+        self.horizontalLayout_57 = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget_5
+        )
         self.horizontalLayout_57.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_57.setObjectName("horizontalLayout_57")
         self.label_molecule_2 = QtWidgets.QLabel(self.horizontalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_2.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_2.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule_2.setSizePolicy(sizePolicy)
-        self.label_molecule_2.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_2.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_2.setObjectName("label_molecule_2")
         self.horizontalLayout_57.addWidget(self.label_molecule_2)
-        self.comboBox_sidechain_solver = QtWidgets.QComboBox(self.horizontalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_sidechain_solver = QtWidgets.QComboBox(
+            self.horizontalLayoutWidget_5
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_sidechain_solver.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_sidechain_solver.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_sidechain_solver.setSizePolicy(sizePolicy)
         self.comboBox_sidechain_solver.setMinimumSize(QtCore.QSize(0, 0))
-        self.comboBox_sidechain_solver.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.comboBox_sidechain_solver.setObjectName("comboBox_sidechain_solver")
+        self.comboBox_sidechain_solver.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
+        self.comboBox_sidechain_solver.setObjectName(
+            "comboBox_sidechain_solver"
+        )
         self.horizontalLayout_57.addWidget(self.comboBox_sidechain_solver)
         self.label_molecule_3 = QtWidgets.QLabel(self.horizontalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_3.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_3.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule_3.setSizePolicy(sizePolicy)
-        self.label_molecule_3.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_3.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_3.setObjectName("label_molecule_3")
         self.horizontalLayout_57.addWidget(self.label_molecule_3)
-        self.doubleSpinBox_sidechain_solver_radius = QtWidgets.QDoubleSpinBox(self.horizontalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.doubleSpinBox_sidechain_solver_radius = QtWidgets.QDoubleSpinBox(
+            self.horizontalLayoutWidget_5
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.doubleSpinBox_sidechain_solver_radius.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.doubleSpinBox_sidechain_solver_radius.sizePolicy().hasHeightForWidth()
+        )
         self.doubleSpinBox_sidechain_solver_radius.setSizePolicy(sizePolicy)
         self.doubleSpinBox_sidechain_solver_radius.setMaximum(20.0)
-        self.doubleSpinBox_sidechain_solver_radius.setObjectName("doubleSpinBox_sidechain_solver_radius")
-        self.horizontalLayout_57.addWidget(self.doubleSpinBox_sidechain_solver_radius)
+        self.doubleSpinBox_sidechain_solver_radius.setObjectName(
+            "doubleSpinBox_sidechain_solver_radius"
+        )
+        self.horizontalLayout_57.addWidget(
+            self.doubleSpinBox_sidechain_solver_radius
+        )
         self.label_molecule_4 = QtWidgets.QLabel(self.horizontalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_4.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_4.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule_4.setSizePolicy(sizePolicy)
-        self.label_molecule_4.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule_4.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule_4.setObjectName("label_molecule_4")
         self.horizontalLayout_57.addWidget(self.label_molecule_4)
-        self.comboBox_sidechain_solver_model = QtWidgets.QComboBox(self.horizontalLayoutWidget_5)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+        self.comboBox_sidechain_solver_model = QtWidgets.QComboBox(
+            self.horizontalLayoutWidget_5
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_sidechain_solver_model.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_sidechain_solver_model.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_sidechain_solver_model.setSizePolicy(sizePolicy)
         self.comboBox_sidechain_solver_model.setMinimumSize(QtCore.QSize(0, 0))
-        self.comboBox_sidechain_solver_model.setMaximumSize(QtCore.QSize(16777215, 16777215))
-        self.comboBox_sidechain_solver_model.setObjectName("comboBox_sidechain_solver_model")
-        self.horizontalLayout_57.addWidget(self.comboBox_sidechain_solver_model)
+        self.comboBox_sidechain_solver_model.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
+        self.comboBox_sidechain_solver_model.setObjectName(
+            "comboBox_sidechain_solver_model"
+        )
+        self.horizontalLayout_57.addWidget(
+            self.comboBox_sidechain_solver_model
+        )
+        self.groupBox_17 = QtWidgets.QGroupBox(self.tab_config)
+        self.groupBox_17.setGeometry(QtCore.QRect(10, 90, 161, 71))
+        self.groupBox_17.setObjectName("groupBox_17")
+        self.horizontalLayoutWidget_8 = QtWidgets.QWidget(self.groupBox_17)
+        self.horizontalLayoutWidget_8.setGeometry(
+            QtCore.QRect(10, 30, 141, 32)
+        )
+        self.horizontalLayoutWidget_8.setObjectName("horizontalLayoutWidget_8")
+        self.horizontalLayout_64 = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget_8
+        )
+        self.horizontalLayout_64.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_64.setObjectName("horizontalLayout_64")
+        self.label_molecule_5 = QtWidgets.QLabel(self.horizontalLayoutWidget_8)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.label_molecule_5.sizePolicy().hasHeightForWidth()
+        )
+        self.label_molecule_5.setSizePolicy(sizePolicy)
+        self.label_molecule_5.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
+        self.label_molecule_5.setObjectName("label_molecule_5")
+        self.horizontalLayout_64.addWidget(self.label_molecule_5)
+        self.comboBox_rosetta_node_hint = QtWidgets.QComboBox(
+            self.horizontalLayoutWidget_8
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed
+        )
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(
+            self.comboBox_rosetta_node_hint.sizePolicy().hasHeightForWidth()
+        )
+        self.comboBox_rosetta_node_hint.setSizePolicy(sizePolicy)
+        self.comboBox_rosetta_node_hint.setMinimumSize(QtCore.QSize(0, 0))
+        self.comboBox_rosetta_node_hint.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
+        self.comboBox_rosetta_node_hint.setObjectName(
+            "comboBox_rosetta_node_hint"
+        )
+        self.horizontalLayout_64.addWidget(self.comboBox_rosetta_node_hint)
         self.tabWidget.addTab(self.tab_config, "")
         self.groupBox_6 = QtWidgets.QGroupBox(self.centralwidget)
         self.groupBox_6.setGeometry(QtCore.QRect(10, 0, 371, 61))
         self.groupBox_6.setObjectName("groupBox_6")
         self.horizontalLayoutWidget_4 = QtWidgets.QWidget(self.groupBox_6)
-        self.horizontalLayoutWidget_4.setGeometry(QtCore.QRect(10, 30, 351, 21))
+        self.horizontalLayoutWidget_4.setGeometry(
+            QtCore.QRect(10, 30, 351, 21)
+        )
         self.horizontalLayoutWidget_4.setObjectName("horizontalLayoutWidget_4")
-        self.horizontalLayout_37 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_4)
+        self.horizontalLayout_37 = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget_4
+        )
         self.horizontalLayout_37.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_37.setSpacing(0)
         self.horizontalLayout_37.setObjectName("horizontalLayout_37")
         self.label_molecule = QtWidgets.QLabel(self.horizontalLayoutWidget_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_molecule.sizePolicy().hasHeightForWidth()
+        )
         self.label_molecule.setSizePolicy(sizePolicy)
-        self.label_molecule.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_molecule.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_molecule.setObjectName("label_molecule")
         self.horizontalLayout_37.addWidget(self.label_molecule)
-        self.comboBox_design_molecule = QtWidgets.QComboBox(self.horizontalLayoutWidget_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Ignored)
+        self.comboBox_design_molecule = QtWidgets.QComboBox(
+            self.horizontalLayoutWidget_4
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Ignored
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_design_molecule.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_design_molecule.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_design_molecule.setSizePolicy(sizePolicy)
-        self.comboBox_design_molecule.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.comboBox_design_molecule.setMaximumSize(
+            QtCore.QSize(16777215, 16777215)
+        )
         self.comboBox_design_molecule.setObjectName("comboBox_design_molecule")
         self.horizontalLayout_37.addWidget(self.comboBox_design_molecule)
         self.label_chainid = QtWidgets.QLabel(self.horizontalLayoutWidget_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Ignored)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Ignored
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_chainid.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_chainid.sizePolicy().hasHeightForWidth()
+        )
         self.label_chainid.setSizePolicy(sizePolicy)
-        self.label_chainid.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_chainid.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_chainid.setObjectName("label_chainid")
         self.horizontalLayout_37.addWidget(self.label_chainid)
-        self.comboBox_chain_id = QtWidgets.QComboBox(self.horizontalLayoutWidget_4)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
+        self.comboBox_chain_id = QtWidgets.QComboBox(
+            self.horizontalLayoutWidget_4
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_chain_id.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_chain_id.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_chain_id.setSizePolicy(sizePolicy)
         self.comboBox_chain_id.setMaximumSize(QtCore.QSize(60, 16777215))
-        self.comboBox_chain_id.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.comboBox_chain_id.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToContents
+        )
         self.comboBox_chain_id.setObjectName("comboBox_chain_id")
         self.horizontalLayout_37.addWidget(self.comboBox_chain_id)
         self.groupBox_7 = QtWidgets.QGroupBox(self.centralwidget)
@@ -1969,24 +3416,38 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayoutWidget_6 = QtWidgets.QWidget(self.groupBox_7)
         self.horizontalLayoutWidget_6.setGeometry(QtCore.QRect(10, 30, 91, 23))
         self.horizontalLayoutWidget_6.setObjectName("horizontalLayoutWidget_6")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_6)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget_6
+        )
         self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.label_nproc = QtWidgets.QLabel(self.horizontalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_nproc.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.label_nproc.sizePolicy().hasHeightForWidth()
+        )
         self.label_nproc.setSizePolicy(sizePolicy)
-        self.label_nproc.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.label_nproc.setAlignment(
+            QtCore.Qt.AlignRight
+            | QtCore.Qt.AlignTrailing
+            | QtCore.Qt.AlignVCenter
+        )
         self.label_nproc.setObjectName("label_nproc")
         self.horizontalLayout.addWidget(self.label_nproc)
         self.spinBox_nproc = QtWidgets.QSpinBox(self.horizontalLayoutWidget_6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.spinBox_nproc.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.spinBox_nproc.sizePolicy().hasHeightForWidth()
+        )
         self.spinBox_nproc.setSizePolicy(sizePolicy)
         self.spinBox_nproc.setMinimum(1)
         self.spinBox_nproc.setObjectName("spinBox_nproc")
@@ -1997,26 +3458,40 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayoutWidget_2 = QtWidgets.QWidget(self.groupBox_8)
         self.horizontalLayoutWidget_2.setGeometry(QtCore.QRect(0, 30, 131, 21))
         self.horizontalLayoutWidget_2.setObjectName("horizontalLayoutWidget_2")
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_2)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout(
+            self.horizontalLayoutWidget_2
+        )
         self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.comboBox_cmap = QtWidgets.QComboBox(self.horizontalLayoutWidget_2)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Ignored)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Ignored
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox_cmap.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.comboBox_cmap.sizePolicy().hasHeightForWidth()
+        )
         self.comboBox_cmap.setSizePolicy(sizePolicy)
         self.comboBox_cmap.setMaximumSize(QtCore.QSize(120, 16777215))
         self.comboBox_cmap.setObjectName("comboBox_cmap")
         self.horizontalLayout_4.addWidget(self.comboBox_cmap)
-        self.checkBox_reverse_mutant_effect = QtWidgets.QCheckBox(self.horizontalLayoutWidget_2)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Ignored)
+        self.checkBox_reverse_mutant_effect = QtWidgets.QCheckBox(
+            self.horizontalLayoutWidget_2
+        )
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Ignored
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_reverse_mutant_effect.sizePolicy().hasHeightForWidth())
+        sizePolicy.setHeightForWidth(
+            self.checkBox_reverse_mutant_effect.sizePolicy().hasHeightForWidth()
+        )
         self.checkBox_reverse_mutant_effect.setSizePolicy(sizePolicy)
         self.checkBox_reverse_mutant_effect.setText("")
-        self.checkBox_reverse_mutant_effect.setObjectName("checkBox_reverse_mutant_effect")
+        self.checkBox_reverse_mutant_effect.setObjectName(
+            "checkBox_reverse_mutant_effect"
+        )
         self.horizontalLayout_4.addWidget(self.checkBox_reverse_mutant_effect)
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
         self.progressBar.setGeometry(QtCore.QRect(10, 470, 641, 23))
@@ -2047,11 +3522,17 @@ class Ui_REvoDesignPyMOL_UI:
         self.actionCheck_for_updates = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.actionCheck_for_updates.setObjectName("actionCheck_for_updates")
         self.actionCheck_PyMOL_session = QtWidgets.QAction(REvoDesignPyMOL_UI)
-        self.actionCheck_PyMOL_session.setObjectName("actionCheck_PyMOL_session")
+        self.actionCheck_PyMOL_session.setObjectName(
+            "actionCheck_PyMOL_session"
+        )
         self.actionPublicattion = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.actionPublicattion.setObjectName("actionPublicattion")
-        self.actionSet_Working_Directory = QtWidgets.QAction(REvoDesignPyMOL_UI)
-        self.actionSet_Working_Directory.setObjectName("actionSet_Working_Directory")
+        self.actionSet_Working_Directory = QtWidgets.QAction(
+            REvoDesignPyMOL_UI
+        )
+        self.actionSet_Working_Directory.setObjectName(
+            "actionSet_Working_Directory"
+        )
         self.actionDebug = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.actionDebug.setObjectName("actionDebug")
         self.actionWarning = QtWidgets.QAction(REvoDesignPyMOL_UI)
@@ -2061,13 +3542,17 @@ class Ui_REvoDesignPyMOL_UI:
         self.actionReconfigure = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.actionReconfigure.setObjectName("actionReconfigure")
         self.actionSave_Configurations = QtWidgets.QAction(REvoDesignPyMOL_UI)
-        self.actionSave_Configurations.setObjectName("actionSave_Configurations")
+        self.actionSave_Configurations.setObjectName(
+            "actionSave_Configurations"
+        )
         self.actionLoad_Demo = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.actionLoad_Demo.setObjectName("actionLoad_Demo")
         self.action_LoadExperiment = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.action_LoadExperiment.setObjectName("action_LoadExperiment")
         self.action_Save_to_Experiment = QtWidgets.QAction(REvoDesignPyMOL_UI)
-        self.action_Save_to_Experiment.setObjectName("action_Save_to_Experiment")
+        self.action_Save_to_Experiment.setObjectName(
+            "action_Save_to_Experiment"
+        )
         self.actionReinitialize = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.actionReinitialize.setObjectName("actionReinitialize")
         self.actionVersion = QtWidgets.QAction(REvoDesignPyMOL_UI)
@@ -2105,519 +3590,1199 @@ class Ui_REvoDesignPyMOL_UI:
         self.retranslateUi(REvoDesignPyMOL_UI)
         self.tabWidget.setCurrentIndex(0)
         self.stackedWidget.setCurrentIndex(1)
-        self.checkBox_randomized_sampling.toggled['bool'].connect(
+        self.checkBox_randomized_sampling.toggled["bool"].connect(
             self.spinBox_randomized_sampling.setEnabled)  # type: ignore
-        self.checkBox_ws_server_mode.toggled['bool'].connect(
+        self.checkBox_ws_server_mode.toggled["bool"].connect(
             self.groupBox_ws_client_settings.setDisabled)  # type: ignore
-        self.checkBox_ws_server_mode.toggled['bool'].connect(
+        self.checkBox_ws_server_mode.toggled["bool"].connect(
             self.groupBox_ws_server_settings.setEnabled)  # type: ignore
-        self.checkBox_ws_server_use_key.toggled['bool'].connect(self.lineEdit_ws_server_key.setEnabled)  # type: ignore
+        self.checkBox_ws_server_use_key.toggled["bool"].connect(self.lineEdit_ws_server_key.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(REvoDesignPyMOL_UI)
 
     def retranslateUi(self, REvoDesignPyMOL_UI):
         _translate = QtCore.QCoreApplication.translate
-        REvoDesignPyMOL_UI.setWindowTitle(_translate("REvoDesignPyMOL_UI", "REvoDesign - PyMOL Interface"))
-        self.tab_prepare.setStatusTip(_translate("REvoDesignPyMOL_UI",
-                                                 "Determine surfaces, pockets, interfaces and evolutionary profile."))
-        self.groupBox_functional.setTitle(_translate("REvoDesignPyMOL_UI", "Functional pocket options"))
-        self.comboBox_ligand_sel.setStatusTip(_translate("REvoDesignPyMOL_UI",
-                                                         "Substrate/Product molecule. Comma separated if multiple, eg. `XXX,YYY`"))
-        self.label_cofactor_radius.setText(_translate("REvoDesignPyMOL_UI", "radius:"))
-        self.label_cofactor_sel.setText(_translate("REvoDesignPyMOL_UI", "Cofactor:"))
-        self.label_ligand_radius.setText(_translate("REvoDesignPyMOL_UI", "radius:"))
-        self.label_ligand_sel.setText(_translate("REvoDesignPyMOL_UI", "Substrate:"))
+        REvoDesignPyMOL_UI.setWindowTitle(
+            _translate("REvoDesignPyMOL_UI", "REvoDesign - PyMOL Interface")
+        )
+        self.tab_prepare.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Determine surfaces, pockets, interfaces and evolutionary profile.",
+            )
+        )
+        self.groupBox_functional.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Functional pocket options")
+        )
+        self.comboBox_ligand_sel.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Substrate/Product molecule. Comma separated if multiple, eg. `XXX,YYY`",
+            )
+        )
+        self.label_cofactor_radius.setText(
+            _translate("REvoDesignPyMOL_UI", "radius:")
+        )
+        self.label_cofactor_sel.setText(
+            _translate("REvoDesignPyMOL_UI", "Cofactor:")
+        )
+        self.label_ligand_radius.setText(
+            _translate("REvoDesignPyMOL_UI", "radius:")
+        )
+        self.label_ligand_sel.setText(
+            _translate("REvoDesignPyMOL_UI", "Substrate:")
+        )
         self.comboBox_cofactor_sel.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Co-factor or co-enzyme, HEM/FAD/NAD. Comma separated if multiple, eg. `XXX,YYY`"))
-        self.doubleSpinBox_ligand_radius.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance from ligand to pocket residue."))
-        self.doubleSpinBox_ligand_radius.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.doubleSpinBox_cofactor_radius.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance from cofactor to pocket residue."))
-        self.doubleSpinBox_cofactor_radius.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.pushButton_run_pocket_detection.setText(_translate("REvoDesignPyMOL_UI", "Detect !"))
-        self.label_output_pse_4.setText(_translate("REvoDesignPyMOL_UI", "Save as:"))
-        self.lineEdit_output_pse_pocket.setStatusTip(_translate("REvoDesignPyMOL_UI", "Output session path"))
-        self.pushButton_open_output_pse_pocket.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.groupBox_surface.setTitle(_translate("REvoDesignPyMOL_UI", "Surface exposure options"))
-        self.label_surface_cutoff_2.setText(_translate("REvoDesignPyMOL_UI", "Chain Dist.: "))
-        self.doubleSpinBox_interface_cutoff.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance from chain to chain."))
-        self.doubleSpinBox_interface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.pushButton_dump_interfaces.setToolTip(_translate("REvoDesignPyMOL_UI", "Dump chain-chain interface"))
-        self.pushButton_dump_interfaces.setText(_translate("REvoDesignPyMOL_UI", "Find"))
-        self.label_surface_exclusion.setText(_translate("REvoDesignPyMOL_UI", "Exclusion:  "))
+                "Co-factor or co-enzyme, HEM/FAD/NAD. Comma separated if multiple, eg. `XXX,YYY`",
+            )
+        )
+        self.doubleSpinBox_ligand_radius.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Max distance from ligand to pocket residue.",
+            )
+        )
+        self.doubleSpinBox_ligand_radius.setSuffix(
+            _translate("REvoDesignPyMOL_UI", "Å")
+        )
+        self.doubleSpinBox_cofactor_radius.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Max distance from cofactor to pocket residue.",
+            )
+        )
+        self.doubleSpinBox_cofactor_radius.setSuffix(
+            _translate("REvoDesignPyMOL_UI", "Å")
+        )
+        self.pushButton_run_pocket_detection.setText(
+            _translate("REvoDesignPyMOL_UI", "Detect !")
+        )
+        self.label_output_pse_4.setText(
+            _translate("REvoDesignPyMOL_UI", "Save as:")
+        )
+        self.lineEdit_output_pse_pocket.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Output session path")
+        )
+        self.pushButton_open_output_pse_pocket.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.groupBox_surface.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Surface exposure options")
+        )
+        self.label_surface_cutoff_2.setText(
+            _translate("REvoDesignPyMOL_UI", "Chain Dist.: ")
+        )
+        self.doubleSpinBox_interface_cutoff.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Max distance from chain to chain."
+            )
+        )
+        self.doubleSpinBox_interface_cutoff.setSuffix(
+            _translate("REvoDesignPyMOL_UI", "Å")
+        )
+        self.pushButton_dump_interfaces.setToolTip(
+            _translate("REvoDesignPyMOL_UI", "Dump chain-chain interface")
+        )
+        self.pushButton_dump_interfaces.setText(
+            _translate("REvoDesignPyMOL_UI", "Find")
+        )
+        self.label_surface_exclusion.setText(
+            _translate("REvoDesignPyMOL_UI", "Exclusion:  ")
+        )
         self.comboBox_surface_exclusion.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Excluded selection. Use PyMOL selection syntax(eg. ((sele_1 and sele_2) or (sele_3 and sele_4)))"))
-        self.label_surface_cutoff.setText(_translate("REvoDesignPyMOL_UI", "Probe radius:"))
-        self.doubleSpinBox_surface_cutoff.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Probe radius for surface residue detection."))
-        self.doubleSpinBox_surface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.pushButton_run_surface_refresh.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Refresh PyMOL selection list in REvoDesign"))
-        self.pushButton_run_surface_refresh.setText(_translate("REvoDesignPyMOL_UI", "Refresh Selection"))
-        self.pushButton_run_surface_detection.setText(_translate("REvoDesignPyMOL_UI", "Detect !"))
-        self.label_output_pse.setText(_translate("REvoDesignPyMOL_UI", "Save as:"))
-        self.lineEdit_output_pse_surface.setStatusTip(_translate("REvoDesignPyMOL_UI", "Output session path"))
-        self.pushButton_open_output_pse_surface.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_prepare), _translate("REvoDesignPyMOL_UI", "Prepare"))
-        self.tab_mutate.setStatusTip(_translate("REvoDesignPyMOL_UI", "Load Mutants from PSSM with biases."))
+                "Excluded selection. Use PyMOL selection syntax(eg. ((sele_1 and sele_2) or (sele_3 and sele_4)))",
+            )
+        )
+        self.label_surface_cutoff.setText(
+            _translate("REvoDesignPyMOL_UI", "Probe radius:")
+        )
+        self.doubleSpinBox_surface_cutoff.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Probe radius for surface residue detection.",
+            )
+        )
+        self.doubleSpinBox_surface_cutoff.setSuffix(
+            _translate("REvoDesignPyMOL_UI", "Å")
+        )
+        self.pushButton_run_surface_refresh.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Refresh PyMOL selection list in REvoDesign",
+            )
+        )
+        self.pushButton_run_surface_refresh.setText(
+            _translate("REvoDesignPyMOL_UI", "Refresh Selection")
+        )
+        self.pushButton_run_surface_detection.setText(
+            _translate("REvoDesignPyMOL_UI", "Detect !")
+        )
+        self.label_output_pse.setText(
+            _translate("REvoDesignPyMOL_UI", "Save as:")
+        )
+        self.lineEdit_output_pse_surface.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Output session path")
+        )
+        self.pushButton_open_output_pse_surface.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_prepare),
+            _translate("REvoDesignPyMOL_UI", "Prepare"),
+        )
+        self.tab_mutate.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Load Mutants from PSSM with biases."
+            )
+        )
         self.lineEdit_input_csv.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Input protein profile. eg. PSSM/DMS/CSV. Ignored if external designer is used."))
-        self.pushButton_open_input_csv.setText(_translate("REvoDesignPyMOL_UI", "..."))
+                "Input protein profile. eg. PSSM/DMS/CSV. Ignored if external designer is used.",
+            )
+        )
+        self.pushButton_open_input_csv.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
         self.comboBox_profile_type.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Format of profile, automatically determined. Profile will be ignored if choosing external designer."))
-        self.label_input_pssm_csv_2.setText(_translate("REvoDesignPyMOL_UI", "Residue ID: "))
-        self.lineEdit_output_pse_mutate.setStatusTip(_translate("REvoDesignPyMOL_UI", "Output session path"))
-        self.pushButton_open_output_pse_mutate.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.pushButton_run_PSSM_to_pse.setText(_translate("REvoDesignPyMOL_UI", "Run !"))
-        self.label_output_pse_2.setText(_translate("REvoDesignPyMOL_UI", "Save as: "))
+                "Format of profile, automatically determined. Profile will be ignored if choosing external designer.",
+            )
+        )
+        self.label_input_pssm_csv_2.setText(
+            _translate("REvoDesignPyMOL_UI", "Residue ID: ")
+        )
+        self.lineEdit_output_pse_mutate.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Output session path")
+        )
+        self.pushButton_open_output_pse_mutate.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.pushButton_run_PSSM_to_pse.setText(
+            _translate("REvoDesignPyMOL_UI", "Run !")
+        )
+        self.label_output_pse_2.setText(
+            _translate("REvoDesignPyMOL_UI", "Save as: ")
+        )
         self.lineEdit_input_customized_indices.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Design residue indices, text file or string like `16-78,99,103,192-199`"))
-        self.pushButton_open_customized_indices.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.label_input_pssm_csv.setText(_translate("REvoDesignPyMOL_UI", "Profile: "))
-        self.groupBox_2.setTitle(_translate("REvoDesignPyMOL_UI", "Score cutoff"))
-        self.lineEdit_score_minima.setText(_translate("REvoDesignPyMOL_UI", "-2"))
-        self.label_output_pse_3.setStatusTip(_translate("REvoDesignPyMOL_UI", "Scoring criteria for profile designer."))
+                "Design residue indices, text file or string like `16-78,99,103,192-199`",
+            )
+        )
+        self.pushButton_open_customized_indices.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.label_input_pssm_csv.setText(
+            _translate("REvoDesignPyMOL_UI", "Profile: ")
+        )
+        self.groupBox_2.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Score cutoff")
+        )
+        self.lineEdit_score_minima.setText(
+            _translate("REvoDesignPyMOL_UI", "-2")
+        )
+        self.label_output_pse_3.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Scoring criteria for profile designer."
+            )
+        )
         self.label_output_pse_3.setText(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "<html><head/><body><p><span style=\" font-size:18pt;\">≤ </span><span style=\" font-size:18pt; font-style:italic;\">Δ</span><span style=\" font-size:18pt;\">Score </span><span style=\" font-size:18pt; vertical-align:sub;\">Sub-WT </span><span style=\" font-size:18pt;\">≤</span></p></body></html>"))
+                '<html><head/><body><p><span style=" font-size:18pt;">≤ </span><span style=" font-size:18pt; font-style:italic;">Δ</span><span style=" font-size:18pt;">Score </span><span style=" font-size:18pt; vertical-align:sub;">Sub-WT </span><span style=" font-size:18pt;">≤</span></p></body></html>',
+            )
+        )
         self.lineEdit_score_maxima.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Scoring criteria for profile designer."))
-        self.lineEdit_score_maxima.setText(_translate("REvoDesignPyMOL_UI", "10"))
-        self.groupBox_11.setTitle(_translate("REvoDesignPyMOL_UI", "Designer options"))
-        self.label_3.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of sequence to sample."))
+                "REvoDesignPyMOL_UI", "Scoring criteria for profile designer."
+            )
+        )
+        self.lineEdit_score_maxima.setText(
+            _translate("REvoDesignPyMOL_UI", "10")
+        )
+        self.groupBox_11.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Designer options")
+        )
+        self.label_3.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Number of sequence to sample.")
+        )
         self.label_3.setText(_translate("REvoDesignPyMOL_UI", "Num:"))
-        self.spinBox_designer_batch.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of sequence to sample."))
+        self.spinBox_designer_batch.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Number of sequence to sample.")
+        )
         self.label.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Temperature of external designer. Higher values will lead to more diversity."))
+                "Temperature of external designer. Higher values will lead to more diversity.",
+            )
+        )
         self.label.setText(_translate("REvoDesignPyMOL_UI", "Temp:"))
         self.doubleSpinBox_designer_temperature.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Temperature of external designer. Higher values will lead to more diversity."))
-        self.checkBox_deduplicate_designs.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Drop duplicated design randomly"))
-        self.checkBox_deduplicate_designs.setText(_translate("REvoDesignPyMOL_UI", "De-duplicated"))
+                "Temperature of external designer. Higher values will lead to more diversity.",
+            )
+        )
+        self.checkBox_deduplicate_designs.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Drop duplicated design randomly")
+        )
+        self.checkBox_deduplicate_designs.setText(
+            _translate("REvoDesignPyMOL_UI", "De-duplicated")
+        )
         self.label_4.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`"))
+                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`",
+            )
+        )
         self.label_4.setText(_translate("REvoDesignPyMOL_UI", "Batch:"))
         self.spinBox_designer_num_samples.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`"))
-        self.checkBox_designer_homooligomeric.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Homo-oligomeric binding of design chain_id"))
-        self.checkBox_designer_homooligomeric.setText(_translate("REvoDesignPyMOL_UI", "Homooligomer"))
-        self.checkBox_randomized_sampling.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant"))
-        self.checkBox_randomized_sampling.setText(_translate("REvoDesignPyMOL_UI", "Random:"))
-        self.spinBox_randomized_sampling.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant"))
-        self.groupBox_reject_substitution.setTitle(_translate("REvoDesignPyMOL_UI", "Substitutions to:"))
-        self.label_2.setStatusTip(_translate("REvoDesignPyMOL_UI", "Reject some substitutions"))
+                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`",
+            )
+        )
+        self.checkBox_designer_homooligomeric.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Homo-oligomeric binding of design chain_id",
+            )
+        )
+        self.checkBox_designer_homooligomeric.setText(
+            _translate("REvoDesignPyMOL_UI", "Homooligomer")
+        )
+        self.checkBox_randomized_sampling.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant"
+            )
+        )
+        self.checkBox_randomized_sampling.setText(
+            _translate("REvoDesignPyMOL_UI", "Random:")
+        )
+        self.spinBox_randomized_sampling.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant"
+            )
+        )
+        self.groupBox_reject_substitution.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Substitutions to:")
+        )
+        self.label_2.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Reject some substitutions")
+        )
         self.label_2.setText(_translate("REvoDesignPyMOL_UI", "Reject:"))
         self.lineEdit_reject_substitution.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Substitutions to reject. eg. `PC` to reject proline and cysteine."))
-        self.label_5.setStatusTip(_translate("REvoDesignPyMOL_UI", "Allow some substitutions."))
+                "Substitutions to reject. eg. `PC` to reject proline and cysteine.",
+            )
+        )
+        self.label_5.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Allow some substitutions.")
+        )
         self.label_5.setText(_translate("REvoDesignPyMOL_UI", "Accept:"))
         self.lineEdit_preffer_substitution.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY`. For external designers: `DNEQKRHHH`. "))
+                "Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY`. For external designers: `DNEQKRHHH`. ",
+            )
+        )
         self.groupBox.setTitle(_translate("REvoDesignPyMOL_UI", "Design Case"))
         self.lineEdit_design_case.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "You should name this design case with a proper label."))
-        self.lineEdit_design_case.setText(_translate("REvoDesignPyMOL_UI", "default"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_mutate), _translate("REvoDesignPyMOL_UI", "Mutate"))
-        self.tab_evaluate.setStatusTip(_translate("REvoDesignPyMOL_UI", "Choose mutant from structural insights"))
-        self.groupBox_design_status.setTitle(_translate("REvoDesignPyMOL_UI", "Design Status"))
-        self.label_total_mutant.setText(_translate("REvoDesignPyMOL_UI", "Total:"))
-        self.label_selected_mutant.setText(_translate("REvoDesignPyMOL_UI", "Selected:"))
-        self.lcdNumber_total_mutant.setStatusTip(_translate("REvoDesignPyMOL_UI", "Total number of design candidates"))
-        self.lcdNumber_selected_mutant.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of accepted mutants"))
-        self.label_input_mut_table_2.setText(_translate("REvoDesignPyMOL_UI", "Save Mutants: "))
-        self.lineEdit_output_mut_table.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Output mutant table [*.mut.txt] path"))
-        self.pushButton_open_mut_table.setText(_translate("REvoDesignPyMOL_UI", "..."))
+                "You should name this design case with a proper label.",
+            )
+        )
+        self.lineEdit_design_case.setText(
+            _translate("REvoDesignPyMOL_UI", "default")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_mutate),
+            _translate("REvoDesignPyMOL_UI", "Mutate"),
+        )
+        self.tab_evaluate.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Choose mutant from structural insights"
+            )
+        )
+        self.groupBox_design_status.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Design Status")
+        )
+        self.label_total_mutant.setText(
+            _translate("REvoDesignPyMOL_UI", "Total:")
+        )
+        self.label_selected_mutant.setText(
+            _translate("REvoDesignPyMOL_UI", "Selected:")
+        )
+        self.lcdNumber_total_mutant.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Total number of design candidates"
+            )
+        )
+        self.lcdNumber_selected_mutant.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Number of accepted mutants")
+        )
+        self.label_input_mut_table_2.setText(
+            _translate("REvoDesignPyMOL_UI", "Save Mutants: ")
+        )
+        self.lineEdit_output_mut_table.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Output mutant table [*.mut.txt] path"
+            )
+        )
+        self.pushButton_open_mut_table.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
         self.pushButton_reinitialize_mutant_choosing.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Initialize the design work space."))
-        self.pushButton_reinitialize_mutant_choosing.setText(_translate("REvoDesignPyMOL_UI", "Initialize"))
-        self.pushButton_load_mutant_choice_checkpoint.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Load selection from a checkpoint backup."))
-        self.pushButton_load_mutant_choice_checkpoint.setText(_translate("REvoDesignPyMOL_UI", "Load Checkpoint"))
-        self.checkBox_rock_pymol.setStatusTip(_translate("REvoDesignPyMOL_UI", "Rock the space while making choices."))
-        self.checkBox_rock_pymol.setText(_translate("REvoDesignPyMOL_UI", "Rock"))
-        self.checkBox_show_wt.setStatusTip(_translate("REvoDesignPyMOL_UI", "Show WT sidechain for comparing"))
-        self.checkBox_show_wt.setText(_translate("REvoDesignPyMOL_UI", "Show WT"))
-        self.groupBox_choice.setTitle(_translate("REvoDesignPyMOL_UI", "Choice of Design"))
-        self.comboBox_group_ids.setStatusTip(_translate("REvoDesignPyMOL_UI", "Jump to a specific mutant group."))
-        self.comboBox_mutant_ids.setStatusTip(_translate("REvoDesignPyMOL_UI", "Jump to a specific mutant."))
+            _translate(
+                "REvoDesignPyMOL_UI", "Initialize the design work space."
+            )
+        )
+        self.pushButton_reinitialize_mutant_choosing.setText(
+            _translate("REvoDesignPyMOL_UI", "Initialize")
+        )
+        self.pushButton_load_mutant_choice_checkpoint.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Load selection from a checkpoint backup.",
+            )
+        )
+        self.pushButton_load_mutant_choice_checkpoint.setText(
+            _translate("REvoDesignPyMOL_UI", "Load Checkpoint")
+        )
+        self.checkBox_rock_pymol.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Rock the space while making choices."
+            )
+        )
+        self.checkBox_rock_pymol.setText(
+            _translate("REvoDesignPyMOL_UI", "Rock")
+        )
+        self.checkBox_show_wt.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Show WT sidechain for comparing")
+        )
+        self.checkBox_show_wt.setText(
+            _translate("REvoDesignPyMOL_UI", "Show WT")
+        )
+        self.groupBox_choice.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Choice of Design")
+        )
+        self.comboBox_group_ids.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Jump to a specific mutant group."
+            )
+        )
+        self.comboBox_mutant_ids.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Jump to a specific mutant.")
+        )
         self.pushButton_next_mutant.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Go To Next Mutant. Shortcut: Shift+Opt+] "))
-        self.pushButton_next_mutant.setText(_translate("REvoDesignPyMOL_UI", "Next"))
-        self.pushButton_next_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+]"))
-        self.pushButton_reject_this_mutant.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Reject This Mutant. Shortcut: Shift+Opt+- "))
-        self.pushButton_reject_this_mutant.setText(_translate("REvoDesignPyMOL_UI", "Reject"))
-        self.pushButton_reject_this_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+-"))
-        self.pushButton_accept_this_mutant.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Accept This Mutant. Shortcut: Shift+Opt++ "))
-        self.pushButton_accept_this_mutant.setText(_translate("REvoDesignPyMOL_UI", "Accept"))
-        self.pushButton_accept_this_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+="))
+                "Go To Next Mutant. Shortcut: Shift+Opt+] ",
+            )
+        )
+        self.pushButton_next_mutant.setText(
+            _translate("REvoDesignPyMOL_UI", "Next")
+        )
+        self.pushButton_next_mutant.setShortcut(
+            _translate("REvoDesignPyMOL_UI", "Alt+Shift+]")
+        )
+        self.pushButton_reject_this_mutant.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Reject This Mutant. Shortcut: Shift+Opt+- ",
+            )
+        )
+        self.pushButton_reject_this_mutant.setText(
+            _translate("REvoDesignPyMOL_UI", "Reject")
+        )
+        self.pushButton_reject_this_mutant.setShortcut(
+            _translate("REvoDesignPyMOL_UI", "Alt+Shift+-")
+        )
+        self.pushButton_accept_this_mutant.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Accept This Mutant. Shortcut: Shift+Opt++ ",
+            )
+        )
+        self.pushButton_accept_this_mutant.setText(
+            _translate("REvoDesignPyMOL_UI", "Accept")
+        )
+        self.pushButton_accept_this_mutant.setShortcut(
+            _translate("REvoDesignPyMOL_UI", "Alt+Shift+=")
+        )
         self.pushButton_previous_mutant.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Go To Previous Mutant. Shortcut: Shift+Opt+[ "))
-        self.pushButton_previous_mutant.setText(_translate("REvoDesignPyMOL_UI", "Previous"))
-        self.pushButton_previous_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+["))
+                "Go To Previous Mutant. Shortcut: Shift+Opt+[ ",
+            )
+        )
+        self.pushButton_previous_mutant.setText(
+            _translate("REvoDesignPyMOL_UI", "Previous")
+        )
+        self.pushButton_previous_mutant.setShortcut(
+            _translate("REvoDesignPyMOL_UI", "Alt+Shift+[")
+        )
         self.pushButton_goto_best_hit_in_group.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Jump to the best hit in this mutant group. Shortcut: Shift+Opt+\\"))
-        self.pushButton_goto_best_hit_in_group.setText(_translate("REvoDesignPyMOL_UI", "Find the Best Hit"))
-        self.pushButton_goto_best_hit_in_group.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+\\"))
-        self.pushButton_choose_lucky_mutant.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Always pick the best hits for you!"))
-        self.pushButton_choose_lucky_mutant.setText(_translate("REvoDesignPyMOL_UI", "I\'m Lucky!"))
+                "Jump to the best hit in this mutant group. Shortcut: Shift+Opt+\\",
+            )
+        )
+        self.pushButton_goto_best_hit_in_group.setText(
+            _translate("REvoDesignPyMOL_UI", "Find the Best Hit")
+        )
+        self.pushButton_goto_best_hit_in_group.setShortcut(
+            _translate("REvoDesignPyMOL_UI", "Alt+Shift+\\")
+        )
+        self.pushButton_choose_lucky_mutant.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Always pick the best hits for you!"
+            )
+        )
+        self.pushButton_choose_lucky_mutant.setText(
+            _translate("REvoDesignPyMOL_UI", "I'm Lucky!")
+        )
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(
-                self.tab_evaluate), _translate(
-                "REvoDesignPyMOL_UI", "Evaluate"))
-        self.tab_cluster.setStatusTip(_translate("REvoDesignPyMOL_UI", "Cluster mutagenesis space."))
-        self.groupBox_14.setTitle(_translate("REvoDesignPyMOL_UI", "Calculating options"))
-        self.label_input_mut_table.setText(_translate("REvoDesignPyMOL_UI", "Mutants: "))
-        self.lineEdit_input_mut_table.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Input mutant table [*.mut.txt] path"))
-        self.pushButton_open_mut_table_2.setText(_translate("REvoDesignPyMOL_UI", "..."))
+            self.tabWidget.indexOf(self.tab_evaluate),
+            _translate("REvoDesignPyMOL_UI", "Evaluate"),
+        )
+        self.tab_cluster.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Cluster mutagenesis space.")
+        )
+        self.groupBox_14.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Calculating options")
+        )
+        self.label_input_mut_table.setText(
+            _translate("REvoDesignPyMOL_UI", "Mutants: ")
+        )
+        self.lineEdit_input_mut_table.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Input mutant table [*.mut.txt] path"
+            )
+        )
+        self.pushButton_open_mut_table_2.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
         self.spinBox_num_mut_minimun.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "MInimun number of mutations for each variant."))
+                "MInimun number of mutations for each variant.",
+            )
+        )
         self.label_28.setText(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "<html><head/><body><p><span style=\" font-size:18pt;\">≤ Num </span><span style=\" font-size:18pt; vertical-align:sub;\">MUT</span><span style=\" font-size:18pt; vertical-align:sub;\"/><span style=\" font-size:18pt;\">≤</span></p></body></html>"))
+                '<html><head/><body><p><span style=" font-size:18pt;">≤ Num </span><span style=" font-size:18pt; vertical-align:sub;">MUT</span><span style=" font-size:18pt; vertical-align:sub;"/><span style=" font-size:18pt;">≤</span></p></body></html>',
+            )
+        )
         self.spinBox_num_mut_maximum.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Maximum number of mutations for each variant."))
+                "Maximum number of mutations for each variant.",
+            )
+        )
         self.label_41.setText(_translate("REvoDesignPyMOL_UI", "Clusters:"))
-        self.spinBox_num_cluster.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of clusters to generate."))
+        self.spinBox_num_cluster.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Number of clusters to generate.")
+        )
         self.label_40.setText(_translate("REvoDesignPyMOL_UI", "Batch:"))
-        self.spinBox_cluster_batchsize.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Batch number used in clustering."))
+        self.spinBox_cluster_batchsize.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Batch number used in clustering."
+            )
+        )
         self.label_30.setText(_translate("REvoDesignPyMOL_UI", "Matrix: "))
-        self.comboBox_cluster_matrix.setStatusTip(_translate("REvoDesignPyMOL_UI", "Sequence alignment matrix"))
-        self.checkBox_shuffle_clustering.setStatusTip(_translate("REvoDesignPyMOL_UI", "Shuffle the sequence."))
-        self.checkBox_shuffle_clustering.setText(_translate("REvoDesignPyMOL_UI", "Shuffle"))
-        self.pushButton_run_cluster.setText(_translate("REvoDesignPyMOL_UI", "Run !"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_cluster), _translate("REvoDesignPyMOL_UI", "Cluster"))
-        self.tab_visualize.setStatusTip(_translate("REvoDesignPyMOL_UI", "Visualize mutants in structure model."))
+        self.comboBox_cluster_matrix.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Sequence alignment matrix")
+        )
+        self.checkBox_shuffle_clustering.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Shuffle the sequence.")
+        )
+        self.checkBox_shuffle_clustering.setText(
+            _translate("REvoDesignPyMOL_UI", "Shuffle")
+        )
+        self.checkBox_cluster_mutate_and_relax.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Run Mutate'n'Relax scoring via Rosetta"
+            )
+        )
+        self.checkBox_cluster_mutate_and_relax.setText(
+            _translate("REvoDesignPyMOL_UI", "Mutate & Relax")
+        )
+        self.pushButton_run_cluster.setText(
+            _translate("REvoDesignPyMOL_UI", "Run !")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_cluster),
+            _translate("REvoDesignPyMOL_UI", "Cluster"),
+        )
+        self.tab_visualize.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Visualize mutants in structure model."
+            )
+        )
         self.label_43.setText(_translate("REvoDesignPyMOL_UI", "Mutants:"))
         self.lineEdit_input_csv_2.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Input protein profile. eg. PSSM/DMS/CSV"))
-        self.pushButton_open_input_csv_2.setText(_translate("REvoDesignPyMOL_UI", "..."))
+                "REvoDesignPyMOL_UI", "Input protein profile. eg. PSSM/DMS/CSV"
+            )
+        )
+        self.pushButton_open_input_csv_2.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
         self.comboBox_profile_type_2.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Format of profile, automatically determined. Ignore profile if choosing external scorers."))
+                "Format of profile, automatically determined. Ignore profile if choosing external scorers.",
+            )
+        )
         self.lineEdit_input_mut_table_csv.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Input mutant table file [*.mut.txt / best_leaf.csv]"))
-        self.pushButton_open_mut_table_csv.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.lineEdit_output_pse_visualize.setStatusTip(_translate("REvoDesignPyMOL_UI", "Output session path"))
-        self.pushButton_open_output_pse_visualize.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.label_input_pssm_csv_3.setText(_translate("REvoDesignPyMOL_UI", "Profile: "))
+                "Input mutant table file [*.mut.txt / best_leaf.csv]",
+            )
+        )
+        self.pushButton_open_mut_table_csv.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.lineEdit_output_pse_visualize.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Output session path")
+        )
+        self.pushButton_open_output_pse_visualize.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.label_input_pssm_csv_3.setText(
+            _translate("REvoDesignPyMOL_UI", "Profile: ")
+        )
         self.label_42.setText(_translate("REvoDesignPyMOL_UI", "Save as:"))
-        self.pushButton_run_visualizing.setText(_translate("REvoDesignPyMOL_UI", "Run !"))
+        self.pushButton_run_visualizing.setText(
+            _translate("REvoDesignPyMOL_UI", "Run !")
+        )
         self.pushButton_save_this_mutant_table.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Save this mutant table (Mutants that are kept enabled in current PyMOL session)"))
-        self.pushButton_save_this_mutant_table.setText(_translate("REvoDesignPyMOL_UI", "Save Mutants"))
+                "Save this mutant table (Mutants that are kept enabled in current PyMOL session)",
+            )
+        )
+        self.pushButton_save_this_mutant_table.setText(
+            _translate("REvoDesignPyMOL_UI", "Save Mutants")
+        )
         self.pushButton_reduce_this_session.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Save this mutant table (Mutants that keep enabled in current PyMOL session)"))
-        self.pushButton_reduce_this_session.setText(_translate("REvoDesignPyMOL_UI", "Reduce Session"))
-        self.pushButton_export_mutant_pdbs.setStatusTip(_translate("REvoDesignPyMOL_UI", "Export mutant as pdbs."))
-        self.pushButton_export_mutant_pdbs.setText(_translate("REvoDesignPyMOL_UI", "Export PDBs"))
-        self.groupBox_21.setTitle(_translate("REvoDesignPyMOL_UI", "Visualizing options"))
+                "Save this mutant table (Mutants that keep enabled in current PyMOL session)",
+            )
+        )
+        self.pushButton_reduce_this_session.setText(
+            _translate("REvoDesignPyMOL_UI", "Reduce Session")
+        )
+        self.pushButton_export_mutant_pdbs.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Export mutant as pdbs.")
+        )
+        self.pushButton_export_mutant_pdbs.setText(
+            _translate("REvoDesignPyMOL_UI", "Export PDBs")
+        )
+        self.groupBox_21.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Visualizing options")
+        )
         self.checkBox_global_score_policy.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Color the mutants by considering scores from the entire profile."))
-        self.checkBox_global_score_policy.setText(_translate("REvoDesignPyMOL_UI", "Global Score"))
+                "Color the mutants by considering scores from the entire profile.",
+            )
+        )
+        self.checkBox_global_score_policy.setText(
+            _translate("REvoDesignPyMOL_UI", "Global Score")
+        )
         self.label_47.setText(_translate("REvoDesignPyMOL_UI", "Mut:"))
-        self.comboBox_totalscore.setStatusTip(_translate("REvoDesignPyMOL_UI", "Score column in CSV file."))
-        self.comboBox_best_leaf.setStatusTip(_translate("REvoDesignPyMOL_UI", "Mutant column in CSV file."))
+        self.comboBox_totalscore.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Score column in CSV file.")
+        )
+        self.comboBox_best_leaf.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Mutant column in CSV file.")
+        )
         self.label_48.setText(_translate("REvoDesignPyMOL_UI", "Score:"))
         self.label_53.setText(_translate("REvoDesignPyMOL_UI", "Group:"))
-        self.lineEdit_group_name.setStatusTip(_translate("REvoDesignPyMOL_UI", "Group these variant."))
-        self.lineEdit_group_name.setText(_translate("REvoDesignPyMOL_UI", "default"))
-        self.groupBox_10.setTitle(_translate("REvoDesignPyMOL_UI", "Multi-mutation Design"))
+        self.lineEdit_group_name.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Group these variant.")
+        )
+        self.lineEdit_group_name.setText(
+            _translate("REvoDesignPyMOL_UI", "default")
+        )
+        self.groupBox_10.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Multi-mutation Design")
+        )
         self.label_44.setText(_translate("REvoDesignPyMOL_UI", "Mutants:"))
-        self.lineEdit_multi_design_mutant_table.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Input/Output mutant table file [*.mut.txt / best_leaf.csv]"))
-        self.pushButton_open_mut_table_csv_2.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.label_ligand_radius_2.setText(_translate("REvoDesignPyMOL_UI", "#Mut:"))
+        self.lineEdit_multi_design_mutant_table.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Input/Output mutant table file [*.mut.txt / best_leaf.csv]",
+            )
+        )
+        self.pushButton_open_mut_table_csv_2.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.label_ligand_radius_2.setText(
+            _translate("REvoDesignPyMOL_UI", "#Mut:")
+        )
         self.spinBox_maximal_mutant_num.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Maximum number of mutations for each variant."))
-        self.label_chainid_14.setText(_translate("REvoDesignPyMOL_UI", "#Val:"))
-        self.spinBox_maximal_multi_design_variant_num.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Minimal distance to accept a combined mutant"))
-        self.label_chainid_11.setText(_translate("REvoDesignPyMOL_UI", "Dist: "))
-        self.doubleSpinBox_minmal_mutant_distance.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Minimal distance to accept a combined mutant"))
-        self.doubleSpinBox_minmal_mutant_distance.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.checkBox_multi_design_bond_CA.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Visualize designs by bonding C-alpha"))
-        self.checkBox_multi_design_bond_CA.setText(_translate("REvoDesignPyMOL_UI", "Bond CA"))
-        self.checkBox_multi_design_check_sidechain_orientations.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Use sidechain orientations from WT. Consider its center of mass."))
+                "Maximum number of mutations for each variant.",
+            )
+        )
+        self.label_chainid_14.setText(
+            _translate("REvoDesignPyMOL_UI", "#Val:")
+        )
+        self.spinBox_maximal_multi_design_variant_num.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Minimal distance to accept a combined mutant",
+            )
+        )
+        self.label_chainid_11.setText(
+            _translate("REvoDesignPyMOL_UI", "Dist: ")
+        )
+        self.doubleSpinBox_minmal_mutant_distance.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Minimal distance to accept a combined mutant",
+            )
+        )
+        self.doubleSpinBox_minmal_mutant_distance.setSuffix(
+            _translate("REvoDesignPyMOL_UI", "Å")
+        )
+        self.checkBox_multi_design_bond_CA.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Visualize designs by bonding C-alpha"
+            )
+        )
+        self.checkBox_multi_design_bond_CA.setText(
+            _translate("REvoDesignPyMOL_UI", "Bond CA")
+        )
+        self.checkBox_multi_design_check_sidechain_orientations.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Use sidechain orientations from WT. Consider its center of mass.",
+            )
+        )
         self.checkBox_multi_design_check_sidechain_orientations.setText(
-            _translate("REvoDesignPyMOL_UI", "SC Orientations"))
-        self.checkBox_multi_design_use_external_scorer.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Use external designers as scorer for multi-mutant design. eg.: ProteinMPNN"))
-        self.checkBox_multi_design_use_external_scorer.setText(_translate("REvoDesignPyMOL_UI", "External Scorer"))
-        self.checkBox_multi_design_color_by_scores.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Color multi-design with scores from external scorer."))
-        self.checkBox_multi_design_color_by_scores.setText(_translate("REvoDesignPyMOL_UI", "Color by scores"))
-        self.pushButton_multi_design_initialize.setStatusTip(_translate("REvoDesignPyMOL_UI", "Reinitialize"))
-        self.pushButton_multi_design_initialize.setText(_translate("REvoDesignPyMOL_UI", "⏏️"))
-        self.pushButton_multi_design_start_new_design.setStatusTip(_translate("REvoDesignPyMOL_UI", "Start new design"))
-        self.pushButton_multi_design_start_new_design.setText(_translate("REvoDesignPyMOL_UI", "⏯️"))
-        self.pushButton_multi_design_left.setStatusTip(_translate("REvoDesignPyMOL_UI", "Disconnect the last pair."))
-        self.pushButton_multi_design_left.setText(_translate("REvoDesignPyMOL_UI", "⏪️"))
-        self.pushButton_multi_design_right.setStatusTip(_translate("REvoDesignPyMOL_UI", "Connect to the next pair."))
-        self.pushButton_multi_design_right.setText(_translate("REvoDesignPyMOL_UI", "⏩️"))
+            _translate("REvoDesignPyMOL_UI", "SC Orientations")
+        )
+        self.checkBox_multi_design_use_external_scorer.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Use external designers as scorer for multi-mutant design. eg.: ProteinMPNN",
+            )
+        )
+        self.checkBox_multi_design_use_external_scorer.setText(
+            _translate("REvoDesignPyMOL_UI", "External Scorer")
+        )
+        self.checkBox_multi_design_color_by_scores.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Color multi-design with scores from external scorer.",
+            )
+        )
+        self.checkBox_multi_design_color_by_scores.setText(
+            _translate("REvoDesignPyMOL_UI", "Color by scores")
+        )
+        self.pushButton_multi_design_initialize.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Reinitialize")
+        )
+        self.pushButton_multi_design_initialize.setText(
+            _translate("REvoDesignPyMOL_UI", "⏏️")
+        )
+        self.pushButton_multi_design_start_new_design.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Start new design")
+        )
+        self.pushButton_multi_design_start_new_design.setText(
+            _translate("REvoDesignPyMOL_UI", "⏯️")
+        )
+        self.pushButton_multi_design_left.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Disconnect the last pair.")
+        )
+        self.pushButton_multi_design_left.setText(
+            _translate("REvoDesignPyMOL_UI", "⏪️")
+        )
+        self.pushButton_multi_design_right.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Connect to the next pair.")
+        )
+        self.pushButton_multi_design_right.setText(
+            _translate("REvoDesignPyMOL_UI", "⏩️")
+        )
         self.pushButton_multi_design_end_this_design.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Stop current design"))
-        self.pushButton_multi_design_end_this_design.setText(_translate("REvoDesignPyMOL_UI", "⏹️"))
+            _translate("REvoDesignPyMOL_UI", "Stop current design")
+        )
+        self.pushButton_multi_design_end_this_design.setText(
+            _translate("REvoDesignPyMOL_UI", "⏹️")
+        )
         self.pushButton_multi_design_export_mutants_from_table.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Save designs to mutant table"))
-        self.pushButton_multi_design_export_mutants_from_table.setText(_translate("REvoDesignPyMOL_UI", "💾"))
-        self.pushButton_run_multi_design.setStatusTip(_translate("REvoDesignPyMOL_UI", "Perform automatic design."))
-        self.pushButton_run_multi_design.setText(_translate("REvoDesignPyMOL_UI", "Run"))
+            _translate("REvoDesignPyMOL_UI", "Save designs to mutant table")
+        )
+        self.pushButton_multi_design_export_mutants_from_table.setText(
+            _translate("REvoDesignPyMOL_UI", "💾")
+        )
+        self.pushButton_run_multi_design.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Perform automatic design.")
+        )
+        self.pushButton_run_multi_design.setText(
+            _translate("REvoDesignPyMOL_UI", "Run")
+        )
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(
-                self.tab_visualize), _translate(
-                "REvoDesignPyMOL_UI", "Visualize"))
-        self.tab_interact.setStatusTip(_translate("REvoDesignPyMOL_UI", "Inspect co-evolved pairs"))
-        self.groupBox_22.setTitle(_translate("REvoDesignPyMOL_UI", "GREMLIN profile:"))
-        self.lineEdit_input_gremlin_mtx.setStatusTip(_translate("REvoDesignPyMOL_UI", "GREMLIN MRF profiles in pkl"))
-        self.pushButton_open_gremlin_mtx.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.lineEdit_output_mutant_table.setStatusTip(_translate("REvoDesignPyMOL_UI", "Mutant Table to save."))
-        self.pushButton_open_save_mutant_table.setText(_translate("REvoDesignPyMOL_UI", "..."))
-        self.groupBox_9.setTitle(_translate("REvoDesignPyMOL_UI", "Co-evolved Pairs"))
-        self.label_chainid_7.setText(_translate("REvoDesignPyMOL_UI", "Dist.: "))
-        self.doubleSpinBox_max_interact_dist.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance to accept a co-evolved pair."))
-        self.doubleSpinBox_max_interact_dist.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.checkBox_interact_bind_chain_mode.setStatusTip(_translate("REvoDesignPyMOL_UI", "Bind to multiple chains"))
-        self.checkBox_interact_bind_chain_mode.setText(_translate("REvoDesignPyMOL_UI", "Bind Chains:"))
-        self.lineEdit_interact_chain_binding.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Chain IDs to bind together. eg. `ABCD`"))
+            self.tabWidget.indexOf(self.tab_visualize),
+            _translate("REvoDesignPyMOL_UI", "Visualize"),
+        )
+        self.tab_interact.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Inspect co-evolved pairs")
+        )
+        self.groupBox_22.setTitle(
+            _translate("REvoDesignPyMOL_UI", "GREMLIN profile:")
+        )
+        self.lineEdit_input_gremlin_mtx.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "GREMLIN MRF profiles in pkl")
+        )
+        self.pushButton_open_gremlin_mtx.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.lineEdit_output_mutant_table.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Mutant Table to save.")
+        )
+        self.pushButton_open_save_mutant_table.setText(
+            _translate("REvoDesignPyMOL_UI", "...")
+        )
+        self.groupBox_9.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Co-evolved Pairs")
+        )
+        self.label_chainid_7.setText(
+            _translate("REvoDesignPyMOL_UI", "Dist.: ")
+        )
+        self.doubleSpinBox_max_interact_dist.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Max distance to accept a co-evolved pair.",
+            )
+        )
+        self.doubleSpinBox_max_interact_dist.setSuffix(
+            _translate("REvoDesignPyMOL_UI", "Å")
+        )
+        self.checkBox_interact_bind_chain_mode.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Bind to multiple chains")
+        )
+        self.checkBox_interact_bind_chain_mode.setText(
+            _translate("REvoDesignPyMOL_UI", "Bind Chains:")
+        )
+        self.lineEdit_interact_chain_binding.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Chain IDs to bind together. eg. `ABCD`"
+            )
+        )
         self.label_chainid_6.setText(_translate("REvoDesignPyMOL_UI", "Top:"))
-        self.spinBox_gremlin_topN.setStatusTip(_translate("REvoDesignPyMOL_UI", "Select top N interact pairs"))
-        self.label_chainid_13.setText(_translate("REvoDesignPyMOL_UI", "Scorer:"))
+        self.spinBox_gremlin_topN.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Select top N interact pairs")
+        )
+        self.label_chainid_13.setText(
+            _translate("REvoDesignPyMOL_UI", "Scorer:")
+        )
         self.comboBox_external_scorer.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Format of profile, automatically determined. Profile will be ignored if choosing external designer."))
+                "Format of profile, automatically determined. Profile will be ignored if choosing external designer.",
+            )
+        )
         self.pushButton_reinitialize_interact.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Initialize design work space"))
-        self.pushButton_reinitialize_interact.setText(_translate("REvoDesignPyMOL_UI", "Initialize"))
-        self.pushButton_run_interact_scan.setStatusTip(_translate("REvoDesignPyMOL_UI", "Scan for co-evolved pairs."))
-        self.pushButton_run_interact_scan.setText(_translate("REvoDesignPyMOL_UI", "Scan"))
-        self.pushButton_next.setStatusTip(_translate("REvoDesignPyMOL_UI", "Next co-evolved pair."))
+            _translate("REvoDesignPyMOL_UI", "Initialize design work space")
+        )
+        self.pushButton_reinitialize_interact.setText(
+            _translate("REvoDesignPyMOL_UI", "Initialize")
+        )
+        self.pushButton_run_interact_scan.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Scan for co-evolved pairs.")
+        )
+        self.pushButton_run_interact_scan.setText(
+            _translate("REvoDesignPyMOL_UI", "Scan")
+        )
+        self.pushButton_next.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Next co-evolved pair.")
+        )
         self.pushButton_next.setText(_translate("REvoDesignPyMOL_UI", "Next"))
-        self.pushButton_interact_reject.setStatusTip(_translate("REvoDesignPyMOL_UI", "Reject picked pair."))
-        self.pushButton_interact_reject.setText(_translate("REvoDesignPyMOL_UI", "Reject"))
-        self.pushButton_previous.setStatusTip(_translate("REvoDesignPyMOL_UI", "Previous co-evolved pair."))
-        self.pushButton_previous.setText(_translate("REvoDesignPyMOL_UI", "Previous"))
-        self.pushButton_interact_accept.setStatusTip(_translate("REvoDesignPyMOL_UI", "Accept picked pair."))
-        self.pushButton_interact_accept.setText(_translate("REvoDesignPyMOL_UI", "Accept"))
-        self.label_chainid_10.setText(_translate("REvoDesignPyMOL_UI", "Pair:"))
-        self.lineEdit_current_pair.setStatusTip(_translate("REvoDesignPyMOL_UI", "Pair id"))
-        self.label_chainid_12.setText(_translate("REvoDesignPyMOL_UI", "Score:"))
-        self.lineEdit_current_pair_score.setStatusTip(_translate("REvoDesignPyMOL_UI", "Pair score"))
+        self.pushButton_interact_reject.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Reject picked pair.")
+        )
+        self.pushButton_interact_reject.setText(
+            _translate("REvoDesignPyMOL_UI", "Reject")
+        )
+        self.pushButton_previous.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Previous co-evolved pair.")
+        )
+        self.pushButton_previous.setText(
+            _translate("REvoDesignPyMOL_UI", "Previous")
+        )
+        self.pushButton_interact_accept.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Accept picked pair.")
+        )
+        self.pushButton_interact_accept.setText(
+            _translate("REvoDesignPyMOL_UI", "Accept")
+        )
+        self.label_chainid_10.setText(
+            _translate("REvoDesignPyMOL_UI", "Pair:")
+        )
+        self.lineEdit_current_pair.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Pair id")
+        )
+        self.label_chainid_12.setText(
+            _translate("REvoDesignPyMOL_UI", "Score:")
+        )
+        self.lineEdit_current_pair_score.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Pair score")
+        )
         self.label_chainid_9.setText(_translate("REvoDesignPyMOL_UI", "WT:"))
-        self.lineEdit_current_pair_wt_score.setStatusTip(_translate("REvoDesignPyMOL_UI", "WT GREMLIN score"))
+        self.lineEdit_current_pair_wt_score.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "WT GREMLIN score")
+        )
         self.label_chainid_8.setText(_translate("REvoDesignPyMOL_UI", "Mut:"))
-        self.lineEdit_current_pair_mut_score.setStatusTip(_translate("REvoDesignPyMOL_UI", "Mutant GREMLIN score"))
+        self.lineEdit_current_pair_mut_score.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Mutant GREMLIN score")
+        )
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(
-                self.tab_interact), _translate(
-                "REvoDesignPyMOL_UI", "Interact"))
-        self.groupBox_3.setTitle(_translate("REvoDesignPyMOL_UI", "GREMLIN-PSSM-Calculator"))
-        self.label_molecule_7.setText(_translate("REvoDesignPyMOL_UI", "Sever:"))
+            self.tabWidget.indexOf(self.tab_interact),
+            _translate("REvoDesignPyMOL_UI", "Interact"),
+        )
+        self.groupBox_3.setTitle(
+            _translate("REvoDesignPyMOL_UI", "GREMLIN-PSSM-Calculator")
+        )
+        self.label_molecule_7.setText(
+            _translate("REvoDesignPyMOL_UI", "Sever:")
+        )
         self.lineEdit_pssm_gremlin_url.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Server URL for PSSM GREMLIN calculation."))
-        self.lineEdit_pssm_gremlin_url.setText(_translate("REvoDesignPyMOL_UI", "https://revodesign.yaoyy.moe/"))
-        self.pushButton_submit_pssm_gremlin_job.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Submit the selected molecule and chain."))
-        self.pushButton_submit_pssm_gremlin_job.setText(_translate("REvoDesignPyMOL_UI", "Submit"))
+                "Server URL for PSSM GREMLIN calculation.",
+            )
+        )
+        self.lineEdit_pssm_gremlin_url.setText(
+            _translate("REvoDesignPyMOL_UI", "https://revodesign.yaoyy.moe/")
+        )
+        self.pushButton_submit_pssm_gremlin_job.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Submit the selected molecule and chain."
+            )
+        )
+        self.pushButton_submit_pssm_gremlin_job.setText(
+            _translate("REvoDesignPyMOL_UI", "Submit")
+        )
         self.pushButton_cancel_pssm_gremlin_job.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Cancel running/queuing task."))
-        self.pushButton_cancel_pssm_gremlin_job.setText(_translate("REvoDesignPyMOL_UI", "Cancel"))
+            _translate("REvoDesignPyMOL_UI", "Cancel running/queuing task.")
+        )
+        self.pushButton_cancel_pssm_gremlin_job.setText(
+            _translate("REvoDesignPyMOL_UI", "Cancel")
+        )
         self.pushButton_download_pssm_gremlin_job.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Download completed results."))
-        self.pushButton_download_pssm_gremlin_job.setText(_translate("REvoDesignPyMOL_UI", "Download"))
-        self.label_molecule_9.setText(_translate("REvoDesignPyMOL_UI", "User: "))
+            _translate("REvoDesignPyMOL_UI", "Download completed results.")
+        )
+        self.pushButton_download_pssm_gremlin_job.setText(
+            _translate("REvoDesignPyMOL_UI", "Download")
+        )
+        self.label_molecule_9.setText(
+            _translate("REvoDesignPyMOL_UI", "User: ")
+        )
         self.lineEdit_pssm_gremlin_user.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Server username for PSSM GREMLIN calculation."))
-        self.lineEdit_pssm_gremlin_user.setText(_translate("REvoDesignPyMOL_UI", "revodesign_users"))
-        self.label_molecule_10.setText(_translate("REvoDesignPyMOL_UI", "Passwd:"))
-        self.lineEdit_pssm_gremlin_passwd.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Server password for PSSM GREMLIN calculation."))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_client), _translate("REvoDesignPyMOL_UI", "Client"))
-        self.groupBox_ws_server_settings.setTitle(_translate("REvoDesignPyMOL_UI", "Host options"))
-        self.label_molecule_11.setStatusTip(_translate("REvoDesignPyMOL_UI", "Broadcast time interval."))
-        self.label_molecule_11.setText(_translate("REvoDesignPyMOL_UI", "Broadcast interval:"))
-        self.doubleSpinBox_ws_view_broadcast_interval.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Broadcast time interval. Smaller means faster."))
+                "Server username for PSSM GREMLIN calculation.",
+            )
+        )
+        self.lineEdit_pssm_gremlin_user.setText(
+            _translate("REvoDesignPyMOL_UI", "revodesign_users")
+        )
+        self.label_molecule_10.setText(
+            _translate("REvoDesignPyMOL_UI", "Passwd:")
+        )
+        self.lineEdit_pssm_gremlin_passwd.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Server password for PSSM GREMLIN calculation.",
+            )
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_client),
+            _translate("REvoDesignPyMOL_UI", "Client"),
+        )
+        self.groupBox_ws_server_settings.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Host options")
+        )
+        self.label_molecule_11.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Broadcast time interval.")
+        )
+        self.label_molecule_11.setText(
+            _translate("REvoDesignPyMOL_UI", "Broadcast interval:")
+        )
+        self.doubleSpinBox_ws_view_broadcast_interval.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Broadcast time interval. Smaller means faster.",
+            )
+        )
         self.label_molecule_14.setText(_translate("REvoDesignPyMOL_UI", "sec"))
-        self.groupBox_ws_client_settings.setTitle(_translate("REvoDesignPyMOL_UI", "Peer options"))
-        self.label_molecule_8.setStatusTip(_translate("REvoDesignPyMOL_UI", "Server IP/domain to connect"))
-        self.label_molecule_8.setText(_translate("REvoDesignPyMOL_UI", "Host:"))
+        self.groupBox_ws_client_settings.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Peer options")
+        )
+        self.label_molecule_8.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Server IP/domain to connect")
+        )
+        self.label_molecule_8.setText(
+            _translate("REvoDesignPyMOL_UI", "Host:")
+        )
         self.lineEdit_ws_server_url_to_connect.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Host IP/domain to connect"))
-        self.lineEdit_ws_server_url_to_connect.setText(_translate("REvoDesignPyMOL_UI", "localhost"))
-        self.pushButton_ws_connect_to_server.setStatusTip(_translate("REvoDesignPyMOL_UI", "Join the network"))
-        self.pushButton_ws_connect_to_server.setText(_translate("REvoDesignPyMOL_UI", "Join"))
-        self.pushButton_ws_disconnect_from_server.setStatusTip(_translate("REvoDesignPyMOL_UI", "Leave the network"))
-        self.pushButton_ws_disconnect_from_server.setText(_translate("REvoDesignPyMOL_UI", "Leave"))
-        self.groupBox_13.setTitle(_translate("REvoDesignPyMOL_UI", "Team role"))
+            _translate("REvoDesignPyMOL_UI", "Host IP/domain to connect")
+        )
+        self.lineEdit_ws_server_url_to_connect.setText(
+            _translate("REvoDesignPyMOL_UI", "localhost")
+        )
+        self.pushButton_ws_connect_to_server.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Join the network")
+        )
+        self.pushButton_ws_connect_to_server.setText(
+            _translate("REvoDesignPyMOL_UI", "Join")
+        )
+        self.pushButton_ws_disconnect_from_server.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Leave the network")
+        )
+        self.pushButton_ws_disconnect_from_server.setText(
+            _translate("REvoDesignPyMOL_UI", "Leave")
+        )
+        self.groupBox_13.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Team role")
+        )
         self.checkBox_ws_server_mode.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Start teamwork server to create a network"))
-        self.checkBox_ws_server_mode.setText(_translate("REvoDesignPyMOL_UI", "Host Mode"))
+                "Start teamwork server to create a network",
+            )
+        )
+        self.checkBox_ws_server_mode.setText(
+            _translate("REvoDesignPyMOL_UI", "Host Mode")
+        )
         self.checkBox_ws_duplex_mode.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Duplex mode: receive broadcasts from the clients."))
-        self.checkBox_ws_duplex_mode.setText(_translate("REvoDesignPyMOL_UI", "Duplex"))
-        self.label_molecule_13.setText(_translate("REvoDesignPyMOL_UI", "Port:"))
+                "Duplex mode: receive broadcasts from the clients.",
+            )
+        )
+        self.checkBox_ws_duplex_mode.setText(
+            _translate("REvoDesignPyMOL_UI", "Duplex")
+        )
+        self.label_molecule_13.setText(
+            _translate("REvoDesignPyMOL_UI", "Port:")
+        )
         self.spinBox_ws_server_port.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Server port to communicate with peers"))
-        self.checkBox_ws_server_use_key.setStatusTip(_translate("REvoDesignPyMOL_UI", "Use key in server"))
-        self.checkBox_ws_server_use_key.setText(_translate("REvoDesignPyMOL_UI", "Key:"))
+                "REvoDesignPyMOL_UI", "Server port to communicate with peers"
+            )
+        )
+        self.checkBox_ws_server_use_key.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Use key in server")
+        )
+        self.checkBox_ws_server_use_key.setText(
+            _translate("REvoDesignPyMOL_UI", "Key:")
+        )
         self.lineEdit_ws_server_key.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Server key for client authentication."))
-        self.pushButton_ws_generate_randomized_key.setStatusTip(_translate("REvoDesignPyMOL_UI", "Generate key"))
-        self.pushButton_ws_generate_randomized_key.setText(_translate("REvoDesignPyMOL_UI", "Generate"))
-        self.treeWidget_ws_peers.setStatusTip(_translate("REvoDesignPyMOL_UI", "Peers in this networks"))
-        self.treeWidget_ws_peers.headerItem().setText(0, _translate("REvoDesignPyMOL_UI", "Peers"))
+                "REvoDesignPyMOL_UI", "Server key for client authentication."
+            )
+        )
+        self.pushButton_ws_generate_randomized_key.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Generate key")
+        )
+        self.pushButton_ws_generate_randomized_key.setText(
+            _translate("REvoDesignPyMOL_UI", "Generate")
+        )
+        self.treeWidget_ws_peers.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Peers in this networks")
+        )
+        self.treeWidget_ws_peers.headerItem().setText(
+            0, _translate("REvoDesignPyMOL_UI", "Peers")
+        )
         self.groupBox_5.setTitle(_translate("REvoDesignPyMOL_UI", "Receive"))
         self.checkBox_ws_recieve_mutagenesis_broadcast.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Receive mutant updates"))
-        self.checkBox_ws_recieve_mutagenesis_broadcast.setText(_translate("REvoDesignPyMOL_UI", "Mutations"))
-        self.checkBox_ws_recieve_view_broadcast.setStatusTip(_translate("REvoDesignPyMOL_UI", "Receive  view updates"))
-        self.checkBox_ws_recieve_view_broadcast.setText(_translate("REvoDesignPyMOL_UI", "View Change"))
+            _translate("REvoDesignPyMOL_UI", "Receive mutant updates")
+        )
+        self.checkBox_ws_recieve_mutagenesis_broadcast.setText(
+            _translate("REvoDesignPyMOL_UI", "Mutations")
+        )
+        self.checkBox_ws_recieve_view_broadcast.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Receive  view updates")
+        )
+        self.checkBox_ws_recieve_view_broadcast.setText(
+            _translate("REvoDesignPyMOL_UI", "View Change")
+        )
         self.checkBox_ws_recieve_mutagenesis_selection.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Receive mutant updates"))
-        self.checkBox_ws_recieve_mutagenesis_selection.setText(_translate("REvoDesignPyMOL_UI", "Selection"))
-        self.groupBox_12.setTitle(_translate("REvoDesignPyMOL_UI", "Broadcast"))
+            _translate("REvoDesignPyMOL_UI", "Receive mutant updates")
+        )
+        self.checkBox_ws_recieve_mutagenesis_selection.setText(
+            _translate("REvoDesignPyMOL_UI", "Selection")
+        )
+        self.groupBox_12.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Broadcast")
+        )
         self.checkBox_ws_broadcast_mutagenesis.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Broadcast mutant updates"))
-        self.checkBox_ws_broadcast_mutagenesis.setText(_translate("REvoDesignPyMOL_UI", "Mutations"))
-        self.checkBox_ws_broadcast_view.setStatusTip(_translate("REvoDesignPyMOL_UI", "Broadcast view changes"))
-        self.checkBox_ws_broadcast_view.setText(_translate("REvoDesignPyMOL_UI", "View Change"))
-        self.checkBox_ws_broadcast_selection.setStatusTip(_translate("REvoDesignPyMOL_UI", "Broadcast mutant updates"))
-        self.checkBox_ws_broadcast_selection.setText(_translate("REvoDesignPyMOL_UI", "Selection"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_socket), _translate("REvoDesignPyMOL_UI", "Socket"))
-        self.groupBox_16.setTitle(_translate("REvoDesignPyMOL_UI", "Sidechain options"))
-        self.label_molecule_2.setText(_translate("REvoDesignPyMOL_UI", "Solver:"))
+            _translate("REvoDesignPyMOL_UI", "Broadcast mutant updates")
+        )
+        self.checkBox_ws_broadcast_mutagenesis.setText(
+            _translate("REvoDesignPyMOL_UI", "Mutations")
+        )
+        self.checkBox_ws_broadcast_view.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Broadcast view changes")
+        )
+        self.checkBox_ws_broadcast_view.setText(
+            _translate("REvoDesignPyMOL_UI", "View Change")
+        )
+        self.checkBox_ws_broadcast_selection.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Broadcast mutant updates")
+        )
+        self.checkBox_ws_broadcast_selection.setText(
+            _translate("REvoDesignPyMOL_UI", "Selection")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_socket),
+            _translate("REvoDesignPyMOL_UI", "Socket"),
+        )
+        self.groupBox_16.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Sidechain options")
+        )
+        self.label_molecule_2.setText(
+            _translate("REvoDesignPyMOL_UI", "Solver:")
+        )
         self.comboBox_sidechain_solver.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Sidechain solver. Default: buildin for Dunbrack rotamer library used by PyMOL "))
-        self.label_molecule_3.setText(_translate("REvoDesignPyMOL_UI", "radius:"))
-        self.label_molecule_4.setText(_translate("REvoDesignPyMOL_UI", "Model:"))
+                "Sidechain solver. Default: buildin for Dunbrack rotamer library used by PyMOL ",
+            )
+        )
+        self.label_molecule_3.setText(
+            _translate("REvoDesignPyMOL_UI", "radius:")
+        )
+        self.label_molecule_4.setText(
+            _translate("REvoDesignPyMOL_UI", "Model:")
+        )
         self.comboBox_sidechain_solver_model.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Sidechain solver options. "))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_config), _translate("REvoDesignPyMOL_UI", "Config"))
-        self.groupBox_6.setTitle(_translate("REvoDesignPyMOL_UI", "Molecule and Chain"))
-        self.label_molecule.setText(_translate("REvoDesignPyMOL_UI", "Molecule: "))
-        self.comboBox_design_molecule.setStatusTip(_translate("REvoDesignPyMOL_UI", "Molecule for design."))
+            _translate("REvoDesignPyMOL_UI", "Sidechain solver options. ")
+        )
+        self.groupBox_17.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Rosetta options")
+        )
+        self.label_molecule_5.setText(_translate("REvoDesignPyMOL_UI", "Node"))
+        self.comboBox_rosetta_node_hint.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Node Hint for Rosetta.")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_config),
+            _translate("REvoDesignPyMOL_UI", "Config"),
+        )
+        self.groupBox_6.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Molecule and Chain")
+        )
+        self.label_molecule.setText(
+            _translate("REvoDesignPyMOL_UI", "Molecule: ")
+        )
+        self.comboBox_design_molecule.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Molecule for design.")
+        )
         self.label_chainid.setText(_translate("REvoDesignPyMOL_UI", "Chain: "))
-        self.comboBox_chain_id.setStatusTip(_translate("REvoDesignPyMOL_UI", "Chain ID for design."))
-        self.groupBox_7.setTitle(_translate("REvoDesignPyMOL_UI", "Parallelism"))
-        self.label_nproc.setStatusTip(_translate("REvoDesignPyMOL_UI",
-                                                 "Number of processors used. Parallelism is enabled if CPU is set greater than 1"))
+        self.comboBox_chain_id.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Chain ID for design.")
+        )
+        self.groupBox_7.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Parallelism")
+        )
+        self.label_nproc.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI",
+                "Number of processors used. Parallelism is enabled if CPU is set greater than 1",
+            )
+        )
         self.label_nproc.setText(_translate("REvoDesignPyMOL_UI", "CPUs:"))
         self.spinBox_nproc.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Number of processors used. Parallelism is enabled if CPU is set greater than 1"))
+                "Number of processors used. Parallelism is enabled if CPU is set greater than 1",
+            )
+        )
         self.groupBox_8.setTitle(_translate("REvoDesignPyMOL_UI", "Color Map"))
-        self.comboBox_cmap.setStatusTip(_translate("REvoDesignPyMOL_UI", "Color map."))
+        self.comboBox_cmap.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Color map.")
+        )
         self.checkBox_reverse_mutant_effect.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Lower scores will be favored in certain scoring methods, such as ddG scoring."))
-        self.menuREvoDesign.setTitle(_translate("REvoDesignPyMOL_UI", "REvoDesign"))
-        self.menuExperiment.setTitle(_translate("REvoDesignPyMOL_UI", "Experiment"))
-        self.menuLanguage.setTitle(_translate("REvoDesignPyMOL_UI", "Language"))
+                "Lower scores will be favored in certain scoring methods, such as ddG scoring.",
+            )
+        )
+        self.menuREvoDesign.setTitle(
+            _translate("REvoDesignPyMOL_UI", "REvoDesign")
+        )
+        self.menuExperiment.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Experiment")
+        )
+        self.menuLanguage.setTitle(
+            _translate("REvoDesignPyMOL_UI", "Language")
+        )
         self.menuAbout.setTitle(_translate("REvoDesignPyMOL_UI", "About"))
-        self.actionSet_Rosetta_Path.setText(_translate("REvoDesignPyMOL_UI", "Set Rosetta Path"))
-        self.actionSet_GNU_Parallel.setText(_translate("REvoDesignPyMOL_UI", "Set GNU Parallel"))
-        self.actionSource_Code.setText(_translate("REvoDesignPyMOL_UI", "Source Code"))
-        self.actionCheck_for_updates.setText(_translate("REvoDesignPyMOL_UI", "Check for updates"))
-        self.actionCheck_PyMOL_session.setText(_translate("REvoDesignPyMOL_UI", "Import PyMOL Session"))
-        self.actionPublicattion.setText(_translate("REvoDesignPyMOL_UI", "Citations"))
-        self.actionSet_Working_Directory.setText(_translate("REvoDesignPyMOL_UI", "Set Working Directory"))
+        self.actionSet_Rosetta_Path.setText(
+            _translate("REvoDesignPyMOL_UI", "Set Rosetta Path")
+        )
+        self.actionSet_GNU_Parallel.setText(
+            _translate("REvoDesignPyMOL_UI", "Set GNU Parallel")
+        )
+        self.actionSource_Code.setText(
+            _translate("REvoDesignPyMOL_UI", "Source Code")
+        )
+        self.actionCheck_for_updates.setText(
+            _translate("REvoDesignPyMOL_UI", "Check for updates")
+        )
+        self.actionCheck_PyMOL_session.setText(
+            _translate("REvoDesignPyMOL_UI", "Import PyMOL Session")
+        )
+        self.actionPublicattion.setText(
+            _translate("REvoDesignPyMOL_UI", "Citations")
+        )
+        self.actionSet_Working_Directory.setText(
+            _translate("REvoDesignPyMOL_UI", "Set Working Directory")
+        )
         self.actionDebug.setText(_translate("REvoDesignPyMOL_UI", "Debug"))
         self.actionWarning.setText(_translate("REvoDesignPyMOL_UI", "Warning"))
         self.actionInfo.setText(_translate("REvoDesignPyMOL_UI", "Info"))
-        self.actionReconfigure.setText(_translate("REvoDesignPyMOL_UI", "Reconfigure"))
+        self.actionReconfigure.setText(
+            _translate("REvoDesignPyMOL_UI", "Reconfigure")
+        )
         self.actionReconfigure.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Reconfigure REvoDesign from YAML config file."))
-        self.actionSave_Configurations.setText(_translate("REvoDesignPyMOL_UI", "Save Configurations"))
-        self.actionLoad_Demo.setText(_translate("REvoDesignPyMOL_UI", "Load Demo"))
-        self.action_LoadExperiment.setText(_translate("REvoDesignPyMOL_UI", "Load"))
-        self.action_Save_to_Experiment.setText(_translate("REvoDesignPyMOL_UI", "Save to ..."))
-        self.actionReinitialize.setText(_translate("REvoDesignPyMOL_UI", "Reinitialize"))
+                "Reconfigure REvoDesign from YAML config file.",
+            )
+        )
+        self.actionSave_Configurations.setText(
+            _translate("REvoDesignPyMOL_UI", "Save Configurations")
+        )
+        self.actionLoad_Demo.setText(
+            _translate("REvoDesignPyMOL_UI", "Load Demo")
+        )
+        self.action_LoadExperiment.setText(
+            _translate("REvoDesignPyMOL_UI", "Load")
+        )
+        self.action_Save_to_Experiment.setText(
+            _translate("REvoDesignPyMOL_UI", "Save to ...")
+        )
+        self.actionReinitialize.setText(
+            _translate("REvoDesignPyMOL_UI", "Reinitialize")
+        )
         self.actionVersion.setText(_translate("REvoDesignPyMOL_UI", "Version"))
         self.actionEnglish.setText(_translate("REvoDesignPyMOL_UI", "English"))
         self.actionChinese.setText(_translate("REvoDesignPyMOL_UI", "Chinese"))

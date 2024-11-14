@@ -14,12 +14,12 @@ PYMOL_BUILD = get_version_message()
 
 
 def is_empty_session():
-    return len(cmd.get_names(type='objects', enabled_only=0)) == 0
+    return len(cmd.get_names(type="objects", enabled_only=0)) == 0
 
 
-def is_hidden_object(selection='(all)'):
+def is_hidden_object(selection="(all)"):
     return (
-        len(cmd.get_names(type='objects', selection=selection, enabled_only=1))
+        len(cmd.get_names(type="objects", selection=selection, enabled_only=1))
         == 0
     )
 
@@ -28,7 +28,7 @@ def fetch_exclusion_expressions():
     return [""] + [sel for sel in refresh_all_selections()]
 
 
-def is_polymer_protein(sele=''):
+def is_polymer_protein(sele=""):
     """
     Check if the selection represents a protein polymer with at least 10 residues.
 
@@ -44,7 +44,7 @@ def is_polymer_protein(sele=''):
 
     # Retrieve the atoms that belong to a protein polymer within the selection and count unique residues
     resi_list = [
-        at.resi for at in cmd.get_model(f'({sele}) and polymer.protein').atom
+        at.resi for at in cmd.get_model(f"({sele}) and polymer.protein").atom
     ]
     unique_residues = set(resi_list)
 
@@ -67,7 +67,7 @@ def find_small_molecules_in_protein(sele):
     if not sele:
         warnings.warn(
             issues.NoInputWarning(
-                'Selection for small molecules is not provided.'
+                "Selection for small molecules is not provided."
             )
         )
         return None  # Return None if the selection is not provided
@@ -75,27 +75,27 @@ def find_small_molecules_in_protein(sele):
     # Retrieve the atoms that belong to small molecules within the selection and extract unique small molecule names
     small_molecules = [
         at.resn
-        for at in cmd.get_model(f'( {sele} ) and (not polymer.protein)').atom
+        for at in cmd.get_model(f"( {sele} ) and (not polymer.protein)").atom
     ]
-    logging.info(f'Found small molecule names: {small_molecules}')
+    logging.info(f"Found small molecule names: {small_molecules}")
     unique_small_molecules = list(set(small_molecules))
 
     if unique_small_molecules:
         warnings.warn(
             issues.MoleculeWarning(
-                'Could not find unique small molecules with standalone chain id. \n'
+                "Could not find unique small molecules with standalone chain id. \n"
                 'A possible fix is calling `alter r. RES, chain="<chain-id>"` to fix the problem \n'
-                'then re-load this session.'
+                "then re-load this session."
             )
         )
 
         # Return a list of unique small molecule names found within the selection
         return unique_small_molecules
 
-    warnings.warn(issues.FallingBackWarning('Falling back to all `hetatm`'))
+    warnings.warn(issues.FallingBackWarning("Falling back to all `hetatm`"))
     small_molecules = [
         at.resn
-        for at in cmd.get_model('hetatm and (not polymer.protein)').atom
+        for at in cmd.get_model("hetatm and (not polymer.protein)").atom
     ]
 
     unique_small_molecules = list(set(small_molecules))
@@ -115,13 +115,13 @@ def find_design_molecules():
     objects = [
         object
         for object in cmd.get_names(
-            'public_nongroup_objects', enabled_only=1, selection='all'
+            "public_nongroup_objects", enabled_only=1, selection="all"
         )
         if is_polymer_protein(object)
     ]
     if not objects:
         raise issues.MoleculeUnloadedError(
-            'Failed to load objects. Is it enabled?'
+            "Failed to load objects. Is it enabled?"
         )
     return objects
 
@@ -149,11 +149,11 @@ def find_all_protein_chain_ids_in_protein(sele):
     all_chains = [
         chain_id
         for chain_id in chain_ids
-        if is_polymer_protein(f'( {sele} and c. {chain_id} )')
+        if is_polymer_protein(f"( {sele} and c. {chain_id} )")
     ]
 
     if not all_chains:
-        raise issues.MoleculeError(f'Fail to fetch all chain ids in {sele=}')
+        raise issues.MoleculeError(f"Fail to fetch all chain ids in {sele=}")
 
     return all_chains
 
@@ -193,23 +193,23 @@ def is_distal_residue_pair(
     resn_2 = sequence[resi_2 - 1]
 
     # Construct strings representing CA atoms of the two residues
-    Ca_atom_1 = f'{molecule} and c. {chain_id} and i. {resi_1} and n. CA'
-    Ca_atom_2 = f'{molecule} and c. {chain_id} and i. {resi_2} and n. CA'
+    Ca_atom_1 = f"{molecule} and c. {chain_id} and i. {resi_1} and n. CA"
+    Ca_atom_2 = f"{molecule} and c. {chain_id} and i. {resi_2} and n. CA"
 
     # Calculate the distance between the CA atoms
     Ca_distance = cmd.get_distance(atom1=Ca_atom_1, atom2=Ca_atom_2)
 
     # Check if either of the residues is glycine or not using sidechain angle
     if (not use_sidechain_angle) or any(
-        resn == 'G' for resn in [resn_1, resn_2]
+        resn == "G" for resn in [resn_1, resn_2]
     ):
         return Ca_distance > minimal_distance
     else:
         import numpy as np
 
         # Construct strings representing sidechain atoms of the two residues
-        SC_atoms_1 = f'{molecule} and c. {chain_id} and i. {resi_1} and sidechain and not hydrogen'
-        SC_atoms_2 = f'{molecule} and c. {chain_id} and i. {resi_2} and sidechain and not hydrogen'
+        SC_atoms_1 = f"{molecule} and c. {chain_id} and i. {resi_1} and sidechain and not hydrogen"
+        SC_atoms_2 = f"{molecule} and c. {chain_id} and i. {resi_2} and sidechain and not hydrogen"
 
         # Get coordinates of CA and Sidechain  atoms
         Ca_atom_1_coord = np.array(cmd.get_coords(Ca_atom_1)[0])
@@ -229,7 +229,7 @@ def is_distal_residue_pair(
                 # /-------------\
                 # *---Ca   Ca---*
                 logging.warning(
-                    f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal.'
+                    f"Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal."
                 )
                 return True
             else:
@@ -269,9 +269,9 @@ def renumber_chain_ids(target_protein):
     chain_ids = cmd.get_chains(target_protein)
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     for chain_id, _alphabet in zip(chain_ids, alphabet):
-        logging.info(f'rechain: {chain_id} - {_alphabet}')
+        logging.info(f"rechain: {chain_id} - {_alphabet}")
         cmd.alter(
-            f'{target_protein} and c. {chain_id}', f'chain=\'{_alphabet}\''
+            f"{target_protein} and c. {chain_id}", f"chain='{_alphabet}'"
         )
 
 
@@ -300,7 +300,7 @@ def get_molecule_sequence(molecule, chain_id, keep_missing=True):
     CA = [
         atom
         for atom in cmd.get_model(
-            f'( {molecule} and c. {chain_id} and n. CA )'
+            f"( {molecule} and c. {chain_id} and n. CA )"
         ).atom
     ]
     if keep_missing:
@@ -314,15 +314,15 @@ def get_molecule_sequence(molecule, chain_id, keep_missing=True):
                 res = CA[i - 1 + offset].resn
                 resn.append(protein_letters_3to1_upper[res])
             else:
-                resn.append('X')
+                resn.append("X")
                 offset -= 1
 
-        return ''.join(resn)
+        return "".join(resn)
     else:
-        return ''.join([protein_letters_3to1_upper[atom.resn] for atom in CA])
+        return "".join([protein_letters_3to1_upper[atom.resn] for atom in CA])
 
 
-def get_atom_pair_cst(selection='sele'):
+def get_atom_pair_cst(selection="sele"):
     """
     Function: get_atom_pair_cst
     Usage: cst = get_atom_pair_cst(selection='sele')
@@ -338,11 +338,11 @@ def get_atom_pair_cst(selection='sele'):
     _sele = cmd.get_model(selection=selection).atom
     if len(_sele) != 2:
         logging.error(
-            f'Atom pair selection {selection} must contain exactly 2 atoms!'
+            f"Atom pair selection {selection} must contain exactly 2 atoms!"
         )
         return
     else:
-        cst = f'AtomPair {_sele[0].name} {_sele[0].resi}{_sele[0].chain} {_sele[1].name} {_sele[1].resi}{_sele[1].chain} HARMONIC 3 0.5'
+        cst = f"AtomPair {_sele[0].name} {_sele[0].resi}{_sele[0].chain} {_sele[1].name} {_sele[1].resi}{_sele[1].chain} HARMONIC 3 0.5"
         return cst
 
 
@@ -364,20 +364,20 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
     """
     if not molecule or not chain_id or not selection:
         logging.warning(
-            f'Invalid parameters: \nmolecule - {molecule}\n chain_id - {chain_id} \n selection - {selection}'
+            f"Invalid parameters: \nmolecule - {molecule}\n chain_id - {chain_id} \n selection - {selection}"
         )
         return None
-    residues = '_'.join(
+    residues = "_".join(
         list(
             {
-                f'{at.resn.upper()}{at.resi}'
-                for at in cmd.get_model(f'{selection} and n. CA').atom
+                f"{at.resn.upper()}{at.resi}"
+                for at in cmd.get_model(f"{selection} and n. CA").atom
             }
         )
     )
-    autodock_flexible_residues = f'{molecule}:{chain_id}:{residues}'
+    autodock_flexible_residues = f"{molecule}:{chain_id}:{residues}"
     logging.info(
-        f'Flexible residues for AutoGrid: {autodock_flexible_residues}'
+        f"Flexible residues for AutoGrid: {autodock_flexible_residues}"
     )
     return autodock_flexible_residues
 
@@ -396,13 +396,13 @@ def refresh_all_selections():
 
     selections = [
         sel
-        for sel in cmd.get_names(type='selections')
-        if sel != 'sele' and (not sel.startswith('_align'))
+        for sel in cmd.get_names(type="selections")
+        if sel != "sele" and (not sel.startswith("_align"))
     ]
 
     for sel in selections:
         _resi = sorted(list({at.resi for at in cmd.get_model(sel).atom}))
-        logging.info(f'{sel}: i. {shorter_range([int(x) for x in _resi])}')
+        logging.info(f"{sel}: i. {shorter_range([int(x) for x in _resi])}")
     return selections
 
 
@@ -418,14 +418,14 @@ def is_a_REvoDesign_session():
     - bool: True if it's a REvoDesign session (public group objects exist),
         False otherwise.
     """
-    if check := bool(cmd.get_names(type='public_group_objects')):
+    if check := bool(cmd.get_names(type="public_group_objects")):
         warnings.warn(
             issues.REvoDesignSessionsWarning(
-                'Loading mutants into a REvoDesign session may trigger'
-                'unexpected segmentation fault.\nIn order to keep the'
-                'session\'s feature, you should always create seperate'
-                'sessions according to your dataset and merge them '
-                'manually in PyMOL window.'
+                "Loading mutants into a REvoDesign session may trigger"
+                "unexpected segmentation fault.\nIn order to keep the"
+                "session's feature, you should always create seperate"
+                "sessions according to your dataset and merge them "
+                "manually in PyMOL window."
             )
         )
     return check
@@ -433,11 +433,11 @@ def is_a_REvoDesign_session():
 
 def make_temperal_input_pdb(
     molecule,
-    chain_id='',
-    segment_id='',
-    resn='',
-    selection='',
-    save_as_format='pdb',
+    chain_id="",
+    segment_id="",
+    resn="",
+    selection="",
+    save_as_format="pdb",
     wd=os.getcwd(),
     reload=True,
 ):
@@ -465,25 +465,25 @@ def make_temperal_input_pdb(
     input_file = os.path.join(
         wd,
         f'seg{segment_id}_chain{chain_id}_resn{resn}_sel{selection.replace(" ","-")[:20]}',
-        f'{molecule}.{save_as_format}',
+        f"{molecule}.{save_as_format}",
     )
     os.makedirs(os.path.dirname(input_file), exist_ok=True)
 
     selection_str = molecule
     if chain_id:
-        selection_str += f' and chain {chain_id}'
+        selection_str += f" and chain {chain_id}"
     if segment_id:
-        selection_str += f' and segi {segment_id}'
+        selection_str += f" and segi {segment_id}"
     if resn:
-        selection_str += f' and resn {resn}'
+        selection_str += f" and resn {resn}"
     if selection:
-        selection_str += f' and {selection}'
+        selection_str += f" and {selection}"
 
     try:
         cmd.save(input_file, selection_str, -1)
     except QuietException:
         raise issues.MoleculeUnloadedError(
-            'Could not save molecule because it is not loaded yet.'
+            "Could not save molecule because it is not loaded yet."
         )
 
     if reload:
@@ -491,14 +491,14 @@ def make_temperal_input_pdb(
         cmd.load(input_file)
 
     logging.warning(
-        'A temporary session is created based on your molecule selection: \n'
-        f'{molecule} (chain: {chain_id}, segment: {segment_id}), resn: {resn} --> {input_file}'
+        "A temporary session is created based on your molecule selection: \n"
+        f"{molecule} (chain: {chain_id}, segment: {segment_id}), resn: {resn} --> {input_file}"
     )
     return input_file
 
 
 def extract_smiles_from_chain(
-    molecule, chain_id='', segment_id='', resn='', selection=''
+    molecule, chain_id="", segment_id="", resn="", selection=""
 ) -> list[str]:
     from rdkit import Chem
     from rdkit.Chem import MolToSmiles
@@ -534,8 +534,8 @@ def extract_smiles_from_chain(
         segment_id=segment_id,
         resn=resn,
         selection=selection,
-        save_as_format='sdf',
-        wd=os.path.abspath('./ligand'),
+        save_as_format="sdf",
+        wd=os.path.abspath("./ligand"),
         reload=False,
     )
 
@@ -560,7 +560,7 @@ def extract_smiles_from_chain(
 def any_posision_has_been_selected():
     selected_positions = [
         x
-        for x in cmd.get_names(type='selections', enabled_only=1)
-        if x == 'sele'
+        for x in cmd.get_names(type="selections", enabled_only=1)
+        if x == "sele"
     ]
     return bool(selected_positions)

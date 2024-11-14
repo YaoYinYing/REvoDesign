@@ -18,6 +18,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- feat: Allows to automatically register profile-parsers, sidechain solvers and designers if they are installed
+- feat: Rosetta Cartesian ddG scorer, driven by `RosettaPy` [Code](https://github.com/YaoYinYing/RosettaPy), [package](https://pypi.org/project/RosettaPy/)
+- feat:future: Cluster mutate and relax option toggle
+- feat: `Magician`: handles to initialize and destruct designers/scorers
+- feat: `ExternalDesignerAbstract`:
+  - `name`: the name of the designer
+  - `installed`: whether the designer is installed
+  - `scorer_only`: whether the designer is a scorer only
+  - `no_need_to_score_wt`: whether the designer does not need to score wild-type
+  - `prefer_lower`: whether the designer prefers lower scores (future use) 
+  - `scorer`: accept `mutant: Union[Mutant, RosettaPyProteinSequence]` instead.
+  - `parallel_scorer`: 
+    - accept `mutants: List[Mutant], nproc:int=2` which
+    - use joblib to scale `scorer`
+    - this can be overriden by customized parallelism from the subclasses, eg., `ddg.parallel_scorer`uses the native parallelism from `RosettaPy` to make thread-safe calls to Rosetta
+
+### Changed
+
+- chore: `Widget2ConfigMapper`: `group_config_map` -> `group_register`, with only `Tuple[Callable]` acceptable
+- chore: `MutantVisualizer`/`REvoDesigner`/`GREMLIN_Analyser`/`MultiMutantDesigner`: use `magician: Magician = Magician()` to replace attributes like `gremlin_external_scorer`
+- chore: move `PushButtons`,`Config2WidgetIds` from `ui_driver` to `widget_link`
+
+### Fixed
+
+- lint: some `import-outside-toplevel / C0415` issues in driver, remains some intra-package imports to avoid cycle import errors
+
+### Removed
+
+- config: Configuration: groups of profile-parsers, sidechain solvers and designers
+- feat: Sidechain Solver fallbacks: due to the fact of auto-registration of installed solvers.
+
+### Clues
+
+- To make compatible with getting values from `ConfigBus`(Qt Widges are unpicklable) and `joblib` Parallel, one can initialize the bus a private variable(eg., `bus=ConfigBus()`) in `__init__` method and get all values, instead of a class instance variable(eg., `self.bus=ConfigBus()`). This bus instance will be released after the init is finished.
+
 ## [1.6.0] - 2024-11-12
 
 ### Added

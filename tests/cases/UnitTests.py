@@ -48,9 +48,7 @@ MOLECULE = "1nww"
 CHAIN_ID = "A"
 SEQUENCE = "XXXXIEQPRWASKDSAAGAASTPDEKIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP"
 HETATM = "HPN"
-GREMLIN_MRF_PKL_URL = (
-    "https://raw.githubusercontent.com/YaoYinYing/REvoDesign-test-data/main/1nww_A.i90c75_aln.GREMLIN.mrf.pkl"
-)
+GREMLIN_MRF_PKL_URL = "https://raw.githubusercontent.com/YaoYinYing/REvoDesign-test-data/main/1nww_A.i90c75_aln.GREMLIN.mrf.pkl"
 GREMLIN_MRF_PKL_MD5SUM = "201517130bbae68428e855c97dabe98a"
 
 
@@ -70,7 +68,9 @@ class TestREvoDesignLogFormatter(absltest.TestCase):
             args=(),
             exc_info=None,
         )
-        self.record.created = 1609459200.0  # Equivalent to 2021-01-01 00:00:00 UTC
+        self.record.created = (
+            1609459200.0  # Equivalent to 2021-01-01 00:00:00 UTC
+        )
         self.formatter = REvoDesignLogFormatter()
         super().setUp()
 
@@ -78,7 +78,9 @@ class TestREvoDesignLogFormatter(absltest.TestCase):
         """
         Test if the log formatter correctly formats a log record into JSON.
         """
-        expected_timestamp = dt.datetime.fromtimestamp(self.record.created, tz=dt.timezone.utc).isoformat()
+        expected_timestamp = dt.datetime.fromtimestamp(
+            self.record.created, tz=dt.timezone.utc
+        ).isoformat()
         formatted_message = self.formatter.format(self.record)
         message_dict = json.loads(formatted_message)
 
@@ -118,8 +120,12 @@ class TestLoggingSetup(absltest.TestCase):
                     },
                 },
                 "formatters": {
-                    "simple": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"},
-                    "json": {"fmt_keys": {"message": "msg", "timestamp": "asctime"}},
+                    "simple": {
+                        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                    },
+                    "json": {
+                        "fmt_keys": {"message": "msg", "timestamp": "asctime"}
+                    },
                 },
                 "loggers": {
                     "root": {"level": "DEBUG"},
@@ -167,7 +173,9 @@ class TestPocketSearcher(absltest.TestCase):
             cmd.remove("r. hoh or r. MES")
         except CmdException:
             pass
-        self.input_pdb_file = make_temperal_input_pdb(molecule=self.p450_pdb_code, reload=False)
+        self.input_pdb_file = make_temperal_input_pdb(
+            molecule=self.p450_pdb_code, reload=False
+        )
         self.chain_id = "A"
         self.cofactor = "HEM"
         self.cofactor_radius = 7
@@ -176,7 +184,9 @@ class TestPocketSearcher(absltest.TestCase):
 
         self.expected_moelecule = self.p450_pdb_code
 
-        self.expected_pocket_pse = os.path.join("pocket_searcher", f"{self.p450_pdb_code}_pocket.pze")
+        self.expected_pocket_pse = os.path.join(
+            "pocket_searcher", f"{self.p450_pdb_code}_pocket.pze"
+        )
         self.expected_pocket_txts = f"{self.expected_moelecule}_*_residues.txt"
 
         os.makedirs(os.path.dirname(self.expected_pocket_pse), exist_ok=True)
@@ -220,9 +230,13 @@ class TestSurfaceFinder(absltest.TestCase):
             cmd.remove("r. hoh or r. MES")
         except CmdException:
             pass
-        self.input_pdb_file = make_temperal_input_pdb(molecule=self.p450_pdb_code, reload=False)
+        self.input_pdb_file = make_temperal_input_pdb(
+            molecule=self.p450_pdb_code, reload=False
+        )
         self.chain_id = "A"
-        self.expected_surface_pse = os.path.join("surface_finder", f"{self.p450_pdb_code}_surface.pze")
+        self.expected_surface_pse = os.path.join(
+            "surface_finder", f"{self.p450_pdb_code}_surface.pze"
+        )
 
         os.makedirs(os.path.dirname(self.expected_surface_pse), exist_ok=True)
         self.expected_moelecule = self.p450_pdb_code
@@ -256,12 +270,18 @@ class TestREvoDesignConfigFile(absltest.TestCase):
     def setUp(self):
         self.bus: ConfigBus = ConfigBus()
         # Setup necessary variables for the test
-        self.expected_default_data_path = user_data_dir(appname='REvoDesign')
-        self.expected_default_cache_path = user_cache_dir(appname='REvoDesign')
-        self.expected_config_dir = os.path.join(self.expected_default_data_path, "config")
-        self.expected_main_config_file = os.path.join(self.expected_config_dir, "global_config.yaml")
+        self.expected_default_data_path = user_data_dir(appname="REvoDesign")
+        self.expected_default_cache_path = user_cache_dir(appname="REvoDesign")
+        self.expected_config_dir = os.path.join(
+            self.expected_default_data_path, "config"
+        )
+        self.expected_main_config_file = os.path.join(
+            self.expected_config_dir, "global_config.yaml"
+        )
         self.expected_global_cfg = self.bus.cfg
-        self.expected_pippack_cfg = reload_config_file("sidechain-solver/pippack")["sidechain-solver"]
+        self.expected_pippack_cfg = reload_config_file(
+            "sidechain-solver/pippack"
+        )["sidechain-solver"]
         super().setUp()
 
     def test_set_REvoDesign_config_file(self):
@@ -284,7 +304,9 @@ class TestREvoDesignConfigFile(absltest.TestCase):
         # Mocking or setting up a test environment for hydra might be necessary
 
         self.assertTrue(isinstance(self.expected_global_cfg, DictConfig))
-        self.assertEqual(self.expected_global_cfg.ui.header_panel.cmap.default, "bwr_r")
+        self.assertEqual(
+            self.expected_global_cfg.ui.header_panel.cmap.default, "bwr_r"
+        )
 
     def test_save_configuration(self):
         """
@@ -312,20 +334,28 @@ class TestREvoDesignConfigFile(absltest.TestCase):
         """
         # This test will require to mock or manipulate the DictConfig returned by
         # reload_config_file to simulate different scenarios
-        new_customized_cache_dir = os.path.abspath(os.path.join(".", "customized_revodesign_cache_dir"))
+        new_customized_cache_dir = os.path.abspath(
+            os.path.join(".", "customized_revodesign_cache_dir")
+        )
         self.expected_global_cfg.cache_dir.under_home_dir = False
-        self.expected_global_cfg.cache_dir.customized = new_customized_cache_dir
+        self.expected_global_cfg.cache_dir.customized = (
+            new_customized_cache_dir
+        )
         save_configuration(self.expected_global_cfg)
         new_cfg = reload_config_file()
         expected_new_cache_dir = set_cache_dir()
-        self.assertEqual(new_customized_cache_dir, new_cfg.cache_dir.customized)
+        self.assertEqual(
+            new_customized_cache_dir, new_cfg.cache_dir.customized
+        )
         self.assertEqual(new_customized_cache_dir, expected_new_cache_dir)
 
         self.expected_global_cfg.cache_dir.under_home_dir = True
         self.expected_global_cfg.cache_dir.customized = ""
         save_configuration(self.expected_global_cfg)
         expected_old_cache_dir = set_cache_dir()
-        self.assertEqual(expected_old_cache_dir, self.expected_default_cache_path)
+        self.assertEqual(
+            expected_old_cache_dir, self.expected_default_cache_path
+        )
 
     def tearDown(self):
         if self.bus:
@@ -341,7 +371,9 @@ class TestConfigConverter(absltest.TestCase):
         """
         Test converting a valid DictConfig to a Python dictionary.
         """
-        dict_config = OmegaConf.create({"key": "value", "nested": {"nkey": "nvalue"}})
+        dict_config = OmegaConf.create(
+            {"key": "value", "nested": {"nkey": "nvalue"}}
+        )
         expected_output = {"key": "value", "nested": {"nkey": "nvalue"}}
         output = ConfigConverter.convert(dict_config)
         self.assertEqual(output, expected_output)
@@ -374,13 +406,18 @@ class TestConfigConverter(absltest.TestCase):
 class TestMutant(absltest.TestCase):
     def setUp(self):
         super().setUp()  # Call the superclass setup method
-        self.mutant_info = [Mutation(chain_id="A", position=10, wt_res="P", mut_res="L"),
-                            Mutation(chain_id="A", position=20, wt_res="S", mut_res="T")
-                            ]
-        self.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
+        self.mutant_info = [
+            Mutation(chain_id="A", position=10, wt_res="P", mut_res="L"),
+            Mutation(chain_id="A", position=20, wt_res="S", mut_res="T"),
+        ]
+        self.wt_protein_sequence = RosettaPyProteinSequence.from_dict(
+            {"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"}
+        )
         self.mutant_score = 0.95
         self.mutant_obj = Mutant(self.mutant_info, self.wt_protein_sequence)
-        self.mutant_obj.mutations = self.mutant_info  # squeeze method will get the list out of order
+        self.mutant_obj.mutations = (
+            self.mutant_info
+        )  # squeeze method will get the list out of order
         self.mutant_obj.mutant_score = self.mutant_score
 
     def test_mutant_score(self):
@@ -403,14 +440,22 @@ class TestMutant(absltest.TestCase):
         self.assertEqual(self.mutant_obj.short_mutant_id, expected_id)
 
     def test_short_mutant_id(self):
-        self.mutant_obj.mutations = [Mutation(chain_id="A", position=1, wt_res="P", mut_res="L")]
+        self.mutant_obj.mutations = [
+            Mutation(chain_id="A", position=1, wt_res="P", mut_res="L")
+        ]
         expected_id = "AP1L_0.95"  # This might change based on hashing
-        self.assertTrue(self.mutant_obj.short_mutant_id.startswith(expected_id.split("_")[0]))
+        self.assertTrue(
+            self.mutant_obj.short_mutant_id.startswith(
+                expected_id.split("_")[0]
+            )
+        )
 
     def test_mutant_sequence(self):
         expected_sequence = "MABCDEFGHLJKLMNOHHHTHHHQCEV"
         self.assertEqual(
-            self.mutant_obj.get_mutant_sequence_single_chain(chain_id="A").sequence,
+            self.mutant_obj.get_mutant_sequence_single_chain(
+                chain_id="A"
+            ).sequence,
             expected_sequence,
         )
 
@@ -419,27 +464,46 @@ class TestMutant(absltest.TestCase):
         self.assertEqual(self.mutant_obj.wt_score, 5.0)
 
     def test_mutant_sequence_mismatch(self):
-        self.mutant_obj.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHIJKLMNO"})
-        self.mutant_obj.mutations = [Mutation(chain_id="A", position=10, wt_res="Q", mut_res="L")]
+        self.mutant_obj.wt_protein_sequence = (
+            RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHIJKLMNO"})
+        )
+        self.mutant_obj.mutations = [
+            Mutation(chain_id="A", position=10, wt_res="Q", mut_res="L")
+        ]
         with self.assertRaises(ValueError):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id="A")
 
     def test_mutant_sequence_short(self):
-        self.mutant_obj.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHIJKLMNO"})
-        self.mutant_obj.mutations = [Mutation(chain_id="A", position=30, wt_res="Q", mut_res="L")]
+        self.mutant_obj.wt_protein_sequence = (
+            RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHIJKLMNO"})
+        )
+        self.mutant_obj.mutations = [
+            Mutation(chain_id="A", position=30, wt_res="Q", mut_res="L")
+        ]
         with self.assertRaises(ValueError):
             self.mutant_obj.get_mutant_sequence_single_chain(chain_id="A")
 
 
 class TestMutantTree(absltest.TestCase):
     def setUp(self):
-        self.wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
+        self.wt_protein_sequence = RosettaPyProteinSequence.from_dict(
+            {"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"}
+        )
         # Creating mock Mutant objects with necessary kwargs
-        mutant1 = Mutant(mutations=[Mutation('A', 1, 'M', 'N')], wt_protein_sequence=self.wt_protein_sequence)
+        mutant1 = Mutant(
+            mutations=[Mutation("A", 1, "M", "N")],
+            wt_protein_sequence=self.wt_protein_sequence,
+        )
         mutant1.mutant_score = 0.5
-        mutant2 = Mutant(mutations=[Mutation('A', 2, 'A', 'C')], wt_protein_sequence=self.wt_protein_sequence)
+        mutant2 = Mutant(
+            mutations=[Mutation("A", 2, "A", "C")],
+            wt_protein_sequence=self.wt_protein_sequence,
+        )
         mutant2.mutant_score = 0.8
-        mutant3 = Mutant(mutations=[Mutation('A', 3, 'B', 'T')], wt_protein_sequence=self.wt_protein_sequence)
+        mutant3 = Mutant(
+            mutations=[Mutation("A", 3, "B", "T")],
+            wt_protein_sequence=self.wt_protein_sequence,
+        )
         mutant3.mutant_score = 0.3
 
         self.mutant_tree = {
@@ -453,7 +517,9 @@ class TestMutantTree(absltest.TestCase):
 
     def test_refresh_mutants(self):
         self.mutant_tree_obj.refresh_mutants()
-        self.assertEqual(self.mutant_tree_obj.all_mutant_branch_ids, ["branch1", "branch2"])
+        self.assertEqual(
+            self.mutant_tree_obj.all_mutant_branch_ids, ["branch1", "branch2"]
+        )
         self.assertFalse(self.mutant_tree_obj.empty)
 
     def test_get_branch_index(self):
@@ -470,7 +536,9 @@ class TestMutantTree(absltest.TestCase):
         self.assertEqual(len(matching_branches), 2)
 
     def test_get_mutant_index_in_branch(self):
-        index = self.mutant_tree_obj.get_mutant_index_in_branch("branch1", "mutant2")
+        index = self.mutant_tree_obj.get_mutant_index_in_branch(
+            "branch1", "mutant2"
+        )
         self.assertEqual(index, 1)
 
     def test_get_mutant_index_in_all_mutants(self):
@@ -478,7 +546,9 @@ class TestMutantTree(absltest.TestCase):
         self.assertEqual(index, 2)
 
     def test_is_the_mutant_the_last_in_branch(self):
-        result = self.mutant_tree_obj.is_the_mutant_the_last_in_branch("branch1", "mutant2")
+        result = self.mutant_tree_obj.is_the_mutant_the_last_in_branch(
+            "branch1", "mutant2"
+        )
         self.assertTrue(result)
 
     def test_is_this_branch_empty(self):
@@ -495,14 +565,12 @@ class TestMutantTree(absltest.TestCase):
         new_branches = {
             "branch3": {
                 "mutant4": Mutant(
-                    mutations=[
-                        Mutation(
-                            'A',
-                            4,
-                            'C',
-                            'X')],
+                    mutations=[Mutation("A", 4, "C", "X")],
                     wt_protein_sequence=self.wt_protein_sequence,
-                    _mutant_score=0.6)}}
+                    _mutant_score=0.6,
+                )
+            }
+        }
         self.mutant_tree_obj.update_tree_with_new_branches(new_branches)
         self.assertIn("branch3", self.mutant_tree_obj.all_mutant_branch_ids)
 
@@ -511,23 +579,24 @@ class TestMutantTree(absltest.TestCase):
             "branch1",
             "mutant3",
             Mutant(
-                mutations=[
-                    Mutation(
-                        'A',
-                        5,
-                        'D',
-                        'P')],
+                mutations=[Mutation("A", 5, "D", "P")],
                 wt_protein_sequence=self.wt_protein_sequence,
-                _mutant_score=0.4))
+                _mutant_score=0.4,
+            ),
+        )
         self.assertIn("mutant3", self.mutant_tree_obj.mutant_tree["branch1"])
 
     def test_remove_mutant_from_branch(self):
         self.mutant_tree_obj.remove_mutant_from_branch("branch1", "mutant1")
-        self.assertNotIn("mutant1", self.mutant_tree_obj.mutant_tree["branch1"])
+        self.assertNotIn(
+            "mutant1", self.mutant_tree_obj.mutant_tree["branch1"]
+        )
 
     def test_create_mutant_tree_from_list(self):
         new_mutant_ids = ["mutant1", "mutant3"]
-        new_tree = self.mutant_tree_obj.create_mutant_tree_from_list(new_mutant_ids)
+        new_tree = self.mutant_tree_obj.create_mutant_tree_from_list(
+            new_mutant_ids
+        )
         self.assertIsInstance(new_tree, MutantTree)
         self.assertEqual(len(new_tree.all_mutant_branch_ids), 2)
 
@@ -549,8 +618,17 @@ class TestMutantTree(absltest.TestCase):
         self.assertIsInstance(mutants_list, list)
 
     def test_diff_tree_from(self):
-        other_tree = MutantTree({"branch2": {"mutant3": Mutant(
-            mutations=[Mutation('A', 10, 'P', 'Q')], wt_protein_sequence=self.wt_protein_sequence, _mutant_score=0.3)}})
+        other_tree = MutantTree(
+            {
+                "branch2": {
+                    "mutant3": Mutant(
+                        mutations=[Mutation("A", 10, "P", "Q")],
+                        wt_protein_sequence=self.wt_protein_sequence,
+                        _mutant_score=0.3,
+                    )
+                }
+            }
+        )
         diff_tree = self.mutant_tree_obj.diff_tree_from(other_tree)
         self.assertIsInstance(diff_tree, MutantTree)
         self.assertEqual(len(diff_tree.all_mutant_branch_ids), 1)
@@ -563,17 +641,23 @@ class TestMutantTree(absltest.TestCase):
         ) = self.mutant_tree_obj.pop()
         self.assertIsInstance(popped_mutant, Mutant)
         self.assertNotIn("mutant3", self.mutant_tree_obj.all_mutant_ids)
-        self.assertNotIn(popped_branch_id, self.mutant_tree_obj.all_mutant_branch_ids)
+        self.assertNotIn(
+            popped_branch_id, self.mutant_tree_obj.all_mutant_branch_ids
+        )
         self.assertEqual(len(self.mutant_tree_obj.all_mutant_objects), 2)
 
     def test_asOneMutant(self):
         combined_mutant = self.mutant_tree_obj.asOneMutant
         self.assertIsInstance(combined_mutant, Mutant)
         expected_mutant_info = [
-            _mut_info for _mut_obj in self.mutant_tree_obj.all_mutant_objects for _mut_info in _mut_obj.mutations
+            _mut_info
+            for _mut_obj in self.mutant_tree_obj.all_mutant_objects
+            for _mut_info in _mut_obj.mutations
         ]
 
-        assert all(m in combined_mutant.mutations for m in expected_mutant_info)
+        assert all(
+            m in combined_mutant.mutations for m in expected_mutant_info
+        )
 
 
 class TestPSSMGremlinCalculator(absltest.TestCase):
@@ -587,7 +671,9 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.calculator.url = "https://revodesign.yaoyy.moe/"
         self.calculator.user = user
         self.calculator.password = password
-        self.calculator.auth = HTTPBasicAuth(self.calculator.user, self.calculator.password)
+        self.calculator.auth = HTTPBasicAuth(
+            self.calculator.user, self.calculator.password
+        )
 
         # Mock working_directory to a temporary directory
         tmp_dir = TEST_DATA_RES
@@ -607,13 +693,17 @@ class TestPSSMGremlinCalculator(absltest.TestCase):
         self.assertEqual(self.calculator.url, "https://revodesign.yaoyy.moe/")
         self.assertIsNotNone(self.calculator.auth)
         self.assertEqual(self.calculator.user, os.environ["REVODESIGN_USERS"])
-        self.assertEqual(self.calculator.password, os.environ["REVODESIGN_SERVER_PASS"])
+        self.assertEqual(
+            self.calculator.password, os.environ["REVODESIGN_SERVER_PASS"]
+        )
 
     def test_setup_calculator(self):
         self.assertTrue(os.path.exists(self.calculator.temp_file_path))
 
     def test_submit_fasta_file(self):
-        fasta_file_path = os.path.join(TEST_DATA_RES, f"{MOLECULE}_{CHAIN_ID}.fasta")
+        fasta_file_path = os.path.join(
+            TEST_DATA_RES, f"{MOLECULE}_{CHAIN_ID}.fasta"
+        )
         result = self.calculator.submit_fasta_file(fasta_file_path)
         print(result.content)
 
@@ -651,7 +741,9 @@ class TestPymolUtils(absltest.TestCase):
         self.assertIn(MOLECULE, find_design_molecules())
 
     def test_find_all_protein_chain_ids_in_protein(self):
-        self.assertIn(CHAIN_ID, find_all_protein_chain_ids_in_protein(sele=MOLECULE))
+        self.assertIn(
+            CHAIN_ID, find_all_protein_chain_ids_in_protein(sele=MOLECULE)
+        )
 
     def test_is_distal_residue_pair(self):
         self.assertTrue(
@@ -718,7 +810,9 @@ class TestPymolUtils(absltest.TestCase):
 
     def test_get_molecule_sequence(self):
         self.assertEqual(
-            get_molecule_sequence(molecule=MOLECULE, chain_id=CHAIN_ID, keep_missing=True),
+            get_molecule_sequence(
+                molecule=MOLECULE, chain_id=CHAIN_ID, keep_missing=True
+            ),
             SEQUENCE,
         )
 
@@ -733,7 +827,13 @@ class TestPymolUtils(absltest.TestCase):
         self.assertTrue(is_a_REvoDesign_session())
 
     def test_make_temperal_input_pdb(self):
-        self.assertTrue(os.path.exists(make_temperal_input_pdb(molecule=MOLECULE, wd=TEST_DATA_RES, reload=False)))
+        self.assertTrue(
+            os.path.exists(
+                make_temperal_input_pdb(
+                    molecule=MOLECULE, wd=TEST_DATA_RES, reload=False
+                )
+            )
+        )
 
     def test_any_posision_has_been_selected(self):
         cmd.select("sele", "i. 45")
@@ -759,7 +859,9 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = "AI5R_AK26T_0.4567"
         expected_sequence = "XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP"
 
-        _o = extract_mutants_from_mutant_id(mutant_string=mutant_string, sequences={"A": SEQUENCE})
+        _o = extract_mutants_from_mutant_id(
+            mutant_string=mutant_string, sequences={"A": SEQUENCE}
+        )
         self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.mutant_score, 0.4567)
 
@@ -772,7 +874,9 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = "I5R_K26T_0.4567"
         expected_sequence = "XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP"
 
-        _o = extract_mutants_from_mutant_id(mutant_string=mutant_string, sequences={"A": SEQUENCE})
+        _o = extract_mutants_from_mutant_id(
+            mutant_string=mutant_string, sequences={"A": SEQUENCE}
+        )
         self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.mutant_score, 0.4567)
 
@@ -785,7 +889,9 @@ class TestMutantTools(absltest.TestCase):
         mutant_string = "5R_26T_0.4567"
         expected_sequence = "XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP"
 
-        _o = extract_mutants_from_mutant_id(mutant_string=mutant_string, sequences={"A": SEQUENCE})
+        _o = extract_mutants_from_mutant_id(
+            mutant_string=mutant_string, sequences={"A": SEQUENCE}
+        )
         self.assertIsInstance(_o, Mutant)
         self.assertEqual(_o.mutant_score, 0.4567)
 
@@ -797,9 +903,15 @@ class TestMutantTools(absltest.TestCase):
     def test_extract_mutants_from_mutant_id_invalid(self):
         mutant_string = "AUVET_0.4567"
 
-        wt_protein_sequence = RosettaPyProteinSequence.from_dict({"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"})
-        with pytest.raises(issues.InvalidInputError, match='No valid mutations found in'):
-            _o = extract_mutants_from_mutant_id(mutant_string=mutant_string, sequences=wt_protein_sequence)
+        wt_protein_sequence = RosettaPyProteinSequence.from_dict(
+            {"A": "MABCDEFGHPJKLMNOHHHSHHHQCEV"}
+        )
+        with pytest.raises(
+            issues.InvalidInputError, match="No valid mutations found in"
+        ):
+            _o = extract_mutants_from_mutant_id(
+                mutant_string=mutant_string, sequences=wt_protein_sequence
+            )
 
     def test_extract_mutant_score_from_string(self):
         mutant_string = "I5R_K26T_0.4567"
@@ -922,7 +1034,9 @@ class TestSidechainSolver(absltest.TestCase):
     def setUp(self):
         self.mutant_string = "AI5R_AK26T_0.4567"
         self.expected_sequence = "XXXXREQPRWASKDSAAGAASTPDETIVLEFMDALTSNDAAKLIEYFAEDTMYQNMPLPPAYGRDAVEQTLAGLFTVMMSIDAVETFHIGSSNGLLVYTERVDVLLRALPTGKSYNLSILGVFQLTEGKITGWRDYFDLREFEEAVDLP"
-        self.mutant_obj = extract_mutants_from_mutant_id(mutant_string=self.mutant_string, sequences={"A": SEQUENCE})
+        self.mutant_obj = extract_mutants_from_mutant_id(
+            mutant_string=self.mutant_string, sequences={"A": SEQUENCE}
+        )
         try:
             cmd.fetch(MOLECULE)
             cmd.remove("c. B")
@@ -931,26 +1045,34 @@ class TestSidechainSolver(absltest.TestCase):
         except CmdException:
             pass
 
-        self.wt_pdb = make_temperal_input_pdb(molecule=MOLECULE, reload=False, chain_id="A")
+        self.wt_pdb = make_temperal_input_pdb(
+            molecule=MOLECULE, reload=False, chain_id="A"
+        )
         self.new_pdb_code = "1nww"
 
     def test_pymol_mutate(self):
         from REvoDesign.sidechain_solver.SidechainSolver import PyMOL_mutate
 
-        mutate_runner = PyMOL_mutate(molecule=self.new_pdb_code, pdb_file=self.wt_pdb)
+        mutate_runner = PyMOL_mutate(
+            molecule=self.new_pdb_code, pdb_file=self.wt_pdb
+        )
         mutate_pdb_path = mutate_runner.run_mutate(mutant=self.mutant_obj)
 
         from Bio.PDB.PDBParser import PDBParser
         from Bio.PDB.Structure import Structure
 
         parser = PDBParser(PERMISSIVE=1)
-        structure: Structure = parser.get_structure(self.mutant_string, mutate_pdb_path)
+        structure: Structure = parser.get_structure(
+            self.mutant_string, mutate_pdb_path
+        )
         mut_residue_1 = structure[0]["A"][5]
         mut_residue_2 = structure[0]["A"][26]
         self.assertEqual(mut_residue_1.get_resname(), "ARG")
         self.assertEqual(mut_residue_2.get_resname(), "THR")
 
-    @pytest.mark.skipif(not DLPacker_worker.installed, reason="DLPacker not installed")
+    @pytest.mark.skipif(
+        not DLPacker_worker.installed, reason="DLPacker not installed"
+    )
     def test_dlpacker_mutate(self):
 
         mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb)
@@ -965,7 +1087,10 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_1.get_resname(), "ARG")
         self.assertEqual(mut_residue_2.get_resname(), "THR")
 
-    @pytest.mark.skipif(not DLPacker_worker.installed, reason="DLPacker_worker is not installed")
+    @pytest.mark.skipif(
+        not DLPacker_worker.installed,
+        reason="DLPacker_worker is not installed",
+    )
     def test_dlpacker_mutate_reconstruct_range(self):
         mutate_runner = DLPacker_worker(pdb_file=self.wt_pdb, radius=3.5)
         mutate_pdb_path = mutate_runner.run_mutate(mutant=self.mutant_obj)
@@ -981,10 +1106,14 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_1.get_resname(), "ARG")
         self.assertEqual(mut_residue_2.get_resname(), "THR")
 
-    @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")
+    @pytest.mark.skipif(
+        not PIPPack_worker.installed, reason="PIPPack not installed"
+    )
     def test_pippack_mutate_model_1(self):
 
-        mutate_runner = PIPPack_worker(pdb_file=self.wt_pdb, use_model="pippack_model_1")
+        mutate_runner = PIPPack_worker(
+            pdb_file=self.wt_pdb, use_model="pippack_model_1"
+        )
         mutate_pdb_path = mutate_runner.run_mutate(mutant=self.mutant_obj)
 
         del mutate_runner
@@ -998,7 +1127,9 @@ class TestSidechainSolver(absltest.TestCase):
         self.assertEqual(mut_residue_1.get_resname(), "ARG")
         self.assertEqual(mut_residue_2.get_resname(), "THR")
 
-    @pytest.mark.skipif(not PIPPack_worker.installed, reason="PIPPack not installed")
+    @pytest.mark.skipif(
+        not PIPPack_worker.installed, reason="PIPPack not installed"
+    )
     def test_pippack_mutate_ensemble(self):
 
         mutate_runner = PIPPack_worker(pdb_file=self.wt_pdb)

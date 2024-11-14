@@ -14,11 +14,12 @@ class MutateRunnerAbstract(CitableModules):
     Subclasses should implement the specific methods for protein mutation,
     and optionally, reconstruction.
     """
-    name: str = ''
+
+    name: str = ""
     installed: bool = False
 
     weights_preset: Tuple[str, ...] = tuple()
-    default_weight_preset: str = ''
+    default_weight_preset: str = ""
 
     def __init__(self, pdb_file: str):
         """
@@ -31,19 +32,23 @@ class MutateRunnerAbstract(CitableModules):
 
     @property
     def new_cache_dir(self):
-        mutant_dir = os.path.abspath('mutant_pdbs')
+        mutant_dir = os.path.abspath("mutant_pdbs")
         temp_dir = os.path.join(mutant_dir, self.__class__.__name__)
         os.makedirs(temp_dir, exist_ok=True)
         return temp_dir
 
     @staticmethod
-    def mutated_pdb_mapping(mutant_tree: MutantTree, pdb_fps: List[str]) -> MutantTree:
+    def mutated_pdb_mapping(
+        mutant_tree: MutantTree, pdb_fps: List[str]
+    ) -> MutantTree:
         if mutant_tree.mutant_num != len(pdb_fps):
-            raise RuntimeError(f"Mutant number does not match pdb_fps: {mutant_tree.mutant_num=} != {len(pdb_fps)=}")
+            raise RuntimeError(
+                f"Mutant number does not match pdb_fps: {mutant_tree.mutant_num=} != {len(pdb_fps)=}"
+            )
 
         for m, fp in zip(mutant_tree.all_mutant_objects, pdb_fps):
             if not (fp and os.path.exists(fp)):
-                raise ValueError(f'pdb for mutant is not valid. {fp=} {m=}')
+                raise ValueError(f"pdb for mutant is not valid. {fp=} {m=}")
             m.pdb_fp = fp
 
         return mutant_tree

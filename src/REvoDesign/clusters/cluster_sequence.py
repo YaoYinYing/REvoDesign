@@ -8,6 +8,7 @@ import time
 import matplotlib
 import pandas as pd
 from Bio import SeqIO
+from Bio.Align import PairwiseAligner, substitution_matrices
 from matplotlib import pyplot as plt
 
 from REvoDesign.citations import CitableModules
@@ -18,7 +19,7 @@ from REvoDesign.tools.utils import minibatches_generator
 logging = root_logger.getChild(__name__)
 
 
-matplotlib.use('Agg')
+matplotlib.use("Agg")
 
 
 class Clustering(CitableModules):
@@ -27,9 +28,9 @@ class Clustering(CitableModules):
 
         self.gap_open = -10
         self.gap_extend = -0.5
-        self.substitution_matrix = 'PAM30'
+        self.substitution_matrix = "PAM30"
 
-        self._save_dir = './cluster'
+        self._save_dir = "./cluster"
         self.num_proc = 4
         self.batch_size = 100
         self.num_clusters = 15
@@ -48,11 +49,10 @@ class Clustering(CitableModules):
         self.cluster_output_fp = {}
 
     def initialize_aligner(self):
-        from Bio.Align import PairwiseAligner, substitution_matrices
 
         # Add other instance variables here
         self.aligner = PairwiseAligner(
-            mode='global',
+            mode="global",
             substitution_matrix=substitution_matrices.load(
                 self.substitution_matrix
             ),
@@ -64,22 +64,11 @@ class Clustering(CitableModules):
         (i, j) = indexes
         (seqA, seqB) = seqs
 
-        # logging.debug(f'Getting mutants {seqA} and {seqB}...')
-        # start_time = time.perf_counter()
-        # i=self.records_seqs.index(seqA)
-        # j=self.records_seqs.index(seqB)
-
-        # end_time = time.perf_counter()
-
-        # logging.debug(f'{seqA} and {seqB} are found. elapse time: {end_time - start_time}')
-
         r = self.aligner.align(seqA, seqB)
 
-        # logging.debug(f'{i} and {j} are aligned. elapse time: {time.perf_counter() - end_time}')
-
         return (
-            ''.join(str(r.sequences[0]).split('-')),
-            ''.join(str(r.sequences[1]).split('-')),
+            "".join(str(r.sequences[0]).split("-")),
+            "".join(str(r.sequences[1]).split("-")),
             r.score,
             r[0].aligned[0][0][0],
             r[0].aligned[0][0][1],
@@ -88,22 +77,22 @@ class Clustering(CitableModules):
         )
 
     def write_fasta_to_file(self, tmpfastafile):
-        with open(tmpfastafile, 'w') as f:
+        with open(tmpfastafile, "w") as f:
             for line in self.seqs:
-                f.write(">" + line + '\n')
-                f.write(str(self.seqs[line]) + '\n')
+                f.write(">" + line + "\n")
+                f.write(str(self.seqs[line]) + "\n")
 
     def plot_score_mtx(self, mtx, vmin=1, vmax=3):
-        '''plot the mtx'''
+        """plot the mtx"""
         plt.figure(figsize=(5, 5))
         plt.imshow(
-            mtx, cmap='Blues', interpolation='none', vmin=vmin, vmax=vmax
+            mtx, cmap="Blues", interpolation="none", vmin=vmin, vmax=vmax
         )
         plt.grid(False)
         img_fp = f"{self.save_dir}/Cluster_score_mtx.png"
 
         plt.savefig(img_fp)
-        self.cluster_output_fp['score'] = img_fp
+        self.cluster_output_fp["score"] = img_fp
         plt.close()
 
     def handle_calculation_result(self, results):
@@ -148,10 +137,10 @@ class Clustering(CitableModules):
 
         workload = int((len(seq_num) + 1) * len(seq_num) / 2)
 
-        def processing(paramlist, indexlist, batch_size, mode='w'):
+        def processing(paramlist, indexlist, batch_size, mode="w"):
             # Distribute the parameter sets evenly across the cores
             # Global alignment returns this: (s1, s2, score, start, end,i,j)
-            logging.info(f'Job Number: {workload}')
+            logging.info(f"Job Number: {workload}")
 
             logging.info(f"Size of minibatch used: {batch_size}")
             batch_number = (
@@ -165,9 +154,9 @@ class Clustering(CitableModules):
                 mode,
             ) as bw:
                 columns = ["S1", "S2", "Score", "Start", "End", "i", "j"]
-                if mode == 'w':
-                    bw.write(','.join(columns))
-                    bw.write('\n')
+                if mode == "w":
+                    bw.write(",".join(columns))
+                    bw.write("\n")
 
                 progressbar.setRange(0, batch_number)
 
@@ -214,28 +203,28 @@ class Clustering(CitableModules):
                         f"Cluster progress: {decimal.Decimal(batch_count / batch_number) * 100:{5}.{4}} %   \t{batch_count} / {batch_number}\t elapse time: {end_time - start_time}"
                     )
                     res_b = [
-                        ','.join([str(x) for x in list(item)])
+                        ",".join([str(x) for x in list(item)])
                         for item in sub_res
                     ]
 
                     # logging.info(f"Write Buffer at {time.strftime('%Y/%m/%d %H:%M:%S')}")
-                    bw.write('\n'.join(res_b))
-                    bw.write('\n')
+                    bw.write("\n".join(res_b))
+                    bw.write("\n")
                     res_b = []
 
                 progressbar.setValue(workload)
 
         logging.info("Calculating...")
-        processing(paramlist, indexlist, self.batch_size, 'w')
+        processing(paramlist, indexlist, self.batch_size, "w")
 
         # with open(buffer_file, 'r', newline='\n') as br:
-        logging.info('reading buffer ...')
+        logging.info("reading buffer ...")
 
         df = pd.read_csv(self.buffer_file)
         df.astype(
             {
-                'i': 'int64',
-                'j': 'int64',
+                "i": "int64",
+                "j": "int64",
             }
         )
 
@@ -243,12 +232,12 @@ class Clustering(CitableModules):
             self.scores[i][j] = float(_score)
             self.scores[j][i] = float(_score)
 
-        with parallel_backend('threading', n_jobs=self.num_proc):
-            logging.info('Clustering in progress ...')
+        with parallel_backend("threading", n_jobs=self.num_proc):
+            logging.info("Clustering in progress ...")
             hc = AgglomerativeClustering(
-                n_clusters=self.num_clusters, linkage='ward'
+                n_clusters=self.num_clusters, linkage="ward"
             )
-            logging.info('Clustering is done.')
+            logging.info("Clustering is done.")
             y_hc = hc.fit_predict(self.scores)
             hc.labels_
 
@@ -257,14 +246,14 @@ class Clustering(CitableModules):
 
         target_counts = pd.Series(y_hc).value_counts()
         target_counts.plot.barh()
-        plt.title('Cluster Counts')
-        plt.xlabel('Count')
-        plt.ylabel('Cluster')
-        img_fp = f'{self.save_dir}/variants_per_clusters.png'
+        plt.title("Cluster Counts")
+        plt.xlabel("Count")
+        plt.ylabel("Cluster")
+        img_fp = f"{self.save_dir}/variants_per_clusters.png"
         plt.savefig(img_fp)
         plt.close()
 
-        self.cluster_output_fp['variant'] = img_fp
+        self.cluster_output_fp["variant"] = img_fp
 
         labels = hc.labels_
         cluster = [[] for i in range(self.num_clusters)]
@@ -275,7 +264,7 @@ class Clustering(CitableModules):
             f"{self.save_dir}/cluster_centers_stochastic.fasta"
         )
 
-        with open(cluster_centers_fp, 'w') as f:
+        with open(cluster_centers_fp, "w") as f:
             for i in range(0, self.num_clusters):
                 rd_ = random.choice(cluster[i])
                 seq_ = rd_.seq
@@ -283,20 +272,20 @@ class Clustering(CitableModules):
                 f.write(">" + name_ + "\n")
                 f.write(str(seq_) + "\n")
 
-        self.cluster_output_fp['cluster_centers'] = cluster_centers_fp
+        self.cluster_output_fp["cluster_centers"] = cluster_centers_fp
 
-        self.cluster_output_fp['branches'] = []
+        self.cluster_output_fp["branches"] = []
         for i, item in enumerate(cluster):
             sub_cluster_branches = f"{self.save_dir}/c.{str(i)}.fasta"
             output_handle = open(sub_cluster_branches, "w")
             SeqIO.write(item, output_handle, "fasta")
             output_handle.close()
-            self.cluster_output_fp['branches'].append(sub_cluster_branches)
+            self.cluster_output_fp["branches"].append(sub_cluster_branches)
         df_score = pd.DataFrame(self.scores)
         self.plot_score_mtx(
             df_score,
-            vmin=min(df['Score'].to_list()),
-            vmax=max(df['Score'].tolist()),
+            vmin=min(df["Score"].to_list()),
+            vmax=max(df["Score"].tolist()),
         )
 
     def run_clustering(self, progressbar):
@@ -312,11 +301,11 @@ class Clustering(CitableModules):
 
         self._batch_size = self.batch_size
         self.batch_size = self._batch_size // self.num_proc * self.num_proc
-        logging.info(f'fix batch_size {self._batch_size} to {self.batch_size}')
+        logging.info(f"fix batch_size {self._batch_size} to {self.batch_size}")
         self.set_and_write_clusters(progressbar)
 
     __bibtex__ = {
-        'biopython': r"""@article{10.1093/bioinformatics/btp163,
+        "biopython": r"""@article{10.1093/bioinformatics/btp163,
 author = {Cock, Peter J. A. and Antao, Tiago and Chang, Jeffrey T. and Chapman, Brad A. and Cox, Cymon J. and Dalke, Andrew and Friedberg, Iddo and Hamelryck, Thomas and Kauff, Frank and Wilczynski, Bartek and de Hoon, Michiel J. L.},
 title = "{Biopython: freely available Python tools for computational molecular biology and bioinformatics}",
 journal = {Bioinformatics},
@@ -331,7 +320,7 @@ doi = {10.1093/bioinformatics/btp163},
 url = {https://doi.org/10.1093/bioinformatics/btp163},
 eprint = {https://academic.oup.com/bioinformatics/article-pdf/25/11/1422/48989335/bioinformatics\_25\_11\_1422.pdf},
 }""",
-        'sklearn': """@article{scikit-learn,
+        "sklearn": """@article{scikit-learn,
 title={Scikit-learn: Machine Learning in {P}ython},
 author={Pedregosa, F. and Varoquaux, G. and Gramfort, A. and Michel, V.
         and Thirion, B. and Grisel, O. and Blondel, M. and Prettenhofer, P.
