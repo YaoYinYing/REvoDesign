@@ -21,7 +21,7 @@ from REvoDesign.REvoDesign import REvoDesignPlugin
 
 # 6. Set version info
 
-__version__ = "1.6.0"
+__version__ = "1.7.1"
 
 
 # 8. enable garbage collection

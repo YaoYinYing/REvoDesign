@@ -13,8 +13,8 @@ else
 fi
 
 echo 'Dumping version from `src/REvoDesign/__init__.py` ...'
-old_version=$(git diff src/REvoDesign/__init__.py | grep '^\-__version__ = ' | awk '{str=$3;gsub("'\"'","",str);print str}')
-new_version=$(git diff src/REvoDesign/__init__.py | grep '^+__version__ = ' | awk '{str=$3;gsub("'\"'","",str);print str}')
+old_version=$(git diff src/REvoDesign/__init__.py | grep '^\-__version__ = ' | awk '{str=$3;gsub("'\''","",str);print str}')
+new_version=$(git diff src/REvoDesign/__init__.py | grep '^+__version__ = ' | awk '{str=$3;gsub("'\''","",str);print str}')
 new_date=$(date +'%Y-%m-%d')
 
 echo "New Version: ${new_version}, Old Version: ${old_version}, tagged date: ${new_date}"
@@ -41,10 +41,10 @@ echo '## Change log:' >> changelog_tag.md
 echo >> changelog_tag.md
 $SED -n '/## \['"$new_version"'\]/,/## \['"$old_version"'\]/p' ./CHANGELOG.md |grep -v '^## \|^$' >> changelog_tag.md
 
-cat changelog_tag.md src/REvoDesign/__init__.py
+cat changelog_tag.md 
 
 echo  collect version files and creating new commit...
-git add ./CHANGELOG.md
+git add ./CHANGELOG.md src/REvoDesign/__init__.py
 # version commit
 git commit -m 'Dump version: '"$old_version"' -> '"$new_version"'' -m '[ci skip]'
 
