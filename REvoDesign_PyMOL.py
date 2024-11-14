@@ -1555,7 +1555,7 @@ def solve_installation_config(source: str, git_url: str, git_tag: str, extras: O
     Returns:
     - str: The formatted package string for installation.
     """
-    extra_string = f'[{extras}]'
+    extra_string = f'[{extras}]' if extras else ''
     package_string = f"REvoDesign{extra_string}"
     print(f"Installing as {package_string}...")
 

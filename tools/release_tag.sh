@@ -13,11 +13,14 @@ else
 fi
 
 echo 'Dumping version from `src/REvoDesign/__init__.py` ...'
-old_version=$(git diff src/REvoDesign/__init__.py | grep '^\-__version__ = ' | awk '{str=$3;gsub("'\''","",str);print str}')
-new_version=$(git diff src/REvoDesign/__init__.py | grep '^+__version__ = ' | awk '{str=$3;gsub("'\''","",str);print str}')
+old_version=$(git diff src/REvoDesign/__init__.py | grep '^\-__version__ = ' | awk '{str=$3;gsub("'\''","",str);gsub("\"","",str);print str}')
+new_version=$(git diff src/REvoDesign/__init__.py | grep '^+__version__ = ' | awk '{str=$3;gsub("'\''","",str);gsub("\"","",str);print str}')
 new_date=$(date +'%Y-%m-%d')
 
+
+
 echo "New Version: ${new_version}, Old Version: ${old_version}, tagged date: ${new_date}"
+
 
 echo 'Checking version ...'
 # exit if any of the variables are missing.
@@ -30,6 +33,7 @@ if [[ $new_version == $old_version ]];then
     exit 1;
 fi
 echo 'Done.'
+
 
 echo set new tag to changelog
 $SED -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md 
