@@ -75,10 +75,10 @@ class ConfigBus(SingletonAbstract, CitableModules):
         else:
             cls._instance.ui = ui
 
-    def initialize_widget_with_cfg_group(self):
+    def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
 
-        for widget_id, group_cfgs in self.w2c.group_config_map.items():
+        for widget_id, group_cfgs in self.w2c.group_register.items():
             group_values = []
             widget = self.get_widget_from_id(widget_id=widget_id)
             if isinstance(widget, str):
@@ -88,19 +88,19 @@ class ConfigBus(SingletonAbstract, CitableModules):
             for j, group_cfg in enumerate(group_cfgs):
                 if callable(group_cfg):
                     values = group_cfg()
-                elif isinstance(group_cfg, (list, tuple)):
-                    values = group_cfg
-                elif isinstance(group_cfg, str) and group_cfg == "":
-                    values = ""
                 else:
-                    values = self.get_value(group_cfg)
+                    logging.debug(
+                        f"Group {j} of widget {widget_id} does not return any values"
+                    ) 
+                    continue
+                
+                # exclude blank string, blank list, or blank tuple
                 if not values:
+                    logging.debug(f"Group {j} of widget {widget_id} is empty: {values}")
                     continue
 
                 if isinstance(values, (list, tuple)):
                     group_values.extend(values)
-                elif isinstance(values, str):
-                    group_values.append(values)
                 elif isinstance(values, dict):
                     if not group_values:
                         group_values = values.copy()
@@ -113,6 +113,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
                         group_values.update(values)
 
             if not group_values:
+                logging.debug(f"No values found for widget {widget_id}")
                 continue
 
             set_widget_value(widget, group_values)
@@ -194,9 +195,16 @@ class ConfigBus(SingletonAbstract, CitableModules):
         return value
 
     def get_widget_value(self, cfg_item: str, converter=None):
-        value = get_widget_value(
-            widget=self.get_widget_from_cfg_item(cfg_item)
-        )
+        try:
+            value = get_widget_value(
+                widget=self.get_widget_from_cfg_item(cfg_item)
+            )
+        except ValueError as e:
+            # record error then re-raise it
+            logging.error(f'Error in the configuration item: {cfg_item}: {e}')
+            raise ValueError(
+                "Error in the configuration item: {}".format(cfg_item)
+            ) from e
 
         if converter:
             value = self.value_converter(value, converter)
@@ -305,7 +313,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=True)
 
-    def button(self, button_id: str) -> QtWidgets.QPushButton:
+    def button(self, button_id: str) -> QtWidgets.QPushButton: # type: ignore
         """Retrieves a button widget based on its ID.
 
         Args:
@@ -546,7 +554,7 @@ class Widget2ConfigMapper:
 
     Attributes:
         ui (QtWidgets.QWidget): The main UI widget of the application.
-        group_config_map (immutabledict[str, tuple[Union[str, Any]]]): A mapping of widget IDs to configuration items
+        group_register (immutabledict[str, Tuple[Callable]]): A mapping of widget IDs to configuration items
             or callable functions.
         run_button_ids (tuple[str]): A tuple of IDs for buttons that trigger actions.
         push_buttons (immutabledict): A mapping of button IDs to button widgets.
@@ -565,7 +573,7 @@ class Widget2ConfigMapper:
     def __init__(self, ui):
         self.ui = ui
 
-        self.group_config_map: immutabledict[str, tuple[Union[str, Any]]] = (
+        self.group_register: immutabledict[str, Tuple[Callable]] = (
             immutabledict(
                 {
                     # Header
@@ -590,7 +598,7 @@ class Widget2ConfigMapper:
                     ),
                     # Tab Interact
                     "comboBox_external_scorer": (
-                        ("",),
+                        CallableGroupValues.list_some_blanks,
                         CallableGroupValues.list_all_scorers,
                     ),
                     "comboBox_rosetta_node_hint": (
@@ -714,6 +722,10 @@ class CallableGroupValues:
         score_matrix(): Returns a list of available score matrices.
         ColorMap(): Returns a dictionary of available color maps.
     """
+
+    @staticmethod
+    def list_some_blanks(n=1) -> List[str]:
+        return [''] * n
 
     @staticmethod
     def list_score_matrix() -> List:

@@ -1850,7 +1850,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # create a bus btw cfg<---> ui
             ConfigBus.initialize(ui=self.ui)
             self.bus = ConfigBus()
-            self.bus.initialize_widget_with_cfg_group()
+            self.bus.initialize_widget_with_group()
 
         elif experiment:
             # while loading experiment

@@ -8,7 +8,7 @@ from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import set_widget_value
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
-from .score_clusters import score_clusters
+from REvoDesign.clusters.score_clusters import score_clusters
 
 logging = root_logger.getChild(__name__)
 

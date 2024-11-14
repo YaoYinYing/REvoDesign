@@ -111,7 +111,7 @@ class SidechainSolver(SingletonAbstract):
         cfg = SidechainSolverConfig(
             molecule=self.bus.get_value("ui.header_panel.input.molecule"),
             sidechain_solver_name=self.bus.get_widget_value(
-                "ui.config.sidechain_solver.default"
+                "ui.config.sidechain_solver.use"
             ),
             sidechain_solver_radius=self.bus.get_widget_value(
                 "ui.config.sidechain_solver.repack_radius", float

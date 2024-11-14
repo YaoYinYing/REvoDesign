@@ -6,7 +6,7 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.common.Mutant import Mutant
 
-from ..citations import CitableModules
+from REvoDesign.citations import CitableModules
 
 
 class ExternalDesignerAbstract(CitableModules):

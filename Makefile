@@ -1,10 +1,10 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
-PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0
+PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv
 PYTEST_CASES_PATH=../tests/cases
 LINT_FILES=$(PROJECT)
-CHECK_STYLE=src/$(PROJECT) tests 
+CHECK_STYLE=$(PROJECT) tests 
 BLACK_STYLE=-l 79 -t py39 -t py310 -t py311
 BLACK_EXCLUDES_EXTEND=--extend-exclude '\.ui|\.svg|\.yaml|\.md|\.pyc|\.ico|\.png' 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests

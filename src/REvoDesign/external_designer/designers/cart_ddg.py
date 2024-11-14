@@ -6,9 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import docker
 import docker.errors
-import pandas as pd
 from Bio.Data import IUPACData
-from RosettaPy import RosettaCartesianddGAnalyser
 from RosettaPy.app.cart_ddg import CartesianDDG
 from RosettaPy.common.mutation import (Mutation, RosettaPyProteinSequence,
                                        mutants2mutfile)
