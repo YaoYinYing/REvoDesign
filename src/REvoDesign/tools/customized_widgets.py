@@ -728,42 +728,9 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     return
 
 
-
-@contextmanager
-def hold_trigger_button_normal(
-    buttons: Union[tuple[QtWidgets.QPushButton], QtWidgets.QPushButton]  # type: ignore
-):
-    """
-    A context manager for holding and releasing a trigger button, with an additional
-    'held' mark to prevent premature re-enabling during ongoing tasks.
-
-    Usage:
-        with hold_trigger_button(button):
-            # Code block where the button is held (disabled and marked as 'held')
-            # The button will be automatically released (enabled and unmarked) at the end of the block
-    """
-    if not isinstance(buttons, (tuple, list, set)):
-        buttons = (buttons,)
-
-    try:
-        for b in buttons:
-            b.setEnabled(False)
-            b.setProperty("held", True)  # Mark the button as 'held'
-            b.setStyleSheet("background-color: lightgray;")  # Optional: visual indicator
-        yield
-    finally:
-        for b in buttons:
-            b.setProperty("held", False)  # Remove the 'held' mark
-            b.setStyleSheet("")  # Restore default style
-            b.setEnabled(True)  # Re-enable the button
-
-
-
-
-
 @contextmanager
 def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton], QtWidgets.QPushButton],
+    buttons: Union[tuple[QtWidgets.QPushButton,...], QtWidgets.QPushButton], # type: ignore
     animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
 ):
     """
@@ -783,7 +750,7 @@ def hold_trigger_button(
         color = QtGui.QColor(76, 217, 100)
         return color
 
-    def start_breathing_animation(button: QtWidgets.QPushButton):
+    def start_breathing_animation(button: QtWidgets.QPushButton): # type: ignore
         accent_color = get_accent_color()
         base_color = accent_color.lighter(150)  # Start with a lighter shade
         darker_color = accent_color.darker(150)  # Use a darker shade for the trough
@@ -807,7 +774,7 @@ def hold_trigger_button(
         timer.start()
         timers.append(timer)
 
-    def stop_breathing_animation(button: QtWidgets.QPushButton):
+    def stop_breathing_animation(button: QtWidgets.QPushButton): # type: ignore
         # Stop all timers associated with this button
         for timer in timers:
             if timer.parent() == button:
