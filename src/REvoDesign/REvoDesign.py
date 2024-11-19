@@ -525,7 +525,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.visualize.input.multi_design.to_mutant_txt",
+                ("ui.visualize.input.multi_design.to_mutant_txt",),
                 (
                     "multi_design_export_mutants_from_table",
                     "run_multi_design",
@@ -1097,7 +1097,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # lazy module loading to fasten plugin initializing
 
         worker = ClusterRunner(
-            bus=self.bus,
             PWD=self.PWD,
         )
 
