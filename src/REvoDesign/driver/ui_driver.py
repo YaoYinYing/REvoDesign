@@ -1,13 +1,10 @@
-import os
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
-
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModules
@@ -16,8 +13,8 @@ from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
-from .widget_link import PushButtons,Config2WidgetIds
 from .group_register import GroupRegistryCollection
+from .widget_link import Config2WidgetIds, PushButtons
 
 logging = root_logger.getChild(__name__)
 
@@ -91,9 +88,9 @@ class ConfigBus(SingletonAbstract, CitableModules):
                 else:
                     logging.debug(
                         f"Group {j} of widget {gr.cfg_item} does not return any values"
-                    ) 
+                    )
                     continue
-                
+
                 # exclude blank string, blank list, or blank tuple
                 if not values:
                     logging.debug(f"Group {j} of widget {gr.cfg_item} is empty: {values}")
@@ -205,7 +202,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
             # record error then re-raise it
             logging.error(f'Error in the configuration item: {cfg_item}: {e}')
             raise ValueError(
-                "Error in the configuration item: {}".format(cfg_item)
+                f"Error in the configuration item: {cfg_item}"
             ) from e
 
         if converter:
@@ -275,7 +272,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
     def toggle_buttons(
         self,
-        button_ids: tuple[str,...],
+        button_ids: tuple[str, ...],
         set_enabled: bool = False,
     ):
         # Toggles the enabled state of a list of buttons.
@@ -291,8 +288,8 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
     def fp_lock(
         self,
-        cfg_fps: tuple[str,...],
-        buttons_id_to_release: tuple[str,...],
+        cfg_fps: tuple[str, ...],
+        buttons_id_to_release: tuple[str, ...],
     ):
         # Locks or unlocks buttons based on the existence of file paths in the configuration.
         self.toggle_buttons(
@@ -312,7 +309,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=True)
 
-    def button(self, button_id: str) -> QtWidgets.QPushButton: # type: ignore
+    def button(self, button_id: str) -> QtWidgets.QPushButton:  # type: ignore
         """Retrieves a button widget based on its ID.
 
         Args:
@@ -324,7 +321,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         assert button_id in self.w2c.run_button_ids
         return self.w2c.push_buttons.get(button_id)
 
-    def buttons(self, button_ids: tuple[str,...]) -> tuple[QtWidgets.QPushButton,...]: # type: ignore
+    def buttons(self, button_ids: tuple[str, ...]) -> tuple[QtWidgets.QPushButton, ...]:  # type: ignore
         """Retrieves all button widgets based on its ID.
 
         Args:

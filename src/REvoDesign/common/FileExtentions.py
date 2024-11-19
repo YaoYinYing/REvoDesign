@@ -1,15 +1,16 @@
 '''
 File extensions used in REvoDesign
 '''
-from ..basic import FileExtension as Ext, FileExtensionCollection as ExtColl
+from ..basic import FileExtension as Ext
+from ..basic import FileExtensionCollection as ExtColl
 
-Session=ExtColl(
+Session = ExtColl(
     (
         Ext("pse", "PyMOL Session"),
         Ext("pze", "Compressed PyMOL Session"),
     ),
 )
-Mutable=ExtColl(
+Mutable = ExtColl(
     (
         Ext("txt", "Text file"),
         Ext("mut.txt", "Text file"),
@@ -20,7 +21,7 @@ Mutable=ExtColl(
     )
 
 )
-PDB=ExtColl(
+PDB = ExtColl(
     (
         Ext("pdb", "Protein Data Bank format file"),
         Ext("ent", "Protein Data Bank format file"),
@@ -28,39 +29,39 @@ PDB=ExtColl(
         Ext("mmcif", "Macromolecular Crystallographic Information File"),
     )
 )
-MOL=ExtColl(
+MOL = ExtColl(
     (
         Ext("mol", "Mol2 file"),
         Ext("sdf", "SDF file"),
     )
 )
 
-PSSM=ExtColl(
+PSSM = ExtColl(
     (
         Ext("csv", "Comma-separated value file"),
         Ext("pssm", "Raw PSSM file"),
     )
 )
-MSA=ExtColl(
+MSA = ExtColl(
     (
         Ext("fas", "MSA in FASTA"),
         Ext("fasta", "MSA in FASTA"),
         Ext("a3m", "MSA in A3M from HH suite"),
     )
 )
-TXT=ExtColl(
+TXT = ExtColl(
     (
         Ext("txt", "Text file"),
     )
 )
 
 # a hack of file extension filter, to enable those without explicit extension
-Any=ExtColl(
+Any = ExtColl(
     (
         Ext("* *", "Any file"),
     )
 )
-Compressed=ExtColl(
+Compressed = ExtColl(
     (
         Ext("zip", "ZIP archive"),
         Ext("tar.gz", "Tarball (TAR.GZ)"),
@@ -70,12 +71,12 @@ Compressed=ExtColl(
         Ext("tar.xz", "Tarball (TAR.XZ)"),
     )
 )
-PickledObject=ExtColl(
+PickledObject = ExtColl(
     (
         Ext("pkl", "Dumpped Pickle Object"),
     )
 )
-YAML=ExtColl(
+YAML = ExtColl(
     (
         Ext("yaml", "Config file in YAML"),
     )

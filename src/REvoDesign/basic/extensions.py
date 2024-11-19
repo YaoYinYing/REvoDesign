@@ -11,7 +11,7 @@ class FileExtension:
         ext (str): The file extension, such as 'txt', 'md', etc.
         description (str): A brief description of the file type, such as 'Text File' or 'Markdown File'.
     """
-    
+
     ext: str
     description: str
 
@@ -24,8 +24,8 @@ class FileExtension:
             str: A file filter string in the format 'Description (*.[ext])', used in file dialog filters.
         """
         return f"{self.description} ( *.{self.ext} )"
-    
-    
+
+
 @dataclass(frozen=True)
 class FileExtensionCollection:
     """
@@ -34,9 +34,8 @@ class FileExtensionCollection:
     Attributes:
         extensions (tuple[FileExtension, ...]): A tuple containing a series of FileExtension objects.
     """
-    
-    extensions: tuple[FileExtension, ...]
 
+    extensions: tuple[FileExtension, ...]
 
     def __add__(self, extension_collection: 'FileExtensionCollection') -> 'FileExtensionCollection':
         return FileExtensionCollection(tuple(set(self.extensions + extension_collection.extensions)))
@@ -56,7 +55,7 @@ class FileExtensionCollection:
             return extension in self.extensions
         # Check if the extension is a string and if it exists in the list of string representations of extensions
         return extension in [e.ext for e in self.extensions]
-    
+
     @property
     def list_all(self) -> list[str]:
         """
@@ -65,7 +64,7 @@ class FileExtensionCollection:
         This property method iterates over the `self.extensions` list, extracting the 'ext' attribute from each extension object.
         """
         return [e.ext for e in self.extensions]
-        
+
     @property
     def list_dot_ext(self) -> list[str]:
         """
@@ -76,7 +75,7 @@ class FileExtensionCollection:
         """
         # Generate the list of extensions with a leading dot
         return [f".{e.ext}" for e in self.extensions]
-    
+
     def match(self, ext: Union[FileExtension, str]) -> bool:
         """
         Check if the given file extension matches any of the extensions in the current object's list.
@@ -90,29 +89,28 @@ class FileExtensionCollection:
         # Check if ext is an instance of FileExtension
         if isinstance(ext, FileExtension):
             return ext in self.extensions
-        
+
         # Check if ext is a string without a leading dot
         if not ext.startswith('.'):
             return ext in self.list_all
-        
+
         # Check if ext is a string with a leading dot
         return ext in self.list_dot_ext
-    
-    
+
     @classmethod
-    def squeeze(cls, exts: tuple['FileExtensionCollection',...]) -> 'FileExtensionCollection':
+    def squeeze(cls, exts: tuple['FileExtensionCollection', ...]) -> 'FileExtensionCollection':
         """
         Merge file extensions from multiple FileExtensionCollection instances and remove duplicates.
 
-        This method takes a tuple of FileExtensionCollection instances and combines their extensions 
+        This method takes a tuple of FileExtensionCollection instances and combines their extensions
         using set union operations to ensure that the resulting collection contains only unique extensions.
 
         Parameters:
-        exts (tuple[FileExtensionCollection]): A tuple containing multiple FileExtensionCollection instances 
+        exts (tuple[FileExtensionCollection]): A tuple containing multiple FileExtensionCollection instances
                                             whose extensions are to be merged.
 
         Returns:
-        FileExtensionCollection: A new FileExtensionCollection instance containing all unique extensions 
+        FileExtensionCollection: A new FileExtensionCollection instance containing all unique extensions
                                 from the input instances.
         """
         # Combine all extensions from each FileExtensionCollection instance using set union

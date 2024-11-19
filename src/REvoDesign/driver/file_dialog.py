@@ -1,44 +1,40 @@
-
 '''
 File Dialog
 '''
-from functools import partial
 import os
+from functools import partial
 from typing import Any, Literal, Optional
-
 
 from pymol.Qt.utils import getSaveFileNameWithExt
 
-from .ui_driver import ConfigBus
-from ..tools.utils import extract_archive
-from ..logger import root_logger
-
+from ..basic import FileExtensionCollection, SingletonAbstract
 from ..common import FileExtentions
-from ..basic import SingletonAbstract,FileExtensionCollection
-
+from ..logger import root_logger
 from ..tools.customized_widgets import decide, getOpenFileNameWithExt
+from ..tools.utils import extract_archive
+from .ui_driver import ConfigBus
 
 IO_MODE = Literal["r", "w"]
 
-logging=root_logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
+
 
 class FileDialog(SingletonAbstract):
-    def __init__(self, window:Optional[Any], pwd: Optional[str]):
+    def __init__(self, window: Optional[Any], pwd: Optional[str]):
         # Check if the instance has already been initialized
         if not hasattr(self, "initialized"):
-            self.window=window
-            self.PWD=pwd if pwd is not None else os.getcwd()
+            self.window = window
+            self.PWD = pwd if pwd is not None else os.getcwd()
             self.register_file_dialof_buttons()
             # Mark the instance as initialized to prevent reinitialization
             self.initialize()
             self.initialized = True
 
-    
-    
     # class public function that can be shared with each tab
     # callback for the "Browse" button
+
     def browse_filename(
-        self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection,...] = (FileExtentions.Any,)
+        self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection, ...] = (FileExtentions.Any,)
     ) -> Optional[str]:
         """Open Finder/Explorer to browse from a filename
 
@@ -48,10 +44,10 @@ class FileDialog(SingletonAbstract):
                 Defaults to [FileExtentions.Any].
 
         Returns:
-            str, optional: selected filename or None if canceled. 
+            str, optional: selected filename or None if canceled.
         """
 
-        ext=FileExtensionCollection.squeeze(exts)
+        ext = FileExtensionCollection.squeeze(exts)
 
         filter_strings = ext.filter_string
 
@@ -67,7 +63,7 @@ class FileDialog(SingletonAbstract):
             )
 
             filename_bn = os.path.basename(filename)
-            filename_ext=filename_bn.split(".")[-1]
+            filename_ext = filename_bn.split(".")[-1]
 
             # Check if the selected file is a compressed archive
             is_compressed = filename_ext in FileExtentions.Compressed
@@ -89,10 +85,10 @@ class FileDialog(SingletonAbstract):
 
         if filename:
             return filename
-        
-    
+
     # A universal and versatile function for input file path browsing.
-    def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection,...] = (FileExtentions.Any,)) -> Optional[str]:
+    def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (
+            FileExtentions.Any,)) -> Optional[str]:
         """Open Any File
 
         Args:
@@ -107,7 +103,7 @@ class FileDialog(SingletonAbstract):
         if input_fn:
             ConfigBus().set_widget_value(cfg_item, input_fn)
             return input_fn
-        
+
     def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = "r"):
         """Open a mutant table file
 
@@ -125,12 +121,11 @@ class FileDialog(SingletonAbstract):
             if input_mut_txt_fn:
                 ConfigBus().set_widget_value(cfg_mutant_table, input_mut_txt_fn)
                 return
-            
+
             logging.warning(
                 f"Could not open file for reading: {input_mut_txt_fn}"
             )
             return
-                
 
         output_mut_txt_fn = self.browse_filename(
             mode=mode,
@@ -145,12 +140,11 @@ class FileDialog(SingletonAbstract):
             logging.info(f"Output file is set as {output_mut_txt_fn}")
             ConfigBus().set_widget_value(cfg_mutant_table, output_mut_txt_fn)
             return
-        
+
         logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
 
-            
     def register_file_dialof_buttons(self):
-        bus=ConfigBus()
+        bus = ConfigBus()
         bus.button("open_customized_indices").clicked.connect(
             partial(
                 self.open_file,
@@ -227,7 +221,7 @@ def flatten_compressed_files(compressed_file: str, target_dir: Optional[str] = N
 
     Parameters:
     - compressed_file (str): The path to the compressed file to be extracted.
-    - target_dir (Optional[str]): The directory where the extracted files will be placed. 
+    - target_dir (Optional[str]): The directory where the extracted files will be placed.
       If not provided, the current working directory is used.
 
     Returns:
@@ -253,4 +247,3 @@ def flatten_compressed_files(compressed_file: str, target_dir: Optional[str] = N
 
     # Return the path to the extracted directory
     return flatten_path
-

@@ -12,7 +12,6 @@ from typing import Any, Mapping, Optional
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
-
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
@@ -23,12 +22,12 @@ from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.driver.file_dialog import FileDialog,IO_MODE
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
@@ -36,9 +35,8 @@ from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
 from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (
-    WorkerThread, decide, getExistingDirectory,
-    hold_trigger_button, notify_box, refresh_widget_while_another_changed,
-    set_widget_value)
+    WorkerThread, decide, getExistingDirectory, hold_trigger_button,
+    notify_box, refresh_widget_while_another_changed, set_widget_value)
 from REvoDesign.tools.mutant_tools import (determine_profile_type,
                                            existed_mutant_tree,
                                            get_mutant_table_columns,
@@ -68,10 +66,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
         self.PWD = os.getcwd()
 
-        self.bus: ConfigBus = None # type: ignore
-        self.file_dialog: FileDialog =None # type: ignore
+        self.bus: ConfigBus = None  # type: ignore
+        self.file_dialog: FileDialog = None  # type: ignore
 
-        self.designable_sequences: RosettaPyProteinSequence = None # type: ignore
+        self.designable_sequences: RosettaPyProteinSequence = None  # type: ignore
         self.design_molecule = ""
         self.design_chain_id = ""
         self.design_sequence = ""
@@ -156,7 +154,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.window.show()
         self.fix_wd()
 
-        self.file_dialog=FileDialog(self.window, self.PWD)
+        self.file_dialog = FileDialog(self.window, self.PWD)
 
     def reinitialize(self, delete: bool = False):
         """_summary_
@@ -373,7 +371,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             partial(self.save_as_a_session, "ui.mutate.input.to_pse")
         )
 
-
         self.bus.ui.lineEdit_input_csv.textChanged.connect(
             partial(
                 self.determine_profile_format,
@@ -405,7 +402,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "reject_this_mutant",
                     "next_mutant",
                     "accept_this_mutant",
-                    ),
+                ),
             )
         )
 
@@ -438,8 +435,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         # Tab `Cluster`
-
-        
 
         self.bus.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(
@@ -488,10 +483,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        
-
-        
-
         self.bus.ui.lineEdit_input_mut_table_csv.textChanged.connect(
             self.update_mutant_table_columns,
         )
@@ -532,8 +523,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
             )
         )
-
-        
 
         self.bus.button("multi_design_initialize").clicked.connect(
             partial(
@@ -595,16 +584,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # Tab Interact
 
-        
-
         self.bus.button("reinitialize_interact").clicked.connect(
             self.load_gremlin_mrf
         )
         self.bus.button("run_interact_scan").clicked.connect(
             self.run_gremlin_tool
         )
-
-        
 
         self.bus.button("interact_reject").clicked.connect(
             partial(self.coevoled_mutant_decision, False)
@@ -670,8 +655,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.register_widget_changes_to_cfg()
 
         return main_window
-
-    
 
     def reload_molecule_info(self):
         """Reload the molecule in current session."""
@@ -783,8 +766,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.setup_pssm_gremlin_calculator()
 
-    
-
     def find_session_path(self) -> Optional[str]:
         """Find and validate if current session is saved as a session file.
 
@@ -827,8 +808,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
 
         return session_path
-
-    
 
     """
     Private functions used only in a specific tab.
@@ -969,7 +948,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         _fp = self.bus.get_widget_value(cfg_input_profile, str)
         if _fp == "None" or not _fp:
             return
-    
+
         profile_fp = os.path.abspath(str(_fp))
 
         if not os.path.exists(profile_fp):

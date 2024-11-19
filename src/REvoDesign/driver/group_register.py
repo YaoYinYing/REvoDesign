@@ -1,11 +1,9 @@
-
 import os
 from typing import Dict, List, Tuple
 
 import matplotlib
 from Bio.Align import substitution_matrices
-from pymol.Qt import QtGui # type: ignore
-
+from pymol.Qt import QtGui  # type: ignore
 from RosettaPy.node import NodeHintT
 
 from ..basic import GroupRegistryItem as GR
@@ -85,34 +83,35 @@ class CallableGroupValues:
 
         return available_run_node_hints
 
+
 # Header
-GroupCmap=GR("comboBox_cmap", (CallableGroupValues.list_color_map,),)
+GroupCmap = GR("comboBox_cmap", (CallableGroupValues.list_color_map,),)
 
 # Tab Cluster
-GroupScoreMatrix=GR("comboBox_cluster_matrix", (CallableGroupValues.list_score_matrix,),)
+GroupScoreMatrix = GR("comboBox_cluster_matrix", (CallableGroupValues.list_score_matrix,),)
 
 # Tab Mutate
-GroupProfileTypeTabMutate=GR("comboBox_profile_type", (
+GroupProfileTypeTabMutate = GR("comboBox_profile_type", (
     CallableGroupValues.list_all_profile_parsers,
     CallableGroupValues.list_all_designers,
-    ),)
+),)
 
 # Tab Visualize
-GroupProfileTypeTabVisualize=GR("comboBox_profile_type_2", (
+GroupProfileTypeTabVisualize = GR("comboBox_profile_type_2", (
     CallableGroupValues.list_all_profile_parsers,
     CallableGroupValues.list_all_scorers,
 ),)
 
 # Tab Interact
-GroupScorerTabInteract=GR("comboBox_external_scorer", (CallableGroupValues.list_some_blanks,
-    CallableGroupValues.list_all_scorers,))
+GroupScorerTabInteract = GR("comboBox_external_scorer", (CallableGroupValues.list_some_blanks,
+                                                         CallableGroupValues.list_all_scorers,))
 
 # Tab Config
-GroupSidechainSolver=GR("comboBox_sidechain_solver", (CallableGroupValues.list_installed_mutate_runners,))
-GroupRosettaNodeHint=GR("comboBox_rosetta_node_hint", (CallableGroupValues.list_all_rosetta_node_hints,))
+GroupSidechainSolver = GR("comboBox_sidechain_solver", (CallableGroupValues.list_installed_mutate_runners,))
+GroupRosettaNodeHint = GR("comboBox_rosetta_node_hint", (CallableGroupValues.list_all_rosetta_node_hints,))
 
 
-GroupRegistryCollection: Tuple[GR,...]=(
+GroupRegistryCollection: Tuple[GR, ...] = (
     GroupCmap,
     GroupScoreMatrix,
     GroupProfileTypeTabMutate,

@@ -4,12 +4,11 @@ from RosettaPy.node import NodeHintT
 
 from REvoDesign import ConfigBus
 from REvoDesign.citations import CitationManager
+from REvoDesign.clusters.score_clusters import score_clusters
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import set_widget_value
-from REvoDesign.tools.utils import run_worker_thread_with_progress
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-
-from REvoDesign.clusters.score_clusters import score_clusters
+from REvoDesign.tools.utils import run_worker_thread_with_progress
 
 logging = root_logger.getChild(__name__)
 
@@ -115,7 +114,7 @@ class ClusterRunner:
 
                 node_hint: Optional[NodeHintT] = bus.get_value(
                     "rosetta.node_hint", default_value="native")  # type: ignore
-                
+
                 run_worker_thread_with_progress(
                     worker_function=score_clusters,
                     pdb=pdb_file,

@@ -5,8 +5,8 @@ import time
 import warnings
 from typing import List, Mapping, Optional, Tuple, Union
 
-from Bio.Data import IUPACData
 import pandas as pd
+from Bio.Data import IUPACData
 from pymol import cmd
 from RosettaPy.common.mutation import Chain, Mutation, RosettaPyProteinSequence
 
@@ -670,8 +670,8 @@ def determine_profile_type(profile_fp: str) -> str:
 
 
 def get_mutant_table_columns(mutfile: str):
-    filename_bn=os.path.basename(mutfile)
-    filename_ext=filename_bn.split(".")[-1]
+    filename_bn = os.path.basename(mutfile)
+    filename_ext = filename_bn.split(".")[-1]
 
     if not FileExtentions.Mutable.match(filename_ext):
         raise issues.InvalidInputError(

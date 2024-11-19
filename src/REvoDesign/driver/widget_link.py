@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -193,4 +192,3 @@ class Config2WidgetIds:
                 f"widget {widget_id} is not supported yet."
             )
         return self.wi_types.get(widget_type)
-

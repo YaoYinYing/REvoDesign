@@ -1,6 +1,6 @@
 import os
-from typing import List
 import warnings
+from typing import List
 
 from pymol import cmd, get_version_message
 from pymol.parsing import QuietException

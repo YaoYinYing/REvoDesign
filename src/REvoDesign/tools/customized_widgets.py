@@ -657,7 +657,6 @@ def create_cmap_icon(cmap: str):
     plt.show()
     ```
     """
-    
 
     # Create a pixmap representing the color pattern of the colormap
     color_map = matplotlib.colormaps[cmap]
@@ -730,7 +729,7 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
 
 @contextmanager
 def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton,...], QtWidgets.QPushButton], # type: ignore
+    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],  # type: ignore
     animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
 ):
     """
@@ -750,7 +749,7 @@ def hold_trigger_button(
         color = QtGui.QColor(76, 217, 100)
         return color
 
-    def start_breathing_animation(button: QtWidgets.QPushButton): # type: ignore
+    def start_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
         accent_color = get_accent_color()
         base_color = accent_color.lighter(150)  # Start with a lighter shade
         darker_color = accent_color.darker(150)  # Use a darker shade for the trough
@@ -774,7 +773,7 @@ def hold_trigger_button(
         timer.start()
         timers.append(timer)
 
-    def stop_breathing_animation(button: QtWidgets.QPushButton): # type: ignore
+    def stop_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
         # Stop all timers associated with this button
         for timer in timers:
             if timer.parent() == button:
