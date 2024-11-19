@@ -1,9 +1,10 @@
+import math
 import os
 from collections.abc import Iterable
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Union
 
-from omegaconf import OmegaConf
+import matplotlib
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.logger import root_logger
@@ -656,8 +657,7 @@ def create_cmap_icon(cmap: str):
     plt.show()
     ```
     """
-    import matplotlib
-    from pymol.Qt import QtGui
+    
 
     # Create a pixmap representing the color pattern of the colormap
     color_map = matplotlib.colormaps[cmap]
@@ -728,17 +728,19 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     return
 
 
+
 @contextmanager
-def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton], QtWidgets.QPushButton]
+def hold_trigger_button_normal(
+    buttons: Union[tuple[QtWidgets.QPushButton], QtWidgets.QPushButton]  # type: ignore
 ):
     """
-    A context manager for holding and releasing a trigger button.
+    A context manager for holding and releasing a trigger button, with an additional
+    'held' mark to prevent premature re-enabling during ongoing tasks.
 
     Usage:
         with hold_trigger_button(button):
-            # Code block where the button is held (disabled)
-            # The button will be automatically released (enabled) at the end of the block
+            # Code block where the button is held (disabled and marked as 'held')
+            # The button will be automatically released (enabled and unmarked) at the end of the block
     """
     if not isinstance(buttons, (tuple, list, set)):
         buttons = (buttons,)
@@ -746,7 +748,81 @@ def hold_trigger_button(
     try:
         for b in buttons:
             b.setEnabled(False)
+            b.setProperty("held", True)  # Mark the button as 'held'
+            b.setStyleSheet("background-color: lightgray;")  # Optional: visual indicator
         yield
     finally:
         for b in buttons:
-            b.setEnabled(True)
+            b.setProperty("held", False)  # Remove the 'held' mark
+            b.setStyleSheet("")  # Restore default style
+            b.setEnabled(True)  # Re-enable the button
+
+
+
+
+
+@contextmanager
+def hold_trigger_button(
+    buttons: Union[tuple[QtWidgets.QPushButton], QtWidgets.QPushButton],
+    animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
+):
+    """
+    A context manager for holding and releasing trigger buttons with a breathing effect
+    using the system's accent color.
+
+    Args:
+        buttons: One or more QPushButton objects.
+        animation_duration: Duration of the breathing animation cycle (in milliseconds).
+    """
+    if not isinstance(buttons, (tuple, list, set)):
+        buttons = (buttons,)
+
+    timers = []
+
+    def get_accent_color():
+        color = QtGui.QColor(76, 217, 100)
+        return color
+
+    def start_breathing_animation(button: QtWidgets.QPushButton):
+        accent_color = get_accent_color()
+        base_color = accent_color.lighter(150)  # Start with a lighter shade
+        darker_color = accent_color.darker(150)  # Use a darker shade for the trough
+
+        timer = QtCore.QTimer(button)
+        timer.setInterval(30)  # Update every 30 milliseconds
+        elapsed = 0
+
+        def update_stylesheet():
+            nonlocal elapsed
+            elapsed += timer.interval()
+            t = (elapsed % animation_duration) / animation_duration  # Normalized time [0, 1]
+            # Calculate intermediate intensity using sine wave
+            factor = (1 + math.sin(2 * math.pi * t)) / 2  # Normalized to [0, 1]
+            r = int(base_color.red() * factor + darker_color.red() * (1 - factor))
+            g = int(base_color.green() * factor + darker_color.green() * (1 - factor))
+            b = int(base_color.blue() * factor + darker_color.blue() * (1 - factor))
+            button.setStyleSheet(f"background-color: rgb({r}, {g}, {b});")
+
+        timer.timeout.connect(update_stylesheet)
+        timer.start()
+        timers.append(timer)
+
+    def stop_breathing_animation(button: QtWidgets.QPushButton):
+        # Stop all timers associated with this button
+        for timer in timers:
+            if timer.parent() == button:
+                timer.stop()
+                timers.remove(timer)
+        button.setStyleSheet("")  # Reset the button's style
+
+    try:
+        for b in buttons:
+            b.setEnabled(False)
+            b.setProperty("held", True)  # Mark the button as held
+            start_breathing_animation(b)
+        yield
+    finally:
+        for b in buttons:
+            b.setProperty("held", False)  # Remove the held mark
+            stop_breathing_animation(b)
+            b.setEnabled(True)  # Re-enable the button

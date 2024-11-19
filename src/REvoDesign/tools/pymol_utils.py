@@ -1,4 +1,5 @@
 import os
+from typing import List
 import warnings
 
 from pymol import cmd, get_version_message
@@ -126,7 +127,7 @@ def find_design_molecules():
     return objects
 
 
-def find_all_protein_chain_ids_in_protein(sele):
+def find_all_protein_chain_ids_in_protein(sele) -> List[str]:
     """
     Function: find_all_protein_chain_ids_in_protein
     Usage: chain_ids = find_all_protein_chain_ids_in_protein(selection)
@@ -141,7 +142,7 @@ def find_all_protein_chain_ids_in_protein(sele):
             Returns None if the selection is empty or no protein chains are found.
     """
     if not sele:
-        return
+        return []
     # return a list of chain IDs that assigned to a protein molecule
 
     chain_ids = [chain_id for chain_id in cmd.get_chains(sele) if chain_id]

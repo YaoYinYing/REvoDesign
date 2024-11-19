@@ -20,9 +20,11 @@ on:
       - 'REvoDesign/*' # monitor the REvoDesign project source code
       - '!CHANGELOG.md' 
       - '!REvoDesign/__version__.py'
-    branches:
-        - main
-        - linting-4
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
 
 env:
   lint-python-version: '3.11'        

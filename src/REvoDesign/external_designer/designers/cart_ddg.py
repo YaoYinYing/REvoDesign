@@ -127,7 +127,7 @@ class ddg(ExternalDesignerAbstract):
             self.unrelaxed_pdb
         ):
             self.unrelaxed_pdb = make_temperal_input_pdb(
-                molecule=self.molecule, reload=False, selection="not hetatm"
+                molecule=self.molecule, reload=False#, selection="not hetatm"
             )
 
         self.ddg_runner = CartesianDDG(

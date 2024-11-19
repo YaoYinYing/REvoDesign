@@ -11,8 +11,7 @@ from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE, experiment_config,
                                   reload_config_file, save_configuration,
                                   set_cache_dir, set_REvoDesign_config_file)
 # 3. import FileExtentions
-from REvoDesign.common.FileExtentions import \
-    REvoDesignFileExtentions as FileExtentions
+from REvoDesign.common import FileExtentions
 # 4. import UI bus, depending on SingletonAbstract, logger, configuration
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.logger import root_logger, setup_logging
@@ -20,7 +19,6 @@ from REvoDesign.logger import root_logger, setup_logging
 from REvoDesign.REvoDesign import REvoDesignPlugin
 
 # 6. Set version info
-
 __version__ = "1.7.2"
 
 

@@ -78,7 +78,7 @@ def set_cache_dir() -> str:
         raise ValueError("You must specify a custom cache directory!")
 
     if cfg.cache_dir.under_home_dir:
-        cache_dir = user_cache_dir(appname="REvoDesign")
+        cache_dir = user_cache_dir(appname="REvoDesign", ensure_exists=True)
     else:
         cache_dir = os.path.expanduser(cfg.cache_dir.customized)
     return cache_dir

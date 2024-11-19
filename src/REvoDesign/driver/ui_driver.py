@@ -1,7 +1,7 @@
 import os
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib
 from Bio.Align import substitution_matrices
@@ -236,7 +236,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         converter: Union[Callable, Any] = None,
         reject_none: bool = False,
         default_value: Any = None,
-    ):
+    ) -> Optional[Any]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
 
@@ -274,7 +274,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
     def toggle_buttons(
         self,
-        button_ids: Union[List[str], Tuple[str]],
+        button_ids: tuple[str,...],
         set_enabled: bool = False,
     ):
         # Toggles the enabled state of a list of buttons.
@@ -283,20 +283,17 @@ class ConfigBus(SingletonAbstract, CitableModules):
         for button in buttons:
             if not button:
                 continue
+            # Check for 'held' property, defaulting to False if the property doesn't exist
+            if button.property("held"):
+                continue
             button.setEnabled(set_enabled)
 
     def fp_lock(
         self,
-        cfg_fps: Union[list, tuple, str],
-        buttons_id_to_release: Union[list, tuple, str],
+        cfg_fps: tuple[str,...],
+        buttons_id_to_release: tuple[str,...],
     ):
         # Locks or unlocks buttons based on the existence of file paths in the configuration.
-        if isinstance(cfg_fps, str):
-            cfg_fps = tuple([cfg_fps])
-
-        if not isinstance(buttons_id_to_release, (list, tuple)):
-            buttons_id_to_release = [buttons_id_to_release]
-
         self.toggle_buttons(
             button_ids=buttons_id_to_release, set_enabled=False
         )
@@ -326,13 +323,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         assert button_id in self.w2c.run_button_ids
         return self.w2c.push_buttons.get(button_id)
 
-    def buttons(self, button_ids: tuple[str]) -> tuple[
-        Union[
-            QtWidgets.QPushButton,
-            None,
-        ],
-        ...,
-    ]:
+    def buttons(self, button_ids: tuple[str,...]) -> tuple[QtWidgets.QPushButton,...]:
         """Retrieves all button widgets based on its ID.
 
         Args:

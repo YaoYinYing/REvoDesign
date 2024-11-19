@@ -7,12 +7,12 @@ import traceback
 import warnings
 # using partial module to reduce duplicate code.
 from functools import partial
-from typing import Any, Literal, Optional
+from typing import Any, Mapping, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
-from pymol.Qt.utils import getSaveFileNameWithExt
+
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
@@ -23,6 +23,7 @@ from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.driver.file_dialog import FileDialog,IO_MODE
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
@@ -35,7 +36,7 @@ from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
 from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (
-    WorkerThread, decide, getExistingDirectory, getOpenFileNameWithExt,
+    WorkerThread, decide, getExistingDirectory,
     hold_trigger_button, notify_box, refresh_widget_while_another_changed,
     set_widget_value)
 from REvoDesign.tools.mutant_tools import (determine_profile_type,
@@ -47,15 +48,13 @@ from REvoDesign.tools.pymol_utils import (
     find_design_molecules, find_small_molecules_in_protein,
     get_molecule_sequence, is_empty_session)
 from REvoDesign.tools.system_tools import CLIENT_INFO
-from REvoDesign.tools.utils import (extract_archive, generate_strong_password,
+from REvoDesign.tools.utils import (generate_strong_password,
                                     run_worker_thread_with_progress, timing)
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
 logging: LoggerT = None  # type: ignore
-
-IO_MODE = Literal["r", "w"]
 
 
 class REvoDesignPlugin(QtWidgets.QWidget):
@@ -69,9 +68,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
         self.PWD = os.getcwd()
 
-        self.bus: ConfigBus = None
+        self.bus: ConfigBus = None # type: ignore
+        self.file_dialog: FileDialog =None # type: ignore
 
-        self.designable_sequences: RosettaPyProteinSequence = None
+        self.designable_sequences: RosettaPyProteinSequence = None # type: ignore
         self.design_molecule = ""
         self.design_chain_id = ""
         self.design_sequence = ""
@@ -156,6 +156,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.window.show()
         self.fix_wd()
 
+        self.file_dialog=FileDialog(self.window, self.PWD)
+
     def reinitialize(self, delete: bool = False):
         """_summary_
 
@@ -213,6 +215,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # create a bus btw cfg<---> ui
         self.reload_configurations()
+        # all ConfigBus related method calls must follow this
+        # since the bus is initialized here
 
         FontSetter(main_window=main_window)
 
@@ -335,16 +339,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.lineEdit_output_pse_surface.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.prepare.input.surface.to_pse",
-                "run_surface_detection",
+                ("ui.prepare.input.surface.to_pse",),
+                ("run_surface_detection",)
             )
         )
 
         self.bus.ui.lineEdit_output_pse_pocket.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.prepare.input.pocket.to_pse",
-                "run_pocket_detection",
+                ("ui.prepare.input.pocket.to_pse",),
+                ("run_pocket_detection",)
             )
         )
 
@@ -369,25 +373,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             partial(self.save_as_a_session, "ui.mutate.input.to_pse")
         )
 
-        self.bus.button("open_customized_indices").clicked.connect(
-            partial(
-                self.open_file,
-                "ui.mutate.input.residue_ids",
-                [FileExtentions.TXT, FileExtentions.Any],
-            )
-        )
-
-        self.bus.button("open_input_csv").clicked.connect(
-            partial(
-                self.open_file,
-                "ui.mutate.input.profile",
-                [
-                    FileExtentions.PSSM,
-                    FileExtentions.Any,
-                    FileExtentions.Compressed,
-                ],
-            )
-        )
 
         self.bus.ui.lineEdit_input_csv.textChanged.connect(
             partial(
@@ -400,8 +385,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.lineEdit_output_pse_mutate.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.mutate.input.to_pse",
-                "run_PSSM_to_pse",
+                ("ui.mutate.input.to_pse",),
+                ("run_PSSM_to_pse",)
             )
         )
 
@@ -410,22 +395,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         # Tab `Evaluate`
-        self.bus.button("open_mut_table").clicked.connect(
-            partial(
-                self.open_mutant_table, "ui.evaluate.input.to_mutant_txt", "w"
-            )
-        )
 
         self.bus.ui.lineEdit_output_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.evaluate.input.to_mutant_txt",
-                [
+                ("ui.evaluate.input.to_mutant_txt",),
+                (
                     "previous_mutant",
                     "reject_this_mutant",
                     "next_mutant",
                     "accept_this_mutant",
-                ],
+                    ),
             )
         )
 
@@ -459,17 +439,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # Tab `Cluster`
 
-        self.bus.button("open_mut_table_2").clicked.connect(
-            partial(
-                self.open_mutant_table, "ui.cluster.input.from_mutant_txt", "r"
-            )
-        )
+        
 
         self.bus.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.cluster.input.from_mutant_txt",
-                "run_cluster",
+                ("ui.cluster.input.from_mutant_txt",),
+                ("run_cluster",)
             )
         )
 
@@ -480,19 +456,19 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.visualize.input.to_pse",
-                "run_visualizing",
+                ("ui.visualize.input.to_pse",),
+                ("run_visualizing",)
             )
         )
 
         self.bus.ui.lineEdit_input_mut_table_csv.textChanged.connect(
             partial(
                 self.bus.fp_lock,
-                "ui.visualize.input.from_mutant_txt",
-                [
+                ("ui.visualize.input.from_mutant_txt",),
+                (
                     "save_this_mutant_table",
                     "reduce_this_session",
-                ],
+                ),
             )
         )
 
@@ -512,25 +488,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
 
-        self.bus.button("open_input_csv_2").clicked.connect(
-            partial(
-                self.open_file,
-                "ui.visualize.input.profile",
-                [
-                    FileExtentions.PSSM,
-                    FileExtentions.Any,
-                    FileExtentions.Compressed,
-                ],
-            )
-        )
+        
 
-        self.bus.button("open_mut_table_csv").clicked.connect(
-            partial(
-                self.open_mutant_table,
-                "ui.visualize.input.from_mutant_txt",
-                "r",
-            )
-        )
+        
 
         self.bus.ui.lineEdit_input_mut_table_csv.textChanged.connect(
             self.update_mutant_table_columns,
@@ -566,20 +526,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             partial(
                 self.bus.fp_lock,
                 "ui.visualize.input.multi_design.to_mutant_txt",
-                [
+                (
                     "multi_design_export_mutants_from_table",
                     "run_multi_design",
-                ],
+                ),
             )
         )
 
-        self.bus.button("open_mut_table_csv_2").clicked.connect(
-            partial(
-                self.open_mutant_table,
-                "ui.visualize.input.multi_design.to_mutant_txt",
-                "w",
-            )
-        )
+        
 
         self.bus.button("multi_design_initialize").clicked.connect(
             partial(
@@ -641,16 +595,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # Tab Interact
 
-        self.bus.button("open_gremlin_mtx").clicked.connect(
-            partial(
-                self.open_file,
-                "ui.interact.input.gremlin_pkl",
-                [
-                    FileExtentions.PickledObject,
-                    FileExtentions.Any,
-                ],
-            )
-        )
+        
 
         self.bus.button("reinitialize_interact").clicked.connect(
             self.load_gremlin_mrf
@@ -659,13 +604,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.run_gremlin_tool
         )
 
-        self.bus.button("open_save_mutant_table").clicked.connect(
-            partial(
-                self.open_mutant_table,
-                "ui.interact.input.to_mutant_txt",
-                "w",
-            )
-        )
+        
 
         self.bus.button("interact_reject").clicked.connect(
             partial(self.coevoled_mutant_decision, False)
@@ -732,83 +671,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         return main_window
 
-    # class public function that can be shared with each tab
-    # callback for the "Browse" button
-    def browse_filename(
-        self, mode: IO_MODE = "r", exts: tuple = (FileExtentions.Any,)
-    ):
-        """Open Finder/Explorer to browse from a filename
-
-        Args:
-            mode (IO_MODE, optional): mode to open this file. Defaults to 'r'.
-            exts (tuple, optional): file extention group.
-                Defaults to [FileExtentions.Any].
-
-        Returns:
-            _type_: _description_
-        """
-
-        filter_strings = ";;".join(
-            [
-                f"{ext_discrition} ( *.{ext_} )"
-                for ext in exts
-                for ext_, ext_discrition in ext.items()
-            ]
-        )
-
-        if mode == "w":
-            browse_title = "Save As..."
-            filename = getSaveFileNameWithExt(
-                self.window, browse_title, filter=filter_strings
-            )
-        else:
-            browse_title = "Open ..."
-            filename = getOpenFileNameWithExt(
-                self.window, browse_title, filter=filter_strings
-            )
-
-            # Check if the selected file is a compressed archive
-            is_compressed = [
-                True
-                for ext_, _ in FileExtentions.Compressed.items()
-                if filename.endswith(ext_)
-            ]
-            filename_bn = os.path.basename(filename)
-            if any(is_compressed):
-                # Ask whether to overide
-                confirmed = decide(
-                    title="Extract Archive",
-                    description=f"The selected file '{filename_bn}'"
-                    " is a compressed archive. Do you want to extract it?",
-                )
-
-                if confirmed:
-                    # Extract the archive and browse the extracted file
-                    self.flatten_compressed_files(filename)
-                    return self.browse_filename(mode, exts=exts)
-                else:
-                    # Keep the previously selected filename and return it
-                    return filename
-
-        if filename:
-            return filename
-
-    # A universal and versatile function for input file path browsing.
-    def open_file(self, cfg_item: str, exts: tuple = (FileExtentions.Any,)):
-        """Open Any File
-
-        Args:
-            cfg_input (str): Configure item in ConfigBus
-            exts (tuple, optional): File Extention(s).
-                Defaults to (FileExtentions.Any,).
-
-        Returns:
-            str: filepath of opened file.
-        """
-        input_fn = self.browse_filename(mode="r", exts=exts)
-        if input_fn:
-            self.bus.set_widget_value(cfg_item, input_fn)
-            return input_fn
+    
 
     def reload_molecule_info(self):
         """Reload the molecule in current session."""
@@ -827,7 +690,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "Current session is empty! Please load one PDB/PSE/PZE!"
                 )
             )
-            new_session_file = self.browse_filename(
+            new_session_file = self.file_dialog.browse_filename(
                 mode="r",
                 exts=(
                     FileExtentions.Session,
@@ -867,7 +730,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Args:
             cfg_to_pse (str): Config item in ConfigBus
         """
-        output_pse_fn = self.browse_filename(
+        output_pse_fn = self.file_dialog.browse_filename(
             mode="w",
             exts=(FileExtentions.Session, FileExtentions.Any),
         )
@@ -920,45 +783,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.setup_pssm_gremlin_calculator()
 
-    def open_mutant_table(self, cfg_mutant_table: str, mode: IO_MODE = "r"):
-        """Open a mutant table file
+    
 
-        Args:
-            cfg_mutant_table (str): Config item in ConfigBus
-            mode (IO_MODE, optional): file operator mode. Defaults to 'r'.
-        """
-        if mode == "r":
-            input_mut_txt_fn = self.open_file(
-                cfg_mutant_table,
-                [
-                    FileExtentions.Mutable,
-                    FileExtentions.Any,
-                    FileExtentions.Compressed,
-                ],
-            )
-            if input_mut_txt_fn:
-                self.bus.set_widget_value(cfg_mutant_table, input_mut_txt_fn)
-            else:
-                logging.warning(
-                    f"Could not open file for reading: {input_mut_txt_fn}"
-                )
-        else:
-            output_mut_txt_fn = self.browse_filename(
-                mode=mode,
-                exts=(
-                    FileExtentions.Mutable,
-                    FileExtentions.Any,
-                ),
-            )
-            if output_mut_txt_fn and os.path.exists(
-                os.path.dirname(output_mut_txt_fn)
-            ):
-                logging.info(f"Output file is set as {output_mut_txt_fn}")
-                self.bus.set_widget_value(cfg_mutant_table, output_mut_txt_fn)
-            else:
-                logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
-
-    def find_session_path(self) -> str:
+    def find_session_path(self) -> Optional[str]:
         """Find and validate if current session is saved as a session file.
 
         Returns:
@@ -972,7 +799,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "Session not found, please use a new session path to save."
                 )
             )
-            return self.browse_filename(
+            return self.file_dialog.browse_filename(
                 mode="w", exts=(FileExtentions.Session,)
             )
 
@@ -982,7 +809,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "Invalid session file path, please use a new session path to save."
                 )
             )
-            return self.browse_filename(
+            return self.file_dialog.browse_filename(
                 mode="w", exts=(FileExtentions.Session,)
             )
 
@@ -995,30 +822,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "please use a new session path to save."
                 )
             )
-            return self.browse_filename(
+            return self.file_dialog.browse_filename(
                 mode="w", exts=(FileExtentions.Session,)
             )
 
         return session_path
 
-    def flatten_compressed_files(self, compressed_file: str) -> str:
-        """Flatten compressed file
-        supported format: zip, tar.xz, tar.gz, tar.bz2, WinRAR ?
-
-        Args:
-            compressed_file (str): _description_
-
-        Returns:
-            str: _description_
-        """
-        flatten_path = os.path.join(
-            self.PWD,
-            "expanded_compressed_files",
-            os.path.basename(compressed_file),
-        )
-        os.makedirs(flatten_path, exist_ok=True)
-        extract_archive(archive_file=compressed_file, extract_to=flatten_path)
-        return flatten_path
+    
 
     """
     Private functions used only in a specific tab.
@@ -1034,7 +844,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         chain_id = self.bus.get_widget_value(
             "ui.header_panel.input.chain_id", str
         )
-        designable_sequences = self.bus.get_value("designable_sequences", dict)
+        designable_sequences: Optional[Mapping] = self.bus.get_value("designable_sequences", dict)
         if not designable_sequences:
             return
 
@@ -1159,8 +969,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         _fp = self.bus.get_widget_value(cfg_input_profile, str)
         if _fp == "None" or not _fp:
             return
-
-        profile_fp = os.path.abspath(_fp)
+    
+        profile_fp = os.path.abspath(str(_fp))
 
         if not os.path.exists(profile_fp):
             return
@@ -1181,7 +991,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             timing("Run Mutant Loading from Profile"),
         ):
             worker = MutateWorker()
-
             worker.run_mutant_loading_from_profile()
 
         if (
@@ -1224,7 +1033,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             raise issues.UnexpectedWorkflowError(
                 "Faild to call evaluator because it is not initialized."
             )
-        mutant_choice_checkpoint_fn = self.browse_filename(
+        mutant_choice_checkpoint_fn = self.file_dialog.browse_filename(
             mode="r",
             exts=(FileExtentions.Mutable, FileExtentions.Any),
         )
@@ -1445,7 +1254,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     cmd.delete(item)
                     cmd.refresh()
 
-        if os.path.exists(session):
+        if session is not None and os.path.exists(session):
             if not overwrite:
                 # Ask whether to overide
                 confirmed = decide(
@@ -1455,7 +1264,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
 
                 if not confirmed:
-                    session = self.browse_filename(
+                    session = self.file_dialog.browse_filename(
                         mode="w", exts=(FileExtentions.Session,)
                     )
 
@@ -1904,7 +1713,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             for loading and saving the experiment configuration.
             Defaults to 'r'.
         """
-        new_cfg_file = self.browse_filename(
+        new_cfg_file = self.file_dialog.browse_filename(
             mode=mode,
             exts=(FileExtentions.YAML, FileExtentions.Any),
         )
