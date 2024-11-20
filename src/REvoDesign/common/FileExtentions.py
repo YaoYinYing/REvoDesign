@@ -16,8 +16,8 @@ Mutable = ExtColl(
         Ext("mut.txt", "Text file"),
         Ext("csv", "CSV file"),
         Ext("tsv", "TSV file"),
-        Ext("xlsx", "Excel (modern) file"),
-        Ext("xls", "Excel (legacy) file"),
+        Ext("xlsx", "Microsoft Excel (modern) file"),
+        Ext("xls", "Microsoft Excel (legacy) file"),
     )
 
 )
@@ -46,7 +46,7 @@ MSA = ExtColl(
     (
         Ext("fas", "MSA in FASTA"),
         Ext("fasta", "MSA in FASTA"),
-        Ext("a3m", "MSA in A3M from HH suite"),
+        Ext("a3m", "MSA in A3M from HH-suite"),
     )
 )
 TXT = ExtColl(
