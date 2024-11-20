@@ -633,16 +633,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         # Tab Config
-
         self.bus.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
             partial(
                 refresh_widget_while_another_changed,
-                self.bus.get_widget_from_cfg_item(
-                    "ui.config.sidechain_solver.use"
-                ),
-                self.bus.get_widget_from_cfg_item(
-                    "ui.config.sidechain_solver.model"
-                ),
+                "ui.config.sidechain_solver.use",
+                "ui.config.sidechain_solver.model",
                 {
                     c.name: [c.weights_preset, c.default_weight_preset]
                     for c in all_runner_c

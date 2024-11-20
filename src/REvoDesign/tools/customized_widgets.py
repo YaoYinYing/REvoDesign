@@ -400,10 +400,13 @@ def get_widget_value(widget):
 
 
 def refresh_widget_while_another_changed(
-    trigger_widget, target_widget, target_data_group: Dict[str, list]
+    trigger_widget_id: str, target_widget_id: str, target_data_group: Dict[str, list]
 ):
 
-    from REvoDesign import reload_config_file
+    from REvoDesign import reload_config_file, ConfigBus
+
+    trigger_widget=ConfigBus().get_widget_from_cfg_item(trigger_widget_id)
+    target_widget=ConfigBus().get_widget_from_cfg_item(target_widget_id)
 
     reload_config_file()
     trigger_value = get_widget_value(widget=trigger_widget)

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Union
 
-
 @dataclass(frozen=True)
 class FileExtension:
     """
@@ -114,7 +113,14 @@ class FileExtensionCollection:
                                 from the input instances.
         """
         # Combine all extensions from each FileExtensionCollection instance using set union
-        return cls(tuple(set.union(*[set(e.extensions) for e in exts])))
+        ec=[]
+        for e in exts:
+            for _e in e.extensions:
+                if _e in ec:
+                    continue
+                ec.append(_e)
+            
+        return cls(tuple(ec))
 
     @property
     def filter_string(self) -> str:

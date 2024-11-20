@@ -6,8 +6,8 @@ from ..basic import FileExtensionCollection as ExtColl
 
 Session = ExtColl(
     (
-        Ext("pse", "PyMOL Session"),
         Ext("pze", "Compressed PyMOL Session"),
+        Ext("pse", "PyMOL Session"),
     ),
 )
 Mutable = ExtColl(
@@ -38,7 +38,7 @@ MOL = ExtColl(
 
 PSSM = ExtColl(
     (
-        Ext("csv", "Comma-separated value file"),
+        Ext("csv", "CSV file"),
         Ext("pssm", "Raw PSSM file"),
     )
 )

@@ -413,11 +413,11 @@ class Widget2ConfigMapper:
         """
         for attr in dir(self.ui):
             if (
-                isinstance(getattr(self.ui, attr), widget_type)
+                isinstance(found_widget:=getattr(self.ui, attr), widget_type)
                 and attr == name
             ):
-                logging.debug(f"Found widget with {name=}: {attr=}")
-                return getattr(self.ui, attr)
+                logging.debug(f"Found widget by name: {attr=}")
+                return found_widget
 
         layouts = [
             layout_widget
@@ -427,23 +427,27 @@ class Widget2ConfigMapper:
 
         for layout_name in layouts:
             layout = getattr(self.ui, layout_name)
+            
+            if not hasattr(layout, "findChild"):
+                continue
+
             logging.debug(f"Searching {layout_name=}: {dir(layout)=}")
-            if hasattr(layout, "findChild"):
-                if widget := layout.findChild(widget_type, name):
-                    # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
-                    logging.debug(
-                        f"Found child with {name=} {widget=} in {layout}: {layout_name=}"
-                    )
-                    return widget
+            if found_widget := layout.findChild(widget_type, name):
+                # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
+                logging.debug(
+                    f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}"
+                )
+                return found_widget
+            
             for attr in dir(layout):
                 if (
-                    isinstance(getattr(layout, attr), widget_type)
+                    isinstance((found_widget:=getattr(layout, attr)), widget_type)
                     and attr == name
                 ):
                     logging.debug(
-                        f"Found widget with {name=}: {attr=} in {layout}: {layout_name=}"
+                        f"Found widget with by name in {layout}: {attr=}: {layout_name=}"
                     )
-                    return getattr(layout, attr)
+                    return found_widget
 
         raise issues.UnknownWidgetError(
             f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"

@@ -8,7 +8,7 @@ from typing import List, Mapping, Optional, Tuple, Union
 import pandas as pd
 from Bio.Data import IUPACData
 from pymol import cmd
-from RosettaPy.common.mutation import Chain, Mutation, RosettaPyProteinSequence
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, FileExtentions, issues
 from REvoDesign.common.Mutant import Mutant

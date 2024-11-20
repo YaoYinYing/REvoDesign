@@ -20,7 +20,7 @@ class IconSetter:
         )
 
         icon = QtGui.QIcon(icon_path)
-
+        
         if CLIENT_INFO().os == "Darwin":
             main_window.setWindowFilePath(icon_path)
         main_window.setWindowIcon(icon)
