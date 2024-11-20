@@ -1,48 +1,62 @@
 version: 2.1
 
+# Define reusable executor with Miniconda setup
 executors:
-  python-executor:
+  conda-executor:
     docker:
-      - image: circleci/python:<<parameters.python-version>> # Use dynamic Python version
-    parameters:
-      python-version:
-        type: string
-    working_directory: ~/repo
-
-jobs:
-  test:
-    executor:
-      name: python-executor
-      python-version: <<parameters.python-version>>
-    parameters:
-      python-version:
-        type: string
+      - image: continuumio/miniconda3:latest
     environment:
-      DISPLAY: ':99.0'
+      DISPLAY: ':99.0'  # Added environment variable
+      PATH: "/opt/conda/bin:$PATH"
+
+# Define reusable commands
+commands:
+  setup-miniconda:
+    parameters:
+      python_version:
+        type: string
     steps:
-      - checkout
       - run:
-          name: Start Display
+          name: Set up Miniconda
+          command: |
+            conda update -n base -c defaults conda -y
+            conda create -n test-env python<<parameters.python_version>> -y
+            echo "source activate test-env" >> ~/.bashrc
+            source activate test-env
+
+  run-make-tasks:
+    steps:
+      - run:
+          name: Run Makefile Commands
           command: |
             make setup-display
-      - run:
-          name: Install REvoDesign
-          command: |
+            conda install -c conda-forge pymol-open-source -y
             make install
             make prepare-test
-
-      - run:
-          name: Run Unit Tests
-          command: |
             make all-test
+
+# Main workflows
+jobs:
+  test-python:
+    executor: conda-executor
+    parameters:
+      python_version:
+        type: string
+    steps:
+      - checkout
+      - setup-miniconda:
+          python_version: <<parameters.python_version>>
+      - run-make-tasks
 
 workflows:
   version: 2
   test-matrix:
     jobs:
-      - test:
-          matrix:
-            parameters:
-              python-version: ["3.9", "3.10", "3.11", "3.12"]
-
-
+      - test-python:
+          python_version: "3.9"
+      - test-python:
+          python_version: "3.10"
+      - test-python:
+          python_version: "3.11"
+      - test-python:
+          python_version: "3.12"
