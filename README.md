@@ -18,7 +18,6 @@
 ## CI Status
 
 [![Unit Test on tagging](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/YaoYinYing/REvoDesign/tree/main.svg?style=svg&circle-token=CCIPRJ_HUET1GZsh4QvG9zsGJmd4n_37fb6a6c718247b0e7b4cf65e007a815279af3bd)](https://dl.circleci.com/status-badge/redirect/gh/YaoYinYing/REvoDesign/tree/main)
 
 [![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
 

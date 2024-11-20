@@ -1,4 +1,4 @@
-name: Docker Image
+name: Docker Image for Server
 
 on:
   workflow_dispatch:
