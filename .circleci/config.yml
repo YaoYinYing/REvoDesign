@@ -50,13 +50,9 @@ jobs:
 
 workflows:
   version: 2
-  test-matrix:
+  test:
     jobs:
       - test-python:
-          python_version: "3.9"
-      - test-python:
-          python_version: "3.10"
-      - test-python:
-          python_version: "3.11"
-      - test-python:
-          python_version: "3.12"
+          matrix:
+            parameters:
+              python_version: ["3.9", "3.10", "3.11", "3.12"]
