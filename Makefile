@@ -36,7 +36,6 @@ help:
 	@echo "  ui-test-pymol          run the QtTest suite with PyMOL GUI integration."
 	@echo "  all-test               run all tests"
 	@echo "  macos-rosetta-test     run UI tests versus PyMOL incentive installation (MacOS Application)"
-	@echo "  pymol-test             run PyMOL script tests"
 	@echo "  memray                 memoray profile for leakage, saved as html file"
 	@echo "  memray-live            memoray profile for leakage in live mode"
 	@echo "  format                 automatically format the code"
@@ -135,11 +134,7 @@ macos-rosetta-test:
 	cd $(TESTDIR); $(MACOS_PYMOL_BIN_PATH)/python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py -k 'not mpnn'
 
 
-pymol-test:
-	# Run a tmp folder to make sure the tests are run on the installed version
-	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); if command -v pymol;then pymol ../tests/pymol/PyMOLTests.pml; else PyMOL.exe ../tests/pymol/PyMOLTests.pml;fi 
-	
+
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)

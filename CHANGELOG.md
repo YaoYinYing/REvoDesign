@@ -53,10 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Workflows:
     - GHA: test docker image build 
     - GHA: docker tests
-    - CircleCI: everything
   - badges: 
     - GHA: test docker images, docker tests
-    - CircleCI: everything
     - dockerhub: test docker image size (with repository deleted)
 
 ## [1.7.2] - 2024-11-14
