@@ -30,6 +30,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
