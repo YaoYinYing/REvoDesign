@@ -27,12 +27,15 @@ commands:
   run-make-tasks:
     steps:
       - run:
-          name: Run Makefile Commands
+          name: Run Installation
           command: |
             make setup-display
             conda install -c conda-forge pymol-open-source -y
             make install
             make prepare-test
+      - run:
+          name: Run Test
+          command: |
             make all-test
 
 # Main workflows
