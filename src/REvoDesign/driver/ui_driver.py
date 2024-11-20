@@ -145,22 +145,18 @@ class ConfigBus(SingletonAbstract, CitableModules):
                 ),
             ):
                 widget.valueChanged.connect(self._widget_link(widget_id))
-                return
-            if isinstance(widget, QtWidgets.QComboBox):
+            elif isinstance(widget, QtWidgets.QComboBox):
                 widget.currentTextChanged.connect(self._widget_link(widget_id))
                 widget.editTextChanged.connect(self._widget_link(widget_id))
-                return
-            if isinstance(widget, QtWidgets.QLineEdit):
+            elif isinstance(widget, QtWidgets.QLineEdit):
                 widget.textChanged.connect(self._widget_link(widget_id))
                 widget.textEdited.connect(self._widget_link(widget_id))
-                return
-            if isinstance(widget, QtWidgets.QCheckBox):
+            elif isinstance(widget, QtWidgets.QCheckBox):
                 widget.stateChanged.connect(self._widget_link(widget_id))
-                return
-            
-            raise NotImplementedError(
-                f"{widget} {type(widget)} is not supported yet"
-            )
+            else:
+                raise NotImplementedError(
+                    f"{widget} {type(widget)} is not supported yet"
+                )
 
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its ID.
