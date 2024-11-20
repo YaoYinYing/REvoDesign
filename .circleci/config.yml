@@ -1,31 +1,30 @@
 version: 2.1
 
-orbs:
-  codecov: codecov/codecov@4.0.1
-
-jobs:
-  build-and-test:
+executors:
+  python-executor:
+    docker:
+      - image: circleci/python:<<parameters.python-version>> # Use dynamic Python version
     parameters:
       python-version:
         type: string
-        default: "3.9"
-    docker:
-      - image: yaoyinying/revodesign-test-image:py<< parameters.python-version >>-latest
+    working_directory: ~/repo
+
+jobs:
+  test:
+    executor:
+      name: python-executor
+      python-version: <<parameters.python-version>>
+    parameters:
+      python-version:
+        type: string
     environment:
       DISPLAY: ':99.0'
     steps:
       - checkout
-      
       - run:
           name: Start Display
           command: |
             make setup-display
-
-      - run:
-          name: Setup Environment for << parameters.python-version >>
-          command: |
-            source activate REvoDesign
-
       - run:
           name: Install REvoDesign
           command: |
@@ -38,26 +37,13 @@ jobs:
             source activate REvoDesign
             make all-test
 
-      - run:
-          name: Generate Coverage Report
-          command: |
-            source activate REvoDesign
-            coverage xml
-
-      - codecov/upload:
-          file: coverage.xml
-
-      - run:
-          name: Clean Up
-          command: |
-            make clean
-
-
 workflows:
   version: 2
-  test:
+  test-matrix:
     jobs:
-      - build-and-test:
+      - test:
           matrix:
             parameters:
               python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+
