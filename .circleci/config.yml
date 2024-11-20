@@ -28,13 +28,12 @@ jobs:
       - run:
           name: Install REvoDesign
           command: |
-            source activate REvoDesign
             make install
+            make prepare-test
 
       - run:
           name: Run Unit Tests
           command: |
-            source activate REvoDesign
             make all-test
 
 workflows:
