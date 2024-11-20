@@ -38,7 +38,6 @@ commands:
           command: |
             make all-test
 
-# Main workflows
 jobs:
   test-python:
     executor: conda-executor
