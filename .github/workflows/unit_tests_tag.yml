@@ -3,11 +3,6 @@ name: Unit Test on tagging
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '.CHANGELOG.md' 
-      - '.pyproject.toml' 
-      - 'REvoDesign/__version__.py'
-      - '.github/workflows/unit_tests_tag.yml'
     branches: [main]
   pull_request:
     branches: [main]

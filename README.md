@@ -1,4 +1,7 @@
+# REvoDesign
+
 ![portrait](https://raw.githubusercontent.com/YaoYinYing/artworks/main/DALL%C2%B7E%202024-01-22%2018.09.07%20-%20A%20sleek%20logo%20design%20with%20a%20human%20pilot%20dressed%20in%20yellow-pink%20uniform%20and%20a%20robot%20co-pilot%20in%20blue%2C%20both%20exhibiting%20friendly%20smiles.%20Abstract%20style.%20T.png)
+
 ---
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-blue?logo=microsoft&color=blue&logoColor=blue)
 ![MacOS](https://img.shields.io/badge/MacOS-Sonoma-silver?logo=apple)
@@ -10,16 +13,19 @@
 [![pymol-open-source](https://tinyurl.com/pymol-open-source)](https://anaconda.org/conda-forge/pymol-open-source)
 ![pyqt](https://img.shields.io/badge/PyQt-5-41CD52?logo=qt)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+---
+
 ## CI Status
-[![Unit Test in docker](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_dev.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_dev.yml)
+
 [![Unit Test on tagging](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml)
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/YaoYinYing/REvoDesign/tree/main.svg?style=svg&circle-token=CCIPRJ_HUET1GZsh4QvG9zsGJmd4n_37fb6a6c718247b0e7b4cf65e007a815279af3bd)](https://dl.circleci.com/status-badge/redirect/gh/YaoYinYing/REvoDesign/tree/main)
 
 [![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
-[![Docker Image for Unittests](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image-test.yml)
+
 ## Docker images
+
 [![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin)
-[![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-test-image?style=social&logo=docker&label=Environment%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-test-image)
+
 ## Code checkings
 
 [![pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/REvoDesign/pylint/pylint_scan.svg)](https://github.com/Silleellie/pylint-github-action)
@@ -27,6 +33,7 @@
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=license)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=security)
+
 ## Introduction
 
 Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
@@ -36,6 +43,7 @@ Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easi
 Enzyme redesign is a complex task that requires a deep understanding of protein structures, substrate binding sites, and evolutionary relationships. **REvoDesign** Toolkit is designed to streamline this process by offering a range of tools and functionalities to assist protein designers in their endeavors.
 
 ### Basic Architecture Design
+
 ![software design](https://github-image-cache.yaoyy.moe/2024/04/9593eb8fc02494a9d2327e82eb52de0e.jpg)
 
 ### Key Features
