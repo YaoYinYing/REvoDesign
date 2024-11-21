@@ -9,9 +9,8 @@ from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 
-from ..data.test_data import KeyData
-
 from ..conftest import TestWorker
+from ..data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -84,7 +83,6 @@ class TestREvoDesignPlugin_TabPrepare:
             fn for fn in pocket_files if "design_shell" in fn
         ][0]
 
-
         assert pocket_file_design_shell is not None
 
         with open(pocket_file_design_shell) as ds_fr:
@@ -150,7 +148,6 @@ class TestREvoDesignPlugin_TabPrepare:
 
         assert surface_file_design_shell is not None
 
-
         with open(surface_file_design_shell) as ss_fr:
             surface_residue_ids = ss_fr.read().strip()
             assert surface_residue_ids
@@ -167,12 +164,12 @@ class TestREvoDesignPlugin_TabPrepare:
 
 
 class TestREvoDesignPlugin_TabMutate:
-    def test_pssm_ent_surf(self, test_worker: TestWorker,KeyDataDuringTests:KeyData):
+    def test_pssm_ent_surf(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="mutate")
 
-        pssm_file=KeyDataDuringTests.pssm_file
+        pssm_file = KeyDataDuringTests.pssm_file
 
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_csv, pssm_file
@@ -315,7 +312,6 @@ class TestREvoDesignPlugin_TabMutate:
         )
         test_worker.go_to_tab(tab_name="mutate")
 
-        
         test_worker.do_typing(
             test_worker.plugin.ui.comboBox_profile_type,
             test_worker.test_data.ddg_profile_type_local,
@@ -457,8 +453,6 @@ class TestREvoDesignPlugin_TabMutate:
         )
         test_worker.go_to_tab(tab_name="mutate")
 
-        
-
         pssm_file = KeyDataDuringTests.pssm_file
 
         test_worker.do_typing(
@@ -516,9 +510,9 @@ class TestREvoDesignPlugin_TabMutate:
 
 @pytest.mark.order(-1)
 class TestREvoDesignPlugin_TabInteract:
-    def test_gremlin_homomer_all2all(self, test_worker:TestWorker, KeyDataDuringTests: KeyData):
+    def test_gremlin_homomer_all2all(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
-        
+
         test_worker.load_session_and_check(
             from_rcsb=True,
             pdb_code=test_worker.test_data.gremlin_homomer_molecule,
@@ -676,7 +670,7 @@ class TestREvoDesignPlugin_TabInteract:
         del test_worker.plugin.gremlin_worker.coevolved_pairs
         del test_worker.plugin.gremlin_worker
 
-    def test_gremlin_homomer_one2all(self, test_worker: TestWorker,KeyDataDuringTests: KeyData):
+    def test_gremlin_homomer_one2all(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check(
             from_rcsb=True,
@@ -859,7 +853,6 @@ class TestREvoDesignPlugin_TabInteract:
         _accp = test_worker.plugin.ui.pushButton_interact_accept
         test_worker.plugin.ui.pushButton_interact_reject
 
-        
         set_widget_value(
             test_worker.plugin.ui.lineEdit_input_gremlin_mtx, KeyDataDuringTests.gremlin_pkl_fp
         )
@@ -1144,16 +1137,13 @@ class TestREvoDesignPlugin_TabInteract:
         del test_worker.plugin.gremlin_worker
 
 
-
 class TestREvoDesignPlugin_TabEvaluate:
     def test_evaluate_pssm_ent_surf_best_hits(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.go_to_tab(tab_name="evaluate")
-        
-
 
         test_worker.load_session_and_check(customized_session=KeyDataDuringTests.evaluate_pse_path)
-        
+
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_output_mut_table, KeyDataDuringTests.mutant_file
         )
@@ -1191,7 +1181,7 @@ class TestREvoDesignPlugin_TabEvaluate:
 
     def test_evaluate_pssm_ent_surf_mannual_pick(self, test_worker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
-        
+
         test_worker.load_session_and_check(customized_session=KeyDataDuringTests.evaluate_pse_path)
         test_worker.go_to_tab(tab_name="evaluate")
 
@@ -1743,8 +1733,6 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
     def test_multiple_design_mpnn_score(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
-
-        
 
         test_worker.load_session_and_check(
             customized_session=KeyDataDuringTests.evaluate_pse_path

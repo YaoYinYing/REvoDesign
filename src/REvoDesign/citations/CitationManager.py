@@ -4,8 +4,6 @@ import warnings
 from abc import ABC
 from typing import Any, Dict, List, Mapping, Union
 
-from RosettaPy.utils.escape import Colors, print_diff, render, zip_render
-
 from REvoDesign import issues
 from REvoDesign.logger import root_logger
 

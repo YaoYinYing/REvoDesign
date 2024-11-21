@@ -2,9 +2,9 @@ import warnings
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Union
 
+import omegaconf.errors
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
-import omegaconf.errors
 from pymol.Qt import QtWidgets
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
@@ -266,17 +266,15 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         return value
 
-    def set_value(self, cfg_item: str, value: Union[str, List, Dict], force_add:bool=False)-> None:
+    def set_value(self, cfg_item: str, value: Union[str, List, Dict], force_add: bool = False) -> None:
         # Sets the value of a configuration item.
         if value is not None:
             try:
                 OmegaConf.update(self.cfg, cfg_item, value, force_add=force_add)
-            except omegaconf.errors.ConfigKeyError as e: 
+            except omegaconf.errors.ConfigKeyError as e:
                 raise issues.ConfigureOutofDateError(
                     "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
                 ) from e
-                
-
 
     def toggle_buttons(
         self,
@@ -417,7 +415,7 @@ class Widget2ConfigMapper:
         """
         for attr in dir(self.ui):
             if (
-                isinstance(found_widget:=getattr(self.ui, attr), widget_type)
+                isinstance(found_widget := getattr(self.ui, attr), widget_type)
                 and attr == name
             ):
                 logging.debug(f"Found widget by name: {attr=}")
@@ -431,7 +429,7 @@ class Widget2ConfigMapper:
 
         for layout_name in layouts:
             layout = getattr(self.ui, layout_name)
-            
+
             if not hasattr(layout, "findChild"):
                 continue
 
@@ -442,10 +440,10 @@ class Widget2ConfigMapper:
                     f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}"
                 )
                 return found_widget
-            
+
             for attr in dir(layout):
                 if (
-                    isinstance((found_widget:=getattr(layout, attr)), widget_type)
+                    isinstance((found_widget := getattr(layout, attr)), widget_type)
                     and attr == name
                 ):
                     logging.debug(

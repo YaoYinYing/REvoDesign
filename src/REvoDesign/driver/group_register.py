@@ -10,6 +10,7 @@ from ..basic import GroupRegistryItem as GR
 from ..tools.customized_widgets import create_cmap_icon
 
 
+# define actions
 class CallableGroupValues:
 
     @staticmethod
@@ -84,6 +85,7 @@ class CallableGroupValues:
         return available_run_node_hints
 
 
+# define all group mappers
 # Header
 GroupCmap = GR("comboBox_cmap", (CallableGroupValues.list_color_map,),)
 
@@ -111,6 +113,7 @@ GroupSidechainSolver = GR("comboBox_sidechain_solver", (CallableGroupValues.list
 GroupRosettaNodeHint = GR("comboBox_rosetta_node_hint", (CallableGroupValues.list_all_rosetta_node_hints,))
 
 
+# collect all together
 GroupRegistryCollection: Tuple[GR, ...] = (
     GroupCmap,
     GroupScoreMatrix,

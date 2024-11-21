@@ -28,15 +28,16 @@ from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
+from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
-from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
-from REvoDesign.tools.customized_widgets import (
-    WorkerThread, decide, getExistingDirectory, hold_trigger_button,
-    notify_box, refresh_widget_while_another_changed, set_widget_value)
+from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
+                                                 getExistingDirectory,
+                                                 hold_trigger_button,
+                                                 notify_box, set_widget_value)
 from REvoDesign.tools.mutant_tools import (determine_profile_type,
                                            existed_mutant_tree,
                                            get_mutant_table_columns,
@@ -633,18 +634,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         # Tab Config
-        self.bus.ui.comboBox_sidechain_solver.currentIndexChanged.connect(
-            partial(
-                refresh_widget_while_another_changed,
-                "ui.config.sidechain_solver.use",
-                "ui.config.sidechain_solver.model",
-                {
-                    c.name: [c.weights_preset, c.default_weight_preset]
-                    for c in all_runner_c
-                    if c.installed
-                },
-            )
-        )
+        ParamChangeCollections.register_all(ui=self.bus.ui)
 
         # register widget change events to update cfg items
         self.bus.register_widget_changes_to_cfg()

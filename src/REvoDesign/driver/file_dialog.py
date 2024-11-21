@@ -51,35 +51,33 @@ class FileDialog(SingletonAbstract):
 
         filter_strings = ext.filter_string
 
-
-        # refer a file path to write in 
+        # refer a file path to write in
         if mode == "w":
             browse_title = "Save As..."
             filename = getSaveFileNameWithExt(
                 self.window, browse_title, filter=filter_strings
             )
             return filename if filename else None
-        
+
         # otherwise, open a file to read
         browse_title = "Open ..."
         filename = getOpenFileNameWithExt(
             self.window, browse_title, filter=filter_strings
         )
-        
+
         # no file selected
         if not filename:
             return None
-        
-        
+
         # selected
         filename_bn = os.path.basename(filename)
         filename_ext = filename_bn.split(".")[-1]
 
         # Check if the selected file is a compressed archive
         # if not, return
-        if not filename_ext in FileExtentions.Compressed:
+        if filename_ext not in FileExtentions.Compressed:
             return filename
-        
+
         # if so, ask user whether to extract this compressed file
         confirmed = decide(
             title="Extract Archive",
@@ -91,14 +89,13 @@ class FileDialog(SingletonAbstract):
         if not confirmed:
             # Keep the previously selected filename and return it
             return filename
-        
+
         # otherwise, extract the archive and browse the extracted file
         flatten_compressed_files(filename, self.PWD)
         return self.browse_filename(mode, exts=exts)
-                    
-
 
     # A universal and versatile function for input file path browsing.
+
     def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (
             FileExtentions.Any,)) -> Optional[str]:
         """Open Any File

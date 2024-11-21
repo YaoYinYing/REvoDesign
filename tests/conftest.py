@@ -27,7 +27,8 @@ from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 
 from .data import TestData
-from.data.test_data import KeyData
+
+from .data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -188,13 +189,12 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
-    def pse_snapshot(self, custom_name: str = 'none')-> str:
+    def pse_snapshot(self, custom_name: str = 'none') -> str:
         time_stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-        os.makedirs(os.path.join(self.ANALYSIS_DIR,'snap'), exist_ok=True)
-        snapshot_pze=os.path.join(self.ANALYSIS_DIR,'snap',f'{self.test_id}_{time_stamp}_{custom_name}.pze')
+        os.makedirs(os.path.join(self.ANALYSIS_DIR, 'snap'), exist_ok=True)
+        snapshot_pze = os.path.join(self.ANALYSIS_DIR, 'snap', f'{self.test_id}_{time_stamp}_{custom_name}.pze')
         cmd.save(snapshot_pze)
         return snapshot_pze
-
 
     def _fetch_pdb(
         self, pdb_code: Optional[str] = None, spell: Optional[str] = None
@@ -346,8 +346,6 @@ class TestWorker:
             get_widget_value(self.plugin.ui.comboBox_design_molecule)
             in self.test_data.used_molecules
         )
-
-    
 
     @property
     def existed_mutant_tree(self) -> MutantTree:

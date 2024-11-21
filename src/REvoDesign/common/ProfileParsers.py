@@ -32,6 +32,8 @@ class ProfileParserAbstract(ABC):
     """
 
     name: str
+    # whether lower scores are preferred
+    prefer_lower: bool = False
 
     def __init__(
         self,
@@ -193,6 +195,7 @@ class PSSM_Parser(ProfileParserAbstract):
 
 class CSVProfileParser(ProfileParserAbstract):
     name = "CSV"
+    prefer_lower = True
 
     def parse(self) -> pd.DataFrame:
         if not self.is_valid_profile:
@@ -303,6 +306,7 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
     """
 
     name = "Pythia-ddG"
+    prefer_lower = True
 
     def parse(self) -> pd.DataFrame:
         """
