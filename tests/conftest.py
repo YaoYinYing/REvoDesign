@@ -188,6 +188,14 @@ class TestWorker:
         }
         [os.makedirs(dir, exist_ok=True) for dir in dirs]
 
+    def pse_snapshot(self, custom_name: str = 'none')-> str:
+        time_stamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+        os.makedirs(os.path.join(self.ANALYSIS_DIR,'snap'), exist_ok=True)
+        snapshot_pze=os.path.join(self.ANALYSIS_DIR,'snap',f'{self.test_id}_{time_stamp}_{custom_name}.pze')
+        cmd.save(snapshot_pze)
+        return snapshot_pze
+
+
     def _fetch_pdb(
         self, pdb_code: Optional[str] = None, spell: Optional[str] = None
     ):

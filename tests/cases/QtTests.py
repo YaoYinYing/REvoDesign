@@ -34,7 +34,7 @@ class TestREvoDesignPlugin:
 
 
 class TestREvoDesignPlugin_TabPrepare:
-    def test_load_molecule(self, test_worker):
+    def test_load_molecule(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check(from_rcsb=True)
         test_worker.go_to_tab(tab_name="prepare")
@@ -46,7 +46,7 @@ class TestREvoDesignPlugin_TabPrepare:
         test_worker.save_pymol_png(basename=test_worker.test_id)
         test_worker.save_new_experiment()
 
-    def test_pocket(self, test_worker):
+    def test_pocket(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check(from_rcsb=True)
         test_worker.go_to_tab(tab_name="prepare")
@@ -95,6 +95,7 @@ class TestREvoDesignPlugin_TabPrepare:
             basename=test_worker.test_id, spells="orient hetatm"
         )
         test_worker.save_new_experiment()
+        test_worker.pse_snapshot('fin')
 
     def test_surface(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
@@ -162,6 +163,7 @@ class TestREvoDesignPlugin_TabPrepare:
             basename=test_worker.test_id, spells="center"
         )
         test_worker.save_new_experiment()
+        test_worker.pse_snapshot('fin')
 
 
 class TestREvoDesignPlugin_TabMutate:
@@ -222,6 +224,7 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.save_pymol_png(basename=test_worker.test_id)
 
         test_worker.check_existed_mutant_tree()
+        test_worker.pse_snapshot('fin')
 
     def test_mpnn_surf(self, test_worker):
         test_worker.test_id = test_worker.method_name()
@@ -313,7 +316,6 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.go_to_tab(tab_name="mutate")
 
         
-
         test_worker.do_typing(
             test_worker.plugin.ui.comboBox_profile_type,
             test_worker.test_data.ddg_profile_type_local,
@@ -375,6 +377,8 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.save_pymol_png(basename=test_worker.test_id)
 
         test_worker.check_existed_mutant_tree()
+
+        test_worker.pse_snapshot('fin')
 
     # def test_ddg_surf_biolib_calling(
     #     self, test_worker
@@ -507,17 +511,21 @@ class TestREvoDesignPlugin_TabMutate:
             basename=test_worker.test_id,
         )
         test_worker.save_pymol_png(basename=test_worker.test_id)
+        test_worker.pse_snapshot('fin')
 
 
 @pytest.mark.order(-1)
 class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_homomer_all2all(self, test_worker:TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
+        
         test_worker.load_session_and_check(
             from_rcsb=True,
             pdb_code=test_worker.test_data.gremlin_homomer_molecule,
             spell=test_worker.test_data.gremlin_homomer_postfetch_spell,
         )
+
+        test_worker.pse_snapshot('loaded')
         test_worker.go_to_tab(tab_name="config")
 
         set_widget_value(
@@ -622,6 +630,7 @@ class TestREvoDesignPlugin_TabInteract:
                     basename=f"{test_worker.test_id}_pair_{operation}",
                 )
                 cmd.orient(test_worker.test_data.gremlin_homomer_molecule)
+                test_worker.pse_snapshot(f'mut_{i}_{operation}')
                 test_worker.save_pymol_png(
                     basename=f"{test_worker.test_id}_interact_pair_{i}_{operation}",
                     focus=False,
@@ -661,6 +670,7 @@ class TestREvoDesignPlugin_TabInteract:
             test_worker.click(_accp)
 
         assert os.path.exists(mutfile)
+        test_worker.pse_snapshot('fin')
 
         del test_worker.plugin.gremlin_worker.gremlin_tool
         del test_worker.plugin.gremlin_worker.coevolved_pairs
@@ -673,6 +683,7 @@ class TestREvoDesignPlugin_TabInteract:
             pdb_code=test_worker.test_data.gremlin_homomer_molecule,
             spell=test_worker.test_data.gremlin_homomer_postfetch_spell,
         )
+        test_worker.pse_snapshot('loaded')
         test_worker.go_to_tab(tab_name="config")
 
         set_widget_value(
@@ -731,6 +742,8 @@ class TestREvoDesignPlugin_TabInteract:
         cmd.select("sele", test_worker.test_data.gremlin_homomer_o2a_sele)
         cmd.enable("sele")
 
+        test_worker.pse_snapshot('sele')
+
         test_worker.click(test_worker.plugin.ui.pushButton_run_interact_scan)
 
         test_worker.sleep(200)
@@ -743,6 +756,8 @@ class TestREvoDesignPlugin_TabInteract:
         test_worker.save_pymol_png(
             basename=f"{test_worker.test_id}_interact_pairs", focus=False
         )
+
+        test_worker.pse_snapshot('check_interacts')
 
         ce_links = [sel for sel in cmd.get_names() if sel.startswith("cep")]
         for sel in ce_links:
@@ -973,6 +988,7 @@ class TestREvoDesignPlugin_TabInteract:
     def test_gremlin_one2all_mpnn_score(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
+        test_worker.pse_snapshot('load')
         test_worker.go_to_tab(tab_name="config")
 
         set_widget_value(
@@ -988,7 +1004,7 @@ class TestREvoDesignPlugin_TabInteract:
         )
         cmd.enable("sele")
 
-
+        test_worker.pse_snapshot('sele')
 
         # buttons
         _next = test_worker.plugin.ui.pushButton_next
@@ -1025,10 +1041,6 @@ class TestREvoDesignPlugin_TabInteract:
         test_worker.click(
             test_worker.plugin.ui.pushButton_reinitialize_interact
         )
-
-        # assert os.path.exists(test_worker.test_data.visualize_2_pse)
-
-        # test_worker.wait_for_file(file=f'{test_worker.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=20)
 
         test_worker.save_new_experiment()
         test_worker.save_screenshot(
@@ -1123,12 +1135,14 @@ class TestREvoDesignPlugin_TabInteract:
             test_worker.click(_accp)
 
         cmd.orient(test_worker.test_data.molecule)
+        test_worker.pse_snapshot('fin')
 
         assert os.path.exists(mutfile)
 
         del test_worker.plugin.gremlin_worker.gremlin_tool
         del test_worker.plugin.gremlin_worker.coevolved_pairs
         del test_worker.plugin.gremlin_worker
+
 
 
 class TestREvoDesignPlugin_TabEvaluate:
