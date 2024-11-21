@@ -19,7 +19,7 @@ from REvoDesign.logger import root_logger, setup_logging
 from REvoDesign.REvoDesign import REvoDesignPlugin
 
 # 6. Set version info
-__version__ = "1.7.2"
+__version__ = "1.7.3"
 
 
 # 8. enable garbage collection

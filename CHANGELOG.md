@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.3] - 2024-11-21
+
 ### Added
 - feat: `hold_trigger_button` now hold buttons with breathing animation to highlight the clicked button.
 - feat: UI: configuration load&save shortcuts
