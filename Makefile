@@ -5,8 +5,6 @@ PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJEC
 PYTEST_CASES_PATH=../tests/cases
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
-BLACK_STYLE=-l 79 -t py39 -t py310 -t py311
-BLACK_EXCLUDES_EXTEND=--extend-exclude '\.ui|\.svg|\.yaml|\.md|\.pyc|\.ico|\.png' 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 
 PYREVERSE_CLASS_OPT=-ASmy --colorized
@@ -39,11 +37,9 @@ help:
 	@echo "  memray                 memoray profile for leakage, saved as html file"
 	@echo "  memray-live            memoray profile for leakage in live mode"
 	@echo "  format                 automatically format the code"
-	@echo "  check                  run code style and quality checks"
 	@echo "  tag                    pin a new tag from package version to github tag"
 	@echo "  black                  black format for all python files"
 	@echo "  reverse                run pyreverse for package and methods and create SVGs"
-	@echo "  black-check            "
 	@echo "  license-update         license updates for all files"
 	@echo "  license-check          check license for all files"
 	@echo "  flake8                 "
@@ -150,13 +146,11 @@ memray-live:
 
 format: license-update black
 
-check: black-check flake8-lazy lint
-
 tag:
 	bash tools/release_tag.sh
 
 black:
-	black $(CHECK_STYLE) $(BLACK_EXCLUDES_EXTEND) $(BLACK_STYLE)
+	pre-commit run --all-files
 
 reverse-class:
 	mkdir -p $(PYREVERSE_DIR)
@@ -166,9 +160,6 @@ reverse:
 	mkdir -p $(PYREVERSE_DIR)
 	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) $(PYREVERSE_OPTS) $(PYREVERSE_IGNORE); dot $(PYREVERSE_DOT_OPTS) -Tsvg classes.dot > classes.svg; dot $(PYREVERSE_DOT_OPTS) -Tsvg packages.dot > packages.svg
 	
-
-black-check:
-	black --check $(CHECK_STYLE) $(BLACK_EXCLUDES_EXTEND) $(BLACK_STYLE)
 
 license-update:
 	python tools/license_notice.py
