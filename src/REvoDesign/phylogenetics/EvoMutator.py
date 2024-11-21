@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import List, Literal, Optional, Tuple, Union
 
+import Bio.PDB.PDBParser as PDBParser
 from immutabledict import immutabledict
 from joblib import Parallel, delayed
 from pymol import CmdException, cmd
@@ -367,19 +368,60 @@ class VisualizingWorker:
             CitationManager().output()
 
 
+
 @dataclass
 class ChainBinder:
+    """
+    A class for managing chain binding distance calculations in molecular structures.
+
+    Attributes:
+    - design_molecule (str): Name of the design molecule.
+    - design_chain_id (str): ID of the main chain for calculations.
+    - max_interact_dist (float): Maximum distance to consider two residues as interacting.
+    - chain_binding_enabled (bool): Enable interchain binding calculations.
+    - chains_to_bind (tuple): Chains to bind in interchain binding mode.
+    - n_jobs (int): Number of jobs for parallel execution.
+    """
     design_molecule: str
     design_chain_id: str
     max_interact_dist: float
     chain_binding_enabled: bool = False
     chains_to_bind: tuple = None
     n_jobs: int = -1
+    structure = None
 
     def get_input_pdb(self):
-        return make_temperal_input_pdb(
-            molecule=self.design_molecule, reload=False
-        )
+        """
+        Retrieve and parse the input PDB file into a Biopython structure.
+        Returns:
+        - Structure object parsed from PDB.
+        """
+        pdb_file = make_temperal_input_pdb(molecule=self.design_molecule, reload=False)
+        parser = PDBParser(QUIET=True)
+        self.structure = parser.get_structure(self.design_molecule, pdb_file)
+        return self.structure
+
+    def _get_ca_atom(self, chain_id: str, residue_id: Union[int, str]):
+        """
+        Retrieve the alpha-carbon (CA) atom for a given chain and residue.
+
+        Parameters:
+        - chain_id (str): Chain identifier.
+        - residue_id (Union[int, str]): Residue number.
+
+        Returns:
+        - Atom object of the CA atom.
+
+        Raises:
+        - ValueError: If the atom is not found.
+        """
+        for chain in self.structure[0]:  # Access the first model
+            if chain.id == chain_id:
+                for residue in chain:
+                    if residue.id[1] == int(residue_id):  # Match residue number
+                        if 'CA' in residue:
+                            return residue['CA']
+        raise ValueError(f"CA atom not found in chain {chain_id}, residue {residue_id}")
 
     def _get_dist(
         self,
@@ -388,40 +430,46 @@ class ChainBinder:
         i_1: Union[int, str],
         j_1: Union[int, str],
     ) -> float:
-        import pymol2
+        """
+        Calculate the distance between two alpha-carbon (CA) atoms.
 
-        with pymol2.PyMOL() as p:
-            p.cmd.reinitialize()
-            p.cmd.load(self.input_pdb)
-            atom1 = f"{self.design_molecule} and c. {chain_1} and i. {i_1} and n. CA"
-            atom2 = f"{self.design_molecule} and c. {chain_2} and i. {j_1} and n. CA"
-            try:
-                dist = p.cmd.get_distance(atom1=atom1, atom2=atom2)
-                return float(dist)
-            except CmdException as e:
-                warnings.warn(
-                    issues.BadDataWarning(
-                        f"No such atom pair {atom1=} and {atom2=}: {e=}"
-                    )
-                )
-                return -1
+        Parameters:
+        - chain_1 (str): Chain ID of the first atom.
+        - chain_2 (str): Chain ID of the second atom.
+        - i_1 (Union[int, str]): Residue ID of the first atom.
+        - j_1 (Union[int, str]): Residue ID of the second atom.
 
-    # record chain binding: distances and maximum distance to be accepted
-    def bind_chains(
-        self, coevolved_pairs: tuple[CoevolvedPair]
-    ) -> Tuple[CoevolvedPair]:
-        self.input_pdb = self.get_input_pdb()
+        Returns:
+        - float: Distance between the two atoms, or -1 if atoms are not found.
+        """
+        try:
+            atom1 = self._get_ca_atom(chain_1, i_1)
+            atom2 = self._get_ca_atom(chain_2, j_1)
+            return atom1 - atom2
+        except ValueError as e:
+            warnings.warn(f"Error calculating distance: {e}", category=UserWarning)
+            return -1
+
+    def bind_chains(self, coevolved_pairs: Tuple[CoevolvedPair]) -> Tuple[CoevolvedPair]:
+        """
+        Record chain binding: distances and maximum distance to be accepted.
+
+        Parameters:
+        - coevolved_pairs (tuple): Coevolved pairs for which distances are calculated.
+
+        Returns:
+        - Tuple of updated CoevolvedPair objects with distance data.
+        """
+        self.structure = self.get_input_pdb()
 
         if not (self.chain_binding_enabled and self.chains_to_bind):
             logging.info("Intrachain connections.")
-            # Parallelize intrachain calculations
             results = Parallel(n_jobs=self.n_jobs)(
                 delayed(self._calculate_intrachain_dist)(pair)
                 for pair in coevolved_pairs
             )
             return tuple(results)
 
-        # Parallelize interchain calculations for homomer pairs
         results = Parallel(n_jobs=self.n_jobs)(
             delayed(self._calculate_interchain_dist)(pair)
             for pair in coevolved_pairs
@@ -429,7 +477,16 @@ class ChainBinder:
 
         return tuple(results)
 
-    def _calculate_intrachain_dist(self, pair: CoevolvedPair):
+    def _calculate_intrachain_dist(self, pair: CoevolvedPair) -> CoevolvedPair:
+        """
+        Calculate distances for intrachain interactions.
+
+        Parameters:
+        - pair (CoevolvedPair): The coevolved pair for distance calculation.
+
+        Returns:
+        - Updated CoevolvedPair with distance data.
+        """
         pair.dist_cutoff = self.max_interact_dist
         dist = self._get_dist(
             chain_1=self.design_chain_id,
@@ -443,7 +500,16 @@ class ChainBinder:
             )
         return pair
 
-    def _calculate_interchain_dist(self, pair: CoevolvedPair):
+    def _calculate_interchain_dist(self, pair: CoevolvedPair) -> CoevolvedPair:
+        """
+        Calculate distances for interchain interactions.
+
+        Parameters:
+        - pair (CoevolvedPair): The coevolved pair for distance calculation.
+
+        Returns:
+        - Updated CoevolvedPair with distance data.
+        """
         pair.dist_cutoff = self.max_interact_dist
         for c1, c2 in itertools.product(self.chains_to_bind, repeat=2):
             dist = self._get_dist(
