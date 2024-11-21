@@ -750,13 +750,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 "ui.header_panel.input.chain_id", chain_ids[0]
             )
 
-            """
-            TODO
-            omegaconf.errors.ConfigKeyError while trying to override
-            a loaded designable sequences dict with another molecule
-            """
             self.bus.set_value(
-                "designable_sequences", self.designable_sequences.as_dict
+                "designable_sequences", self.designable_sequences.as_dict, force_add=True
             )
 
         self.setup_pssm_gremlin_calculator()

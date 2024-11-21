@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
+import omegaconf.errors
 from pymol.Qt import QtWidgets
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
@@ -265,10 +266,17 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         return value
 
-    def set_value(self, cfg_item: str, value: Union[str, List, Dict]) -> None:
+    def set_value(self, cfg_item: str, value: Union[str, List, Dict], force_add:bool=False)-> None:
         # Sets the value of a configuration item.
         if value is not None:
-            OmegaConf.update(self.cfg, cfg_item, value)
+            try:
+                OmegaConf.update(self.cfg, cfg_item, value, force_add=force_add)
+            except omegaconf.errors.ConfigKeyError as e: 
+                raise issues.ConfigureOutofDateError(
+                    "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
+                ) from e
+                
+
 
     def toggle_buttons(
         self,
