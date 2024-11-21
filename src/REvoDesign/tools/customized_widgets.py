@@ -400,7 +400,7 @@ def get_widget_value(widget):
 
 
 def refresh_widget_while_another_changed(
-    trigger_widget_id: str, target_widget_id: str, target_data_group: Dict[str, list]
+    trigger_widget_id: str, target_widget_id: str, target_data_group: Dict[str, tuple]
 ):
 
     from REvoDesign import reload_config_file, ConfigBus

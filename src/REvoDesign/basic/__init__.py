@@ -4,6 +4,7 @@ from .designer import ExternalDesignerAbstract
 from .extensions import FileExtension, FileExtensionCollection
 from .group_registries import GroupRegistryItem
 from .mutate_runner import MutateRunnerAbstract
+from .param_toggle import ParamChangeRegistryItem,ParamChangeRegister
 
 __all__ = [
     "SingletonAbstract",
@@ -12,5 +13,7 @@ __all__ = [
     "ExternalDesignerAbstract",
     "FileExtension",
     'FileExtensionCollection',
-    'GroupRegistryItem'
+    'GroupRegistryItem',
+    'ParamChangeRegistryItem',
+    'ParamChangeRegister'
 ]
