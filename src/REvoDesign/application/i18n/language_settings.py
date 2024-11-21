@@ -12,6 +12,8 @@ from pymol.Qt import QtWidgets
 from ...driver.ui_driver import ConfigBus
 
 self_dir = os.path.dirname(__file__)
+
+# stores all translation files with Qt's Linguist format
 language_dir = os.path.join(self_dir, "..", "..", "UI", "language")
 
 
