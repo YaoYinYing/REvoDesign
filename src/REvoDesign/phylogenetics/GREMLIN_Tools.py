@@ -442,7 +442,7 @@ class GREMLIN_Tools(CitableModules):
         a_pair.png = plot_fp
         return a_pair
 
-    def plot_w_a2a(self) -> tuple[CoevolvedPair,...]:
+    def plot_w_a2a(self) -> tuple[CoevolvedPair, ...]:
         plot_w_fps: List[CoevolvedPair] = []
 
         for n in range(self.topN):
