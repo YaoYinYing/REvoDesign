@@ -20,11 +20,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - feat: `hold_trigger_button` now hold buttons with breathing animation to highlight the clicked button.
+- feat: UI: configuration load&save shortcuts
+  - `Ctrl+S`: save configuration
+  - `Ctrl+Shift+L`: load a new experiment
+  - `Ctrl+Shift+S`: save as a new experiment
+  - `Ctrl+Shift+W`: set working directory
+  - `Ctrl+N`: import PyMOL session
+- test: data: uploaded to `tests/data`
+- `ProfileParserAbstract`: `prefer_lower: bool` attribute for `ParamChangeRegister` to toggle `"ui.header_panel.cmap.reverse_score"`
+- `TestWorker`: `pse_snapshot`: save PyMOL session snapshot when needed.
+- tests: runs: use `pytest-emoji` because why not 😃
 
 
 ### Changed
 - CI:
   - trigger: now on push/pr/release to main
+  - CircleCI: use ubuntu image instead to setup the top-down stuff.
 - Chore: 
   - `FileExtension`: dataclass of file extension
   - `FileExtensionCollection`: collection of file extensions
@@ -32,9 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GroupRegistryItem`: dataclass of widget group value registry item
   - `GroupRegistryCollection` as a tuple collection of `GroupRegistryItem` instances
   - `FileDialog`: to handle file IO dialogs
+  - `ParamChangeRegistryItem`: to handle parameter change btw 2 widgets
+  - `ParamChangeRegister`: to handle parameter change registrations.
   - move `CallableGroupValues` from `ui_driver.py` to `group_register.py`
 - `ClusterRunner`: `ConfigBus` is now not a class variable. Instead, it will be called when needed.
-
+- `EvoMutator`: refactored `ChainBinder` using `biopython`
+- makefile: `black`: now has been aliased to `pre-commit run --all-files`.
 
 ### Fixed
 - scorer: `ddg`: drop `selection="not hetatm"` while creating input pd file.
@@ -47,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - cluster: 
   - ui refreshing interval: 0.15s -> 0.01s
   - mutate&relax now run with progressbar
+- QtTests: now use `KeyDataDuringTests` session fixture to handle data downloading and expanding. Just take, no give back.
+- `GREMLIN_Analyser`: fix Python Bus error on `gremlin_tool.plot_mtx` with `run_worker_thread_with_progress` on M1 Pro Mac.
 
 ### Removed
 - CI: 
@@ -57,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - GHA: test docker images, docker tests
     - dockerhub: test docker image size (with repository deleted)
 - tests: PyMOL pml tests
+
 
 ## [1.7.2] - 2024-11-14
 
@@ -76,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `installed`: whether the designer is installed
   - `scorer_only`: whether the designer is a scorer only
   - `no_need_to_score_wt`: whether the designer does not need to score wild-type
-  - `prefer_lower`: whether the designer prefers lower scores (future use) 
+  - `prefer_lower`: whether the designer prefers lower scores ~~(future use)~~ 
   - `scorer`: accept `mutant: Union[Mutant, RosettaPyProteinSequence]` instead.
   - `parallel_scorer`: 
     - accept `mutants: List[Mutant], nproc:int=2` which
