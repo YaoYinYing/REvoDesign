@@ -565,10 +565,7 @@ class GREMLIN_Analyser:
             progress_bar=self.bus.ui.progressBar,
         )
 
-        plot_mtx_fp = run_worker_thread_with_progress(
-            worker_function=self.gremlin_tool.plot_mtx,
-            progress_bar=self.bus.ui.progressBar,
-        )
+        plot_mtx_fp = self.gremlin_tool.plot_mtx()
 
         try:
             set_widget_value(gridLayout_interact_pairs, plot_mtx_fp)

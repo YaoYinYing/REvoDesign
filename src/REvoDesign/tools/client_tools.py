@@ -47,11 +47,8 @@ class SSLCertificateManager:
         from REvoDesign import set_cache_dir
 
         self.cache_dir: str = set_cache_dir()
-        self.crt_dir: str = (
-            os.path.expanduser("~/.REvoDesign/crts/")
-            if not self.cache_dir
-            else os.path.join(self.cache_dir, "crts")
-        )
+        self.crt_dir: str = os.path.join(self.cache_dir, "crts")
+
         os.makedirs(self.crt_dir, exist_ok=True)
         self.crt_path = os.path.join(self.crt_dir, f"{self.role}.crt")
         self.key_path = os.path.join(self.crt_dir, f"{self.role}.key")

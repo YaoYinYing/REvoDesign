@@ -18,6 +18,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- feat: `hold_trigger_button` now hold buttons with breathing animation to highlight the clicked button.
+
+
+### Changed
+- CI:
+  - trigger: now on push/pr/release to main
+- Chore: 
+  - `FileExtension`: dataclass of file extension
+  - `FileExtensionCollection`: collection of file extensions
+  - refact `REvoDesignFileExtentions` dataclass to `FileExtensionCollection` instances
+  - `GroupRegistryItem`: dataclass of widget group value registry item
+  - `GroupRegistryCollection` as a tuple collection of `GroupRegistryItem` instances
+  - `FileDialog`: to handle file IO dialogs
+  - move `CallableGroupValues` from `ui_driver.py` to `group_register.py`
+- `ClusterRunner`: `ConfigBus` is now not a class variable. Instead, it will be called when needed.
+
+
+### Fixed
+- scorer: `ddg`: drop `selection="not hetatm"` while creating input pd file.
+- cache dir: now followed by `set_cache_dir`
+- `ConfigBus`:`fp_lock`: 
+  - `hold_trigger_button`: add `held` property to buttons that on held.
+  - `fp_lock`: skip to release buttons if `held` property is set and as `True`
+- lint: some `import-outside-toplevel / C0415` issues in `customized_widgets.py` and `mutant_tools.py`
+- lint: some typing hints
+- cluster: 
+  - ui refreshing interval: 0.15s -> 0.01s
+  - mutate&relax now run with progressbar
+
+### Removed
+- CI: 
+  - Workflows:
+    - GHA: test docker image build 
+    - GHA: docker tests
+  - badges: 
+    - GHA: test docker images, docker tests
+    - dockerhub: test docker image size (with repository deleted)
+- tests: PyMOL pml tests
+
 ## [1.7.2] - 2024-11-14
 
 ### Fixed

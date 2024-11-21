@@ -5,9 +5,10 @@ import time
 import warnings
 from typing import List, Mapping, Optional, Tuple, Union
 
+import pandas as pd
 from Bio.Data import IUPACData
 from pymol import cmd
-from RosettaPy.common.mutation import Chain, Mutation, RosettaPyProteinSequence
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, FileExtentions, issues
 from REvoDesign.common.Mutant import Mutant
@@ -28,7 +29,7 @@ protein_letters_3to1 = {
     for k, v in IUPACData.protein_letters_1to3.items()
 }
 
-NOT_ALLOWED_GROUP_ID_PREFIX: Tuple[str] = (
+NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
     "RDPM",
     "multi_design",
     "cep",
@@ -669,13 +670,13 @@ def determine_profile_type(profile_fp: str) -> str:
 
 
 def get_mutant_table_columns(mutfile: str):
-    import pandas as pd
+    filename_bn = os.path.basename(mutfile)
+    filename_ext = filename_bn.split(".")[-1]
 
-    table_extensions = [f".{ext}" for ext, _ in FileExtentions.Mutable.items()]
-
-    if not any(mutfile.lower().endswith(ext) for ext in table_extensions):
+    if not FileExtentions.Mutable.match(filename_ext):
         raise issues.InvalidInputError(
-            f"Invalid file extention {mutfile=}. \nAll available: {table_extensions=}"
+            f"Invalid file extention {mutfile=}. \n"
+            f"All available: {FileExtentions.Mutable.list_dot_ext=}"
         )
 
     elif mutfile.lower().endswith(".txt"):
@@ -689,5 +690,7 @@ def get_mutant_table_columns(mutfile: str):
 
     elif mutfile.lower().endswith(".xlsx") or mutfile.lower().endswith(".xls"):
         mutation_data = pd.read_excel(mutfile)
+    else:
+        raise issues.UnsupportedDataTypeError(f'Unsupported file type for mutant table: {filename_ext}')
 
     return list(mutation_data.columns)

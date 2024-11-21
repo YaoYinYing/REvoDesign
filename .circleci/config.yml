@@ -1,63 +1,60 @@
 version: 2.1
 
-orbs:
-  codecov: codecov/codecov@4.0.1
-
-jobs:
-  build-and-test:
-    parameters:
-      python-version:
-        type: string
-        default: "3.9"
+# Define reusable executor with Miniconda setup
+executors:
+  conda-executor:
     docker:
-      - image: yaoyinying/revodesign-test-image:py<< parameters.python-version >>-latest
+      - image: continuumio/miniconda3:latest
     environment:
-      DISPLAY: ':99.0'
+      DISPLAY: ':99.0'  # Added environment variable
+      PATH: "/opt/conda/bin:$PATH"
+
+# Define reusable commands
+commands:
+  setup-miniconda:
+    parameters:
+      python_version:
+        type: string
     steps:
-      - checkout
-      
       - run:
-          name: Start Display
+          name: Set up Miniconda
+          command: |
+            conda update -n base -c defaults conda -y
+            conda create -n test-env python<<parameters.python_version>> -y
+            echo "source activate test-env" >> ~/.bashrc
+            source activate test-env
+
+  run-make-tasks:
+    steps:
+      - run:
+          name: Run Installation
           command: |
             make setup-display
-
-      - run:
-          name: Setup Environment for << parameters.python-version >>
-          command: |
-            source activate REvoDesign
-
-      - run:
-          name: Install REvoDesign
-          command: |
-            source activate REvoDesign
+            conda install -c conda-forge pymol-open-source -y
             make install
-
+            make prepare-test
       - run:
-          name: Run Unit Tests
+          name: Run Test
           command: |
-            source activate REvoDesign
             make all-test
 
-      - run:
-          name: Generate Coverage Report
-          command: |
-            source activate REvoDesign
-            coverage xml
-
-      - codecov/upload:
-          file: coverage.xml
-
-      - run:
-          name: Clean Up
-          command: |
-            make clean
-
+jobs:
+  test-python:
+    executor: conda-executor
+    parameters:
+      python_version:
+        type: string
+    steps:
+      - checkout
+      - setup-miniconda:
+          python_version: <<parameters.python_version>>
+      - run-make-tasks
 
 workflows:
   version: 2
   test:
     jobs:
-      - build-and-test:
+      - test-python:
           matrix:
             parameters:
-              python-version: ["3.9", "3.10", "3.11", "3.12"]
+              python_version: ["3.9", "3.10", "3.11", "3.12"]

@@ -1,16 +1,13 @@
-name: Unit Test on tagging
+name: Bare Tests
 
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '.CHANGELOG.md' 
-      - '.pyproject.toml' 
-      - 'REvoDesign/__version__.py'
-      - '.github/workflows/unit_tests_tag.yml'
-      
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
 
 env: 
   conda_env: REvoDesign
@@ -26,11 +23,16 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
-        include:
-          - os: windows-latest
-            python-version: "3.11"
+          - "3.12"
+        # include:
+        #   - os: windows-latest
+        #     python-version: "3.11"
 
     runs-on: ${{ matrix.os }}
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
     env:
       OS: ${{ matrix.os }}

@@ -1,63 +1,83 @@
-from dataclasses import dataclass
+'''
+File extensions used in REvoDesign
+'''
+from ..basic import FileExtension as Ext
+from ..basic import FileExtensionCollection as ExtColl
 
-from immutabledict import immutabledict
-
-
-@dataclass(frozen=True)
-class REvoDesignFileExtentions:
-    Session: immutabledict = immutabledict(
-        {
-            "pze": "PZE file",
-            "pse": "PSE file",
-        }
+Session = ExtColl(
+    (
+        Ext("pze", "Compressed PyMOL Session"),
+        Ext("pse", "PyMOL Session"),
+    ),
+)
+Mutable = ExtColl(
+    (
+        Ext("txt", "Text file"),
+        Ext("mut.txt", "Text file"),
+        Ext("csv", "CSV file"),
+        Ext("tsv", "TSV file"),
+        Ext("xlsx", "Microsoft Excel (modern) file"),
+        Ext("xls", "Microsoft Excel (legacy) file"),
     )
 
-    Mutable: immutabledict = immutabledict(
-        {
-            "txt": "Mutagenesis table file",
-            "mut.txt": "Mutagenesis table file",
-            "csv": "Scored Mutagenesis table file",
-            "tsv": "Scored Mutagenesis table file",
-            "xlsx": "Scored Mutagenesis table file",
-            "xls": "Scored Mutagenesis table file",
-        }
+)
+PDB = ExtColl(
+    (
+        Ext("pdb", "Protein Data Bank format file"),
+        Ext("ent", "Protein Data Bank format file"),
+        Ext("cif", "Crystallographic Information File"),
+        Ext("mmcif", "Macromolecular Crystallographic Information File"),
     )
-    PDB: immutabledict = immutabledict({"pdb": "PDB File"})
-
-    PSSM: immutabledict = immutabledict(
-        {"csv": "CSV file", "pssm": "Raw PSSM file"}
+)
+MOL = ExtColl(
+    (
+        Ext("mol", "Mol2 file"),
+        Ext("sdf", "SDF file"),
     )
+)
 
-    TXT: immutabledict = immutabledict({"txt": "TXT"})
-
-    # a hack of file extension filter, to enable those without explicit extension
-    Any: immutabledict = immutabledict({"* *": "Any file"})
-
-    Compressed: immutabledict = immutabledict(
-        {
-            "zip": "ZIP archive",
-            "tar.gz": "Tarball (TAR.GZ)",
-            "tgz": "Tarball (TGZ)",
-            "tar.bz2": "Tarball (TAR.BZ2)",
-            "tbz": "Tarball (TBZ)",
-            "tar.xz": "Tarball (TAR.XZ)",
-        }
+PSSM = ExtColl(
+    (
+        Ext("csv", "CSV file"),
+        Ext("pssm", "Raw PSSM file"),
     )
-
-    PickledObject: immutabledict = immutabledict(
-        {"pkl": "Dumpped Pickle Object"}
+)
+MSA = ExtColl(
+    (
+        Ext("fas", "MSA in FASTA"),
+        Ext("fasta", "MSA in FASTA"),
+        Ext("a3m", "MSA in A3M from HH-suite"),
     )
-
-    MSA: immutabledict = immutabledict(
-        {
-            "fas": "MSA in FASTA",
-            "fasta": "MSA in FASTA",
-            "a3m": "MSA in A3M from HH suite",
-        }
+)
+TXT = ExtColl(
+    (
+        Ext("txt", "Text file"),
     )
+)
 
-    YAML: immutabledict = immutabledict(
-        {
-            "yaml": "Config file in YAML",
-        }
+# a hack of file extension filter, to enable those without explicit extension
+Any = ExtColl(
+    (
+        Ext("* *", "Any file"),
     )
+)
+Compressed = ExtColl(
+    (
+        Ext("zip", "ZIP archive"),
+        Ext("tar.gz", "Tarball (TAR.GZ)"),
+        Ext("tgz", "Tarball (TGZ)"),
+        Ext("tar.bz2", "Tarball (TAR.BZ2)"),
+        Ext("tbz", "Tarball (TBZ)"),
+        Ext("tar.xz", "Tarball (TAR.XZ)"),
+    )
+)
+PickledObject = ExtColl(
+    (
+        Ext("pkl", "Dumpped Pickle Object"),
+    )
+)
+YAML = ExtColl(
+    (
+        Ext("yaml", "Config file in YAML"),
+    )
+)

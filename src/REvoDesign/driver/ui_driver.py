@@ -1,24 +1,21 @@
-import os
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
-import matplotlib
-from Bio.Align import substitution_matrices
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
-from pymol.Qt import QtGui, QtWidgets  # type: ignore
-from RosettaPy.node import NodeHintT
+import omegaconf.errors
+from pymol.Qt import QtWidgets
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModules
 from REvoDesign.logger import root_logger
-from REvoDesign.tools.customized_widgets import (create_cmap_icon,
-                                                 get_widget_value,
+from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
-from .widget_link import PushButtons,Config2WidgetIds
+from .group_register import GroupRegistryCollection
+from .widget_link import Config2WidgetIds, PushButtons
 
 logging = root_logger.getChild(__name__)
 
@@ -79,25 +76,25 @@ class ConfigBus(SingletonAbstract, CitableModules):
     def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
 
-        for widget_id, group_cfgs in self.w2c.group_register.items():
+        for i, gr in enumerate(GroupRegistryCollection):
             group_values = []
-            widget = self.get_widget_from_id(widget_id=widget_id)
+            widget = self.get_widget_from_id(widget_id=gr.cfg_item)
             if isinstance(widget, str):
-                raise TypeError("widget cannot be string")
+                raise TypeError(f"widget cannot be string: {gr.cfg_item}")
 
             # digest the string to values
-            for j, group_cfg in enumerate(group_cfgs):
+            for j, group_cfg in enumerate(gr.group_generators):
                 if callable(group_cfg):
                     values = group_cfg()
                 else:
                     logging.debug(
-                        f"Group {j} of widget {widget_id} does not return any values"
-                    ) 
+                        f"Group {j} of widget {gr.cfg_item} does not return any values"
+                    )
                     continue
-                
+
                 # exclude blank string, blank list, or blank tuple
                 if not values:
-                    logging.debug(f"Group {j} of widget {widget_id} is empty: {values}")
+                    logging.debug(f"Group {j} of widget {gr.cfg_item} is empty: {values}")
                     continue
 
                 if isinstance(values, (list, tuple)):
@@ -114,12 +111,12 @@ class ConfigBus(SingletonAbstract, CitableModules):
                         group_values.update(values)
 
             if not group_values:
-                logging.debug(f"No values found for widget {widget_id}")
+                logging.debug(f"No values found for widget {gr.cfg_item}")
                 continue
 
             set_widget_value(widget, group_values)
 
-            default_cfg_item = self.w2c.find_config_item(widget_id=widget_id)
+            default_cfg_item = self.w2c.find_config_item(widget_id=gr.cfg_item)
             if default_cfg_item:
                 self.restore_widget_value(default_cfg_item)
 
@@ -162,8 +159,10 @@ class ConfigBus(SingletonAbstract, CitableModules):
                     f"{widget} {type(widget)} is not supported yet"
                 )
 
-    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:  # type: ignore
+    def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its ID.
+        if widget_id not in self.w2c.widget_id2widget_map:
+            raise KeyError(f"{widget_id} is not in the widget map")
 
         return self.w2c.widget_id2widget_map.get(widget_id)
 
@@ -204,7 +203,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
             # record error then re-raise it
             logging.error(f'Error in the configuration item: {cfg_item}: {e}')
             raise ValueError(
-                "Error in the configuration item: {}".format(cfg_item)
+                f"Error in the configuration item: {cfg_item}"
             ) from e
 
         if converter:
@@ -236,7 +235,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         converter: Union[Callable, Any] = None,
         reject_none: bool = False,
         default_value: Any = None,
-    ):
+    ) -> Optional[Any]:
         # Retrieves the value of a configuration item, with optional type casting.
         value = OmegaConf.select(self.cfg, cfg_item)
 
@@ -267,14 +266,21 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         return value
 
-    def set_value(self, cfg_item: str, value: Union[str, List, Dict]) -> None:
+    def set_value(self, cfg_item: str, value: Union[str, List, Dict], force_add:bool=False)-> None:
         # Sets the value of a configuration item.
         if value is not None:
-            OmegaConf.update(self.cfg, cfg_item, value)
+            try:
+                OmegaConf.update(self.cfg, cfg_item, value, force_add=force_add)
+            except omegaconf.errors.ConfigKeyError as e: 
+                raise issues.ConfigureOutofDateError(
+                    "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
+                ) from e
+                
+
 
     def toggle_buttons(
         self,
-        button_ids: Union[List[str], Tuple[str]],
+        button_ids: tuple[str, ...],
         set_enabled: bool = False,
     ):
         # Toggles the enabled state of a list of buttons.
@@ -283,20 +289,17 @@ class ConfigBus(SingletonAbstract, CitableModules):
         for button in buttons:
             if not button:
                 continue
+            # Check for 'held' property, defaulting to False if the property doesn't exist
+            if button.property("held"):
+                continue
             button.setEnabled(set_enabled)
 
     def fp_lock(
         self,
-        cfg_fps: Union[list, tuple, str],
-        buttons_id_to_release: Union[list, tuple, str],
+        cfg_fps: tuple[str, ...],
+        buttons_id_to_release: tuple[str, ...],
     ):
         # Locks or unlocks buttons based on the existence of file paths in the configuration.
-        if isinstance(cfg_fps, str):
-            cfg_fps = tuple([cfg_fps])
-
-        if not isinstance(buttons_id_to_release, (list, tuple)):
-            buttons_id_to_release = [buttons_id_to_release]
-
         self.toggle_buttons(
             button_ids=buttons_id_to_release, set_enabled=False
         )
@@ -314,7 +317,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=True)
 
-    def button(self, button_id: str) -> QtWidgets.QPushButton: # type: ignore
+    def button(self, button_id: str) -> QtWidgets.QPushButton:  # type: ignore
         """Retrieves a button widget based on its ID.
 
         Args:
@@ -326,13 +329,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         assert button_id in self.w2c.run_button_ids
         return self.w2c.push_buttons.get(button_id)
 
-    def buttons(self, button_ids: tuple[str]) -> tuple[
-        Union[
-            QtWidgets.QPushButton,
-            None,
-        ],
-        ...,
-    ]:
+    def buttons(self, button_ids: tuple[str, ...]) -> tuple[QtWidgets.QPushButton, ...]:  # type: ignore
         """Retrieves all button widgets based on its ID.
 
         Args:
@@ -366,8 +363,6 @@ class Widget2ConfigMapper:
 
     Attributes:
         ui (QtWidgets.QWidget): The main UI widget of the application.
-        group_register (immutabledict[str, Tuple[Callable]]): A mapping of widget IDs to configuration items
-            or callable functions.
         run_button_ids (tuple[str]): A tuple of IDs for buttons that trigger actions.
         push_buttons (immutabledict): A mapping of button IDs to button widgets.
         c2wi (Config2WidgetIds): An instance of the Config2WidgetIds class.
@@ -384,41 +379,6 @@ class Widget2ConfigMapper:
 
     def __init__(self, ui):
         self.ui = ui
-
-        self.group_register: immutabledict[str, Tuple[Callable]] = (
-            immutabledict(
-                {
-                    # Header
-                    "comboBox_cmap": (CallableGroupValues.list_color_map,),
-                    # Tab Cluster
-                    "comboBox_cluster_matrix": (
-                        CallableGroupValues.list_score_matrix,
-                    ),
-                    # Tab Config
-                    "comboBox_sidechain_solver": (
-                        CallableGroupValues.list_installed_mutate_runners,
-                    ),
-                    # Tab Mutate
-                    "comboBox_profile_type": (
-                        CallableGroupValues.list_all_profile_parsers,
-                        CallableGroupValues.list_all_designers,
-                    ),
-                    # Tab Visualize
-                    "comboBox_profile_type_2": (
-                        CallableGroupValues.list_all_profile_parsers,
-                        CallableGroupValues.list_all_scorers,
-                    ),
-                    # Tab Interact
-                    "comboBox_external_scorer": (
-                        CallableGroupValues.list_some_blanks,
-                        CallableGroupValues.list_all_scorers,
-                    ),
-                    "comboBox_rosetta_node_hint": (
-                        CallableGroupValues.list_all_rosetta_node_hints,
-                    ),
-                }
-            )
-        )
 
         self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
         self.push_buttons: immutabledict = immutabledict(
@@ -457,11 +417,11 @@ class Widget2ConfigMapper:
         """
         for attr in dir(self.ui):
             if (
-                isinstance(getattr(self.ui, attr), widget_type)
+                isinstance(found_widget:=getattr(self.ui, attr), widget_type)
                 and attr == name
             ):
-                logging.debug(f"Found widget with {name=}: {attr=}")
-                return getattr(self.ui, attr)
+                logging.debug(f"Found widget by name: {attr=}")
+                return found_widget
 
         layouts = [
             layout_widget
@@ -471,23 +431,27 @@ class Widget2ConfigMapper:
 
         for layout_name in layouts:
             layout = getattr(self.ui, layout_name)
+            
+            if not hasattr(layout, "findChild"):
+                continue
+
             logging.debug(f"Searching {layout_name=}: {dir(layout)=}")
-            if hasattr(layout, "findChild"):
-                if widget := layout.findChild(widget_type, name):
-                    # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
-                    logging.debug(
-                        f"Found child with {name=} {widget=} in {layout}: {layout_name=}"
-                    )
-                    return widget
+            if found_widget := layout.findChild(widget_type, name):
+                # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
+                logging.debug(
+                    f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}"
+                )
+                return found_widget
+            
             for attr in dir(layout):
                 if (
-                    isinstance(getattr(layout, attr), widget_type)
+                    isinstance((found_widget:=getattr(layout, attr)), widget_type)
                     and attr == name
                 ):
                     logging.debug(
-                        f"Found widget with {name=}: {attr=} in {layout}: {layout_name=}"
+                        f"Found widget with by name in {layout}: {attr=}: {layout_name=}"
                     )
-                    return getattr(layout, attr)
+                    return found_widget
 
         raise issues.UnknownWidgetError(
             f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
@@ -524,84 +488,3 @@ class Widget2ConfigMapper:
         )
         assert isinstance(widget, QtWidgets.QWidget)
         return widget
-
-
-class CallableGroupValues:
-    """
-    This class provides static methods to generate dynamic values for group configuration items.
-
-    Methods:
-        score_matrix(): Returns a list of available score matrices.
-        ColorMap(): Returns a dictionary of available color maps.
-    """
-
-    @staticmethod
-    def list_some_blanks(n=1) -> List[str]:
-        return [''] * n
-
-    @staticmethod
-    def list_score_matrix() -> List:
-        score_matrix = [
-            mtx
-            for mtx in os.listdir(
-                os.path.join(substitution_matrices.__path__[0], "data")  # type: ignore
-            )
-        ]
-        return score_matrix
-
-    @staticmethod
-    def list_color_map() -> Dict:
-        cmap_group = {
-            _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
-            for _cmap in matplotlib.colormaps()
-        }
-        return cmap_group
-
-    @staticmethod
-    def list_installed_mutate_runners() -> List[str]:
-        from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
-
-        return [c.name for c in all_runner_c if c.installed]
-
-    @staticmethod
-    def list_all_profile_parsers() -> List[str]:
-        from REvoDesign.common.ProfileParsers import all_parser_classes
-
-        return [p.name for p in all_parser_classes]
-
-    @staticmethod
-    def list_all_designers() -> List[str]:
-        from REvoDesign.external_designer import all_designer_classes
-
-        return [
-            dc.name
-            for dc in all_designer_classes
-            if dc.installed and not dc.scorer_only
-        ]
-
-    @staticmethod
-    def list_all_scorers() -> List[str]:
-        from REvoDesign.external_designer import all_designer_classes
-
-        return [dc.name for dc in all_designer_classes if dc.installed]
-
-    @staticmethod
-    def list_all_rosetta_node_hints() -> List[str]:
-
-        from REvoDesign.external_designer.designers.cart_ddg import \
-            is_run_node_available
-
-        node_hints: List[NodeHintT] = [
-            "native",
-            "docker",
-            "docker_mpi",
-            "mpi",
-            "wsl",
-            "wsl_mpi",
-        ]
-
-        available_run_node_hints = [
-            n for n in node_hints if is_run_node_available(n)
-        ]
-
-        return available_run_node_hints

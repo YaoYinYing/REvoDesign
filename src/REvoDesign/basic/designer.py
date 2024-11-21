@@ -4,9 +4,8 @@ from typing import Any, List, Union
 from joblib import Parallel, delayed
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign.common.Mutant import Mutant
-
 from REvoDesign.citations import CitableModules
+from REvoDesign.common.Mutant import Mutant
 
 
 class ExternalDesignerAbstract(CitableModules):

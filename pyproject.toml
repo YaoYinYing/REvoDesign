@@ -84,6 +84,7 @@ test = [
     "pytest-runner",
     "pytest<=8.3.3",
     "pytest-order",
+    "pytest-emoji",
     "pytest-github-actions-annotate-failures",
     "shellcheck-py==0.10.0.1",
     "pre-commit",

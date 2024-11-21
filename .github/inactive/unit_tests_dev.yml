@@ -1,4 +1,4 @@
-name: Test Badge
+name: Unit Test in docker
 
 on:
   workflow_dispatch:
@@ -15,13 +15,20 @@ on:
         default: false
   push:
     paths:
-      - '.github/workflows/badge-test.yml' # monitor the main workflow script.
-    branches:
-        - main
-        - py312
+      - '.github/workflows/unit_tests_dev.yml' # monitor the main workflow script.
+      - 'tests/*.py' # monitor the unit tests
+      - 'REvoDesign/*' # monitor the REvoDesign project source code
+      - '!CHANGELOG.md' 
+      - '!REvoDesign/__version__.py'
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
 
 env:
-  lint-python-version: '3.11'
+  lint-python-version: '3.11'        
+
 jobs:
   DevTests:
     strategy:
@@ -35,20 +42,21 @@ jobs:
           # - use github-hosted runners
           - 'ubuntu-latest'
         python-version: 
+          - "3.9"
+          - "3.10"
           - "3.11"
-
+          - "3.12"
 
     runs-on: ${{ matrix.os }}
+  
     outputs:
       linted: ${{steps.skip-lint.outputs.linted }}
       lint-svg-url: ${{ steps.pylint-scanning.outputs.svg_link}}
       lint-markdown: ${{ steps.pylint-scanning.outputs.markdown_text}}
       lint-svg-path: ${{ steps.pylint-scanning.outputs.expected_badge_file}}
-      
+
     container: 
       image: yaoyinying/revodesign-test-image:py${{ matrix.python-version }}-${{ inputs.imageTag || 'latest' }}
-      # https://github.com/actions/runner/issues/2033#issuecomment-1598547465
-      # options: --user 1001 # not work :-(
 
     env:
       OS: ${{ matrix.os }}
@@ -71,21 +79,37 @@ jobs:
         run: |
           source activate REvoDesign
           make setup-display
-
+      
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           source activate REvoDesign
-          make install-no-dept
-
+          make install
       - 
         name: Set ownership
         run: |
           # this is to fix GIT not liking owner of the checkout dir
           # https://github.com/actions/runner/issues/2033#issuecomment-1204205989
           chown -R $(id -u):$(id -g) $PWD
-          echo linted=1 >> $GITHUB_OUTPUT
         shell: bash
       
+      - name: Full Unit Test on Ubuntu
+        env:
+          REVODESIGN_USERS: ${{ secrets.REVODESIGN_USERS }}
+          REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
+
+        run: |
+          source activate REvoDesign
+          make prepare-test
+          conda info
+          conda list
+          make all-test
+          make pymol-test
+      
+      - name: Convert coverage report to XML for codecov
+        run: |
+          source activate REvoDesign
+          coverage xml
+
       - name: Skipped linting
         id: skip-lint
         run: |

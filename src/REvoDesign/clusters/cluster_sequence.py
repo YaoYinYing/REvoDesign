@@ -188,7 +188,7 @@ class Clustering(CitableModules):
 
                     while not parallel_executor.isFinished():
                         refresh_window()
-                        time.sleep(0.15)
+                        time.sleep(0.01)
 
                     progressbar.setValue(batch_count)
 
