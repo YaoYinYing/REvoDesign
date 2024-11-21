@@ -27,6 +27,7 @@ from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 
 from .data import TestData
+from.data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -338,38 +339,7 @@ class TestWorker:
             in self.test_data.used_molecules
         )
 
-    def download_file(self, url, md5):
-        expected_downloaded_file = os.path.join(
-            self.DOWNLOAD_DIR, os.path.basename(url)
-        )
-        import pooch
-
-        if not os.path.exists(expected_downloaded_file):
-            pooch.retrieve(
-                url=url,
-                known_hash=md5,
-                progressbar=True,
-                path=self.DOWNLOAD_DIR,
-                fname=os.path.basename(url),
-            )
-
-            assert os.path.exists(expected_downloaded_file)
-        return expected_downloaded_file
-
-    def expand_zip(self, compressed_file):
-        sub_dirname = os.path.basename(compressed_file).split(".")[0]
-        dist_dir = os.path.join(self.EXPANDED_DIR, sub_dirname)
-        os.makedirs(dist_dir, exist_ok=True)
-
-        expanded_dirs = os.listdir(dist_dir)
-        if not expanded_dirs:
-            import zipfile
-
-            with zipfile.ZipFile(compressed_file, mode="r") as z:
-                z.extractall(path=dist_dir)
-
-        extracted_files = os.listdir(dist_dir)
-        return dist_dir, extracted_files
+    
 
     @property
     def existed_mutant_tree(self) -> MutantTree:
@@ -515,6 +485,10 @@ def test_worker(
     yield w
     request.addfinalizer(final_action)
 
+
+@pytest.fixture(scope="session")
+def KeyDataDuringTests():
+    return KeyData()
 
 # mocks on qt widgets
 

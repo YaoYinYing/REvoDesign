@@ -1,6 +1,8 @@
 import os
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Optional, Tuple
+
+import pytest
 
 
 @dataclass
@@ -253,18 +255,126 @@ class TestData:
 
 
 @dataclass
-class KeyDataDuringTests:
-    pocket_files: list[str] = None
-    hetatm_pocket_sele: str = None
-    design_shell_file: str = None
-    surface_file: str = None
-    pssm_file: str = None
-    gremlin_pkl_fp: str = None
-    mutant_file: str = None
-    minimum_mutant_file: str = None
-    ddg_file: str = None
-    evaluate_pse_path: str = None
-    gremlin_pkl_fp_homomer: str = None
+class KeyData:
+    hetatm_pocket_sele: str= 'pkt_hetatm_8.0_01'
+    design_shell_file: str='../tests/data/pockets/1SUO_design_shell_CPZ_8.0_01_residues.txt'
+    surface_file: str='../tests/data/surface_residue_records/1SUO_residues_cutoff_30.0.txt'
+    pssm_file: str=None  # type: ignore
+    gremlin_pkl_fp: Optional[str]=None
+    mutant_file: str='../tests/data/mutagenese/evaluate_pssm_ent_surf.besthits.mut.txt'
+    minimum_mutant_file: str='../tests/data/mutagenese/evaluate_pssm_ent_surf.mannual.mut.txt'
+    ddg_file: str='../tests/data/pytia_ddg/1SUO_pred_mask.csv'
+    evaluate_pse_path: str=None # type: ignore
+    gremlin_pkl_fp_homomer: str=None # type: ignore
+
+
+    DOWNLOAD_DIR = os.path.abspath("../tests/downloaded")
+    EXPANDED_DIR = os.path.abspath(
+            "../tests/expanded_compressed_files"
+        )
+
+
+    def ensure_evaluate_pse_path(self):
+        pse_path = self.download_file(
+            url=TestData.EVALUATION_PSE_URL,
+            md5=TestData.EVALUATION_PSE_MD5,
+        )
+        
+        self.evaluate_pse_path = pse_path
+
+    def ensure_pssm(self):
+        expected_downloaded_file = self.download_file(
+            url=TestData.PSSM_GREMLIN_DATA_URL,
+            md5=TestData.PSSM_GREMLIN_DATA_MD5,
+        )
+
+        dist_dir, expanded_files = self.expand_zip(
+            compressed_file=expected_downloaded_file
+        )
+
+        assert expanded_files
+        pssm_file = os.path.join(
+            dist_dir,
+            "pssm_msa",
+            f"{TestData.molecule}_{TestData.chain_id}_ascii_mtx_file",
+        )
+        assert os.path.exists(pssm_file)
+
+        self.pssm_file = pssm_file
+
+
+    def ensure_gremlin_monomer_data(self):
+        gremlin_pkl_fp = os.path.join(
+            self.EXPANDED_DIR,
+            f"{TestData.molecule}_{TestData.chain_id}_PSSM_GREMLIN_results",
+            "gremlin_res",
+            f"{TestData.molecule}_{TestData.chain_id}.i90c75_aln.GREMLIN.mrf.pkl",
+        )
+
+        
+        self.gremlin_pkl_fp = gremlin_pkl_fp
+
+    def ensure_gremlin_homomer_data(self):
+        zipped = self.download_file(
+            url=TestData.gremlin_homomer_profile_url,
+            md5=TestData.gremlin_homomer_profile_md5,
+        )
+
+        dist_dir, extracted_files = self.expand_zip(
+            compressed_file=zipped
+        )
+
+        gremlin_pkl_fp = os.path.join(
+            dist_dir,
+            "gremlin_res",
+            f"{TestData.gremlin_homomer_molecule}_{TestData.gremlin_homomer_chain}.i90c75_aln.GREMLIN.mrf.pkl",
+        )
+
+    
+        self.gremlin_pkl_fp_homomer = gremlin_pkl_fp
+
+
+    def __post_init__(self):
+        self.ensure_pssm()
+        self.ensure_gremlin_homomer_data()
+        self.ensure_gremlin_monomer_data()
+        self.ensure_evaluate_pse_path()
+
+
+    def download_file(self, url: str, md5: str):
+        expected_downloaded_file = os.path.join(
+            self.DOWNLOAD_DIR, os.path.basename(url)
+        )
+        import pooch
+
+        if not os.path.exists(expected_downloaded_file):
+            pooch.retrieve(
+                url=url,
+                known_hash=md5,
+                progressbar=True,
+                path=self.DOWNLOAD_DIR,
+                fname=os.path.basename(url),
+            )
+
+            assert os.path.exists(expected_downloaded_file)
+        return expected_downloaded_file
+
+    def expand_zip(self, compressed_file: str):
+        sub_dirname = os.path.basename(compressed_file).split(".")[0]
+        dist_dir = os.path.join(self.EXPANDED_DIR, sub_dirname)
+        os.makedirs(dist_dir, exist_ok=True)
+
+        expanded_dirs = os.listdir(dist_dir)
+        if not expanded_dirs:
+            import zipfile
+
+            with zipfile.ZipFile(compressed_file, mode="r") as z:
+                z.extractall(path=dist_dir)
+
+        extracted_files = os.listdir(dist_dir)
+        return dist_dir, extracted_files
+
+
 
 
 @dataclass()

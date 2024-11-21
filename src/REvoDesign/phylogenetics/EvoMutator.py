@@ -5,7 +5,7 @@ import traceback
 import warnings
 from dataclasses import dataclass
 from functools import partial
-from typing import List, Literal, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 from immutabledict import immutabledict
 from joblib import Parallel, delayed
@@ -512,7 +512,9 @@ class GREMLIN_Analyser:
             logging.error(
                 "Could not run GREMLIN tools. Please check your configuration"
             )
-            return
+            raise issues.InvalidInputError(
+                f"GREMLIN MRF file {gremlin_mrf_fp} does not exist."
+            )
 
         pushButton_run_interact_scan = self.bus.button("run_interact_scan")
         gridLayout_interact_pairs = self.bus.ui.gridLayout_interact_pairs
@@ -1048,7 +1050,7 @@ class GREMLIN_Analyser:
         )
 
     @staticmethod
-    def show_mutant(mutant_id: str, group_id: str = None):
+    def show_mutant(mutant_id: str, group_id: Optional[str] = None):
         cmd.enable(mutant_id)
         cmd.show(
             "sticks",
