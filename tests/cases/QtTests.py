@@ -9,7 +9,9 @@ from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 
-from ..data.test_data import KeyDataDuringTests
+from ..data.test_data import KeyData
+
+from ..conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -32,7 +34,7 @@ class TestREvoDesignPlugin:
 
 
 class TestREvoDesignPlugin_TabPrepare:
-    def test_load_molecule(self, test_worker):
+    def test_load_molecule(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check(from_rcsb=True)
         test_worker.go_to_tab(tab_name="prepare")
@@ -44,7 +46,7 @@ class TestREvoDesignPlugin_TabPrepare:
         test_worker.save_pymol_png(basename=test_worker.test_id)
         test_worker.save_new_experiment()
 
-    def test_pocket(self, test_worker):
+    def test_pocket(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check(from_rcsb=True)
         test_worker.go_to_tab(tab_name="prepare")
@@ -82,9 +84,6 @@ class TestREvoDesignPlugin_TabPrepare:
             fn for fn in pocket_files if "design_shell" in fn
         ][0]
 
-        KeyDataDuringTests.design_shell_file = os.path.join(
-            pocket_file_dir, os.path.basename(pocket_file_design_shell)
-        )
 
         assert pocket_file_design_shell is not None
 
@@ -96,8 +95,9 @@ class TestREvoDesignPlugin_TabPrepare:
             basename=test_worker.test_id, spells="orient hetatm"
         )
         test_worker.save_new_experiment()
+        test_worker.pse_snapshot('fin')
 
-    def test_surface(self, test_worker):
+    def test_surface(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="prepare")
@@ -112,8 +112,6 @@ class TestREvoDesignPlugin_TabPrepare:
             if "pkt_hetatm_" in sel
         ][0]
         assert hetatm_residues
-
-        KeyDataDuringTests.hetatm_pocket_sele = hetatm_residues
 
         test_worker.do_typing(
             test_worker.plugin.ui.comboBox_surface_exclusion, hetatm_residues
@@ -152,9 +150,6 @@ class TestREvoDesignPlugin_TabPrepare:
 
         assert surface_file_design_shell is not None
 
-        KeyDataDuringTests.surface_file = os.path.join(
-            surface_dir, os.path.basename(surface_file_design_shell)
-        )
 
         with open(surface_file_design_shell) as ss_fr:
             surface_residue_ids = ss_fr.read().strip()
@@ -168,32 +163,16 @@ class TestREvoDesignPlugin_TabPrepare:
             basename=test_worker.test_id, spells="center"
         )
         test_worker.save_new_experiment()
+        test_worker.pse_snapshot('fin')
 
 
 class TestREvoDesignPlugin_TabMutate:
-    def test_pssm_ent_surf(self, test_worker):
+    def test_pssm_ent_surf(self, test_worker: TestWorker,KeyDataDuringTests:KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="mutate")
 
-        expected_downloaded_file = test_worker.download_file(
-            url=test_worker.test_data.PSSM_GREMLIN_DATA_URL,
-            md5=test_worker.test_data.PSSM_GREMLIN_DATA_MD5,
-        )
-
-        dist_dir, expanded_files = test_worker.expand_zip(
-            compressed_file=expected_downloaded_file
-        )
-
-        assert expanded_files
-        pssm_file = os.path.join(
-            dist_dir,
-            "pssm_msa",
-            f"{test_worker.test_data.molecule}_{test_worker.test_data.chain_id}_ascii_mtx_file",
-        )
-        assert os.path.exists(pssm_file)
-
-        KeyDataDuringTests.pssm_file = pssm_file
+        pssm_file=KeyDataDuringTests.pssm_file
 
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_csv, pssm_file
@@ -245,6 +224,7 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.save_pymol_png(basename=test_worker.test_id)
 
         test_worker.check_existed_mutant_tree()
+        test_worker.pse_snapshot('fin')
 
     def test_mpnn_surf(self, test_worker):
         test_worker.test_id = test_worker.method_name()
@@ -324,7 +304,7 @@ class TestREvoDesignPlugin_TabMutate:
 
         test_worker.check_existed_mutant_tree()
 
-    def test_ddg_surf_non_biolib_calling(self, test_worker):
+    def test_ddg_surf_non_biolib_calling(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
@@ -335,19 +315,13 @@ class TestREvoDesignPlugin_TabMutate:
         )
         test_worker.go_to_tab(tab_name="mutate")
 
-        local_ddg_file = test_worker.download_file(
-            url=test_worker.test_data.PYTHIA_DDG_CSV_URL,
-            md5=test_worker.test_data.PYTHIA_DDG_CSV_MD5,
-        )
-
-        KeyDataDuringTests.ddg_file = local_ddg_file
-
+        
         test_worker.do_typing(
             test_worker.plugin.ui.comboBox_profile_type,
             test_worker.test_data.ddg_profile_type_local,
         )
         test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_input_csv, local_ddg_file
+            test_worker.plugin.ui.lineEdit_input_csv, KeyDataDuringTests.ddg_file
         )
 
         test_worker.do_typing(
@@ -403,6 +377,8 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.save_pymol_png(basename=test_worker.test_id)
 
         test_worker.check_existed_mutant_tree()
+
+        test_worker.pse_snapshot('fin')
 
     # def test_ddg_surf_biolib_calling(
     #     self, test_worker
@@ -470,7 +446,7 @@ class TestREvoDesignPlugin_TabMutate:
     #         test_worker.check_existed_mutant_tree()
     #         test_worker.save_pymol_png(basename=test_worker.test_id)
 
-    def test_pssm_pocket_design_dunbrack(self, test_worker):
+    def test_pssm_pocket_design_dunbrack(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
@@ -481,24 +457,9 @@ class TestREvoDesignPlugin_TabMutate:
         )
         test_worker.go_to_tab(tab_name="mutate")
 
-        expected_downloaded_file = test_worker.download_file(
-            url=test_worker.test_data.PSSM_GREMLIN_DATA_URL,
-            md5=test_worker.test_data.PSSM_GREMLIN_DATA_MD5,
-        )
+        
 
-        dist_dir, expanded_files = test_worker.expand_zip(
-            compressed_file=expected_downloaded_file
-        )
-
-        assert expanded_files
-        pssm_file = os.path.join(
-            dist_dir,
-            "pssm_msa",
-            f"{test_worker.test_data.molecule}_{test_worker.test_data.chain_id}_ascii_mtx_file",
-        )
-        assert os.path.exists(pssm_file)
-
-        KeyDataDuringTests.pssm_file = pssm_file
+        pssm_file = KeyDataDuringTests.pssm_file
 
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_input_csv, pssm_file
@@ -550,17 +511,21 @@ class TestREvoDesignPlugin_TabMutate:
             basename=test_worker.test_id,
         )
         test_worker.save_pymol_png(basename=test_worker.test_id)
+        test_worker.pse_snapshot('fin')
 
 
 @pytest.mark.order(-1)
 class TestREvoDesignPlugin_TabInteract:
-    def test_gremlin_homomer_all2all(self, test_worker):
+    def test_gremlin_homomer_all2all(self, test_worker:TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
+        
         test_worker.load_session_and_check(
             from_rcsb=True,
             pdb_code=test_worker.test_data.gremlin_homomer_molecule,
             spell=test_worker.test_data.gremlin_homomer_postfetch_spell,
         )
+
+        test_worker.pse_snapshot('loaded')
         test_worker.go_to_tab(tab_name="config")
 
         set_widget_value(
@@ -577,26 +542,9 @@ class TestREvoDesignPlugin_TabInteract:
         _accp = test_worker.plugin.ui.pushButton_interact_accept
         test_worker.plugin.ui.pushButton_interact_reject
 
-        zipped = test_worker.download_file(
-            url=test_worker.test_data.gremlin_homomer_profile_url,
-            md5=test_worker.test_data.gremlin_homomer_profile_md5,
-        )
-
-        dist_dir, extracted_files = test_worker.expand_zip(
-            compressed_file=zipped
-        )
-
-        gremlin_pkl_fp = os.path.join(
-            dist_dir,
-            "gremlin_res",
-            f"{test_worker.test_data.gremlin_homomer_molecule}_{test_worker.test_data.gremlin_homomer_chain}.i90c75_aln.GREMLIN.mrf.pkl",
-        )
-
         set_widget_value(
-            test_worker.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp
+            test_worker.plugin.ui.lineEdit_input_gremlin_mtx, KeyDataDuringTests.gremlin_pkl_fp_homomer
         )
-
-        KeyDataDuringTests.gremlin_pkl_fp_homomer = gremlin_pkl_fp
 
         set_widget_value(
             test_worker.plugin.ui.spinBox_gremlin_topN,
@@ -682,6 +630,7 @@ class TestREvoDesignPlugin_TabInteract:
                     basename=f"{test_worker.test_id}_pair_{operation}",
                 )
                 cmd.orient(test_worker.test_data.gremlin_homomer_molecule)
+                test_worker.pse_snapshot(f'mut_{i}_{operation}')
                 test_worker.save_pymol_png(
                     basename=f"{test_worker.test_id}_interact_pair_{i}_{operation}",
                     focus=False,
@@ -721,18 +670,20 @@ class TestREvoDesignPlugin_TabInteract:
             test_worker.click(_accp)
 
         assert os.path.exists(mutfile)
+        test_worker.pse_snapshot('fin')
 
         del test_worker.plugin.gremlin_worker.gremlin_tool
         del test_worker.plugin.gremlin_worker.coevolved_pairs
         del test_worker.plugin.gremlin_worker
 
-    def test_gremlin_homomer_one2all(self, test_worker):
+    def test_gremlin_homomer_one2all(self, test_worker: TestWorker,KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check(
             from_rcsb=True,
             pdb_code=test_worker.test_data.gremlin_homomer_molecule,
             spell=test_worker.test_data.gremlin_homomer_postfetch_spell,
         )
+        test_worker.pse_snapshot('loaded')
         test_worker.go_to_tab(tab_name="config")
 
         set_widget_value(
@@ -791,6 +742,8 @@ class TestREvoDesignPlugin_TabInteract:
         cmd.select("sele", test_worker.test_data.gremlin_homomer_o2a_sele)
         cmd.enable("sele")
 
+        test_worker.pse_snapshot('sele')
+
         test_worker.click(test_worker.plugin.ui.pushButton_run_interact_scan)
 
         test_worker.sleep(200)
@@ -803,6 +756,8 @@ class TestREvoDesignPlugin_TabInteract:
         test_worker.save_pymol_png(
             basename=f"{test_worker.test_id}_interact_pairs", focus=False
         )
+
+        test_worker.pse_snapshot('check_interacts')
 
         ce_links = [sel for sel in cmd.get_names() if sel.startswith("cep")]
         for sel in ce_links:
@@ -886,7 +841,7 @@ class TestREvoDesignPlugin_TabInteract:
         del test_worker.plugin.gremlin_worker.coevolved_pairs
         del test_worker.plugin.gremlin_worker
 
-    def test_gremlin_all2all(self, test_worker):
+    def test_gremlin_all2all(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
@@ -904,17 +859,10 @@ class TestREvoDesignPlugin_TabInteract:
         _accp = test_worker.plugin.ui.pushButton_interact_accept
         test_worker.plugin.ui.pushButton_interact_reject
 
-        gremlin_pkl_fp = os.path.join(
-            test_worker.EXPANDED_DIR,
-            f"{test_worker.test_data.molecule}_{test_worker.test_data.chain_id}_PSSM_GREMLIN_results",
-            "gremlin_res",
-            f"{test_worker.test_data.molecule}_{test_worker.test_data.chain_id}.i90c75_aln.GREMLIN.mrf.pkl",
-        )
-
+        
         set_widget_value(
-            test_worker.plugin.ui.lineEdit_input_gremlin_mtx, gremlin_pkl_fp
+            test_worker.plugin.ui.lineEdit_input_gremlin_mtx, KeyDataDuringTests.gremlin_pkl_fp
         )
-        KeyDataDuringTests.gremlin_pkl_fp = gremlin_pkl_fp
         set_widget_value(
             test_worker.plugin.ui.spinBox_gremlin_topN,
             test_worker.test_data.gremlin_topN,
@@ -1037,9 +985,10 @@ class TestREvoDesignPlugin_TabInteract:
         del test_worker.plugin.gremlin_worker.coevolved_pairs
         del test_worker.plugin.gremlin_worker
 
-    def test_gremlin_one2all_mpnn_score(self, test_worker):
+    def test_gremlin_one2all_mpnn_score(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
+        test_worker.pse_snapshot('load')
         test_worker.go_to_tab(tab_name="config")
 
         set_widget_value(
@@ -1055,12 +1004,7 @@ class TestREvoDesignPlugin_TabInteract:
         )
         cmd.enable("sele")
 
-        gremlin_pkl_fp = os.path.join(
-            test_worker.EXPANDED_DIR,
-            f"{test_worker.test_data.molecule}_{test_worker.test_data.chain_id}_PSSM_GREMLIN_results",
-            "gremlin_res",
-            f"{test_worker.test_data.molecule}_{test_worker.test_data.chain_id}.i90c75_aln.GREMLIN.mrf.pkl",
-        )
+        test_worker.pse_snapshot('sele')
 
         # buttons
         _next = test_worker.plugin.ui.pushButton_next
@@ -1071,7 +1015,7 @@ class TestREvoDesignPlugin_TabInteract:
 
         set_widget_value(
             test_worker.plugin.ui.lineEdit_input_gremlin_mtx,
-            gremlin_pkl_fp,
+            KeyDataDuringTests.gremlin_pkl_fp,
         )
 
         set_widget_value(
@@ -1097,10 +1041,6 @@ class TestREvoDesignPlugin_TabInteract:
         test_worker.click(
             test_worker.plugin.ui.pushButton_reinitialize_interact
         )
-
-        # assert os.path.exists(test_worker.test_data.visualize_2_pse)
-
-        # test_worker.wait_for_file(file=f'{test_worker.test_data.molecule}_GREMLIN_mtx_zscore.png', interval=100,timeout=20)
 
         test_worker.save_new_experiment()
         test_worker.save_screenshot(
@@ -1195,6 +1135,7 @@ class TestREvoDesignPlugin_TabInteract:
             test_worker.click(_accp)
 
         cmd.orient(test_worker.test_data.molecule)
+        test_worker.pse_snapshot('fin')
 
         assert os.path.exists(mutfile)
 
@@ -1203,25 +1144,18 @@ class TestREvoDesignPlugin_TabInteract:
         del test_worker.plugin.gremlin_worker
 
 
+
 class TestREvoDesignPlugin_TabEvaluate:
-    def test_evaluate_pssm_ent_surf_best_hits(self, test_worker):
+    def test_evaluate_pssm_ent_surf_best_hits(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
-        pse_path = test_worker.download_file(
-            url=test_worker.test_data.EVALUATION_PSE_URL,
-            md5=test_worker.test_data.EVALUATION_PSE_MD5,
-        )
-        test_worker.load_session_and_check(customized_session=pse_path)
         test_worker.go_to_tab(tab_name="evaluate")
+        
 
-        KeyDataDuringTests.evaluate_pse_path = pse_path
 
-        mutagenesis_dir = os.path.abspath("mutagenese")
-        mutant_file = os.path.join(
-            mutagenesis_dir, "evaluate_pssm_ent_surf.besthits.mut.txt"
-        )
-
+        test_worker.load_session_and_check(customized_session=KeyDataDuringTests.evaluate_pse_path)
+        
         test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_output_mut_table, mutant_file
+            test_worker.plugin.ui.lineEdit_output_mut_table, KeyDataDuringTests.mutant_file
         )
         set_widget_value(test_worker.plugin.ui.checkBox_show_wt, True)
 
@@ -1244,7 +1178,7 @@ class TestREvoDesignPlugin_TabEvaluate:
         test_worker.save_pymol_png(basename=test_worker.test_id, focus=False)
 
         assert not test_worker.plugin.evaluator.mutant_tree_pssm_selected.empty
-        with open(mutant_file) as mr:
+        with open(KeyDataDuringTests.mutant_file) as mr:
             picked_mutants = mr.read().strip().split("\n")
 
         picked_mutants = test_worker.non_emtpy_list(picked_mutants)
@@ -1253,23 +1187,15 @@ class TestREvoDesignPlugin_TabEvaluate:
         assert len(picked_mutants) == len(
             test_worker.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
-        KeyDataDuringTests.mutant_file = mutant_file
         test_worker.save_new_experiment()
 
-    def test_evaluate_pssm_ent_surf_mannual_pick(self, test_worker):
+    def test_evaluate_pssm_ent_surf_mannual_pick(self, test_worker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
-        pse_path = test_worker.download_file(
-            url=test_worker.test_data.EVALUATION_PSE_URL,
-            md5=test_worker.test_data.EVALUATION_PSE_MD5,
-        )
-        test_worker.load_session_and_check(customized_session=pse_path)
+        
+        test_worker.load_session_and_check(customized_session=KeyDataDuringTests.evaluate_pse_path)
         test_worker.go_to_tab(tab_name="evaluate")
 
-        mutagenesis_dir = os.path.abspath("mutagenese")
-        mutant_file = os.path.join(
-            mutagenesis_dir, "evaluate_pssm_ent_surf.mannual.mut.txt"
-        )
-
+        mutant_file = KeyDataDuringTests.minimum_mutant_file
         test_worker.do_typing(
             test_worker.plugin.ui.lineEdit_output_mut_table, mutant_file
         )
@@ -1321,12 +1247,11 @@ class TestREvoDesignPlugin_TabEvaluate:
         assert len(picked_mutants) == len(
             test_worker.plugin.evaluator.mutant_tree_pssm_selected.all_mutant_objects
         )
-        KeyDataDuringTests.minimum_mutant_file = mutant_file
         test_worker.save_new_experiment()
 
 
 class TestREvoDesignPlugin_TabCluster:
-    def test_cluster(self, test_worker):
+    def test_cluster(self, test_worker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="cluster")
@@ -1390,7 +1315,7 @@ class TestREvoDesignPlugin_TabVisualize:
     @pytest.mark.skipif(
         not PIPPack_worker.installed, reason="PIPPack not installed"
     )
-    def test_visualize_pssm_ddg(self, test_worker):
+    def test_visualize_pssm_ddg(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
@@ -1451,7 +1376,7 @@ class TestREvoDesignPlugin_TabVisualize:
         assert os.path.exists(test_worker.test_data.visualize_1_pse)
         test_worker.check_existed_mutant_tree()
 
-    def test_visualize_pssm_mpnn(self, test_worker):
+    def test_visualize_pssm_mpnn(self, test_worker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
@@ -1758,14 +1683,8 @@ class TestREvoDesignPlugin_ActionTranslate:
 
 @pytest.mark.order(-2)
 class TestREvoDesignPlugin_TabVisualize_MultiDesign:
-    def test_multiple_design(self, test_worker):
+    def test_multiple_design(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
-
-        if not KeyDataDuringTests.evaluate_pse_path:
-            KeyDataDuringTests.evaluate_pse_path = test_worker.download_file(
-                url=test_worker.test_data.EVALUATION_PSE_URL,
-                md5=test_worker.test_data.EVALUATION_PSE_MD5,
-            )
 
         test_worker.load_session_and_check(
             customized_session=KeyDataDuringTests.evaluate_pse_path
@@ -1822,14 +1741,10 @@ class TestREvoDesignPlugin_TabVisualize_MultiDesign:
 
         assert os.path.exists(test_worker.test_data.multi_mut_txt)
 
-    def test_multiple_design_mpnn_score(self, test_worker):
+    def test_multiple_design_mpnn_score(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
 
-        if not KeyDataDuringTests.evaluate_pse_path:
-            KeyDataDuringTests.evaluate_pse_path = test_worker.download_file(
-                url=test_worker.test_data.EVALUATION_PSE_URL,
-                md5=test_worker.test_data.EVALUATION_PSE_MD5,
-            )
+        
 
         test_worker.load_session_and_check(
             customized_session=KeyDataDuringTests.evaluate_pse_path

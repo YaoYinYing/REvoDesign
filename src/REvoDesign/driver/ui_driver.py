@@ -457,7 +457,7 @@ class Widget2ConfigMapper:
             f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
         )
 
-    def get_button_from_id(self, button_id, prefix="pushButton"):
+    def get_button_from_id(self, button_id: str, prefix="pushButton"):
         return self.find_child(QtWidgets.QPushButton, f"{prefix}_{button_id}")
 
     @property
