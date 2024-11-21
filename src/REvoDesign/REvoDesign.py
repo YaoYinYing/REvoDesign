@@ -34,9 +34,10 @@ from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
-from REvoDesign.tools.customized_widgets import (
-    WorkerThread, decide, getExistingDirectory, hold_trigger_button,
-    notify_box, set_widget_value)
+from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
+                                                 getExistingDirectory,
+                                                 hold_trigger_button,
+                                                 notify_box, set_widget_value)
 from REvoDesign.tools.mutant_tools import (determine_profile_type,
                                            existed_mutant_tree,
                                            get_mutant_table_columns,

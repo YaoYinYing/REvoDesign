@@ -256,30 +256,28 @@ class TestData:
 
 @dataclass
 class KeyData:
-    hetatm_pocket_sele: str= 'pkt_hetatm_8.0_01'
-    design_shell_file: str='../tests/data/pockets/1SUO_design_shell_CPZ_8.0_01_residues.txt'
-    surface_file: str='../tests/data/surface_residue_records/1SUO_residues_cutoff_30.0.txt'
-    pssm_file: str=None  # type: ignore
-    gremlin_pkl_fp: Optional[str]=None
-    mutant_file: str='../tests/data/mutagenese/evaluate_pssm_ent_surf.besthits.mut.txt'
-    minimum_mutant_file: str='../tests/data/mutagenese/evaluate_pssm_ent_surf.mannual.mut.txt'
-    ddg_file: str='../tests/data/pytia_ddg/1SUO_pred_mask.csv'
-    evaluate_pse_path: str=None # type: ignore
-    gremlin_pkl_fp_homomer: str=None # type: ignore
-
+    hetatm_pocket_sele: str = 'pkt_hetatm_8.0_01'
+    design_shell_file: str = '../tests/data/pockets/1SUO_design_shell_CPZ_8.0_01_residues.txt'
+    surface_file: str = '../tests/data/surface_residue_records/1SUO_residues_cutoff_30.0.txt'
+    pssm_file: str = None  # type: ignore
+    gremlin_pkl_fp: Optional[str] = None
+    mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.besthits.mut.txt'
+    minimum_mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.mannual.mut.txt'
+    ddg_file: str = '../tests/data/pytia_ddg/1SUO_pred_mask.csv'
+    evaluate_pse_path: str = None  # type: ignore
+    gremlin_pkl_fp_homomer: str = None  # type: ignore
 
     DOWNLOAD_DIR = os.path.abspath("../tests/downloaded")
     EXPANDED_DIR = os.path.abspath(
-            "../tests/expanded_compressed_files"
-        )
-
+        "../tests/expanded_compressed_files"
+    )
 
     def ensure_evaluate_pse_path(self):
         pse_path = self.download_file(
             url=TestData.EVALUATION_PSE_URL,
             md5=TestData.EVALUATION_PSE_MD5,
         )
-        
+
         self.evaluate_pse_path = pse_path
 
     def ensure_pssm(self):
@@ -302,7 +300,6 @@ class KeyData:
 
         self.pssm_file = pssm_file
 
-
     def ensure_gremlin_monomer_data(self):
         gremlin_pkl_fp = os.path.join(
             self.EXPANDED_DIR,
@@ -311,7 +308,6 @@ class KeyData:
             f"{TestData.molecule}_{TestData.chain_id}.i90c75_aln.GREMLIN.mrf.pkl",
         )
 
-        
         self.gremlin_pkl_fp = gremlin_pkl_fp
 
     def ensure_gremlin_homomer_data(self):
@@ -330,16 +326,13 @@ class KeyData:
             f"{TestData.gremlin_homomer_molecule}_{TestData.gremlin_homomer_chain}.i90c75_aln.GREMLIN.mrf.pkl",
         )
 
-    
         self.gremlin_pkl_fp_homomer = gremlin_pkl_fp
-
 
     def __post_init__(self):
         self.ensure_pssm()
         self.ensure_gremlin_homomer_data()
         self.ensure_gremlin_monomer_data()
         self.ensure_evaluate_pse_path()
-
 
     def download_file(self, url: str, md5: str):
         expected_downloaded_file = os.path.join(
@@ -373,8 +366,6 @@ class KeyData:
 
         extracted_files = os.listdir(dist_dir)
         return dist_dir, extracted_files
-
-
 
 
 @dataclass()

@@ -368,7 +368,6 @@ class VisualizingWorker:
             CitationManager().output()
 
 
-
 @dataclass
 class ChainBinder:
     """

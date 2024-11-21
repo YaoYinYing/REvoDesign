@@ -9,6 +9,7 @@ from RosettaPy.node import NodeHintT
 from ..basic import GroupRegistryItem as GR
 from ..tools.customized_widgets import create_cmap_icon
 
+
 # define actions
 class CallableGroupValues:
 
