@@ -12,9 +12,20 @@ logging = root_logger.getChild(__name__)
 
 class PythiaBiolib(CitableModules):
     def __init__(self, molecule, chain_id):
+        """
+        Initialize PythiaBiolib instance with molecule and chain ID.
+
+        Parameters:
+        molecule (str): The name or identifier of the protein molecule.
+        chain_id (str): The chain identifier within the protein molecule.
+
+        Returns:
+        None
+        """
         self.molecule = molecule
         self.chain_id = chain_id
 
+        self.work_dir = os.path.abspath(".")
         self.work_dir = os.path.abspath(".")
 
     def predict(self):
