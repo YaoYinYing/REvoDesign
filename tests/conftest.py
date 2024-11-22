@@ -27,7 +27,6 @@ from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 
 from .data import TestData
-
 from .data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
