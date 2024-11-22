@@ -41,17 +41,30 @@ print(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
-AVAILABLE_EXTRAS: Dict[str, str] = {
-    "Sidechain Solvers": "",  # Separator line
-    "DLPacker": "dlpacker",
-    "PIPPack": "pippack",
 
-    "Designers": "",  # Separator line
-    "ColabDesign": "colabdesign",
+# Define the URL of the JSON file
+EXTRAS_TABLE_JSON = "https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw"
 
-    "Developer Tool": "",  # Separator line
-    "Test": "test",
-}
+# Fetch and validate JSON data
+def fetch_extras(url: str) -> Dict[str, str]:
+    try:
+        with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
+            data = response.read().decode('utf-8')
+            json_data = json.loads(data)
+            print(f'Extras table is fetched and parsed: \n'
+                  f'{json_data}')
+
+            # Validate the structure of the fetched data
+            if not isinstance(json_data, dict):
+                raise ValueError("Fetched data is not a dictionary.")
+            for key, value in json_data.items():
+                if not isinstance(key, str) or not (isinstance(value, str) or value is None):
+                    raise ValueError("Invalid key-value format in JSON data.")
+            return json_data
+    except Exception as e:
+        print(f"Error fetching or validating the JSON data: {e}: ")
+        return {}
+
 
 
 # Define a generic type variable for the return type of worker_function
@@ -113,8 +126,11 @@ def run_command(
     return result
 
 
-# translated UI Dialog from UI file\
-class Ui_Dialog:
+# copied translated UI Dialog class from UI file
+# ui: src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
+# translated: src/REvoDesign/UI/Ui_REvoDesign-PyMOL-entry.py
+
+class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(490, 534)
@@ -379,22 +395,22 @@ class Ui_Dialog:
         self.groupBox_5 = QtWidgets.QGroupBox(Dialog)
         self.groupBox_5.setGeometry(QtCore.QRect(10, 370, 471, 61))
         self.groupBox_5.setObjectName("groupBox_5")
-        self.widget = QtWidgets.QWidget(self.groupBox_5)
-        self.widget.setGeometry(QtCore.QRect(10, 30, 451, 21))
-        self.widget.setObjectName("widget")
-        self.horizontalLayout_12 = QtWidgets.QHBoxLayout(self.widget)
+        self.layoutWidget = QtWidgets.QWidget(self.groupBox_5)
+        self.layoutWidget.setGeometry(QtCore.QRect(10, 30, 451, 21))
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.horizontalLayout_12 = QtWidgets.QHBoxLayout(self.layoutWidget)
         self.horizontalLayout_12.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_12.setObjectName("horizontalLayout_12")
-        self.radioButton_extra_none = QtWidgets.QRadioButton(self.widget)
+        self.radioButton_extra_none = QtWidgets.QRadioButton(self.layoutWidget)
         self.radioButton_extra_none.setWhatsThis("")
         self.radioButton_extra_none.setChecked(True)
         self.radioButton_extra_none.setObjectName("radioButton_extra_none")
         self.horizontalLayout_12.addWidget(self.radioButton_extra_none)
-        self.radioButton_extra_customized = QtWidgets.QRadioButton(self.widget)
+        self.radioButton_extra_customized = QtWidgets.QRadioButton(self.layoutWidget)
         self.radioButton_extra_customized.setWhatsThis("")
         self.radioButton_extra_customized.setObjectName("radioButton_extra_customized")
         self.horizontalLayout_12.addWidget(self.radioButton_extra_customized)
-        self.radioButton_extra_everything = QtWidgets.QRadioButton(self.widget)
+        self.radioButton_extra_everything = QtWidgets.QRadioButton(self.layoutWidget)
         self.radioButton_extra_everything.setWhatsThis("")
         self.radioButton_extra_everything.setChecked(False)
         self.radioButton_extra_everything.setObjectName("radioButton_extra_everything")
@@ -413,7 +429,7 @@ class Ui_Dialog:
         font.setPointSize(3)
         self.progressBar.setFont(font)
         self.progressBar.setProperty("value", 0)
-        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
+        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
         self.progressBar.setOrientation(QtCore.Qt.Horizontal)
         self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
         self.progressBar.setObjectName("progressBar")
@@ -427,32 +443,27 @@ class Ui_Dialog:
         self.listView_extras.setObjectName("listView_extras")
 
         self.retranslateUi(Dialog)
-        self.radioButton_from_repo.toggled["bool"].connect(self.lineEdit_local.setDisabled)  # type: ignore
-        self.radioButton_from_repo.toggled["bool"].connect(self.pushButton_open.setDisabled)  # type: ignore
-        self.checkBox_specified_version.toggled["bool"].connect(self.comboBox_version.setEnabled)  # type: ignore
-        self.checkBox_specified_commit.toggled["bool"].connect(self.lineEdit_commit.setEnabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(self.lineEdit_local.setEnabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(self.pushButton_open.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(self.lineEdit_local.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(self.pushButton_open.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(self.comboBox_version.setDisabled)  # type: ignore
-        self.checkBox_use_proxy.toggled["bool"].connect(self.lineEdit_proxy_url.setEnabled)  # type: ignore
-        self.checkBox_use_mirror.toggled["bool"].connect(self.lineEdit_mirror_url.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(
-            self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(
-            self.checkBox_specified_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_file.toggled["bool"].connect(self.lineEdit_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(self.comboBox_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(
-            self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(
-            self.checkBox_specified_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled["bool"].connect(self.lineEdit_commit.setDisabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled["bool"].connect(
-            self.lineEdit_customized_cache_dir.setEnabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled["bool"].connect(self.pushButton_open_cache_dir.setEnabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled["bool"].connect(self.pushButton_set_cache_dir.setEnabled)  # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled) # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled) # type: ignore
+        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled) # type: ignore
+        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
+        self.checkBox_use_proxy.toggled['bool'].connect(self.lineEdit_proxy_url.setEnabled) # type: ignore
+        self.checkBox_use_mirror.toggled['bool'].connect(self.lineEdit_mirror_url.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.lineEdit_customized_cache_dir.setEnabled) # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_open_cache_dir.setEnabled) # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_set_cache_dir.setEnabled) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
@@ -461,9 +472,7 @@ class Ui_Dialog:
         self.groupBox.setTitle(_translate("Dialog", "Source:"))
         self.radioButton_from_repo.setToolTip(_translate("Dialog", "From GitHub repository"))
         self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
-        self.radioButton_from_local_clone.setToolTip(
-            _translate("Dialog", "From project directory containing `pyproject.toml`")
-        )
+        self.radioButton_from_local_clone.setToolTip(_translate("Dialog", "From project directory containing `pyproject.toml`"))
         self.radioButton_from_local_clone.setText(_translate("Dialog", "Local clone"))
         self.radioButton_from_local_file.setToolTip(_translate("Dialog", "From released zip/tarball file"))
         self.radioButton_from_local_file.setText(_translate("Dialog", "Local file"))
@@ -484,20 +493,18 @@ class Ui_Dialog:
         self.checkBox_specified_commit.setToolTip(_translate("Dialog", "Install from a specific commit/branch"))
         self.checkBox_specified_commit.setText(_translate("Dialog", "commit:"))
         self.lineEdit_commit.setToolTip(_translate("Dialog", "Install from a specific commit/branch"))
-        self.label_2.setText(_translate("Dialog", "REvoDesign Helper"))
+        self.label_2.setText(_translate("Dialog", "Makes enzyme redesign tasks easier to all."))
         self.groupBox_3.setTitle(_translate("Dialog", "Network:"))
-        self.checkBox_use_proxy.setToolTip(_translate("Dialog", "Enable http proxy"))
+        self.checkBox_use_proxy.setToolTip(_translate("Dialog", "Enable http/socks proxy"))
         self.checkBox_use_proxy.setText(_translate("Dialog", "proxy:"))
-        self.lineEdit_proxy_url.setToolTip(_translate("Dialog", "HTTP proxy"))
+        self.lineEdit_proxy_url.setToolTip(_translate("Dialog", "HTTP/Socks proxy"))
         self.lineEdit_proxy_url.setText(_translate("Dialog", "http://localhost:7890"))
         self.checkBox_use_mirror.setToolTip(_translate("Dialog", "Enable PyPi mirror"))
         self.checkBox_use_mirror.setText(_translate("Dialog", "Mirror:"))
         self.lineEdit_mirror_url.setToolTip(_translate("Dialog", "Set PyPi mirror URL"))
         self.lineEdit_mirror_url.setText(_translate("Dialog", "https://mirrors.bfsu.edu.cn/pypi/web/simple"))
         self.groupBox_4.setTitle(_translate("Dialog", "Cache:"))
-        self.checkBox_user_cache_dir.setToolTip(
-            _translate("Dialog", "Use customized cache dir. Uncheck this to let REvoDesign choose one.")
-        )
+        self.checkBox_user_cache_dir.setToolTip(_translate("Dialog", "Use customized cache dir. Uncheck this to let REvoDesign choose one."))
         self.checkBox_user_cache_dir.setText(_translate("Dialog", "Use:"))
         self.lineEdit_customized_cache_dir.setToolTip(_translate("Dialog", "Cache file on this dir"))
         self.pushButton_open_cache_dir.setToolTip(_translate("Dialog", "Open a dir as cache directory."))
@@ -512,7 +519,6 @@ class Ui_Dialog:
         self.radioButton_extra_customized.setText(_translate("Dialog", "Customized"))
         self.radioButton_extra_everything.setToolTip(_translate("Dialog", "Install with all extras except unit tests"))
         self.radioButton_extra_everything.setText(_translate("Dialog", "Everything"))
-
 
 # Additional widget for extra selection
 class CheckableListView(QtWidgets.QWidget):
@@ -735,6 +741,18 @@ class REvoDesignInstaller:
             self.dialog = self.make_window()
         self.dialog.show()
 
+        # Run a worker thread to fetch extras with a progress bar
+        AVAILABLE_EXTRAS=run_worker_thread_with_progress(
+            worker_function=fetch_extras, 
+            url=EXTRAS_TABLE_JSON,
+            progress_bar=self.installer_ui.progressBar)
+        
+        if not AVAILABLE_EXTRAS:
+            AVAILABLE_EXTRAS={"No Extras is Fetched": ''}
+            notify_box("Error fetching or validating the JSON data. \n"
+                   "Please reconfigure your network and restart PyMOL to try again "
+                   "if you wish to continue installation with extra packages")
+
         if self.extra_checkbox is None:
             # Create and position the extra components checkbox list
             self.extra_checkbox = CheckableListView(
@@ -758,10 +776,10 @@ class REvoDesignInstaller:
         )
 
         # Run a worker thread to fetch tags with a progress bar
-        run_worker_thread_with_progress(worker_function=self.fetch_tags, progress_bar=self.installer_ui.progressBar)
+        self.fetch_tags()
 
-    @staticmethod
-    def proxy_in_env(proxy: Optional[str] = None) -> Dict[str, str]:
+
+    def proxy_in_env(self,proxy: Optional[str] = None) -> Dict[str, str]:
         """
         Generates an environment mapping based on the provided proxy string.
 
@@ -775,6 +793,16 @@ class REvoDesignInstaller:
 
         if not proxy:
             return {}
+        
+        if proxy.startswith('socks'):
+        
+            if not proxy.startswith('socks5'):
+                notify_box(f'Unsupported proxy type: {proxy}\nPlease use socks5://... or socks5h://...')
+                return {}
+
+            print('Ensuring pysocks is installed...')
+            run_worker_thread_with_progress(worker_function=ensure_package, package_string='pysocks',progress_bar=self.installer_ui.progressBar)
+
 
         print(f"using proxy: {proxy}")
         proxy_env = {
@@ -890,7 +918,14 @@ class REvoDesignInstaller:
         specified GitHub repository,
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
-        set_widget_value(self.installer_ui.comboBox_version, get_github_repo_tags(repo_url=REPO_URL))
+        # Run a worker thread to fetch tags with a progress bar
+        tags=run_worker_thread_with_progress(worker_function=get_github_repo_tags,repo_url=REPO_URL, progress_bar=self.installer_ui.progressBar)
+        if tags and isinstance(tags, list):
+            return set_widget_value(self.installer_ui.comboBox_version, tags)
+        
+        return notify_box(f'Failed to fetch version tags from GitHub repo: \n{REPO_URL}')
+
+        
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
     def get_existing_directory(self):
@@ -1605,6 +1640,30 @@ def solve_installation_config(source: str, git_url: str, git_tag: str, extras: O
 
     notify_box(f"Unknown installation source {source}!", ValueError)
 
+def ensure_package(package_string: str, env:Optional[Mapping[str, str]]=None):
+    """
+    Function: ensure_package
+    Usage: ensure_package(package_string, env)
+    This function ensures that a specified package is installed in the current Python environment.
+    Args:
+    - package_string (str): Name of the package to ensure
+    - env (Optional[Mapping[str, str]]): Environment variables to use for the installation
+    """
+
+    # Get the absolute path of the current Python executable
+    python_exe = os.path.realpath(sys.executable)
+    # Construct the command to install a specific version of pip
+    pip_cmd = [python_exe, "-m", "pip", "install", "-U", package_string, "-q"]
+
+    # Execute the pip installation command
+    result = run_command(pip_cmd, verbose=True, env=env)
+    # If the pip downgrade command fails, notify the user to manually execute the command
+    if result.returncode:
+        print(
+            f"Failed to ensure {package_string}. Please upgrade/downgrade manually.\n"
+            f'Run this command in your shell - `{" ".join(pip_cmd)}`'
+        )
+
 
 def ensure_lower_pip(env: Optional[Mapping[str, str]]):
     """
@@ -1625,20 +1684,7 @@ def ensure_lower_pip(env: Optional[Mapping[str, str]]):
 
     # Warn the user that pip>=24.0 will be required for future REvoDesign installations
     warnings.warn(FutureWarning("pip>=24.0 will be required for REvoDesign installation."))
-
-    # Get the absolute path of the current Python executable
-    python_exe = os.path.realpath(sys.executable)
-    # Construct the command to install a specific version of pip
-    pip_cmd = [python_exe, "-m", "pip", "install", "-U", "pip<24.0", "-q"]
-
-    # Execute the pip installation command
-    result = run_command(pip_cmd, verbose=True, env=env)
-    # If the pip downgrade command fails, notify the user to manually execute the command
-    if result.returncode:
-        notify_box(
-            "Failed to downgrade pip. Please upgrade/downgrade pip<24.0 manually.\n"
-            f'Run this command in your shell - `{" ".join(pip_cmd)}`'
-        )
+    ensure_package('pip<24.0', env=env)
 
 
 def install_via_pip(

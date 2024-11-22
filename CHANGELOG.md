@@ -18,6 +18,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- installer:
+  - `ensure_package`: install package if not installed
+
+### Changed
+
+- installer: 
+  - extras:
+    - fetch dynamic extras table from gist permalink: https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw
+    - permalink guide: https://gist.github.com/atenni/5604615
+    - if fetch fails, set the table as empty with a notification.
+    - This helps user to fetch dynamic extras without updating the installer itself.
+  - support socks proxy with `pysocks`
+    - protocols: 
+      - `socks5://` with DNS resolved by the local machine
+      - `socks5h://` with DNS solved by the proxy server. **RECOMMENDED** if DNS leak troubles user. See https://ipleak.net/
+    - ref: https://stackoverflow.com/questions/22915705/how-to-use-pip-with-socks-proxy
+    - **I know that bootstraping on pip proxy with pip is stupid, but it is a workaround, and `pysocks` is tiny.**
+    - This could make sense to users with a VPS SSH access. 
+      - example 1: 
+        - creating a socks5 proxy at local port <7899>: `ssh -D 7899 -C <user>@<server> -p<port>`
+        - use `socks5://localhost:7899` as proxy url
+      - example 2:
+        - creating a local forwared socks5 proxy to local port <10089>: `ssh -L 10089:localhost:10089 <user>@<server> -p<port>`
+        - append jumping hosts option to ssh command if jumping is required: `[-J <jumping-host-1>,<jumping-host-2>,...]`
+        - use `socks5://127.0.0.1:10089` as proxy url
+        - **Port forwarding with jumping hosts and are NOT recommanded due to unstability of relay connections if users have direct options like example 1 or local proxy tools**
+    - explicitly warning if ambiguous proxy url protocol `socks://` is provided
+  - `ensure_lower_pip`: now uses `ensure_package` calls
+
+### Fixed
+
+### Removed
+
 ## [1.7.3] - 2024-11-21
 
 ### Added
