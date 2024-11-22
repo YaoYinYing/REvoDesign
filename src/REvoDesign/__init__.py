@@ -4,7 +4,6 @@
 
 import gc
 
-
 # 1. import basic
 from REvoDesign.basic import SingletonAbstract
 # 2. import post install module and methods
@@ -18,10 +17,9 @@ from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.logger import root_logger, setup_logging
 # 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
-
-
 # 6. add shortcuts to PyMOL commandline prompt
 from REvoDesign.shortcuts import __all__ as all_shortcuts
+
 # 7. Set version info
 __version__ = "1.7.3"
 
