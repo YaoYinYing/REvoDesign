@@ -134,7 +134,7 @@ def run_command(
 class Ui_Dialog:
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(490, 534)
+        Dialog.resize(490, 547)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -354,7 +354,7 @@ class Ui_Dialog:
         self.horizontalLayout_10.addWidget(self.lineEdit_mirror_url)
         self.verticalLayout_5.addLayout(self.horizontalLayout_10)
         self.groupBox_4 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_4.setGeometry(QtCore.QRect(10, 430, 471, 71))
+        self.groupBox_4.setGeometry(QtCore.QRect(10, 440, 471, 71))
         self.groupBox_4.setObjectName("groupBox_4")
         self.horizontalLayoutWidget = QtWidgets.QWidget(self.groupBox_4)
         self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 30, 451, 33))
@@ -394,30 +394,43 @@ class Ui_Dialog:
         self.pushButton_set_cache_dir.setObjectName("pushButton_set_cache_dir")
         self.horizontalLayout_11.addWidget(self.pushButton_set_cache_dir)
         self.groupBox_5 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_5.setGeometry(QtCore.QRect(10, 370, 471, 61))
+        self.groupBox_5.setGeometry(QtCore.QRect(10, 370, 471, 71))
         self.groupBox_5.setObjectName("groupBox_5")
-        self.layoutWidget = QtWidgets.QWidget(self.groupBox_5)
-        self.layoutWidget.setGeometry(QtCore.QRect(10, 30, 451, 21))
-        self.layoutWidget.setObjectName("layoutWidget")
-        self.horizontalLayout_12 = QtWidgets.QHBoxLayout(self.layoutWidget)
-        self.horizontalLayout_12.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayoutWidget_3 = QtWidgets.QWidget(self.groupBox_5)
+        self.horizontalLayoutWidget_3.setGeometry(QtCore.QRect(10, 30, 451, 32))
+        self.horizontalLayoutWidget_3.setObjectName("horizontalLayoutWidget_3")
+        self.horizontalLayout_13 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_3)
+        self.horizontalLayout_13.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout_13.setObjectName("horizontalLayout_13")
+        self.pushButton_refresh_extras = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pushButton_refresh_extras.sizePolicy().hasHeightForWidth())
+        self.pushButton_refresh_extras.setSizePolicy(sizePolicy)
+        self.pushButton_refresh_extras.setMinimumSize(QtCore.QSize(120, 0))
+        self.pushButton_refresh_extras.setMaximumSize(QtCore.QSize(120, 16777215))
+        self.pushButton_refresh_extras.setObjectName("pushButton_refresh_extras")
+        self.horizontalLayout_13.addWidget(self.pushButton_refresh_extras)
+        self.horizontalLayout_12 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_12.setObjectName("horizontalLayout_12")
-        self.radioButton_extra_none = QtWidgets.QRadioButton(self.layoutWidget)
+        self.radioButton_extra_none = QtWidgets.QRadioButton(self.horizontalLayoutWidget_3)
         self.radioButton_extra_none.setWhatsThis("")
         self.radioButton_extra_none.setChecked(True)
         self.radioButton_extra_none.setObjectName("radioButton_extra_none")
         self.horizontalLayout_12.addWidget(self.radioButton_extra_none)
-        self.radioButton_extra_customized = QtWidgets.QRadioButton(self.layoutWidget)
+        self.radioButton_extra_customized = QtWidgets.QRadioButton(self.horizontalLayoutWidget_3)
         self.radioButton_extra_customized.setWhatsThis("")
         self.radioButton_extra_customized.setObjectName("radioButton_extra_customized")
         self.horizontalLayout_12.addWidget(self.radioButton_extra_customized)
-        self.radioButton_extra_everything = QtWidgets.QRadioButton(self.layoutWidget)
+        self.radioButton_extra_everything = QtWidgets.QRadioButton(self.horizontalLayoutWidget_3)
         self.radioButton_extra_everything.setWhatsThis("")
         self.radioButton_extra_everything.setChecked(False)
         self.radioButton_extra_everything.setObjectName("radioButton_extra_everything")
         self.horizontalLayout_12.addWidget(self.radioButton_extra_everything)
+        self.horizontalLayout_13.addLayout(self.horizontalLayout_12)
         self.progressBar = QtWidgets.QProgressBar(Dialog)
-        self.progressBar.setGeometry(QtCore.QRect(10, 510, 471, 16))
+        self.progressBar.setGeometry(QtCore.QRect(10, 520, 471, 16))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -521,6 +534,8 @@ class Ui_Dialog:
         self.pushButton_set_cache_dir.setText(_translate("Dialog", "Apply"))
         self.groupBox_5.setToolTip(_translate("Dialog", "Extra definitions of dependencies."))
         self.groupBox_5.setTitle(_translate("Dialog", "Extras:"))
+        self.pushButton_refresh_extras.setToolTip(_translate("Dialog", "Install REvoDesign"))
+        self.pushButton_refresh_extras.setText(_translate("Dialog", "Refresh"))
         self.radioButton_extra_none.setToolTip(_translate("Dialog", "Default setting with no extra dependencies."))
         self.radioButton_extra_none.setText(_translate("Dialog", "None"))
         self.radioButton_extra_customized.setToolTip(_translate("Dialog", "Customized extras picked from right panel."))
@@ -751,23 +766,7 @@ class REvoDesignInstaller:
             self.dialog = self.make_window()
         self.dialog.show()
 
-        # Run a worker thread to fetch extras with a progress bar
-        AVAILABLE_EXTRAS = run_worker_thread_with_progress(
-            worker_function=fetch_extras,
-            url=EXTRAS_TABLE_JSON,
-            progress_bar=self.installer_ui.progressBar)
-
-        if not AVAILABLE_EXTRAS:
-            AVAILABLE_EXTRAS = {"No Extras is Fetched": ''}
-            notify_box("Error fetching or validating the JSON data. \n"
-                       "Please reconfigure your network and restart PyMOL to try again "
-                       "if you wish to continue installation with extra packages")
-
-        if self.extra_checkbox is None:
-            # Create and position the extra components checkbox list
-            self.extra_checkbox = CheckableListView(
-                self.installer_ui.listView_extras, AVAILABLE_EXTRAS
-            )
+        self.refresh_extras_table()
 
         self.extra_checkbox.setGeometry(QtCore.QRect(540, 90, 141, 431))
 
@@ -784,6 +783,8 @@ class REvoDesignInstaller:
                 self.extra_checkbox.check_all,
             )
         )
+
+        self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_extras_table)
 
         # Run a worker thread to fetch tags with a progress bar
         self.fetch_tags()
@@ -822,6 +823,24 @@ class REvoDesignInstaller:
             "all_proxy": proxy,
         }
         return proxy_env
+
+    def refresh_extras_table(self):
+        # Run a worker thread to fetch extras with a progress bar
+        AVAILABLE_EXTRAS = run_worker_thread_with_progress(
+            worker_function=fetch_extras,
+            url=EXTRAS_TABLE_JSON,
+            progress_bar=self.installer_ui.progressBar)
+
+        if not AVAILABLE_EXTRAS:
+            AVAILABLE_EXTRAS = {"No Extras is Fetched": ''}
+            notify_box("Error fetching or validating the JSON data. \n"
+                       "Please reconfigure your network and press <Refresh> to try again "
+                       "if you wish to continue installation with extra packages")
+
+        # Create and position the extra components checkbox list
+        self.extra_checkbox = CheckableListView(
+            self.installer_ui.listView_extras, AVAILABLE_EXTRAS
+        )
 
     def make_window(self) -> QtWidgets.QDialog:  # type: ignore
         """
