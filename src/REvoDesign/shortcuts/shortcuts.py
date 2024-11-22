@@ -35,9 +35,6 @@ def pssm2csv(pssm: str) -> None:
     logging.info(expected_csv)
 
 
-cmd.extend("pssm2csv", pssm2csv)
-
-
 def real_sc(selection="(all)", representation="lines", hydrogen=False):
     """
     DESCRIPTION
@@ -69,9 +66,6 @@ def real_sc(selection="(all)", representation="lines", hydrogen=False):
         representation,
         f'{selection} and (sidechain or n. CA) {"and not hydrogens" if not hydrogen else ""}',
     )
-
-
-cmd.extend("real_sc", real_sc)
 
 
 def color_by_plddt(selection="all", align_target=0, chain_to_align="A"):
@@ -232,12 +226,7 @@ def find_interface(
             print(ifc_residues)
 
 
-cmd.extend("color_by_plddt", color_by_plddt)
-cmd.extend("find_interface", find_interface)
-
-
 # see https://pymolwiki.org/index.php/Color_By_Mutations
-
 
 """
 created by Christoph Malisi.
@@ -452,9 +441,6 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.deselect()
 
 
-cmd.extend("color_by_mutation", color_by_mutation)
-
-
 def dump_sidechains(
     sele: str,
     enabled_only: bool = False,
@@ -492,6 +478,3 @@ def dump_sidechains(
         p = os.path.join(save_dir, f"{m}.png")
         cmd.png(p, height, width, dpi, int(ray))
         cmd.disable(m)
-
-
-cmd.extend("dump_sidechains", dump_sidechains)
