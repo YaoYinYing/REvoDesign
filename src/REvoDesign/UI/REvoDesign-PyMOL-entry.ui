@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>490</width>
-    <height>534</height>
+    <height>547</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -492,7 +492,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>430</y>
+     <y>440</y>
      <width>471</width>
      <height>71</height>
     </rect>
@@ -586,7 +586,7 @@
      <x>10</x>
      <y>370</y>
      <width>471</width>
-     <height>61</height>
+     <height>71</height>
     </rect>
    </property>
    <property name="toolTip">
@@ -595,60 +595,92 @@
    <property name="title">
     <string>Extras:</string>
    </property>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="horizontalLayoutWidget_3">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>30</y>
       <width>451</width>
-      <height>21</height>
+      <height>32</height>
      </rect>
     </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_12">
+    <layout class="QHBoxLayout" name="horizontalLayout_13">
      <item>
-      <widget class="QRadioButton" name="radioButton_extra_none">
-       <property name="toolTip">
-        <string>Default setting with no extra dependencies.</string>
+      <widget class="QPushButton" name="pushButton_refresh_extras">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
-       <property name="whatsThis">
-        <string/>
+       <property name="minimumSize">
+        <size>
+         <width>120</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>120</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Install REvoDesign</string>
        </property>
        <property name="text">
-        <string>None</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
+        <string>Refresh</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QRadioButton" name="radioButton_extra_customized">
-       <property name="toolTip">
-        <string>Customized extras picked from right panel.</string>
-       </property>
-       <property name="whatsThis">
-        <string/>
-       </property>
-       <property name="text">
-        <string>Customized</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="radioButton_extra_everything">
-       <property name="toolTip">
-        <string>Install with all extras except unit tests</string>
-       </property>
-       <property name="whatsThis">
-        <string/>
-       </property>
-       <property name="text">
-        <string>Everything</string>
-       </property>
-       <property name="checked">
-        <bool>false</bool>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="horizontalLayout_12">
+       <item>
+        <widget class="QRadioButton" name="radioButton_extra_none">
+         <property name="toolTip">
+          <string>Default setting with no extra dependencies.</string>
+         </property>
+         <property name="whatsThis">
+          <string/>
+         </property>
+         <property name="text">
+          <string>None</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="radioButton_extra_customized">
+         <property name="toolTip">
+          <string>Customized extras picked from right panel.</string>
+         </property>
+         <property name="whatsThis">
+          <string/>
+         </property>
+         <property name="text">
+          <string>Customized</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="radioButton_extra_everything">
+         <property name="toolTip">
+          <string>Install with all extras except unit tests</string>
+         </property>
+         <property name="whatsThis">
+          <string/>
+         </property>
+         <property name="text">
+          <string>Everything</string>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </widget>
@@ -657,7 +689,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>510</y>
+     <y>520</y>
      <width>471</width>
      <height>16</height>
     </rect>

@@ -27,10 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - installer: 
   - extras:
+    - now managed at https://gist.github.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a
     - fetch dynamic extras table from gist permalink: https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw
     - permalink guide: https://gist.github.com/atenni/5604615
     - if fetch fails, set the table as empty with a notification.
     - This helps user to fetch dynamic extras without updating the installer itself.
+    - An Refresh buttom is now available for re-fetching extras table so the user can refresh it without restarting PyMOL.
   - support socks proxy with `pysocks`
     - protocols: 
       - `socks5://` with DNS resolved by the local machine
