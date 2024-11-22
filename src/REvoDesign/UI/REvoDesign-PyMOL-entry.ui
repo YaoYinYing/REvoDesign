@@ -370,7 +370,7 @@
     <number>0</number>
    </property>
    <property name="text">
-    <string>REvoDesign Helper</string>
+    <string>Makes enzyme redesign tasks easier to all.</string>
    </property>
    <property name="textFormat">
     <enum>Qt::RichText</enum>
@@ -418,7 +418,7 @@
           </sizepolicy>
          </property>
          <property name="toolTip">
-          <string>Enable http proxy</string>
+          <string>Enable http/socks proxy</string>
          </property>
          <property name="text">
           <string>proxy:</string>
@@ -437,7 +437,7 @@
           </sizepolicy>
          </property>
          <property name="toolTip">
-          <string>HTTP proxy</string>
+          <string>HTTP/Socks proxy</string>
          </property>
          <property name="text">
           <string>http://localhost:7890</string>
@@ -595,7 +595,7 @@
    <property name="title">
     <string>Extras:</string>
    </property>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
