@@ -18,14 +18,14 @@ from REvoDesign.logger import root_logger, setup_logging
 # 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
 
-# 6. Set version info
-__version__ = "1.7.3"
+# 6. add shortcuts to PyMOL commandline prompt
+import  REvoDesign.shortcuts
 
+# 7. Set version info
+__version__ = "1.7.3"
 
 # 8. enable garbage collection
 gc.enable()
-
-# 7. add shortcuts to PyMOL commandline prompt
 
 __all__ = [
     "REvoDesignPlugin",
