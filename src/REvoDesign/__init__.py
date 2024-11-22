@@ -17,15 +17,15 @@ from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.logger import root_logger, setup_logging
 # 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
+# 6. add shortcuts to PyMOL commandline prompt
+# follow alphabeitical order of imports and prevent cyclic import
+from REvoDesign.shortcuts import __all__ as all_shortcuts
 
-# 6. Set version info
+# 7. Set version info
 __version__ = "1.7.3"
-
 
 # 8. enable garbage collection
 gc.enable()
-
-# 7. add shortcuts to PyMOL commandline prompt
 
 __all__ = [
     "REvoDesignPlugin",
@@ -40,4 +40,5 @@ __all__ = [
     "REVODESIGN_CONFIG_FILE",
     "set_REvoDesign_config_file",
     "experiment_config",
+    "all_shortcuts",
 ]

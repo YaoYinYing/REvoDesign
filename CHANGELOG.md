@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- missing shortcuts due to the refactoring works of PR #43
+
 ### Removed
 
 ## [1.7.3] - 2024-11-21
