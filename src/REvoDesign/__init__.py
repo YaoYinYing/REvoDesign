@@ -18,6 +18,7 @@ from REvoDesign.logger import root_logger, setup_logging
 # 5. import the major plugin class
 from REvoDesign.REvoDesign import REvoDesignPlugin
 # 6. add shortcuts to PyMOL commandline prompt
+# follow alphabeitical order of imports and prevent cyclic import
 from REvoDesign.shortcuts import __all__ as all_shortcuts
 
 # 7. Set version info
