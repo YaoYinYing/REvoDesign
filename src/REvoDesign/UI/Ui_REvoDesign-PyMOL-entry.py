@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Form implementation generated from reading ui file '/Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
@@ -9,7 +11,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_Dialog:
+class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(490, 547)
@@ -321,7 +323,7 @@ class Ui_Dialog:
         font.setPointSize(3)
         self.progressBar.setFont(font)
         self.progressBar.setProperty("value", 0)
-        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
+        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
         self.progressBar.setOrientation(QtCore.Qt.Horizontal)
         self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
         self.progressBar.setObjectName("progressBar")
@@ -335,42 +337,36 @@ class Ui_Dialog:
         self.listView_extras.setObjectName("listView_extras")
 
         self.retranslateUi(Dialog)
-        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled)  # type: ignore
-        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled)  # type: ignore
-        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled)  # type: ignore
-        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.comboBox_version.setDisabled)  # type: ignore
-        self.checkBox_use_proxy.toggled['bool'].connect(self.lineEdit_proxy_url.setEnabled)  # type: ignore
-        self.checkBox_use_mirror.toggled['bool'].connect(self.lineEdit_mirror_url.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(
-            self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(
-            self.checkBox_specified_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.comboBox_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(
-            self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(
-            self.checkBox_specified_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_commit.setDisabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(
-            self.lineEdit_customized_cache_dir.setEnabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_open_cache_dir.setEnabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_set_cache_dir.setEnabled)  # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled) # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled) # type: ignore
+        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled) # type: ignore
+        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
+        self.checkBox_use_proxy.toggled['bool'].connect(self.lineEdit_proxy_url.setEnabled) # type: ignore
+        self.checkBox_use_mirror.toggled['bool'].connect(self.lineEdit_mirror_url.setEnabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.lineEdit_customized_cache_dir.setEnabled) # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_open_cache_dir.setEnabled) # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_set_cache_dir.setEnabled) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "REvoDesign Installer"))
+        Dialog.setWindowTitle(_translate("Dialog", "REvoDesign Package Manager"))
         self.groupBox.setTitle(_translate("Dialog", "Source:"))
         self.radioButton_from_repo.setToolTip(_translate("Dialog", "From GitHub repository"))
         self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
-        self.radioButton_from_local_clone.setToolTip(_translate(
-            "Dialog", "From project directory containing `pyproject.toml`"))
+        self.radioButton_from_local_clone.setToolTip(_translate("Dialog", "From project directory containing `pyproject.toml`"))
         self.radioButton_from_local_clone.setText(_translate("Dialog", "Local clone"))
         self.radioButton_from_local_file.setToolTip(_translate("Dialog", "From released zip/tarball file"))
         self.radioButton_from_local_file.setText(_translate("Dialog", "Local file"))
@@ -402,8 +398,7 @@ class Ui_Dialog:
         self.lineEdit_mirror_url.setToolTip(_translate("Dialog", "Set PyPi mirror URL"))
         self.lineEdit_mirror_url.setText(_translate("Dialog", "https://mirrors.bfsu.edu.cn/pypi/web/simple"))
         self.groupBox_4.setTitle(_translate("Dialog", "Cache:"))
-        self.checkBox_user_cache_dir.setToolTip(_translate("Dialog",
-                                                           "Use customized cache dir. Uncheck this to let REvoDesign choose one."))
+        self.checkBox_user_cache_dir.setToolTip(_translate("Dialog", "Use customized cache dir. Uncheck this to let REvoDesign choose one."))
         self.checkBox_user_cache_dir.setText(_translate("Dialog", "Use:"))
         self.lineEdit_customized_cache_dir.setToolTip(_translate("Dialog", "Cache file on this dir"))
         self.pushButton_open_cache_dir.setToolTip(_translate("Dialog", "Open a dir as cache directory."))
@@ -412,7 +407,7 @@ class Ui_Dialog:
         self.pushButton_set_cache_dir.setText(_translate("Dialog", "Apply"))
         self.groupBox_5.setToolTip(_translate("Dialog", "Extra definitions of dependencies."))
         self.groupBox_5.setTitle(_translate("Dialog", "Extras:"))
-        self.pushButton_refresh_extras.setToolTip(_translate("Dialog", "Install REvoDesign"))
+        self.pushButton_refresh_extras.setToolTip(_translate("Dialog", "Refresh REvoDesign table"))
         self.pushButton_refresh_extras.setText(_translate("Dialog", "Refresh"))
         self.radioButton_extra_none.setToolTip(_translate("Dialog", "Default setting with no extra dependencies."))
         self.radioButton_extra_none.setText(_translate("Dialog", "None"))

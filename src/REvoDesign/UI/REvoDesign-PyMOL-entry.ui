@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>REvoDesign Installer</string>
+   <string>REvoDesign Package Manager</string>
   </property>
   <property name="toolTipDuration">
    <number>2</number>
@@ -626,7 +626,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>Install REvoDesign</string>
+        <string>Refresh REvoDesign table</string>
        </property>
        <property name="text">
         <string>Refresh</string>
