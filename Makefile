@@ -62,17 +62,14 @@ setup-display:
 
 # only for test on runner or local machine.
 install:
-	python -m pip install -U 'pip<24.0'
 	python -m pip install ".[dlpacker,pippack,colabdesign,test]" -U --no-cache-dir
 
 # only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:
-	python -m pip install -U 'pip<24.0'
 	python -m pip install . --no-dependencies --no-cache-dir
 
 # ci docker image, before make install
 install-pytorch-cpu:
-	python -m pip install -U 'pip<24.0'
 	python -m pip install 'torch>2.0.1+cpu' 'torchvision>0.16.0+cpu' 'torchaudio>2.0.1+cpu' -i https://download.pytorch.org/whl/cpu --no-cache-dir
 
 # local dev

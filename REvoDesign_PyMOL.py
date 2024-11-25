@@ -44,6 +44,9 @@ REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 # Define the URL of the JSON file
 EXTRAS_TABLE_JSON = "https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw"
 
+
+# Define the proxy protocols allowd
+ALLOWED_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 # Fetch and validate JSON data
 
 
@@ -603,6 +606,23 @@ class CheckableListView(QtWidgets.QWidget):
                 item.setCheckState(QtCore.Qt.Unchecked)  # Default unchecked
                 self.model.appendRow(item)
 
+    def _get_items_by_check_state(self, check_state):
+        """
+        Helper function to get items based on their check state.
+
+        Args:
+            check_state (int): The check state to filter items by (e.g., QtCore.Qt.Checked).
+
+        Returns:
+            A list of strings representing the texts of items with the specified check state.
+        """
+        items = []
+        for row in range(self.model.rowCount()):
+            item = self.model.item(row)
+            if item.isCheckable() and item.checkState() == check_state:
+                items.append(self.items.get(item.text(), None))
+        return items
+
     def get_checked_items(self):
         """
         Returns a list of all checked items' text.
@@ -610,12 +630,16 @@ class CheckableListView(QtWidgets.QWidget):
         Returns:
             A list of strings representing the texts of all checked items.
         """
-        checked_items = []
-        for row in range(self.model.rowCount()):
-            item = self.model.item(row)
-            if item.isCheckable() and item.checkState() == QtCore.Qt.Checked:
-                checked_items.append(self.items[item.text()])
-        return checked_items
+        return self._get_items_by_check_state(QtCore.Qt.Checked)
+
+    def get_unchecked_items(self):
+        """
+        Returns a list of all unchecked items' text.
+
+        Returns:
+            A list of strings representing the texts of all unchecked items.
+        """
+        return self._get_items_by_check_state(QtCore.Qt.Unchecked)
 
     def check_all(self):
         """
@@ -645,6 +669,7 @@ class GitSolver:
     has_git: bool = False
     has_conda: bool = False
     has_winget: bool = False
+    has_brew: bool = False
 
     def __post_init__(self):
         """
@@ -654,7 +679,7 @@ class GitSolver:
         It sets the object's properties based on whether these tools are available in the system path.
         This ensures that the object can determine if it can perform related operations before doing so.
         """
-        for cmd_tool in ["git", "conda", "winget"]:
+        for cmd_tool in ["git", "conda", "winget", "brew"]:
             setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool) is not None)
 
     def fetch_git(self, env: Optional[Mapping[str, str]] = None):
@@ -685,13 +710,18 @@ class GitSolver:
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             ]
+
+        elif self.has_brew:
+            cmd = ["brew", "install", "git"]
+
         elif self.has_conda:
             cmd = ["conda", "install", "-y", "git"]
 
         else:
-            # If neither Conda nor Winget is present, prompt the user to install Git manually
+            # If none of package managers is present, prompt the user to install Git manually
             notify_box(
-                message="Git is required to install REvoDesign. Please install Git first.\n"
+                message="Failed on resolving Git with package managers [winget/conda/brew]. \n"
+                "Git is required to install REvoDesign. Please install Git first.\n"
                 "See https://git-scm.com/downloads",
             )
             return False
@@ -731,6 +761,126 @@ class GitSolver:
 
 
 @dataclass
+class PIPInstaller:
+
+    python_exe: str = ''
+    # run_command args
+    env: Optional[Mapping[str, str]] = None
+    verbose: bool = True
+
+    def ensurepip(self):
+        # run installation via pip
+        ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose, env=self.env)
+        if ensurepip.returncode:
+            notify_box(f"ensurepip failed: \nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}.", RuntimeError)
+            return
+
+    def __post_init__(self):
+        self.python_exe = os.path.realpath(sys.executable)
+        self.ensurepip()
+        
+        
+    def install(self, 
+                package_name: str= 'REvoDesign',
+                source: Optional[str]=None,
+                upgrade: bool = False,
+                extras: Optional[str] = None,
+                mirror: Optional[str] = "",
+                quiet: bool = False,
+                env: Optional[Mapping[str, str]] = None,
+                
+        ):
+
+        print("Installation is started. This may take a while and the window will freeze until it is done.")
+
+        def get_source_and_tag(source: str):
+            """
+            Parse the source URL and tag.
+
+            Args:
+                source: The source URL of the REvoDesign, or name of a package.
+
+            Returns:
+                Returns a tuple containing the git directory and git tag.
+            """
+            git_dir = source.split("@")[0]
+            if "@" in source:
+                git_tag = source.split("@")[1]
+            else:
+                git_tag = ""
+            return git_dir, git_tag
+
+        if package_name != 'REvoDesign':
+            # use package_name as package_string for other packages then 'REvoDesign'
+
+            package_string = package_name
+        else:
+            if source is None or source == '':
+                raise ValueError("Source must be specified for REvoDesign")
+            
+            git_url, git_tag = get_source_and_tag(source=source)
+            package_string = solve_installation_config(
+                    source=source, 
+                    git_url=git_url,
+                    git_tag=git_tag, 
+                    extras=extras, 
+                    package_name=package_name
+                )
+        
+        pip_cmd = [
+            self.python_exe,
+            "-m",
+            "pip",
+            "install",
+            f"{package_string}",
+        ]
+
+        if upgrade:
+            pip_cmd.append("-U")
+
+        if mirror:
+            print(f"using mirror from {mirror}")
+            pip_cmd.extend(["-i", mirror])
+        if quiet:
+            pip_cmd.append("-q")
+
+        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose, env=env if env is not None else self.env)
+        return result
+
+    
+    def uninstall(self, package_name: str='REvoDesign'):
+        pip_cmd = [
+                self.python_exe,
+                "-m",
+                "pip",
+                "uninstall",
+                "-y",
+                package_name,
+            ]
+        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose, env=self.env)
+        return result
+
+
+    def ensure_package(self, package_string: str, env: Optional[Mapping[str, str]] = None, mirror: Optional[str]=None):
+        """
+        Function: ensure_package
+        Usage: ensure_package(package_string, env)
+        This function ensures that a specified package is installed in the current Python environment.
+        Args:
+        - package_string (str): Name of the package to ensure
+        - env (Optional[Mapping[str, str]]): Environment variables to use for the installation
+        """
+        # Execute the pip installation command
+        result = self.install(package_string, upgrade=True, env=env, mirror=mirror)
+        # If the pip downgrade command fails, notify the user to manually execute the command
+        if result.returncode:
+            print(
+                f"Failed to ensure {package_string}. Please upgrade/downgrade manually.\n"
+                f'Run this command in your shell - `{" ".join(result.args)}`'
+            )
+
+
+@dataclass
 class REvoDesignInstaller:
     """
     Class to manage the installation of the REvoDesign plugin.
@@ -744,6 +894,7 @@ class REvoDesignInstaller:
 
     installer_ui: Ui_Dialog = None  # type: ignore
     extra_checkbox: CheckableListView = None  # type: ignore
+    pip_installer: PIPInstaller = None # type: ignore
 
     def run_plugin_gui(self):
         """
@@ -767,6 +918,8 @@ class REvoDesignInstaller:
 
         self.refresh_extras_table()
 
+        self.pip_installer = PIPInstaller()
+
         self.extra_checkbox.setGeometry(QtCore.QRect(540, 90, 141, 431))
 
         # Connect the 'None' radio button to uncheck all items
@@ -788,7 +941,7 @@ class REvoDesignInstaller:
         # Run a worker thread to fetch tags with a progress bar
         self.fetch_tags()
 
-    def proxy_in_env(self, proxy: Optional[str] = None) -> Dict[str, str]:
+    def proxy_in_env(self, proxy: Optional[str] = None, mirror: Optional[str]=None) -> Dict[str, str]:
         """
         Generates an environment mapping based on the provided proxy string.
 
@@ -803,17 +956,20 @@ class REvoDesignInstaller:
         if not proxy:
             return {}
 
-        if proxy.startswith('socks'):
+        if not any(proxy.startswith(prefix) for prefix in ALLOWED_PROTOCOLS):
+            notify_box(f'Unsupported proxy type: {proxy}\nPlease use one of the following protocols: \n'
+                        + "\n".join(f"{p}://..." for p in ALLOWED_PROTOCOLS), ValueError)
+            raise ValueError(f'Unsupported proxy type: {proxy}')
 
-            if not proxy.startswith('socks5'):
-                notify_box(f'Unsupported proxy type: {proxy}\nPlease use socks5://... or socks5h://...')
-                return {}
-
+        if proxy.startswith('socks5'):
             print('Ensuring pysocks is installed...')
             run_worker_thread_with_progress(
-                worker_function=ensure_package,
+                worker_function=self.pip_installer.ensure_package,
                 package_string='pysocks',
+                mirror=mirror,
+                env={},
                 progress_bar=self.installer_ui.progressBar)
+            
 
         print(f"using proxy: {proxy}")
         proxy_env = {
@@ -1075,8 +1231,8 @@ class REvoDesignInstaller:
         with hold_trigger_button(self.installer_ui.pushButton_remove):
             # Run the uninstallation process in a separate thread and monitor its progress
             ret: Optional[subprocess.CompletedProcess] = run_worker_thread_with_progress(
-                worker_function=install_via_pip,
-                uninstall=True,
+                worker_function=self.pip_installer.uninstall,
+                package_name='REvoDesign',
                 progress_bar=self.installer_ui.progressBar,
             )
 
@@ -1168,7 +1324,12 @@ class REvoDesignInstaller:
         env: Dict[str, str] = {}
 
         # Update environment variables based on proxy settings
-        env.update(self.proxy_in_env(proxy=proxy_url if (use_proxy and proxy_url) else None))
+        env.update(self.proxy_in_env(
+            proxy=proxy_url if (use_proxy and proxy_url) else None,
+            mirror=mirror_url if (use_mirror and mirror_url) else None))
+
+        # pass env to installer
+        self.pip_installer.env=env
 
         # Perform the installation process
         with hold_trigger_button(self.installer_ui.pushButton_install):
@@ -1183,14 +1344,12 @@ class REvoDesignInstaller:
                 return
 
             installed: Union[subprocess.CompletedProcess, None] = run_worker_thread_with_progress(
-                worker_function=install_via_pip,
-                progress_bar=self.installer_ui.progressBar,
+                worker_function=self.pip_installer.install,
                 source=install_source,
                 upgrade=upgrade,
-                verbose=verbose,
                 extras=extras,
-                env=env,
-                mirror=mirror_url if (use_mirror and mirror_url) else "",
+                mirror=mirror_url if (use_mirror and mirror_url) else '',
+                progress_bar=self.installer_ui.progressBar,
             )
             # Provide feedback on the installation result
             if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
@@ -1607,7 +1766,7 @@ def hold_trigger_button(button):
         button.setEnabled(True)
 
 
-def solve_installation_config(source: str, git_url: str, git_tag: str, extras: Optional[str]):
+def solve_installation_config( source: str, git_url: str, git_tag: str, extras: Optional[str], package_name: str='REvoDesign',):
     """
     Solves the installation configuration based on the provided parameters.
 
@@ -1621,7 +1780,7 @@ def solve_installation_config(source: str, git_url: str, git_tag: str, extras: O
     - str: The formatted package string for installation.
     """
     extra_string = f'[{extras}]' if extras else ''
-    package_string = f"REvoDesign{extra_string}"
+    package_string = f"{package_name}{extra_string}"
     print(f"Installing as {package_string}...")
 
     # Handle installation from a GitHub URL with a tag
@@ -1668,122 +1827,7 @@ def solve_installation_config(source: str, git_url: str, git_tag: str, extras: O
 
         return package_string
 
-    notify_box(f"Unknown installation source {source}!", ValueError)
-
-
-def ensure_package(package_string: str, env: Optional[Mapping[str, str]] = None):
-    """
-    Function: ensure_package
-    Usage: ensure_package(package_string, env)
-    This function ensures that a specified package is installed in the current Python environment.
-    Args:
-    - package_string (str): Name of the package to ensure
-    - env (Optional[Mapping[str, str]]): Environment variables to use for the installation
-    """
-
-    # Get the absolute path of the current Python executable
-    python_exe = os.path.realpath(sys.executable)
-    # Construct the command to install a specific version of pip
-    pip_cmd = [python_exe, "-m", "pip", "install", "-U", package_string, "-q"]
-
-    # Execute the pip installation command
-    result = run_command(pip_cmd, verbose=True, env=env)
-    # If the pip downgrade command fails, notify the user to manually execute the command
-    if result.returncode:
-        print(
-            f"Failed to ensure {package_string}. Please upgrade/downgrade manually.\n"
-            f'Run this command in your shell - `{" ".join(pip_cmd)}`'
-        )
-
-
-def install_via_pip(
-    source: str = REPO_URL,
-    upgrade: bool = False,
-    verbose: bool = True,
-    extras: Optional[str] = None,
-    mirror: Optional[str] = "",
-    uninstall: bool = False,
-    env: Optional[Mapping[str, str]] = None,
-) -> Optional[subprocess.CompletedProcess]:
-    """
-    Install a package via pip.
-
-    Args:
-        source: The source URL of the package, default is the URL defined in REPO_URL.
-        upgrade: Whether to upgrade the package, default is False.
-        verbose: Whether to output detailed information, default is True.
-        extras: Additional requirements, default is None.
-        mirror: The mirror source for installation, default is empty.
-        uninstall: Whether to uninstall before installation, default is False.
-        env: Environment variables for the installation process, default is None.
-
-    Returns:
-        Returns the result of the installation process as a subprocess.CompletedProcess object.
-    """
-
-    def get_source_and_tag(source: str):
-        """
-        Parse the source URL and tag.
-
-        Args:
-            source: The source URL of the package.
-
-        Returns:
-            Returns a tuple containing the git directory and git tag.
-        """
-        git_dir = source.split("@")[0]
-        if "@" in source:
-            git_tag = source.split("@")[1]
-        else:
-            git_tag = ""
-        return git_dir, git_tag
-
-    print("Installation is started. This may take a while and the window will freeze until it is done.")
-
-    python_exe = os.path.realpath(sys.executable)
-
-    # run installation via pip
-    ensurepip = run_command([python_exe, "-m", "ensurepip"], verbose=verbose, env=env)
-    if ensurepip.returncode:
-        notify_box("ensurepip failed.", RuntimeError)
-        return
-
-    if uninstall:
-        pip_cmd = [
-            python_exe,
-            "-m",
-            "pip",
-            "uninstall",
-            "-y",
-            "REvoDesign",
-        ]
-    else:
-        # use default source
-        if not source:
-            source = REPO_URL
-
-        git_url, git_tag = get_source_and_tag(source=source)
-
-        package_string = solve_installation_config(source=source, git_url=git_url, git_tag=git_tag, extras=extras)
-        pip_cmd = [
-            python_exe,
-            "-m",
-            "pip",
-            "install",
-            f"{package_string}",
-        ]
-
-        if upgrade:
-            pip_cmd.append("--upgrade")
-
-        if mirror:
-            print(f"using mirror from {mirror}")
-            pip_cmd.extend(["-i", mirror])
-
-    result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=verbose, env=env)
-
-    return result
-
+    notify_box(f"Unknown installation source {source}({package_name})!", ValueError)
 
 # entrypoint of PyMOL plugin
 def __init_plugin__(app=None):
