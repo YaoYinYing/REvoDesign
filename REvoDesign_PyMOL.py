@@ -32,7 +32,6 @@ from typing import (Callable, Dict, Iterable, List, Mapping, Optional,
                     Protocol, Tuple, TypeVar, Union)
 from urllib.error import HTTPError, URLError
 
-import pip
 from pymol.plugins import addmenuitemqt
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
@@ -1173,7 +1172,6 @@ class REvoDesignInstaller:
 
         # Perform the installation process
         with hold_trigger_button(self.installer_ui.pushButton_install):
-            ensure_lower_pip(env=env)
             git_solver = GitSolver()
             has_git = run_worker_thread_with_progress(
                 worker_function=git_solver.fetch_git,
@@ -1696,28 +1694,6 @@ def ensure_package(package_string: str, env: Optional[Mapping[str, str]] = None)
             f"Failed to ensure {package_string}. Please upgrade/downgrade manually.\n"
             f'Run this command in your shell - `{" ".join(pip_cmd)}`'
         )
-
-
-def ensure_lower_pip(env: Optional[Mapping[str, str]]):
-    """
-    Ensure the pip version is lower than 24.0, as REvoDesign installation requires pip<24.0.
-
-    Parameters:
-    - env: Optional[Mapping[str, str]] - The environment variables for the pip installation command, optional.
-
-    Returns:
-    None
-    """
-
-    # Get the current pip version number
-    pip_ver: float = float(pip.__version__.split(".", maxsplit=1)[0])
-    # If the pip version is already lower than 24.0, no action is needed
-    if pip_ver < 24.0:
-        return
-
-    # Warn the user that pip>=24.0 will be required for future REvoDesign installations
-    warnings.warn(FutureWarning("pip>=24.0 will be required for REvoDesign installation."))
-    ensure_package('pip<24.0', env=env)
 
 
 def install_via_pip(

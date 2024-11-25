@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+- installer:
+  - `ensure_lower_pip`, which is deprecated in favor of PEP440 and `pip>=24`.
+
 ## [1.7.4] - 2024-11-22
 
 ### Added
