@@ -44,7 +44,7 @@ REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 # Define the URL of the JSON file
 EXTRAS_TABLE_JSON = "https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw"
 
-DEPTS_TABLE='https://gist.githubusercontent.com/YaoYinYing/312c55b22c23069d478956bb85697bee/raw'
+DEPTS_TABLE = 'https://gist.githubusercontent.com/YaoYinYing/312c55b22c23069d478956bb85697bee/raw'
 
 
 # Define the proxy protocols allowd
@@ -134,7 +134,7 @@ def run_command(
 # copied translated UI Dialog class from UI file
 # ui: src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
 # translated: src/REvoDesign/UI/Ui_REvoDesign-PyMOL-entry.py
-class Ui_Dialog(object):
+class Ui_Dialog:
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(490, 547)
@@ -446,7 +446,7 @@ class Ui_Dialog(object):
         font.setPointSize(3)
         self.progressBar.setFont(font)
         self.progressBar.setProperty("value", 0)
-        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
+        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
         self.progressBar.setOrientation(QtCore.Qt.Horizontal)
         self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
         self.progressBar.setObjectName("progressBar")
@@ -460,27 +460,32 @@ class Ui_Dialog(object):
         self.listView_extras.setObjectName("listView_extras")
 
         self.retranslateUi(Dialog)
-        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled) # type: ignore
-        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled) # type: ignore
-        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled) # type: ignore
-        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
-        self.checkBox_use_proxy.toggled['bool'].connect(self.lineEdit_proxy_url.setEnabled) # type: ignore
-        self.checkBox_use_mirror.toggled['bool'].connect(self.lineEdit_mirror_url.setEnabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.comboBox_version.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_version.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.checkBox_specified_commit.setDisabled) # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_commit.setDisabled) # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.lineEdit_customized_cache_dir.setEnabled) # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_open_cache_dir.setEnabled) # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_set_cache_dir.setEnabled) # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled)  # type: ignore
+        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled)  # type: ignore
+        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled)  # type: ignore
+        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.comboBox_version.setDisabled)  # type: ignore
+        self.checkBox_use_proxy.toggled['bool'].connect(self.lineEdit_proxy_url.setEnabled)  # type: ignore
+        self.checkBox_use_mirror.toggled['bool'].connect(self.lineEdit_mirror_url.setEnabled)  # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(
+            self.checkBox_specified_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(
+            self.checkBox_specified_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.comboBox_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(
+            self.checkBox_specified_version.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(
+            self.checkBox_specified_commit.setDisabled)  # type: ignore
+        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_commit.setDisabled)  # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(
+            self.lineEdit_customized_cache_dir.setEnabled)  # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_open_cache_dir.setEnabled)  # type: ignore
+        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_set_cache_dir.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
@@ -489,7 +494,8 @@ class Ui_Dialog(object):
         self.groupBox.setTitle(_translate("Dialog", "Source:"))
         self.radioButton_from_repo.setToolTip(_translate("Dialog", "From GitHub repository"))
         self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
-        self.radioButton_from_local_clone.setToolTip(_translate("Dialog", "From project directory containing `pyproject.toml`"))
+        self.radioButton_from_local_clone.setToolTip(_translate(
+            "Dialog", "From project directory containing `pyproject.toml`"))
         self.radioButton_from_local_clone.setText(_translate("Dialog", "Local clone"))
         self.radioButton_from_local_file.setToolTip(_translate("Dialog", "From released zip/tarball file"))
         self.radioButton_from_local_file.setText(_translate("Dialog", "Local file"))
@@ -521,7 +527,8 @@ class Ui_Dialog(object):
         self.lineEdit_mirror_url.setToolTip(_translate("Dialog", "Set PyPi mirror URL"))
         self.lineEdit_mirror_url.setText(_translate("Dialog", "https://mirrors.bfsu.edu.cn/pypi/web/simple"))
         self.groupBox_4.setTitle(_translate("Dialog", "Cache:"))
-        self.checkBox_user_cache_dir.setToolTip(_translate("Dialog", "Use customized cache dir. Uncheck this to let REvoDesign choose one."))
+        self.checkBox_user_cache_dir.setToolTip(_translate("Dialog",
+                                                           "Use customized cache dir. Uncheck this to let REvoDesign choose one."))
         self.checkBox_user_cache_dir.setText(_translate("Dialog", "Use:"))
         self.lineEdit_customized_cache_dir.setToolTip(_translate("Dialog", "Cache file on this dir"))
         self.pushButton_open_cache_dir.setToolTip(_translate("Dialog", "Open a dir as cache directory."))
@@ -624,7 +631,7 @@ class CheckableListView(QtWidgets.QWidget):
         Returns:
             A list of strings representing the texts of all checked items.
         """
-        checked_items =self._get_items_by_check_state(QtCore.Qt.Checked)
+        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)
         print(f'[DEBUG]: Checked: {checked_items}')
         return checked_items
 
@@ -774,18 +781,17 @@ class PIPInstaller:
     def __post_init__(self):
         self.python_exe = os.path.realpath(sys.executable)
         self.ensurepip()
-        
-        
-    def install(self, 
-                package_name: str= 'REvoDesign',
-                source: Optional[str]=None,
+
+    def install(self,
+                package_name: str = 'REvoDesign',
+                source: Optional[str] = None,
                 upgrade: bool = False,
                 extras: Optional[str] = None,
                 mirror: Optional[str] = "",
                 quiet: bool = False,
                 env: Optional[Mapping[str, str]] = None,
-                
-        ):
+
+                ):
 
         print("Installation is started. This may take a while and the window will freeze until it is done.")
 
@@ -813,16 +819,16 @@ class PIPInstaller:
         else:
             if source is None or source == '':
                 raise ValueError("Source must be specified for REvoDesign")
-            
+
             git_url, git_tag = get_source_and_tag(source=source)
             package_string = solve_installation_config(
-                    source=source, 
-                    git_url=git_url,
-                    git_tag=git_tag, 
-                    extras=extras, 
-                    package_name=package_name
-                )
-        
+                source=source,
+                git_url=git_url,
+                git_tag=git_tag,
+                extras=extras,
+                package_name=package_name
+            )
+
         pip_cmd = [
             self.python_exe,
             "-m",
@@ -840,24 +846,24 @@ class PIPInstaller:
         if quiet:
             pip_cmd.append("-q")
 
-        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose, env=env if env is not None else self.env)
+        result: subprocess.CompletedProcess = run_command(
+            pip_cmd, verbose=self.verbose, env=env if env is not None else self.env)
         return result
 
-    
-    def uninstall(self, package_name: str='REvoDesign'):
+    def uninstall(self, package_name: str = 'REvoDesign'):
         pip_cmd = [
-                self.python_exe,
-                "-m",
-                "pip",
-                "uninstall",
-                "-y",
-                package_name,
-            ]
+            self.python_exe,
+            "-m",
+            "pip",
+            "uninstall",
+            "-y",
+            package_name,
+        ]
         result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose, env=self.env)
         return result
 
-
-    def ensure_package(self, package_string: str, env: Optional[Mapping[str, str]] = None, mirror: Optional[str]=None):
+    def ensure_package(self, package_string: str,
+                       env: Optional[Mapping[str, str]] = None, mirror: Optional[str] = None):
         """
         Function: ensure_package
         Usage: ensure_package(package_string, env)
@@ -890,7 +896,7 @@ class REvoDesignInstaller:
 
     installer_ui: Ui_Dialog = None  # type: ignore
     extra_checkbox: CheckableListView = None  # type: ignore
-    pip_installer: PIPInstaller = None # type: ignore
+    pip_installer: PIPInstaller = None  # type: ignore
 
     def run_plugin_gui(self):
         """
@@ -937,7 +943,7 @@ class REvoDesignInstaller:
         # Run a worker thread to fetch tags with a progress bar
         self.fetch_tags()
 
-    def proxy_in_env(self, proxy: Optional[str] = None, mirror: Optional[str]=None) -> Dict[str, str]:
+    def proxy_in_env(self, proxy: Optional[str] = None, mirror: Optional[str] = None) -> Dict[str, str]:
         """
         Generates an environment mapping based on the provided proxy string.
 
@@ -954,7 +960,7 @@ class REvoDesignInstaller:
 
         if not any(proxy.startswith(prefix) for prefix in ALLOWED_PROXY_PROTOCOLS):
             notify_box(f'Unsupported proxy type: {proxy}\nPlease use one of the following protocols: \n'
-                        + "\n".join(f"{p}://..." for p in ALLOWED_PROXY_PROTOCOLS), ValueError)
+                       + "\n".join(f"{p}://..." for p in ALLOWED_PROXY_PROTOCOLS), ValueError)
             raise ValueError(f'Unsupported proxy type: {proxy}')
 
         if proxy.startswith('socks5'):
@@ -965,7 +971,6 @@ class REvoDesignInstaller:
                 mirror=mirror,
                 env={},
                 progress_bar=self.installer_ui.progressBar)
-            
 
         print(f"using proxy: {proxy}")
         proxy_env = {
@@ -1236,7 +1241,8 @@ class REvoDesignInstaller:
                 # If the uninstallation fails, notify the user of the failure and raise an error
                 return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError)
 
-            remove_deps=proceed_with_comfirm_msg_box('Clean up warning','Do you want to remove all the dependencies?')
+            remove_deps = proceed_with_comfirm_msg_box(
+                'Clean up warning', 'Do you want to remove all the dependencies?')
             if remove_deps:
                 run_worker_thread_with_progress(
                     self.remove_depts,
@@ -1247,13 +1253,13 @@ class REvoDesignInstaller:
             return notify_box(
                 message="REvoDesign is removed successfully. Bye-bye.",
             )
-        
+
     def remove_depts(self):
-        deps_table: Dict[str, str]= fetch_extras(DEPTS_TABLE)
+        deps_table: Dict[str, str] = fetch_extras(DEPTS_TABLE)
         deps_table = {k: v for k, v in deps_table.items() if v != ''}
-        checked_depts_to_uninstall =self.extra_checkbox.get_checked_items()
+        checked_depts_to_uninstall = self.extra_checkbox.get_checked_items()
         for pkg_name, pkg_id in deps_table.items():
-            if not pkg_name in checked_depts_to_uninstall:
+            if pkg_name not in checked_depts_to_uninstall:
                 print(f'[DEBUG]: Skip unchecked item: {pkg_name}')
                 continue
             for _p in pkg_id.split(';'):
@@ -1344,7 +1350,7 @@ class REvoDesignInstaller:
             mirror=mirror_url if (use_mirror and mirror_url) else None))
 
         # pass env to installer
-        self.pip_installer.env=env
+        self.pip_installer.env = env
 
         # Perform the installation process
         with hold_trigger_button(self.installer_ui.pushButton_install):
@@ -1782,7 +1788,13 @@ def hold_trigger_button(button):
         button.setEnabled(True)
 
 
-def solve_installation_config( source: str, git_url: str, git_tag: str, extras: Optional[str], package_name: str='REvoDesign',):
+def solve_installation_config(
+    source: str,
+    git_url: str,
+    git_tag: str,
+    extras: Optional[str],
+    package_name: str = 'REvoDesign',
+):
     """
     Solves the installation configuration based on the provided parameters.
 
@@ -1846,6 +1858,8 @@ def solve_installation_config( source: str, git_url: str, git_tag: str, extras: 
     notify_box(f"Unknown installation source {source}({package_name})!", ValueError)
 
 # entrypoint of PyMOL plugin
+
+
 def __init_plugin__(app=None):
     """
     Add an entry to the PyMOL "Plugin" menu

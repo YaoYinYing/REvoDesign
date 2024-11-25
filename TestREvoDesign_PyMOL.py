@@ -30,9 +30,9 @@ def test_fetch_git_when_git_present(git_solver, has_git, expected_result):
 
 
 @pytest.mark.parametrize("has_conda, has_winget, has_brew,expected_cmd", [
-    (True, False,False, ['conda', 'install', '-y', 'git']),
-    (False, False,True, ['brew', 'install', 'git']),
-    (False, True,False, [
+    (True, False, False, ['conda', 'install', '-y', 'git']),
+    (False, False, True, ['brew', 'install', 'git']),
+    (False, True, False, [
         "winget",
         "install",
         "--id",
@@ -45,7 +45,7 @@ def test_fetch_git_when_git_present(git_solver, has_git, expected_result):
     ]),
 ])
 @patch('REvoDesign_PyMOL.notify_box', side_effect=mock_notify_box)
-def test_fetch_git_with_installers(mock_notify, git_solver, has_conda, has_winget, has_brew,expected_cmd):
+def test_fetch_git_with_installers(mock_notify, git_solver, has_conda, has_winget, has_brew, expected_cmd):
     with patch.object(git_solver, 'has_git', new=False), patch.object(git_solver, 'has_conda', new=has_conda), patch.object(git_solver, 'has_winget', new=has_winget), patch.object(git_solver, 'has_brew', new=has_brew):
         with patch('REvoDesign_PyMOL.run_command') as mock_run:
             mock_run.return_value = MagicMock(returncode=0)
