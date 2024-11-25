@@ -18,6 +18,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- installer:
+  - `DEPTS_TABLE` & `REvoDesignInstaller.remove_depts`: remove dependencies if user requires.
+  - `PIPInstaller`: manager of pip-install stuffs
+    - `ensurepip`: install package if not installed, only once
+    - `install`: install packages
+    - `uninstall`: uninstall packages
+    - `ensure_package`: ensure one package is installed(by calling `self.install`)
+  - `REvoDesignInstaller.proxy_in_env`: Optional `mirror` to supercharge bootstraping of  `pysocks` from mirror. Geronimo!
+  - `ALLOWED_PROXY_PROTOCOLS`: explicitly restrict protocols of proxy url.
+
+### Changed
+
+### Fixed
+
+### Removed
+
+- installer:
+  - `ensure_lower_pip`, which is deprecated in favor of PEP440 and `pip>=24`.
+    - note: this is historical issue of deprecated `pip<24`'s support on local label. So I have to recently updated the pyproject.toml file of PIPPack to satisfy `pip>=24`'
+  - `ensure_package`, which was imported at `v1.7.4`
+
 ## [1.7.4] - 2024-11-22
 
 ### Added

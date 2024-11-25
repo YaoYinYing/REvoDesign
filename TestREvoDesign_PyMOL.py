@@ -29,9 +29,10 @@ def test_fetch_git_when_git_present(git_solver, has_git, expected_result):
         assert result == expected_result
 
 
-@pytest.mark.parametrize("has_conda, has_winget, expected_cmd", [
-    (True, False, ['conda', 'install', '-y', 'git']),
-    (False, True, [
+@pytest.mark.parametrize("has_conda, has_winget, has_brew,expected_cmd", [
+    (True, False, False, ['conda', 'install', '-y', 'git']),
+    (False, False, True, ['brew', 'install', 'git']),
+    (False, True, False, [
         "winget",
         "install",
         "--id",
@@ -44,21 +45,19 @@ def test_fetch_git_when_git_present(git_solver, has_git, expected_result):
     ]),
 ])
 @patch('REvoDesign_PyMOL.notify_box', side_effect=mock_notify_box)
-def test_fetch_git_with_installers(mock_notify, git_solver, has_conda, has_winget, expected_cmd):
-    with patch.object(git_solver, 'has_git', new=False):
-        with patch.object(git_solver, 'has_conda', new=has_conda):
-            with patch.object(git_solver, 'has_winget', new=has_winget):
-                with patch('REvoDesign_PyMOL.run_command') as mock_run:
-                    mock_run.return_value = MagicMock(returncode=0)
-                    result = git_solver.fetch_git(env=None)
-                    assert result
-                    mock_run.assert_called_once_with(
-                        cmd=expected_cmd,
-                        verbose=True,
-                        env=None
-                    )
-                    # Ensure notify_box was called with the correct message
-                    mock_notify.assert_called_once_with('Git installed successfully.')
+def test_fetch_git_with_installers(mock_notify, git_solver, has_conda, has_winget, has_brew, expected_cmd):
+    with patch.object(git_solver, 'has_git', new=False), patch.object(git_solver, 'has_conda', new=has_conda), patch.object(git_solver, 'has_winget', new=has_winget), patch.object(git_solver, 'has_brew', new=has_brew):
+        with patch('REvoDesign_PyMOL.run_command') as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            result = git_solver.fetch_git(env=None)
+            assert result
+            mock_run.assert_called_once_with(
+                cmd=expected_cmd,
+                verbose=True,
+                env=None
+            )
+            # Ensure notify_box was called with the correct message
+            mock_notify.assert_called_once_with('Git installed successfully.')
 
 
 def test_fetch_git_failed_installation(git_solver):

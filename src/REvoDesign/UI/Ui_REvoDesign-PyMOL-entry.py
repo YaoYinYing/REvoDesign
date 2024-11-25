@@ -365,7 +365,7 @@ class Ui_Dialog:
 
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "REvoDesign Installer"))
+        Dialog.setWindowTitle(_translate("Dialog", "REvoDesign Package Manager"))
         self.groupBox.setTitle(_translate("Dialog", "Source:"))
         self.radioButton_from_repo.setToolTip(_translate("Dialog", "From GitHub repository"))
         self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
@@ -412,7 +412,7 @@ class Ui_Dialog:
         self.pushButton_set_cache_dir.setText(_translate("Dialog", "Apply"))
         self.groupBox_5.setToolTip(_translate("Dialog", "Extra definitions of dependencies."))
         self.groupBox_5.setTitle(_translate("Dialog", "Extras:"))
-        self.pushButton_refresh_extras.setToolTip(_translate("Dialog", "Install REvoDesign"))
+        self.pushButton_refresh_extras.setToolTip(_translate("Dialog", "Refresh REvoDesign table"))
         self.pushButton_refresh_extras.setText(_translate("Dialog", "Refresh"))
         self.radioButton_extra_none.setToolTip(_translate("Dialog", "Default setting with no extra dependencies."))
         self.radioButton_extra_none.setText(_translate("Dialog", "None"))
