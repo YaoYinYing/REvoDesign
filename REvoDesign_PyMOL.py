@@ -57,7 +57,7 @@ def fetch_extras(url: str) -> Dict[str, str]:
         with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
             data = response.read().decode('utf-8')
             json_data = json.loads(data)
-            print(f'Extras table is fetched and parsed: \n'
+            print(f'[DEBUG]: Extras table is fetched and parsed: \n'
                   f'{json_data}')
 
             # Validate the structure of the fetched data
@@ -1369,7 +1369,7 @@ class REvoDesignInstaller:
                 source=install_source,
                 upgrade=upgrade,
                 extras=extras,
-                quiet=verbose,
+                quiet=not verbose,
                 mirror=mirror_url if (use_mirror and mirror_url) else '',
                 progress_bar=self.installer_ui.progressBar,
             )
