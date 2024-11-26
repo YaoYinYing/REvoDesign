@@ -48,7 +48,6 @@ UI_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/2e378bbe038774e6f81
 
 # THIS file
 # uploaded with `make upload-manager`
-# TODO: security check?
 THIS_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
 
 # Define the URL of the JSON file
@@ -631,7 +630,7 @@ class REvoDesignInstaller:
         diff_file = f'{original_file}.diff'
 
         # Open the original, new fetched, and diff files
-        with open(original_file) as original, open(new_file) as new_fetched, open(diff_file, 'w') as diff:
+        with open(original_file) as original, open(new_file) as new_fetched:
             diffs = tuple(
                 difflib.context_diff(
                     original.readlines(),
@@ -643,13 +642,15 @@ class REvoDesignInstaller:
             if not diffs:
                 return notify_box(f'{title} is already up to date.')
 
-            diff.writelines(diffs)
+            with open(diff_file, 'w') as diff:
+                diff.writelines(diffs)
 
         # Prompt the user to confirm the upgrade
         accept_upgraded = proceed_with_comfirm_msg_box(
             'Upgrade',
-            'Do you want to apply the upgrade?<p>'
-            f"See this <a href=file://{diff_file}>Diff file</a>", rich=True)
+            'Do you REALLY want to apply the upgrade?<p><p>'
+            'You must check out these changes carefully.<p>'
+            f"See all changes in this <a href=file://{diff_file}>diff file of {title}.</a>", rich=True)
 
         # Clean up the diff file
         if os.path.isfile(diff_file):
@@ -923,16 +924,16 @@ class REvoDesignInstaller:
         Parameters:
         - expand (bool): If True, expands the widget to a larger size; if False, shrinks it to a smaller size.
 
-        This function animates the resizing of `self.dialog` and `self.ui.label_2` to the specified dimensions.
+        This function animates the resizing of `self.dialog` and `self.ui.label_header` to the specified dimensions.
         """
         if expand:
             # Expand the dialog and label to larger sizes
             self.animate_to_size(self.dialog, (652, 534))
-            self.animate_to_size(self.installer_ui.label_2, (611, 41))
+            self.animate_to_size(self.installer_ui.label_header, (611, 41))
         else:
             # Shrink the dialog and label to smaller sizes
             self.animate_to_size(self.dialog, (490, 534))
-            self.animate_to_size(self.installer_ui.label_2, (451, 41))
+            self.animate_to_size(self.installer_ui.label_header, (451, 41))
 
     def fetch_tags(self):
         """

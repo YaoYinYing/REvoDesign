@@ -41,7 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - installer:
-  - self upgrade security checks by difflib
+  - self upgrade security checks by `difflib`
+  - `REvoDesignInstaller.resize_extra_widget`: new label name `self.installer_ui.label_header` due to this refactoring.
 
 ### Removed
 
@@ -50,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - note: this is historical issue of deprecated `pip<24`'s support on local label. So I have to recently updated the pyproject.toml file of PIPPack to satisfy `pip>=24`'
   - `ensure_package`, which was imported at `v1.7.4`
   - ! translated UI code: Installer is now a cloud-upgradable scripts.
+- Compiled installer ui py-file
 
 
 ### Known Issues
