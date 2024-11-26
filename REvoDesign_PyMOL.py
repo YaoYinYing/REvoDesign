@@ -13,6 +13,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all.
 # pylint: disable=import-outside-toplevel
 # pylint: disable=unused-argument
 
+import difflib
 import importlib
 import importlib.util
 import json
@@ -28,31 +29,76 @@ import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import (Callable, Dict, Iterable, List, Mapping, Optional,
-                    Protocol, Tuple, TypeVar, Union)
+from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
+                    Tuple, TypeVar, Union)
 from urllib.error import HTTPError, URLError
 
 from pymol.plugins import addmenuitemqt
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
+from pymol.Qt.utils import loadUi
 
 print(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
 
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
+# UI file online
+# uploaded with `make upload-manager-ui`
+UI_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/2e378bbe038774e6f819f731701b32cb/raw'
+
+# THIS file
+# uploaded with `make upload-manager`
+# TODO: security check?
+THIS_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
 
 # Define the URL of the JSON file
 EXTRAS_TABLE_JSON = "https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw"
+DEPTS_TABLE_JSON = 'https://gist.githubusercontent.com/YaoYinYing/312c55b22c23069d478956bb85697bee/raw'
 
-DEPTS_TABLE = 'https://gist.githubusercontent.com/YaoYinYing/312c55b22c23069d478956bb85697bee/raw'
 
-
-# Define the proxy protocols allowd
+# Define the proxy protocols allowed
 ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
+
+
+def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
+    """
+    Fetch the UI file from the given URL, save it to a temporary file, and yield its absolute path.
+
+    Parameters:
+    ui_file_url (str): The URL of the UI file to be fetched.
+    save_to_file (str): The name of the temporary file to save the fetched UI file to.
+
+    Returns:
+    None
+    """
+    # Validate and sanitize the URL
+    if not ui_file_url.startswith('https'):
+        raise ValueError("URL must start with 'https'")
+
+    try:
+        # Fetch the file content and write it to the temporary file
+        with urllib.request.urlopen(ui_file_url) as response, open(save_to_file, 'w') as ui_handle:
+            ui_data = response.read().decode('utf-8')
+            ui_handle.write(ui_data)
+
+    except (URLError, HTTPError) as e:
+        raise URLError(f"Failed to download file: {e}") from e
+    except ValueError as e:
+        raise ValueError(f"Invalid URL: {e}") from e
+
 # Fetch and validate JSON data
 
 
-def fetch_extras(url: str) -> Dict[str, str]:
+def fetch_gist_json(url: str) -> Dict[str, str]:
+    """
+    Fetches JSON data from the specified URL and validates its structure.
+
+    Parameters:
+    url (str): The URL from which to fetch the JSON data.
+
+    Returns:
+    Dict[str, str]: The fetched and validated JSON data, or an empty dictionary if an error occurs.
+    """
     try:
         with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
             data = response.read().decode('utf-8')
@@ -129,422 +175,6 @@ def run_command(
 
     # Return the execution result
     return result
-
-
-# copied translated UI Dialog class from UI file
-# ui: src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
-# translated: src/REvoDesign/UI/Ui_REvoDesign-PyMOL-entry.py
-class Ui_Dialog:
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(490, 547)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(Dialog.sizePolicy().hasHeightForWidth())
-        Dialog.setSizePolicy(sizePolicy)
-        Dialog.setMinimumSize(QtCore.QSize(490, 534))
-        Dialog.setMaximumSize(QtCore.QSize(652, 547))
-        Dialog.setToolTipDuration(2)
-        self.groupBox = QtWidgets.QGroupBox(Dialog)
-        self.groupBox.setGeometry(QtCore.QRect(10, 70, 471, 101))
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
-        self.groupBox.setSizePolicy(sizePolicy)
-        self.groupBox.setObjectName("groupBox")
-        self.horizontalLayoutWidget_2 = QtWidgets.QWidget(self.groupBox)
-        self.horizontalLayoutWidget_2.setGeometry(QtCore.QRect(10, 30, 451, 64))
-        self.horizontalLayoutWidget_2.setObjectName("horizontalLayoutWidget_2")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_2)
-        self.horizontalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.verticalLayout = QtWidgets.QVBoxLayout()
-        self.verticalLayout.setSpacing(0)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.radioButton_from_repo = QtWidgets.QRadioButton(self.horizontalLayoutWidget_2)
-        self.radioButton_from_repo.setWhatsThis("")
-        self.radioButton_from_repo.setChecked(True)
-        self.radioButton_from_repo.setObjectName("radioButton_from_repo")
-        self.horizontalLayout_3.addWidget(self.radioButton_from_repo)
-        self.radioButton_from_local_clone = QtWidgets.QRadioButton(self.horizontalLayoutWidget_2)
-        self.radioButton_from_local_clone.setWhatsThis("")
-        self.radioButton_from_local_clone.setObjectName("radioButton_from_local_clone")
-        self.horizontalLayout_3.addWidget(self.radioButton_from_local_clone)
-        self.radioButton_from_local_file = QtWidgets.QRadioButton(self.horizontalLayoutWidget_2)
-        self.radioButton_from_local_file.setWhatsThis("")
-        self.radioButton_from_local_file.setObjectName("radioButton_from_local_file")
-        self.horizontalLayout_3.addWidget(self.radioButton_from_local_file)
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout = QtWidgets.QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.lineEdit_local = QtWidgets.QLineEdit(self.horizontalLayoutWidget_2)
-        self.lineEdit_local.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_local.sizePolicy().hasHeightForWidth())
-        self.lineEdit_local.setSizePolicy(sizePolicy)
-        self.lineEdit_local.setWhatsThis("")
-        self.lineEdit_local.setObjectName("lineEdit_local")
-        self.horizontalLayout.addWidget(self.lineEdit_local)
-        self.pushButton_open = QtWidgets.QPushButton(self.horizontalLayoutWidget_2)
-        self.pushButton_open.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_open.sizePolicy().hasHeightForWidth())
-        self.pushButton_open.setSizePolicy(sizePolicy)
-        self.pushButton_open.setObjectName("pushButton_open")
-        self.horizontalLayout.addWidget(self.pushButton_open)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.horizontalLayout_2.addLayout(self.verticalLayout)
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.pushButton_install = QtWidgets.QPushButton(self.horizontalLayoutWidget_2)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_install.sizePolicy().hasHeightForWidth())
-        self.pushButton_install.setSizePolicy(sizePolicy)
-        self.pushButton_install.setObjectName("pushButton_install")
-        self.verticalLayout_2.addWidget(self.pushButton_install)
-        self.pushButton_remove = QtWidgets.QPushButton(self.horizontalLayoutWidget_2)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_remove.sizePolicy().hasHeightForWidth())
-        self.pushButton_remove.setSizePolicy(sizePolicy)
-        self.pushButton_remove.setObjectName("pushButton_remove")
-        self.verticalLayout_2.addWidget(self.pushButton_remove)
-        self.horizontalLayout_2.addLayout(self.verticalLayout_2)
-        self.groupBox_2 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_2.setGeometry(QtCore.QRect(10, 170, 471, 101))
-        self.groupBox_2.setObjectName("groupBox_2")
-        self.horizontalLayoutWidget_8 = QtWidgets.QWidget(self.groupBox_2)
-        self.horizontalLayoutWidget_8.setGeometry(QtCore.QRect(10, 29, 451, 65))
-        self.horizontalLayoutWidget_8.setObjectName("horizontalLayoutWidget_8")
-        self.horizontalLayout_8 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_8)
-        self.horizontalLayout_8.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_3.setSpacing(0)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.checkBox_upgrade = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_upgrade.sizePolicy().hasHeightForWidth())
-        self.checkBox_upgrade.setSizePolicy(sizePolicy)
-        self.checkBox_upgrade.setStatusTip("")
-        self.checkBox_upgrade.setChecked(True)
-        self.checkBox_upgrade.setObjectName("checkBox_upgrade")
-        self.horizontalLayout_4.addWidget(self.checkBox_upgrade)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_4)
-        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
-        self.checkBox_verbose = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
-        self.checkBox_verbose.setChecked(True)
-        self.checkBox_verbose.setObjectName("checkBox_verbose")
-        self.horizontalLayout_7.addWidget(self.checkBox_verbose)
-        self.verticalLayout_3.addLayout(self.horizontalLayout_7)
-        self.horizontalLayout_8.addLayout(self.verticalLayout_3)
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_4.setSpacing(0)
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_5.setObjectName("horizontalLayout_5")
-        self.checkBox_specified_version = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_specified_version.sizePolicy().hasHeightForWidth())
-        self.checkBox_specified_version.setSizePolicy(sizePolicy)
-        self.checkBox_specified_version.setWhatsThis("")
-        self.checkBox_specified_version.setObjectName("checkBox_specified_version")
-        self.horizontalLayout_5.addWidget(self.checkBox_specified_version)
-        self.comboBox_version = QtWidgets.QComboBox(self.horizontalLayoutWidget_8)
-        self.comboBox_version.setEnabled(False)
-        self.comboBox_version.setObjectName("comboBox_version")
-        self.horizontalLayout_5.addWidget(self.comboBox_version)
-        self.verticalLayout_4.addLayout(self.horizontalLayout_5)
-        self.horizontalLayout_6 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_6.setObjectName("horizontalLayout_6")
-        self.checkBox_specified_commit = QtWidgets.QCheckBox(self.horizontalLayoutWidget_8)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_specified_commit.sizePolicy().hasHeightForWidth())
-        self.checkBox_specified_commit.setSizePolicy(sizePolicy)
-        self.checkBox_specified_commit.setObjectName("checkBox_specified_commit")
-        self.horizontalLayout_6.addWidget(self.checkBox_specified_commit)
-        self.lineEdit_commit = QtWidgets.QLineEdit(self.horizontalLayoutWidget_8)
-        self.lineEdit_commit.setEnabled(False)
-        self.lineEdit_commit.setObjectName("lineEdit_commit")
-        self.horizontalLayout_6.addWidget(self.lineEdit_commit)
-        self.verticalLayout_4.addLayout(self.horizontalLayout_6)
-        self.horizontalLayout_8.addLayout(self.verticalLayout_4)
-        self.label_2 = QtWidgets.QLabel(Dialog)
-        self.label_2.setGeometry(QtCore.QRect(20, 20, 451, 41))
-        font = QtGui.QFont()
-        font.setPointSize(14)
-        font.setBold(True)
-        font.setItalic(True)
-        font.setUnderline(False)
-        font.setWeight(75)
-        font.setStrikeOut(False)
-        self.label_2.setFont(font)
-        self.label_2.setFrameShape(QtWidgets.QFrame.Panel)
-        self.label_2.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.label_2.setLineWidth(2)
-        self.label_2.setMidLineWidth(0)
-        self.label_2.setTextFormat(QtCore.Qt.RichText)
-        self.label_2.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_2.setObjectName("label_2")
-        self.groupBox_3 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_3.setGeometry(QtCore.QRect(10, 270, 471, 101))
-        self.groupBox_3.setObjectName("groupBox_3")
-        self.verticalLayoutWidget = QtWidgets.QWidget(self.groupBox_3)
-        self.verticalLayoutWidget.setGeometry(QtCore.QRect(10, 30, 451, 61))
-        self.verticalLayoutWidget.setObjectName("verticalLayoutWidget")
-        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.verticalLayoutWidget)
-        self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_5.setSpacing(0)
-        self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_9.setObjectName("horizontalLayout_9")
-        self.checkBox_use_proxy = QtWidgets.QCheckBox(self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_use_proxy.sizePolicy().hasHeightForWidth())
-        self.checkBox_use_proxy.setSizePolicy(sizePolicy)
-        self.checkBox_use_proxy.setObjectName("checkBox_use_proxy")
-        self.horizontalLayout_9.addWidget(self.checkBox_use_proxy)
-        self.lineEdit_proxy_url = QtWidgets.QLineEdit(self.verticalLayoutWidget)
-        self.lineEdit_proxy_url.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_proxy_url.sizePolicy().hasHeightForWidth())
-        self.lineEdit_proxy_url.setSizePolicy(sizePolicy)
-        self.lineEdit_proxy_url.setObjectName("lineEdit_proxy_url")
-        self.horizontalLayout_9.addWidget(self.lineEdit_proxy_url)
-        self.verticalLayout_5.addLayout(self.horizontalLayout_9)
-        self.horizontalLayout_10 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_10.setObjectName("horizontalLayout_10")
-        self.checkBox_use_mirror = QtWidgets.QCheckBox(self.verticalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_use_mirror.sizePolicy().hasHeightForWidth())
-        self.checkBox_use_mirror.setSizePolicy(sizePolicy)
-        self.checkBox_use_mirror.setObjectName("checkBox_use_mirror")
-        self.horizontalLayout_10.addWidget(self.checkBox_use_mirror)
-        self.lineEdit_mirror_url = QtWidgets.QLineEdit(self.verticalLayoutWidget)
-        self.lineEdit_mirror_url.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_mirror_url.sizePolicy().hasHeightForWidth())
-        self.lineEdit_mirror_url.setSizePolicy(sizePolicy)
-        self.lineEdit_mirror_url.setObjectName("lineEdit_mirror_url")
-        self.horizontalLayout_10.addWidget(self.lineEdit_mirror_url)
-        self.verticalLayout_5.addLayout(self.horizontalLayout_10)
-        self.groupBox_4 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_4.setGeometry(QtCore.QRect(10, 440, 471, 71))
-        self.groupBox_4.setObjectName("groupBox_4")
-        self.horizontalLayoutWidget = QtWidgets.QWidget(self.groupBox_4)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 30, 451, 33))
-        self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
-        self.horizontalLayout_11 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
-        self.horizontalLayout_11.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_11.setObjectName("horizontalLayout_11")
-        self.checkBox_user_cache_dir = QtWidgets.QCheckBox(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.checkBox_user_cache_dir.sizePolicy().hasHeightForWidth())
-        self.checkBox_user_cache_dir.setSizePolicy(sizePolicy)
-        self.checkBox_user_cache_dir.setWhatsThis("")
-        self.checkBox_user_cache_dir.setObjectName("checkBox_user_cache_dir")
-        self.horizontalLayout_11.addWidget(self.checkBox_user_cache_dir)
-        self.lineEdit_customized_cache_dir = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
-        self.lineEdit_customized_cache_dir.setEnabled(False)
-        self.lineEdit_customized_cache_dir.setObjectName("lineEdit_customized_cache_dir")
-        self.horizontalLayout_11.addWidget(self.lineEdit_customized_cache_dir)
-        self.pushButton_open_cache_dir = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_open_cache_dir.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_open_cache_dir.sizePolicy().hasHeightForWidth())
-        self.pushButton_open_cache_dir.setSizePolicy(sizePolicy)
-        self.pushButton_open_cache_dir.setObjectName("pushButton_open_cache_dir")
-        self.horizontalLayout_11.addWidget(self.pushButton_open_cache_dir)
-        self.pushButton_set_cache_dir = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_set_cache_dir.setEnabled(False)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_set_cache_dir.sizePolicy().hasHeightForWidth())
-        self.pushButton_set_cache_dir.setSizePolicy(sizePolicy)
-        self.pushButton_set_cache_dir.setObjectName("pushButton_set_cache_dir")
-        self.horizontalLayout_11.addWidget(self.pushButton_set_cache_dir)
-        self.groupBox_5 = QtWidgets.QGroupBox(Dialog)
-        self.groupBox_5.setGeometry(QtCore.QRect(10, 370, 471, 71))
-        self.groupBox_5.setObjectName("groupBox_5")
-        self.horizontalLayoutWidget_3 = QtWidgets.QWidget(self.groupBox_5)
-        self.horizontalLayoutWidget_3.setGeometry(QtCore.QRect(10, 30, 451, 32))
-        self.horizontalLayoutWidget_3.setObjectName("horizontalLayoutWidget_3")
-        self.horizontalLayout_13 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget_3)
-        self.horizontalLayout_13.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_13.setObjectName("horizontalLayout_13")
-        self.pushButton_refresh_extras = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_refresh_extras.sizePolicy().hasHeightForWidth())
-        self.pushButton_refresh_extras.setSizePolicy(sizePolicy)
-        self.pushButton_refresh_extras.setMinimumSize(QtCore.QSize(120, 0))
-        self.pushButton_refresh_extras.setMaximumSize(QtCore.QSize(120, 16777215))
-        self.pushButton_refresh_extras.setObjectName("pushButton_refresh_extras")
-        self.horizontalLayout_13.addWidget(self.pushButton_refresh_extras)
-        self.horizontalLayout_12 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_12.setObjectName("horizontalLayout_12")
-        self.radioButton_extra_none = QtWidgets.QRadioButton(self.horizontalLayoutWidget_3)
-        self.radioButton_extra_none.setWhatsThis("")
-        self.radioButton_extra_none.setChecked(True)
-        self.radioButton_extra_none.setObjectName("radioButton_extra_none")
-        self.horizontalLayout_12.addWidget(self.radioButton_extra_none)
-        self.radioButton_extra_customized = QtWidgets.QRadioButton(self.horizontalLayoutWidget_3)
-        self.radioButton_extra_customized.setWhatsThis("")
-        self.radioButton_extra_customized.setObjectName("radioButton_extra_customized")
-        self.horizontalLayout_12.addWidget(self.radioButton_extra_customized)
-        self.radioButton_extra_everything = QtWidgets.QRadioButton(self.horizontalLayoutWidget_3)
-        self.radioButton_extra_everything.setWhatsThis("")
-        self.radioButton_extra_everything.setChecked(False)
-        self.radioButton_extra_everything.setObjectName("radioButton_extra_everything")
-        self.horizontalLayout_12.addWidget(self.radioButton_extra_everything)
-        self.horizontalLayout_13.addLayout(self.horizontalLayout_12)
-        self.progressBar = QtWidgets.QProgressBar(Dialog)
-        self.progressBar.setGeometry(QtCore.QRect(10, 520, 471, 16))
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.progressBar.sizePolicy().hasHeightForWidth())
-        self.progressBar.setSizePolicy(sizePolicy)
-        self.progressBar.setMinimumSize(QtCore.QSize(0, 0))
-        self.progressBar.setSizeIncrement(QtCore.QSize(0, 0))
-        self.progressBar.setBaseSize(QtCore.QSize(0, 0))
-        font = QtGui.QFont()
-        font.setPointSize(3)
-        self.progressBar.setFont(font)
-        self.progressBar.setProperty("value", 0)
-        self.progressBar.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
-        self.progressBar.setOrientation(QtCore.Qt.Horizontal)
-        self.progressBar.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
-        self.progressBar.setObjectName("progressBar")
-        self.listView_extras = QtWidgets.QListView(Dialog)
-        self.listView_extras.setGeometry(QtCore.QRect(490, 90, 151, 431))
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.listView_extras.sizePolicy().hasHeightForWidth())
-        self.listView_extras.setSizePolicy(sizePolicy)
-        self.listView_extras.setObjectName("listView_extras")
-
-        self.retranslateUi(Dialog)
-        self.radioButton_from_repo.toggled['bool'].connect(self.lineEdit_local.setDisabled)  # type: ignore
-        self.radioButton_from_repo.toggled['bool'].connect(self.pushButton_open.setDisabled)  # type: ignore
-        self.checkBox_specified_version.toggled['bool'].connect(self.comboBox_version.setEnabled)  # type: ignore
-        self.checkBox_specified_commit.toggled['bool'].connect(self.lineEdit_commit.setEnabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_local.setEnabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.pushButton_open.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_local.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.pushButton_open.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.comboBox_version.setDisabled)  # type: ignore
-        self.checkBox_use_proxy.toggled['bool'].connect(self.lineEdit_proxy_url.setEnabled)  # type: ignore
-        self.checkBox_use_mirror.toggled['bool'].connect(self.lineEdit_mirror_url.setEnabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(
-            self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(
-            self.checkBox_specified_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_file.toggled['bool'].connect(self.lineEdit_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.comboBox_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(
-            self.checkBox_specified_version.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(
-            self.checkBox_specified_commit.setDisabled)  # type: ignore
-        self.radioButton_from_local_clone.toggled['bool'].connect(self.lineEdit_commit.setDisabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(
-            self.lineEdit_customized_cache_dir.setEnabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_open_cache_dir.setEnabled)  # type: ignore
-        self.checkBox_user_cache_dir.toggled['bool'].connect(self.pushButton_set_cache_dir.setEnabled)  # type: ignore
-        QtCore.QMetaObject.connectSlotsByName(Dialog)
-
-    def retranslateUi(self, Dialog):
-        _translate = QtCore.QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "REvoDesign Package Manager"))
-        self.groupBox.setTitle(_translate("Dialog", "Source:"))
-        self.radioButton_from_repo.setToolTip(_translate("Dialog", "From GitHub repository"))
-        self.radioButton_from_repo.setText(_translate("Dialog", "Repository"))
-        self.radioButton_from_local_clone.setToolTip(_translate(
-            "Dialog", "From project directory containing `pyproject.toml`"))
-        self.radioButton_from_local_clone.setText(_translate("Dialog", "Local clone"))
-        self.radioButton_from_local_file.setToolTip(_translate("Dialog", "From released zip/tarball file"))
-        self.radioButton_from_local_file.setText(_translate("Dialog", "Local file"))
-        self.lineEdit_local.setToolTip(_translate("Dialog", "File/directory path to read"))
-        self.lineEdit_local.setText(_translate("Dialog", "/Users/yyy/Documents/protein_design/REvoDesign"))
-        self.pushButton_open.setText(_translate("Dialog", "..."))
-        self.pushButton_install.setToolTip(_translate("Dialog", "Install REvoDesign"))
-        self.pushButton_install.setText(_translate("Dialog", "Install"))
-        self.pushButton_remove.setToolTip(_translate("Dialog", "Remove REvoDesign"))
-        self.pushButton_remove.setText(_translate("Dialog", "Remove"))
-        self.groupBox_2.setTitle(_translate("Dialog", "Options:"))
-        self.checkBox_upgrade.setToolTip(_translate("Dialog", "Upgrade to the latest"))
-        self.checkBox_upgrade.setText(_translate("Dialog", "Upgrade"))
-        self.checkBox_verbose.setText(_translate("Dialog", "Verbose"))
-        self.checkBox_specified_version.setToolTip(_translate("Dialog", "Install from a specific version"))
-        self.checkBox_specified_version.setText(_translate("Dialog", "Version:"))
-        self.comboBox_version.setToolTip(_translate("Dialog", "Install from a specific version number"))
-        self.checkBox_specified_commit.setToolTip(_translate("Dialog", "Install from a specific commit/branch"))
-        self.checkBox_specified_commit.setText(_translate("Dialog", "commit:"))
-        self.lineEdit_commit.setToolTip(_translate("Dialog", "Install from a specific commit/branch"))
-        self.label_2.setText(_translate("Dialog", "Makes enzyme redesign tasks easier to all."))
-        self.groupBox_3.setTitle(_translate("Dialog", "Network:"))
-        self.checkBox_use_proxy.setToolTip(_translate("Dialog", "Enable http/socks proxy"))
-        self.checkBox_use_proxy.setText(_translate("Dialog", "proxy:"))
-        self.lineEdit_proxy_url.setToolTip(_translate("Dialog", "HTTP/Socks proxy"))
-        self.lineEdit_proxy_url.setText(_translate("Dialog", "http://localhost:7890"))
-        self.checkBox_use_mirror.setToolTip(_translate("Dialog", "Enable PyPi mirror"))
-        self.checkBox_use_mirror.setText(_translate("Dialog", "Mirror:"))
-        self.lineEdit_mirror_url.setToolTip(_translate("Dialog", "Set PyPi mirror URL"))
-        self.lineEdit_mirror_url.setText(_translate("Dialog", "https://mirrors.bfsu.edu.cn/pypi/web/simple"))
-        self.groupBox_4.setTitle(_translate("Dialog", "Cache:"))
-        self.checkBox_user_cache_dir.setToolTip(_translate("Dialog",
-                                                           "Use customized cache dir. Uncheck this to let REvoDesign choose one."))
-        self.checkBox_user_cache_dir.setText(_translate("Dialog", "Use:"))
-        self.lineEdit_customized_cache_dir.setToolTip(_translate("Dialog", "Cache file on this dir"))
-        self.pushButton_open_cache_dir.setToolTip(_translate("Dialog", "Open a dir as cache directory."))
-        self.pushButton_open_cache_dir.setText(_translate("Dialog", "..."))
-        self.pushButton_set_cache_dir.setToolTip(_translate("Dialog", "Apply this directory for cache."))
-        self.pushButton_set_cache_dir.setText(_translate("Dialog", "Apply"))
-        self.groupBox_5.setToolTip(_translate("Dialog", "Extra definitions of dependencies."))
-        self.groupBox_5.setTitle(_translate("Dialog", "Extras:"))
-        self.pushButton_refresh_extras.setToolTip(_translate("Dialog", "Refresh REvoDesign table"))
-        self.pushButton_refresh_extras.setText(_translate("Dialog", "Refresh"))
-        self.radioButton_extra_none.setToolTip(_translate("Dialog", "Default setting with no extra dependencies."))
-        self.radioButton_extra_none.setText(_translate("Dialog", "None"))
-        self.radioButton_extra_customized.setToolTip(_translate("Dialog", "Customized extras picked from right panel."))
-        self.radioButton_extra_customized.setText(_translate("Dialog", "Customized"))
-        self.radioButton_extra_everything.setToolTip(_translate("Dialog", "Install with all extras except unit tests"))
-        self.radioButton_extra_everything.setText(_translate("Dialog", "Everything"))
 
 # Additional widget for extra selection
 
@@ -765,6 +395,14 @@ class GitSolver:
 
 @dataclass
 class PIPInstaller:
+    """
+    A class for installing, uninstalling, and ensuring the installation of packages using pip.
+
+    Attributes:
+        python_exe (str): The path to the Python executable.
+        env (Optional[Mapping[str, str]]): Optional environment variables for running commands.
+        verbose (bool): If True, print detailed information when running commands.
+    """
 
     python_exe: str = ''
     # run_command args
@@ -772,6 +410,10 @@ class PIPInstaller:
     verbose: bool = True
 
     def ensurepip(self):
+        """
+        Run the ensurepip command to ensure pip is installed in the current Python environment.
+        If ensurepip fails, raise a RuntimeError with the command output.
+        """
         # run installation via pip
         ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose, env=self.env)
         if ensurepip.returncode:
@@ -779,6 +421,9 @@ class PIPInstaller:
             return
 
     def __post_init__(self):
+        """
+        Post-initialization method to set the real path of the Python executable and run ensurepip.
+        """
         self.python_exe = os.path.realpath(sys.executable)
         self.ensurepip()
 
@@ -790,9 +435,22 @@ class PIPInstaller:
                 mirror: Optional[str] = "",
                 quiet: bool = False,
                 env: Optional[Mapping[str, str]] = None,
-
                 ):
+        """
+        Install a package in the current Python environment.
 
+        Args:
+            package_name (str): The name of the package to install. Defaults to 'REvoDesign'.
+            source (Optional[str]): The source URL for the package. Required if package_name is 'REvoDesign'.
+            upgrade (bool): If True, upgrade the package if it is already installed. Defaults to False.
+            extras (Optional[str]): Additional requirements to install. Defaults to None.
+            mirror (Optional[str]): The URL of the package mirror to use. Defaults to None.
+            quiet (bool): If True, run pip in quiet mode. Defaults to False.
+            env (Optional[Mapping[str, str]]): Optional environment variables for running the pip command.
+
+        Returns:
+            The result of running the pip install command.
+        """
         print("Installation is started. This may take a while and the window will freeze until it is done.")
 
         def get_source_and_tag(source: str):
@@ -800,7 +458,7 @@ class PIPInstaller:
             Parse the source URL and tag.
 
             Args:
-                source: The source URL of the REvoDesign, or name of a package.
+                source (str): The source URL of the REvoDesign, or name of a package.
 
             Returns:
                 Returns a tuple containing the git directory and git tag.
@@ -814,7 +472,6 @@ class PIPInstaller:
 
         if package_name != 'REvoDesign':
             # use package_name as package_string for other packages then 'REvoDesign'
-
             package_string = package_name
         else:
             if source is None or source == '':
@@ -851,6 +508,15 @@ class PIPInstaller:
         return result
 
     def uninstall(self, package_name: str = 'REvoDesign'):
+        """
+        Uninstall a package from the current Python environment.
+
+        Args:
+            package_name (str): The name of the package to uninstall. Defaults to 'REvoDesign'.
+
+        Returns:
+            The result of running the pip uninstall command.
+        """
         pip_cmd = [
             self.python_exe,
             "-m",
@@ -865,12 +531,13 @@ class PIPInstaller:
     def ensure_package(self, package_string: str,
                        env: Optional[Mapping[str, str]] = None, mirror: Optional[str] = None):
         """
-        Function: ensure_package
-        Usage: ensure_package(package_string, env)
-        This function ensures that a specified package is installed in the current Python environment.
+        Ensure a package is installed in the current Python environment.
+        If the package is not installed or needs to be upgraded, run the pip install command.
+
         Args:
-        - package_string (str): Name of the package to ensure
-        - env (Optional[Mapping[str, str]]): Environment variables to use for the installation
+            package_string (str): The name of the package to ensure.
+            env (Optional[Mapping[str, str]]): Optional environment variables for running the pip command.
+            mirror (Optional[str]): The URL of the package mirror to use. Defaults to None.
         """
         # Execute the pip installation command
         result = self.install(package_string, upgrade=True, env=env, mirror=mirror)
@@ -882,21 +549,142 @@ class PIPInstaller:
             )
 
 
+@dataclass(frozen=True)
+class MenuItem:
+    """
+    A data class representing a menu item.
+
+    This class is used to define the properties of a menu item, including its name, associated function, and optional arguments.
+    The use of the @dataclass decorator automatically generates special methods such as __init__(), __repr__(), and __eq__().
+    The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
+
+    Attributes:
+        name (str): The name of the menu item, used for display and identification.
+        func (Callable): The function associated with the menu item, which is executed when the item is selected.
+        kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
+    """
+    name: str
+    func: Callable
+    kwargs: Optional[Mapping] = None
+
+
 @dataclass
 class REvoDesignInstaller:
     """
     Class to manage the installation of the REvoDesign plugin.
+    This class firstly performs a self-bootstrap including the following:
+        1. fetch UI file and load it
+        2. fetch extras table
+        3. fetch repo release tags if possible
+        4. add menu items
+    Then it register widget signals and get all things ready.
+
 
     Attributes:
         dialog (QWidget): The main dialog window for the plugin GUI.
         extra_checkbox (CheckableListView): A checkbox list for selecting extra components.
     """
 
-    dialog = None
-
-    installer_ui: Ui_Dialog = None  # type: ignore
+    dialog: Any = None
+    installer_ui: Any = None
     extra_checkbox: CheckableListView = None  # type: ignore
     pip_installer: PIPInstaller = None  # type: ignore
+
+    def ensure_ui_file(self, upgrade: bool = False):
+        ui_file = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                'REvoDesign-manager',
+                'UI',
+                'REvoDesign_installer.ui'))
+        os.makedirs(os.path.dirname(ui_file), exist_ok=True)
+        if os.path.isfile(ui_file) and not upgrade:
+            print(f'[DEBUG]: pre-downloaded UI file found: {ui_file}')
+            return ui_file
+
+        new_ui_file = f'{ui_file}.swp'
+
+        fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
+        self.upgrade_check(
+            original_file=ui_file,
+            new_file=new_ui_file,
+            title='REvoDesign Manager UI file'
+        )
+        return ui_file
+
+    @staticmethod
+    def upgrade_check(original_file: str, new_file: str, title: str):
+        """
+        Check and apply an upgrade if necessary.
+
+        This function compares the original file with a new fetched file, generates a diff file if there are differences,
+        and prompts the user to confirm whether to apply the upgrade. If the user confirms, the new file replaces the original file.
+
+        Parameters:
+        - original_file (str): The path to the original file.
+        - new_file (str): The path to the new fetched file.
+        - title (str): The title used in notifications.
+
+        Returns:
+        - None
+        """
+        diff_file = f'{original_file}.diff'
+
+        # Open the original, new fetched, and diff files
+        with open(original_file) as original, open(new_file) as new_fetched, open(diff_file, 'w') as diff:
+            diffs = tuple(
+                difflib.context_diff(
+                    original.readlines(),
+                    new_fetched.readlines(),
+                    fromfile=original_file,
+                    tofile=new_file
+                )
+            )
+            if not diffs:
+                return notify_box(f'{title} is already up to date.')
+
+            diff.writelines(diffs)
+
+        # Prompt the user to confirm the upgrade
+        accept_upgraded = proceed_with_comfirm_msg_box(
+            'Upgrade',
+            'Do you want to apply the upgrade?<p>'
+            f"See this <a href=file://{diff_file}>Diff file</a>", rich=True)
+
+        # Clean up the diff file
+        if os.path.isfile(diff_file):
+            os.remove(diff_file)
+
+        # Handle user response
+        if not accept_upgraded:
+            os.remove(new_file)
+            return notify_box('Upgrade cancelled.')
+
+        shutil.move(new_file, original_file)
+
+        return notify_box(
+            f'{title} has been upgraded successfully, please restart PyMOL to take effects.'
+        )
+
+    def self_upgrade(self):
+        confirmed = proceed_with_comfirm_msg_box(
+            title='Upgrade REvoDesign',
+            description='[WARNING]\n'
+            'Do you want to upgrade REvoDesign Manager to the latest version?'
+        )
+
+        if not confirmed:
+            return notify_box('Upgrade cancelled.')
+
+        new_py_file = f'{__file__}.swp'
+
+        fetch_gist_file(THIS_FILE_URL, new_py_file)
+
+        self.upgrade_check(
+            original_file=__file__,
+            new_file=new_py_file,
+            title='REvoDesign Manager'
+        )
 
     def run_plugin_gui(self):
         """
@@ -981,12 +769,19 @@ class REvoDesignInstaller:
         return proxy_env
 
     def refresh_extras_table(self):
+        """
+        Refreshes the list of available extras by fetching data from a JSON source.
+
+        This method uses a worker thread to fetch extras data with a progress bar indication.
+        If fetching fails, it shows an error notification and sets up an empty extras list.
+        """
         # Run a worker thread to fetch extras with a progress bar
         AVAILABLE_EXTRAS = run_worker_thread_with_progress(
-            worker_function=fetch_extras,
+            worker_function=fetch_gist_json,
             url=EXTRAS_TABLE_JSON,
             progress_bar=self.installer_ui.progressBar)
 
+        # Handle the case where no extras are fetched
         if not AVAILABLE_EXTRAS:
             AVAILABLE_EXTRAS = {"No Extras is Fetched": ''}
             notify_box("Error fetching or validating the JSON data. \n"
@@ -998,6 +793,42 @@ class REvoDesignInstaller:
             self.installer_ui.listView_extras, AVAILABLE_EXTRAS
         )
 
+    def add_right_click_menu(self, items: List[MenuItem]):
+        """
+        Adds a right-click context menu to the installer UI.
+
+        Args:
+            items (List[MenuItem]): A list of menu items to be added to the right-click menu.
+
+        This method creates a right-click menu with actions defined by the `items` parameter.
+        Each item in the list is converted into a QAction, which is then added to the menu.
+        """
+        # Create the right-click menu
+        self.menu = QtWidgets.QMenu(self.installer_ui)
+
+        for item in items:
+            # Add the "Upgrade UI" item
+            upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
+            upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
+
+            # Add the action to the menu
+            self.menu.addAction(upgrade_action)
+
+        # Set the context menu policy to show the menu on right-click
+        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.installer_ui.customContextMenuRequested.connect(self.show_menu)
+
+    def show_menu(self, pos):
+        """
+        Shows the context menu at the position of the mouse cursor.
+
+        Args:
+            pos (QPoint): The position where the menu should be shown, in widget coordinates.
+        """
+        # Show the menu at the position of the mouse cursor
+        global_pos = self.installer_ui.mapToGlobal(pos)
+        self.menu.exec_(global_pos)
+
     def make_window(self) -> QtWidgets.QDialog:  # type: ignore
         """
         Creates and configures the application window.
@@ -1008,14 +839,21 @@ class REvoDesignInstaller:
         Returns:
             QtWidgets.QDialog: The configured dialog window.
         """
-
-        self.installer_ui = Ui_Dialog()
-
         # Create a new dialog window
         dialog = QtWidgets.QDialog()
 
+        ui_file = self.ensure_ui_file()
         # Set up the UI for the dialog
-        self.installer_ui.setupUi(Dialog=dialog)
+        self.installer_ui = loadUi(ui_file, dialog)
+
+        # add right-click menu on `self.installer_ui.label_header`,
+        # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
+        menuitems = [
+            MenuItem("Upgrade UI", self.ensure_ui_file, kwargs={"upgrade": True}),
+            MenuItem("Upgrade this manager", self.self_upgrade),
+            MenuItem('Refresh GitHub Release tags', self.fetch_tags)
+        ]
+        self.add_right_click_menu(menuitems)
 
         # Connect the open files button to the open_files method
         self.installer_ui.pushButton_open.clicked.connect(self.open_files)
@@ -1255,13 +1093,31 @@ class REvoDesignInstaller:
             )
 
     def remove_depts(self):
-        deps_table: Dict[str, str] = fetch_extras(DEPTS_TABLE)
+        """
+        Removes selected dependencies.
+
+        This function removes the packages corresponding to the dependencies checked by the user.
+        It first fetches the dependency mapping table, filters out the dependencies that need to be removed,
+        and then calls the uninstall method of pip_installer to remove each package.
+
+        Parameters:
+        - self: The instance of the class containing this method.
+
+        Returns:
+        - None
+        """
+        # Fetch the dependency package mapping table
+        deps_table: Dict[str, str] = fetch_gist_json(DEPTS_TABLE_JSON)
+        # Filter out dependencies whose package ID is empty
         deps_table = {k: v for k, v in deps_table.items() if v != ''}
+        # Get the list of dependencies checked by the user for uninstallation
         checked_depts_to_uninstall = self.extra_checkbox.get_checked_items()
+        # Iterate over the dependency table
         for pkg_name, pkg_id in deps_table.items():
             if pkg_name not in checked_depts_to_uninstall:
                 print(f'[DEBUG]: Skip unchecked item: {pkg_name}')
                 continue
+            # Uninstall each package associated with the checked dependency
             for _p in pkg_id.split(';'):
                 print(f"Removing {_p}...")
                 self.pip_installer.uninstall(_p)
@@ -1521,27 +1377,11 @@ class WorkerThread(QtCore.QThread):
         """
         self.interrupt_signal.emit()
 
-
-class QtProgressBarHint(Protocol):
-    """
-    Defines a protocol class to specify the behavior of a progress bar.
-    This class outlines the methods that a progress bar should have, allowing static typing checker to analyse.
-    """
-
-    def minimum(self) -> int: ...
-
-    def maximum(self) -> int: ...
-
-    def value(self) -> int: ...
-
-    def setRange(self, min: int, max: int): ...
-
-    def setValue(self, value: int): ...
-
-
 # a copy from `REvoDesign/tools/utils.py`
+
+
 def run_worker_thread_with_progress(
-    worker_function: Callable[..., R], *args, progress_bar: Optional[QtProgressBarHint] = None, **kwargs
+    worker_function: Callable[..., R], *args, progress_bar: Optional[Any] = None, **kwargs
 ) -> Optional[R]:
     """
     Runs a worker function in a separate thread and optionally updates a progress bar.
@@ -1574,7 +1414,7 @@ def run_worker_thread_with_progress(
     # Keep the main thread running until the worker thread finishes
     while not work_thread.isFinished():
         refresh_window()
-        time.sleep(0.001)
+        time.sleep(0.01)
 
     # If a progress bar was used, restore its state after the task is completed
     if progress_bar:
@@ -1744,7 +1584,7 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
-def proceed_with_comfirm_msg_box(title="", description=""):
+def proceed_with_comfirm_msg_box(title="", description="", rich: bool = False):
     """
     Function: proceed_with_confirm_msg_box
     Usage: result = proceed_with_confirm_msg_box(title='', description='')
@@ -1764,6 +1604,8 @@ def proceed_with_comfirm_msg_box(title="", description=""):
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
+    if rich:
+        msg.setTextFormat(QtCore.Qt.RichText)
     msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
     result = msg.exec_()
 

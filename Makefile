@@ -23,6 +23,8 @@ help:
 	@echo "  build                  build source and wheel distributions"
 	@echo "  setup-ubuntu           Setup ubuntu display for GitHub Actions"
 	@echo "  setup-display          Setup ubuntu display for CircleCI"
+	@echo "  upload-manager         Upload REvoDesign manager to gist"
+	@echo "  upload-manager-ui      Upload REvoDesign manager UI to gist"
 	@echo "  install                install from pip "
 	@echo "  install-no-dept        install from pip, no dependencies"
 	@echo "  install-pytorch-cpu    install torch-cpu for ci runner image"
@@ -59,6 +61,13 @@ setup-display:
 	Xvfb :99 -screen 0 1280x1024x24 &
 	fluxbox &
 	sleep 3
+
+upload-manager:
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 REvoDesign_PyMOL.py
+
+upload-manager-ui:
+	gh gist edit 2e378bbe038774e6f819f731701b32cb src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
+
 
 # only for test on runner or local machine.
 install:
