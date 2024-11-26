@@ -48,7 +48,6 @@ UI_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/2e378bbe038774e6f81
 
 # THIS file
 # uploaded with `make upload-manager`
-# TODO: security check?
 THIS_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
 
 # Define the URL of the JSON file
