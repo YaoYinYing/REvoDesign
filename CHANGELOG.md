@@ -34,10 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `REvoDesignInstaller`: 
     - `add_right_click_menu`: add right click menu for self management
     - `ensure_ui_file`: ensure `ui.file` is installed. Use `upgrade=True` to force upgrade.
+    - `upgrade_check` handles upgrade check and upgrade process with user prompts.
 
 ### Changed
 
 ### Fixed
+
 - installer:
   - self upgrade security checks by difflib
 

@@ -602,11 +602,69 @@ class REvoDesignInstaller:
             print(f'[DEBUG]: pre-downloaded UI file found: {ui_file}')
             return ui_file
 
-        fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
-        print(f'[DEBUG]: a new version of UI is downloaded: {ui_file}')
-        if upgrade:
-            notify_box('UI file upgraded successfully, please restart PyMOL to take effects.')
+        new_ui_file = f'{ui_file}.swp'
+
+        fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
+        self.upgrade_check(
+            original_file=ui_file,
+            new_file=new_ui_file,
+            title='REvoDesign Manager UI file'
+        )
         return ui_file
+
+    @staticmethod
+    def upgrade_check(original_file: str, new_file: str, title: str):
+        """
+        Check and apply an upgrade if necessary.
+
+        This function compares the original file with a new fetched file, generates a diff file if there are differences,
+        and prompts the user to confirm whether to apply the upgrade. If the user confirms, the new file replaces the original file.
+
+        Parameters:
+        - original_file (str): The path to the original file.
+        - new_file (str): The path to the new fetched file.
+        - title (str): The title used in notifications.
+
+        Returns:
+        - None
+        """
+        diff_file = f'{original_file}.diff'
+
+        # Open the original, new fetched, and diff files
+        with open(original_file) as original, open(new_file) as new_fetched, open(diff_file, 'w') as diff:
+            diffs = tuple(
+                difflib.context_diff(
+                    original.readlines(),
+                    new_fetched.readlines(),
+                    fromfile=original_file,
+                    tofile=new_file
+                )
+            )
+            if not diffs:
+                return notify_box(f'{title} is already up to date.')
+
+            diff.writelines(diffs)
+
+        # Prompt the user to confirm the upgrade
+        accept_upgraded = proceed_with_comfirm_msg_box(
+            'Upgrade',
+            'Do you want to apply the upgrade?<p>'
+            f"See this <a href=file://{diff_file}>Diff file</a>", rich=True)
+
+        # Clean up the diff file
+        if os.path.isfile(diff_file):
+            os.remove(diff_file)
+
+        # Handle user response
+        if not accept_upgraded:
+            os.remove(new_file)
+            return notify_box('Upgrade cancelled.')
+
+        shutil.move(new_file, original_file)
+
+        return notify_box(
+            f'{title} has been upgraded successfully, please restart PyMOL to take effects.'
+        )
 
     def self_upgrade(self):
         confirmed = proceed_with_comfirm_msg_box(
@@ -619,41 +677,13 @@ class REvoDesignInstaller:
             return notify_box('Upgrade cancelled.')
 
         new_py_file = f'{__file__}.swp'
-        diff_file = f'{__file__}.diff'
+
         fetch_gist_file(THIS_FILE_URL, new_py_file)
 
-        with open(__file__) as original, open(new_py_file) as new_fetched, open(diff_file, 'w') as diff:
-            diffs = tuple(
-                difflib.context_diff(
-                    original.readlines(),
-                    new_fetched.readlines(),
-                    fromfile=__file__,
-                    tofile=new_py_file
-                )
-            )
-            if not diffs:
-                return notify_box('REvoDesign Manager is already up to date.')
-
-            diff.writelines(diffs)
-
-        accept_upgraded = proceed_with_comfirm_msg_box(
-            'Upgrade',
-            'Do you want to apply the upgrade?\n'
-            f"See this <a href=file://{diff_file}>Diff file</a>", rich=True)
-
-        if os.path.isfile(diff_file):
-            os.remove(diff_file)
-
-        if not accept_upgraded:
-            os.remove(new_py_file)
-            return notify_box('Upgrade cancelled.')
-
-        shutil.move(new_py_file, __file__)
-
-        notify_box('Upgrade completed.')
-
-        return notify_box(
-            'REvoDesign Manager has been upgraded successfully, please restart PyMOL to take effects.'
+        self.upgrade_check(
+            original_file=__file__,
+            new_file=new_py_file,
+            title='REvoDesign Manager'
         )
 
     def run_plugin_gui(self):
