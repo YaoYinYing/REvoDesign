@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - installer:
-  - `DEPTS_TABLE` & `REvoDesignInstaller.remove_depts`: remove dependencies if user requires.
+  - `DEPTS_TABLE_JSON` & `REvoDesignInstaller.remove_depts`: remove dependencies if user requires.
+  - `THIS_FILE_URL` and `REvoDesignInstaller.self_upgrade`: self-upgrade
   - `PIPInstaller`: manager of pip-install stuffs
     - `ensurepip`: install package if not installed, only once
     - `install`: install packages
@@ -29,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `ensure_package`: ensure one package is installed(by calling `self.install`)
   - `REvoDesignInstaller.proxy_in_env`: Optional `mirror` to supercharge bootstraping of  `pysocks` from mirror. Geronimo!
   - `ALLOWED_PROXY_PROTOCOLS`: explicitly restrict protocols of proxy url.
+  - `MenuItem`: menu item dataclasses to register right click menu items
+  - `REvoDesignInstaller`: 
+    - `add_right_click_menu`: add right click menu for self management
+    - `ensure_ui_file`: ensure `ui.file` is installed. Use `upgrade=True` to force upgrade.
 
 ### Changed
 
@@ -40,6 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ensure_lower_pip`, which is deprecated in favor of PEP440 and `pip>=24`.
     - note: this is historical issue of deprecated `pip<24`'s support on local label. So I have to recently updated the pyproject.toml file of PIPPack to satisfy `pip>=24`'
   - `ensure_package`, which was imported at `v1.7.4`
+  - ! translated UI code: Installer is now a cloud-upgradable scripts.
+
+
+### Known Issues
+- installer: 
+  - Security: `THIS_FILE_URL` and `UI_FILE_URL` if self upgrades fails.
 
 ## [1.7.4] - 2024-11-22
 
