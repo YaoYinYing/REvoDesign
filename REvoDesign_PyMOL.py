@@ -13,6 +13,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all.
 # pylint: disable=import-outside-toplevel
 # pylint: disable=unused-argument
 
+import difflib
 import importlib
 import importlib.util
 import json
@@ -613,12 +614,47 @@ class REvoDesignInstaller:
             description='[WARNING]\n'
             'Do you want to upgrade REvoDesign Manager to the latest version?'
         )
-        if confirmed:
-            fetch_gist_file(THIS_FILE_URL, __file__)
-            return notify_box(
-                'REvoDesign Manager has been upgraded successfully, please restart PyMOL to take effects.'
+
+        if not confirmed:
+            return notify_box('Upgrade cancelled.')
+
+        new_py_file = f'{__file__}.swp'
+        diff_file = f'{__file__}.diff'
+        fetch_gist_file(THIS_FILE_URL, new_py_file)
+
+        with open(__file__) as original, open(new_py_file) as new_fetched, open(diff_file, 'w') as diff:
+            diffs = tuple(
+                difflib.context_diff(
+                    original.readlines(),
+                    new_fetched.readlines(),
+                    fromfile=__file__,
+                    tofile=new_py_file
+                )
             )
-        return notify_box('Upgrade cancelled.')
+            if not diffs:
+                return notify_box('REvoDesign Manager is already up to date.')
+
+            diff.writelines(diffs)
+
+        accept_upgraded = proceed_with_comfirm_msg_box(
+            'Upgrade',
+            'Do you want to apply the upgrade?\n'
+            f"See this <a href=file://{diff_file}>Diff file</a>", rich=True)
+
+        if os.path.isfile(diff_file):
+            os.remove(diff_file)
+
+        if not accept_upgraded:
+            os.remove(new_py_file)
+            return notify_box('Upgrade cancelled.')
+
+        shutil.move(new_py_file, __file__)
+
+        notify_box('Upgrade completed.')
+
+        return notify_box(
+            'REvoDesign Manager has been upgraded successfully, please restart PyMOL to take effects.'
+        )
 
     def run_plugin_gui(self):
         """
@@ -1518,7 +1554,7 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
-def proceed_with_comfirm_msg_box(title="", description=""):
+def proceed_with_comfirm_msg_box(title="", description="", rich: bool = False):
     """
     Function: proceed_with_confirm_msg_box
     Usage: result = proceed_with_confirm_msg_box(title='', description='')
@@ -1538,6 +1574,8 @@ def proceed_with_comfirm_msg_box(title="", description=""):
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
+    if rich:
+        msg.setTextFormat(QtCore.Qt.RichText)
     msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
     result = msg.exec_()
 

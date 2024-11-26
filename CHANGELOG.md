@@ -38,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- installer:
+  - self upgrade security checks by difflib
 
 ### Removed
 
@@ -50,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known Issues
 - installer: 
-  - Security: `THIS_FILE_URL` and `UI_FILE_URL` if self upgrades fails.
+  - ~~Security: `THIS_FILE_URL` and `UI_FILE_URL` if self upgrades fails~~.
 
 ## [1.7.4] - 2024-11-22
 
