@@ -641,6 +641,9 @@ class REvoDesignInstaller:
             )
             if not diffs:
                 return notify_box(f'{title} is already up to date.')
+            
+            num_added_lines = len([l for l in diffs if l.startswith('+ ')])
+            num_deled_lines = len([l for l in diffs if l.startswith('- ')])
 
             with open(diff_file, 'w') as diff:
                 diff.writelines(diffs)
@@ -649,6 +652,8 @@ class REvoDesignInstaller:
         accept_upgraded = proceed_with_comfirm_msg_box(
             'Upgrade',
             'Do you REALLY want to apply the upgrade?<p><p>'
+            f'Added  : {num_added_lines} <p>'
+            f'Deleted: {num_deled_lines} <p>'
             'You must check out these changes carefully.<p>'
             f"See all changes in this <a href=file://{diff_file}>diff file of {title}.</a>", rich=True)
 
