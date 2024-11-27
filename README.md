@@ -36,6 +36,8 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=license)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=security)
 
+---
+
 ## Introduction
 
 Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
@@ -43,6 +45,8 @@ Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easi
 ### About the Plugin
 
 Enzyme redesign is a complex task that requires a deep understanding of protein structures, substrate binding sites, and evolutionary relationships. **REvoDesign** Toolkit is designed to streamline this process by offering a range of tools and functionalities to assist protein designers in their endeavors.
+
+---
 
 ### Basic Architecture Design
 
@@ -68,6 +72,8 @@ In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to h
 
 Please refer to the [documentation(WIP)](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
 
+---
+
 ## Dependencies wait list
 > [!NOTE]
 > These are the dependencies that are not yet implemented but will be added in the toolkit.
@@ -86,10 +92,6 @@ Please refer to the [documentation(WIP)](link_to_documentation) for detailed ins
 - [ ] [AttnPacker](https://github.com/MattMcPartlon/AttnPacker)
 - [ ] [opus_rota4](https://github.com/OPUS-MaLab/opus_rota4)
 - [ ] [GeoPacker](https://github.com/PKUliujl/GeoPacker)
-```markdown
-# REvoDesign Installation Guide
-
-Welcome to the **REvoDesign** Toolkit! Follow this guide to simplify the installation process of this PyMOL plugin, designed to streamline enzyme redesign tasks.
 
 ---
 
