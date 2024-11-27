@@ -103,11 +103,13 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
       https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py
      ```
    - Click 'Fetch'
-   ![Install from URL](https://github-image-cache.yaoyy.moe/2024/11/690dbbf0929fd782c351cda4a2b36ec3.png)
+   ![Install from URL](https://github-image-cache.yaoyy.moe/2024/11/a68d9f8394a6b9dcf952deef264838b5.png)
+
    - When the Plugin Manager prompts you whether to proceed, click 'Yes' to install the plugin.
-   ![Proceed Installation](https://github-image-cache.yaoyy.moe/2024/11/5b8f155089ebb7632a99da814f0664fb.png)
+   ![Proceed Installation](https://github-image-cache.yaoyy.moe/2024/11/971af4a4f7b38ff6d4cee260fc6662d8.png)
+
    - Now setup the location to the plugin:
-   ![Setup Location](https://github-image-cache.yaoyy.moe/2024/11/42c676caf025a7a31ba7e72c4ea6b2ba.png) 
+   ![Setup Location](https://github-image-cache.yaoyy.moe/2024/11/8cbdecd6c45c801957a52b65f1eb7c02.png) 
    - Click 'OK' to complete the installation.
 
 
