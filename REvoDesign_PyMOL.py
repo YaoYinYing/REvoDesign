@@ -48,7 +48,7 @@ UI_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/2e378bbe038774e6f81
 
 # THIS file
 # uploaded with `make upload-manager`
-THIS_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
+THIS_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py'
 
 # Define the URL of the JSON file
 EXTRAS_TABLE_JSON = "https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw"
@@ -643,6 +643,7 @@ class REvoDesignInstaller:
                 return notify_box(f'{title} is already up to date.')
             
             num_added_lines = len([l for l in diffs if l.startswith('+ ')])
+            num_chged_lines = len([l for l in diffs if l.startswith('! ')])
             num_deled_lines = len([l for l in diffs if l.startswith('- ')])
 
             with open(diff_file, 'w') as diff:
@@ -653,6 +654,7 @@ class REvoDesignInstaller:
             'Upgrade',
             'Do you REALLY want to apply the upgrade?<p><p>'
             f'Added  : {num_added_lines} <p>'
+            f'Changed: {num_chged_lines} <p>'
             f'Deleted: {num_deled_lines} <p>'
             'You must check out these changes carefully.<p>'
             f"See all changes in this <a href=file://{diff_file}>diff file of {title}.</a>", rich=True)
