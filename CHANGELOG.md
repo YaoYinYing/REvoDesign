@@ -18,6 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- installer:
+  - 2 JSONS now are hosted at this repository
+
+### Changed
+
+- Makefile:
+  - move all gists upload together
+
+### Fixed
+
+### Removed
+
 ## [1.7.5] - 2024-11-26
 
 ### Added

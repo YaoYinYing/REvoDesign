@@ -23,8 +23,7 @@ help:
 	@echo "  build                  build source and wheel distributions"
 	@echo "  setup-ubuntu           Setup ubuntu display for GitHub Actions"
 	@echo "  setup-display          Setup ubuntu display for CircleCI"
-	@echo "  upload-manager         Upload REvoDesign manager to gist"
-	@echo "  upload-manager-ui      Upload REvoDesign manager UI to gist"
+	@echo "  upload-gists           Upload Gist files"
 	@echo "  install                install from pip "
 	@echo "  install-no-dept        install from pip, no dependencies"
 	@echo "  install-pytorch-cpu    install torch-cpu for ci runner image"
@@ -62,11 +61,16 @@ setup-display:
 	fluxbox &
 	sleep 3
 
-upload-manager:
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 REvoDesign_PyMOL.py
+	
 
-upload-manager-ui:
+upload-gists:
+	# installer
+    gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 REvoDesign_PyMOL.py
+	# installer ui
 	gh gist edit 2e378bbe038774e6f819f731701b32cb src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
+	# JSONs for installer
+	gh gist edit 312c55b22c23069d478956bb85697bee jsons/REvoDesignDeptsTable.json
+	gh gist edit 37e0e8e73951fab3a12b2d8b81791f6a jsons/REvoDesignExtrasTable.json
 
 
 # only for test on runner or local machine.
