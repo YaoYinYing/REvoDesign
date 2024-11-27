@@ -61,11 +61,9 @@ setup-display:
 	fluxbox &
 	sleep 3
 
-	
-
 upload-gists:
 	# installer
-    gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 REvoDesign_PyMOL.py
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 REvoDesign_PyMOL.py
 	# installer ui
 	gh gist edit 2e378bbe038774e6f819f731701b32cb src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
 	# JSONs for installer
