@@ -63,12 +63,12 @@ setup-display:
 
 upload-gists:
 	# installer
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 REvoDesign_PyMOL.py
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign_PyMOL.py REvoDesign_PyMOL.py
 	# installer ui
-	gh gist edit 2e378bbe038774e6f819f731701b32cb src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign-PyMOL-entry.ui src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
 	# JSONs for installer
-	gh gist edit 312c55b22c23069d478956bb85697bee jsons/REvoDesignDeptsTable.json
-	gh gist edit 37e0e8e73951fab3a12b2d8b81791f6a jsons/REvoDesignExtrasTable.json
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignDeptsTable.json jsons/REvoDesignDeptsTable.json
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTable.json jsons/REvoDesignExtrasTable.json
 
 
 # only for test on runner or local machine.

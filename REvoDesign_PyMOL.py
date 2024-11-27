@@ -42,17 +42,19 @@ print(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
+GIST_BASE_URL: str = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
+
 # UI file online
 # uploaded with `make upload-manager-ui`
-UI_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/2e378bbe038774e6f819f731701b32cb/raw'
+UI_FILE_URL = f'{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui'
 
 # THIS file
 # uploaded with `make upload-manager`
-THIS_FILE_URL = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py'
+THIS_FILE_URL = f'{GIST_BASE_URL}/REvoDesign_PyMOL.py'
 
 # Define the URL of the JSON file
-EXTRAS_TABLE_JSON = "https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw"
-DEPTS_TABLE_JSON = 'https://gist.githubusercontent.com/YaoYinYing/312c55b22c23069d478956bb85697bee/raw'
+EXTRAS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTable.json'
+DEPTS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignDeptsTable.json'
 
 
 # Define the proxy protocols allowed
@@ -568,7 +570,7 @@ class MenuItem:
 
 
 @dataclass
-class REvoDesignInstaller:
+class REvoDesignPackageManager:
     """
     Class to manage the installation of the REvoDesign plugin.
     This class firstly performs a self-bootstrap including the following:
@@ -1715,8 +1717,8 @@ def __init_plugin__(app=None):
     Add an entry to the PyMOL "Plugin" menu
     """
 
-    plugin = REvoDesignInstaller()
-    addmenuitemqt("REvoDesign Installer", plugin.run_plugin_gui)
+    plugin = REvoDesignPackageManager()
+    addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
 
     try:
         from REvoDesign import REvoDesignPlugin
