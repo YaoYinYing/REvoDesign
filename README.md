@@ -36,6 +36,8 @@
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=license)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=security)
 
+---
+
 ## Introduction
 
 Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
@@ -43,6 +45,8 @@ Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easi
 ### About the Plugin
 
 Enzyme redesign is a complex task that requires a deep understanding of protein structures, substrate binding sites, and evolutionary relationships. **REvoDesign** Toolkit is designed to streamline this process by offering a range of tools and functionalities to assist protein designers in their endeavors.
+
+---
 
 ### Basic Architecture Design
 
@@ -68,6 +72,8 @@ In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to h
 
 Please refer to the [documentation(WIP)](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
 
+---
+
 ## Dependencies wait list
 > [!NOTE]
 > These are the dependencies that are not yet implemented but will be added in the toolkit.
@@ -87,51 +93,126 @@ Please refer to the [documentation(WIP)](link_to_documentation) for detailed ins
 - [ ] [opus_rota4](https://github.com/OPUS-MaLab/opus_rota4)
 - [ ] [GeoPacker](https://github.com/PKUliujl/GeoPacker)
 
+---
+
 ## Installation
 
-With the recent updates, the installation process for **REvoDesign** Toolkit has been dramatically changed. Please follow the steps below:
+**REvoDesign** offers a user-friendly installation process using a graphical user interface (GUI).
 
-1. **Install the PyMOL Graphic Installer**:
+### Step 1: Install the REvoDesign Package Manager
 
-   Before installing the main program, you should install its installer towards the PyMOL menu like other PyMOL plugins. Follow these steps:
+Before installing the main program, you need to install the REvoDesign Package Manager as a PyMOL plugin.
 
-   - Open PyMOL.
-   - Go to the "Plugin Manager" and choose "Install New Plugin."
-   - Select "Install from Local File."
-   - Choose the entrypoint file located at the root directory of the repository:
-
+1. Open PyMOL.
+2. Navigate to **Plugin > Plugin Manager** and select **Install New Plugin**.
+3. Choose **Install from PyMOLWiki or any URL**.
+4. Paste the following URL:
+   ```text
+   https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py
    ```
-   <repo-url-or-filepath>/REvoDesign_PyMOL.py
-   ```
+5. Click **Fetch**.
 
-   This will create an graphic installer for installing the core package of **REvoDesign**. Once the package is installed, the entrypoint file will allow you to access it from the PyMOL menu.
+   ![Install from URL](https://github-image-cache.yaoyy.moe/2024/11/a68d9f8394a6b9dcf952deef264838b5.png)
 
-   ![installer](https://github-image-cache.yaoyy.moe/2024/04/6fd3d7838e0f92d88ab9fab99eeba250.png)
+6. Confirm the installation when prompted.
 
+   ![Proceed Installation](https://github-image-cache.yaoyy.moe/2024/11/971af4a4f7b38ff6d4cee260fc6662d8.png)
 
-2. **Install the Main Program**:
+7. Set the installation location (use the default if unsure) and click **OK**.
 
-   To install the main program, which is upgradable from internet access, you have two sources:
+   ![Setup Location](https://github-image-cache.yaoyy.moe/2024/11/8cbdecd6c45c801957a52b65f1eb7c02.png)
 
-   a. If you prefer to install from the remote repository, check `Repository` and click `Install`:
+Once installed, the REvoDesign Package Manager will appear in the PyMOL menu.
 
-   ![From remote repo](https://github-image-cache.yaoyy.moe/2024/04/ca3cd885e65ba7373dbe5fb5e2fbd970.png)
+   ![REvoDesign Package Manager](https://github-image-cache.yaoyy.moe/2024/04/6fd3d7838e0f92d88ab9fab99eeba250.png)
 
+---
 
-   This action will call the exact Python interpreter that used by current PyMOL instance and install REvoDesign as a package.
+### Step 2: Install the Main Program
 
-   b. If you have no access to the remote url because of the policy from network provider, you may install it from a cloned local repository or unzipped source code by running the following command:
+The REvoDesign Package Manager simplifies the installation of the core **REvoDesign** program. It supports various installation methods and configurations:
 
-   ![From a local src](https://github-image-cache.yaoyy.moe/2024/04/77d1218caeb77111279a5a6557bbc6af.png)
-   
+#### Features:
+- **Installation Sources:**
+  - **Repository:** Install directly from the remote repository.
+  - **Local clone/directory:** Install from a local source code or cloned repository.
+  - **Local file:** Install from a `.zip` or `.tar.gz` archive.
+- **Options:**
+  - **Upgrade:** Update to the latest release version.
+  - **Verbose:** Show detailed installation logs.
+  - **Version/Commit:** Install a specific version or commit from the repository.
+- **Network Control:**
+  - **Proxy Support:** Configure HTTP, HTTPS, SOCKS5, or SOCKS5h proxies.
+  - **Mirror:** Use a PyPI mirror for installations.
+- **Extras:**
+  - **Basic:** Default installation.
+  - **Customized:** Select additional features.
+  - **Everything:** Install all extras (excluding test packages).
+- **Cache:** Choose a custom cache directory or use the default.
+- **Self-Upgrades:** Upgrade the package manager and UI directly.
 
-   c. To install a specific commit/branch, check `Version` or `Commit` for more historical releases:
-   ![From remote repo, commit c66f29356907102ffdf797486f299a9608558e34](https://github-image-cache.yaoyy.moe/2024/04/b914e8a7cb0a95223a1c23aa6baed51b.png)
-   
+---
 
-   d. To install with extra features, use `Customized` to pick, or install full version by selecting `Everything`:
+#### Installation Methods
 
-   ![install with extras](https://github-image-cache.yaoyy.moe/2024/04/4192c1572361a42a472146009e1c7951.png)
+1. **Remote Repository:**
+   Select **Repository** and click **Install**.
+
+2. **Local Clone:**
+   Use **Local clone** to install from a local repository or unzipped source code.
+
+   ![Local Clone](https://github-image-cache.yaoyy.moe/2024/11/0f955519fe222c6188444f9265c36d5c.png)
+
+3. **Local File:**
+   Select **Local file** to install from a `.zip` or `.tar.gz` file.
+
+   ![Local File](https://github-image-cache.yaoyy.moe/2024/11/ecd25285b7b53c5fa243cc12a601feb9.png)
+
+4. **Specific Version/Commit:**
+   Check **Version** or **Commit** to install a specific release.
+
+   ![Version/Commit](https://github-image-cache.yaoyy.moe/2024/11/ffef3cf1d25098329fc2a58bc1d4cae0.png)
+
+5. **Customized/Extras:**
+   Use **Customized** to select specific features or **Everything** for a full installation.
+
+   ![Install with Extras](https://github-image-cache.yaoyy.moe/2024/11/aa5b50c6a603b20bcad614910bbbc440.png)
+
+---
+
+#### Uninstallation
+
+Use the **Remove** button in the manager to uninstall. You can also remove selected extras.
+
+---
+
+#### Network Settings
+
+Set up proxies and mirrors to bypass network restrictions. For example, create a SOCKS5 proxy using SSH:
+
+```bash
+ssh -D 7899 -C root@<your.vps.ip> -p<ssh-port>
+```
+
+Configure the proxy in the manager:
+
+   ![Proxy Configuration](https://github-image-cache.yaoyy.moe/2024/11/8c7849a70ea512f3b2166110a07a45ab.png)
+
+---
+
+#### Self-Upgrades
+
+Right-click any non-editing area of the manager and select **Upgrade this manager** to fetch the latest version.
+
+   ![Self Upgrade](https://github-image-cache.yaoyy.moe/2024/11/85e6e45ae880674a5081459d80687453.png)
+
+After confirming, the script will replace the existing manager with the updated version.
+
+   ![Upgrade Confirmation](https://github-image-cache.yaoyy.moe/2024/11/1d593a02db655f10b3083bbe84d9cb40.png)
+
+---
+
+You are now ready to use **REvoDesign** for your enzyme redesign projects!
 
    **Extras table**
 
@@ -146,7 +227,7 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 > ColabDesign uses Jax, which requires **Python >= 3.9**
 
 > [!IMPORTANT]
-> Please make sure that you are using modern PyMOL version from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+> Please make sure that modern PyMOL version is fetched from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
 
 > [!IMPORTANT]
 > ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
@@ -156,10 +237,9 @@ With the recent updates, the installation process for **REvoDesign** Toolkit has
 
 **Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
 
-
 1. **Getting started**:
    - In order to get started, you need to load/fetch a structure(`fetch 1SUO`, for example) into your PyMOL session.
-   - Click `Menu` -> `REvoDesign` -> `Import PyMOL Session` to let **REvoDesign** find a designable molecule.
+   - Click `Menu` -> `REvoDesign` -> `Import PyMOL Session` to let **REvoDesign** find a designable molecule. Here is a keyboard shortcut: `Ctrl+N`.
    - Have fun!
 
 
