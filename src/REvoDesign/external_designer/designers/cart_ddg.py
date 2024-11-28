@@ -3,7 +3,7 @@ import os
 import shutil
 import warnings
 from typing import Any, Dict, List, Optional, Union
-
+import platform
 import docker
 import docker.errors
 from Bio.Data import IUPACData
@@ -25,25 +25,30 @@ def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
         return not os.environ.get("ROSETTA_BIN", "") == ""
 
     if node_hint.startswith("wsl"):
-
-        try:
-            wsl_bin = which_wsl()
-            return wsl_bin is not None
-        except RuntimeError:
-            warnings.warn(
-                issues.PlatformNotSupportedWarning(
-                    f"Invalid Node configuration: {node_hint}"
-                )
-            )
+        if platform.system() != "Windows":
             return False
+        return is_wsl_available()
 
-    if node_hint == "docker":
+    if node_hint.startswith("docker"):
         return is_docker_available()
 
     if node_hint == "mpi":
         return shutil.which("mpirun") is not None
 
     return False
+
+def is_wsl_available():
+    """Returns True if WSL is available."""
+    try:
+        wsl_bin = which_wsl()
+        return wsl_bin is not None
+    except RuntimeError:
+        warnings.warn(
+            issues.PlatformNotSupportedWarning(
+                "WSL is not available on this machine."
+            )
+        )
+        return False
 
 
 def is_docker_available() -> bool:
@@ -55,9 +60,8 @@ def is_docker_available() -> bool:
         return True
     except docker.errors.DockerException as e:
         warnings.warn(
-            issues.PlatformNotSupportedWarning(f"Docker is not available: {e}")
+            issues.PlatformNotSupportedWarning(f"Docker is not available on this machine: {e}")
         )
-
         return False
 
 
