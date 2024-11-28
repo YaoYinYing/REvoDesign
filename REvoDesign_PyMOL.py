@@ -643,7 +643,7 @@ class REvoDesignPackageManager:
             )
             if not diffs:
                 return notify_box(f'{title} is already up to date.')
-            
+
             num_added_lines = len([l for l in diffs if l.startswith('+ ')])
             num_chged_lines = len([l for l in diffs if l.startswith('! ')])
             num_deled_lines = len([l for l in diffs if l.startswith('- ')])

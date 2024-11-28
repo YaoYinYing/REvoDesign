@@ -634,7 +634,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.update_ws_client_view_update_options
         )
 
-        
         return main_window
 
     def reload_molecule_info(self):
@@ -1613,7 +1612,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # create a bus btw cfg<---> ui
             ConfigBus.initialize(ui=self.ui)
             self.bus = ConfigBus()
-            
+
             # Tab Config
             ParamChangeCollections.register_all(ui=self.bus.ui)
 

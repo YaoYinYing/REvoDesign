@@ -1,9 +1,10 @@
 import logging
 import os
+import platform
 import shutil
 import warnings
 from typing import Any, Dict, List, Optional, Union
-import platform
+
 import docker
 import docker.errors
 from Bio.Data import IUPACData
@@ -36,6 +37,7 @@ def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
         return shutil.which("mpirun") is not None
 
     return False
+
 
 def is_wsl_available():
     """Returns True if WSL is available."""
