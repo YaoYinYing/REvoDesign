@@ -44,14 +44,10 @@ REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
 GIST_BASE_URL: str = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
 
-# UI file online
-# uploaded with `make upload-manager-ui`
+# uploaded with `make upload-gists`
 UI_FILE_URL = f'{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui'
-
 # THIS file
-# uploaded with `make upload-manager`
 THIS_FILE_URL = f'{GIST_BASE_URL}/REvoDesign_PyMOL.py'
-
 # Define the URL of the JSON file
 EXTRAS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTable.json'
 DEPTS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignDeptsTable.json'
@@ -609,7 +605,7 @@ class REvoDesignPackageManager:
             fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
             print(f"Fetched UI file for manager: {ui_file}")
             return ui_file
-        
+
         # otherwise, if the user not requires an upgrade, return
         if not upgrade:
             print(f'[DEBUG]: pre-downloaded UI file found: {ui_file}')
@@ -666,8 +662,7 @@ class REvoDesignPackageManager:
 
         # Prompt the user to confirm the upgrade
         accept_upgraded = proceed_with_comfirm_msg_box(
-            title='Upgrade',
-            description='Do you REALLY want to apply the upgrade?<p><p>'
+            title='Upgrade', description='Do you REALLY want to apply the upgrade?<p><p>'
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
             '<table>'
             '<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>'
@@ -676,8 +671,7 @@ class REvoDesignPackageManager:
             f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
             '</table>'
             'You must check out these changes carefully.<p>'
-            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", 
-            rich=True)
+            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", rich=True)
 
         # Clean up the diff file
         if os.path.isfile(diff_file):
@@ -1177,8 +1171,7 @@ class REvoDesignPackageManager:
         use_commit = self.installer_ui.checkBox_specified_commit.isChecked()
         target_commit = self.installer_ui.lineEdit_commit.text()
 
-
-        force_reinstall= self.installer_ui.checkBox_force_reinstall.isChecked()
+        force_reinstall = self.installer_ui.checkBox_force_reinstall.isChecked()
 
         # networking
         use_proxy = self.installer_ui.checkBox_use_proxy.isChecked()
