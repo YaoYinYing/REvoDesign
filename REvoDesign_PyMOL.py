@@ -603,10 +603,19 @@ class REvoDesignPackageManager:
                 'UI',
                 'REvoDesign_installer.ui'))
         os.makedirs(os.path.dirname(ui_file), exist_ok=True)
-        if os.path.isfile(ui_file) and not upgrade:
+
+        # if not exists,  preform the first fetch
+        if not os.path.isfile(ui_file):
+            fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
+            print(f"Fetched UI file for manager: {ui_file}")
+            return ui_file
+        
+        # otherwise, if the user not requires an upgrade, return
+        if not upgrade:
             print(f'[DEBUG]: pre-downloaded UI file found: {ui_file}')
             return ui_file
 
+        # otherwise, preform the upgrade
         new_ui_file = f'{ui_file}.swp'
 
         fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
