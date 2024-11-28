@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+- installer:
+  - UI file first fetch on the very first time to launch
+
+### Removed
+
 ## [1.7.6] - 2024-11-28
 
 ### Added
