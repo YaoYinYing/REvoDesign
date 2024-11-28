@@ -643,7 +643,7 @@ class REvoDesignPackageManager:
             )
             if not diffs:
                 return notify_box(f'{title} is already up to date.')
-            
+
             num_added_lines = len([l for l in diffs if l.startswith('+ ')])
             num_chged_lines = len([l for l in diffs if l.startswith('! ')])
             num_deled_lines = len([l for l in diffs if l.startswith('- ')])
@@ -655,9 +655,13 @@ class REvoDesignPackageManager:
         accept_upgraded = proceed_with_comfirm_msg_box(
             'Upgrade',
             'Do you REALLY want to apply the upgrade?<p><p>'
-            f'Added  : {num_added_lines} <p>'
-            f'Changed: {num_chged_lines} <p>'
-            f'Deleted: {num_deled_lines} <p>'
+            f'<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
+            '<table>'
+            '<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>'
+            f'<tr><td><a style="background-color:green;color:white">Added  </a></td><td>:</td><td><a style="background-color:white;color:green;">{num_added_lines}</a></td></tr>'
+            f'<tr><td><a style="background-color:blue; color:white">Changed</a></td><td>:</td><td><a style="background-color:white;color:blue ;">{num_chged_lines}</a></td></tr>'
+            f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
+            '</table>'
             'You must check out these changes carefully.<p>'
             f"See all changes in this <a href=file://{diff_file}>diff file of {title}.</a>", rich=True)
 

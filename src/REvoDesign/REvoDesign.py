@@ -53,6 +53,7 @@ from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
+# only when the window is activated by use can this logger be initialized.
 logging: LoggerT = None  # type: ignore
 
 
@@ -632,12 +633,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.checkBox_ws_recieve_view_broadcast.stateChanged.connect(
             self.update_ws_client_view_update_options
         )
-
-        # Tab Config
-        ParamChangeCollections.register_all(ui=self.bus.ui)
-
-        # register widget change events to update cfg items
-        self.bus.register_widget_changes_to_cfg()
 
         return main_window
 
@@ -1617,7 +1612,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # create a bus btw cfg<---> ui
             ConfigBus.initialize(ui=self.ui)
             self.bus = ConfigBus()
+
+            # Tab Config
+            ParamChangeCollections.register_all(ui=self.bus.ui)
+
             self.bus.initialize_widget_with_group()
+
+            # register widget change events to update cfg items
+            self.bus.register_widget_changes_to_cfg()
 
         elif experiment:
             # while loading experiment

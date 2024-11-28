@@ -20,17 +20,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- installer:
-  - 2 JSONS now are hosted at this repository
-
 ### Changed
 
+- installer:
+  - ~~2 JSONS now are hosted at this repository~~
+  - all gist-upgradable files are now hosted within the same Gist id `c1e8bfe0fc0b9c60bf49ea04a550a044`
+  - self-upgrade: colorful diff summary HTML table
+
 - Makefile:
-  - move all gists upload together
+  - move all gist uploads together
+  - `make upload-gists` to upload all gists from local.
+- designer: ddg: now silent WSL warning with early checkings on `platform.system()` against non-windows platforms.
 
 ### Fixed
+- UI-config item: empty value on non-empty field registered as part of `ParamChangeCollections`. This issue is introduced by the refactoring works of `v1.7.3`.
 
 ### Removed
+- Makefile: 
+  - `upload-manager` due to `make upload-gists`
+  - `upload-manager-ui` due to `make upload-gists`
 
 ## [1.7.5] - 2024-11-26
 
@@ -85,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - installer: 
   - extras:
-    - now managed at https://gist.github.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a
+    - now managed at ~~https://gist.github.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a~~
     - fetch dynamic extras table from gist permalink: https://gist.githubusercontent.com/YaoYinYing/37e0e8e73951fab3a12b2d8b81791f6a/raw
     - permalink guide: https://gist.github.com/atenni/5604615
     - if fetch fails, set the table as empty with a notification.
