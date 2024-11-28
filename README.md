@@ -208,7 +208,7 @@ Right-click any non-editing area of the manager and select **Upgrade this manage
 
 After confirming, the script will replace the existing manager with the updated version.
 
-   ![Upgrade Confirmation](https://github-image-cache.yaoyy.moe/2024/11/1d593a02db655f10b3083bbe84d9cb40.png)
+   ![Upgrade Confirmation](https://github-image-cache.yaoyy.moe/2024/11/4ddb145c98ac3fc472c2d9e4ffc23489.png)
 
 ---
 

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - installer:
   - ~~2 JSONS now are hosted at this repository~~
   - all gist-upgradable files are now hosted within the same Gist id `c1e8bfe0fc0b9c60bf49ea04a550a044`
+  - self-upgrade: colorful diff summary HTML table
 
 - Makefile:
   - move all gist uploads together
