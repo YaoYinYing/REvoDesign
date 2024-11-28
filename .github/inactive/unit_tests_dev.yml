@@ -48,6 +48,7 @@ jobs:
           - "3.12"
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
   
     outputs:
       linted: ${{steps.skip-lint.outputs.linted }}

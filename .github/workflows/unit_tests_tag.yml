@@ -19,16 +19,46 @@ jobs:
       matrix:
         os: 
           - ubuntu-latest
+        pymol-version:
+          - "conda-forge::pymol-open-source"
+        pymol-tag:
+          - 'latest pymol open source'
         python-version: 
           - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
-        # include:
-        #   - os: windows-latest
-        #     python-version: "3.11"
+        include:
+          # windows
+          - os: windows-latest
+            python-version: "3.11"
+            pymol-version: "conda-forge::pymol-open-source"
+            pymol-tag:
+              - 'latest pymol open source'
+          
+          # latest bundled pymol 
+          - os: ubuntu-latest
+            python-version: "3.11"
+            pymol-version: "schrodinger::pymol-bundle"
+            pymol-tag:
+            - 'latest pymol bundle'
+          
+          # pymol-open-source, v2
+          - os: ubuntu-latest
+            python-version: "3.11"
+            pymol-version: "conda-forge::pymol-open-source<3"
+            pymol-tag:
+              - 'legacy (v2) pymol open source'
+
+          # bundled pymol, v2
+          - os: ubuntu-latest
+            python-version: "3.11"
+            pymol-version: "schrodinger::pymol-bundle<3"
+            pymol-tag:
+              - 'legacy (v2) pymol bundle'
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
 
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
@@ -56,7 +86,7 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         uses: pyvista/setup-headless-display-action@v2
       
-      - name: Setup Conda on ${{ matrix.os }}
+      - name: Setup Conda on ${{ matrix.os }} 
         uses: conda-incubator/setup-miniconda@v3
         with:
             auto-update-conda: false
@@ -65,13 +95,14 @@ jobs:
             python-version: ${{ matrix.python-version }}
             conda-solver: libmamba
       
-      - name: Setup PyMOL on ${{ matrix.os }} - py${{ matrix.python-version }}
+      - name: Setup PyMOL - (${{ matrix.pymol-tag }})-(${{ matrix.os }}-py${{ matrix.python-version }})
         run: |
-          conda install -c conda-forge pymol-open-source -n ${{ env.conda_env }} -y 
+          conda install '${{ matrix.pymol-version}}' -n ${{ env.conda_env }} -y 
           conda info
           conda list
           which python
           which python3
+          pymol --version
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           make install
