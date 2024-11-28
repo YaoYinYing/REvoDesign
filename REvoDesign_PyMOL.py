@@ -435,6 +435,7 @@ class PIPInstaller:
                 extras: Optional[str] = None,
                 mirror: Optional[str] = "",
                 quiet: bool = False,
+                force_reinstall: bool = False,
                 env: Optional[Mapping[str, str]] = None,
                 ):
         """
@@ -503,6 +504,9 @@ class PIPInstaller:
             pip_cmd.extend(["-i", mirror])
         if quiet:
             pip_cmd.append("-q")
+
+        if force_reinstall:
+            pip_cmd.append("--force-reinstall")
 
         result: subprocess.CompletedProcess = run_command(
             pip_cmd, verbose=self.verbose, env=env if env is not None else self.env)
@@ -653,9 +657,9 @@ class REvoDesignPackageManager:
 
         # Prompt the user to confirm the upgrade
         accept_upgraded = proceed_with_comfirm_msg_box(
-            'Upgrade',
-            'Do you REALLY want to apply the upgrade?<p><p>'
-            f'<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
+            title='Upgrade',
+            description='Do you REALLY want to apply the upgrade?<p><p>'
+            '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
             '<table>'
             '<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>'
             f'<tr><td><a style="background-color:green;color:white">Added  </a></td><td>:</td><td><a style="background-color:white;color:green;">{num_added_lines}</a></td></tr>'
@@ -663,7 +667,8 @@ class REvoDesignPackageManager:
             f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
             '</table>'
             'You must check out these changes carefully.<p>'
-            f"See all changes in this <a href=file://{diff_file}>diff file of {title}.</a>", rich=True)
+            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", 
+            rich=True)
 
         # Clean up the diff file
         if os.path.isfile(diff_file):
@@ -1163,6 +1168,9 @@ class REvoDesignPackageManager:
         use_commit = self.installer_ui.checkBox_specified_commit.isChecked()
         target_commit = self.installer_ui.lineEdit_commit.text()
 
+
+        force_reinstall= self.installer_ui.checkBox_force_reinstall.isChecked()
+
         # networking
         use_proxy = self.installer_ui.checkBox_use_proxy.isChecked()
         proxy_url = self.installer_ui.lineEdit_proxy_url.text()
@@ -1241,6 +1249,7 @@ class REvoDesignPackageManager:
                 extras=extras,
                 quiet=not verbose,
                 mirror=mirror_url if (use_mirror and mirror_url) else '',
+                force_reinstall=force_reinstall,
                 progress_bar=self.installer_ui.progressBar,
             )
             # Provide feedback on the installation result
@@ -1609,6 +1618,7 @@ def proceed_with_comfirm_msg_box(title="", description="", rich: bool = False):
     Args:
     - title (str): Title of the confirmation box (default is empty)
     - description (str): Description displayed in the confirmation box (default is empty)
+    - rich (bool): Whether to proceed with rich text or not (default is False)
 
     Returns:
     - bool: True if 'Yes' is selected, False otherwise
