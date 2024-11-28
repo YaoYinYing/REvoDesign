@@ -38,7 +38,7 @@ jobs:
           
           # latest bundled pymol 
           - os: ubuntu-latest
-            python-version: "3.11"
+            python-version: "3.10"
             pymol-version: "schrodinger::pymol-bundle"
             pymol-tag:
             - 'latest pymol bundle'
