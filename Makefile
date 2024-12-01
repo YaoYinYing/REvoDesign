@@ -10,7 +10,7 @@ CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 PYREVERSE_CLASS_OPT=-ASmy --colorized
 PYREVERSE_DIR=image/svg
 PYREVERSE_OPTS=--colorized --no-standalone --only-classnames --module-names n
-PYREVERSE_IGNORE=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py,SessionMerger.py,client_tools.py,customized_widgets.py,mutant_tools.py,pymol_utils.py,system_tools.py,utils.py,exceptions.py,warnings.py
+PYREVERSE_IGNORE=--ignore Ui_REvoDesign.py,UnitTests.py,TestData.py,QtTestWorker.py,SessionMerger.py,client_tools.py,customized_widgets.py,mutant_tools.py,pymol_utils.py,system_tools.py,utils.py,exceptions.py,warnings.py
 PYREVERSE_DOT_OPTS=-Ln10 
 
 
@@ -132,7 +132,7 @@ all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/tabs/
+	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)
 	cp $(TESTDIR)/.coverage* .
 
 macos-rosetta-test:
@@ -148,7 +148,7 @@ macos-rosetta-test:
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
+	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/tabs/;  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
 
 fake:
 	cat 
@@ -156,7 +156,7 @@ fake:
 memray-live:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
+	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/tabs/;
 
 format: license-update black
 
