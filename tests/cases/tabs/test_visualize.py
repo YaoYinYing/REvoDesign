@@ -1,0 +1,135 @@
+
+import os
+
+import pytest
+
+
+from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
+from REvoDesign.tools.customized_widgets import  set_widget_value
+
+from ...conftest import TestWorker
+from ...data.test_data import KeyData
+
+os.environ["PYTEST_QT_API"] = "pyqt5"
+
+
+class TestREvoDesignPlugin_TabVisualize:
+    @pytest.mark.skipif(
+        not PIPPack_worker.installed, reason="PIPPack not installed"
+    )
+    def test_visualize_pssm_ddg(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
+        test_worker.test_id = test_worker.method_name()
+        test_worker.load_session_and_check()
+        test_worker.go_to_tab(tab_name="config")
+
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_sidechain_solver, "PIPPack"
+        )
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_sidechain_solver_model,
+            "pippack_model_1",
+        )
+        test_worker.go_to_tab(tab_name="visualize")
+
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_input_mut_table_csv,
+            KeyDataDuringTests.minimum_mutant_file,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_output_pse_visualize,
+            test_worker.test_data.visualize_1_pse,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_input_csv_2,
+            KeyDataDuringTests.ddg_file,
+        )
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_profile_type_2,
+            test_worker.test_data.visualize_1_profile_type,
+        )
+
+        set_widget_value(
+            test_worker.plugin.ui.checkBox_global_score_policy,
+            test_worker.test_data.visualize_1_use_global_score,
+        )
+        set_widget_value(
+            test_worker.plugin.ui.checkBox_reverse_mutant_effect,
+            test_worker.test_data.visualize_1_score_reversed,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_group_name,
+            test_worker.test_data.visualize_1_design_case,
+        )
+
+        test_worker.save_screenshot(
+            widget=test_worker.plugin.window,
+            basename=f"{test_worker.test_id}_before_run",
+        )
+        test_worker.save_new_experiment()
+        test_worker.click(test_worker.plugin.ui.pushButton_run_visualizing)
+
+        test_worker.save_pymol_png(basename=test_worker.test_id)
+
+        test_worker.save_screenshot(
+            widget=test_worker.plugin.window,
+            basename=f"{test_worker.test_id}_after_run",
+        )
+
+        assert os.path.exists(test_worker.test_data.visualize_1_pse)
+        test_worker.check_existed_mutant_tree()
+
+    def test_visualize_pssm_mpnn(self, test_worker, KeyDataDuringTests: KeyData):
+        test_worker.test_id = test_worker.method_name()
+        test_worker.load_session_and_check()
+        test_worker.go_to_tab(tab_name="config")
+
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_sidechain_solver,
+            "Dunbrack Rotamer Library",
+        )
+        test_worker.go_to_tab(tab_name="visualize")
+
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_input_mut_table_csv,
+            KeyDataDuringTests.minimum_mutant_file,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_output_pse_visualize,
+            test_worker.test_data.visualize_2_pse,
+        )
+        test_worker.do_typing(test_worker.plugin.ui.lineEdit_input_csv_2, "")
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_profile_type_2,
+            test_worker.test_data.visualize_2_profile_type,
+        )
+
+        set_widget_value(
+            test_worker.plugin.ui.checkBox_global_score_policy,
+            test_worker.test_data.visualize_2_use_global_score,
+        )
+        set_widget_value(
+            test_worker.plugin.ui.checkBox_reverse_mutant_effect,
+            test_worker.test_data.visualize_2_score_reversed,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_group_name,
+            test_worker.test_data.visualize_2_design_case,
+        )
+
+        test_worker.save_screenshot(
+            widget=test_worker.plugin.window,
+            basename=f"{test_worker.test_id}_before_run",
+        )
+
+        test_worker.save_new_experiment()
+        test_worker.click(test_worker.plugin.ui.pushButton_run_visualizing)
+        test_worker.save_pymol_png(basename=test_worker.test_id)
+
+        test_worker.save_screenshot(
+            widget=test_worker.plugin.window,
+            basename=f"{test_worker.test_id}_after_run",
+        )
+
+        assert os.path.exists(test_worker.test_data.visualize_2_pse)
+        test_worker.check_existed_mutant_tree()
+
