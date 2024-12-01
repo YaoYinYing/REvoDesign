@@ -6,7 +6,7 @@ from ...conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
-
+@pytest.mark.order(1)
 class TestREvoDesignPlugin:
     def test_plugin_gui_visibility(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
