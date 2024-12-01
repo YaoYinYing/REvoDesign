@@ -55,7 +55,7 @@ class TestNonEnglishInput:
     def test_non_english_input(self, drop_space_with_underline, lan, non_eng_dirname,filename, test_worker: TestWorker, test_tmp_dir):
         test_worker.test_id= test_worker.method_name()
         # test_worker.load_session_and_check()
-        test_worker.go_to_tab(tab_name='mutate')
+        test_worker.go_to_tab(tab_name='visualize')
         non_eng_dirname=non_eng_dirname.replace(' ', '_') if drop_space_with_underline else non_eng_dirname
 
         expected_input_save_path= os.path.join(test_tmp_dir, non_eng_dirname, filename)
