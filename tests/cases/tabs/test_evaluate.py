@@ -1,4 +1,3 @@
-
 import os
 
 from REvoDesign.tools.customized_widgets import (get_widget_value,

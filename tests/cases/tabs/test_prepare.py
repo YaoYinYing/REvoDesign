@@ -10,7 +10,6 @@ from ...conftest import TestWorker
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
-
 class TestREvoDesignPlugin_TabPrepare:
     def test_load_molecule(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()

@@ -1,4 +1,3 @@
-
 import os
 
 from REvoDesign.tools.customized_widgets import set_widget_value
@@ -9,9 +8,8 @@ from ...data.test_data import KeyData
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
 
-
 class TestREvoDesignPlugin_TabCluster:
-    def test_cluster(self, test_worker:TestWorker, KeyDataDuringTests: KeyData):
+    def test_cluster(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="cluster")

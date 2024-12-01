@@ -1,10 +1,7 @@
-
 import os
-
 
 import pytest
 from pymol import cmd
-
 
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)

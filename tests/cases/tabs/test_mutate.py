@@ -1,4 +1,3 @@
-
 import os
 
 from REvoDesign.tools.customized_widgets import set_widget_value
@@ -352,4 +351,3 @@ class TestREvoDesignPlugin_TabMutate:
         )
         test_worker.save_pymol_png(basename=test_worker.test_id)
         test_worker.pse_snapshot('fin')
-

@@ -1,11 +1,9 @@
-
 import os
 
 import pytest
 
-
 from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
-from REvoDesign.tools.customized_widgets import  set_widget_value
+from REvoDesign.tools.customized_widgets import set_widget_value
 
 from ...conftest import TestWorker
 from ...data.test_data import KeyData
@@ -132,4 +130,3 @@ class TestREvoDesignPlugin_TabVisualize:
 
         assert os.path.exists(test_worker.test_data.visualize_2_pse)
         test_worker.check_existed_mutant_tree()
-

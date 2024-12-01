@@ -1,9 +1,6 @@
-
 import os
 
-
 import pytest
-
 
 from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import (get_widget_value,
@@ -11,17 +8,14 @@ from REvoDesign.tools.customized_widgets import (get_widget_value,
 
 from ...conftest import TestWorker
 
-
 os.environ["PYTEST_QT_API"] = "pyqt5"
-
-
 
 
 class TestREvoDesignPlugin_TabConfig:
     @pytest.mark.skipif(
         not PIPPack_worker.installed, reason="PIPPack not installed"
     )
-    def test_use_pippack_mpnn_design(self, test_worker:TestWorker):
+    def test_use_pippack_mpnn_design(self, test_worker: TestWorker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="config")
