@@ -10,7 +10,7 @@ CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
 PYREVERSE_CLASS_OPT=-ASmy --colorized
 PYREVERSE_DIR=image/svg
 PYREVERSE_OPTS=--colorized --no-standalone --only-classnames --module-names n
-PYREVERSE_IGNORE=--ignore Ui_REvoDesign.py,UnitTests.py,QtTests.py,TestData.py,QtTestWorker.py,SessionMerger.py,client_tools.py,customized_widgets.py,mutant_tools.py,pymol_utils.py,system_tools.py,utils.py,exceptions.py,warnings.py
+PYREVERSE_IGNORE=--ignore Ui_REvoDesign.py,UnitTests.py,TestData.py,QtTestWorker.py,SessionMerger.py,client_tools.py,customized_widgets.py,mutant_tools.py,pymol_utils.py,system_tools.py,utils.py,exceptions.py,warnings.py
 PYREVERSE_DOT_OPTS=-Ln10 
 
 
@@ -112,21 +112,27 @@ test:
 ui-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py;
+	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/tabs;
+
+ui-test-lan:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/tabs -k 'test_non_english_input';
+
 
 # ui test with pymol
 # see https://github.com/schrodinger/pymol-open-source/pull/106/files#diff-5c3fa597431eda03ac3339ae6bf7f05e1a50d6fc7333679ec38e21b337cb6721R57
 ui-test-pymol:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); pymol -ckqy /Users/yyy/miniconda_py39_arm64/lib/python3.10/site-packages/REvoDesign/tests/cases/QtTests.py;
+	cd $(TESTDIR); pymol -ckqy /Users/yyy/miniconda_py39_arm64/lib/python3.10/site-packages/REvoDesign/tests/cases/tabs/;
 
 # all test
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py $(PYTEST_CASES_PATH)/UnitTests.py
+	cd $(TESTDIR); python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)
 	cp $(TESTDIR)/.coverage* .
 
 macos-rosetta-test:
@@ -135,14 +141,14 @@ macos-rosetta-test:
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
 	$(MACOS_PYMOL_BIN_PATH)/python -m pip install pytest pytest-cov coverage psutil -q --no-cache-dir 
-	cd $(TESTDIR); $(MACOS_PYMOL_BIN_PATH)/python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/QtTests.py -k 'not mpnn'
+	cd $(TESTDIR); $(MACOS_PYMOL_BIN_PATH)/python -m pytest -x $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/tabs/ -k 'not mpnn'
 
 
 
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
+	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/tabs/;  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
 
 fake:
 	cat 
@@ -150,7 +156,7 @@ fake:
 memray-live:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/QtTests.py;
+	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/tabs/;
 
 format: license-update black
 

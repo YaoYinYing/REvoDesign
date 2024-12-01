@@ -5,7 +5,7 @@ import os
 import time
 import warnings
 from dataclasses import dataclass
-from typing import Optional
+from typing import Literal, Optional
 from unittest.mock import MagicMock
 
 import psutil
@@ -15,6 +15,9 @@ from immutabledict import immutabledict
 from pymol import CmdException, cmd
 from pymol.Qt import QtCore, QtWidgets  # type: ignore
 from pytestqt import qtbot
+
+
+from RosettaPy.utils import tmpdir_manager
 
 from REvoDesign import ConfigBus, REvoDesignPlugin
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
@@ -31,6 +34,7 @@ from .data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
+TAB_NAMES=Literal["prepare","mutate","evaluate","cluster","visualize","interact","client","socket","config"]
 
 def pytest_collection_modifyitems(items: list[Item]):
     for item in items:
@@ -103,7 +107,7 @@ class TestWorker:
         )  # Add the plugin's main window to qtbot for automatic cleanup
 
         self.tab_widget_mapping: immutabledict[
-            str, QtWidgets.QWidget  # type: ignore
+            TAB_NAMES, QtWidgets.QWidget  # type: ignore
         ] = immutabledict(
             {
                 "prepare": self.plugin.ui.tab_prepare,
@@ -257,6 +261,7 @@ class TestWorker:
 
         self.plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
+        self.check_designable_sequences()
 
     def save_new_experiment(self, experiment_name: Optional[str] = None):
         import shutil
@@ -317,12 +322,16 @@ class TestWorker:
     ):
         tab.setCurrentWidget(page)
 
-    def go_to_tab(self, tab_name: str):
+    def go_to_tab(self, tab_name: TAB_NAMES):
         self._navigate_to_tab(
             tab=self.plugin.ui.tabWidget,
             page=self.tab_widget_mapping.get(tab_name),
         )
         self.sleep(5)
+
+    def check_designable_sequences(self):
+        assert self.plugin.designable_sequences is not None, 'Designable sequences are not loaded to the plugin.'
+        assert self.plugin.bus.get_value("designable_sequences", reject_none=True), 'Designable sequences are not in Configuration.'
 
     def check_molecule_after_loaded(self, molecule: Optional[str] = None):
         if molecule and isinstance(molecule, str):
@@ -731,3 +740,9 @@ def mock_lcd_number():
         return mock_lcd
 
     return _mock_lcd_number
+
+
+@pytest.fixture
+def test_tmp_dir():
+    with tmpdir_manager() as tmpdir:
+        yield tmpdir
