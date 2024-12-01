@@ -261,6 +261,7 @@ class TestWorker:
 
         self.plugin.reload_molecule_info()
         self.check_molecule_after_loaded()
+        self.check_designable_sequences()
 
     def save_new_experiment(self, experiment_name: Optional[str] = None):
         import shutil
@@ -327,6 +328,10 @@ class TestWorker:
             page=self.tab_widget_mapping.get(tab_name),
         )
         self.sleep(5)
+
+    def check_designable_sequences(self):
+        assert self.plugin.designable_sequences is not None, 'Designable sequences are not loaded to the plugin.'
+        assert self.plugin.bus.get_value("designable_sequences", reject_none=True), 'Designable sequences are not in Configuration.'
 
     def check_molecule_after_loaded(self, molecule: Optional[str] = None):
         if molecule and isinstance(molecule, str):

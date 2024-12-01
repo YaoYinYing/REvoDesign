@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from ...conftest import TestWorker,KeyData
+from ...conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -51,7 +51,6 @@ class TestNonEnglishInput:
         ('mixed_chinese_english_with_space', '这是一个非常奇怪的 dirname'),
     ])
     @pytest.mark.parametrize('drop_space_with_underline', [True, False])
-
     def test_non_english_input(self, drop_space_with_underline, lan, non_eng_dirname,filename, test_worker: TestWorker, test_tmp_dir):
         test_worker.test_id= test_worker.method_name()
         # test_worker.load_session_and_check()
