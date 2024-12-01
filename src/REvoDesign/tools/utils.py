@@ -366,7 +366,7 @@ def generate_strong_password(length=16):
 
     # Define the characters to use for generating the password
     password_characters = (
-        string.ascii_letters + string.digits + string.punctuation
+        string.ascii_letters + string.digits + '!#$%&*+-./:?@^_~'
     )
 
     # Generate the password using random characters from the defined set
