@@ -2,7 +2,10 @@ import os
 
 import pytest
 
+from REvoDesign import issues
+
 from ...conftest import TestWorker
+
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
@@ -56,13 +59,18 @@ class TestNonEnglishInput:
         # test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name='visualize')
         non_eng_dirname=non_eng_dirname.replace(' ', '_') if drop_space_with_underline else non_eng_dirname
-
+        
         expected_input_save_path= os.path.join(test_tmp_dir, non_eng_dirname, filename)
 
-        test_worker.do_typing(
-            test_worker.plugin.ui.lineEdit_input_mut_table_csv,
-            expected_input_save_path,
-        )
+        with open(expected_input_save_path, 'w') as f:
+            f.write('DONT STEAL REVODESIGN')
+
+        with pytest.warns(issues.NoInputWarning, match='Mutant Table path is not valid'):
+            test_worker.do_typing(
+                test_worker.plugin.ui.lineEdit_input_mut_table_csv,
+                expected_input_save_path,
+            )
+        
         input_save_path_cfg=test_worker.plugin.bus.get_value('ui.visualize.input.from_mutant_txt', reject_none=True)
 
         base_name=f'{lan}_{non_eng_dirname.replace(" ", "_")}{drop_space_with_underline}_{filename}'
