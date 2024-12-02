@@ -26,6 +26,7 @@ import time
 import traceback
 import urllib.request
 import warnings
+import platform
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
@@ -374,7 +375,7 @@ class GitSolver:
         )
 
         # Check if the Git installation was successful
-        if git_install_std and git_install_std.returncode == 0 and self.has_git:
+        if git_install_std and git_install_std.returncode == 0 and shutil.which('git'):
             # If successful, show a notification and return True
             notify_box(message="Git installed successfully.")
             return True
@@ -1732,6 +1733,10 @@ def __init_plugin__(app=None):
     """
     Add an entry to the PyMOL "Plugin" menu
     """
+    
+    # solve gbk encoding problem with Windows CMD in ch-zn environment
+    if platform.system() == "Windows":
+        os.system('chcp 65001')
 
     plugin = REvoDesignPackageManager()
     addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
