@@ -106,7 +106,6 @@ jobs:
           conda list
           which python
           which python3
-          pymol --version
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           make install

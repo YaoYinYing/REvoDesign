@@ -61,6 +61,7 @@ class TestNonEnglishInput:
         non_eng_dirname=non_eng_dirname.replace(' ', '_') if drop_space_with_underline else non_eng_dirname
         
         expected_input_save_path= os.path.join(test_tmp_dir, non_eng_dirname, filename)
+        os.makedirs(os.path.dirname(expected_input_save_path), exist_ok=True)
 
         with open(expected_input_save_path, 'w') as f:
             f.write('DONT STEAL REVODESIGN')
