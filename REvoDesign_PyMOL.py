@@ -298,10 +298,11 @@ class GitSolver:
     A class that checks for the presence of Git, Conda, and Winget on the system and can install Git if necessary.
     """
 
-    has_git: bool = False
-    has_conda: bool = False
-    has_winget: bool = False
-    has_brew: bool = False
+    has_git: Optional[str] = None
+    has_conda: Optional[str] = None
+    has_mamba: Optional[str] = None
+    has_winget: Optional[str] = None
+    has_brew: Optional[str] = None
 
     def __post_init__(self):
         """
@@ -311,22 +312,20 @@ class GitSolver:
         It sets the object's properties based on whether these tools are available in the system path.
         This ensures that the object can determine if it can perform related operations before doing so.
         """
-        for cmd_tool in ["git", "conda", "winget", "brew"]:
-            setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool) is not None)
-
         # subprocess.run on Windows treat conda as a excutable file and will check its existence
-        # however conda is AKA a alias and does not exist as a file
-        if self.has_conda:
-            try:
-                run_command(['conda', '--version'])
-            except FileNotFoundError:
-                self.has_conda = False
+        # however conda is AKA a alias in shell and does not exist as a file.
+        # shutil.which will return the real path of conda script
+        for cmd_tool in ["git", "conda","mamba", "winget", "brew"]:
+            setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
+
+        
+
 
     @property
     def where_to_install(self) -> Optional[List[str]]:
         if self.has_winget:
             return [
-                "winget",
+                self.has_winget,
                 "install",
                 "--id",
                 "Git.Git",
@@ -338,11 +337,13 @@ class GitSolver:
             ]
 
         # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
+        if self.has_mamba:
+            return [ self.has_mamba, "install",  "-y", "git" ]
         if self.has_conda:
-            return ["conda", "install", "-y", "git"]
-
+            return [self.has_conda, "install", "-y", "git"]
+        
         if self.has_brew:
-            return ["brew", "install", "git"]
+            return [self.has_brew, "install", "git"]
 
         return None
 
@@ -1781,32 +1782,29 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     issue_dict.update({'PyQt::QtPath': QtCore.__file__})
 
     # Tools
-    has_conda = shutil.which('conda')
-    has_mamba = shutil.which('mamba')
-    has_git = shutil.which('git')
-    has_brew = shutil.which('brew')
-    has_winget = shutil.which('winget')
+
+    git_solver=GitSolver()
 
     try:
-        conda_version = run_command([has_conda, '--version']).stdout if has_conda else 'Not Found'
+        conda_version = run_command([git_solver.has_conda, '--version']).stdout if git_solver.has_conda else 'Not Found'
     except Exception:
         conda_version = 'Not Found'
     issue_dict.update({'Tools::Conda': conda_version})
 
     try:
-        mamba_version = run_command([has_mamba, '--version']).stdout if has_mamba else 'Not Found'
+        mamba_version = run_command([git_solver.has_mamba, '--version']).stdout if git_solver.has_mamba else 'Not Found'
     except Exception:
         mamba_version = 'Not Found'
 
     issue_dict.update({'Tools::Mamba': mamba_version})
-    issue_dict.update({'Tools::Git': has_git})
-    issue_dict.update({'Tools::Git::Version': run_command([has_git, '--version']).stdout if has_git else 'Not Found'})
-    issue_dict.update({'Tools::Homebrew': has_brew})
+    issue_dict.update({'Tools::Git': git_solver.has_git})
+    issue_dict.update({'Tools::Git::Version': run_command([git_solver.has_git, '--version']).stdout if git_solver.has_git else 'Not Found'})
+    issue_dict.update({'Tools::Homebrew': git_solver.has_brew})
     issue_dict.update({'Tools::Homebrew::Version': run_command(
-        ['brew', '--version']).stdout if has_brew else 'Not Found'})
-    issue_dict.update({'Tools::Win-Get': has_winget})
+        [git_solver.has_brew, '--version']).stdout if git_solver.has_brew else 'Not Found'})
+    issue_dict.update({'Tools::Win-Get': git_solver.has_winget})
     issue_dict.update(
-        {'Tools::Win-Get::Version': run_command([has_winget, '--version']).stdout if has_winget else 'Not Found'})
+        {'Tools::Win-Get::Version': run_command([git_solver.has_winget, '--version']).stdout if git_solver.has_winget else 'Not Found'})
 
     # Env Vars
     issue_dict.update({'Env::CondaPath::0': os.getenv('CONDA_PREFIX')})
