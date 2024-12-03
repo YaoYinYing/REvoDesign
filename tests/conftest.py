@@ -15,8 +15,6 @@ from immutabledict import immutabledict
 from pymol import CmdException, cmd
 from pymol.Qt import QtCore, QtWidgets  # type: ignore
 from pytestqt import qtbot
-
-
 from RosettaPy.utils import tmpdir_manager
 
 from REvoDesign import ConfigBus, REvoDesignPlugin
@@ -34,7 +32,8 @@ from .data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
-TAB_NAMES=Literal["prepare","mutate","evaluate","cluster","visualize","interact","client","socket","config"]
+TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "client", "socket", "config"]
+
 
 def pytest_collection_modifyitems(items: list[Item]):
     for item in items:
@@ -331,7 +330,8 @@ class TestWorker:
 
     def check_designable_sequences(self):
         assert self.plugin.designable_sequences is not None, 'Designable sequences are not loaded to the plugin.'
-        assert self.plugin.bus.get_value("designable_sequences", reject_none=True), 'Designable sequences are not in Configuration.'
+        assert self.plugin.bus.get_value(
+            "designable_sequences", reject_none=True), 'Designable sequences are not in Configuration.'
 
     def check_molecule_after_loaded(self, molecule: Optional[str] = None):
         if molecule and isinstance(molecule, str):

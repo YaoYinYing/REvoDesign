@@ -22,10 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Tests:
+  - Qt tests: reorder by tabs
+  - Non-English input tests
+
 ### Fixed
 
 - installer:
   - UI file first fetch on the very first time to launch
+  - Windows CMD: gbk encoding issue
+- CI: pymol-bundle: conda channels
+- Depts: now explicityly use `numpy<2`
 
 ### Removed
 

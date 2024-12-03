@@ -18,12 +18,13 @@ import importlib
 import importlib.util
 import json
 import os
+import platform
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import time
-import traceback
 import urllib.request
 import warnings
 from contextlib import contextmanager
@@ -33,6 +34,7 @@ from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
                     Tuple, TypeVar, Union)
 from urllib.error import HTTPError, URLError
 
+from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.Qt.utils import loadUi
@@ -296,10 +298,11 @@ class GitSolver:
     A class that checks for the presence of Git, Conda, and Winget on the system and can install Git if necessary.
     """
 
-    has_git: bool = False
-    has_conda: bool = False
-    has_winget: bool = False
-    has_brew: bool = False
+    has_git: Optional[str] = None
+    has_conda: Optional[str] = None
+    has_mamba: Optional[str] = None
+    has_winget: Optional[str] = None
+    has_brew: Optional[str] = None
 
     def __post_init__(self):
         """
@@ -309,10 +312,39 @@ class GitSolver:
         It sets the object's properties based on whether these tools are available in the system path.
         This ensures that the object can determine if it can perform related operations before doing so.
         """
-        for cmd_tool in ["git", "conda", "winget", "brew"]:
-            setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool) is not None)
+        # subprocess.run on Windows treat conda as a excutable file and will check its existence
+        # however conda is AKA a alias in shell and does not exist as a file.
+        # shutil.which will return the real path of conda script
+        for cmd_tool in ["git", "conda", "mamba", "winget", "brew"]:
+            setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
 
-    def fetch_git(self, env: Optional[Mapping[str, str]] = None):
+    @property
+    def where_to_install(self) -> Optional[List[str]]:
+        if self.has_winget:
+            return [
+                self.has_winget,
+                "install",
+                "--id",
+                "Git.Git",
+                "-e",
+                "--source",
+                "winget",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+            ]
+
+        # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
+        if self.has_mamba:
+            return [self.has_mamba, "install", "-y", "git"]
+        if self.has_conda:
+            return [self.has_conda, "install", "-y", "git"]
+
+        if self.has_brew:
+            return [self.has_brew, "install", "git"]
+
+        return None
+
+    def fetch_git(self, git_fetch_command: List[str], env: Optional[Mapping[str, str]] = None) -> Tuple[bool, str]:
         """
         Installs Git if it is not present on the system.
 
@@ -325,69 +357,26 @@ class GitSolver:
 
         # Check if Git is already installed
         if self.has_git:
-            return True
-
-        # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
-        if self.has_winget:
-            cmd = [
-                "winget",
-                "install",
-                "--id",
-                "Git.Git",
-                "-e",
-                "--source",
-                "winget",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-            ]
-
-        elif self.has_brew:
-            cmd = ["brew", "install", "git"]
-
-        elif self.has_conda:
-            cmd = ["conda", "install", "-y", "git"]
-
-        else:
-            # If none of package managers is present, prompt the user to install Git manually
-            notify_box(
-                message="Failed on resolving Git with package managers [winget/conda/brew]. \n"
-                "Git is required to install REvoDesign. Please install Git first.\n"
-                "See https://git-scm.com/downloads",
-            )
-            return False
-
-        # Prompt the user for confirmation to install Git
-        confirmed = proceed_with_comfirm_msg_box(
-            title="Install Git?",
-            description=f'Do you want to install git first?\n command:\n {" ".join(cmd)}',
-        )
-        if not confirmed:
-            # If the user cancels the installation, notify and return
-            notify_box(message="Git installation is cancelled.")
-            return False
+            return True, ''
 
         # Execute the Git installation command in a worker thread and monitor progress
         git_install_std: subprocess.CompletedProcess = run_command(
-            cmd=cmd,
+            cmd=git_fetch_command,
             verbose=True,
             env=env,
         )
 
         # Check if the Git installation was successful
-        if git_install_std and git_install_std.returncode == 0 and self.has_git:
-            # If successful, show a notification and return True
-            notify_box(message="Git installed successfully.")
-            return True
+        if (git_install_std and git_install_std.returncode == 0) or shutil.which('git'):
+            self.has_git = shutil.which('git')
+            return True, ''
 
         # If installation failed, show error information and return False
 
         with open((file_path := os.path.abspath("error.log")), "w", encoding="utf-8") as f:
             f.write(f"STDOUT:\n{git_install_std.stdout}\n\n\n\nSTDERR:\n{git_install_std.stderr}")
 
-        notify_box(
-            message=f"Git not installed.\n Error details saved to {file_path}\n",
-            error_type=RuntimeError,
-        )
+        return False, file_path
 
 
 @dataclass
@@ -815,6 +804,40 @@ class REvoDesignPackageManager:
             self.installer_ui.listView_extras, AVAILABLE_EXTRAS
         )
 
+    def collect_diagnostic_data(self, collect_dummy: bool = False):
+        """
+        Collects diagnostic data and copies it to the clipboard.
+
+        This function clears the clipboard, collects diagnostic data by starting a worker thread,
+        and then copies the collected data in JSON format to the clipboard. It finally notifies the user
+        to paste the diagnostic information when creating a new issue on GitHub.
+
+        Parameters:
+        collect_dummy (bool): A flag indicating whether to collect dummy data. Default is False.
+
+        Returns:
+        None
+        """
+        # Clear the clipboard to ensure no old data is mixed in
+        cb = QtWidgets.QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
+
+        # Collect diagnostic data using a worker thread
+        diagnostic_data = run_worker_thread_with_progress(
+            worker_function=issue_collection,
+            collect_dummy=collect_dummy,
+            progress_bar=self.installer_ui.progressBar
+        )
+
+        # Copy the collected diagnostic data to the clipboard in JSON format
+        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard)
+
+        # Notify the user that the diagnostic data has been copied and instruct them on what to do next
+        notify_box(
+            "Issue collection copied to clipboard. "
+            "Please paste it in a new issue in the REvoDesign repository on GitHub."
+        )
+
     def add_right_click_menu(self, items: List[MenuItem]):
         """
         Adds a right-click context menu to the installer UI.
@@ -873,7 +896,17 @@ class REvoDesignPackageManager:
         menuitems = [
             MenuItem("Upgrade UI", self.ensure_ui_file, kwargs={"upgrade": True}),
             MenuItem("Upgrade this manager", self.self_upgrade),
-            MenuItem('Refresh GitHub Release tags', self.fetch_tags)
+            MenuItem('Refresh GitHub Release tags', self.fetch_tags),
+            MenuItem(
+                'Collect diagnostic data (reduced)',
+                self.collect_diagnostic_data,
+                kwargs={'collect_dummy': False}
+            ),
+            MenuItem(
+                'Collect diagnostic data (full)',
+                self.collect_diagnostic_data,
+                kwargs={'collect_dummy': True}
+            )
         ]
         self.add_right_click_menu(menuitems)
 
@@ -1235,14 +1268,31 @@ class REvoDesignPackageManager:
         # Perform the installation process
         with hold_trigger_button(self.installer_ui.pushButton_install):
             git_solver = GitSolver()
-            has_git = run_worker_thread_with_progress(
-                worker_function=git_solver.fetch_git,
-                env=env,
-                progress_bar=self.installer_ui.progressBar,
-            )
+            if not git_solver.has_git:
+                git_fetch_command = git_solver.where_to_install
+                if not git_fetch_command:
+                    # If none of package managers is present, prompt the user to install Git manually
+                    notify_box(
+                        message="Failed on resolving Git with package managers [winget/conda/brew]. \n"
+                        "Git is required to install REvoDesign. Please install Git first.\n"
+                        "See https://git-scm.com/downloads",
+                    )
+                    return
 
-            if not has_git:
-                return
+                git_solver_res = run_worker_thread_with_progress(
+                    worker_function=git_solver.fetch_git,
+                    git_fetch_command=git_fetch_command,
+                    env=env,
+                    progress_bar=self.installer_ui.progressBar,
+                )
+
+                if not git_solver.has_git:
+                    notify_box(
+                        message=f"Git not installed. \n{git_solver_res[-1] if git_solver_res else ''}"
+                    )
+                    return
+                # If successful, show a notification and return True
+                notify_box(message="Git installed successfully.")
 
             installed: Union[subprocess.CompletedProcess, None] = run_worker_thread_with_progress(
                 worker_function=self.pip_installer.install,
@@ -1584,6 +1634,7 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
     Returns:
     - None, but if error_type is not None, it either shows a warning or raises an exception.
     """
+    refresh_window()
     # Create an information message box
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Information)
@@ -1625,6 +1676,7 @@ def proceed_with_comfirm_msg_box(title="", description="", rich: bool = False):
     Returns:
     - bool: True if 'Yes' is selected, False otherwise
     """
+    refresh_window()
     # A confirmation message.
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Question)
@@ -1636,6 +1688,201 @@ def proceed_with_comfirm_msg_box(title="", description="", rich: bool = False):
     result = msg.exec_()
 
     return result == QtWidgets.QMessageBox.Yes
+
+
+def is_package_installed(package):
+    """
+    Function: is_package_installed
+    Usage: is_installed = is_package_installed(package)
+
+    This function checks if a specified package is installed in the current Python environment.
+
+    Args:
+    - package (str): Name of the package to check
+
+    Returns:
+    - bool: True if the package is installed, False otherwise
+    """
+    package_loader = importlib.util.find_spec(package)
+    return package_loader is not None
+
+
+def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
+    """
+    Collects system and environment information and returns it as a dictionary.
+
+    Parameters:
+    - collect_dummy: A boolean indicating whether to collect additional 'dummy' information for debugging purposes.
+
+    Returns:
+    - A dictionary containing detailed information about the system, environment, and installed software.
+    """
+    issue_dict = {}
+
+    # Collect platform information
+    platform_info = platform.uname()
+
+    # Platform
+    issue_dict.update({'Platform::Platform': sys.platform})
+    issue_dict.update({'Platform::Architecture': platform.architecture()[0]})
+    issue_dict.update({'Platform::OS': platform_info.system})
+    if platform_info.system == 'Darwin':
+        issue_dict.update({'Platform::MacOS::Version': platform.mac_ver()[0]})
+    elif platform_info.system == 'Windows':
+        issue_dict.update({'Platform::Windows::Version': platform.win32_ver()})
+        issue_dict.update({'Platform::Windows::Edition': platform.win32_edition()})
+        issue_dict.update({'Platform::Windows::IsIotDevice': platform.win32_is_iot()})
+    elif platform_info.system == 'Linux':
+        issue_dict.update({'Platform::Linux::Version': platform.freedesktop_os_release()  # type: ignore
+                          if hasattr(platform, 'freedesktop_os_release') else None})
+    issue_dict.update({'Platform::Release': platform_info.release})
+    issue_dict.update({'Platform::Version': platform_info.version})
+
+    if platform_info.system == 'Windows':
+        issue_dict.update({'Platform::CPU': platform_info.processor})
+    elif platform_info.system == 'Linux':
+        cpuinfo = run_command(['cat', '/proc/cpuinfo']).stdout.strip()
+        cpu_model = re.search(r'model name\s+:\s+(.+)', cpuinfo)
+        issue_dict.update({'Platform::CPU': cpu_model.group(1) if cpu_model else 'Unknown'})
+    elif platform_info.system == 'Darwin':
+        issue_dict.update({'Platform::CPU': run_command(['sysctl', '-n', 'machdep.cpu.brand_string']).stdout.strip()})
+    else:
+        issue_dict.update({'Platform::CPU': 'Unknown'})
+
+    issue_dict.update({'Platform::CPU::Num': os.cpu_count()})
+    issue_dict.update({'Platform::Machine': platform_info.machine})
+    issue_dict.update({'Platform::Hostname': platform_info.node})
+
+    is_rosetta_mac = "ARM64" in platform_info.version and platform_info.machine == "x86_64" if platform_info.system == "Darwin" else False
+    issue_dict.update({'Platform::IsRosettaTranlated': is_rosetta_mac})
+    which_chcp = shutil.which("chcp")
+    if which_chcp:
+        try:
+            issue_dict.update({'Platform::Windows::Chcp': run_command(['chcp']).stdout.strip()})
+        except Exception as e:
+            issue_dict.update({'Platform::Windows::Chcp': f"Error: {e}"})
+
+    # Shell
+    issue_dict.update({'Shell::Name': os.getenv('SHELL')})
+    issue_dict.update({'Shell::Encoding': sys.stdout.encoding})
+    issue_dict.update({'Shell::IsCygwin': 'CYGWIN' in os.environ.get('MSYSTEM', '')})
+
+    # Python
+    issue_dict.update({'Python::Version': sys.version})
+    issue_dict.update({'Python::PythonPath': sys.executable})
+    issue_dict.update({'Python::PIP': run_command([sys.executable, '-m', 'pip', '--version']).stdout})
+    issue_dict.update({'Python::Compiler': platform.python_compiler()})
+    issue_dict.update({'Python::Implementation': platform.python_implementation()})
+
+    # PyQt
+    issue_dict.update({'PyQt::Version': QtCore.PYQT_VERSION_STR})
+    issue_dict.update({'PyQt::QtPath': QtCore.__file__})
+
+    # Tools
+
+    git_solver = GitSolver()
+
+    try:
+        conda_version = run_command([git_solver.has_conda, '--version']).stdout if git_solver.has_conda else 'Not Found'
+    except Exception:
+        conda_version = 'Not Found'
+    issue_dict.update({'Tools::Conda': conda_version})
+
+    try:
+        mamba_version = run_command([git_solver.has_mamba, '--version']).stdout if git_solver.has_mamba else 'Not Found'
+    except Exception:
+        mamba_version = 'Not Found'
+
+    issue_dict.update({'Tools::Mamba': mamba_version})
+    issue_dict.update({'Tools::Git': git_solver.has_git})
+    issue_dict.update({'Tools::Git::Version': run_command(
+        [git_solver.has_git, '--version']).stdout if git_solver.has_git else 'Not Found'})
+    issue_dict.update({'Tools::Homebrew': git_solver.has_brew})
+    issue_dict.update({'Tools::Homebrew::Version': run_command(
+        [git_solver.has_brew, '--version']).stdout if git_solver.has_brew else 'Not Found'})
+    issue_dict.update({'Tools::Win-Get': git_solver.has_winget})
+    issue_dict.update(
+        {'Tools::Win-Get::Version': run_command([git_solver.has_winget, '--version']).stdout if git_solver.has_winget else 'Not Found'})
+
+    # Env Vars
+    issue_dict.update({'Env::CondaPath::0': os.getenv('CONDA_PREFIX')})
+    issue_dict.update({'Env::CondaPath::1': os.getenv('CONDA_PREFIX_1')})
+    issue_dict.update({'Env::CondaPath::2': os.getenv('CONDA_PREFIX_2')})
+    issue_dict.update({'Env::CondaEnvName': os.getenv('CONDA_DEFAULT_ENV')})
+    issue_dict.update({'Env::CondaPython': os.getenv('CONDA_PYTHON_EXE')})
+
+    issue_dict.update({'User::HomeDir': os.getenv('HOME')})
+    try:
+        issue_dict.update({'User::Username': os.getlogin()})
+    except OSError:
+        issue_dict.update({'User::Username': 'Unknown'})
+
+    # Network
+    try:
+        ip = socket.gethostbyname_ex(socket.gethostname())[2]
+    except Exception as e:
+        ip = f'Failed to fetch client ip: {e}'
+
+    issue_dict.update({'Network::IP': ip})
+
+    ip_location = fetch_gist_json('https://ipinfo.io')
+    if ip_location:
+        issue_dict.update({'Network::Location': ip_location})
+    else:
+        issue_dict.update({'Network::Location': 'Failed to fetch client location'})
+
+    # PyMOL
+    issue_dict.update({'PyMOL::Version': cmd.get_version()[0]})
+    issue_dict.update({'PyMOL::Build': get_version_message()})
+
+    if is_package_installed('REvoDesign'):
+        import REvoDesign
+        from REvoDesign.driver.ui_driver import ConfigBus
+        from REvoDesign.external_designer import all_designer_classes
+        from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
+
+        issue_dict.update({'REvoDesign::Version': REvoDesign.__version__})
+        issue_dict.update({'REvoDesign::Config': REvoDesign.REVODESIGN_CONFIG_FILE})
+        issue_dict.update({'REvoDesign::UI::Language': ConfigBus(
+        ).cfg.language if ConfigBus._instance is not None else 'N/A'})
+
+        logfile_in_cfg = ConfigBus().cfg.log.handlers.file.filename if ConfigBus._instance is not None else 'N/A'
+        if logfile_in_cfg == 'AUTO':
+            from platformdirs import user_log_path
+            logdir = user_log_path("REvoDesign")
+            logfile = os.path.join(logdir, "REvoDesign.runtime.log")
+        else:
+            logfile = logfile_in_cfg
+
+        issue_dict.update({'REvoDesign::Logger::File': logfile})
+        issue_dict.update({'REvoDesign::Extras::SidechainSolver': [
+                          runner.name for runner in all_runner_c if runner.installed]})
+        issue_dict.update({'REvoDesign::Extras::Designers': [
+                          designer.name for designer in all_designer_classes if designer.installed]})
+        issue_dict.update({'REvoDesign::Extras::TestSuite': is_package_installed('pytest')})
+    else:
+        issue_dict.update({'REvoDesign::Version': 'Not Installed'})
+
+    # Dummy
+    if collect_dummy:
+        issue_dict.update({'Dummy::Environ': dict(os.environ)})
+
+        pip_list_stdout: List[str] = run_command(['pip', 'list']).stdout.split('\n')
+        pip_list_stdout_body: List[List[str]] = [l.split(' ') for l in pip_list_stdout[2:]]
+
+        issue_dict.update({'Dummy::Pip::List': {
+            line[0]: line[-1]
+            for line in pip_list_stdout_body
+            if line[0]
+        }})
+        if is_package_installed('REvoDesign'):
+            import REvoDesign
+            from REvoDesign.bootstrap.set_config import ConfigConverter
+            from REvoDesign.driver.ui_driver import ConfigBus
+
+            issue_dict.update({'Dummy::REvoDesign::Configurations': ConfigConverter().convert(
+                ConfigBus().cfg) if ConfigBus._instance is not None else 'N/A'})
+    return issue_dict
 
 
 # a copy from `REvoDesign/tools/customized_widgets.py`
@@ -1736,12 +1983,10 @@ def __init_plugin__(app=None):
     plugin = REvoDesignPackageManager()
     addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
 
-    try:
+    if is_package_installed('REvoDesign'):
         from REvoDesign import REvoDesignPlugin
 
         plugin = REvoDesignPlugin()
         addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
-    except ImportError:
-        traceback.print_exc()
-
+    else:
         print("REvoDesign is not available.")
