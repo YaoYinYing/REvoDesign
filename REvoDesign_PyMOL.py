@@ -315,11 +315,8 @@ class GitSolver:
         # subprocess.run on Windows treat conda as a excutable file and will check its existence
         # however conda is AKA a alias in shell and does not exist as a file.
         # shutil.which will return the real path of conda script
-        for cmd_tool in ["git", "conda","mamba", "winget", "brew"]:
+        for cmd_tool in ["git", "conda", "mamba", "winget", "brew"]:
             setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
-
-        
-
 
     @property
     def where_to_install(self) -> Optional[List[str]]:
@@ -338,10 +335,10 @@ class GitSolver:
 
         # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
         if self.has_mamba:
-            return [ self.has_mamba, "install",  "-y", "git" ]
+            return [self.has_mamba, "install", "-y", "git"]
         if self.has_conda:
             return [self.has_conda, "install", "-y", "git"]
-        
+
         if self.has_brew:
             return [self.has_brew, "install", "git"]
 
@@ -371,7 +368,7 @@ class GitSolver:
 
         # Check if the Git installation was successful
         if (git_install_std and git_install_std.returncode == 0) or shutil.which('git'):
-            self.has_git = True
+            self.has_git = shutil.which('git')
             return True, ''
 
         # If installation failed, show error information and return False
@@ -1736,8 +1733,8 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
         issue_dict.update({'Platform::Windows::Edition': platform.win32_edition()})
         issue_dict.update({'Platform::Windows::IsIotDevice': platform.win32_is_iot()})
     elif platform_info.system == 'Linux':
-        issue_dict.update({'Platform::Linux::Version': platform.freedesktop_os_release() # type: ignore
-                          if hasattr(platform, 'freedesktop_os_release') else None})  
+        issue_dict.update({'Platform::Linux::Version': platform.freedesktop_os_release()  # type: ignore
+                          if hasattr(platform, 'freedesktop_os_release') else None})
     issue_dict.update({'Platform::Release': platform_info.release})
     issue_dict.update({'Platform::Version': platform_info.version})
 
@@ -1783,7 +1780,7 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
 
     # Tools
 
-    git_solver=GitSolver()
+    git_solver = GitSolver()
 
     try:
         conda_version = run_command([git_solver.has_conda, '--version']).stdout if git_solver.has_conda else 'Not Found'
@@ -1798,7 +1795,8 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
 
     issue_dict.update({'Tools::Mamba': mamba_version})
     issue_dict.update({'Tools::Git': git_solver.has_git})
-    issue_dict.update({'Tools::Git::Version': run_command([git_solver.has_git, '--version']).stdout if git_solver.has_git else 'Not Found'})
+    issue_dict.update({'Tools::Git::Version': run_command(
+        [git_solver.has_git, '--version']).stdout if git_solver.has_git else 'Not Found'})
     issue_dict.update({'Tools::Homebrew': git_solver.has_brew})
     issue_dict.update({'Tools::Homebrew::Version': run_command(
         [git_solver.has_brew, '--version']).stdout if git_solver.has_brew else 'Not Found'})
