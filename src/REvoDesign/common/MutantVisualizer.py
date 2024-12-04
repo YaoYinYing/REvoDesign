@@ -1,3 +1,7 @@
+'''
+Workhorse of the mutant visualization process.
+'''
+
 import gc
 import os
 import tempfile

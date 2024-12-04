@@ -1,3 +1,6 @@
+'''
+Custom widgets for REvoDesign.
+'''
 import math
 import os
 from collections.abc import Iterable

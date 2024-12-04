@@ -1,3 +1,7 @@
+'''
+ProteinMPNN, driven by ColabDesign
+'''
+
 # pylint: disable=import-outside-toplevel
 import os
 import warnings

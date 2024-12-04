@@ -1,3 +1,9 @@
+'''
+Molecule utilities with PyMOL
+
+TODO: deprecate this module with biotite or biopython
+'''
+
 import os
 import warnings
 from typing import List

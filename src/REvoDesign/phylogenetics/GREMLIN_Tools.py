@@ -1,17 +1,20 @@
-# GREMLIN utils: Everything but GREMLIN function
+'''
+GREMLIN utils: Everything but GREMLIN function
 
-# ------------------------------------------------------------
-# "THE BEERWARE LICENSE" (Revision 42):
-#  and  wrote this code.
-# As long as you retain this notice, you can do whatever you want
-# with this stuff. If we meet someday, and you think this stuff
-# is worth it, you can buy us a beer in return.
-# --Sergey Ovchinnikov and Peter Koo
-# ------------------------------------------------------------
+Original License:
+------------------------------------------------------------
+"THE BEERWARE LICENSE" (Revision 42):
+ and  wrote this code.
+As long as you retain this notice, you can do whatever you want
+with this stuff. If we meet someday, and you think this stuff
+is worth it, you can buy us a beer in return.
+--Sergey Ovchinnikov and Peter Koo
+------------------------------------------------------------
 
-"""
-https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
-"""
+from: 
+    https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
+'''
+
 
 import os
 import pickle

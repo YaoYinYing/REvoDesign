@@ -1,3 +1,6 @@
+'''
+This module contains functions for finding surface residues
+'''
 import os
 
 from pymol import cmd

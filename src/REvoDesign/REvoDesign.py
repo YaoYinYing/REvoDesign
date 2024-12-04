@@ -1,3 +1,7 @@
+'''
+Main Module for REvoDesign
+'''
+
 import asyncio
 import gc
 import os
@@ -16,6 +20,7 @@ from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
+from REvoDesign.basic import MenuCollection, MenuItem
 from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
                         save_configuration, set_REvoDesign_config_file)
 from REvoDesign.application.font import FontSetter
@@ -53,7 +58,7 @@ from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
-# only when the window is activated by use can this logger be initialized.
+# only when the window is activated by user can this logger be initialized.
 logging: LoggerT = None  # type: ignore
 
 
@@ -225,44 +230,49 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         LanguageSwitch(window=main_window)
 
         # Set up Menu
-
-        self.bus.ui.actionSet_Working_Directory.triggered.connect(
-            self.set_working_directory
-        )
-
-        self.bus.ui.actionReconfigure.triggered.connect(
-            self.reload_configurations
-        )
-        self.bus.ui.actionSave_Configurations.triggered.connect(
-            partial(
-                self.save_configuration_from_ui, experiment="global_config"
+        MenuCollection(
+            (
+                MenuItem(
+                    self.bus.ui.actionSet_Working_Directory,
+                    self.set_working_directory,
+                ),
+                MenuItem(
+                    self.bus.ui.actionReconfigure,
+                    self.reload_configurations,
+                ),
+                MenuItem(
+                    self.bus.ui.actionSave_Configurations,
+                    self.save_configuration_from_ui,
+                    {'experiment':"global_config"}
+                ),
+                MenuItem(
+                    self.bus.ui.action_LoadExperiment,
+                    self.load_and_save_experiment, 
+                    {'mode':"r"},
+                ),
+                MenuItem(
+                    self.bus.ui.action_Save_to_Experiment,
+                    self.load_and_save_experiment, 
+                    {'mode':"w"},
+                ),
+                MenuItem(
+                    self.bus.ui.actionReinitialize,
+                    self.reinitialize,
+                    {'delete':True},
+                ),
+                MenuItem(
+                    self.bus.ui.actionSource_Code,
+                    QtGui.QDesktopServices.openUrl,
+                    {'url': QtCore.QUrl(REPO_URL)}
+                ),
+                MenuItem(
+                    self.bus.ui.actionVersion,
+                    notify_box,
+                    {'message':f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
+                    )
+                ),
             )
-        )
-
-        self.bus.ui.action_LoadExperiment.triggered.connect(
-            partial(self.load_and_save_experiment, mode="r")
-        )
-
-        self.bus.ui.action_Save_to_Experiment.triggered.connect(
-            partial(self.load_and_save_experiment, mode="w")
-        )
-
-        self.bus.ui.actionReinitialize.triggered.connect(
-            partial(self.reinitialize, delete=True)
-        )
-
-        self.bus.ui.actionSource_Code.triggered.connect(
-            partial(
-                QtGui.QDesktopServices.openUrl,
-                QtCore.QUrl(REPO_URL),
-            )
-        )
-        self.bus.ui.actionVersion.triggered.connect(
-            partial(
-                notify_box,
-                message=f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}",
-            )
-        )
+        
 
         if self.teamwork_enabled:
             self.ws_server = REvoDesignWebSocketServer()
@@ -894,20 +904,15 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def run_surface_detection(self):
         """Run surface determination"""
-        surfacefinder = SurfaceFinder(input_pse=self.temperal_session)
+        SurfaceFinder(input_pse=self.temperal_session).process_surface_residues()
 
-        surfacefinder.process_surface_residues()
-        surfacefinder = None
 
     def run_pocket_detection(self):
         """Run pocket determination"""
-        pocketsearcher = PocketSearcher(
+        PocketSearcher(
             input_pse=self.temperal_session,
             save_dir=f"{self.PWD}/pockets/",
-        )
-
-        pocketsearcher.search_pockets()
-        pocketsearcher = None
+        ).search_pockets()
 
     # Tab `Mutate`
     def determine_profile_format(

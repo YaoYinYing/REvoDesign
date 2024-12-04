@@ -1,3 +1,7 @@
+'''
+This module contains a class that implements the Singleton pattern.
+'''
+
 from abc import ABC
 
 

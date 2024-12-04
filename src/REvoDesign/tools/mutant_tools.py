@@ -1,3 +1,7 @@
+'''
+This module contains functions for handling mutants.
+'''
+
 import json
 import os
 import re

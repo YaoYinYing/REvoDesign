@@ -1,3 +1,7 @@
+'''
+Abstract Designer module.
+'''
+
 from abc import abstractmethod
 from typing import Any, List, Union
 

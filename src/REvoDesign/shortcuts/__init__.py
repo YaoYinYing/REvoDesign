@@ -1,3 +1,7 @@
+'''
+Collect all the shortcuts and extend them to pymol
+'''
+
 from pymol import cmd
 
 from .shortcuts import (color_by_mutation, color_by_plddt, dump_sidechains,

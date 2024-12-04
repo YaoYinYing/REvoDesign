@@ -1,3 +1,6 @@
+'''
+Module for abstract base class for mutation runners.
+'''
 import os
 from abc import abstractmethod
 from typing import List, Tuple

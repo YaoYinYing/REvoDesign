@@ -1,3 +1,7 @@
+'''
+Module for DataFrame parsers.
+'''
+
 import os
 from abc import ABC, abstractmethod
 

@@ -1,3 +1,7 @@
+'''
+Module for handling mutants.
+'''
+
 import hashlib
 import os
 from dataclasses import dataclass

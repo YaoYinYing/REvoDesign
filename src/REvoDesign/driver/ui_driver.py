@@ -1,3 +1,7 @@
+'''
+The heart of REvoDesign. A UI-Configuration Bus
+'''
+
 import warnings
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Union

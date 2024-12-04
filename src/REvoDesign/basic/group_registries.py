@@ -1,3 +1,7 @@
+'''
+Data classes for Group Registry.
+'''
+
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Union
 

@@ -1770,7 +1770,7 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     # Python
     issue_dict.update({'Python::Version': sys.version})
     issue_dict.update({'Python::PythonPath': sys.executable})
-    issue_dict.update({'Python::PIP': run_command([sys.executable, '-m', 'pip', '--version']).stdout})
+    issue_dict.update({'Python::PIP': run_command([sys.executable, '-m', 'pip', '--version']).stdout.strip()})
     issue_dict.update({'Python::Compiler': platform.python_compiler()})
     issue_dict.update({'Python::Implementation': platform.python_implementation()})
 
@@ -1783,26 +1783,26 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     git_solver = GitSolver()
 
     try:
-        conda_version = run_command([git_solver.has_conda, '--version']).stdout if git_solver.has_conda else 'Not Found'
+        conda_version = run_command([git_solver.has_conda, '--version']).stdout.strip() if git_solver.has_conda else 'Not Found'
     except Exception:
         conda_version = 'Not Found'
     issue_dict.update({'Tools::Conda': conda_version})
 
     try:
-        mamba_version = run_command([git_solver.has_mamba, '--version']).stdout if git_solver.has_mamba else 'Not Found'
+        mamba_version = run_command([git_solver.has_mamba, '--version']).stdout.strip() if git_solver.has_mamba else 'Not Found'
     except Exception:
         mamba_version = 'Not Found'
 
     issue_dict.update({'Tools::Mamba': mamba_version})
     issue_dict.update({'Tools::Git': git_solver.has_git})
     issue_dict.update({'Tools::Git::Version': run_command(
-        [git_solver.has_git, '--version']).stdout if git_solver.has_git else 'Not Found'})
+        [git_solver.has_git, '--version']).stdout.strip() if git_solver.has_git else 'Not Found'})
     issue_dict.update({'Tools::Homebrew': git_solver.has_brew})
     issue_dict.update({'Tools::Homebrew::Version': run_command(
-        [git_solver.has_brew, '--version']).stdout if git_solver.has_brew else 'Not Found'})
+        [git_solver.has_brew, '--version']).stdout.strip() if git_solver.has_brew else 'Not Found'})
     issue_dict.update({'Tools::Win-Get': git_solver.has_winget})
     issue_dict.update(
-        {'Tools::Win-Get::Version': run_command([git_solver.has_winget, '--version']).stdout if git_solver.has_winget else 'Not Found'})
+        {'Tools::Win-Get::Version': run_command([git_solver.has_winget, '--version']).stdout.strip() if git_solver.has_winget else 'Not Found'})
 
     # Env Vars
     issue_dict.update({'Env::CondaPath::0': os.getenv('CONDA_PREFIX')})

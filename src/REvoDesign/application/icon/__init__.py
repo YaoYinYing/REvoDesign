@@ -1,3 +1,6 @@
+'''
+This module contains the icon setter class.
+'''
 import os
 
 from pymol.Qt import QtGui  # type: ignore

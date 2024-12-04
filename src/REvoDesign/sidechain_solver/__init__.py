@@ -1,3 +1,7 @@
+'''
+Module for sidechain solvers
+'''
+
 from ..basic import MutateRunnerAbstract
 from .SidechainSolver import SidechainSolver
 

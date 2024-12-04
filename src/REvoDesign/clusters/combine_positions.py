@@ -1,3 +1,6 @@
+'''
+Generate all possible combinations of mutations
+'''
 import os
 import pathlib
 from concurrent.futures import ThreadPoolExecutor

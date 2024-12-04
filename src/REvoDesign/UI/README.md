@@ -1,0 +1,1 @@
+This directoy stores each Qt UIs and translations.

@@ -1,3 +1,7 @@
+'''
+Orphaneous functions for REvoDesign
+'''
+
 import contextlib
 import os
 import random

@@ -4,6 +4,7 @@ from .designer import ExternalDesignerAbstract
 from .extensions import FileExtension, FileExtensionCollection
 from .group_registries import GroupRegistryItem
 from .mutate_runner import MutateRunnerAbstract
+from .menu_item import MenuItem, MenuCollection
 from .param_toggle import ParamChangeRegister, ParamChangeRegistryItem
 
 __all__ = [
@@ -15,5 +16,7 @@ __all__ = [
     'FileExtensionCollection',
     'GroupRegistryItem',
     'ParamChangeRegistryItem',
-    'ParamChangeRegister'
+    'ParamChangeRegister',
+    'MenuItem',
+    'MenuCollection'
 ]

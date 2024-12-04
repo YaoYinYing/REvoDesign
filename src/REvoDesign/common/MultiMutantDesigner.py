@@ -1,3 +1,6 @@
+'''
+Running Randomized Multi-Design
+'''
 import itertools
 import os
 import random

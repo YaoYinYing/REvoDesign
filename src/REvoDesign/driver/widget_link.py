@@ -1,3 +1,7 @@
+'''
+This module contains the definitions of the push button IDs and configuration-widget mapping used in the application.
+'''
+
 from dataclasses import dataclass
 from typing import Tuple
 

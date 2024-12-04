@@ -1,3 +1,7 @@
+'''
+System info collector
+'''
+
 import platform
 import warnings
 from dataclasses import dataclass

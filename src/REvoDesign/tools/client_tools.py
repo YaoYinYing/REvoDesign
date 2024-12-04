@@ -1,3 +1,6 @@
+'''
+This module contains functions and classes related to managing SSL certificates and generating unique identifiers (UUIDs).
+'''
 import datetime
 import os
 import ssl

@@ -1,3 +1,6 @@
+'''
+This module contains the definition of the IterableLoop class, which manages an iterable with looping behavior.
+'''
 from dataclasses import dataclass
 from typing import Generic, Tuple, TypeVar
 
