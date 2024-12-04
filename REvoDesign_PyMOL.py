@@ -1837,6 +1837,9 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     issue_dict.update({'PyMOL::Version': cmd.get_version()[0]})
     issue_dict.update({'PyMOL::Build': get_version_message()})
 
+    # REvoDesign
+    issue_dict.update({'REvoDesign::Installer': __file__})
+
     if is_package_installed('REvoDesign'):
         import REvoDesign
         from REvoDesign.driver.ui_driver import ConfigBus
@@ -1935,34 +1938,32 @@ def solve_installation_config(
 
     # Handle installation from a local Git repository with a tag
     if source.startswith("file://"):
-        repo_dir = git_url.replace("file://", "")
-        if not os.path.exists(os.path.join(repo_dir, ".git")):
+        repo_dir = git_url.lstrip("file://")
+        if not os.path.isdir(os.path.join(repo_dir, ".git")):
             notify_box(f'Git dir not found: {os.path.join(repo_dir, ".git")}')
         package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
         return package_string
 
     # Handle installation from an unzipped code directory
-    if os.path.exists(source) and os.path.isdir(source):
+    if os.path.isdir(source):
         if not os.path.exists(os.path.join(source, "pyproject.toml")):
             notify_box(
                 f"{source} is not a directory containing pyproject.toml",
                 FileNotFoundError,
             )
         if git_tag:
-            notify_box("unzipped code directory can not have a tag!", ValueError)
+            notify_box("unzipped code directory can not have a tag!")
         if source.endswith("/"):
             source = source[:-1]
         package_string = f"{source}{extra_string}"
         return package_string
 
     # Handle installation from a zipped code archive
-    if os.path.exists(source) and os.path.isfile(source):
+    if os.path.isfile(source):
         if git_tag:
-            notify_box("zipped file can not have a tag!", ValueError)
+            notify_box("zipped file can not have a tag!")
 
-        if source.endswith(".zip"):
-            package_string = f"{source}{extra_string}"
-        elif source.endswith(".tar.gz"):
+        if source.endswith(".zip") or source.endswith(".tar.gz"):
             package_string = f"{source}{extra_string}"
         else:
             notify_box(
