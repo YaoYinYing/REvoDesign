@@ -3,8 +3,8 @@ from .data_structure import IterableLoop
 from .designer import ExternalDesignerAbstract
 from .extensions import FileExtension, FileExtensionCollection
 from .group_registries import GroupRegistryItem
+from .menu_item import MenuCollection, MenuItem
 from .mutate_runner import MutateRunnerAbstract
-from .menu_item import MenuItem, MenuCollection
 from .param_toggle import ParamChangeRegister, ParamChangeRegistryItem
 
 __all__ = [

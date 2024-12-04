@@ -11,7 +11,7 @@ is worth it, you can buy us a beer in return.
 --Sergey Ovchinnikov and Peter Koo
 ------------------------------------------------------------
 
-from: 
+from:
     https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
 '''
 

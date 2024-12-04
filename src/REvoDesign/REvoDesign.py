@@ -20,12 +20,12 @@ from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
-from REvoDesign.basic import MenuCollection, MenuItem
 from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
                         save_configuration, set_REvoDesign_config_file)
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
+from REvoDesign.basic import MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
@@ -243,22 +243,22 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionSave_Configurations,
                     self.save_configuration_from_ui,
-                    {'experiment':"global_config"}
+                    {'experiment': "global_config"}
                 ),
                 MenuItem(
                     self.bus.ui.action_LoadExperiment,
-                    self.load_and_save_experiment, 
-                    {'mode':"r"},
+                    self.load_and_save_experiment,
+                    {'mode': "r"},
                 ),
                 MenuItem(
                     self.bus.ui.action_Save_to_Experiment,
-                    self.load_and_save_experiment, 
-                    {'mode':"w"},
+                    self.load_and_save_experiment,
+                    {'mode': "w"},
                 ),
                 MenuItem(
                     self.bus.ui.actionReinitialize,
                     self.reinitialize,
-                    {'delete':True},
+                    {'delete': True},
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,
@@ -268,11 +268,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionVersion,
                     notify_box,
-                    {'message':f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
-                    )
-                ),
-            )
-        
+                    {'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
+                )
+            ),
+        )
 
         if self.teamwork_enabled:
             self.ws_server = REvoDesignWebSocketServer()
@@ -905,7 +904,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def run_surface_detection(self):
         """Run surface determination"""
         SurfaceFinder(input_pse=self.temperal_session).process_surface_residues()
-
 
     def run_pocket_detection(self):
         """Run pocket determination"""

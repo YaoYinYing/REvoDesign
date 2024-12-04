@@ -2,6 +2,7 @@
 REvoDesign Exceptions
 '''
 
+
 class REvoDesignException(Exception):
     """Base class for all exceptions in the REvoDesign application."""
 

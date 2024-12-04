@@ -24,9 +24,10 @@ class MenuItem:
         func (Callable): The function associated with the menu item, which is executed when the item is selected.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
-    action: QtWidgets.QAction # type: ignore
+    action: QtWidgets.QAction  # type: ignore
     func: Callable
     kwargs: Optional[Mapping] = None
+
 
 @dataclass(frozen=True)
 class MenuCollection:
@@ -34,7 +35,7 @@ class MenuCollection:
     A data class representing a collection of menu items.
     This class registers the menu items and their associated functions while instantiating the class.
     """
-    menu_items: tuple[MenuItem,...]
+    menu_items: tuple[MenuItem, ...]
 
     def __post_init__(self):
         """

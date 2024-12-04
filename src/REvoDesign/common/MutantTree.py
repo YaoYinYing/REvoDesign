@@ -27,6 +27,7 @@ class MutantTree:
     """
     A class representing a mutant tree.
     """
+
     def __init__(self, mutant_tree: dict[str, dict[str, Mutant]] = {}):
         """
         Initialize MutantTree object with a mutant tree dictionary.

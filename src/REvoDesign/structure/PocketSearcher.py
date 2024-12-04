@@ -13,7 +13,6 @@ from REvoDesign.logger import root_logger
 logging = root_logger.getChild(__name__)
 
 
-
 class PocketSearcher:
     def __init__(self, input_pse, save_dir="./pockets/") -> None:
         self.bus = ConfigBus()

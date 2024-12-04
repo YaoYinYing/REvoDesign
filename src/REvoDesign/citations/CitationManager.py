@@ -1,5 +1,5 @@
 '''
-Module for citation management. 
+Module for citation management.
 CitationManager:
     A singleton class that manages citation information.
 CitableModules:
@@ -31,11 +31,13 @@ CYAN_BG = "\033[0;44m"
 RED_BG = "\033[0;41m"
 MAGENTA_BG = "\033[0;45m"
 
+
 class CitationManager(SingletonAbstract):
     """
-    CitationManager is responsible for managing citations in a singleton pattern, 
+    CitationManager is responsible for managing citations in a singleton pattern,
     ensuring that only one instance of the citation manager exists throughout the application's lifecycle.
     """
+
     def __init__(self):
         """
         Initialize the CitationManager instance, setting up the necessary attributes.
@@ -54,7 +56,7 @@ class CitationManager(SingletonAbstract):
     def collected_citations(self) -> list[str]:
         """
         Collect all citations and return them as a list of strings.
-        
+
         Returns:
             list[str]: A list containing all collected citations.
         """
@@ -74,7 +76,7 @@ class CitationManager(SingletonAbstract):
     def update(self, new_citations: dict):
         """
         Update the citation manager with new citations.
-        
+
         Args:
             new_citations (dict): A dictionary containing new citations.
         """
@@ -97,7 +99,7 @@ class CitationManager(SingletonAbstract):
     def remove(self, modulename: str):
         """
         Remove citations for a specific module.
-        
+
         Args:
             modulename (str): The name of the module whose citations are to be removed.
         """
@@ -119,7 +121,7 @@ class CitationManager(SingletonAbstract):
     def format(self) -> Union[str, Dict, List]:
         """
         Format the citations. The specific implementation is not provided in this code snippet.
-        
+
         Returns:
             Union[str, Dict, List]: The formatted citations in some structure.
         """
@@ -128,7 +130,7 @@ class CitationManager(SingletonAbstract):
     def output(self, cwd: str = "."):
         """
         Output the citations to a .bib file in the specified directory.
-        
+
         Args:
             cwd (str): The directory where the citations should be output. Defaults to the current directory.
         """
@@ -158,7 +160,7 @@ class CitationManager(SingletonAbstract):
     def dismiss(self, modulename: str):
         """
         Dismiss the citation for a specific module, preventing it from being included in the output.
-        
+
         Args:
             modulename (str): The name of the module whose citation is to be dismissed.
         """
@@ -169,16 +171,18 @@ class CitationManager(SingletonAbstract):
 class CitableModules(ABC):
     """
     An abstract base class for modules that require citation.
-    
+
     This class provides methods to handle the citation notice and citation information in a standardized way.
     """
-    # A dictionary containing citation information, where the key is the citation name and the value is the citation content or a tuple of multiple citation contents.
+    # A dictionary containing citation information, where the key is the
+    # citation name and the value is the citation content or a tuple of
+    # multiple citation contents.
     __bibtex__: dict[str, Union[str, tuple]]
 
     def notice(self):
         """
         Display the citation notice.
-        
+
         This method checks if there are citations to be displayed, and if the current module's citations have not been silenced, it logs the citation information.
         """
         # If the __bibtex__ dictionary is empty, log a debug message and return.
@@ -218,7 +222,7 @@ class CitableModules(ABC):
     def cite(self):
         """
         Add citation to the citation manager.
-        
+
         This method adds the current module's citation information to the citation manager and then displays the citation notice.
         """
         citations = self.__bibtex__

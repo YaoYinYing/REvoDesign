@@ -10,7 +10,6 @@ from RosettaPy.utils.escape import print_diff
 from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.logger import root_logger
-
 # 1. implement the mutate runner and import then here
 from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
                                                        PIPPack_worker,
