@@ -1,0 +1,1 @@
+This directoy stores each Qt tests driven by QtBot

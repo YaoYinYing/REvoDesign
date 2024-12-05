@@ -1,3 +1,7 @@
+"""
+This module is used to search pocket residues for a given molecule.
+"""
+
 import os
 from typing import Tuple
 
@@ -7,10 +11,6 @@ from REvoDesign import ConfigBus
 from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
-
-"""
-This module is used to search pocket residues for a given molecule.
-"""
 
 
 class PocketSearcher:

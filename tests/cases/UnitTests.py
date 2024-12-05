@@ -23,7 +23,6 @@ from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
 from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
-                                                       DunbrackRotamerLib,
                                                        PIPPack_worker)
 from REvoDesign.structure.PocketSearcher import PocketSearcher
 from REvoDesign.structure.SurfaceFinder import SurfaceFinder

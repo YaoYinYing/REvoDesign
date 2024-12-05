@@ -17,6 +17,7 @@ import difflib
 import importlib
 import importlib.util
 import json
+import math
 import os
 import platform
 import re
@@ -650,7 +651,7 @@ class REvoDesignPackageManager:
                 diff.writelines(diffs)
 
         # Prompt the user to confirm the upgrade
-        accept_upgraded = proceed_with_comfirm_msg_box(
+        accept_upgraded = decide(
             title='Upgrade', description='Do you REALLY want to apply the upgrade?<p><p>'
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
             '<table>'
@@ -678,7 +679,7 @@ class REvoDesignPackageManager:
         )
 
     def self_upgrade(self):
-        confirmed = proceed_with_comfirm_msg_box(
+        confirmed = decide(
             title='Upgrade REvoDesign',
             description='[WARNING]\n'
             'Do you want to upgrade REvoDesign Manager to the latest version?'
@@ -1134,7 +1135,7 @@ class REvoDesignPackageManager:
                 # If the uninstallation fails, notify the user of the failure and raise an error
                 return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError)
 
-            remove_deps = proceed_with_comfirm_msg_box(
+            remove_deps = decide(
                 'Clean up warning', 'Do you want to remove all the dependencies?')
             if remove_deps:
                 run_worker_thread_with_progress(
@@ -1363,7 +1364,6 @@ class REvoDesignPackageManager:
             return
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 class WorkerThread(QtCore.QThread):
     """
     Custom worker thread for executing a function in a separate thread.
@@ -1451,8 +1451,6 @@ class WorkerThread(QtCore.QThread):
         This function triggers an interrupt signal.
         """
         self.interrupt_signal.emit()
-
-# a copy from `REvoDesign/tools/utils.py`
 
 
 def run_worker_thread_with_progress(
@@ -1608,7 +1606,6 @@ def set_widget_value(widget, value):
     )
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 def refresh_window():
     """
     Refresh the application window by processing all pending events.
@@ -1622,7 +1619,6 @@ def refresh_window():
     QtWidgets.QApplication.processEvents()
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 def notify_box(message: str = "", error_type: Optional[Union[type[Exception], type[Warning]]] = None) -> bool:
     """
     Display a notification message box.
@@ -1654,16 +1650,15 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
 
     # otherwise raise the exception
     if isinstance(error_type, Exception):
-        raise error_type(message)  # type: ignore
+        raise error_type(message)  
 
     return False
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
-def proceed_with_comfirm_msg_box(title="", description="", rich: bool = False):
+def decide(title="", description="", rich: bool = False):
     """
-    Function: proceed_with_confirm_msg_box
-    Usage: result = proceed_with_confirm_msg_box(title='', description='')
+    Function: decide
+    Usage: result = decide(title='', description='', rich=True)
 
     This function displays a confirmation message box with a title and description,
     allowing the user to proceed or cancel.
@@ -1770,7 +1765,7 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     # Python
     issue_dict.update({'Python::Version': sys.version})
     issue_dict.update({'Python::PythonPath': sys.executable})
-    issue_dict.update({'Python::PIP': run_command([sys.executable, '-m', 'pip', '--version']).stdout})
+    issue_dict.update({'Python::PIP': run_command([sys.executable, '-m', 'pip', '--version']).stdout.strip()})
     issue_dict.update({'Python::Compiler': platform.python_compiler()})
     issue_dict.update({'Python::Implementation': platform.python_implementation()})
 
@@ -1783,26 +1778,28 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     git_solver = GitSolver()
 
     try:
-        conda_version = run_command([git_solver.has_conda, '--version']).stdout if git_solver.has_conda else 'Not Found'
+        conda_version = run_command([git_solver.has_conda, '--version']
+                                    ).stdout.strip() if git_solver.has_conda else 'Not Found'
     except Exception:
         conda_version = 'Not Found'
     issue_dict.update({'Tools::Conda': conda_version})
 
     try:
-        mamba_version = run_command([git_solver.has_mamba, '--version']).stdout if git_solver.has_mamba else 'Not Found'
+        mamba_version = run_command([git_solver.has_mamba, '--version']
+                                    ).stdout.strip() if git_solver.has_mamba else 'Not Found'
     except Exception:
         mamba_version = 'Not Found'
 
     issue_dict.update({'Tools::Mamba': mamba_version})
     issue_dict.update({'Tools::Git': git_solver.has_git})
     issue_dict.update({'Tools::Git::Version': run_command(
-        [git_solver.has_git, '--version']).stdout if git_solver.has_git else 'Not Found'})
+        [git_solver.has_git, '--version']).stdout.strip() if git_solver.has_git else 'Not Found'})
     issue_dict.update({'Tools::Homebrew': git_solver.has_brew})
     issue_dict.update({'Tools::Homebrew::Version': run_command(
-        [git_solver.has_brew, '--version']).stdout if git_solver.has_brew else 'Not Found'})
+        [git_solver.has_brew, '--version']).stdout.strip() if git_solver.has_brew else 'Not Found'})
     issue_dict.update({'Tools::Win-Get': git_solver.has_winget})
-    issue_dict.update(
-        {'Tools::Win-Get::Version': run_command([git_solver.has_winget, '--version']).stdout if git_solver.has_winget else 'Not Found'})
+    issue_dict.update({'Tools::Win-Get::Version': run_command(
+        [git_solver.has_winget, '--version']).stdout.strip() if git_solver.has_winget else 'Not Found'})
 
     # Env Vars
     issue_dict.update({'Env::CondaPath::0': os.getenv('CONDA_PREFIX')})
@@ -1834,6 +1831,9 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     # PyMOL
     issue_dict.update({'PyMOL::Version': cmd.get_version()[0]})
     issue_dict.update({'PyMOL::Build': get_version_message()})
+
+    # REvoDesign
+    issue_dict.update({'REvoDesign::Installer': __file__})
 
     if is_package_installed('REvoDesign'):
         import REvoDesign
@@ -1885,22 +1885,71 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     return issue_dict
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 @contextmanager
-def hold_trigger_button(button):
+def hold_trigger_button(
+    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],  # type: ignore
+    animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
+):
     """
-    A context manager for holding and releasing a trigger button.
+    A context manager for holding and releasing trigger buttons with a breathing effect
+    using the system's accent color.
 
-    Usage:
-        with hold_trigger_button(button):
-            # Code block where the button is held (disabled)
-            # The button will be automatically released (enabled) at the end of the block
+    Args:
+        buttons: One or more QPushButton objects.
+        animation_duration: Duration of the breathing animation cycle (in milliseconds).
     """
+    if not isinstance(buttons, (tuple, list, set)):
+        buttons = (buttons,)
+
+    timers = []
+
+    def get_accent_color():
+        color = QtGui.QColor(76, 217, 100)
+        return color
+
+    def start_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
+        accent_color = get_accent_color()
+        base_color = accent_color.lighter(150)  # Start with a lighter shade
+        darker_color = accent_color.darker(150)  # Use a darker shade for the trough
+
+        timer = QtCore.QTimer(button)
+        timer.setInterval(30)  # Update every 30 milliseconds
+        elapsed = 0
+
+        def update_stylesheet():
+            nonlocal elapsed
+            elapsed += timer.interval()
+            t = (elapsed % animation_duration) / animation_duration  # Normalized time [0, 1]
+            # Calculate intermediate intensity using sine wave
+            factor = (1 + math.sin(2 * math.pi * t)) / 2  # Normalized to [0, 1]
+            r = int(base_color.red() * factor + darker_color.red() * (1 - factor))
+            g = int(base_color.green() * factor + darker_color.green() * (1 - factor))
+            b = int(base_color.blue() * factor + darker_color.blue() * (1 - factor))
+            button.setStyleSheet(f"background-color: rgb({r}, {g}, {b});")
+
+        timer.timeout.connect(update_stylesheet)
+        timer.start()
+        timers.append(timer)
+
+    def stop_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
+        # Stop all timers associated with this button
+        for timer in timers:
+            if timer.parent() == button:
+                timer.stop()
+                timers.remove(timer)
+        button.setStyleSheet("")  # Reset the button's style
+
     try:
-        button.setEnabled(False)
+        for b in buttons:
+            b.setEnabled(False)
+            b.setProperty("held", True)  # Mark the button as held
+            start_breathing_animation(b)
         yield
     finally:
-        button.setEnabled(True)
+        for b in buttons:
+            b.setProperty("held", False)  # Remove the held mark
+            stop_breathing_animation(b)
+            b.setEnabled(True)  # Re-enable the button
 
 
 def solve_installation_config(
@@ -1933,34 +1982,32 @@ def solve_installation_config(
 
     # Handle installation from a local Git repository with a tag
     if source.startswith("file://"):
-        repo_dir = git_url.replace("file://", "")
-        if not os.path.exists(os.path.join(repo_dir, ".git")):
+        repo_dir = git_url.lstrip("file://")
+        if not os.path.isdir(os.path.join(repo_dir, ".git")):
             notify_box(f'Git dir not found: {os.path.join(repo_dir, ".git")}')
         package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
         return package_string
 
     # Handle installation from an unzipped code directory
-    if os.path.exists(source) and os.path.isdir(source):
+    if os.path.isdir(source):
         if not os.path.exists(os.path.join(source, "pyproject.toml")):
             notify_box(
                 f"{source} is not a directory containing pyproject.toml",
                 FileNotFoundError,
             )
         if git_tag:
-            notify_box("unzipped code directory can not have a tag!", ValueError)
+            notify_box("unzipped code directory can not have a tag!")
         if source.endswith("/"):
             source = source[:-1]
         package_string = f"{source}{extra_string}"
         return package_string
 
     # Handle installation from a zipped code archive
-    if os.path.exists(source) and os.path.isfile(source):
+    if os.path.isfile(source):
         if git_tag:
-            notify_box("zipped file can not have a tag!", ValueError)
+            notify_box("zipped file can not have a tag!")
 
-        if source.endswith(".zip"):
-            package_string = f"{source}{extra_string}"
-        elif source.endswith(".tar.gz"):
+        if source.endswith(".zip") or source.endswith(".tar.gz"):
             package_string = f"{source}{extra_string}"
         else:
             notify_box(

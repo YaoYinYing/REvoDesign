@@ -1,3 +1,6 @@
+'''
+Shortcut functions exposed to PyMOL scripting interface.
+'''
 import itertools
 import os
 import warnings

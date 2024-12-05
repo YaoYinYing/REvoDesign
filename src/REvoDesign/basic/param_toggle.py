@@ -1,3 +1,6 @@
+'''
+Module to register parameter changes in the UI.
+'''
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, Dict, Protocol, Tuple

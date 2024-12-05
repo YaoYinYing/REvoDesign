@@ -1,3 +1,7 @@
+'''
+Module for managing mutant trees.
+'''
+
 from typing import List, Mapping, Optional, Protocol, Tuple, Union
 
 from joblib_progress import joblib_progress
@@ -20,6 +24,10 @@ class MutateRunner(Protocol):
 
 
 class MutantTree:
+    """
+    A class representing a mutant tree.
+    """
+
     def __init__(self, mutant_tree: dict[str, dict[str, Mutant]] = {}):
         """
         Initialize MutantTree object with a mutant tree dictionary.

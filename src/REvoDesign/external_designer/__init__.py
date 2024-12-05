@@ -1,4 +1,7 @@
-# ALL External designners must get registed at here.
+'''
+Module to manage external design tools.
+Collect, Register, Heat up and Cool down.
+'''
 
 from dataclasses import dataclass, field
 from types import MappingProxyType

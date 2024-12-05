@@ -1,3 +1,7 @@
+'''
+Cluster sequence
+'''
+
 import decimal
 import itertools
 import os

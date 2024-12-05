@@ -740,7 +740,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
         if not self.server:
             self.server = QtWebSockets.QWebSocketServer(
-                CLIENT_INFO.node, QtWebSockets.QWebSocketServer.NonSecureMode
+                CLIENT_INFO().node, QtWebSockets.QWebSocketServer.NonSecureMode
             )
 
             if not self.server.listen(QtNetwork.QHostAddress.Any, self.port):

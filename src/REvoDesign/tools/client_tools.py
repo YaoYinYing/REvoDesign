@@ -1,3 +1,6 @@
+'''
+This module contains functions and classes related to managing SSL certificates and generating unique identifiers (UUIDs).
+'''
 import datetime
 import os
 import ssl
@@ -9,6 +12,7 @@ from OpenSSL import crypto
 
 from REvoDesign import issues
 from REvoDesign.logger import root_logger
+from .system_tools import SystemInfoReduced
 
 logging = root_logger.getChild(__name__)
 
@@ -135,11 +139,12 @@ class SSLCertificateManager:
         role = self.role
 
         # Get node information from OS or set to 'Unknown' if not available
-        from REvoDesign.tools.system_tools import CLIENT_INFO
+        
+        SYSTEM_INFO_DICT=SystemInfoReduced().info
 
-        OS_INFO = CLIENT_INFO()
-        node = OS_INFO.node if OS_INFO.node else "UnknownNode"
-        user = OS_INFO.user if OS_INFO.user else "UnknownUser"
+        node_name=SYSTEM_INFO_DICT['Platform::Hostname']
+        node = node_name if node_name else "UnknownNode"
+        user = SYSTEM_INFO_DICT['User::Username']
 
         # Generate RSA key
         k = crypto.PKey()

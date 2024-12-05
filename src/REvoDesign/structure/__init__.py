@@ -1,3 +1,7 @@
+'''
+Module for simplified structure analysis
+'''
+
 from REvoDesign.structure.PocketSearcher import PocketSearcher
 from REvoDesign.structure.SurfaceFinder import SurfaceFinder
 

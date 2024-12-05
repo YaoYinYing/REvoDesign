@@ -1,8 +1,10 @@
+'''
+This module contains the icon setter class.
+'''
 import os
 
 from pymol.Qt import QtGui  # type: ignore
-
-from REvoDesign.tools.system_tools import CLIENT_INFO
+import platform
 
 
 class IconSetter:
@@ -21,6 +23,6 @@ class IconSetter:
 
         icon = QtGui.QIcon(icon_path)
 
-        if CLIENT_INFO().os == "Darwin":
+        if platform.system() == "Darwin":
             main_window.setWindowFilePath(icon_path)
         main_window.setWindowIcon(icon)

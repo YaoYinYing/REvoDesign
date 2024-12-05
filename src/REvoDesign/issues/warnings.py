@@ -1,3 +1,8 @@
+'''
+Warnings for REvoDesign
+'''
+
+
 class REvoDesignWarning(Warning):
     """Base class for all warnings in the REvoDesign application."""
 

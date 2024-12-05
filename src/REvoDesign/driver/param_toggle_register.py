@@ -1,3 +1,6 @@
+'''
+Module to register all parameter changes that should be reflected in the UI.
+'''
 from typing import Protocol
 
 from ..basic import ParamChangeRegister as PCR

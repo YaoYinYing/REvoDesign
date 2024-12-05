@@ -1,3 +1,8 @@
+'''
+Wrapper for PyMOL-buildin Dunbrack Rotamer Library and mutagenesis wizard.
+
+'''
+
 import os
 from typing import List
 

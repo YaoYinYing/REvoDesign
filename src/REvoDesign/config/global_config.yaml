@@ -142,8 +142,6 @@ ui:
 
 rosetta: 
   node_hint: native
-  native: 
-    bin_path: 
   node_config: 
 
   cart_ddg:
@@ -151,6 +149,12 @@ rosetta:
     relax:
       nstruct: 4
     iterations: 3
+
+
+# register all variables here
+environment:
+  variables:
+    # ROSETTA_BIN: /Users/yyy/rosetta/rosetta_binary/rosetta.source.release-371/main/source/bin/
 
 
 log:

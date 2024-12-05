@@ -1,3 +1,6 @@
+'''
+Merge PyMOL sessions into one with commandline interface
+'''
 import argparse
 import os
 

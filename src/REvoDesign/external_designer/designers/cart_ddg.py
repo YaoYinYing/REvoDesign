@@ -1,3 +1,7 @@
+'''
+Cartesian-ddG, driven by RosettaPy Package
+'''
+
 import logging
 import os
 import platform

@@ -1,3 +1,6 @@
+'''
+This module contains all the mutate runners.
+'''
 from .DLPacker import DLPacker_worker
 from .DunbrackRotamerLib import PyMOL_mutate
 from .PIPPack import PIPPack_worker

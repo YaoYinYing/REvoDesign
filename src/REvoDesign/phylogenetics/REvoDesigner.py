@@ -1,3 +1,7 @@
+'''
+Work horse of generating mutant from profile or designer
+'''
+
 import collections
 import hashlib
 import json

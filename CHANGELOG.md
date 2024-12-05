@@ -20,7 +20,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- module docstrings
+- Configurations:
+  - `environment.variables` to register some environment variables by `register_environment_variables`
+- installer: 
+  - path: `src/REvoDesign/tools/package_manager.py` to re-use some code
+  - `issue_collection`: to fetch diagnostics.
+  - updated `hold_trigger_button` with breating animation
+  - `solve_installation_config`: fix with path install
+
 ### Changed
+
+- UI:
+  - menu: now handled by `MenuCollection` and `MenuItem`
+- Configuration:
+  - when out-of-dated, pop with `notify_box`
+- Utils:
+  - `src/REvoDesign/tools/system_tools.py`: 
+    - `get_system_info`->`check_mac_rosetta2`:  Check if the current environment is running on an Apple Silicon Mac with Rosetta 2.
+    - `CLIENT_INFO`: now use system data from `issue_collection` directly
 
 - Tests:
   - Qt tests: reorder by tabs
@@ -36,12 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Utils:
+  - `src/REvoDesign/tools/customized_widgets.py`: drop repetative code with imported from `package_manager`
+  - `src/REvoDesign/tools/utils.py`:  drop repetative code with imported from `package_manager`
+
 ## [1.7.6] - 2024-11-28
 
 ### Added
 
 - installer: 
-  - add force reinstall option
+  - ~~add force reinstall option~~
 
 ### Changed
 

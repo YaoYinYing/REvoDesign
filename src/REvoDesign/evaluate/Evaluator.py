@@ -1,3 +1,6 @@
+'''
+Evalutator for mutants
+'''
 import os
 from functools import partial
 

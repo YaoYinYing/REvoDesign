@@ -1,3 +1,7 @@
+'''
+Module for bootstrapping REvoDesign with Hydra and OmegaConf.
+'''
+
 import glob
 import importlib.util
 import os

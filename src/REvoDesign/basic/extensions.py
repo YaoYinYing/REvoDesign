@@ -1,3 +1,6 @@
+'''
+Data classes with file extensions used in the REvoDesign plugin.
+'''
 from dataclasses import dataclass
 from typing import Union
 

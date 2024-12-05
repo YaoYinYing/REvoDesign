@@ -1,0 +1,1 @@
+This directoy stores some meta data of the project.

@@ -1,3 +1,7 @@
+'''
+Logger for REvoDesign
+'''
+
 import atexit
 import datetime as dt
 import json
