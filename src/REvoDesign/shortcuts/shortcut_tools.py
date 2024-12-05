@@ -18,7 +18,9 @@ def menu_dump_sidechains() -> None:
                 AskedValue("height",1280,typing=int, reason="Height of the image."),
                 AskedValue("width",1280,typing=int, reason="Width of the image."),
                 AskedValue("dpi",150,typing=int, reason="DPI of the image."),
-                AskedValue("ray",True,typing=bool, reason="Use ray to dump sidechains.")
+                AskedValue("ray",True,typing=bool, reason="Use ray to dump sidechains."),
+                AskedValue("hide_mesh",True,typing=bool, reason="Hide mesh."),
+                AskedValue("neiborhood",3,typing=int, reason="Neiborhood size."),
             ]
         )
     )
