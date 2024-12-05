@@ -756,6 +756,12 @@ class ValueDialog(QtWidgets.QDialog):
         self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)  # Three columns
         self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
         self.table.horizontalHeader().setStretchLastSection(True)
+        # Configure the horizontal header for optimal column sizes
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column stretches
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column resizes to its content
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)  # Input column stretches
+
         self.table.verticalHeader().setVisible(False)  # Hide row numbers
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
