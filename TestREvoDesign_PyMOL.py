@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from REvoDesign_PyMOL import GitSolver  # Replace with actual module path
 
 

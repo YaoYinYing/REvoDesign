@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
+ <author>Yinying Yao</author>
  <class>REvoDesignPyMOL_UI</class>
  <widget class="QMainWindow" name="REvoDesignPyMOL_UI">
   <property name="enabled">
@@ -4698,9 +4699,9 @@
      <height>37</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuREvoDesign">
+   <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>REvoDesign</string>
+     <string>File</string>
     </property>
     <widget class="QMenu" name="menuExperiment">
      <property name="title">
@@ -4714,17 +4715,25 @@
       <string>Language</string>
      </property>
     </widget>
+    <widget class="QMenu" name="menuLog_File">
+     <property name="title">
+      <string>Log File</string>
+     </property>
+     <addaction name="actionOpenLogFile"/>
+     <addaction name="actionSetLogLevel"/>
+     <addaction name="actionLogToCurrentDirectory"/>
+    </widget>
     <addaction name="actionCheck_PyMOL_session"/>
     <addaction name="actionSet_Working_Directory"/>
     <addaction name="separator"/>
-    <addaction name="actionReconfigure"/>
-    <addaction name="actionSave_Configurations"/>
-    <addaction name="actionLoad_Demo"/>
     <addaction name="menuExperiment"/>
-    <addaction name="separator"/>
-    <addaction name="actionReinitialize"/>
+    <addaction name="actionRecent_Experiments"/>
     <addaction name="separator"/>
     <addaction name="menuLanguage"/>
+    <addaction name="separator"/>
+    <addaction name="menuLog_File"/>
+    <addaction name="separator"/>
+    <addaction name="actionClose"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -4736,7 +4745,65 @@
     <addaction name="separator"/>
     <addaction name="actionVersion"/>
    </widget>
-   <addaction name="menuREvoDesign"/>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <widget class="QMenu" name="menuEnvironment_Variables">
+     <property name="title">
+      <string>Environment Variables</string>
+     </property>
+     <addaction name="actionAddEnvironVar"/>
+     <addaction name="actionDropEnvironVar"/>
+     <addaction name="separator"/>
+    </widget>
+    <addaction name="actionReconfigure"/>
+    <addaction name="separator"/>
+    <addaction name="actionEdit_Configuration"/>
+    <addaction name="actionSave_Configurations"/>
+    <addaction name="actionSave_Configuration_as"/>
+    <addaction name="separator"/>
+    <addaction name="menuEnvironment_Variables"/>
+    <addaction name="separator"/>
+    <addaction name="actionReinitialize"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionDocumentation"/>
+    <addaction name="actionContact"/>
+   </widget>
+   <widget class="QMenu" name="menuExport">
+    <property name="title">
+     <string>Export</string>
+    </property>
+    <widget class="QMenu" name="menuRenderSidechains">
+     <property name="title">
+      <string>Render Sidechains</string>
+     </property>
+     <addaction name="separator"/>
+     <addaction name="actionRenderAllSidechains"/>
+     <addaction name="actionRenderPickedSidechainGroup"/>
+     <addaction name="actionRenderPickedSidechainObject"/>
+    </widget>
+    <addaction name="actionRender_to_Clipboard"/>
+    <addaction name="actionRender_to_File"/>
+    <addaction name="separator"/>
+    <addaction name="menuRenderSidechains"/>
+   </widget>
+   <widget class="QMenu" name="menuStyle">
+    <property name="title">
+     <string>Style</string>
+    </property>
+    <addaction name="actionStyle_Presets"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuStyle"/>
+   <addaction name="menuExport"/>
+   <addaction name="menuHelp"/>
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -4842,6 +4909,9 @@
    <property name="text">
     <string>Version</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+V</string>
+   </property>
   </action>
   <action name="actionEnglish">
    <property name="enabled">
@@ -4865,6 +4935,137 @@
    </property>
    <property name="text">
     <string>French</string>
+   </property>
+  </action>
+  <action name="actionEdit_Configuration">
+   <property name="text">
+    <string>Edit Configuration</string>
+   </property>
+  </action>
+  <action name="actionDocumentation">
+   <property name="text">
+    <string>Documentation</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="actionRecent_Experiments">
+   <property name="text">
+    <string>Recent Experiments</string>
+   </property>
+  </action>
+  <action name="actionSave_Configuration_as">
+   <property name="text">
+    <string>Save Configuration as</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+S</string>
+   </property>
+  </action>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionOpenLogFile">
+   <property name="text">
+    <string>Open</string>
+   </property>
+  </action>
+  <action name="actionSetLogLevel">
+   <property name="text">
+    <string>Log Level</string>
+   </property>
+  </action>
+  <action name="actionStyle_Presets">
+   <property name="text">
+    <string>Style Presets</string>
+   </property>
+  </action>
+  <action name="actionLogToCurrentDirectory">
+   <property name="text">
+    <string>To Current Directory</string>
+   </property>
+  </action>
+  <action name="actionRender_to_Clipboard">
+   <property name="text">
+    <string>Render to Clipboard</string>
+   </property>
+  </action>
+  <action name="actionRender_to_File">
+   <property name="text">
+    <string>Render to File</string>
+   </property>
+  </action>
+  <action name="actionAll_Group">
+   <property name="text">
+    <string>All Group</string>
+   </property>
+  </action>
+  <action name="actionAll">
+   <property name="text">
+    <string>All</string>
+   </property>
+  </action>
+  <action name="actionDraw_All_Sidechains">
+   <property name="text">
+    <string>Draw All Sidechains</string>
+   </property>
+  </action>
+  <action name="actionDraw_Selected_Sidechain">
+   <property name="text">
+    <string>Draw Selected Sidechain </string>
+   </property>
+  </action>
+  <action name="actionRenderAllSidechains">
+   <property name="text">
+    <string>All</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+R</string>
+   </property>
+  </action>
+  <action name="actionRenderPickedSidechainGroup">
+   <property name="text">
+    <string>Picked Group</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionRenderPickedSidechainObject">
+   <property name="text">
+    <string>Picked Object</string>
+   </property>
+  </action>
+  <action name="actionContact">
+   <property name="text">
+    <string>Contact</string>
+   </property>
+  </action>
+  <action name="actionAddEnvironVar">
+   <property name="text">
+    <string>Add</string>
+   </property>
+  </action>
+  <action name="actionDropEnvironVar">
+   <property name="text">
+    <string>Drop</string>
+   </property>
+  </action>
+  <action name="actionRecentEnvVar">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Recent</string>
    </property>
   </action>
  </widget>

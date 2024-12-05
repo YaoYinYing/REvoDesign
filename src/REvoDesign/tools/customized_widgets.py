@@ -3,15 +3,16 @@ Custom widgets for REvoDesign.
 '''
 import os
 from collections.abc import Iterable
-from typing import Any, Callable, Dict, Union
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.logger import root_logger
 
-from .package_manager import decide, notify_box, refresh_window,hold_trigger_button,WorkerThread
-
+from .package_manager import (WorkerThread, decide, hold_trigger_button,
+                              notify_box, refresh_window)
 
 logging = root_logger.getChild(__name__)
 
@@ -536,8 +537,6 @@ class QtParallelExecutor(QtCore.QThread):
         return self.results
 
 
-
-
 def create_cmap_icon(cmap: str):
     """
     Creates a square pixmap representing the color pattern of a specified colormap.
@@ -635,9 +634,336 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     return
 
 
+@dataclass
+class AskedValue:
+    key: str
+    val: Optional[Any] = None
+    typing: type = str
+    reason: Optional[str] = None
+    required: bool = False
+    choices: Optional[Union[Tuple, List]] = None  # selectable choices
 
 
-__all__=[
+class MultiCheckableComboBox(QtWidgets.QComboBox):
+    def __init__(self, choices: List[str], parent=None):
+        super().__init__(parent)
+        self.choices = choices
+        self.checked_items = set()
+
+        # Use a custom model for multi-check items
+        self.setModel(QtGui.QStandardItemModel(self))
+        for choice in self.choices:
+            self._add_checkable_item(choice)
+
+    def _add_checkable_item(self, text):
+        """Add a checkable item to the combo box."""
+        item = QtGui.QStandardItem(text)
+        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+        item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+        self.model().appendRow(item)
+
+    def get_checked_items(self) -> List[str]:
+        """Retrieve all checked items."""
+        checked = []
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.data(QtCore.Qt.CheckStateRole) == QtCore.Qt.Checked:
+                checked.append(item.text())
+        return checked
+
+    def set_checked_items(self, items: List[str]):
+        """Set initial checked items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.text() in items:
+                item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+
+    def hidePopup(self):
+        """Override to update selected items on close."""
+        self.checked_items = set(self.get_checked_items())
+        super().hidePopup()
+
+    def currentText(self) -> str:
+        """Override to show a comma-separated list of selected items."""
+        return ", ".join(self.checked_items)
+
+
+def real_bool(val: Any):
+    """
+    Convert the given value to its most likely boolean equivalent.
+
+    Args:
+        val: The value to be converted. Can be a string or an integer.
+
+    Returns:
+        bool: True if the value matches one of the predefined true values.
+             False if the value matches one of the predefined false values.
+    """
+    # Check if the value matches any of the predefined true values
+    if any(val == ans for ans in ("True", "true", "1", 'yes', 'Yes', 'Y', 1, True,)):
+        return True
+
+    # Check if the value matches any of the predefined false values
+    if any(val == ans for ans in ("False", "false", "0", 'no', 'No', 'N', 0, False,)):
+        return False
+
+
+@dataclass
+class AskedValueCollection:
+    asked_values: List[AskedValue] = field(default_factory=list)
+    banner: Optional[str] = None  # a banner message
+
+    @property
+    def asdict(self) -> Dict[str, Any]:
+        """
+        Returns:
+            Dict[str, Any]: A dictionary of the values in the collection.
+        """
+        return {
+            asked.key: asked.typing(
+                asked.val) if asked.typing is not bool else real_bool(
+                asked.val) for asked in self.asked_values}
+
+    def __bool__(self):
+        return bool(self.asked_values)
+
+
+class ValueDialog(QtWidgets.QDialog):
+    def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.key_dict = key_dict.asked_values
+        self.updated_values = []
+
+        # Main layout
+        self.layout = QtWidgets.QVBoxLayout()
+
+        # Add scrollable banner at the top
+        if key_dict.banner:
+            banner_label = QtWidgets.QLabel(key_dict.banner)
+            banner_label.setWordWrap(True)
+            banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # Align text to the top-left
+            banner_label.setStyleSheet("""
+                font-size: 14px;
+                font-weight: bold;
+                color: #333;
+                padding: 10px;
+                background-color: #f9f9f9;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            """)
+
+            # Wrap banner in a scrollable area
+            scroll_area = QtWidgets.QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setWidget(banner_label)
+            scroll_area.setMaximumHeight(150)  # Set max height for the banner area
+            scroll_area.setStyleSheet("border: none;")  # Remove scroll area border
+
+            self.layout.addWidget(scroll_area)
+
+        self.input_fields = {}
+
+        for item in key_dict.asked_values:
+            self._add_field(item)
+
+        # Add OK and Cancel buttons
+        button_layout = QtWidgets.QHBoxLayout()
+        ok_button = QtWidgets.QPushButton("OK")
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        ok_button.clicked.connect(self._on_ok_clicked)
+        cancel_button.clicked.connect(self.reject)
+
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        self.layout.addLayout(button_layout)
+
+        self.setLayout(self.layout)
+
+    def _add_field(self, asked_value: AskedValue):
+        label = QtWidgets.QLabel(f"{asked_value.key} ({str(asked_value.typing)}):")
+
+        if asked_value.choices:
+            # Create a MultiCheckableComboBox for choices
+            widget = MultiCheckableComboBox(choices=list(asked_value.choices))
+            if asked_value.val:
+                widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
+        else:
+            # Create a LineEdit for regular fields
+            widget = QtWidgets.QLineEdit()
+            widget.setText(str(asked_value.val))
+
+        if asked_value.reason:
+            label.setToolTip(asked_value.reason)
+            widget.setToolTip(asked_value.reason)
+
+        if asked_value.required:
+            if isinstance(widget, QtWidgets.QLineEdit):
+                widget.setPlaceholderText("Required")
+
+        self.input_fields[asked_value.key] = widget
+
+        field_layout = QtWidgets.QVBoxLayout()
+        field_layout.addWidget(label)
+        field_layout.addWidget(widget)
+
+        self.layout.addLayout(field_layout)
+
+    def _on_ok_clicked(self):
+        self.updated_values = []
+        for key, widget in self.input_fields.items():
+            if isinstance(widget, MultiCheckableComboBox):
+                value = widget.get_checked_items()
+            elif isinstance(widget, QtWidgets.QLineEdit):
+                value = widget.text().strip()
+            else:
+                value = None
+
+            original = next((item for item in self.key_dict if item.key == key), None)
+            if original and original.required and not value:
+                QtWidgets.QMessageBox.warning(
+                    self, "Missing Input", f"Please provide a value for '{key}'"
+                )
+                return
+            if original:
+                self.updated_values.append(
+                    AskedValue(
+                        key=key,
+                        val=value,
+                        typing=original.typing,
+                        reason=original.reason,
+                        required=original.required,
+                        choices=original.choices,
+                    )
+                )
+        self.accept()
+
+
+def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
+
+    dialog = ValueDialog(title, key_dict)
+    if dialog.exec_() == QtWidgets.QDialog.Accepted:
+        return AskedValueCollection(dialog.updated_values)
+
+
+class AppendableValueDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Dynamic Key-Value Pairs")
+        self.setMinimumWidth(400)
+        self.setMinimumHeight(200)
+
+        # Initialize main layout
+        self.layout = QtWidgets.QVBoxLayout()
+        self.row_widgets = []  # Keep track of row widgets
+
+        # Create scroll area for rows
+        self.scroll_area = QtWidgets.QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_widget = QtWidgets.QWidget()
+        self.scroll_layout = QtWidgets.QVBoxLayout()
+        self.scroll_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        self.scroll_layout.setSpacing(5)  # Reduce spacing between rows
+        self.scroll_widget.setLayout(self.scroll_layout)
+        self.scroll_area.setWidget(self.scroll_widget)
+        self.layout.addWidget(self.scroll_area)
+
+        # Add initial row
+        self._add_row()
+
+        # Add the "+" button for adding new rows
+        add_button = QtWidgets.QPushButton("+ Add Row")
+        add_button.clicked.connect(self._add_row)
+        self.layout.addWidget(add_button)
+
+        # Add OK and Cancel buttons
+        button_layout = QtWidgets.QHBoxLayout()
+        ok_button = QtWidgets.QPushButton("OK")
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        ok_button.clicked.connect(self._on_ok_clicked)
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        self.layout.addLayout(button_layout)
+
+        self.setLayout(self.layout)
+
+    def _add_row(self, key: str = "", val: str = ""):
+        """Add a new row with a key and value field and a remove button."""
+        row_layout = QtWidgets.QHBoxLayout()
+
+        # Key field
+        key_edit = QtWidgets.QLineEdit()
+        key_edit.setPlaceholderText("Key")
+        key_edit.setText(key or "")
+
+        # Value field
+        val_edit = QtWidgets.QLineEdit()
+        val_edit.setPlaceholderText("Value")
+        val_edit.setText(val or "")
+
+        # Remove button
+        remove_button = QtWidgets.QPushButton("-")
+        remove_button.clicked.connect(lambda: self._remove_row(row_layout))
+
+        # Add widgets to row layout
+        row_layout.addWidget(key_edit)
+        row_layout.addWidget(val_edit)
+        row_layout.addWidget(remove_button)
+
+        # Add row layout to scroll area
+        self.scroll_layout.addLayout(row_layout)
+        self.row_widgets.append((row_layout, key_edit, val_edit))
+
+        # Dynamically adjust dialog height
+        self._adjust_dialog_height()
+
+    def _remove_row(self, row_layout):
+        """Remove a specific row layout and clean up its references."""
+        for i, (layout, key_edit, val_edit) in enumerate(self.row_widgets):
+            if layout == row_layout:
+                # Remove all widgets in the row
+                for j in reversed(range(layout.count())):
+                    widget = layout.itemAt(j).widget()
+                    if widget:
+                        widget.deleteLater()
+                # Remove the row layout from the parent layout
+                self.scroll_layout.removeItem(layout)
+                # Remove the corresponding entry from row_widgets
+                del self.row_widgets[i]
+                break
+
+        # Dynamically adjust dialog height
+        self._adjust_dialog_height()
+
+    def _adjust_dialog_height(self):
+        """Adjust dialog height dynamically based on the number of rows."""
+        row_height = 30  # Approximate height of a row
+        max_height = 600  # Maximum height for the dialog
+        new_height = min(max_height, 150 + len(self.row_widgets) * row_height)
+        self.resize(self.width(), new_height)
+
+    def _on_ok_clicked(self):
+        """Collect and return valid data."""
+        self.updated_values = []
+        for _, key_edit, val_edit in self.row_widgets:
+            key = key_edit.text().strip()
+            val = val_edit.text().strip()
+            if key:  # Discard rows with empty keys
+                self.updated_values.append(AskedValue(key=key, val=val))
+        self.accept()
+
+    def get_values(self) -> AskedValueCollection:
+        return AskedValueCollection(getattr(self, "updated_values", []))
+
+
+def ask_for_appendable_values() -> Optional[AskedValueCollection]:
+    dialog = AppendableValueDialog()
+    if dialog.exec_() == QtWidgets.QDialog.Accepted:
+        return dialog.get_values()
+
+
+__all__ = [
     'notify_box',
     'decide',
     'refresh_window',
@@ -646,5 +972,10 @@ __all__=[
     'hold_trigger_button',
     'getExistingDirectory',
     'WorkerThread',
+    'ValueDialog',
+    'AskedValueCollection',
+    'ask_for_values',
+    'AppendableValueDialog',
+    'ask_for_appendable_values'
 
 ]

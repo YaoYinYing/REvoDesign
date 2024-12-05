@@ -12,6 +12,7 @@ from OpenSSL import crypto
 
 from REvoDesign import issues
 from REvoDesign.logger import root_logger
+
 from .system_tools import SystemInfoReduced
 
 logging = root_logger.getChild(__name__)
@@ -139,10 +140,10 @@ class SSLCertificateManager:
         role = self.role
 
         # Get node information from OS or set to 'Unknown' if not available
-        
-        SYSTEM_INFO_DICT=SystemInfoReduced().info
 
-        node_name=SYSTEM_INFO_DICT['Platform::Hostname']
+        SYSTEM_INFO_DICT = SystemInfoReduced().info
+
+        node_name = SYSTEM_INFO_DICT['Platform::Hostname']
         node = node_name if node_name else "UnknownNode"
         user = SYSTEM_INFO_DICT['User::Username']
 

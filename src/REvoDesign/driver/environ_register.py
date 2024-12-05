@@ -1,8 +1,13 @@
 import os
 from typing import Any, Mapping, Optional
+
+from omegaconf import DictConfig
+
 from REvoDesign import issues
 
-
+from ..tools.customized_widgets import (AskedValue, AskedValueCollection,
+                                        ask_for_appendable_values,
+                                        ask_for_values)
 from .ui_driver import ConfigBus
 
 
@@ -10,15 +15,65 @@ def register_environment_variables():
     if ConfigBus._instance is None:
         raise issues.UnexpectedWorkflowError('ConfigBus must be initialized before creating EnvironBindItemCollection')
 
-    bus=ConfigBus()
+    bus = ConfigBus()
 
-    EnvironBindItemCollection: Optional[Mapping[str, Any]]= bus.get_value('environment.variables')
+    EnvironBindItemCollection: Optional[Mapping[str, Any]] = bus.get_value('environment.variables')
     if EnvironBindItemCollection is None:
         return
-    
-    if isinstance(EnvironBindItemCollection,Mapping):
-        for k,v in EnvironBindItemCollection.items():
+
+    if isinstance(EnvironBindItemCollection, Mapping):
+        for k, v in EnvironBindItemCollection.items():
             if v is not None:
-                os.environ[k]=v
+                os.environ[k] = v
 
 
+def add_new_environment_variables():
+    """
+    Adds new environment variables to the system.
+    """
+    if ConfigBus._instance is None:
+        raise issues.UnexpectedWorkflowError('ConfigBus must be initialized.')
+
+    bus = ConfigBus()
+
+    EnvironBindItemCollection: Optional[DictConfig] = bus.get_value('environment.variables')
+    if EnvironBindItemCollection is None:
+        EnvironBindItemCollection = DictConfig({})
+
+    AskedEnvironBindItemCollection = ask_for_appendable_values()
+    if not AskedEnvironBindItemCollection:
+        return
+
+    EnvironBindItemCollection.update(AskedEnvironBindItemCollection.asdict)
+    bus.set_value('environment.variables', EnvironBindItemCollection)  # type: ignore
+    register_environment_variables()
+    print(f'Environment variables are updated to configuration.\n {AskedEnvironBindItemCollection.asdict}')
+    print('To apply these changes, a restart of the application may be required.')
+
+
+def drop_environment_variables():
+    """
+    Drop all environment variables that are bound to the configuration.
+    """
+    if ConfigBus._instance is None:
+        raise issues.UnexpectedWorkflowError('ConfigBus must be initialized.')
+
+    bus = ConfigBus()
+
+    AskedEnvironBindItemCollection = ask_for_appendable_values()
+
+    ev_in_cfg: Optional[DictConfig] = bus.get_value('environment.variables')
+    if not ev_in_cfg:
+        print('No environment variables are currently bound to the configuration.')
+        ev_in_cfg = DictConfig({})
+
+    if AskedEnvironBindItemCollection:
+        for key, val in AskedEnvironBindItemCollection.asdict.items():
+            if key in ev_in_cfg:
+                del ev_in_cfg[key]
+            if key in os.environ:
+                del os.environ[key]
+        # update the config
+        bus.set_value('environment.variables', ev_in_cfg)  # type: ignore
+
+        print('The environment variables are unbound agaist the configuration.')

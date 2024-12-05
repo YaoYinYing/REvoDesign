@@ -2,14 +2,13 @@
 System info collector
 '''
 
-from dataclasses import dataclass,field
 import platform
 import warnings
+from dataclasses import dataclass, field
 
 from immutabledict import immutabledict
 
 from REvoDesign import SingletonAbstract, issues
-import platform
 
 from .package_manager import issue_collection
 
@@ -28,7 +27,7 @@ def check_mac_rosetta2():
 
     if not platform.system() == "Darwin":
         return
-    
+
     # Determine if the current machine is an ARM-based Mac
     is_arm_macos = "ARM64" in platform.uname().version
     # Determine if the current machine is recognized as x86_64
@@ -56,8 +55,9 @@ class SystemInfoReduced(SingletonAbstract):
 
     def __init__(self):
         if not hasattr(self, "initialized"):
-            self.info:immutabledict =immutabledict(issue_collection())
+            self.info: immutabledict = immutabledict(issue_collection())
             self.initialized = True
+
 
 @dataclass
 class CLIENT_INFO:
@@ -79,9 +79,9 @@ class CLIENT_INFO:
     OS_TYPE: str = ''
     is_translated_arm_mac: bool = False
     nproc: int = 4
-    
+
     def __post_init__(self):
-        self.SYSTEM_INFO_DICT=SystemInfoReduced().info
+        self.SYSTEM_INFO_DICT = SystemInfoReduced().info
 
         self.node: str = self.SYSTEM_INFO_DICT['Platform::Hostname']
         self.user: str = self.SYSTEM_INFO_DICT['User::Username']

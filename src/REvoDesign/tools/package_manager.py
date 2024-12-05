@@ -1650,7 +1650,7 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
 
     # otherwise raise the exception
     if isinstance(error_type, Exception):
-        raise error_type(message)  
+        raise error_type(message)
 
     return False
 

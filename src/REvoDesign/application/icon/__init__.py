@@ -2,9 +2,9 @@
 This module contains the icon setter class.
 '''
 import os
+import platform
 
 from pymol.Qt import QtGui  # type: ignore
-import platform
 
 
 class IconSetter:

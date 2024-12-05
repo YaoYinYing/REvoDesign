@@ -18,6 +18,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Menu:
+  - Dump sidechains
+  - Environment variables add/drops
+- Customized widgets:
+  - `MultiCheckableComboBox`: Multiple checkable items in one widget.
+  - `ValueDialog`: Fixed-keys Value input dialog.
+  - `AppendableValueDialog`: Appendable Value input dialog.
+- `real_bool`: Flexible bool type.
+
+### Changed
+
+- UI:
+  - refactored menubar
+
+### Fixed
+
+### Removed
+
 ## [1.7.7] - 2024-12-05
 
 ### Added

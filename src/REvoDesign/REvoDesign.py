@@ -16,6 +16,7 @@ from typing import Any, Mapping, Optional
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
+# from pymol.Qt.utils import loadUi
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
@@ -27,18 +28,21 @@ from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.basic import MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.driver.environ_register import register_environment_variables
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.driver.environ_register import (add_new_environment_variables,
+                                                drop_environment_variables,
+                                                register_environment_variables)
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
+from REvoDesign.shortcuts.shortcut_tools import menu_dump_sidechains
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,
@@ -215,6 +219,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         check_mac_rosetta2()
 
         main_window = QtWidgets.QMainWindow()
+
+        # loadUi fails on translations so we have to compile the form as `Ui_REvoDesignPyMOL_UI`
+        # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')
+        # self.ui=loadUi(ui_file, main_window)
+
         self.ui = Ui_REvoDesignPyMOL_UI()
         self.ui.setupUi(main_window)
 
@@ -263,6 +272,24 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     {'delete': True},
                 ),
                 MenuItem(
+                    self.bus.ui.actionAddEnvironVar,
+                    add_new_environment_variables,
+                ),
+                MenuItem(
+                    self.bus.ui.actionDropEnvironVar,
+                    drop_environment_variables,
+                ),
+                MenuItem(
+                    self.bus.ui.actionRenderPickedSidechainGroup,
+                    menu_dump_sidechains,
+                    {'dump_all': False},
+                ),
+                MenuItem(
+                    self.bus.ui.actionRenderAllSidechains,
+                    menu_dump_sidechains,
+                    {'dump_all': True},
+                ),
+                MenuItem(
                     self.bus.ui.actionSource_Code,
                     QtGui.QDesktopServices.openUrl,
                     {'url': QtCore.QUrl(REPO_URL)}
@@ -298,7 +325,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         max_proc = os.cpu_count()
         if max_proc is None:
-            max_proc = 4 # fallback to use default nproc
+            max_proc = 4  # fallback to use default nproc
         self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
         self.bus.set_widget_value("ui.header_panel.nproc", max_proc, hard=True)
 

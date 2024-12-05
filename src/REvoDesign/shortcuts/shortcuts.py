@@ -4,6 +4,7 @@ Shortcut functions exposed to PyMOL scripting interface.
 import itertools
 import os
 import warnings
+from typing import List, Union
 
 from Bio.Align import substitution_matrices
 from Bio.Align.substitution_matrices import Array
@@ -14,6 +15,7 @@ from pymol import cmd, util
 from REvoDesign import issues, root_logger
 from REvoDesign.common.ProfileParsers import PSSM_Parser
 from REvoDesign.data.protein_code import rAA
+from REvoDesign.tools.pymol_utils import get_all_groups
 
 logging = root_logger.getChild(__name__)
 
@@ -445,39 +447,71 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
 
 
 def dump_sidechains(
-    sele: str,
+    sele: Union[str, List[str]],
     enabled_only: bool = False,
     save_dir: str = "png/sidechain_dump/",
     height: int = 1280,
     width: int = 1280,
     dpi: int = 150,
     ray: bool = True,
+    hide_mesh: bool = True,
+    neiborhood: int = 3,
+    recenter: bool = False,
 ):
     """
-    Dumps sidechain images of selected models to a directory.
+    Dumps sidechain images of selected group to a directory.
     Parameters:
-      sele (str): Selection string to choose the models.
+      sele (str|List[str]): Selection string or list of strings to choose the models.
       enabled_only (bool, optional): If True, only dumps enabled models. Defaults to False.
       save_dir (str, optional): Directory path to save the images. Defaults to 'png/sidechain_dump/'.
       height (int, optional): Height of the image in pixels. Defaults to 1280.
       width (int, optional): Width of the image in pixels. Defaults to 1280.
       dpi (int, optional): DPI of the image. Defaults to 150.
       ray (bool, optional): If True, uses ray tracing. Defaults to True.
+      hide_mesh (bool, optional): If True, hides the mesh. Defaults to True.
+      neiborhood (int, optional): Zoom with neiborhood. Defaults to 3.
+      recenter (bool, optional): If True, re-centers the resiude. Defaults to False.
     Returns:
       None
     """
 
-    all_models = cmd.get_names("objects", int(enabled_only), sele)
     os.makedirs(save_dir, exist_ok=True)
 
-    (cmd.disable(m) for m in all_models)
+    if isinstance(sele, str):
+        sele = [sele]
 
-    for m in all_models:
-        print(f"Dumping PNG for {m} ...")
-        cmd.enable(m)
-        cmd.show("sticks", m)
-        cmd.show("mesh", m)
-        cmd.center(f"{m}")
-        p = os.path.join(save_dir, f"{m}.png")
-        cmd.png(p, height, width, dpi, int(ray))
-        cmd.disable(m)
+    if hide_mesh:
+        cmd.hide("mesh")
+
+    all_groups = get_all_groups(enabled_only=enabled_only)
+
+    # disable all groups
+    cmd.disable(' or '.join(all_groups))
+
+    for sel in sele:
+        # ensure the current group selection is enabled
+        cmd.enable(sel)
+
+        # get all model names of selected group
+        all_models = cmd.get_names("objects", int(enabled_only), sel)
+        print(f'Selected group: {sel}: {all_models}')
+
+        cmd.disable(' or '.join(all_models))
+
+        # orient to get pose in the right orientation
+        if neiborhood and neiborhood > 0:
+            cmd.orient(f'{sel} or byres {sel} around {neiborhood}')
+
+        for m in all_models:
+            print(f"Dumping PNG for {m} ...")
+            cmd.enable(m)
+            cmd.show("sticks", m)
+            if not hide_mesh:
+                cmd.show("mesh", m)
+            if recenter:
+                cmd.center(f"{m}")
+            p = os.path.join(save_dir, f"{m}.png")
+            cmd.png(p, height, width, dpi, int(ray))
+            cmd.disable(m)
+
+        cmd.disable(sel)
