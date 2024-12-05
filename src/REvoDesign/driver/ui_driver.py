@@ -17,6 +17,7 @@ from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
+from REvoDesign.tools.customized_widgets import notify_box
 
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
@@ -251,6 +252,9 @@ class ConfigBus(SingletonAbstract, CitableModules):
         }
 
         if reject_none and not value and not default_value:
+            notify_box(
+                "This configure file might be out of date. "
+                "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this.")
             raise issues.ConfigureOutofDateError(
                 "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
             )

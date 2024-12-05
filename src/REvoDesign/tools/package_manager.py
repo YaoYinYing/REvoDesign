@@ -17,6 +17,7 @@ import difflib
 import importlib
 import importlib.util
 import json
+import math
 import os
 import platform
 import re
@@ -650,7 +651,7 @@ class REvoDesignPackageManager:
                 diff.writelines(diffs)
 
         # Prompt the user to confirm the upgrade
-        accept_upgraded = proceed_with_comfirm_msg_box(
+        accept_upgraded = decide(
             title='Upgrade', description='Do you REALLY want to apply the upgrade?<p><p>'
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
             '<table>'
@@ -678,7 +679,7 @@ class REvoDesignPackageManager:
         )
 
     def self_upgrade(self):
-        confirmed = proceed_with_comfirm_msg_box(
+        confirmed = decide(
             title='Upgrade REvoDesign',
             description='[WARNING]\n'
             'Do you want to upgrade REvoDesign Manager to the latest version?'
@@ -1134,7 +1135,7 @@ class REvoDesignPackageManager:
                 # If the uninstallation fails, notify the user of the failure and raise an error
                 return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError)
 
-            remove_deps = proceed_with_comfirm_msg_box(
+            remove_deps = decide(
                 'Clean up warning', 'Do you want to remove all the dependencies?')
             if remove_deps:
                 run_worker_thread_with_progress(
@@ -1363,7 +1364,6 @@ class REvoDesignPackageManager:
             return
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 class WorkerThread(QtCore.QThread):
     """
     Custom worker thread for executing a function in a separate thread.
@@ -1451,8 +1451,6 @@ class WorkerThread(QtCore.QThread):
         This function triggers an interrupt signal.
         """
         self.interrupt_signal.emit()
-
-# a copy from `REvoDesign/tools/utils.py`
 
 
 def run_worker_thread_with_progress(
@@ -1608,7 +1606,6 @@ def set_widget_value(widget, value):
     )
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 def refresh_window():
     """
     Refresh the application window by processing all pending events.
@@ -1622,7 +1619,6 @@ def refresh_window():
     QtWidgets.QApplication.processEvents()
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 def notify_box(message: str = "", error_type: Optional[Union[type[Exception], type[Warning]]] = None) -> bool:
     """
     Display a notification message box.
@@ -1654,16 +1650,15 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
 
     # otherwise raise the exception
     if isinstance(error_type, Exception):
-        raise error_type(message)  # type: ignore
+        raise error_type(message)  
 
     return False
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
-def proceed_with_comfirm_msg_box(title="", description="", rich: bool = False):
+def decide(title="", description="", rich: bool = False):
     """
-    Function: proceed_with_confirm_msg_box
-    Usage: result = proceed_with_confirm_msg_box(title='', description='')
+    Function: decide
+    Usage: result = decide(title='', description='', rich=True)
 
     This function displays a confirmation message box with a title and description,
     allowing the user to proceed or cancel.
@@ -1890,22 +1885,71 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
     return issue_dict
 
 
-# a copy from `REvoDesign/tools/customized_widgets.py`
 @contextmanager
-def hold_trigger_button(button):
+def hold_trigger_button(
+    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],  # type: ignore
+    animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
+):
     """
-    A context manager for holding and releasing a trigger button.
+    A context manager for holding and releasing trigger buttons with a breathing effect
+    using the system's accent color.
 
-    Usage:
-        with hold_trigger_button(button):
-            # Code block where the button is held (disabled)
-            # The button will be automatically released (enabled) at the end of the block
+    Args:
+        buttons: One or more QPushButton objects.
+        animation_duration: Duration of the breathing animation cycle (in milliseconds).
     """
+    if not isinstance(buttons, (tuple, list, set)):
+        buttons = (buttons,)
+
+    timers = []
+
+    def get_accent_color():
+        color = QtGui.QColor(76, 217, 100)
+        return color
+
+    def start_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
+        accent_color = get_accent_color()
+        base_color = accent_color.lighter(150)  # Start with a lighter shade
+        darker_color = accent_color.darker(150)  # Use a darker shade for the trough
+
+        timer = QtCore.QTimer(button)
+        timer.setInterval(30)  # Update every 30 milliseconds
+        elapsed = 0
+
+        def update_stylesheet():
+            nonlocal elapsed
+            elapsed += timer.interval()
+            t = (elapsed % animation_duration) / animation_duration  # Normalized time [0, 1]
+            # Calculate intermediate intensity using sine wave
+            factor = (1 + math.sin(2 * math.pi * t)) / 2  # Normalized to [0, 1]
+            r = int(base_color.red() * factor + darker_color.red() * (1 - factor))
+            g = int(base_color.green() * factor + darker_color.green() * (1 - factor))
+            b = int(base_color.blue() * factor + darker_color.blue() * (1 - factor))
+            button.setStyleSheet(f"background-color: rgb({r}, {g}, {b});")
+
+        timer.timeout.connect(update_stylesheet)
+        timer.start()
+        timers.append(timer)
+
+    def stop_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
+        # Stop all timers associated with this button
+        for timer in timers:
+            if timer.parent() == button:
+                timer.stop()
+                timers.remove(timer)
+        button.setStyleSheet("")  # Reset the button's style
+
     try:
-        button.setEnabled(False)
+        for b in buttons:
+            b.setEnabled(False)
+            b.setProperty("held", True)  # Mark the button as held
+            start_breathing_animation(b)
         yield
     finally:
-        button.setEnabled(True)
+        for b in buttons:
+            b.setProperty("held", False)  # Remove the held mark
+            stop_breathing_animation(b)
+            b.setEnabled(True)  # Re-enable the button
 
 
 def solve_installation_config(

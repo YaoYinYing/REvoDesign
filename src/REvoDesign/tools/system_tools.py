@@ -6,108 +6,47 @@ import platform
 import warnings
 from dataclasses import dataclass
 
-import REvoDesign
+from immutabledict import immutabledict
+
 from REvoDesign import issues
 
+from .package_manager import issue_collection
 
-def get_system_info(os_info: platform.uname_result):
-    """
-    Function: get_system_info
-    Usage: os_name, os_info = get_system_info()
+SYSTEM_INFO_DICT=immutabledict(issue_collection())
 
-    This function retrieves system information using the platform module.
 
-    Returns:
-    - os_name (str): Name of the operating system
-    """
-    os_name = os_info.system
+def check_mac_rosetta2():
 
-    if os_name == "Darwin":
-        is_arm_macos = "ARM64" in os_info.version
-        is_recognized_as_x86 = os_info.machine == "x86_64"
+    if SYSTEM_INFO_DICT['Platform::OS'] == "Darwin":
+        is_arm_macos = "ARM64" in SYSTEM_INFO_DICT['Platform::Version']
+        is_recognized_as_x86 = SYSTEM_INFO_DICT['Platform::Machine'] == "x86_64"
 
         print(f"Does it ARMed? {is_arm_macos}")
         print(f"Does it Rosetta-ed? {is_recognized_as_x86}")
 
-        if is_arm_macos and is_recognized_as_x86:
+        if SYSTEM_INFO_DICT['Platform::IsRosettaTranlated']:
             warnings.warn(
                 issues.AppleSiliconRosetta2Warning(
                     "Oops! You are in Rosetta-translated PyMOL bundle from official channel. "
                     "This might limit the performance of joblib, causing MutantVisualizer slower."
                 )
             )
-            os_name += "_Rosetta"
-    return os_name
+    return
 
 
 @dataclass
 class CLIENT_INFO:
-    OS_INFO: platform.uname_result = platform.uname()
-    node: str = None
-    user: str = None
-    os: str = None
-    os_build: str = None
-    machine_arch: str = None
-    revodesign_version: str = None
-    pymol_version: str = None
-    pymol_build: str = None
-    python_version: str = None
-    ip: list = None
-    qt_ver: str = None
-    OS_TYPE: str = None
-    is_translated_arm_mac: bool = None
-    nproc: int = 4
-
-    def __post_init__(self):
-        import os
-        import socket
-
-        from .customized_widgets import PYQT_VERSION_STR
-        from .pymol_utils import PYMOL_BUILD, PYMOL_VERSION
-
-        self.node: str = self.OS_INFO.node
-        try:
-            user: str = os.getlogin()
-        except OSError as e:
-            warnings.warn(
-                issues.CIRunnerWarning(
-                    f"Failed to fetch user, maybe in CI runners? \nError: {e}"
-                )
-            )
-            user: str = "CI"
-        self.user: str = user
-        self.os: str = self.OS_INFO.system
-        self.os_build: str = self.OS_INFO.version
-        self.machine_arch: str = self.OS_INFO.machine
-        self.revodesign_version: str = REvoDesign.__version__
-        self.pymol_version = PYMOL_VERSION
-        self.pymol_build = PYMOL_BUILD
-        self.python_version: str = platform.python_version()
-        self.OS_TYPE: str = get_system_info(os_info=self.OS_INFO)
-        self.is_translated_arm_mac: bool = "Rosetta" in self.OS_TYPE
-        try:
-            self.nproc = os.cpu_count()
-        except Exception as e:
-            warnings.warn(
-                issues.PlatformNotSupportedWarning(
-                    f"Failed to fetch CPU count: {e}"
-                )
-            )
-
-        try:
-            self.ip = socket.gethostbyname_ex(socket.gethostname())[2]
-            if "127.0.0.1" in self.ip:
-                self.ip.remove("127.0.0.1")
-        except Exception as e:
-            warnings.warn(
-                issues.PlatformNotSupportedWarning(
-                    f"Failed to fetch client ip: {e}"
-                )
-            )
-            self.ip = []
-        self.qt_ver = PYQT_VERSION_STR
-
-
-# if __name__ == '__main__':
-#     client_info=CLIENT_INFO()
-#     print(client_info.__dict__)
+    node: str = SYSTEM_INFO_DICT['Platform::Hostname']
+    user: str = SYSTEM_INFO_DICT['User::Username']
+    os: str = SYSTEM_INFO_DICT['Platform::OS']
+    os_build: str = SYSTEM_INFO_DICT['Platform::Version']
+    machine_arch: str = SYSTEM_INFO_DICT['Platform::Machine']
+    revodesign_version: str = SYSTEM_INFO_DICT['REvoDesign::Version']
+    pymol_version: str = SYSTEM_INFO_DICT['PyMOL::Version']
+    pymol_build: str = SYSTEM_INFO_DICT['PyMOL::Build']
+    python_version: str = SYSTEM_INFO_DICT['Python::Version']
+    ip: list = SYSTEM_INFO_DICT['Network::IP']
+    qt_ver: str = SYSTEM_INFO_DICT['PyQt::Version']
+    OS_TYPE: str = f"{SYSTEM_INFO_DICT['Platform::OS']}_{SYSTEM_INFO_DICT['Platform::Machine']}"
+    is_translated_arm_mac: bool = SYSTEM_INFO_DICT['Platform::IsRosettaTranlated']
+    nproc: int = SYSTEM_INFO_DICT['Platform::CPU::Num']

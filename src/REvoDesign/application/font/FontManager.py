@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from immutabledict import immutabledict
 from pymol.Qt import QtGui  # type: ignore
 
-from REvoDesign.tools.system_tools import CLIENT_INFO
+from REvoDesign.tools.system_tools import SYSTEM_INFO_DICT
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class FlavoredFonts:
             this part of the data may still be under consideration or not yet finalized.
     """
 
-    OS_TYPE_FONT_TABLE: immutabledict = immutabledict(
+    OS_TYPE_FONT_TABLE: immutabledict[str, tuple[str,...]] = immutabledict(
         {
             "Windows": ("Microsoft YaHei", "Century Gothic"),
             "Linux": ("Nimbus Sans", "DejaVu Sans"),
@@ -74,11 +74,13 @@ class FontSetter:
         Returns:
         - None
         """
-        os_type = CLIENT_INFO.OS_INFO.system
+        os_type:str = SYSTEM_INFO_DICT['Platform::OS']
+        if not isinstance(os_type,str):
+            raise ValueError("OS type not found")
         if os_type not in self.flavored_fonts:
             return
 
-        for font_str in self.flavored_fonts.get(os_type):
+        for font_str in self.flavored_fonts[os_type]:
             if font_str in self.font_families:
                 # Create a QFont object and set its family to the found font string
                 font = QtGui.QFont()

@@ -138,11 +138,11 @@ class SSLCertificateManager:
         role = self.role
 
         # Get node information from OS or set to 'Unknown' if not available
-        from REvoDesign.tools.system_tools import CLIENT_INFO
+        from REvoDesign.tools.system_tools import SYSTEM_INFO_DICT
 
-        OS_INFO = CLIENT_INFO()
-        node = OS_INFO.node if OS_INFO.node else "UnknownNode"
-        user = OS_INFO.user if OS_INFO.user else "UnknownUser"
+        node_name=SYSTEM_INFO_DICT['Platform::Hostname']
+        node = node_name if node_name else "UnknownNode"
+        user = SYSTEM_INFO_DICT['User::Username']
 
         # Generate RSA key
         k = crypto.PKey()

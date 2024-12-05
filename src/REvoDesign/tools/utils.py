@@ -6,8 +6,7 @@ import contextlib
 import os
 import random
 import string
-import subprocess
-import sys
+
 import tarfile
 import time
 import zipfile
@@ -18,45 +17,10 @@ import numpy as np
 
 from REvoDesign.logger import root_logger
 
-from .customized_widgets import WorkerThread, refresh_window
+
+from .package_manager import run_worker_thread_with_progress,run_command
 
 logging = root_logger.getChild(__name__)
-
-
-def run_command(excutable="python", command_list=[]):
-    """
-    Run a command using subprocess and return the result.
-
-    Args:
-    - executable (str): Executable to run the command (default is 'python').
-    - command_list (list): List containing the command and its arguments.
-
-    Returns:
-    - CompletedProcess: Result of the executed command.
-
-    Notes:
-    - Executes a command using subprocess and returns the result.
-    - Handles the execution of the specified command and arguments.
-    - Logs the command_list for debugging purposes.
-    """
-    if excutable == "python":
-        python_exe = os.path.realpath(sys.executable)
-        command_list = [python_exe] + command_list
-
-    while "" in command_list:
-        command_list.remove("")
-
-    if not command_list:
-        return
-
-    logging.debug(command_list)
-
-    result = subprocess.run(
-        command_list,
-        capture_output=True,
-    )
-
-    return result
 
 
 def dirname_does_exist(fp):
@@ -140,54 +104,6 @@ def minibatches_generator(inputs_data_generator, batch_size):
     if current_batch:
         yield current_batch
 
-
-def run_worker_thread_with_progress(
-    worker_function, progress_bar=None, *args, **kwargs
-):
-    """
-    Runs a worker function in a separate thread with an optional progress bar.
-
-    Args:
-    - worker_function (function): The function to be executed in a worker thread.
-    - progress_bar (QProgressBar or None): Optional progress bar to display progress (default is None).
-    - *args: Positional arguments to be passed to the worker function.
-    - **kwargs: Keyword arguments to be passed to the worker function.
-
-    Returns:
-    - Any: Result returned by the worker function.
-
-    Note:
-    If a progress_bar is provided, it temporarily sets the progress bar to indeterminate mode (busy state) during the execution of the worker function.
-
-    Example Usage:
-    ```python
-    # Assuming `my_worker_function` is defined
-    result = run_worker_thread_with_progress(my_worker_function, my_progress_bar, arg1, arg2, kwarg1=value1)
-    ```
-    """
-    if progress_bar:
-        # store the progress bar state
-        _min = progress_bar.minimum()
-        _max = progress_bar.maximum()
-        _val = progress_bar.value()
-
-        progress_bar.setRange(0, 0)
-
-    work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
-    work_thread.start()
-
-    while not work_thread.isFinished():
-        refresh_window()
-        time.sleep(0.001)
-
-    if progress_bar:
-        # restore the progressbar state
-        progress_bar.setRange(_min, _max)
-        progress_bar.setValue(_val)
-
-    result = work_thread.handle_result()
-
-    return result[0] if result else None
 
 
 def extract_archive(archive_file, extract_to):
@@ -389,3 +305,21 @@ def timing(msg: str):
     yield
     toc = time.perf_counter()
     logging.info(f"Finished {msg} in {toc - tic:.3f} seconds")
+
+
+__all__=[
+    "run_command",
+    'run_worker_thread_with_progress',
+    'timing',
+    'generate_strong_password',
+    'random_deduplicate',
+    'dirname_does_exist',
+    'filepath_does_exists',
+    'minibatches',
+    'minibatches_generator',
+    'extract_archive',
+    'get_color',
+    'cmap_reverser',
+    'rescale_number',
+    'count_and_sort_characters'
+]

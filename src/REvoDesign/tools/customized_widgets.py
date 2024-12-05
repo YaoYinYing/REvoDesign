@@ -1,16 +1,17 @@
 '''
 Custom widgets for REvoDesign.
 '''
-import math
 import os
 from collections.abc import Iterable
-from contextlib import contextmanager
 from typing import Any, Callable, Dict, Union
 
 import matplotlib
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.logger import root_logger
+
+from .package_manager import decide, notify_box, refresh_window,hold_trigger_button,WorkerThread
+
 
 logging = root_logger.getChild(__name__)
 
@@ -432,7 +433,6 @@ class ParallelExecutor:
         verbose: bool = 0,
         kwargs: Union[tuple[dict], list[dict], None] = None,
     ):
-        from REvoDesign.tools.system_tools import CLIENT_INFO
 
         super().__init__()
         self.func = func
@@ -440,7 +440,6 @@ class ParallelExecutor:
         self.kwargs = kwargs
         self.n_jobs = n_jobs
 
-        CLIENT_INFO.OS_TYPE
         # guessing backend according to OS
         if not backend == "auto":
             self.backend = backend
@@ -537,103 +536,6 @@ class QtParallelExecutor(QtCore.QThread):
         return self.results
 
 
-def refresh_window():
-    QtWidgets.QApplication.processEvents()
-
-
-class WorkerThread(QtCore.QThread):
-    """
-    Custom worker thread for executing a function in a separate thread.
-
-    Attributes:
-    - result_signal (QtCore.pyqtSignal): Signal emitted when the result is available.
-    - finished_signal (QtCore.pyqtSignal): Signal emitted when the thread finishes its execution.
-    - interrupt_signal (QtCore.pyqtSignal): Signal to interrupt the thread.
-
-    Methods:
-    - __init__: Initializes the WorkerThread object.
-    - run: Executes the specified function with arguments and emits the result through signals.
-    - handle_result: Returns the result obtained after the thread execution.
-    - interrupt: Interrupts the execution of the thread.
-
-    Example Usage:
-    ```python
-    def some_function(x, y):
-        return x + y
-
-    worker = WorkerThread(func=some_function, args=(10, 20))
-    worker.result_signal.connect(handle_result_function)
-    worker.finished_signal.connect(handle_finished_function)
-    worker.interrupt_signal.connect(handle_interrupt_function)
-    worker.start()
-    # To interrupt the execution:
-    # worker.interrupt()
-    ```
-    """
-
-    result_signal = QtCore.pyqtSignal(list)
-    finished_signal = QtCore.pyqtSignal()
-    interrupt_signal = QtCore.pyqtSignal()
-
-    def __init__(self, func, args=None, kwargs=None):
-        super().__init__()
-        self.func = func
-        self.args = args if args is not None else ()
-        self.kwargs = kwargs if kwargs is not None else {}
-        self.results = None  # Define the results attribute
-
-    def run(self):
-        if not self.isInterruptionRequested():
-            self.results = [self.func(*self.args, **self.kwargs)]
-            if self.results:
-                self.result_signal.emit(self.results)
-            self.finished_signal.emit()
-
-    def handle_result(self):
-        return self.results
-
-    def interrupt(self):
-        self.interrupt_signal.emit()
-
-
-def notify_box(
-    message: str = "",
-):
-    # A notify message.
-    msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Information)
-    msg.setText(message)
-    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-
-    msg.exec_()
-
-
-def decide(title="", description=""):
-    """
-    Function: proceed_with_confirm_msg_box
-    Usage: result = proceed_with_confirm_msg_box(title='', description='')
-
-    This function displays a confirmation message box with a title and description,
-    allowing the user to proceed or cancel.
-
-    Args:
-    - title (str): Title of the confirmation box (default is empty)
-    - description (str): Description displayed in the confirmation box (default is empty)
-
-    Returns:
-    - bool: True if 'Yes' is selected, False otherwise
-    """
-    # A confirmation message.
-    msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Question)
-    msg.setWindowTitle(title)
-    msg.setText(description)
-    msg.setStandardButtons(
-        QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-    )
-    result = msg.exec_()
-
-    return result == QtWidgets.QMessageBox.Yes
 
 
 def create_cmap_icon(cmap: str):
@@ -733,68 +635,16 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     return
 
 
-@contextmanager
-def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],  # type: ignore
-    animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
-):
-    """
-    A context manager for holding and releasing trigger buttons with a breathing effect
-    using the system's accent color.
 
-    Args:
-        buttons: One or more QPushButton objects.
-        animation_duration: Duration of the breathing animation cycle (in milliseconds).
-    """
-    if not isinstance(buttons, (tuple, list, set)):
-        buttons = (buttons,)
 
-    timers = []
+__all__=[
+    'notify_box',
+    'decide',
+    'refresh_window',
+    'set_widget_value',
+    'ImageWidget',
+    'hold_trigger_button',
+    'getExistingDirectory',
+    'WorkerThread',
 
-    def get_accent_color():
-        color = QtGui.QColor(76, 217, 100)
-        return color
-
-    def start_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
-        accent_color = get_accent_color()
-        base_color = accent_color.lighter(150)  # Start with a lighter shade
-        darker_color = accent_color.darker(150)  # Use a darker shade for the trough
-
-        timer = QtCore.QTimer(button)
-        timer.setInterval(30)  # Update every 30 milliseconds
-        elapsed = 0
-
-        def update_stylesheet():
-            nonlocal elapsed
-            elapsed += timer.interval()
-            t = (elapsed % animation_duration) / animation_duration  # Normalized time [0, 1]
-            # Calculate intermediate intensity using sine wave
-            factor = (1 + math.sin(2 * math.pi * t)) / 2  # Normalized to [0, 1]
-            r = int(base_color.red() * factor + darker_color.red() * (1 - factor))
-            g = int(base_color.green() * factor + darker_color.green() * (1 - factor))
-            b = int(base_color.blue() * factor + darker_color.blue() * (1 - factor))
-            button.setStyleSheet(f"background-color: rgb({r}, {g}, {b});")
-
-        timer.timeout.connect(update_stylesheet)
-        timer.start()
-        timers.append(timer)
-
-    def stop_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
-        # Stop all timers associated with this button
-        for timer in timers:
-            if timer.parent() == button:
-                timer.stop()
-                timers.remove(timer)
-        button.setStyleSheet("")  # Reset the button's style
-
-    try:
-        for b in buttons:
-            b.setEnabled(False)
-            b.setProperty("held", True)  # Mark the button as held
-            start_breathing_animation(b)
-        yield
-    finally:
-        for b in buttons:
-            b.setProperty("held", False)  # Remove the held mark
-            stop_breathing_animation(b)
-            b.setEnabled(True)  # Re-enable the button
+]

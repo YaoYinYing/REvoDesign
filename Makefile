@@ -63,7 +63,7 @@ setup-display:
 
 upload-gists:
 	# installer
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign_PyMOL.py REvoDesign_PyMOL.py
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign_PyMOL.py src/REvoDesign/tools/package_manager.py
 	# installer ui
 	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign-PyMOL-entry.ui src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
 	# JSONs for installer

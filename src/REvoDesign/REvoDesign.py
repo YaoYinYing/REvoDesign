@@ -27,6 +27,7 @@ from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.basic import MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.driver.environ_register import register_environment_variables
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
@@ -51,7 +52,7 @@ from REvoDesign.tools.pymol_utils import (
     fetch_exclusion_expressions, find_all_protein_chain_ids_in_protein,
     find_design_molecules, find_small_molecules_in_protein,
     get_molecule_sequence, is_empty_session)
-from REvoDesign.tools.system_tools import CLIENT_INFO
+from REvoDesign.tools.system_tools import SYSTEM_INFO_DICT, check_mac_rosetta2
 from REvoDesign.tools.utils import (generate_strong_password,
                                     run_worker_thread_with_progress, timing)
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
@@ -211,6 +212,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         installed_dir = os.path.dirname(__file__)
         logging.debug(f"REvoDesign is installed in {installed_dir}")
+        check_mac_rosetta2()
 
         main_window = QtWidgets.QMainWindow()
         self.ui = Ui_REvoDesignPyMOL_UI()
@@ -294,7 +296,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # set up nproc
 
-        max_proc = CLIENT_INFO().nproc
+        max_proc = SYSTEM_INFO_DICT['Platform::CPU::Num']
+        if max_proc is None:
+            max_proc = 4 # fallback to use default nproc
         self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
         self.bus.set_widget_value("ui.header_panel.nproc", max_proc, hard=True)
 
@@ -1615,6 +1619,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # create a bus btw cfg<---> ui
             ConfigBus.initialize(ui=self.ui)
             self.bus = ConfigBus()
+
+            # Regster all environment variables from config file
+            register_environment_variables()
 
             # Tab Config
             ParamChangeCollections.register_all(ui=self.bus.ui)

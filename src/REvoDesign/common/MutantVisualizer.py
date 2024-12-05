@@ -4,6 +4,7 @@ Workhorse of the mutant visualization process.
 
 import gc
 import os
+import sys
 import tempfile
 import warnings
 
@@ -425,6 +426,7 @@ class MutantVisualizer:
         os.makedirs(os.path.dirname(merged_temp_session), exist_ok=True)
 
         tmp_merge_command = [
+            sys.executable,
             SessionMerger.__file__,
             "--save_path",
             merged_temp_session,
@@ -434,9 +436,7 @@ class MutantVisualizer:
             "--quiet",
         ] + self.mutagenesis_sessions
 
-        merge_results = run_command(
-            excutable="python", command_list=tmp_merge_command
-        )
+        merge_results = run_command(cmd=tmp_merge_command)
         if merge_results.returncode == 0:
             logging.info(
                 f"Temperal merged result is successfully created at {merged_temp_session}"

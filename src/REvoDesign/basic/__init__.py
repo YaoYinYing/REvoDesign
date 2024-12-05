@@ -18,5 +18,5 @@ __all__ = [
     'ParamChangeRegistryItem',
     'ParamChangeRegister',
     'MenuItem',
-    'MenuCollection'
+    'MenuCollection',
 ]
