@@ -280,7 +280,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
                 MenuItem(
                     self.bus.ui.actionRenderPickedSidechainGroup,
-                    menu_dump_sidechains
+                    menu_dump_sidechains,
+                    {'dump_all':  False},
+                ),
+                MenuItem(
+                    self.bus.ui.actionRenderAllSidechains,
+                    menu_dump_sidechains,
+                    {'dump_all':  True},
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,
