@@ -713,6 +713,7 @@ def real_bool(val: Any):
 @dataclass
 class AskedValueCollection:
     asked_values: List[AskedValue] = field(default_factory=list)
+    banner: Optional[str] = None  # a banner message
 
     @property
     def asdict(self) -> Dict[str, Any]:
@@ -720,8 +721,8 @@ class AskedValueCollection:
         Returns:
             Dict[str, Any]: A dictionary of the values in the collection.
         """
-        return {asked.key:asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val) for asked in self.asked_values}
-    
+        return {asked.key: asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val) for asked in self.asked_values}
+
     def __bool__(self):
         return bool(self.asked_values)
 
@@ -732,13 +733,39 @@ class ValueDialog(QtWidgets.QDialog):
         self.key_dict = key_dict.asked_values
         self.updated_values = []
 
+        # Main layout
         self.layout = QtWidgets.QVBoxLayout()
+
+        # Add scrollable banner at the top
+        if key_dict.banner:
+            banner_label = QtWidgets.QLabel(key_dict.banner)
+            banner_label.setWordWrap(True)
+            banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # Align text to the top-left
+            banner_label.setStyleSheet("""
+                font-size: 14px;
+                font-weight: bold;
+                color: #333;
+                padding: 10px;
+                background-color: #f9f9f9;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            """)
+
+            # Wrap banner in a scrollable area
+            scroll_area = QtWidgets.QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setWidget(banner_label)
+            scroll_area.setMaximumHeight(150)  # Set max height for the banner area
+            scroll_area.setStyleSheet("border: none;")  # Remove scroll area border
+
+            self.layout.addWidget(scroll_area)
+
         self.input_fields = {}
 
         for item in key_dict.asked_values:
             self._add_field(item)
 
-        # Add buttons
+        # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
         cancel_button = QtWidgets.QPushButton("Cancel")
@@ -750,6 +777,8 @@ class ValueDialog(QtWidgets.QDialog):
         self.layout.addLayout(button_layout)
 
         self.setLayout(self.layout)
+
+
 
     def _add_field(self, asked_value: AskedValue):
         label = QtWidgets.QLabel(f"{asked_value.key} ({str(asked_value.typing)}):")

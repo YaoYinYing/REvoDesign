@@ -3,7 +3,7 @@ Shortcut functions exposed to PyMOL scripting interface.
 '''
 import itertools
 import os
-from typing import List, Optional, Union
+from typing import List, Union
 import warnings
 
 from Bio.Align import substitution_matrices
@@ -456,6 +456,7 @@ def dump_sidechains(
     ray: bool = True,
     hide_mesh:bool = True,
     neiborhood: int = 3,
+    recenter: bool = False,
 ):
     """
     Dumps sidechain images of selected group to a directory.
@@ -469,6 +470,7 @@ def dump_sidechains(
       ray (bool, optional): If True, uses ray tracing. Defaults to True.
       hide_mesh (bool, optional): If True, hides the mesh. Defaults to True.
       neiborhood (int, optional): Zoom with neiborhood. Defaults to 3.
+      recenter (bool, optional): If True, re-centers the resiude. Defaults to False.
     Returns:
       None
     """
@@ -506,7 +508,8 @@ def dump_sidechains(
             cmd.show("sticks", m)
             if not hide_mesh:
                 cmd.show("mesh", m)
-            cmd.center(f"{m}")
+            if recenter:
+                cmd.center(f"{m}")
             p = os.path.join(save_dir, f"{m}.png")
             cmd.png(p, height, width, dpi, int(ray))
             cmd.disable(m)

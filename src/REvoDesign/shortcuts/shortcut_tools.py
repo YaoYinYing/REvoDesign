@@ -21,7 +21,10 @@ def menu_dump_sidechains() -> None:
                 AskedValue("ray",True,typing=bool, reason="Use ray to dump sidechains."),
                 AskedValue("hide_mesh",True,typing=bool, reason="Hide mesh."),
                 AskedValue("neiborhood",3,typing=int, reason="Neiborhood size."),
-            ]
+                AskedValue("recenter",False,typing=bool, reason="Recenter sidechains. Disable to make the background unmoved."),
+            ],
+            banner='Dump all sidechain conformers of selected groups. '
+            'Note that you need to disable all groups in the left panel before running this function.'
         )
     )
 
