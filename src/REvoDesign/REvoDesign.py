@@ -16,7 +16,7 @@ from typing import Any, Mapping, Optional
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
-#from pymol.Qt.utils import loadUi
+# from pymol.Qt.utils import loadUi
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
@@ -28,12 +28,14 @@ from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.basic import MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.driver.environ_register import drop_environment_variables, register_environment_variables,add_new_environment_variables
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.driver.environ_register import (add_new_environment_variables,
+                                                drop_environment_variables,
+                                                register_environment_variables)
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.evaluate import Evalutator
@@ -45,12 +47,11 @@ from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,
                                                  hold_trigger_button,
-                                                 notify_box, set_widget_value, )
+                                                 notify_box, set_widget_value)
 from REvoDesign.tools.mutant_tools import (determine_profile_type,
                                            existed_mutant_tree,
                                            get_mutant_table_columns,
                                            save_mutant_choices)
-
 from REvoDesign.tools.pymol_utils import (
     fetch_exclusion_expressions, find_all_protein_chain_ids_in_protein,
     find_design_molecules, find_small_molecules_in_protein,
@@ -281,12 +282,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionRenderPickedSidechainGroup,
                     menu_dump_sidechains,
-                    {'dump_all':  False},
+                    {'dump_all': False},
                 ),
                 MenuItem(
                     self.bus.ui.actionRenderAllSidechains,
                     menu_dump_sidechains,
-                    {'dump_all':  True},
+                    {'dump_all': True},
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,
@@ -324,7 +325,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         max_proc = os.cpu_count()
         if max_proc is None:
-            max_proc = 4 # fallback to use default nproc
+            max_proc = 4  # fallback to use default nproc
         self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
         self.bus.set_widget_value("ui.header_panel.nproc", max_proc, hard=True)
 

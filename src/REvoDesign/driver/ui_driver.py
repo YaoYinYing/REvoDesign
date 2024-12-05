@@ -14,10 +14,9 @@ from pymol.Qt import QtWidgets
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModules
 from REvoDesign.logger import root_logger
-from REvoDesign.tools.customized_widgets import (get_widget_value,
+from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
                                                  set_widget_value)
 from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
-from REvoDesign.tools.customized_widgets import notify_box
 
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons

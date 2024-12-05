@@ -2,12 +2,11 @@
 Utils to manage fonts in Plugin windows
 """
 
+import platform
 from dataclasses import dataclass
 
 from immutabledict import immutabledict
 from pymol.Qt import QtGui  # type: ignore
-
-import platform
 
 
 @dataclass(frozen=True)
@@ -29,7 +28,7 @@ class FlavoredFonts:
             this part of the data may still be under consideration or not yet finalized.
     """
 
-    OS_TYPE_FONT_TABLE: immutabledict[str, tuple[str,...]] = immutabledict(
+    OS_TYPE_FONT_TABLE: immutabledict[str, tuple[str, ...]] = immutabledict(
         {
             "Windows": ("Microsoft YaHei", "Century Gothic"),
             "Linux": ("Nimbus Sans", "DejaVu Sans"),
@@ -74,7 +73,7 @@ class FontSetter:
         Returns:
         - None
         """
-        os_type:str = platform.system()
+        os_type: str = platform.system()
 
         if os_type not in self.flavored_fonts:
             return

@@ -3,8 +3,8 @@ Shortcut functions exposed to PyMOL scripting interface.
 '''
 import itertools
 import os
-from typing import List, Union
 import warnings
+from typing import List, Union
 
 from Bio.Align import substitution_matrices
 from Bio.Align.substitution_matrices import Array
@@ -454,7 +454,7 @@ def dump_sidechains(
     width: int = 1280,
     dpi: int = 150,
     ray: bool = True,
-    hide_mesh:bool = True,
+    hide_mesh: bool = True,
     neiborhood: int = 3,
     recenter: bool = False,
 ):
@@ -478,12 +478,12 @@ def dump_sidechains(
     os.makedirs(save_dir, exist_ok=True)
 
     if isinstance(sele, str):
-        sele=[sele]
+        sele = [sele]
 
     if hide_mesh:
         cmd.hide("mesh")
 
-    all_groups=get_all_groups(enabled_only=enabled_only)
+    all_groups = get_all_groups(enabled_only=enabled_only)
 
     # disable all groups
     cmd.disable(' or '.join(all_groups))
@@ -495,11 +495,11 @@ def dump_sidechains(
         # get all model names of selected group
         all_models = cmd.get_names("objects", int(enabled_only), sel)
         print(f'Selected group: {sel}: {all_models}')
-        
+
         cmd.disable(' or '.join(all_models))
 
         # orient to get pose in the right orientation
-        if neiborhood and neiborhood>0:
+        if neiborhood and neiborhood > 0:
             cmd.orient(f'{sel} or byres {sel} around {neiborhood}')
 
         for m in all_models:

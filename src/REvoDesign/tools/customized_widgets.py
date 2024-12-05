@@ -1,9 +1,9 @@
 '''
 Custom widgets for REvoDesign.
 '''
-from dataclasses import dataclass, field
 import os
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib
@@ -11,8 +11,8 @@ from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.logger import root_logger
 
-from .package_manager import decide, notify_box, refresh_window,hold_trigger_button,WorkerThread
-
+from .package_manager import (WorkerThread, decide, hold_trigger_button,
+                              notify_box, refresh_window)
 
 logging = root_logger.getChild(__name__)
 
@@ -537,8 +537,6 @@ class QtParallelExecutor(QtCore.QThread):
         return self.results
 
 
-
-
 def create_cmap_icon(cmap: str):
     """
     Creates a square pixmap representing the color pattern of a specified colormap.
@@ -636,7 +634,6 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
     return
 
 
-
 @dataclass
 class AskedValue:
     key: str
@@ -689,7 +686,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
     def currentText(self) -> str:
         """Override to show a comma-separated list of selected items."""
         return ", ".join(self.checked_items)
-    
+
 
 def real_bool(val: Any):
     """
@@ -705,10 +702,11 @@ def real_bool(val: Any):
     # Check if the value matches any of the predefined true values
     if any(val == ans for ans in ("True", "true", "1", 'yes', 'Yes', 'Y', 1, True,)):
         return True
-    
+
     # Check if the value matches any of the predefined false values
     if any(val == ans for ans in ("False", "false", "0", 'no', 'No', 'N', 0, False,)):
         return False
+
 
 @dataclass
 class AskedValueCollection:
@@ -721,10 +719,14 @@ class AskedValueCollection:
         Returns:
             Dict[str, Any]: A dictionary of the values in the collection.
         """
-        return {asked.key: asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val) for asked in self.asked_values}
+        return {
+            asked.key: asked.typing(
+                asked.val) if asked.typing is not bool else real_bool(
+                asked.val) for asked in self.asked_values}
 
     def __bool__(self):
         return bool(self.asked_values)
+
 
 class ValueDialog(QtWidgets.QDialog):
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
@@ -778,8 +780,6 @@ class ValueDialog(QtWidgets.QDialog):
 
         self.setLayout(self.layout)
 
-
-
     def _add_field(self, asked_value: AskedValue):
         label = QtWidgets.QLabel(f"{asked_value.key} ({str(asked_value.typing)}):")
 
@@ -808,7 +808,6 @@ class ValueDialog(QtWidgets.QDialog):
         field_layout.addWidget(widget)
 
         self.layout.addLayout(field_layout)
-
 
     def _on_ok_clicked(self):
         self.updated_values = []
@@ -840,13 +839,12 @@ class ValueDialog(QtWidgets.QDialog):
         self.accept()
 
 
-
 def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
 
     dialog = ValueDialog(title, key_dict)
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return AskedValueCollection(dialog.updated_values)
-    
+
 
 class AppendableValueDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -938,7 +936,6 @@ class AppendableValueDialog(QtWidgets.QDialog):
         # Dynamically adjust dialog height
         self._adjust_dialog_height()
 
-
     def _adjust_dialog_height(self):
         """Adjust dialog height dynamically based on the number of rows."""
         row_height = 30  # Approximate height of a row
@@ -965,7 +962,8 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return dialog.get_values()
 
-__all__=[
+
+__all__ = [
     'notify_box',
     'decide',
     'refresh_window',

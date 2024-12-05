@@ -573,5 +573,5 @@ def any_posision_has_been_selected():
     return bool(selected_positions)
 
 
-def get_all_groups(enabled_only: bool=False) -> List[str]:
+def get_all_groups(enabled_only: bool = False) -> List[str]:
     return cmd.get_names("group_objects", int(enabled_only))

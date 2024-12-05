@@ -6,7 +6,6 @@ import contextlib
 import os
 import random
 import string
-
 import tarfile
 import time
 import zipfile
@@ -17,8 +16,7 @@ import numpy as np
 
 from REvoDesign.logger import root_logger
 
-
-from .package_manager import run_worker_thread_with_progress,run_command
+from .package_manager import run_command, run_worker_thread_with_progress
 
 logging = root_logger.getChild(__name__)
 
@@ -103,7 +101,6 @@ def minibatches_generator(inputs_data_generator, batch_size):
     # Yield any remaining data as a final batch
     if current_batch:
         yield current_batch
-
 
 
 def extract_archive(archive_file, extract_to):
@@ -307,7 +304,7 @@ def timing(msg: str):
     logging.info(f"Finished {msg} in {toc - tic:.3f} seconds")
 
 
-__all__=[
+__all__ = [
     "run_command",
     'run_worker_thread_with_progress',
     'timing',
