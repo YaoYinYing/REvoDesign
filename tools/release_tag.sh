@@ -12,7 +12,7 @@ else
     SED=sed;
 fi
 
-echo 'Dumping version from `src/REvoDesign/__init__.py` ...'
+echo 'Bumping version from `src/REvoDesign/__init__.py` ...'
 old_version=$(git diff src/REvoDesign/__init__.py | grep '^\-__version__ = ' | awk '{str=$3;gsub("'\''","",str);gsub("\"","",str);print str}')
 new_version=$(git diff src/REvoDesign/__init__.py | grep '^+__version__ = ' | awk '{str=$3;gsub("'\''","",str);gsub("\"","",str);print str}')
 new_date=$(date +'%Y-%m-%d')
@@ -39,7 +39,7 @@ echo set new tag to changelog
 $SED -i 's/## \[Unreleased\]/## [Unreleased]\n\n## \['"$new_version"'\] - '"$new_date"'/' ./CHANGELOG.md 
 echo fetching changelog bwt two versions:
 rm -f changelog_tag.md
-echo 'Dump version: '"$old_version"' -> '"$new_version" > changelog_tag.md
+echo 'Bump version: '"$old_version"' -> '"$new_version" > changelog_tag.md
 echo >> changelog_tag.md
 echo '## Change log:' >> changelog_tag.md
 echo >> changelog_tag.md
