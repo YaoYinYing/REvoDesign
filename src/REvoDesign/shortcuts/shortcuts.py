@@ -454,7 +454,7 @@ def dump_sidechains(
     ray: bool = True,
 ):
     """
-    Dumps sidechain images of selected models to a directory.
+    Dumps sidechain images of selected group to a directory.
     Parameters:
       sele (str): Selection string to choose the models.
       enabled_only (bool, optional): If True, only dumps enabled models. Defaults to False.
@@ -467,6 +467,7 @@ def dump_sidechains(
       None
     """
 
+    # get all model names of selected group
     all_models = cmd.get_names("objects", int(enabled_only), sele)
     os.makedirs(save_dir, exist_ok=True)
 

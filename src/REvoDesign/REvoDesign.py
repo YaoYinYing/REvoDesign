@@ -27,7 +27,7 @@ from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.basic import MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-from REvoDesign.driver.environ_register import register_environment_variables
+from REvoDesign.driver.environ_register import drop_environment_variables, register_environment_variables,add_new_environment_variables
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
@@ -43,11 +43,12 @@ from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,
                                                  hold_trigger_button,
-                                                 notify_box, set_widget_value)
+                                                 notify_box, set_widget_value, )
 from REvoDesign.tools.mutant_tools import (determine_profile_type,
                                            existed_mutant_tree,
                                            get_mutant_table_columns,
                                            save_mutant_choices)
+
 from REvoDesign.tools.pymol_utils import (
     fetch_exclusion_expressions, find_all_protein_chain_ids_in_protein,
     find_design_molecules, find_small_molecules_in_protein,
@@ -261,6 +262,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.bus.ui.actionReinitialize,
                     self.reinitialize,
                     {'delete': True},
+                ),
+                MenuItem(
+                    self.bus.ui.actionAddEnvironVar,
+                    add_new_environment_variables,
+                ),
+                MenuItem(
+                    self.bus.ui.actionDropEnvironVar,
+                    drop_environment_variables,
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,
