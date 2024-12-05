@@ -39,6 +39,7 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
+from REvoDesign.shortcuts.shortcut_tools import menu_dump_sidechains
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,
@@ -270,6 +271,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionDropEnvironVar,
                     drop_environment_variables,
+                ),
+                MenuItem(
+                    self.bus.ui.actionRenderPickedSidechainGroup,
+                    menu_dump_sidechains,
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,
