@@ -2,7 +2,7 @@
 System info collector
 '''
 
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 import platform
 import warnings
 
@@ -74,7 +74,7 @@ class CLIENT_INFO:
     pymol_version: str = ''
     pymol_build: str = ''
     python_version: str = ''
-    ip: list = []
+    ip: list = field(default_factory=list)
     qt_ver: str = ''
     OS_TYPE: str = ''
     is_translated_arm_mac: bool = False
