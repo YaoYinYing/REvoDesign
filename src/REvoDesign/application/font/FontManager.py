@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from immutabledict import immutabledict
 from pymol.Qt import QtGui  # type: ignore
 
-from REvoDesign.tools.system_tools import SYSTEM_INFO_DICT
+import platform
 
 
 @dataclass(frozen=True)
@@ -74,9 +74,8 @@ class FontSetter:
         Returns:
         - None
         """
-        os_type:str = SYSTEM_INFO_DICT['Platform::OS']
-        if not isinstance(os_type,str):
-            raise ValueError("OS type not found")
+        os_type:str = platform.system()
+
         if os_type not in self.flavored_fonts:
             return
 

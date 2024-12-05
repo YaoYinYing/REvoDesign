@@ -52,7 +52,7 @@ from REvoDesign.tools.pymol_utils import (
     fetch_exclusion_expressions, find_all_protein_chain_ids_in_protein,
     find_design_molecules, find_small_molecules_in_protein,
     get_molecule_sequence, is_empty_session)
-from REvoDesign.tools.system_tools import SYSTEM_INFO_DICT, check_mac_rosetta2
+from REvoDesign.tools.system_tools import check_mac_rosetta2
 from REvoDesign.tools.utils import (generate_strong_password,
                                     run_worker_thread_with_progress, timing)
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
@@ -296,7 +296,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         # set up nproc
 
-        max_proc = SYSTEM_INFO_DICT['Platform::CPU::Num']
+        max_proc = os.cpu_count()
         if max_proc is None:
             max_proc = 4 # fallback to use default nproc
         self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
