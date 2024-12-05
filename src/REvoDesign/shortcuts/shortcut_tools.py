@@ -45,17 +45,17 @@ def menu_dump_sidechains(dump_all=False) -> None:
                     "ray",
                     True,
                     typing=bool,
-                    reason="Use ray to dump sidechains."),
+                    reason="Use ray tracing."),
                 AskedValue(
                     "hide_mesh",
                     True,
                     typing=bool,
                     reason="Hide mesh."),
                 AskedValue(
-                    "neiborhood",
+                    "neighborhood",
                     3,
                     typing=int,
-                    reason="Select with neiborhood area."),
+                    reason="Select with neighborhood area."),
                 AskedValue(
                     "recenter",
                     False,

@@ -455,7 +455,7 @@ def dump_sidechains(
     dpi: int = 150,
     ray: bool = True,
     hide_mesh: bool = True,
-    neiborhood: int = 3,
+    neighborhood: int = 3,
     recenter: bool = False,
 ):
     """
@@ -469,7 +469,7 @@ def dump_sidechains(
       dpi (int, optional): DPI of the image. Defaults to 150.
       ray (bool, optional): If True, uses ray tracing. Defaults to True.
       hide_mesh (bool, optional): If True, hides the mesh. Defaults to True.
-      neiborhood (int, optional): Zoom with neiborhood. Defaults to 3.
+      neighborhood (int, optional): Zoom with neighborhood. Defaults to 3.
       recenter (bool, optional): If True, re-centers the resiude. Defaults to False.
     Returns:
       None
@@ -499,8 +499,8 @@ def dump_sidechains(
         cmd.disable(' or '.join(all_models))
 
         # orient to get pose in the right orientation
-        if neiborhood and neiborhood > 0:
-            cmd.orient(f'{sel} or byres {sel} around {neiborhood}')
+        if neighborhood and neighborhood > 0:
+            cmd.orient(f'{sel} or byres {sel} around {neighborhood}')
 
         for m in all_models:
             print(f"Dumping PNG for {m} ...")

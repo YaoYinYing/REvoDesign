@@ -726,8 +726,6 @@ class AskedValueCollection:
 
     def __bool__(self):
         return bool(self.asked_values)
-
-
 class ValueDialog(QtWidgets.QDialog):
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         super().__init__(parent)
@@ -738,11 +736,11 @@ class ValueDialog(QtWidgets.QDialog):
         # Main layout
         self.layout = QtWidgets.QVBoxLayout()
 
-        # Add scrollable banner at the top
+        # Add scrollable banner at the top (if present)
         if key_dict.banner:
             banner_label = QtWidgets.QLabel(key_dict.banner)
             banner_label.setWordWrap(True)
-            banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # Align text to the top-left
+            banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
             banner_label.setStyleSheet("""
                 font-size: 14px;
                 font-weight: bold;
@@ -752,20 +750,23 @@ class ValueDialog(QtWidgets.QDialog):
                 border: 1px solid #ccc;
                 border-radius: 5px;
             """)
+            self.layout.addWidget(banner_label)
 
-            # Wrap banner in a scrollable area
-            scroll_area = QtWidgets.QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setWidget(banner_label)
-            scroll_area.setMaximumHeight(150)  # Set max height for the banner area
-            scroll_area.setStyleSheet("border: none;")  # Remove scroll area border
-
-            self.layout.addWidget(scroll_area)
+        # Create the table
+        self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)  # Three columns
+        self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.verticalHeader().setVisible(False)  # Hide row numbers
+        self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
+        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
 
         self.input_fields = {}
 
-        for item in key_dict.asked_values:
-            self._add_field(item)
+        # Add each field to the table
+        for row, item in enumerate(key_dict.asked_values):
+            self._add_field_to_table(row, item)
+
+        self.layout.addWidget(self.table)
 
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
@@ -780,40 +781,43 @@ class ValueDialog(QtWidgets.QDialog):
 
         self.setLayout(self.layout)
 
-    def _add_field(self, asked_value: AskedValue):
-        label = QtWidgets.QLabel(f"{asked_value.key} ({str(asked_value.typing)}):")
+    def _add_field_to_table(self, row: int, asked_value: AskedValue):
+        # Column 0: Field label
+        key_label = QtWidgets.QLabel(asked_value.key)
+        key_label.setToolTip(asked_value.reason or "")
+        self.table.setCellWidget(row, 0, key_label)
 
+        # Column 1: Typing information
+        type_label = QtWidgets.QLabel(asked_value.typing.__name__)
+        type_label.setToolTip(f"Expected type: {asked_value.typing.__name__}")
+        self.table.setCellWidget(row, 1, type_label)
+
+        # Column 2: Input widget
         if asked_value.choices:
-            # Create a MultiCheckableComboBox for choices
             widget = MultiCheckableComboBox(choices=list(asked_value.choices))
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
+        elif asked_value.typing == bool:
+            widget = QtWidgets.QComboBox()
+            widget.addItems(["True", "False"])
+            widget.setCurrentText(str(asked_value.val))
         else:
-            # Create a LineEdit for regular fields
             widget = QtWidgets.QLineEdit()
-            widget.setText(str(asked_value.val))
-
-        if asked_value.reason:
-            label.setToolTip(asked_value.reason)
-            widget.setToolTip(asked_value.reason)
-
-        if asked_value.required:
-            if isinstance(widget, QtWidgets.QLineEdit):
+            widget.setText(str(asked_value.val) if asked_value.val is not None else "")
+            if asked_value.required:
                 widget.setPlaceholderText("Required")
 
+        widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget
-
-        field_layout = QtWidgets.QVBoxLayout()
-        field_layout.addWidget(label)
-        field_layout.addWidget(widget)
-
-        self.layout.addLayout(field_layout)
+        self.table.setCellWidget(row, 2, widget)
 
     def _on_ok_clicked(self):
         self.updated_values = []
         for key, widget in self.input_fields.items():
             if isinstance(widget, MultiCheckableComboBox):
                 value = widget.get_checked_items()
+            elif isinstance(widget, QtWidgets.QComboBox):
+                value = widget.currentText() == "True"
             elif isinstance(widget, QtWidgets.QLineEdit):
                 value = widget.text().strip()
             else:
