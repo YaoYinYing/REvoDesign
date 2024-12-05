@@ -8,7 +8,6 @@ from typing import Callable, Mapping, Optional
 
 from pymol.Qt import QtWidgets
 
-
 @dataclass(frozen=True)
 class MenuItem:
     """

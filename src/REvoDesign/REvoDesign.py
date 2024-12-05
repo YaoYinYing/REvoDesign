@@ -16,6 +16,7 @@ from typing import Any, Mapping, Optional
 from omegaconf import OmegaConf
 from pymol import cmd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
+#from pymol.Qt.utils import loadUi
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
@@ -217,6 +218,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         check_mac_rosetta2()
 
         main_window = QtWidgets.QMainWindow()
+
+        # loadUi fails on translations so we have to compile the form as `Ui_REvoDesignPyMOL_UI`
+        # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')
+        # self.ui=loadUi(ui_file, main_window)
+
         self.ui = Ui_REvoDesignPyMOL_UI()
         self.ui.setupUi(main_window)
 
@@ -274,7 +280,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
                 MenuItem(
                     self.bus.ui.actionRenderPickedSidechainGroup,
-                    menu_dump_sidechains,
+                    menu_dump_sidechains
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,

@@ -1,5 +1,8 @@
-from ..tools.customized_widgets import AskedValue, AskedValueCollection, ask_for_values, ask_for_appendable_values
 
+from ..driver.ui_driver import ConfigBus
+from ..tools.utils import run_worker_thread_with_progress
+from ..tools.customized_widgets import AskedValue, AskedValueCollection, ask_for_values
+from ..tools.pymol_utils import get_all_groups
 
 from .shortcuts import dump_sidechains
 
@@ -9,7 +12,7 @@ def menu_dump_sidechains() -> None:
         "Dump sidechains",
         AskedValueCollection(
             [
-                AskedValue("sele", reason="Select the models to dump sidechains."),
+                AskedValue("sele", typing=list, reason="Select the models to dump sidechains.", choices=get_all_groups()),
                 AskedValue("enabled_only",False, typing=bool, reason= "Dump only enabled models."),
                 AskedValue("save_dir","png/sidechains", reason="Directory to save the sidechains."),
                 AskedValue("height",1280,typing=int, reason="Height of the image."),
@@ -22,5 +25,14 @@ def menu_dump_sidechains() -> None:
 
     if not values:
         return
+    
 
-    dump_sidechains(**values.asdict)
+    params=values.asdict
+    print(values)
+    print(params)
+
+    run_worker_thread_with_progress(
+        dump_sidechains,
+        **params,
+        progress_bar=ConfigBus().ui.progressBar
+    )

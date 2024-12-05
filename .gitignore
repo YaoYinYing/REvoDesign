@@ -58,3 +58,4 @@ classes.dot
 .idea/misc.xml
 /tests/data/mutagenese/checkpoints
 src/REvoDesign/UI/Ui_REvoDesign-PyMOL-entry.py
+/png

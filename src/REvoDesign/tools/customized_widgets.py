@@ -4,7 +4,7 @@ Custom widgets for REvoDesign.
 from dataclasses import dataclass, field
 import os
 from collections.abc import Iterable
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
@@ -644,6 +644,71 @@ class AskedValue:
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
+    choices: Optional[Union[Tuple, List]] = None  # selectable choices
+
+
+class MultiCheckableComboBox(QtWidgets.QComboBox):
+    def __init__(self, choices: List[str], parent=None):
+        super().__init__(parent)
+        self.choices = choices
+        self.checked_items = set()
+
+        # Use a custom model for multi-check items
+        self.setModel(QtGui.QStandardItemModel(self))
+        for choice in self.choices:
+            self._add_checkable_item(choice)
+
+    def _add_checkable_item(self, text):
+        """Add a checkable item to the combo box."""
+        item = QtGui.QStandardItem(text)
+        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+        item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+        self.model().appendRow(item)
+
+    def get_checked_items(self) -> List[str]:
+        """Retrieve all checked items."""
+        checked = []
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.data(QtCore.Qt.CheckStateRole) == QtCore.Qt.Checked:
+                checked.append(item.text())
+        return checked
+
+    def set_checked_items(self, items: List[str]):
+        """Set initial checked items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.text() in items:
+                item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+
+    def hidePopup(self):
+        """Override to update selected items on close."""
+        self.checked_items = set(self.get_checked_items())
+        super().hidePopup()
+
+    def currentText(self) -> str:
+        """Override to show a comma-separated list of selected items."""
+        return ", ".join(self.checked_items)
+    
+
+def real_bool(val: Any):
+    """
+    Convert the given value to its most likely boolean equivalent.
+
+    Args:
+        val: The value to be converted. Can be a string or an integer.
+
+    Returns:
+        bool: True if the value matches one of the predefined true values.
+             False if the value matches one of the predefined false values.
+    """
+    # Check if the value matches any of the predefined true values
+    if any(val == ans for ans in ("True", "true", "1", 'yes', 'Yes', 'Y', 1, True,)):
+        return True
+    
+    # Check if the value matches any of the predefined false values
+    if any(val == ans for ans in ("False", "false", "0", 'no', 'No', 'N', 0, False,)):
+        return False
 
 @dataclass
 class AskedValueCollection:
@@ -651,7 +716,11 @@ class AskedValueCollection:
 
     @property
     def asdict(self) -> Dict[str, Any]:
-        return {asked.typing(asked.key):asked.val for asked in self.asked_values}
+        """
+        Returns:
+            Dict[str, Any]: A dictionary of the values in the collection.
+        """
+        return {asked.key:asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val) for asked in self.asked_values}
     
     def __bool__(self):
         return bool(self.asked_values)
@@ -683,29 +752,45 @@ class ValueDialog(QtWidgets.QDialog):
         self.setLayout(self.layout)
 
     def _add_field(self, asked_value: AskedValue):
-        label = QtWidgets.QLabel(f"{asked_value.key}:")
-        line_edit = QtWidgets.QLineEdit()
-        line_edit.setText(asked_value.val)
+        label = QtWidgets.QLabel(f"{asked_value.key} ({str(asked_value.typing)}):")
+
+        if asked_value.choices:
+            # Create a MultiCheckableComboBox for choices
+            widget = MultiCheckableComboBox(choices=list(asked_value.choices))
+            if asked_value.val:
+                widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
+        else:
+            # Create a LineEdit for regular fields
+            widget = QtWidgets.QLineEdit()
+            widget.setText(str(asked_value.val))
 
         if asked_value.reason:
             label.setToolTip(asked_value.reason)
-            line_edit.setToolTip(asked_value.reason)
+            widget.setToolTip(asked_value.reason)
 
         if asked_value.required:
-            line_edit.setPlaceholderText("Required")
+            if isinstance(widget, QtWidgets.QLineEdit):
+                widget.setPlaceholderText("Required")
 
-        self.input_fields[asked_value.key] = line_edit
+        self.input_fields[asked_value.key] = widget
 
         field_layout = QtWidgets.QVBoxLayout()
         field_layout.addWidget(label)
-        field_layout.addWidget(line_edit)
+        field_layout.addWidget(widget)
 
         self.layout.addLayout(field_layout)
 
+
     def _on_ok_clicked(self):
         self.updated_values = []
-        for key, field in self.input_fields.items():
-            value = field.text().strip()
+        for key, widget in self.input_fields.items():
+            if isinstance(widget, MultiCheckableComboBox):
+                value = widget.get_checked_items()
+            elif isinstance(widget, QtWidgets.QLineEdit):
+                value = widget.text().strip()
+            else:
+                value = None
+
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:
                 QtWidgets.QMessageBox.warning(
@@ -714,9 +799,17 @@ class ValueDialog(QtWidgets.QDialog):
                 return
             if original:
                 self.updated_values.append(
-                    AskedValue(key=key, val=value, reason=original.reason, required=original.required)
+                    AskedValue(
+                        key=key,
+                        val=value,
+                        typing=original.typing,
+                        reason=original.reason,
+                        required=original.required,
+                        choices=original.choices,
+                    )
                 )
         self.accept()
+
 
 
 def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:

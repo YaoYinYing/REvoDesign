@@ -42,6 +42,7 @@ def add_new_environment_variables():
         return
     
     EnvironBindItemCollection.update(AskedEnvironBindItemCollection.asdict)
+    bus.set_value('environment.variables', EnvironBindItemCollection) # type: ignore
     register_environment_variables()
     print(f'Environment variables are updated to configuration.\n {AskedEnvironBindItemCollection.asdict}')
     print('To apply these changes, a restart of the application may be required.')
@@ -57,11 +58,22 @@ def drop_environment_variables():
     bus=ConfigBus()
 
     AskedEnvironBindItemCollection = ask_for_appendable_values()
+
+    ev_in_cfg: Optional[DictConfig]=bus.get_value('environment.variables')
+    if not ev_in_cfg:
+        print('No environment variables are currently bound to the configuration.')
+        ev_in_cfg=DictConfig({})
+        
+
     if AskedEnvironBindItemCollection:
         for key, val in AskedEnvironBindItemCollection.asdict.items():
-            if key in bus.cfg.environment.variables:
-                del bus.cfg.environment.variables[key]
+            if key in ev_in_cfg:
+                del ev_in_cfg[key]
             if key in os.environ:
                 del os.environ[key]
+        # update the config
+        bus.set_value('environment.variables', ev_in_cfg) # type: ignore
+
+        print('The environment variables are unbound agaist the configuration.')
 
 
