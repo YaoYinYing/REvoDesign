@@ -647,7 +647,12 @@ class AskedValue:
         typing (type): The expected data type for the field's value.
         reason (Optional[str]): Additional description or reason for the field.
         required (bool): Indicates whether the field is mandatory.
-        choices (Optional[Union[List, Tuple, range]]): Specifies available choices for the field.
+        choices (Optional[Union[List, Tuple, Callable[[], Union[List, Tuple]]]]):
+            Specifies available choices for the field. Can be:
+            - List[Any]: A predefined list of options.
+            - Tuple[Any]: A predefined tuple of options.
+            - range: A range of values.
+            - Callable[[], Union[List, Tuple]]: A function to dynamically generate options.
         file (bool): Whether the value is a file path, triggering a file browse button. Defaults to False.
     """
     key: str
@@ -655,8 +660,8 @@ class AskedValue:
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[List, Tuple, range]] = None
-    file: bool = False  # New attribute for file browsing
+    choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
+    file: bool = False
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -865,25 +870,36 @@ class ValueDialog(QtWidgets.QDialog):
         self.table.setCellWidget(row, 1, type_label)
 
         # Column 2: Input widget
-        if isinstance(asked_value.choices, list):
+        choices = asked_value.choices
+        if callable(choices):
+            try:
+                choices = choices()
+            except Exception as e:
+                QtWidgets.QMessageBox.warning(
+                    self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
+                )
+                choices = []
+
+        # Column 2: Input widget
+        if isinstance(choices, list):
             # MultiCheckableComboBox for list of choices
-            widget = MultiCheckableComboBox(choices=asked_value.choices)
+            widget = MultiCheckableComboBox(choices=choices)
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
-        elif isinstance(asked_value.choices, range):
+        elif isinstance(choices, range):
             # QSpinBox or QDoubleSpinBox for range of numbers
             if asked_value.typing == float:
                 widget = QtWidgets.QDoubleSpinBox()
-                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
+                widget.setRange(choices.start, choices.stop)
                 widget.setSingleStep(0.1)  # Increment step for floating-point numbers
             else:
                 widget = QtWidgets.QSpinBox()
-                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
-            widget.setValue(asked_value.val if asked_value.val else asked_value.choices.start)
-        elif isinstance(asked_value.choices, tuple):
+                widget.setRange(choices.start, choices.stop)
+            widget.setValue(asked_value.val if asked_value.val else choices.start)
+        elif isinstance(choices, tuple):
             # QComboBox for tuple of any
             widget = QtWidgets.QComboBox()
-            widget.addItems(map(str, asked_value.choices))
+            widget.addItems(map(str, choices))
             if asked_value.val:
                 widget.setCurrentText(str(asked_value.val))
         elif asked_value.typing == bool:
