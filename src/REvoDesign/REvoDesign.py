@@ -42,7 +42,9 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
-from REvoDesign.shortcuts.shortcut_tools import menu_dump_sidechains
+from REvoDesign.shortcuts.shortcut_tools import (menu_color_by_plddt,
+                                                 menu_dump_sidechains,
+                                                 menu_pssm2csv, menu_real_sc)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,
@@ -288,6 +290,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.bus.ui.actionRenderAllSidechains,
                     menu_dump_sidechains,
                     {'dump_all': True},
+                ),
+                MenuItem(
+                    self.bus.ui.actionColor_by_pLDDT,
+                    menu_color_by_plddt
+                ),
+                MenuItem(
+                    self.bus.ui.actionShow_Real_Sidechain,
+                    menu_real_sc
+                ),
+                MenuItem(
+                    self.bus.ui.actionPSSM_to_CSV,
+                    menu_pssm2csv
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,

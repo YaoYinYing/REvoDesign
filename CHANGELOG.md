@@ -20,14 +20,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Menu:
+- Menu shortcuts:
   - Dump sidechains
   - Environment variables add/drops
+  - Real SC
+  - PSSM to CSV
+  - Color by pLDDT
 - Customized widgets:
   - `MultiCheckableComboBox`: Multiple checkable items in one widget.
-  - `ValueDialog`: Fixed-keys Value input dialog.
+  - `ValueDialog`: Fixed-keys Value input dialog with:
+    - **Dynamic "Action" Column**: Shows "Browse" buttons for file inputs (`file=True`).
+    - **Column Visibility**: Automatically hides the "Action" column when no file inputs are required.
   - `AppendableValueDialog`: Appendable Value input dialog.
 - `real_bool`: Flexible bool type.
+- Wrapping Normal Functions into Menu Dialogs.
+  - `@dialog_wrapper` to simplify wrapping functions for dialog-based input collection.
+  - Workflow:
+    1. Define the target function.
+    2. Wrap the function using `@dialog_wrapper` with `AskedValue` options.
+    3. Create a menu function to handle dynamic inputs and invoke the wrapped function.
+    4. Integrate the dialog with file browsing functionality for fields requiring file paths.
 
 ### Changed
 
@@ -35,6 +47,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - refactored menubar
 
 ### Fixed
+- typos: 
+  - `tools/release_tag.sh`: `Dump version` -> `Bump version`
+  - `src/REvoDesign/shortcuts/shortcuts.py`: `neiborhood` -> `neighborhood`
 
 ### Removed
 

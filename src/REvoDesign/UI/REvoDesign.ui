@@ -4792,12 +4792,17 @@
     <addaction name="actionRender_to_File"/>
     <addaction name="separator"/>
     <addaction name="menuRenderSidechains"/>
+    <addaction name="separator"/>
+    <addaction name="actionPSSM_to_CSV"/>
    </widget>
    <widget class="QMenu" name="menuStyle">
     <property name="title">
      <string>Style</string>
     </property>
     <addaction name="actionStyle_Presets"/>
+    <addaction name="separator"/>
+    <addaction name="actionColor_by_pLDDT"/>
+    <addaction name="actionShow_Real_Sidechain"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5039,7 +5044,7 @@
   </action>
   <action name="actionRenderPickedSidechainObject">
    <property name="text">
-    <string>Picked Object</string>
+    <string>Picked Objects</string>
    </property>
   </action>
   <action name="actionContact">
@@ -5066,6 +5071,21 @@
    </property>
    <property name="text">
     <string>Recent</string>
+   </property>
+  </action>
+  <action name="actionColor_by_pLDDT">
+   <property name="text">
+    <string>Color by pLDDT</string>
+   </property>
+  </action>
+  <action name="actionShow_Real_Sidechain">
+   <property name="text">
+    <string>Show Real Sidechain</string>
+   </property>
+  </action>
+  <action name="actionPSSM_to_CSV">
+   <property name="text">
+    <string>PSSM to CSV</string>
    </property>
   </action>
  </widget>

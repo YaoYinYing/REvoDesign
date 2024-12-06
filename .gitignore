@@ -59,3 +59,4 @@ classes.dot
 /tests/data/mutagenese/checkpoints
 src/REvoDesign/UI/Ui_REvoDesign-PyMOL-entry.py
 /png
+tests/data/pssm/1nww_A_ascii_mtx_file.csv

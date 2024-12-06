@@ -4,11 +4,13 @@ Custom widgets for REvoDesign.
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
+from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
@@ -636,12 +638,25 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
 
 @dataclass
 class AskedValue:
+    """
+    Represents a single input field in the ValueDialog.
+
+    Attributes:
+        key (str): The unique identifier or label for the input field.
+        val (Optional[Any]): The default or current value of the field.
+        typing (type): The expected data type for the field's value.
+        reason (Optional[str]): Additional description or reason for the field.
+        required (bool): Indicates whether the field is mandatory.
+        choices (Optional[Union[List, Tuple, range]]): Specifies available choices for the field.
+        file (bool): Whether the value is a file path, triggering a file browse button. Defaults to False.
+    """
     key: str
     val: Optional[Any] = None
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[Tuple, List]] = None  # selectable choices
+    choices: Optional[Union[List, Tuple, range]] = None
+    file: bool = False  # New attribute for file browsing
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -710,14 +725,24 @@ def real_bool(val: Any):
 
 @dataclass
 class AskedValueCollection:
+    """
+    Represents a collection of AskedValue objects, along with a banner message.
+
+    Attributes:
+        asked_values (List[AskedValue]): List of input fields for the dialog.
+        banner (Optional[str]): A message to be displayed at the top of the dialog.
+    """
     asked_values: List[AskedValue] = field(default_factory=list)
     banner: Optional[str] = None  # a banner message
 
     @property
     def asdict(self) -> Dict[str, Any]:
         """
+        Converts the collection into a dictionary where the keys are the field labels
+        and the values are their corresponding inputs.
+
         Returns:
-            Dict[str, Any]: A dictionary of the values in the collection.
+            Dict[str, Any]: A dictionary representation of the collection.
         """
         return {
             asked.key: asked.typing(
@@ -725,24 +750,50 @@ class AskedValueCollection:
                 asked.val) for asked in self.asked_values}
 
     def __bool__(self):
+        """
+        Evaluates the truthiness of the collection.
+
+        Returns:
+            bool: True if the collection contains at least one AskedValue.
+        """
         return bool(self.asked_values)
 
 
 class ValueDialog(QtWidgets.QDialog):
+    """
+    A dialog box for collecting user input based on a collection of AskedValue objects.
+
+    Attributes:
+        title (str): The title of the dialog box.
+        key_dict (AskedValueCollection): The collection of fields and their attributes.
+        updated_values (List[AskedValue]): Stores the user-provided inputs.
+    """
+
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
+        """
+        Initializes the ValueDialog with a given title and collection of AskedValue objects.
+
+        Args:
+            title (str): The title of the dialog box.
+            key_dict (AskedValueCollection): The collection of fields to display in the dialog.
+            parent (Optional[QWidget]): The parent widget of the dialog.
+        """
         super().__init__(parent)
         self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
         self.updated_values = []
 
+        # Check if any AskedValue has file=True
+        self.has_file_action = any(asked_value.file for asked_value in self.key_dict)
+
         # Main layout
         self.layout = QtWidgets.QVBoxLayout()
 
-        # Add scrollable banner at the top
+        # Add banner at the top
         if key_dict.banner:
             banner_label = QtWidgets.QLabel(key_dict.banner)
             banner_label.setWordWrap(True)
-            banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # Align text to the top-left
+            banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
             banner_label.setStyleSheet("""
                 font-size: 14px;
                 font-weight: bold;
@@ -752,20 +803,35 @@ class ValueDialog(QtWidgets.QDialog):
                 border: 1px solid #ccc;
                 border-radius: 5px;
             """)
+            self.layout.addWidget(banner_label)
 
-            # Wrap banner in a scrollable area
-            scroll_area = QtWidgets.QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setWidget(banner_label)
-            scroll_area.setMaximumHeight(150)  # Set max height for the banner area
-            scroll_area.setStyleSheet("border: none;")  # Remove scroll area border
+        # Create the table with four columns
+        self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
+        self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
+        self.table.horizontalHeader().setStretchLastSection(True)
 
-            self.layout.addWidget(scroll_area)
+        # Configure the header
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Input column
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
 
-        self.input_fields = {}
+        self.table.verticalHeader().setVisible(False)  # Hide row numbers
+        self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
+        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
+        # Hide "Action" column if no file actions
+        if not self.has_file_action:
+            self.table.setColumnHidden(3, True)
 
-        for item in key_dict.asked_values:
-            self._add_field(item)
+        self.input_fields: Dict[str, Any] = {}
+        self.input_fields_data_pair: Dict[str, AskedValue] = {}
+
+        # Add fields to the table
+        for row, item in enumerate(key_dict.asked_values):
+            self._add_field_to_table(row, item)
+
+        self.layout.addWidget(self.table)
 
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
@@ -780,41 +846,108 @@ class ValueDialog(QtWidgets.QDialog):
 
         self.setLayout(self.layout)
 
-    def _add_field(self, asked_value: AskedValue):
-        label = QtWidgets.QLabel(f"{asked_value.key} ({str(asked_value.typing)}):")
+    def _add_field_to_table(self, row: int, asked_value: AskedValue):
+        """
+        Adds a key-value pair to the table as a row.
 
-        if asked_value.choices:
-            # Create a MultiCheckableComboBox for choices
-            widget = MultiCheckableComboBox(choices=list(asked_value.choices))
+        Args:
+            row (int): The row number to add the field.
+            asked_value (AskedValue): The field details.
+        """
+        # Column 0: Field label
+        key_label = QtWidgets.QLabel(asked_value.key)
+        key_label.setToolTip(asked_value.reason or "")
+        self.table.setCellWidget(row, 0, key_label)
+
+        # Column 1: Typing information
+        type_label = QtWidgets.QLabel(asked_value.typing.__name__)
+        type_label.setToolTip(f"Expected type: {asked_value.typing.__name__}")
+        self.table.setCellWidget(row, 1, type_label)
+
+        # Column 2: Input widget
+        if isinstance(asked_value.choices, list):
+            # MultiCheckableComboBox for list of choices
+            widget = MultiCheckableComboBox(choices=asked_value.choices)
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
+        elif isinstance(asked_value.choices, range):
+            # QSpinBox or QDoubleSpinBox for range of numbers
+            if asked_value.typing == float:
+                widget = QtWidgets.QDoubleSpinBox()
+                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
+                widget.setSingleStep(0.1)  # Increment step for floating-point numbers
+            else:
+                widget = QtWidgets.QSpinBox()
+                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
+            widget.setValue(asked_value.val if asked_value.val else asked_value.choices.start)
+        elif isinstance(asked_value.choices, tuple):
+            # QComboBox for tuple of any
+            widget = QtWidgets.QComboBox()
+            widget.addItems(map(str, asked_value.choices))
+            if asked_value.val:
+                widget.setCurrentText(str(asked_value.val))
+        elif asked_value.typing == bool:
+            widget = QtWidgets.QComboBox()
+            widget.addItems(["True", "False"])
+            widget.setCurrentText(str(asked_value.val))
         else:
-            # Create a LineEdit for regular fields
+            # Default: QLineEdit
             widget = QtWidgets.QLineEdit()
-            widget.setText(str(asked_value.val))
-
-        if asked_value.reason:
-            label.setToolTip(asked_value.reason)
-            widget.setToolTip(asked_value.reason)
-
-        if asked_value.required:
-            if isinstance(widget, QtWidgets.QLineEdit):
+            widget.setText(str(asked_value.val) if asked_value.val is not None else "")
+            if asked_value.required:
                 widget.setPlaceholderText("Required")
 
+        widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget
+        self.input_fields_data_pair[asked_value.key] = asked_value
+        self.table.setCellWidget(row, 2, widget)
 
-        field_layout = QtWidgets.QVBoxLayout()
-        field_layout.addWidget(label)
-        field_layout.addWidget(widget)
+        # Column 3: Action button if file=True
+        if asked_value.file:
+            action_button = QtWidgets.QPushButton("Browse")
+            action_button.clicked.connect(
+                lambda: self._browse_file(widget, asked_value)
+            )
+            self.table.setCellWidget(row, 3, action_button)
 
-        self.layout.addLayout(field_layout)
+    def _browse_file(self, widget, asked_value: AskedValue):
+        """
+        Opens a file dialog to select a file and updates the input field.
+
+        Args:
+            widget (QWidget): The input widget to update with the selected file path.
+            asked_value (AskedValue): The field configuration.
+        """
+        # prevent circular import
+        from REvoDesign.driver.file_dialog import FileDialog
+
+        file_dialog = FileDialog(None, os.getcwd())
+        selected_file = file_dialog.browse_filename(
+            mode="r", exts=(FileExtentions.Any,)
+        )
+        if selected_file:
+            widget.setText(selected_file)
 
     def _on_ok_clicked(self):
+        """
+        Handles the OK button click. Collects user inputs and validates required fields.
+        """
         self.updated_values = []
         for key, widget in self.input_fields.items():
             if isinstance(widget, MultiCheckableComboBox):
+                # MultiCheckableComboBox returns a list of selected items
                 value = widget.get_checked_items()
+            elif isinstance(widget, QtWidgets.QSpinBox) or isinstance(widget, QtWidgets.QDoubleSpinBox):
+                # SpinBox or DoubleSpinBox returns a single value
+                value = widget.value()
+            elif isinstance(widget, QtWidgets.QComboBox):
+                # ComboBox returns the selected value
+                if self.input_fields_data_pair[key].typing != bool:
+                    value = widget.currentText()
+                else:
+                    value = widget.currentText() == 'True'
             elif isinstance(widget, QtWidgets.QLineEdit):
+                # LineEdit returns a single string
                 value = widget.text().strip()
             else:
                 value = None
@@ -847,7 +980,23 @@ def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[Asked
 
 
 class AppendableValueDialog(QtWidgets.QDialog):
+    """
+    A dialog box that allows users to dynamically add, edit, and remove key-value pairs.
+
+    This dialog supports appending new rows with key-value pairs, where users can
+    manage their entries interactively. The interface is scrollable to handle large numbers of rows.
+
+    Attributes:
+        row_widgets (List[Tuple[QHBoxLayout, QLineEdit, QLineEdit]]): Keeps track of all rows in the dialog.
+    """
+
     def __init__(self, parent=None):
+        """
+        Initializes the AppendableValueDialog.
+
+        Args:
+            parent (Optional[QWidget]): The parent widget of the dialog.
+        """
         super().__init__(parent)
         self.setWindowTitle("Dynamic Key-Value Pairs")
         self.setMinimumWidth(400)
@@ -889,7 +1038,13 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.setLayout(self.layout)
 
     def _add_row(self, key: str = "", val: str = ""):
-        """Add a new row with a key and value field and a remove button."""
+        """
+        Adds a new row for entering a key-value pair.
+
+        Args:
+            key (str): The default text for the key field.
+            val (str): The default text for the value field.
+        """
         row_layout = QtWidgets.QHBoxLayout()
 
         # Key field
@@ -919,7 +1074,12 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self._adjust_dialog_height()
 
     def _remove_row(self, row_layout):
-        """Remove a specific row layout and clean up its references."""
+        """
+        Removes a specific row from the dialog.
+
+        Args:
+            row_layout (QHBoxLayout): The row layout to be removed.
+        """
         for i, (layout, key_edit, val_edit) in enumerate(self.row_widgets):
             if layout == row_layout:
                 # Remove all widgets in the row
@@ -937,14 +1097,20 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self._adjust_dialog_height()
 
     def _adjust_dialog_height(self):
-        """Adjust dialog height dynamically based on the number of rows."""
+        """
+        Dynamically adjusts the height of the dialog based on the number of rows.
+        """
         row_height = 30  # Approximate height of a row
         max_height = 600  # Maximum height for the dialog
         new_height = min(max_height, 150 + len(self.row_widgets) * row_height)
         self.resize(self.width(), new_height)
 
     def _on_ok_clicked(self):
-        """Collect and return valid data."""
+        """
+        Handles the OK button click. Collects all key-value pairs and validates input.
+
+        Discards rows with empty keys and processes valid rows.
+        """
         self.updated_values = []
         for _, key_edit, val_edit in self.row_widgets:
             key = key_edit.text().strip()
@@ -954,6 +1120,12 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.accept()
 
     def get_values(self) -> AskedValueCollection:
+        """
+        Retrieves the user-provided key-value pairs as an AskedValueCollection.
+
+        Returns:
+            AskedValueCollection: A collection of the key-value pairs entered by the user.
+        """
         return AskedValueCollection(getattr(self, "updated_values", []))
 
 
@@ -961,6 +1133,53 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
     dialog = AppendableValueDialog()
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return dialog.get_values()
+
+
+def dialog_wrapper(
+    title: str,
+    banner: str,
+    options: Tuple[AskedValue, ...],
+) -> Callable:
+    """
+    A decorator to wrap a function and generate a dialog for user input.
+
+    Args:
+        title (str): The title of the dialog.
+        banner (str): A banner message to display at the top of the dialog.
+        options (Tuple[AskedValue, ...]): The static list of AskedValue objects to include in the dialog.
+
+    Returns:
+        Callable: The wrapped function that collects input from a dialog before execution.
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Prepare dynamic values with optional index
+            dynamic_values_with_index = kwargs.pop("dynamic_values", [])
+            dynamic_values_with_index = sorted(
+                dynamic_values_with_index, key=lambda x: x.get("index", len(options))
+            )
+
+            # Merge static and dynamic options based on index
+            all_options = list(options)
+            for dynamic_value in dynamic_values_with_index:
+                index = dynamic_value.get("index", len(all_options))
+                all_options.insert(index, dynamic_value["value"])
+
+            # Create the dialog
+            values = ask_for_values(
+                title,
+                AskedValueCollection(all_options, banner=banner),
+            )
+
+            # Exit if dialog is canceled
+            if not values:
+                return
+
+            # Extract values from the dialog and pass them to the wrapped function
+            func(**values.asdict)
+        return wrapper
+    return decorator
 
 
 __all__ = [
