@@ -1,6 +1,5 @@
 from ..driver.ui_driver import ConfigBus
-from ..tools.customized_widgets import (AskedValue, AskedValueCollection,
-                                        ask_for_values, dialog_wrapper)
+from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import color_by_plddt, dump_sidechains
@@ -143,7 +142,13 @@ def wrapped_color_by_plddt(**kwargs):
     Args:
         **kwargs: Parameters collected from the dialog.
     """
-    color_by_plddt(**kwargs)
+    with timing("Coloring by pLDDT"):
+        print(kwargs)
+        run_worker_thread_with_progress(
+            color_by_plddt,
+            **kwargs,
+            progress_bar=ConfigBus().ui.progressBar
+        )
 
 
 def menu_color_by_plddt():
