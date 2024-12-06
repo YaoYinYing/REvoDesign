@@ -456,6 +456,7 @@ def dump_sidechains(
     ray: bool = True,
     hide_mesh: bool = True,
     neighborhood: int = 3,
+    reorient: bool = True,
     recenter: bool = False,
 ):
     """
@@ -470,6 +471,8 @@ def dump_sidechains(
       ray (bool, optional): If True, uses ray tracing. Defaults to True.
       hide_mesh (bool, optional): If True, hides the mesh. Defaults to True.
       neighborhood (int, optional): Zoom with neighborhood. Defaults to 3.
+      reorient (bool, optional): If True, re-orients the residue. Defaults to True to prevent automatic orientation.
+        Useful when user wants to dump the residue they just focused on.
       recenter (bool, optional): If True, re-centers the resiude. Defaults to False.
     Returns:
       None
@@ -487,6 +490,7 @@ def dump_sidechains(
 
     # disable all groups
     cmd.disable(' or '.join(all_groups))
+    cmd.refresh()
 
     for sel in sele:
         # ensure the current group selection is enabled
@@ -499,10 +503,11 @@ def dump_sidechains(
         cmd.disable(' or '.join(all_models))
 
         # orient to get pose in the right orientation
-        if neighborhood and neighborhood > 0:
+        if reorient and neighborhood and neighborhood > 0:
             cmd.orient(f'{sel} or byres {sel} around {neighborhood}')
 
         for m in all_models:
+            cmd.refresh()
             print(f"Dumping PNG for {m} ...")
             cmd.enable(m)
             cmd.show("sticks", m)

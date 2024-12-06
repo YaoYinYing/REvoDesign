@@ -636,12 +636,26 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
 
 @dataclass
 class AskedValue:
+    """
+    Represents a single input field in the ValueDialog.
+
+    Attributes:
+        key (str): The unique identifier or label for the input field.
+        val (Optional[Any]): The default or current value of the field.
+        typing (type): The expected data type for the field's value.
+        reason (Optional[str]): Additional description or reason for the field.
+        required (bool): Indicates whether the field is mandatory.
+        choices (Optional[Union[List, Tuple, range]]): Specifies available choices for the field. Can be:
+            - List[Any]: Multiple selectable options (MultiCheckableComboBox).
+            - Tuple[Any]: Single selectable options (QComboBox).
+            - range: Numeric range for SpinBox or DoubleSpinBox.
+    """
     key: str
     val: Optional[Any] = None
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[Tuple, List]] = None  # selectable choices
+    choices: Optional[Union[List[Any], Tuple[Any, ...], range]] = None  # selectable choices
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -710,14 +724,24 @@ def real_bool(val: Any):
 
 @dataclass
 class AskedValueCollection:
+    """
+    Represents a collection of AskedValue objects, along with a banner message.
+
+    Attributes:
+        asked_values (List[AskedValue]): List of input fields for the dialog.
+        banner (Optional[str]): A message to be displayed at the top of the dialog.
+    """
     asked_values: List[AskedValue] = field(default_factory=list)
     banner: Optional[str] = None  # a banner message
 
     @property
     def asdict(self) -> Dict[str, Any]:
         """
+        Converts the collection into a dictionary where the keys are the field labels
+        and the values are their corresponding inputs.
+
         Returns:
-            Dict[str, Any]: A dictionary of the values in the collection.
+            Dict[str, Any]: A dictionary representation of the collection.
         """
         return {
             asked.key: asked.typing(
@@ -725,9 +749,34 @@ class AskedValueCollection:
                 asked.val) for asked in self.asked_values}
 
     def __bool__(self):
+        """
+        Evaluates the truthiness of the collection.
+
+        Returns:
+            bool: True if the collection contains at least one AskedValue.
+        """
         return bool(self.asked_values)
+
+
 class ValueDialog(QtWidgets.QDialog):
+    """
+    A dialog box for collecting user input based on a collection of AskedValue objects.
+
+    Attributes:
+        title (str): The title of the dialog box.
+        key_dict (AskedValueCollection): The collection of fields and their attributes.
+        updated_values (List[AskedValue]): Stores the user-provided inputs.
+    """
+
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
+        """
+        Initializes the ValueDialog with a given title and collection of AskedValue objects.
+
+        Args:
+            title (str): The title of the dialog box.
+            key_dict (AskedValueCollection): The collection of fields to display in the dialog.
+            parent (Optional[QWidget]): The parent widget of the dialog.
+        """
         super().__init__(parent)
         self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
@@ -766,7 +815,8 @@ class ValueDialog(QtWidgets.QDialog):
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
 
-        self.input_fields = {}
+        self.input_fields: Dict[str, Any] = {}
+        self.input_fields_data_pair: Dict[str, AskedValue] = {}
 
         # Add each field to the table
         for row, item in enumerate(key_dict.asked_values):
@@ -788,6 +838,13 @@ class ValueDialog(QtWidgets.QDialog):
         self.setLayout(self.layout)
 
     def _add_field_to_table(self, row: int, asked_value: AskedValue):
+        """
+        Adds a key-value pair to the table as a row.
+
+        Args:
+            row (int): The row number to add the field.
+            asked_value (AskedValue): The field details.
+        """
         # Column 0: Field label
         key_label = QtWidgets.QLabel(asked_value.key)
         key_label.setToolTip(asked_value.reason or "")
@@ -799,15 +856,33 @@ class ValueDialog(QtWidgets.QDialog):
         self.table.setCellWidget(row, 1, type_label)
 
         # Column 2: Input widget
-        if asked_value.choices:
-            widget = MultiCheckableComboBox(choices=list(asked_value.choices))
+        if isinstance(asked_value.choices, list):
+            # MultiCheckableComboBox for list of choices
+            widget = MultiCheckableComboBox(choices=asked_value.choices)
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
+        elif isinstance(asked_value.choices, range):
+            # QSpinBox or QDoubleSpinBox for range of numbers
+            if asked_value.typing == float:
+                widget = QtWidgets.QDoubleSpinBox()
+                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
+                widget.setSingleStep(0.1)  # Increment step for floating-point numbers
+            else:
+                widget = QtWidgets.QSpinBox()
+                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
+            widget.setValue(asked_value.val if asked_value.val else asked_value.choices.start)
+        elif isinstance(asked_value.choices, tuple):
+            # QComboBox for tuple of any
+            widget = QtWidgets.QComboBox()
+            widget.addItems(map(str, asked_value.choices))
+            if asked_value.val:
+                widget.setCurrentText(str(asked_value.val))
         elif asked_value.typing == bool:
             widget = QtWidgets.QComboBox()
             widget.addItems(["True", "False"])
             widget.setCurrentText(str(asked_value.val))
         else:
+            # Default: QLineEdit
             widget = QtWidgets.QLineEdit()
             widget.setText(str(asked_value.val) if asked_value.val is not None else "")
             if asked_value.required:
@@ -815,16 +890,29 @@ class ValueDialog(QtWidgets.QDialog):
 
         widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget
+        self.input_fields_data_pair[asked_value.key] = asked_value
         self.table.setCellWidget(row, 2, widget)
 
     def _on_ok_clicked(self):
+        """
+        Handles the OK button click. Collects user inputs and validates required fields.
+        """
         self.updated_values = []
         for key, widget in self.input_fields.items():
             if isinstance(widget, MultiCheckableComboBox):
+                # MultiCheckableComboBox returns a list of selected items
                 value = widget.get_checked_items()
+            elif isinstance(widget, QtWidgets.QSpinBox) or isinstance(widget, QtWidgets.QDoubleSpinBox):
+                # SpinBox or DoubleSpinBox returns a single value
+                value = widget.value()
             elif isinstance(widget, QtWidgets.QComboBox):
-                value = widget.currentText() == "True"
+                # ComboBox returns the selected value
+                if self.input_fields_data_pair[key].typing != bool:
+                    value = widget.currentText()
+                else:
+                    value = widget.currentText() == 'True'
             elif isinstance(widget, QtWidgets.QLineEdit):
+                # LineEdit returns a single string
                 value = widget.text().strip()
             else:
                 value = None
@@ -857,7 +945,23 @@ def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[Asked
 
 
 class AppendableValueDialog(QtWidgets.QDialog):
+    """
+    A dialog box that allows users to dynamically add, edit, and remove key-value pairs.
+
+    This dialog supports appending new rows with key-value pairs, where users can
+    manage their entries interactively. The interface is scrollable to handle large numbers of rows.
+
+    Attributes:
+        row_widgets (List[Tuple[QHBoxLayout, QLineEdit, QLineEdit]]): Keeps track of all rows in the dialog.
+    """
+
     def __init__(self, parent=None):
+        """
+        Initializes the AppendableValueDialog.
+
+        Args:
+            parent (Optional[QWidget]): The parent widget of the dialog.
+        """
         super().__init__(parent)
         self.setWindowTitle("Dynamic Key-Value Pairs")
         self.setMinimumWidth(400)
@@ -899,7 +1003,13 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.setLayout(self.layout)
 
     def _add_row(self, key: str = "", val: str = ""):
-        """Add a new row with a key and value field and a remove button."""
+        """
+        Adds a new row for entering a key-value pair.
+
+        Args:
+            key (str): The default text for the key field.
+            val (str): The default text for the value field.
+        """
         row_layout = QtWidgets.QHBoxLayout()
 
         # Key field
@@ -929,7 +1039,12 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self._adjust_dialog_height()
 
     def _remove_row(self, row_layout):
-        """Remove a specific row layout and clean up its references."""
+        """
+        Removes a specific row from the dialog.
+
+        Args:
+            row_layout (QHBoxLayout): The row layout to be removed.
+        """
         for i, (layout, key_edit, val_edit) in enumerate(self.row_widgets):
             if layout == row_layout:
                 # Remove all widgets in the row
@@ -947,14 +1062,20 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self._adjust_dialog_height()
 
     def _adjust_dialog_height(self):
-        """Adjust dialog height dynamically based on the number of rows."""
+        """
+        Dynamically adjusts the height of the dialog based on the number of rows.
+        """
         row_height = 30  # Approximate height of a row
         max_height = 600  # Maximum height for the dialog
         new_height = min(max_height, 150 + len(self.row_widgets) * row_height)
         self.resize(self.width(), new_height)
 
     def _on_ok_clicked(self):
-        """Collect and return valid data."""
+        """
+        Handles the OK button click. Collects all key-value pairs and validates input.
+
+        Discards rows with empty keys and processes valid rows.
+        """
         self.updated_values = []
         for _, key_edit, val_edit in self.row_widgets:
             key = key_edit.text().strip()
@@ -964,6 +1085,12 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.accept()
 
     def get_values(self) -> AskedValueCollection:
+        """
+        Retrieves the user-provided key-value pairs as an AskedValueCollection.
+
+        Returns:
+            AskedValueCollection: A collection of the key-value pairs entered by the user.
+        """
         return AskedValueCollection(getattr(self, "updated_values", []))
 
 
