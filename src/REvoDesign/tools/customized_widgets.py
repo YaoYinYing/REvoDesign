@@ -10,7 +10,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import matplotlib
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
-
 from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
 
@@ -636,6 +635,7 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
 
     return
 
+
 @dataclass
 class AskedValue:
     """
@@ -657,7 +657,6 @@ class AskedValue:
     required: bool = False
     choices: Optional[Union[List, Tuple, range]] = None
     file: bool = False  # New attribute for file browsing
-
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -758,6 +757,7 @@ class AskedValueCollection:
             bool: True if the collection contains at least one AskedValue.
         """
         return bool(self.asked_values)
+
 
 class ValueDialog(QtWidgets.QDialog):
     """
@@ -918,7 +918,8 @@ class ValueDialog(QtWidgets.QDialog):
             widget (QWidget): The input widget to update with the selected file path.
             asked_value (AskedValue): The field configuration.
         """
-        from REvoDesign.driver.file_dialog import FileDialog # prevent circular import
+        # prevent circular import
+        from REvoDesign.driver.file_dialog import FileDialog
 
         file_dialog = FileDialog(None, os.getcwd())
         selected_file = file_dialog.browse_filename(
@@ -926,7 +927,6 @@ class ValueDialog(QtWidgets.QDialog):
         )
         if selected_file:
             widget.setText(selected_file)
-
 
     def _on_ok_clicked(self):
         """
