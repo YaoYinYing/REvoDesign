@@ -814,7 +814,7 @@ class ValueDialog(QtWidgets.QDialog):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)          # Input column
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Input column
         header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
 
         self.table.verticalHeader().setVisible(False)  # Hide row numbers
