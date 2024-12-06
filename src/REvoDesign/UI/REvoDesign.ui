@@ -4798,6 +4798,7 @@
      <string>Style</string>
     </property>
     <addaction name="actionStyle_Presets"/>
+    <addaction name="actionColor_by_pLDDT"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5039,7 +5040,7 @@
   </action>
   <action name="actionRenderPickedSidechainObject">
    <property name="text">
-    <string>Picked Object</string>
+    <string>Picked Objects</string>
    </property>
   </action>
   <action name="actionContact">
@@ -5066,6 +5067,11 @@
    </property>
    <property name="text">
     <string>Recent</string>
+   </property>
+  </action>
+  <action name="actionColor_by_pLDDT">
+   <property name="text">
+    <string>Color by pLDDT</string>
    </property>
   </action>
  </widget>

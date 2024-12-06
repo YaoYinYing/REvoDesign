@@ -2,8 +2,9 @@ from ..driver.ui_driver import ConfigBus
 from ..tools.customized_widgets import (AskedValue, AskedValueCollection,
                                         ask_for_values, dialog_wrapper)
 from ..tools.pymol_utils import get_all_groups
-from ..tools.utils import run_worker_thread_with_progress,timing
-from .shortcuts import dump_sidechains
+from ..tools.utils import run_worker_thread_with_progress, timing
+from .shortcuts import color_by_plddt, dump_sidechains
+
 
 @dialog_wrapper(
     title="Dump Sidechains",
@@ -88,6 +89,7 @@ def wrapped_menu_dump_sidechains(**kwargs):
             progress_bar=ConfigBus().ui.progressBar
         )
 
+
 def menu_dump_sidechains(dump_all=False):
     """
     Prepares and launches the sidechain dumping menu.
@@ -108,3 +110,46 @@ def menu_dump_sidechains(dump_all=False):
 
     wrapped_menu_dump_sidechains(dynamic_values=[dynamic_value])
 
+
+@dialog_wrapper(
+    title="Color by pLDDT",
+    banner="Color Predicted Protein structures by pLDDT values recorded in the B-factor column of the PDB file. "
+           "Optionally, align to a target model and chain for comparison.",
+    options=(
+        AskedValue(
+            "selection",
+            "all",
+            typing=str,
+            reason="The PyMOL selection of objects or residues to color."
+        ),
+        AskedValue(
+            "align_target",
+            0,
+            typing=int,
+            reason="The rank order of the target in the selections (1-based). Set 0 to skip alignment."
+        ),
+        AskedValue(
+            "chain_to_align",
+            "A",
+            typing=str,
+            reason="The chain ID to align the selection to."
+        ),
+    )
+)
+def wrapped_color_by_plddt(**kwargs):
+    """
+    Runs the color_by_plddt function with parameters collected from the dialog.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    color_by_plddt(**kwargs)
+
+
+def menu_color_by_plddt():
+    """
+    Launches the wrapped dialog for coloring by pLDDT values.
+
+    Dynamic values, if any, can be appended here before invoking the wrapped function.
+    """
+    wrapped_color_by_plddt()

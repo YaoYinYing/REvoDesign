@@ -1,10 +1,10 @@
 '''
 Custom widgets for REvoDesign.
 '''
-from functools import wraps
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib
@@ -1099,7 +1099,6 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
     dialog = AppendableValueDialog()
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return dialog.get_values()
-
 
 
 def dialog_wrapper(
