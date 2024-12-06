@@ -1,6 +1,7 @@
 '''
 Custom widgets for REvoDesign.
 '''
+from functools import wraps
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -1098,6 +1099,54 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
     dialog = AppendableValueDialog()
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return dialog.get_values()
+
+
+
+def dialog_wrapper(
+    title: str,
+    banner: str,
+    options: Tuple[AskedValue, ...],
+) -> Callable:
+    """
+    A decorator to wrap a function and generate a dialog for user input.
+
+    Args:
+        title (str): The title of the dialog.
+        banner (str): A banner message to display at the top of the dialog.
+        options (Tuple[AskedValue, ...]): The static list of AskedValue objects to include in the dialog.
+
+    Returns:
+        Callable: The wrapped function that collects input from a dialog before execution.
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Prepare dynamic values with optional index
+            dynamic_values_with_index = kwargs.pop("dynamic_values", [])
+            dynamic_values_with_index = sorted(
+                dynamic_values_with_index, key=lambda x: x.get("index", len(options))
+            )
+
+            # Merge static and dynamic options based on index
+            all_options = list(options)
+            for dynamic_value in dynamic_values_with_index:
+                index = dynamic_value.get("index", len(all_options))
+                all_options.insert(index, dynamic_value["value"])
+
+            # Create the dialog
+            values = ask_for_values(
+                title,
+                AskedValueCollection(all_options, banner=banner),
+            )
+
+            # Exit if dialog is canceled
+            if not values:
+                return
+
+            # Extract values from the dialog and pass them to the wrapped function
+            func(**values.asdict)
+        return wrapper
+    return decorator
 
 
 __all__ = [
