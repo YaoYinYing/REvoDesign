@@ -10,6 +10,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import matplotlib
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
+
+from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
@@ -634,7 +636,6 @@ def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
 
     return
 
-
 @dataclass
 class AskedValue:
     """
@@ -646,17 +647,17 @@ class AskedValue:
         typing (type): The expected data type for the field's value.
         reason (Optional[str]): Additional description or reason for the field.
         required (bool): Indicates whether the field is mandatory.
-        choices (Optional[Union[List, Tuple, range]]): Specifies available choices for the field. Can be:
-            - List[Any]: Multiple selectable options (MultiCheckableComboBox).
-            - Tuple[Any]: Single selectable options (QComboBox).
-            - range: Numeric range for SpinBox or DoubleSpinBox.
+        choices (Optional[Union[List, Tuple, range]]): Specifies available choices for the field.
+        file (bool): Whether the value is a file path, triggering a file browse button. Defaults to False.
     """
     key: str
     val: Optional[Any] = None
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[List[Any], Tuple[Any, ...], range]] = None  # selectable choices
+    choices: Optional[Union[List, Tuple, range]] = None
+    file: bool = False  # New attribute for file browsing
+
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -758,7 +759,6 @@ class AskedValueCollection:
         """
         return bool(self.asked_values)
 
-
 class ValueDialog(QtWidgets.QDialog):
     """
     A dialog box for collecting user input based on a collection of AskedValue objects.
@@ -783,10 +783,13 @@ class ValueDialog(QtWidgets.QDialog):
         self.key_dict = key_dict.asked_values
         self.updated_values = []
 
+        # Check if any AskedValue has file=True
+        self.has_file_action = any(asked_value.file for asked_value in self.key_dict)
+
         # Main layout
         self.layout = QtWidgets.QVBoxLayout()
 
-        # Add scrollable banner at the top (if present)
+        # Add banner at the top
         if key_dict.banner:
             banner_label = QtWidgets.QLabel(key_dict.banner)
             banner_label.setWordWrap(True)
@@ -802,24 +805,29 @@ class ValueDialog(QtWidgets.QDialog):
             """)
             self.layout.addWidget(banner_label)
 
-        # Create the table
-        self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)  # Three columns
-        self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
+        # Create the table with four columns
+        self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
+        self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
         self.table.horizontalHeader().setStretchLastSection(True)
-        # Configure the horizontal header for optimal column sizes
+
+        # Configure the header
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column stretches
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column resizes to its content
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)  # Input column stretches
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)          # Input column
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
 
         self.table.verticalHeader().setVisible(False)  # Hide row numbers
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
+        # Hide "Action" column if no file actions
+        if not self.has_file_action:
+            self.table.setColumnHidden(3, True)
 
         self.input_fields: Dict[str, Any] = {}
         self.input_fields_data_pair: Dict[str, AskedValue] = {}
 
-        # Add each field to the table
+        # Add fields to the table
         for row, item in enumerate(key_dict.asked_values):
             self._add_field_to_table(row, item)
 
@@ -893,6 +901,32 @@ class ValueDialog(QtWidgets.QDialog):
         self.input_fields[asked_value.key] = widget
         self.input_fields_data_pair[asked_value.key] = asked_value
         self.table.setCellWidget(row, 2, widget)
+
+        # Column 3: Action button if file=True
+        if asked_value.file:
+            action_button = QtWidgets.QPushButton("Browse")
+            action_button.clicked.connect(
+                lambda: self._browse_file(widget, asked_value)
+            )
+            self.table.setCellWidget(row, 3, action_button)
+
+    def _browse_file(self, widget, asked_value: AskedValue):
+        """
+        Opens a file dialog to select a file and updates the input field.
+
+        Args:
+            widget (QWidget): The input widget to update with the selected file path.
+            asked_value (AskedValue): The field configuration.
+        """
+        from REvoDesign.driver.file_dialog import FileDialog # prevent circular import
+
+        file_dialog = FileDialog(None, os.getcwd())
+        selected_file = file_dialog.browse_filename(
+            mode="r", exts=(FileExtentions.Any,)
+        )
+        if selected_file:
+            widget.setText(selected_file)
+
 
     def _on_ok_clicked(self):
         """

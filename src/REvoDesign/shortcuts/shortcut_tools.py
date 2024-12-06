@@ -1,8 +1,14 @@
+'''
+Shortcut function wrappers for PyMOL.
+From scripts to menu items.
+'''
+
+
 from ..driver.ui_driver import ConfigBus
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
-from .shortcuts import color_by_plddt, dump_sidechains
+from .shortcuts import color_by_plddt, dump_sidechains, pssm2csv, real_sc
 
 
 @dialog_wrapper(
@@ -158,3 +164,86 @@ def menu_color_by_plddt():
     Dynamic values, if any, can be appended here before invoking the wrapped function.
     """
     wrapped_color_by_plddt()
+
+
+@dialog_wrapper(
+    title="PSSM to CSV",
+    banner="Convert a PSSM raw file to a CSV format for downstream processing.",
+    options=(
+        AskedValue(
+            "pssm",
+            "",
+            typing=str,
+            reason="Path to the PSSM raw file to be converted.",
+            file=True,  # Mark this as a file input
+        ),
+    )
+)
+def wrapped_pssm2csv(**kwargs):
+    """
+    Runs the PSSM to CSV conversion process with parameters collected from the dialog.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    with timing("PSSM to CSV Conversion"):
+        print(kwargs)
+        run_worker_thread_with_progress(
+            pssm2csv,
+            **kwargs,
+            progress_bar=ConfigBus().ui.progressBar
+        )
+
+
+def menu_pssm2csv():
+    """
+    Launches the dialog for PSSM to CSV conversion.
+    """
+    wrapped_pssm2csv()
+
+
+@dialog_wrapper(
+    title="Set Sidechain Representation",
+    banner="Set the molecular representation focusing on the sidechain or alpha carbon.",
+    options=(
+        AskedValue(
+            "selection",
+            "(all)",
+            typing=str,
+            reason="Atom selection to apply the representation to. Default is '(all)'."
+        ),
+        AskedValue(
+            "representation",
+            "lines",
+            typing=str,
+            reason="Representation style ('lines', 'sticks', 'spheres', 'dots').",
+            choices=("lines", "sticks", "spheres", "dots"),
+        ),
+        AskedValue(
+            "hydrogen",
+            False,
+            typing=bool,
+            reason="Include hydrogens in the representation if True. Default is False."
+        ),
+    )
+)
+def wrapped_real_sc(**kwargs):
+    """
+    Runs the real_sc function with parameters collected from the dialog.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    with timing("Set Sidechain Representation"):
+        print(kwargs)
+        run_worker_thread_with_progress(
+            real_sc,
+            **kwargs,
+            progress_bar=ConfigBus().ui.progressBar
+        )
+
+def menu_real_sc():
+    """
+    Launches the dialog for setting sidechain representation.
+    """
+    wrapped_real_sc()
