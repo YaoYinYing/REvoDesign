@@ -652,7 +652,7 @@ class AskedValue:
             - List[Any]: A predefined list of options.
             - Tuple[Any]: A predefined tuple of options.
             - range: A range of values.
-            - Callable[[], Union[List, Tuple]]: A function to dynamically generate options.
+            - Callable[[], Union[List, Tuple, range]]: A function to dynamically generate options.
         file (bool): Whether the value is a file path, triggering a file browse button. Defaults to False.
     """
     key: str
