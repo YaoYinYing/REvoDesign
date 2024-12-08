@@ -4809,6 +4809,7 @@
      <string>Tools</string>
     </property>
     <addaction name="actionSMILES_Conformers"/>
+    <addaction name="actionSMILES_Conformers_Batch"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5098,6 +5099,11 @@
   <action name="actionSMILES_Conformers">
    <property name="text">
     <string>SMILES Conformers</string>
+   </property>
+  </action>
+  <action name="actionSMILES_Conformers_Batch">
+   <property name="text">
+    <string>SMILES Conformers Batch</string>
    </property>
   </action>
  </widget>

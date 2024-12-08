@@ -5,7 +5,7 @@ import itertools
 import os
 import subprocess
 import warnings
-from typing import Dict, List, Union
+from typing import Dict, List, Literal, Union
 
 from Bio.Align import substitution_matrices
 from Bio.Align.substitution_matrices import Array
@@ -552,13 +552,19 @@ def smiles_conformer_single(ligand_name: str, smiles: str, num_conformer: int, s
     return smiles_conformer_batch(smi={ligand_name: smiles}, num_conformer=num_conformer, save_dir=save_dir)
 
 
-def visualize_conformer_sdf(sdf_file_path):
+def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal['New Window', 'Current Window']):
     """
     Visualize a ligand conformer file (SDF) in a new PyMOL window.
 
     Args:
         sdf_file_path (str): Path to the SDF file containing the conformers.
     """
+    if show_conformer == 'Current Window':
+        # cmd.reinitialize()
+        cmd.load(sdf_file_path)
+        return
+    
+
     # Get the absolute path of the directory containing the SDF file
     tmpdir = os.path.abspath(os.path.dirname(sdf_file_path))
     # Get the base name of the SDF file

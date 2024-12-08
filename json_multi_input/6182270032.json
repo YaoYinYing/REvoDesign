@@ -1,0 +1,7 @@
+{
+    "OPY": "C1=CC(=CC=C1C[C@@H](C(=O)O)N)OP(=O)(O)O",
+    "ASA": "CC(=O)OC1=CC=CC=C1C(=O)O",
+    "CAF": "CN1C=NC2=C1C(=O)N(C(=O)N2C)C",
+    "EGI": "C1CC1C(=O)NC2=CC=CC(=C2)NC3=NC=NC(=C3)NC4=CC=CC(=C4)C(F)(F)F",
+    "MOR": "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)O)O[C@H]3[C@H](C=C4)O"
+}

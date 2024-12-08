@@ -1,11 +1,12 @@
 '''
 Custom widgets for REvoDesign.
 '''
+import json
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union, runtime_checkable
+from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple, Union, runtime_checkable
 
 import matplotlib
 import pandas as pd
@@ -676,8 +677,12 @@ class AskedValue:
             - Tuple[Any]: A predefined tuple of options.
             - range: A range of values.
             - Callable[[], Union[List, Tuple, range]]: A function to dynamically generate options.
-        file (bool): Whether the value is a file path, triggering a file browse button. Defaults to False.
-        directory (bool): Whether the value is a directory path, triggering a directory browse button. Defaults to False.
+        source (Literal['None', 'File', 'Directory', 'JsonInput']):
+            Specifies the source of the input field. Can be:
+            - 'None': No specific source.
+            - 'File': Input is expected to be a file path.
+            - 'Directory': Input is expected to be a directory path.
+            - 'JsonInput': Input is expected to be a JSON file input.
     """
     key: str
     val: Optional[Any] = None
@@ -685,8 +690,8 @@ class AskedValue:
     reason: Optional[str] = None
     required: bool = False
     choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
-    file: bool = False
-    directory: bool = False
+    source: Literal['None', 'File', 'Directory', 'JsonInput']='None'
+
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -766,6 +771,10 @@ class AskedValueCollection:
     banner: Optional[str] = None  # a banner message
 
     @property
+    def need_action(self) -> bool:
+        return any(asked.source != 'None' for asked in self.asked_values)
+
+    @property
     def asdict(self) -> Dict[str, Any]:
         """
         Converts the collection into a dictionary where the keys are the field labels
@@ -788,20 +797,10 @@ class AskedValueCollection:
         """
         return bool(self.asked_values)
 
-
 class ValueDialog(QtWidgets.QDialog):
-    """
-    A dialog box for collecting user input based on a collection of AskedValue objects.
-
-    Attributes:
-        title (str): The title of the dialog box.
-        key_dict (AskedValueCollection): The collection of fields and their attributes.
-        updated_values (List[AskedValue]): Stores the user-provided inputs.
-    """
-
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
-        Initializes the ValueDialog with a given title and collection of AskedValue objects.
+        Initializes the ValueDialog with specified size policies to ensure a compact and clear layout.
 
         Args:
             title (str): The title of the dialog box.
@@ -814,7 +813,7 @@ class ValueDialog(QtWidgets.QDialog):
         self.updated_values = []
 
         # Check if any AskedValue has file=True
-        self.has_file_action = any(asked_value.file or asked_value.directory for asked_value in self.key_dict)
+        self.has_file_action = key_dict.need_action
 
         # Main layout
         self.layout = QtWidgets.QVBoxLayout()
@@ -836,23 +835,43 @@ class ValueDialog(QtWidgets.QDialog):
             self.layout.addWidget(banner_label)
 
         # Create the table with four columns
-        self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
-        self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
+        if self.has_file_action:
+            self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
+            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Source"])
+        else:
+            self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)
+            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
         self.table.horizontalHeader().setStretchLastSection(True)
 
-        # Configure the header
+
+        # Configure horizontal size policy for compact width
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Input column
-        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)          # Input column 
+        if self.has_file_action:
+            header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
+
+
+        self.table.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum,  # Compact width
+            QtWidgets.QSizePolicy.Policy.Expanding  # Expanding height
+        )
 
         self.table.verticalHeader().setVisible(False)  # Hide row numbers
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
-        # Hide "Action" column if no file actions
-        if not self.has_file_action:
-            self.table.setColumnHidden(3, True)
+
+        # Vertical behavior: Adjust for row count
+        max_visible_rows = 8
+        row_height = self.table.verticalHeader().defaultSectionSize()
+        if len(self.key_dict) > max_visible_rows:
+            self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+            self.table.setMinimumHeight(max_visible_rows * row_height)
+        else:
+            self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+            self.table.setMinimumHeight(len(self.key_dict) * row_height)
+
 
         self.input_fields: Dict[str, Any] = {}
         self.input_fields_data_pair: Dict[str, AskedValue] = {}
@@ -875,6 +894,8 @@ class ValueDialog(QtWidgets.QDialog):
         self.layout.addLayout(button_layout)
 
         self.setLayout(self.layout)
+
+
 
     def _add_field_to_table(self, row: int, asked_value: AskedValue):
         """
@@ -944,18 +965,55 @@ class ValueDialog(QtWidgets.QDialog):
         self.table.setCellWidget(row, 2, widget)
 
         # Column 3: Action button if file=True
-        if asked_value.file:
+        if asked_value.source == "File":
             action_button = QtWidgets.QPushButton("Browse")
+            action_button.setToolTip('Browse for a file')
             action_button.clicked.connect(
                 lambda: self._browse_file(widget)
             )
             self.table.setCellWidget(row, 3, action_button)
-        elif asked_value.directory:
+        elif asked_value.source == "Directory":
             action_button = QtWidgets.QPushButton("Browse")
+            action_button.setToolTip('Browse for a directory')
             action_button.clicked.connect(
                 lambda: widget.setText(getExistingDirectory())
             )
             self.table.setCellWidget(row, 3, action_button)
+        elif asked_value.source == "JsonInput":
+            # Create a container widget for the layout
+            container_widget = QtWidgets.QWidget()
+            button_layout = QtWidgets.QHBoxLayout(container_widget)
+            button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for proper cell fit
+
+            # Create and configure the "Input JSON" button
+            input_action_button = QtWidgets.QPushButton("Input")
+            input_action_button.setToolTip('Browse for an input JSON file')
+            input_action_button.clicked.connect(
+                lambda: widget.setText(ask_for_multiple_values_as_json())
+            )
+            # Set size policy to ResizeToContents
+            input_action_button.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Minimum,
+                QtWidgets.QSizePolicy.Policy.Fixed
+            )
+            button_layout.addWidget(input_action_button)
+
+            # Create and configure the "Load" button
+            load_action_button = QtWidgets.QPushButton("Load")
+            load_action_button.setToolTip(f'Load a auto-savedJSON file($PWD/json_multi_input/***.json)')
+            load_action_button.clicked.connect(
+                lambda: self._browse_file(widget)
+            )
+            # Set size policy to ResizeToContents
+            load_action_button.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Minimum,
+                QtWidgets.QSizePolicy.Policy.Fixed
+            )
+            button_layout.addWidget(load_action_button)
+
+            # Set the container widget as the cell widget
+            self.table.setCellWidget(row, 3, container_widget)
+
 
     def _browse_file(self, widget):
         """
@@ -1179,6 +1237,23 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
     dialog = AppendableValueDialog()
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return dialog.get_values()
+
+
+def ask_for_multiple_values_as_json()-> str:
+    data= ask_for_appendable_values()
+    if not data: # none or empty collection
+        return ''
+    data_id=id(data)
+    json_fp=os.path.join('json_multi_input', f'{data_id}.json' )
+    os.makedirs(os.path.dirname(json_fp), exist_ok=True)
+
+    json.dump(
+        obj=data.asdict, 
+        fp=open(json_fp, 'w'),
+        indent=4,)
+    
+    return json_fp
+    
 
 
 def dialog_wrapper(

@@ -106,6 +106,7 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
+import json
 import os
 from typing import Literal
 
@@ -117,7 +118,7 @@ from ..driver.ui_driver import ConfigBus
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
-from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
+from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc, smiles_conformer_batch,
                         smiles_conformer_single, visualize_conformer_sdf)
 
 
@@ -285,7 +286,7 @@ def menu_color_by_plddt():
             "",
             typing=str,
             reason="Path to the PSSM raw file to be converted.",
-            file=True,  # Mark this as a file input
+            source='File',  # Mark this as a file input
             required=True,
         ),
     )
@@ -390,7 +391,7 @@ def menu_real_sc():
             "./ligands/",
             typing=str,
             reason="Directory to save the conformers.",
-            directory=True,  # Mark this as a directory input
+            source='Directory',  # Mark this as a directory input
         ),
         AskedValue(
             "show_conformer",
@@ -422,11 +423,7 @@ def wrapped_smiles_conformer_single(**kwargs):
     if not os.path.isfile(sdf_path):
         raise issues.NoResultsError(f"No output results found for {kwargs['ligand_name']}. Expected file: {sdf_path}")
 
-    if show_conformer == 'New Window':
-        visualize_conformer_sdf(sdf_path)
-    if show_conformer == 'Current Window':
-        cmd.reinitialize()
-        cmd.load(sdf_path)
+    visualize_conformer_sdf(sdf_path, show_conformer)
 
 
 def menu_smiles_conformer_single():
@@ -434,3 +431,72 @@ def menu_smiles_conformer_single():
     Launches the dialog for generating 3D conformers for a SMILES string.
     """
     wrapped_smiles_conformer_single()
+
+@dialog_wrapper(
+    title="Get SMILES Conformers (Many)",
+    banner="Generate 3D conformers for multiple SMILES strings using RDKit.",
+    options=(
+        AskedValue(
+            "smiles",
+            "",
+            typing=str,
+            reason="Path to SMILES json file to generate conformers for. Each line should be a separate SMILES string.",
+            required=True,
+            source='JsonInput'
+        ),
+        AskedValue(
+            "num_conformer",
+            100,
+            typing=int,
+        ),
+        AskedValue(
+            "save_dir",
+            "./ligands/",
+            typing=str,
+            reason="Directory to save the conformers.",
+            source='Directory',  # Mark this as a directory input
+        ),
+        AskedValue(
+            "n_jobs",
+            1,
+            typing=int,
+            choices=range(1, 16)
+        ),
+        AskedValue(
+            "show_conformer",
+            'None',
+            typing=str,
+            reason="Show the conformer in PyMOL if True. Default is New Window to launch a new window.",
+            choices=('None', 'Current Window', 'New Window')
+        ),
+    )
+)
+def wrapped_smiles_conformer_batch(**kwargs):
+    """
+    Runs the smiles_conformer_batch function with parameters collected from the dialog.
+    """
+    # take out the show_conformer option and handle it separately
+    show_conformer: Literal['None', 'Current Window', 'New Window'] = kwargs.pop("show_conformer")
+
+    smiles=kwargs.pop("smiles")
+    kwargs["smi"] = json.load(open(smiles, 'r'))
+    with timing("Get SMILES Conformers (Many)"):
+        print(kwargs)
+        run_worker_thread_with_progress(
+            smiles_conformer_batch,
+            **kwargs,
+            progress_bar=ConfigBus().ui.progressBar
+        )
+    if show_conformer == 'None':
+        return
+
+    for k in kwargs["smi"]:
+        sdf_path = os.path.join(kwargs["save_dir"], f"{k}.sdf")
+        visualize_conformer_sdf(sdf_path, show_conformer)
+
+
+def menu_smiles_conformer_batch():
+    """
+    Launches the dialog for generating 3D conformers for multiple SMILES strings.
+    """
+    wrapped_smiles_conformer_batch()
