@@ -4804,9 +4804,16 @@
     <addaction name="actionColor_by_pLDDT"/>
     <addaction name="actionShow_Real_Sidechain"/>
    </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionSMILES_Conformers"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuStyle"/>
+   <addaction name="menuTools"/>
    <addaction name="menuExport"/>
    <addaction name="menuHelp"/>
    <addaction name="menuAbout"/>
@@ -5086,6 +5093,11 @@
   <action name="actionPSSM_to_CSV">
    <property name="text">
     <string>PSSM to CSV</string>
+   </property>
+  </action>
+  <action name="actionSMILES_Conformers">
+   <property name="text">
+    <string>SMILES Conformers</string>
    </property>
   </action>
  </widget>

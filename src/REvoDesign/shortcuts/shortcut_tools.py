@@ -106,11 +106,19 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
+import os
+from typing import Literal
+
+from pymol import cmd
+
+from REvoDesign import issues
+
 from ..driver.ui_driver import ConfigBus
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
-from .shortcuts import color_by_plddt, dump_sidechains, pssm2csv, real_sc
+from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
+                        smiles_conformer_single, visualize_conformer_sdf)
 
 
 @dialog_wrapper(
@@ -278,6 +286,7 @@ def menu_color_by_plddt():
             typing=str,
             reason="Path to the PSSM raw file to be converted.",
             file=True,  # Mark this as a file input
+            required=True,
         ),
     )
 )
@@ -350,3 +359,78 @@ def menu_real_sc():
     Launches the dialog for setting sidechain representation.
     """
     wrapped_real_sc()
+
+
+@dialog_wrapper(
+    title="Get SMILES Conformer",
+    banner="Generate 3D conformers for a SMILES string using RDKit.",
+    options=(
+        AskedValue(
+            "ligand_name",
+            "",
+            typing=str,
+            reason="Name for the ligand. This will be used as the filename prefix.",
+            required=True,
+        ),
+        AskedValue(
+            "smiles",
+            "",
+            typing=str,
+            reason="SMILES string to generate conformers for.",
+            required=True,
+        ),
+        AskedValue(
+            "num_conformer",
+            100,
+            typing=int,
+            choices=range(50, 300)
+        ),
+        AskedValue(
+            "save_dir",
+            "./ligands/",
+            typing=str,
+            reason="Directory to save the conformers.",
+            directory=True,  # Mark this as a directory input
+        ),
+        AskedValue(
+            "show_conformer",
+            'New Window',
+            typing=str,
+            reason="Show the conformer in PyMOL if True. Default is New Window to launch a new window.",
+            choices=('None', 'Current Window', 'New Window')
+        ),
+    )
+)
+def wrapped_smiles_conformer_single(**kwargs):
+    """
+    Runs the smiles_conformer_single function with parameters collected from the dialog.
+    """
+    # take out the show_conformer option and handle it separately
+    show_conformer: Literal['None', 'Current Window', 'New Window'] = kwargs.pop("show_conformer")
+    with timing("Get SMILES Conformer"):
+        print(kwargs)
+        run_worker_thread_with_progress(
+            smiles_conformer_single,
+            **kwargs,
+            progress_bar=ConfigBus().ui.progressBar
+        )
+    if show_conformer == 'None':
+        return
+
+    sdf_path = os.path.join(kwargs["save_dir"], f"{kwargs['ligand_name']}.sdf")
+
+    if not os.path.isfile(sdf_path):
+        raise issues.NoResultsError(f"No output results found for {kwargs['ligand_name']}. Expected file: {sdf_path}")
+
+    if show_conformer == 'New Window':
+        visualize_conformer_sdf(sdf_path)
+    if show_conformer == 'Current Window':
+        cmd.reinitialize()
+        cmd.load(sdf_path)
+
+
+def menu_smiles_conformer_single():
+    """
+    Launches the dialog for generating 3D conformers for a SMILES string.
+    """
+    wrapped_smiles_conformer_single()

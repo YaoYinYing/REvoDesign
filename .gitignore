@@ -60,3 +60,5 @@ classes.dot
 src/REvoDesign/UI/Ui_REvoDesign-PyMOL-entry.py
 /png
 tests/data/pssm/1nww_A_ascii_mtx_file.csv
+/src/REvoDesign/editor/static
+/ligands

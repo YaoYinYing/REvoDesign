@@ -26,6 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Real SC
   - PSSM to CSV
   - Color by pLDDT
+  - SMILES conformer sampling, driven by `RosettaPy`'s utils
+    - Visualization:
+      - Current Window
+      - New Window
+- Text Editors:
+  - Qt Text Editor: nearly done (Backup plan)
+  - Monaco Editor: unfinished
+    - Bootstrapable
+    - Syntax highlighting
+    - Code folding
 - Customized widgets:
   - `MultiCheckableComboBox`: Multiple checkable items in one widget.
   - `ValueDialog`: Fixed-keys Value input dialog with:
@@ -40,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     2. Wrap the function using `@dialog_wrapper` with `AskedValue` options.
     3. Create a menu function to handle dynamic inputs and invoke the wrapped function.
     4. Integrate the dialog with file browsing functionality for fields requiring file paths.
+    
+- `Makefile`: added `kw-test` to support testing with customized keywords.
+
 
 ### Changed
 
@@ -52,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `src/REvoDesign/shortcuts/shortcuts.py`: `neiborhood` -> `neighborhood`
 
 ### Removed
+- `src/REvoDesign/tools/pymol_utils.py`
+  - `PYMOL_VERSION` and `PYMOL_BUILD`: no longer needed.
 
 ## [1.7.7] - 2024-12-05
 

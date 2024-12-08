@@ -16,9 +16,6 @@ from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
 
-PYMOL_VERSION = cmd.get_version()[0]
-PYMOL_BUILD = get_version_message()
-
 
 def is_empty_session():
     return len(cmd.get_names(type="objects", enabled_only=0)) == 0

@@ -5,9 +5,11 @@ import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union, runtime_checkable
 
 import matplotlib
+import pandas as pd
+import numpy as np
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.common import FileExtentions
@@ -31,6 +33,16 @@ class ImageWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         image = QtGui.QImage(self.image_path)
         painter.drawImage(self.rect(), image)
+
+
+class NonGremlinPair(Protocol):
+    df: pd.DataFrame
+
+
+class GremlinPair(NonGremlinPair):
+    i: int
+    j: int
+
 
 
 class QbuttonMatrix(QtWidgets.QWidget):
@@ -73,6 +85,17 @@ class QbuttonMatrix(QtWidgets.QWidget):
         self.button_size = button_size
         self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
 
+        '''
+        TODO: extend QbuttonMatrix to accept a MxN matrix with custom labels(DMS data, for example)
+
+        # 1. use the following two lists to create a custom alphabet instead of the exact alphabet
+        self.alphabet_row = ...
+        self.alphabet_col = ...
+
+        # 2. gremlin-independent refactors to support custom labels
+        '''
+        
+
         self._alphabet = list(self.alphabet)
         (
             self.matrix,
@@ -97,7 +120,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
         Returns:
             tuple: Tuple containing matrix (2D list), min_value (float), max_value (float).
         """
-        import numpy as np
+        
 
         try:
 
@@ -654,6 +677,7 @@ class AskedValue:
             - range: A range of values.
             - Callable[[], Union[List, Tuple, range]]: A function to dynamically generate options.
         file (bool): Whether the value is a file path, triggering a file browse button. Defaults to False.
+        directory (bool): Whether the value is a directory path, triggering a directory browse button. Defaults to False.
     """
     key: str
     val: Optional[Any] = None
@@ -662,6 +686,7 @@ class AskedValue:
     required: bool = False
     choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
     file: bool = False
+    directory: bool = False
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -789,7 +814,7 @@ class ValueDialog(QtWidgets.QDialog):
         self.updated_values = []
 
         # Check if any AskedValue has file=True
-        self.has_file_action = any(asked_value.file for asked_value in self.key_dict)
+        self.has_file_action = any(asked_value.file or asked_value.directory for asked_value in self.key_dict)
 
         # Main layout
         self.layout = QtWidgets.QVBoxLayout()
@@ -922,17 +947,22 @@ class ValueDialog(QtWidgets.QDialog):
         if asked_value.file:
             action_button = QtWidgets.QPushButton("Browse")
             action_button.clicked.connect(
-                lambda: self._browse_file(widget, asked_value)
+                lambda: self._browse_file(widget)
+            )
+            self.table.setCellWidget(row, 3, action_button)
+        elif asked_value.directory:
+            action_button = QtWidgets.QPushButton("Browse")
+            action_button.clicked.connect(
+                lambda: widget.setText(getExistingDirectory())
             )
             self.table.setCellWidget(row, 3, action_button)
 
-    def _browse_file(self, widget, asked_value: AskedValue):
+    def _browse_file(self, widget):
         """
         Opens a file dialog to select a file and updates the input field.
 
         Args:
             widget (QWidget): The input widget to update with the selected file path.
-            asked_value (AskedValue): The field configuration.
         """
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
