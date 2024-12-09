@@ -95,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `src/REvoDesign/tools/pymol_utils.py`
   - `PYMOL_VERSION` and `PYMOL_BUILD`: no longer needed.
 - `src/REvoDesign/tools/utils.py`:
-  - `dirname_does_exist` -> `os.path.isdir`
+  - `dirname_does_exist` -> `os.path.isdir(os.path.dirname(...))`
   - `filepath_does_exists` -> `os.path.isfile`
 
 ## [1.7.7] - 2024-12-05
