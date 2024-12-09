@@ -204,7 +204,7 @@ class MutateWorker:
                     progress_bar=self.bus.ui.progressBar,
                 )
 
-            if not os.path.isdir(self.design.output_pse):
+            if not os.path.isdir(os.path.dirname(self.design.output_pse)):
                 warnings.warn(
                     issues.NoResultsWarning(
                         "No output PyMOL session is created."

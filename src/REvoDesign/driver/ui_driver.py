@@ -312,7 +312,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
             logging.info(f"Checking file path: {_fp}")
-            if not _fp or not os.path.isdir(_fp):
+            if not _fp or not os.path.isdir(os.path.dirname(_fp)):
                 return
 
             if not os.path.isfile(_fp):
