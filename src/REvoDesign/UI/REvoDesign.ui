@@ -4810,6 +4810,8 @@
     </property>
     <addaction name="actionSMILES_Conformers"/>
     <addaction name="actionSMILES_Conformers_Batch"/>
+    <addaction name="separator"/>
+    <addaction name="actionProfile_Design"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5104,6 +5106,11 @@
   <action name="actionSMILES_Conformers_Batch">
    <property name="text">
     <string>SMILES Conformers Batch</string>
+   </property>
+  </action>
+  <action name="actionProfile_Design">
+   <property name="text">
+    <string>Profile Design</string>
    </property>
   </action>
  </widget>

@@ -21,14 +21,6 @@ from .package_manager import run_command, run_worker_thread_with_progress
 logging = root_logger.getChild(__name__)
 
 
-def dirname_does_exist(fp):
-    return os.path.exists(os.path.dirname(fp))
-
-
-def filepath_does_exists(fp):
-    return os.path.exists(fp)
-
-
 def minibatches(inputs_data, batch_size):
     """
     Generates minibatches from input data with a specified batch size.
@@ -310,8 +302,6 @@ __all__ = [
     'timing',
     'generate_strong_password',
     'random_deduplicate',
-    'dirname_does_exist',
-    'filepath_does_exists',
     'minibatches',
     'minibatches_generator',
     'extract_archive',

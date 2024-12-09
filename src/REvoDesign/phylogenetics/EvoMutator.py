@@ -33,7 +33,7 @@ from REvoDesign.tools.mutant_tools import save_mutant_choices
 from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
                                           is_a_REvoDesign_session,
                                           make_temperal_input_pdb)
-from REvoDesign.tools.utils import (cmap_reverser, dirname_does_exist,
+from REvoDesign.tools.utils import (cmap_reverser,
                                     get_color, rescale_number,
                                     run_worker_thread_with_progress, timing)
 
@@ -204,7 +204,7 @@ class MutateWorker:
                     progress_bar=self.bus.ui.progressBar,
                 )
 
-            if not dirname_does_exist(self.design.output_pse):
+            if not os.path.isdir(self.design.output_pse):
                 warnings.warn(
                     issues.NoResultsWarning(
                         "No output PyMOL session is created."

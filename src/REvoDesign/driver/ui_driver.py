@@ -2,6 +2,7 @@
 The heart of REvoDesign. A UI-Configuration Bus
 '''
 
+import os
 import warnings
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -16,7 +17,6 @@ from REvoDesign.citations import CitableModules
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
                                                  set_widget_value)
-from REvoDesign.tools.utils import dirname_does_exist, filepath_does_exists
 
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
@@ -312,10 +312,10 @@ class ConfigBus(SingletonAbstract, CitableModules):
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
             logging.info(f"Checking file path: {_fp}")
-            if not _fp or not dirname_does_exist(_fp):
+            if not _fp or not os.path.isdir(_fp):
                 return
 
-            if not filepath_does_exists(_fp):
+            if not os.path.isfile(_fp):
                 logging.warning(f"The file `{_fp}` is not valid.")
             else:
                 logging.info(f"The file `{_fp}` is valid.")

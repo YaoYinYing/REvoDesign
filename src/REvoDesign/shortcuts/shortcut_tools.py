@@ -106,11 +106,16 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
+from dataclasses import dataclass
 import json
 import os
-from typing import Literal
+from typing import Literal, Optional
 
+import pandas as pd
 from pymol import cmd
+from pymol.Qt import QtWidgets,QtCore # type: ignore
+
+from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
 
@@ -118,6 +123,7 @@ from ..driver.ui_driver import ConfigBus
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
+from ..driver.group_register import CallableGroupValues
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc, smiles_conformer_batch,
                         smiles_conformer_single, visualize_conformer_sdf)
 
@@ -500,3 +506,228 @@ def menu_smiles_conformer_batch():
     Launches the dialog for generating 3D conformers for multiple SMILES strings.
     """
     wrapped_smiles_conformer_batch()
+
+
+@dialog_wrapper(
+    title="Design with Profile",
+    banner="Run mutant design with profile",
+    options=(
+        AskedValue(
+            "profile",
+            '/Users/yyy/Documents/protein_design/REvoDesign/tests/expanded_compressed_files/1SUO_A_PSSM_GREMLIN_results/pssm_msa/1SUO_A_ascii_mtx_file',
+            str,
+            'Profile path for design',
+            required=True,
+            source='File'
+            ),
+        AskedValue(
+            'profile_type',
+            'PSSM',
+            str,
+            'Profile type',
+            required=True,
+            choices=CallableGroupValues.list_all_profile_parsers
+            ),
+        AskedValue(
+            'keep_missing',
+            True,
+            bool,
+            'Keep X in the sequence',
+            ),
+        AskedValue(
+            'residue_range',
+            '50-60,100-120',
+            str,
+            'Residue range to be shown, plotted and designed.'
+            'Note that IndexOutOfRangeError will be raised if the range is not valid (on residue index where aa is `X`).',
+            required=False,
+            source='File'
+            ),
+        AskedValue(
+            'design_case',
+            'default',
+            str,
+            'Design case',
+            ),
+        )
+)
+def wrapped_pssm_design(**kwargs):
+    from ..bootstrap.set_config import ConfigConverter
+    from ..phylogenetics.REvoDesigner import REvoDesigner
+    from ..common.MutantVisualizer import MutantVisualizer
+    from ..sidechain_solver.SidechainSolver import SidechainSolver
+    from ..tools.pymol_utils import get_molecule_sequence, make_temperal_input_pdb
+    from ..tools.customized_widgets import QbuttonMatrix
+    from ..tools.mutant_tools import expand_range, read_customized_indice
+    from ..tools.utils import cmap_reverser
+
+    print(kwargs)
+
+    bus = ConfigBus()
+    ui=bus.ui
+    
+    molecule: str = bus.get_value('ui.header_panel.input.molecule', reject_none=True)
+    chain_id: str = bus.get_value('ui.header_panel.input.chain_id', reject_none=True)
+
+    if sequences := bus.get_value('designable_sequences', reject_none=True):
+        designable_sequences = RosettaPyProteinSequence.from_dict(ConfigConverter.convert(sequences))
+    elif sequences := get_molecule_sequence(molecule, chain_id, keep_missing=kwargs.get('keep_missing', True)):
+        designable_sequences = RosettaPyProteinSequence.from_dict({chain_id: sequences})
+    elif pdb := make_temperal_input_pdb(molecule, chain_id, reload=False):
+        designable_sequences = RosettaPyProteinSequence.from_pdb(pdb)
+    else:
+        raise issues.NoInputError("Failed to get sequence from Config, Session or PDB file!")
+
+    print(designable_sequences)
+    sequence = designable_sequences.get_sequence_by_chain(chain_id)
+    if not kwargs.get('keep_missing'):
+        sequence = sequence.replace("-", "")
+    print(sequence)
+
+    # Get residue range, if none, use full length
+    custom_indices_str:str = kwargs.get('residue_range')
+    if not custom_indices_str:
+        custom_indices_str = f'1-{len(sequence)}'
+        print(f'Using default residue range: {custom_indices_str}')
+
+    custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_str.strip())
+
+    # Parse profile with MutantVisualizer's profile reading
+    profile_parser = MutantVisualizer(molecule=molecule, chain_id=chain_id)
+    profile_parser.designable_sequences = designable_sequences
+    profile_parser.sequence = sequence
+
+    if not os.path.isfile(kwargs["profile"]):
+        raise issues.NoInputError(f"Not Found: {kwargs['profile']=}")
+
+    df = profile_parser.parse_profile(profile_fp=kwargs["profile"], profile_format=kwargs["profile_type"])
+
+    if df is None or df.empty:
+        raise issues.NoResultsError(
+            f"Error occurs while parsing profile {kwargs['profile']} with format {kwargs['profile_type']}"
+        )
+
+    profile_alphabet = "".join(df.T.columns.to_list())
+    print(df.head())
+
+    col_name = df.columns.tolist()
+    col_name.insert(0, 0)
+    df = df.reindex(columns=col_name)
+    df[df.columns[0]] = 0
+
+    reversed_mutant_effect = bus.get_value("ui.header_panel.cmap.reverse_score")
+
+    # Call REvoDesigner to setup and plot
+    designer = REvoDesigner(kwargs['profile'])
+    designer.molecule = molecule
+    designer.chain_id = chain_id
+    designer.sequence = sequence
+    designer.cmap = cmap_reverser(
+        cmap=bus.get_value("ui.header_panel.cmap.default"),
+        reverse=reversed_mutant_effect,
+    )
+    designer.profile_alphabet = profile_alphabet
+    designer.pwd = os.getcwd()
+    designer.design_case = kwargs.get('design_case', 'default')
+    designer.designable_sequences = designable_sequences
+
+    designer.mutate_runner = SidechainSolver().refresh().mutate_runner
+    designer.reject_aa = ''
+
+    cutoff = [
+        (bus.get_value("ui.mutate.min_score", float)),
+        (bus.get_value("ui.mutate.max_score", float)),
+    ]
+
+    try:
+        (
+            mutation_json_fp,
+            mutation_png_fp,
+        ) = designer.plot_custom_indices_segments(
+            df_ori=df,
+            custom_indices_str=custom_indices_str,
+            cutoff=cutoff,
+            preferred_substitutions='',
+        )
+
+    except KeyError as e:
+        raise issues.InvalidInputError(
+            f'A Key Error occurred due to invalid residue range({kwargs["residue_range"]} --> {custom_indices_str}): \n{e}'
+        ) from e
+
+    custom_indices = expand_range(shortened_str=custom_indices_str, seperator=",", connector="-")
+    if custom_indices == []:
+        custom_indices = [resi for resi in range(1, len(sequence) + 1)]
+    df_button_matrix = df.iloc[:, custom_indices]
+
+    @dataclass
+    class ProfilePair:
+        df: pd.DataFrame
+
+    def mutate_with_gridbuttons(row, col, matrix: QbuttonMatrix, ignore_wt=False):
+        print(f"Mutating {matrix.alphabet_row[row]}, {matrix.alphabet_col[col]}, ignore_wt={ignore_wt}")
+
+    # Prepare the data for the button matrix
+    df_pair = ProfilePair(df=df_button_matrix)
+    button_matrix = QbuttonMatrix(df_pair)
+    button_matrix.sequence = sequence
+    button_matrix.init_ui()
+    button_matrix.report_axes_signal.connect(
+        lambda row, col: mutate_with_gridbuttons(
+            row,
+            col,
+            button_matrix,
+            False,
+        )
+    )
+
+    # Create a new dialog window for the button matrix
+    window = QtWidgets.QWidget()  # This creates a standalone window.
+    window.setWindowTitle("Mutant Profile Matrix")
+
+    # Add a scroll area for the button matrix
+    scroll_area = QtWidgets.QScrollArea()
+    scroll_area.setWidget(button_matrix)
+    scroll_area.setWidgetResizable(True)
+
+    # Add horizontal scrollbar if columns exceed 150
+    num_cols = button_matrix.pair.df.shape[1]  # Assuming the matrix's DataFrame determines the columns
+    if num_cols > 150:
+        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+    else:
+        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+
+    layout = QtWidgets.QVBoxLayout()
+    layout.addWidget(scroll_area)
+    window.setLayout(layout)
+
+    # Set size constraints for the window
+    screen_width = QtWidgets.QApplication.primaryScreen().size().width()
+    max_width = min(screen_width, 150 * button_matrix.button_size)
+    window.setMaximumWidth(max_width)
+    window.setMinimumWidth(800)  # Ensure the window isn't too narrow.
+
+    # Center the window on the screen
+    geometry = window.frameGeometry()
+    geometry.moveCenter(QtWidgets.QApplication.primaryScreen().availableGeometry().center())
+    window.move(geometry.topLeft())
+
+    # Ensure the window is properly destroyed
+    def cleanup_window():
+        if hasattr(ui, 'open_windows') and window in ui.open_windows:
+            ui.open_windows.remove(window)
+        print("Window destroyed and cleaned up.")
+
+    window.destroyed.connect(cleanup_window)
+
+    # Show the window
+    window.show()
+
+    # Keep a reference so the dialog doesn't get garbage-collected prematurely
+    if not hasattr(ui, 'open_windows'):
+        ui.open_windows = []
+    ui.open_windows.append(window)
+
+
+def menu_pssm_design():
+    return wrapped_pssm_design()

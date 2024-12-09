@@ -37,16 +37,10 @@ class ImageWidget(QtWidgets.QWidget):
         painter.drawImage(self.rect(), image)
 
 
-@runtime_checkable
 class NonGremlinPair(Protocol):
-    df: pd.DataFrame
 
-@runtime_checkable
-class GremlinPair(Protocol):
-    i: int
-    j: int
-    df: pd.DataFrame
-
+    @property
+    def df(self)-> pd.DataFrame: ...
 
 
 class QbuttonMatrix(QtWidgets.QWidget):
@@ -83,26 +77,21 @@ class QbuttonMatrix(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.pair= pair
+        self.is_gremlin_pair = hasattr(self.pair, 'i')
         self.button_size = button_size
         
 
-        '''
-        TODO: extend QbuttonMatrix to accept a MxN matrix with custom labels(DMS data, for example)
-
-        # 1. use the following two lists to create a custom alphabet instead of the exact alphabet
-        self.alphabet_row = ...
-        self.alphabet_col = ...
-
-        # 2. gremlin-independent refactors to support custom labels
-        '''
-        
-
-        if isinstance(self.pair, GremlinPair):
+        if self.is_gremlin_pair:
             alphabet = "ARNDCQEGHILKMFPSTWYV-"
             _alphabet = list(alphabet)
             self.alphabet_row=_alphabet
             self.alphabet_col=_alphabet
-            self.sequence = ""
+            self.sequence = "" # user gave the sequence after init
+        else:
+            self.alphabet_row= self.pair.df.index.tolist()
+            self.alphabet_col= self.pair.df.columns.tolist()
+            self.sequence='' # user gave the sequence after init
+
             
         (
             self.matrix,
@@ -191,12 +180,16 @@ class QbuttonMatrix(QtWidgets.QWidget):
         font = QtGui.QFont()
         font.setPointSize(self.button_size)
         font.setBold(True)
+        if self.is_gremlin_pair:
+            size_policy = QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
+            )
+        else:
+            size_policy = QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+            )
 
-        size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
-        )
-
-        if isinstance(self.pair, GremlinPair):
+        if self.is_gremlin_pair:
             # logging.debug(f"Sequence: {self.sequence}")
             logging.debug(
                 f"WT pair: {self.sequence[self.pair.i]}{self.pair.i+1}_{self.sequence[self.pair.j]}{self.pair.j+1}"
@@ -207,32 +200,38 @@ class QbuttonMatrix(QtWidgets.QWidget):
             label = QtWidgets.QLabel(row_name)
             # Set the font size to 9
             label.setFont(font)
-            label.setFixedSize(self.button_size, self.button_size)
+            if self.is_gremlin_pair:
+                label.setFixedSize(self.button_size, self.button_size)
 
             layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
-            for col in range(len(self.alphabet_col)):
+            for col,col_name in enumerate(self.alphabet_col):
                 if row < len(self.matrix) and col < len(self.matrix[0]):
                     value = self.matrix[row][col]
                 else:
                     value = 0  # Default value for elements outside the matrix
                 color = self.map_value_to_color(value)
-                if isinstance(self.pair, GremlinPair):
+                if self.is_gremlin_pair:
                     is_wt_pair = (
                         row_name == self.sequence[self.pair.i]
                         and self.alphabet_col[col] == self.sequence[self.pair.j]
                     )
+                    button_tip_i=f'{self.sequence[self.pair.i]}{str(self.pair.i+1)}{row_name}' if self.sequence[self.pair.i]==row_name else ''
+                    button_tip_j=f'{self.sequence[self.pair.j]}{str(self.pair.j+1)}{col_name}' if self.sequence[self.pair.j]==col_name else ''
+                    button_tip= ' - '.join(t for t in [button_tip_i, button_tip_j] if t)
                 else:
                     is_wt_pair = (
-                        row_name == self.sequence[col]
-                        and self.alphabet_col[col] == col
+                        row_name == self.sequence[int(col_name)]
                     )
+                    button_tip=f"{self.sequence[int(col_name)]}{str(int(col_name)+1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+    
 
                 button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
                 button.setObjectName(f"matrixButton_{row}_vs_{col}")
                 button.setSizePolicy(size_policy)
                 button.setStyleSheet(
-                    f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''}"
+                    f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''};"
                 )
+                button.setToolTip(button_tip if button_tip else 'WT')
                 button.clicked.connect(
                     lambda checked, r=row, c=col: self.report_axises(r, c)
                 )
@@ -242,6 +241,11 @@ class QbuttonMatrix(QtWidgets.QWidget):
 
         # Add a row of column labels as labels after buttons
         for col, col_name in enumerate(self.alphabet_col):
+            # TODO: This is a hack to make the column labels start from 1
+            # Use zero-indexing adjugement instead
+            if not self.is_gremlin_pair:
+                col_name=str(int(col_name)+1)
+
             label = QtWidgets.QLabel(col_name)
 
             label.setFont(font)
@@ -929,6 +933,8 @@ class ValueDialog(QtWidgets.QDialog):
         if callable(choices):
             try:
                 choices = choices()
+                if asked_value.typing !=  list: # not a multi-choice
+                    choices = tuple(choices) # ensure the choices are tuple to prevent multiple choices
             except Exception as e:
                 QtWidgets.QMessageBox.warning(
                     self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
