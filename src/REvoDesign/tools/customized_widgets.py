@@ -1,15 +1,21 @@
 '''
 Custom widgets for REvoDesign.
 '''
+import json
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import (Any, Callable, Dict, List, Literal, Optional, Protocol,
+                    Tuple, Union)
 
 import matplotlib
+import numpy as np
+import pandas as pd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
+from REvoDesign.basic import FileExtension as FExt
+from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
 
@@ -33,9 +39,17 @@ class ImageWidget(QtWidgets.QWidget):
         painter.drawImage(self.rect(), image)
 
 
+class NonGremlinPair(Protocol):
+
+    @property
+    def df(self) -> pd.DataFrame: ...
+
+
 class QbuttonMatrix(QtWidgets.QWidget):
     """
     QbuttonMatrix - Custom widget for displaying a matrix of buttons.
+
+    TODO: need refactor to make it more generic and simpler.
 
     Usage:
         qbm = QbuttonMatrix(csv_file, parent=None, button_size=12)
@@ -50,14 +64,12 @@ class QbuttonMatrix(QtWidgets.QWidget):
         min_value (float): Minimum value in the loaded matrix.
         max_value (float): Maximum value in the loaded matrix.
         sequence (str): String representing a sequence of amino acids.
-        pos_i (int): Position index for sequence.
-        pos_j (int): Position index for sequence.
     """
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
 
-    def __init__(self, pair, parent=None, button_size=12):
+    def __init__(self, pair: NonGremlinPair, parent=None, button_size=12):
         """
         Initialize QbuttonMatrix.
 
@@ -67,25 +79,27 @@ class QbuttonMatrix(QtWidgets.QWidget):
             button_size (int): Size of the buttons. Defaults to 12.
         """
         super().__init__(parent)
-        from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair
 
-        self.pair: CoevolvedPair = pair
+        self.pair = pair
+        self.is_gremlin_pair = hasattr(self.pair, 'i')
         self.button_size = button_size
-        self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
 
-        self._alphabet = list(self.alphabet)
+        if self.is_gremlin_pair:
+            alphabet = "ARNDCQEGHILKMFPSTWYV-"
+            _alphabet = list(alphabet)
+            self.alphabet_row = _alphabet
+            self.alphabet_col = _alphabet
+            self.sequence = ""  # user gave the sequence after init
+        else:
+            self.alphabet_row = self.pair.df.index.tolist()
+            self.alphabet_col = self.pair.df.columns.tolist()
+            self.sequence = ''  # user gave the sequence after init
+
         (
             self.matrix,
             self.min_value,
             self.max_value,
         ) = self.load_matrix_from_pair()
-
-        self.sequence = ""
-
-        # if self.pair.transposed:
-        #     self.pos_i, self.pos_j = self.pair.j, self.pair.i
-        # else:
-        self.pos_i, self.pos_j = self.pair.i, self.pair.j
 
     def load_matrix_from_pair(self):
         """
@@ -97,7 +111,6 @@ class QbuttonMatrix(QtWidgets.QWidget):
         Returns:
             tuple: Tuple containing matrix (2D list), min_value (float), max_value (float).
         """
-        import numpy as np
 
         try:
 
@@ -105,7 +118,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
 
             # Remove rows and columns not in the alphabet
             df = df.loc[
-                df.index.isin(self._alphabet), df.columns.isin(self._alphabet)
+                df.index.isin(self.alphabet_row), df.columns.isin(self.alphabet_col)
             ]
 
             # Convert the DataFrame to a 2D list
@@ -167,41 +180,57 @@ class QbuttonMatrix(QtWidgets.QWidget):
         font = QtGui.QFont()
         font.setPointSize(self.button_size)
         font.setBold(True)
+        if self.is_gremlin_pair:
+            size_policy = QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
+            )
+        else:
+            size_policy = QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+            )
 
-        size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
-        )
-
-        # logging.debug(f"Sequence: {self.sequence}")
-        logging.debug(
-            f"WT pair: {self.sequence[self.pos_i]}{self.pos_i+1}_{self.sequence[self.pos_j]}{self.pos_j+1}"
-        )
+        if self.is_gremlin_pair:
+            # logging.debug(f"Sequence: {self.sequence}")
+            logging.debug(
+                f"WT pair: {self.sequence[self.pair.i]}{self.pair.i+1}_{self.sequence[self.pair.j]}{self.pair.j+1}"
+            )
 
         # Add row names as labels to the left of buttons
-        for row, row_name in enumerate(self._alphabet):
+        for row, row_name in enumerate(self.alphabet_row):
             label = QtWidgets.QLabel(row_name)
             # Set the font size to 9
             label.setFont(font)
-            label.setFixedSize(self.button_size, self.button_size)
+            if self.is_gremlin_pair:
+                label.setFixedSize(self.button_size, self.button_size)
 
             layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
-            for col in range(len(self._alphabet)):
+            for col, col_name in enumerate(self.alphabet_col):
                 if row < len(self.matrix) and col < len(self.matrix[0]):
                     value = self.matrix[row][col]
                 else:
                     value = 0  # Default value for elements outside the matrix
                 color = self.map_value_to_color(value)
-                is_wt_pair = (
-                    row_name == self.sequence[self.pos_i]
-                    and self._alphabet[col] == self.sequence[self.pos_j]
-                )
+                if self.is_gremlin_pair:
+                    is_wt_pair = (
+                        row_name == self.sequence[self.pair.i]
+                        and self.alphabet_col[col] == self.sequence[self.pair.j]
+                    )
+                    button_tip_i = f'{self.sequence[self.pair.i]}{str(self.pair.i+1)}{row_name}' if self.sequence[self.pair.i] == row_name else ''
+                    button_tip_j = f'{self.sequence[self.pair.j]}{str(self.pair.j+1)}{col_name}' if self.sequence[self.pair.j] == col_name else ''
+                    button_tip = ' - '.join(t for t in [button_tip_i, button_tip_j] if t)
+                else:
+                    is_wt_pair = (
+                        row_name == self.sequence[int(col_name)]
+                    )
+                    button_tip = f"{self.sequence[int(col_name)]}{str(int(col_name)+1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
                 button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
                 button.setObjectName(f"matrixButton_{row}_vs_{col}")
                 button.setSizePolicy(size_policy)
                 button.setStyleSheet(
-                    f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''}"
+                    f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''};"
                 )
+                button.setToolTip(button_tip if button_tip else 'WT')
                 button.clicked.connect(
                     lambda checked, r=row, c=col: self.report_axises(r, c)
                 )
@@ -210,7 +239,12 @@ class QbuttonMatrix(QtWidgets.QWidget):
                 )  # +1 to account for row labels
 
         # Add a row of column labels as labels after buttons
-        for col, col_name in enumerate(self._alphabet):
+        for col, col_name in enumerate(self.alphabet_col):
+            # TODO: This is a hack to make the column labels start from 1
+            # Use zero-indexing adjugement instead
+            if not self.is_gremlin_pair:
+                col_name = str(int(col_name) + 1)
+
             label = QtWidgets.QLabel(col_name)
 
             label.setFont(font)
@@ -219,7 +253,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
             )  # Set fixed size for column labels
 
             layout.addWidget(
-                label, len(self._alphabet), col + 1, QtCore.Qt.AlignTop
+                label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop
             )
 
         self.setLayout(layout)
@@ -647,16 +681,28 @@ class AskedValue:
         typing (type): The expected data type for the field's value.
         reason (Optional[str]): Additional description or reason for the field.
         required (bool): Indicates whether the field is mandatory.
-        choices (Optional[Union[List, Tuple, range]]): Specifies available choices for the field.
-        file (bool): Whether the value is a file path, triggering a file browse button. Defaults to False.
+        choices (Optional[Union[List, Tuple, Callable[[], Union[List, Tuple]]]]):
+            Specifies available choices for the field. Can be:
+            - List[Any]: A predefined list of options.
+            - Tuple[Any]: A predefined tuple of options.
+            - range: A range of values.
+            - Callable[[], Union[List, Tuple, range]]: A function to dynamically generate options.
+        source (Literal['None', 'File', 'Directory', 'JsonInput']):
+            Specifies the source of the input field. Can be:
+            - 'None': No specific source.
+            - 'File': Input is expected to be a file path.
+            - 'Directory': Input is expected to be a directory path.
+            - 'JsonInput': Input is expected to be a JSON file input.
+        ext (Optional[FExCol]): File extension filters for file and directory inputs.
     """
     key: str
     val: Optional[Any] = None
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[List, Tuple, range]] = None
-    file: bool = False  # New attribute for file browsing
+    choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
+    source: Literal['None', 'File', 'Directory', 'JsonInput'] = 'None'
+    ext: Optional[FExCol] = None
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -736,6 +782,10 @@ class AskedValueCollection:
     banner: Optional[str] = None  # a banner message
 
     @property
+    def need_action(self) -> bool:
+        return any(asked.source != 'None' for asked in self.asked_values)
+
+    @property
     def asdict(self) -> Dict[str, Any]:
         """
         Converts the collection into a dictionary where the keys are the field labels
@@ -760,18 +810,9 @@ class AskedValueCollection:
 
 
 class ValueDialog(QtWidgets.QDialog):
-    """
-    A dialog box for collecting user input based on a collection of AskedValue objects.
-
-    Attributes:
-        title (str): The title of the dialog box.
-        key_dict (AskedValueCollection): The collection of fields and their attributes.
-        updated_values (List[AskedValue]): Stores the user-provided inputs.
-    """
-
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
-        Initializes the ValueDialog with a given title and collection of AskedValue objects.
+        Initializes the ValueDialog with specified size policies to ensure a compact and clear layout.
 
         Args:
             title (str): The title of the dialog box.
@@ -784,7 +825,7 @@ class ValueDialog(QtWidgets.QDialog):
         self.updated_values = []
 
         # Check if any AskedValue has file=True
-        self.has_file_action = any(asked_value.file for asked_value in self.key_dict)
+        self.has_file_action = key_dict.need_action
 
         # Main layout
         self.layout = QtWidgets.QVBoxLayout()
@@ -806,23 +847,40 @@ class ValueDialog(QtWidgets.QDialog):
             self.layout.addWidget(banner_label)
 
         # Create the table with four columns
-        self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
-        self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
+        if self.has_file_action:
+            self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
+            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Source"])
+        else:
+            self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)
+            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
         self.table.horizontalHeader().setStretchLastSection(True)
 
-        # Configure the header
+        # Configure horizontal size policy for compact width
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Input column
-        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)          # Input column
+        if self.has_file_action:
+            header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
+
+        self.table.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum,  # Compact width
+            QtWidgets.QSizePolicy.Policy.Expanding  # Expanding height
+        )
 
         self.table.verticalHeader().setVisible(False)  # Hide row numbers
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  # Disable row selection
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  # Prevent label editing
-        # Hide "Action" column if no file actions
-        if not self.has_file_action:
-            self.table.setColumnHidden(3, True)
+
+        # Vertical behavior: Adjust for row count
+        max_visible_rows = 8
+        row_height = self.table.verticalHeader().defaultSectionSize()
+        if len(self.key_dict) > max_visible_rows:
+            self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+            self.table.setMinimumHeight(max_visible_rows * row_height)
+        else:
+            self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+            self.table.setMinimumHeight(len(self.key_dict) * row_height)
 
         self.input_fields: Dict[str, Any] = {}
         self.input_fields_data_pair: Dict[str, AskedValue] = {}
@@ -865,25 +923,38 @@ class ValueDialog(QtWidgets.QDialog):
         self.table.setCellWidget(row, 1, type_label)
 
         # Column 2: Input widget
-        if isinstance(asked_value.choices, list):
+        choices = asked_value.choices
+        if callable(choices):
+            try:
+                choices = choices()
+                if asked_value.typing != list:  # not a multi-choice
+                    choices = tuple(choices)  # ensure the choices are tuple to prevent multiple choices
+            except Exception as e:
+                QtWidgets.QMessageBox.warning(
+                    self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
+                )
+                choices = []
+
+        # Column 2: Input widget
+        if isinstance(choices, list):
             # MultiCheckableComboBox for list of choices
-            widget = MultiCheckableComboBox(choices=asked_value.choices)
+            widget = MultiCheckableComboBox(choices=choices)
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
-        elif isinstance(asked_value.choices, range):
+        elif isinstance(choices, range):
             # QSpinBox or QDoubleSpinBox for range of numbers
             if asked_value.typing == float:
                 widget = QtWidgets.QDoubleSpinBox()
-                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
+                widget.setRange(choices.start, choices.stop)
                 widget.setSingleStep(0.1)  # Increment step for floating-point numbers
             else:
                 widget = QtWidgets.QSpinBox()
-                widget.setRange(asked_value.choices.start, asked_value.choices.stop)
-            widget.setValue(asked_value.val if asked_value.val else asked_value.choices.start)
-        elif isinstance(asked_value.choices, tuple):
+                widget.setRange(choices.start, choices.stop)
+            widget.setValue(asked_value.val if asked_value.val else choices.start)
+        elif isinstance(choices, tuple):
             # QComboBox for tuple of any
             widget = QtWidgets.QComboBox()
-            widget.addItems(map(str, asked_value.choices))
+            widget.addItems(map(str, choices))
             if asked_value.val:
                 widget.setCurrentText(str(asked_value.val))
         elif asked_value.typing == bool:
@@ -903,27 +974,68 @@ class ValueDialog(QtWidgets.QDialog):
         self.table.setCellWidget(row, 2, widget)
 
         # Column 3: Action button if file=True
-        if asked_value.file:
+        if asked_value.source == "File":
             action_button = QtWidgets.QPushButton("Browse")
+            action_button.setToolTip('Browse for a file')
             action_button.clicked.connect(
-                lambda: self._browse_file(widget, asked_value)
+                lambda: self._browse_file(widget, asked_value.ext)
             )
             self.table.setCellWidget(row, 3, action_button)
+        elif asked_value.source == "Directory":
+            action_button = QtWidgets.QPushButton("Browse")
+            action_button.setToolTip('Browse for a directory')
+            action_button.clicked.connect(
+                lambda: widget.setText(getExistingDirectory())
+            )
+            self.table.setCellWidget(row, 3, action_button)
+        elif asked_value.source == "JsonInput":
+            # Create a container widget for the layout
+            container_widget = QtWidgets.QWidget()
+            button_layout = QtWidgets.QHBoxLayout(container_widget)
+            button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for proper cell fit
 
-    def _browse_file(self, widget, asked_value: AskedValue):
+            # Create and configure the "Input JSON" button
+            input_action_button = QtWidgets.QPushButton("Input")
+            input_action_button.setToolTip('Browse for an input JSON file')
+            input_action_button.clicked.connect(
+                lambda: widget.setText(ask_for_multiple_values_as_json())
+            )
+            # Set size policy to ResizeToContents
+            input_action_button.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Minimum,
+                QtWidgets.QSizePolicy.Policy.Fixed
+            )
+            button_layout.addWidget(input_action_button)
+
+            # Create and configure the "Load" button
+            load_action_button = QtWidgets.QPushButton("Load")
+            load_action_button.setToolTip(f'Load a auto-savedJSON file($PWD/json_multi_input/***.json)')
+            load_action_button.clicked.connect(
+                lambda: self._browse_file(widget, FileExtentions.JSON)
+            )
+            # Set size policy to ResizeToContents
+            load_action_button.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Minimum,
+                QtWidgets.QSizePolicy.Policy.Fixed
+            )
+            button_layout.addWidget(load_action_button)
+
+            # Set the container widget as the cell widget
+            self.table.setCellWidget(row, 3, container_widget)
+
+    def _browse_file(self, widget, exts: Optional[FExCol] = None):
         """
         Opens a file dialog to select a file and updates the input field.
 
         Args:
             widget (QWidget): The input widget to update with the selected file path.
-            asked_value (AskedValue): The field configuration.
         """
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
 
         file_dialog = FileDialog(None, os.getcwd())
         selected_file = file_dialog.browse_filename(
-            mode="r", exts=(FileExtentions.Any,)
+            mode="r", exts=(FileExtentions.Any, exts) if exts else (FileExtentions.Any,)
         )
         if selected_file:
             widget.setText(selected_file)
@@ -1133,6 +1245,22 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
     dialog = AppendableValueDialog()
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return dialog.get_values()
+
+
+def ask_for_multiple_values_as_json() -> str:
+    data = ask_for_appendable_values()
+    if not data:  # none or empty collection
+        return ''
+    data_id = id(data)
+    json_fp = os.path.join('json_multi_input', f'{data_id}.json')
+    os.makedirs(os.path.dirname(json_fp), exist_ok=True)
+
+    json.dump(
+        obj=data.asdict,
+        fp=open(json_fp, 'w'),
+        indent=4,)
+
+    return json_fp
 
 
 def dialog_wrapper(

@@ -4804,9 +4804,19 @@
     <addaction name="actionColor_by_pLDDT"/>
     <addaction name="actionShow_Real_Sidechain"/>
    </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionSMILES_Conformers"/>
+    <addaction name="actionSMILES_Conformers_Batch"/>
+    <addaction name="separator"/>
+    <addaction name="actionProfile_Design"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuStyle"/>
+   <addaction name="menuTools"/>
    <addaction name="menuExport"/>
    <addaction name="menuHelp"/>
    <addaction name="menuAbout"/>
@@ -5086,6 +5096,21 @@
   <action name="actionPSSM_to_CSV">
    <property name="text">
     <string>PSSM to CSV</string>
+   </property>
+  </action>
+  <action name="actionSMILES_Conformers">
+   <property name="text">
+    <string>SMILES Conformers</string>
+   </property>
+  </action>
+  <action name="actionSMILES_Conformers_Batch">
+   <property name="text">
+    <string>SMILES Conformers Batch</string>
+   </property>
+  </action>
+  <action name="actionProfile_Design">
+   <property name="text">
+    <string>Profile Design</string>
    </property>
   </action>
  </widget>

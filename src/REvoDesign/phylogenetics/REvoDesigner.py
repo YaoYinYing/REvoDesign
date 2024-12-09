@@ -12,8 +12,10 @@ import time
 
 import matplotlib
 import matplotlib.pylab as plt
+import pandas as pd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
+from REvoDesign import issues
 from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
@@ -79,7 +81,7 @@ class REvoDesigner:
 
     def plot_custom_indices_segments(
         self,
-        df_ori,
+        df_ori: pd.DataFrame,
         custom_indices_str="",
         cutoff=[-100, 100],
         preferred_substitutions=None,
@@ -515,7 +517,9 @@ class REvoDesigner:
             logging.error(
                 f"Error occurs while parsing profile {self.input_profile} with format {self.input_profile_format}"
             )
-            return
+            raise issues.NoResultsError(
+                f"Error occurs while parsing profile {self.input_profile} with format {self.input_profile_format}"
+            )
 
         # refresh profile alphabet based on profile reading
         self.profile_alphabet = "".join(df.T.columns.to_list())

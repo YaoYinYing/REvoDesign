@@ -322,8 +322,12 @@ def expand_range(
 
     for rng in ranges:
         if "-" in rng:
-            start, end = map(int, rng.split(connector))
-            expanded_list.extend(range(start, end + 1))
+            try:
+                start, end = map(int, rng.split(connector))
+                expanded_list.extend(range(start, end + 1))
+            except ValueError as e:
+                raise issues.InvalidInputError(f"Error parsing range '{rng}': {e}\n"
+                                               f"Did you mean {rng.strip(connector)} ?") from e
         else:
             expanded_list.append(int(rng))
 
@@ -386,12 +390,11 @@ def read_customized_indice(custom_indices_from_input="") -> str:
     Returns:
     - str: Processed customized indices string.
     """
-    from REvoDesign.tools.utils import filepath_does_exists
 
     if not custom_indices_from_input:
         return ""
 
-    if filepath_does_exists(custom_indices_from_input):
+    if os.path.isfile(custom_indices_from_input):
         custom_indices_str = open(custom_indices_from_input).read().strip()
         return custom_indices_str
 

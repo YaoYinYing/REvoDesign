@@ -52,4 +52,7 @@ class MenuCollection:
         """
 
         for m in self.menu_items:
-            m.action.triggered.connect(partial(m.func, **m.kwargs if m.kwargs else {}))
+            try:
+                m.action.triggered.connect(partial(m.func, **m.kwargs if m.kwargs else {}))
+            except AttributeError as e:
+                print(f"Skipping binding menu item due to error: {m}: {e}")

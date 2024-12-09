@@ -81,3 +81,9 @@ YAML = ExtColl(
         Ext("yaml", "Config file in YAML"),
     )
 )
+
+JSON = ExtColl(
+    (
+        Ext("json", "JSON file"),
+    )
+)
