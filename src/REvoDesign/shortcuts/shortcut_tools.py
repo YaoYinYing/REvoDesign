@@ -545,7 +545,13 @@ def menu_smiles_conformer_batch():
             source='File'
             ),
         AskedValue(
-            'rezoom_nbr',
+            'view_highlight',
+            'orient',
+            str,
+            'Whether to reorient the view to highlight the selected residues.',
+            choices=('None','center', 'zoom', 'orient',)),
+        AskedValue(
+            'view_highlight_nbr',
             6,
             int, 
             'Area to rezoom around',
@@ -728,8 +734,20 @@ def wrapped_pssm_design(**kwargs):
         else:
             print(f'{mutant} already exists in the tree')
 
-        if kwargs['rezoom_nbr']>0:
-            cmd.zoom(f'byres {mutant.full_mutant_id} around {kwargs["rezoom_nbr"]}',animate=1)
+
+        
+        vhm = kwargs['view_highlight']
+        if vhm=='center':
+            vhm_=cmd.center
+        elif vhm=='zoom':
+            vhm_=cmd.zoom
+        elif vhm=='orient':
+            vhm_=cmd.orient
+        else:
+            return
+
+        if kwargs['view_highlight_nbr']>0:
+            vhm_(f'byres {mutant.full_mutant_id} around {kwargs["view_highlight_nbr"]}',animate=1)
 
 
     # Prepare the data for the button matrix
