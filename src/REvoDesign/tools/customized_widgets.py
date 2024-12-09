@@ -14,6 +14,7 @@ import numpy as np
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign.common import FileExtentions
+from REvoDesign.basic import FileExtension as FExt, FileExtensionCollection as FExCol
 from REvoDesign.logger import root_logger
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
@@ -36,13 +37,15 @@ class ImageWidget(QtWidgets.QWidget):
         painter.drawImage(self.rect(), image)
 
 
+@runtime_checkable
 class NonGremlinPair(Protocol):
     df: pd.DataFrame
 
-
-class GremlinPair(NonGremlinPair):
+@runtime_checkable
+class GremlinPair(Protocol):
     i: int
     j: int
+    df: pd.DataFrame
 
 
 
@@ -63,14 +66,12 @@ class QbuttonMatrix(QtWidgets.QWidget):
         min_value (float): Minimum value in the loaded matrix.
         max_value (float): Maximum value in the loaded matrix.
         sequence (str): String representing a sequence of amino acids.
-        pos_i (int): Position index for sequence.
-        pos_j (int): Position index for sequence.
     """
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
 
-    def __init__(self, pair, parent=None, button_size=12):
+    def __init__(self, pair: NonGremlinPair, parent=None, button_size=12):
         """
         Initialize QbuttonMatrix.
 
@@ -80,11 +81,10 @@ class QbuttonMatrix(QtWidgets.QWidget):
             button_size (int): Size of the buttons. Defaults to 12.
         """
         super().__init__(parent)
-        from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair
 
-        self.pair: CoevolvedPair = pair
+        self.pair= pair
         self.button_size = button_size
-        self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
+        
 
         '''
         TODO: extend QbuttonMatrix to accept a MxN matrix with custom labels(DMS data, for example)
@@ -97,19 +97,19 @@ class QbuttonMatrix(QtWidgets.QWidget):
         '''
         
 
-        self._alphabet = list(self.alphabet)
+        if isinstance(self.pair, GremlinPair):
+            alphabet = "ARNDCQEGHILKMFPSTWYV-"
+            _alphabet = list(alphabet)
+            self.alphabet_row=_alphabet
+            self.alphabet_col=_alphabet
+            self.sequence = ""
+            
         (
             self.matrix,
             self.min_value,
             self.max_value,
         ) = self.load_matrix_from_pair()
 
-        self.sequence = ""
-
-        # if self.pair.transposed:
-        #     self.pos_i, self.pos_j = self.pair.j, self.pair.i
-        # else:
-        self.pos_i, self.pos_j = self.pair.i, self.pair.j
 
     def load_matrix_from_pair(self):
         """
@@ -129,7 +129,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
 
             # Remove rows and columns not in the alphabet
             df = df.loc[
-                df.index.isin(self._alphabet), df.columns.isin(self._alphabet)
+                df.index.isin(self.alphabet_row), df.columns.isin(self.alphabet_col)
             ]
 
             # Convert the DataFrame to a 2D list
@@ -196,29 +196,36 @@ class QbuttonMatrix(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
         )
 
-        # logging.debug(f"Sequence: {self.sequence}")
-        logging.debug(
-            f"WT pair: {self.sequence[self.pos_i]}{self.pos_i+1}_{self.sequence[self.pos_j]}{self.pos_j+1}"
-        )
+        if isinstance(self.pair, GremlinPair):
+            # logging.debug(f"Sequence: {self.sequence}")
+            logging.debug(
+                f"WT pair: {self.sequence[self.pair.i]}{self.pair.i+1}_{self.sequence[self.pair.j]}{self.pair.j+1}"
+            )
 
         # Add row names as labels to the left of buttons
-        for row, row_name in enumerate(self._alphabet):
+        for row, row_name in enumerate(self.alphabet_row):
             label = QtWidgets.QLabel(row_name)
             # Set the font size to 9
             label.setFont(font)
             label.setFixedSize(self.button_size, self.button_size)
 
             layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
-            for col in range(len(self._alphabet)):
+            for col in range(len(self.alphabet_col)):
                 if row < len(self.matrix) and col < len(self.matrix[0]):
                     value = self.matrix[row][col]
                 else:
                     value = 0  # Default value for elements outside the matrix
                 color = self.map_value_to_color(value)
-                is_wt_pair = (
-                    row_name == self.sequence[self.pos_i]
-                    and self._alphabet[col] == self.sequence[self.pos_j]
-                )
+                if isinstance(self.pair, GremlinPair):
+                    is_wt_pair = (
+                        row_name == self.sequence[self.pair.i]
+                        and self.alphabet_col[col] == self.sequence[self.pair.j]
+                    )
+                else:
+                    is_wt_pair = (
+                        row_name == self.sequence[col]
+                        and self.alphabet_col[col] == col
+                    )
 
                 button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
                 button.setObjectName(f"matrixButton_{row}_vs_{col}")
@@ -234,7 +241,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
                 )  # +1 to account for row labels
 
         # Add a row of column labels as labels after buttons
-        for col, col_name in enumerate(self._alphabet):
+        for col, col_name in enumerate(self.alphabet_col):
             label = QtWidgets.QLabel(col_name)
 
             label.setFont(font)
@@ -243,7 +250,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
             )  # Set fixed size for column labels
 
             layout.addWidget(
-                label, len(self._alphabet), col + 1, QtCore.Qt.AlignTop
+                label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop
             )
 
         self.setLayout(layout)
@@ -683,6 +690,7 @@ class AskedValue:
             - 'File': Input is expected to be a file path.
             - 'Directory': Input is expected to be a directory path.
             - 'JsonInput': Input is expected to be a JSON file input.
+        ext (Optional[FExCol]): File extension filters for file and directory inputs.
     """
     key: str
     val: Optional[Any] = None
@@ -691,6 +699,7 @@ class AskedValue:
     required: bool = False
     choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
     source: Literal['None', 'File', 'Directory', 'JsonInput']='None'
+    ext: Optional[FExCol] = None
 
 
 
@@ -969,7 +978,7 @@ class ValueDialog(QtWidgets.QDialog):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip('Browse for a file')
             action_button.clicked.connect(
-                lambda: self._browse_file(widget)
+                lambda: self._browse_file(widget, asked_value.ext)
             )
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Directory":
@@ -1002,7 +1011,7 @@ class ValueDialog(QtWidgets.QDialog):
             load_action_button = QtWidgets.QPushButton("Load")
             load_action_button.setToolTip(f'Load a auto-savedJSON file($PWD/json_multi_input/***.json)')
             load_action_button.clicked.connect(
-                lambda: self._browse_file(widget)
+                lambda: self._browse_file(widget, FileExtentions.JSON)
             )
             # Set size policy to ResizeToContents
             load_action_button.setSizePolicy(
@@ -1015,7 +1024,7 @@ class ValueDialog(QtWidgets.QDialog):
             self.table.setCellWidget(row, 3, container_widget)
 
 
-    def _browse_file(self, widget):
+    def _browse_file(self, widget, exts: Optional[FExCol]=None):
         """
         Opens a file dialog to select a file and updates the input field.
 
@@ -1027,7 +1036,7 @@ class ValueDialog(QtWidgets.QDialog):
 
         file_dialog = FileDialog(None, os.getcwd())
         selected_file = file_dialog.browse_filename(
-            mode="r", exts=(FileExtentions.Any,)
+            mode="r", exts=(FileExtentions.Any, exts ) if exts else (FileExtentions.Any,)
         )
         if selected_file:
             widget.setText(selected_file)
