@@ -515,7 +515,7 @@ def menu_smiles_conformer_batch():
     options=(
         AskedValue(
             "profile",
-            '/Users/yyy/Documents/protein_design/REvoDesign/tests/expanded_compressed_files/1SUO_A_PSSM_GREMLIN_results/pssm_msa/1SUO_A_ascii_mtx_file',
+            '',
             str,
             'Profile path for design',
             required=True,
