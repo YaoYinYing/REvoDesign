@@ -544,7 +544,15 @@ def menu_smiles_conformer_batch():
             required=False,
             source='File'
             ),
-        )
+        AskedValue(
+            'rezoom_nbr',
+            6,
+            int, 
+            'Area to rezoom around',
+            choices=range(0, 20),
+            required=False
+            )
+    )
 )
 def wrapped_pssm_design(**kwargs):
     from RosettaPy.common.mutation import Mutation
@@ -557,8 +565,8 @@ def wrapped_pssm_design(**kwargs):
     from ..sidechain_solver.SidechainSolver import SidechainSolver
     from ..tools.pymol_utils import get_molecule_sequence, make_temperal_input_pdb
     from ..tools.customized_widgets import QbuttonMatrix
-    from ..tools.mutant_tools import expand_range, read_customized_indice
-    from ..tools.utils import cmap_reverser,get_color
+    from ..tools.mutant_tools import expand_range, read_customized_indice, existed_mutant_tree
+    from ..tools.utils import cmap_reverser,get_color,run_worker_thread_with_progress
 
     print(kwargs)
 
@@ -670,9 +678,9 @@ def wrapped_pssm_design(**kwargs):
     visualizer.cmap=cmap
     visualizer.min_score=-max_abs
     visualizer.max_score=max_abs
-    visualizer.mutate_runner=SidechainSolver().refresh().mutate_runner
+    
 
-    designed_tree=MutantTree({})
+    designed_tree=existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
     @dataclass
     class ProfilePair:
@@ -688,6 +696,15 @@ def wrapped_pssm_design(**kwargs):
         
         print(f"Mutating {resn}, {resi}, ignore_wt={ignore_wt}")
 
+        sidechain_solver=run_worker_thread_with_progress(
+            SidechainSolver().refresh,
+            progress_bar=bus.ui.progressBar
+        )
+        if not sidechain_solver:
+            raise issues.InternalError("Sidechain solver failed")
+        
+        visualizer.mutate_runner=sidechain_solver.mutate_runner
+
         group_id= f'mt_manual_{wt_res}{resi}_{wt_score}'
         mutant=Mutant([Mutation(chain_id=chain_id,position=resi,wt_res=wt_res, mut_res=resn)], wt_protein_sequence=designable_sequences)
         mutant.mutant_score=mut_score
@@ -699,12 +716,20 @@ def wrapped_pssm_design(**kwargs):
             print(
                 f" Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
             )
-            visualizer.create_mutagenesis_objects(
-                mutant, color, in_place=True
+            run_worker_thread_with_progress(
+                visualizer.create_mutagenesis_objects,
+                mutant_obj=mutant,
+                color=color,
+                in_place=True,
+                progress_bar=bus.ui.progressBar
             )
+        
             designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
         else:
             print(f'{mutant} already exists in the tree')
+
+        if kwargs['rezoom_nbr']>0:
+            cmd.zoom(f'byres {mutant.full_mutant_id} around {kwargs["rezoom_nbr"]}',animate=1)
 
 
     # Prepare the data for the button matrix
