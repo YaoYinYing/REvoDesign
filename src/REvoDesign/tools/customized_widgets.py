@@ -47,6 +47,8 @@ class QbuttonMatrix(QtWidgets.QWidget):
     """
     QbuttonMatrix - Custom widget for displaying a matrix of buttons.
 
+    TODO: need refactor to make it more generic and simpler.
+
     Usage:
         qbm = QbuttonMatrix(csv_file, parent=None, button_size=12)
         qbm.init_ui()  # Initialize the user interface

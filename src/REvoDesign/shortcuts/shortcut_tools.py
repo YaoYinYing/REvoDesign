@@ -111,6 +111,7 @@ import json
 import os
 from typing import Literal, Optional
 
+import numpy as np
 import pandas as pd
 from pymol import cmd
 from pymol.Qt import QtWidgets,QtCore # type: ignore
@@ -543,23 +544,21 @@ def menu_smiles_conformer_batch():
             required=False,
             source='File'
             ),
-        AskedValue(
-            'design_case',
-            'default',
-            str,
-            'Design case',
-            ),
         )
 )
 def wrapped_pssm_design(**kwargs):
+    from RosettaPy.common.mutation import Mutation
+
     from ..bootstrap.set_config import ConfigConverter
+    from ..common.Mutant import Mutant
+    from ..common.MutantTree import MutantTree
     from ..phylogenetics.REvoDesigner import REvoDesigner
     from ..common.MutantVisualizer import MutantVisualizer
     from ..sidechain_solver.SidechainSolver import SidechainSolver
     from ..tools.pymol_utils import get_molecule_sequence, make_temperal_input_pdb
     from ..tools.customized_widgets import QbuttonMatrix
     from ..tools.mutant_tools import expand_range, read_customized_indice
-    from ..tools.utils import cmap_reverser
+    from ..tools.utils import cmap_reverser,get_color
 
     print(kwargs)
 
@@ -568,6 +567,12 @@ def wrapped_pssm_design(**kwargs):
     
     molecule: str = bus.get_value('ui.header_panel.input.molecule', reject_none=True)
     chain_id: str = bus.get_value('ui.header_panel.input.chain_id', reject_none=True)
+
+    reversed_mutant_effect = bus.get_value("ui.header_panel.cmap.reverse_score")
+    cmap = cmap_reverser(
+        cmap=bus.get_value("ui.header_panel.cmap.default"),
+        reverse=reversed_mutant_effect,
+    )
 
     if sequences := bus.get_value('designable_sequences', reject_none=True):
         designable_sequences = RosettaPyProteinSequence.from_dict(ConfigConverter.convert(sequences))
@@ -615,24 +620,23 @@ def wrapped_pssm_design(**kwargs):
     df = df.reindex(columns=col_name)
     df[df.columns[0]] = 0
 
-    reversed_mutant_effect = bus.get_value("ui.header_panel.cmap.reverse_score")
 
     # Call REvoDesigner to setup and plot
     designer = REvoDesigner(kwargs['profile'])
     designer.molecule = molecule
     designer.chain_id = chain_id
     designer.sequence = sequence
-    designer.cmap = cmap_reverser(
-        cmap=bus.get_value("ui.header_panel.cmap.default"),
-        reverse=reversed_mutant_effect,
-    )
+    designer.cmap=cmap
     designer.profile_alphabet = profile_alphabet
     designer.pwd = os.getcwd()
-    designer.design_case = kwargs.get('design_case', 'default')
+    designer.design_case = 'default'
     designer.designable_sequences = designable_sequences
 
     designer.mutate_runner = SidechainSolver().refresh().mutate_runner
     designer.reject_aa = ''
+
+    max_abs=np.max((np.abs(df.values.min()), df.values.max()))
+    
 
     cutoff = [
         (bus.get_value("ui.mutate.min_score", float)),
@@ -654,21 +658,58 @@ def wrapped_pssm_design(**kwargs):
         raise issues.InvalidInputError(
             f'A Key Error occurred due to invalid residue range({kwargs["residue_range"]} --> {custom_indices_str}): \n{e}'
         ) from e
+    
 
     custom_indices = expand_range(shortened_str=custom_indices_str, seperator=",", connector="-")
     if custom_indices == []:
         custom_indices = [resi for resi in range(1, len(sequence) + 1)]
     df_button_matrix = df.iloc[:, custom_indices]
 
+    visualizer=MutantVisualizer(molecule=molecule, chain_id=chain_id)
+    visualizer.designable_sequences=designable_sequences
+    visualizer.cmap=cmap
+    visualizer.min_score=-max_abs
+    visualizer.max_score=max_abs
+    visualizer.mutate_runner=SidechainSolver().refresh().mutate_runner
+
+    designed_tree=MutantTree({})
+
     @dataclass
     class ProfilePair:
         df: pd.DataFrame
 
     def mutate_with_gridbuttons(row, col, matrix: QbuttonMatrix, ignore_wt=False):
-        print(f"Mutating {matrix.alphabet_row[row]}, {matrix.alphabet_col[col]}, ignore_wt={ignore_wt}")
+        resn: str=matrix.alphabet_row[row]
+        resi: int=int(matrix.alphabet_col[col+1])
+        wt_res=sequence[resi-1]
+
+        wt_score=df.loc[wt_res, str(resi-1)]
+        mut_score=df.loc[resn, str(resi-1)]
+        
+        print(f"Mutating {resn}, {resi}, ignore_wt={ignore_wt}")
+
+        group_id= f'mt_manual_{wt_res}{resi}_{wt_score}'
+        mutant=Mutant([Mutation(chain_id=chain_id,position=resi,wt_res=wt_res, mut_res=resn)], wt_protein_sequence=designable_sequences)
+        mutant.mutant_score=mut_score
+        visualizer.group_name=group_id
+        if not mutant in designed_tree.all_mutant_objects:
+            score = mutant.mutant_score
+
+            color = get_color(cmap, score, -max_abs, max_abs)
+            print(
+                f" Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
+            )
+            visualizer.create_mutagenesis_objects(
+                mutant, color, in_place=True
+            )
+            designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
+        else:
+            print(f'{mutant} already exists in the tree')
+
 
     # Prepare the data for the button matrix
     df_pair = ProfilePair(df=df_button_matrix)
+    print(df_pair)
     button_matrix = QbuttonMatrix(df_pair)
     button_matrix.sequence = sequence
     button_matrix.init_ui()
