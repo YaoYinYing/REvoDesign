@@ -1,18 +1,11 @@
-import sys
 import os
-from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QPlainTextEdit,
-    QWidget,
-    QVBoxLayout,
-    QAction,
-    QFileDialog,
-    QMessageBox,
-    QHBoxLayout,
-)
-from PyQt5.QtGui import QSyntaxHighlighter, QTextCharFormat, QColor, QFont
-from PyQt5.QtCore import Qt, QRegularExpression
+import sys
+
+from PyQt5.QtCore import QRegularExpression, Qt
+from PyQt5.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
+from PyQt5.QtWidgets import (QAction, QApplication, QFileDialog, QHBoxLayout,
+                             QMainWindow, QMessageBox, QPlainTextEdit,
+                             QVBoxLayout, QWidget)
 
 
 class SyntaxHighlighter(QSyntaxHighlighter):
@@ -78,7 +71,7 @@ class TextEditor(QPlainTextEdit):
         self.syntax_highlighter = SyntaxHighlighter(self.document(), file_extension)
 
 
-class MainWindow(QMainWindow):
+class TextEditorWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.init_ui()
@@ -96,7 +89,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.editor)
         layout.setContentsMargins(0, 0, 0, 0)
         central_widget.setLayout(layout)
-        self.setCentralWidget(central_widget)
+        self.setWig(central_widget)
 
         # Menu bar actions
         menu_bar = self.menuBar()
@@ -135,7 +128,7 @@ class MainWindow(QMainWindow):
     def load_file(self, file_path):
         """Load the file into the editor and set syntax highlighting."""
         try:
-            with open(file_path, "r") as file:
+            with open(file_path) as file:
                 content = file.read()
                 self.editor.setPlainText(content)
 
@@ -162,6 +155,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MainWindow()
+    window = TextEditorWindow()
     window.show()
     sys.exit(app.exec_())

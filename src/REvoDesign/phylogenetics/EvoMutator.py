@@ -33,8 +33,7 @@ from REvoDesign.tools.mutant_tools import save_mutant_choices
 from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
                                           is_a_REvoDesign_session,
                                           make_temperal_input_pdb)
-from REvoDesign.tools.utils import (cmap_reverser,
-                                    get_color, rescale_number,
+from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
                                     run_worker_thread_with_progress, timing)
 
 logging = root_logger.getChild(__name__)

@@ -327,7 +327,7 @@ def expand_range(
                 expanded_list.extend(range(start, end + 1))
             except ValueError as e:
                 raise issues.InvalidInputError(f"Error parsing range '{rng}': {e}\n"
-                                            f"Did you mean {rng.strip(connector)} ?") from e
+                                               f"Did you mean {rng.strip(connector)} ?") from e
         else:
             expanded_list.append(int(rng))
 

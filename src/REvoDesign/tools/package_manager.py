@@ -40,7 +40,6 @@ from pymol.plugins import addmenuitemqt
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.Qt.utils import loadUi
 
-
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
 GIST_BASE_URL: str = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
@@ -2025,7 +2024,6 @@ def __init_plugin__(app=None):
     Add an entry to the PyMOL "Plugin" menu
     """
     print(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
-
 
     plugin = REvoDesignPackageManager()
     addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)

@@ -6,15 +6,17 @@ import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple, Union, runtime_checkable
+from typing import (Any, Callable, Dict, List, Literal, Optional, Protocol,
+                    Tuple, Union)
 
 import matplotlib
-import pandas as pd
 import numpy as np
+import pandas as pd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
+from REvoDesign.basic import FileExtension as FExt
+from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import FileExtentions
-from REvoDesign.basic import FileExtension as FExt, FileExtensionCollection as FExCol
 from REvoDesign.logger import root_logger
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
@@ -40,7 +42,7 @@ class ImageWidget(QtWidgets.QWidget):
 class NonGremlinPair(Protocol):
 
     @property
-    def df(self)-> pd.DataFrame: ...
+    def df(self) -> pd.DataFrame: ...
 
 
 class QbuttonMatrix(QtWidgets.QWidget):
@@ -78,29 +80,26 @@ class QbuttonMatrix(QtWidgets.QWidget):
         """
         super().__init__(parent)
 
-        self.pair= pair
+        self.pair = pair
         self.is_gremlin_pair = hasattr(self.pair, 'i')
         self.button_size = button_size
-        
 
         if self.is_gremlin_pair:
             alphabet = "ARNDCQEGHILKMFPSTWYV-"
             _alphabet = list(alphabet)
-            self.alphabet_row=_alphabet
-            self.alphabet_col=_alphabet
-            self.sequence = "" # user gave the sequence after init
+            self.alphabet_row = _alphabet
+            self.alphabet_col = _alphabet
+            self.sequence = ""  # user gave the sequence after init
         else:
-            self.alphabet_row= self.pair.df.index.tolist()
-            self.alphabet_col= self.pair.df.columns.tolist()
-            self.sequence='' # user gave the sequence after init
+            self.alphabet_row = self.pair.df.index.tolist()
+            self.alphabet_col = self.pair.df.columns.tolist()
+            self.sequence = ''  # user gave the sequence after init
 
-            
         (
             self.matrix,
             self.min_value,
             self.max_value,
         ) = self.load_matrix_from_pair()
-
 
     def load_matrix_from_pair(self):
         """
@@ -112,7 +111,6 @@ class QbuttonMatrix(QtWidgets.QWidget):
         Returns:
             tuple: Tuple containing matrix (2D list), min_value (float), max_value (float).
         """
-        
 
         try:
 
@@ -206,7 +204,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
                 label.setFixedSize(self.button_size, self.button_size)
 
             layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
-            for col,col_name in enumerate(self.alphabet_col):
+            for col, col_name in enumerate(self.alphabet_col):
                 if row < len(self.matrix) and col < len(self.matrix[0]):
                     value = self.matrix[row][col]
                 else:
@@ -217,15 +215,14 @@ class QbuttonMatrix(QtWidgets.QWidget):
                         row_name == self.sequence[self.pair.i]
                         and self.alphabet_col[col] == self.sequence[self.pair.j]
                     )
-                    button_tip_i=f'{self.sequence[self.pair.i]}{str(self.pair.i+1)}{row_name}' if self.sequence[self.pair.i]==row_name else ''
-                    button_tip_j=f'{self.sequence[self.pair.j]}{str(self.pair.j+1)}{col_name}' if self.sequence[self.pair.j]==col_name else ''
-                    button_tip= ' - '.join(t for t in [button_tip_i, button_tip_j] if t)
+                    button_tip_i = f'{self.sequence[self.pair.i]}{str(self.pair.i+1)}{row_name}' if self.sequence[self.pair.i] == row_name else ''
+                    button_tip_j = f'{self.sequence[self.pair.j]}{str(self.pair.j+1)}{col_name}' if self.sequence[self.pair.j] == col_name else ''
+                    button_tip = ' - '.join(t for t in [button_tip_i, button_tip_j] if t)
                 else:
                     is_wt_pair = (
                         row_name == self.sequence[int(col_name)]
                     )
-                    button_tip=f"{self.sequence[int(col_name)]}{str(int(col_name)+1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
-    
+                    button_tip = f"{self.sequence[int(col_name)]}{str(int(col_name)+1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
                 button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
                 button.setObjectName(f"matrixButton_{row}_vs_{col}")
@@ -246,7 +243,7 @@ class QbuttonMatrix(QtWidgets.QWidget):
             # TODO: This is a hack to make the column labels start from 1
             # Use zero-indexing adjugement instead
             if not self.is_gremlin_pair:
-                col_name=str(int(col_name)+1)
+                col_name = str(int(col_name) + 1)
 
             label = QtWidgets.QLabel(col_name)
 
@@ -704,9 +701,8 @@ class AskedValue:
     reason: Optional[str] = None
     required: bool = False
     choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
-    source: Literal['None', 'File', 'Directory', 'JsonInput']='None'
+    source: Literal['None', 'File', 'Directory', 'JsonInput'] = 'None'
     ext: Optional[FExCol] = None
-
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
@@ -812,6 +808,7 @@ class AskedValueCollection:
         """
         return bool(self.asked_values)
 
+
 class ValueDialog(QtWidgets.QDialog):
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
@@ -858,15 +855,13 @@ class ValueDialog(QtWidgets.QDialog):
             self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
         self.table.horizontalHeader().setStretchLastSection(True)
 
-
         # Configure horizontal size policy for compact width
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)          # Input column 
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)          # Input column
         if self.has_file_action:
             header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
-
 
         self.table.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum,  # Compact width
@@ -886,7 +881,6 @@ class ValueDialog(QtWidgets.QDialog):
         else:
             self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
             self.table.setMinimumHeight(len(self.key_dict) * row_height)
-
 
         self.input_fields: Dict[str, Any] = {}
         self.input_fields_data_pair: Dict[str, AskedValue] = {}
@@ -909,8 +903,6 @@ class ValueDialog(QtWidgets.QDialog):
         self.layout.addLayout(button_layout)
 
         self.setLayout(self.layout)
-
-
 
     def _add_field_to_table(self, row: int, asked_value: AskedValue):
         """
@@ -935,8 +927,8 @@ class ValueDialog(QtWidgets.QDialog):
         if callable(choices):
             try:
                 choices = choices()
-                if asked_value.typing !=  list: # not a multi-choice
-                    choices = tuple(choices) # ensure the choices are tuple to prevent multiple choices
+                if asked_value.typing != list:  # not a multi-choice
+                    choices = tuple(choices)  # ensure the choices are tuple to prevent multiple choices
             except Exception as e:
                 QtWidgets.QMessageBox.warning(
                     self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
@@ -1031,8 +1023,7 @@ class ValueDialog(QtWidgets.QDialog):
             # Set the container widget as the cell widget
             self.table.setCellWidget(row, 3, container_widget)
 
-
-    def _browse_file(self, widget, exts: Optional[FExCol]=None):
+    def _browse_file(self, widget, exts: Optional[FExCol] = None):
         """
         Opens a file dialog to select a file and updates the input field.
 
@@ -1044,7 +1035,7 @@ class ValueDialog(QtWidgets.QDialog):
 
         file_dialog = FileDialog(None, os.getcwd())
         selected_file = file_dialog.browse_filename(
-            mode="r", exts=(FileExtentions.Any, exts ) if exts else (FileExtentions.Any,)
+            mode="r", exts=(FileExtentions.Any, exts) if exts else (FileExtentions.Any,)
         )
         if selected_file:
             widget.setText(selected_file)
@@ -1256,21 +1247,20 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
         return dialog.get_values()
 
 
-def ask_for_multiple_values_as_json()-> str:
-    data= ask_for_appendable_values()
-    if not data: # none or empty collection
+def ask_for_multiple_values_as_json() -> str:
+    data = ask_for_appendable_values()
+    if not data:  # none or empty collection
         return ''
-    data_id=id(data)
-    json_fp=os.path.join('json_multi_input', f'{data_id}.json' )
+    data_id = id(data)
+    json_fp = os.path.join('json_multi_input', f'{data_id}.json')
     os.makedirs(os.path.dirname(json_fp), exist_ok=True)
 
     json.dump(
-        obj=data.asdict, 
+        obj=data.asdict,
         fp=open(json_fp, 'w'),
         indent=4,)
-    
+
     return json_fp
-    
 
 
 def dialog_wrapper(

@@ -56,4 +56,3 @@ class MenuCollection:
                 m.action.triggered.connect(partial(m.func, **m.kwargs if m.kwargs else {}))
             except AttributeError as e:
                 print(f"Skipping binding menu item due to error: {m}: {e}")
-

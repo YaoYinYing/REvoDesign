@@ -82,7 +82,7 @@ YAML = ExtColl(
     )
 )
 
-JSON= ExtColl(
+JSON = ExtColl(
     (
         Ext("json", "JSON file"),
     )

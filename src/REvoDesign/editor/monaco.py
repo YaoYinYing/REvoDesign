@@ -1,12 +1,12 @@
 import os
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PyQt5.QtCore import QUrl, QTimer
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-import sys
-import importlib.resources
-import urllib.request
-import tarfile
 import shutil
+import sys
+import tarfile
+import urllib.request
+
+from PyQt5.QtCore import QTimer, QUrl
+from PyQt5.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 
 from REvoDesign.tools.package_manager import get_github_repo_tags
 from REvoDesign.tools.utils import timing
@@ -48,7 +48,7 @@ class MonacoEditorWidget(QWebEngineView):
         self.version = self.version.lstrip("v")
 
         version_dir = os.path.join(self.editor_path, f"monaco-editor-{self.version}")
-        index_path = os.path.join(version_dir, "index.html")
+        os.path.join(version_dir, "index.html")
 
         if os.path.exists(version_dir):
             print(f"Monaco Editor v{self.version} is already set up at {version_dir}.")

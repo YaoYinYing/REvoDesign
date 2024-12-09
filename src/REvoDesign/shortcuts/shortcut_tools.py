@@ -106,27 +106,27 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
-from dataclasses import dataclass
 import json
 import os
-from typing import Literal, Optional
+from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 from pymol import cmd
-from pymol.Qt import QtWidgets,QtCore # type: ignore
-
+from pymol.Qt import QtCore, QtWidgets  # type: ignore
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
 
+from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
-from ..driver.group_register import CallableGroupValues
-from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc, smiles_conformer_batch,
-                        smiles_conformer_single, visualize_conformer_sdf)
+from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
+                        smiles_conformer_batch, smiles_conformer_single,
+                        visualize_conformer_sdf)
 
 
 @dialog_wrapper(
@@ -439,6 +439,7 @@ def menu_smiles_conformer_single():
     """
     wrapped_smiles_conformer_single()
 
+
 @dialog_wrapper(
     title="Get SMILES Conformers (Many)",
     banner="Generate 3D conformers for multiple SMILES strings using RDKit.",
@@ -485,8 +486,8 @@ def wrapped_smiles_conformer_batch(**kwargs):
     # take out the show_conformer option and handle it separately
     show_conformer: Literal['None', 'Current Window', 'New Window'] = kwargs.pop("show_conformer")
 
-    smiles=kwargs.pop("smiles")
-    kwargs["smi"] = json.load(open(smiles, 'r'))
+    smiles = kwargs.pop("smiles")
+    kwargs["smi"] = json.load(open(smiles))
     with timing("Get SMILES Conformers (Many)"):
         print(kwargs)
         run_worker_thread_with_progress(
@@ -520,7 +521,7 @@ def menu_smiles_conformer_batch():
             'Profile path for design',
             required=True,
             source='File'
-            ),
+        ),
         AskedValue(
             'profile_type',
             'PSSM',
@@ -528,13 +529,13 @@ def menu_smiles_conformer_batch():
             'Profile type',
             required=True,
             choices=CallableGroupValues.list_all_profile_parsers
-            ),
+        ),
         AskedValue(
             'keep_missing',
             True,
             bool,
             'Keep X in the sequence',
-            ),
+        ),
         AskedValue(
             'residue_range',
             '50-60,100-120',
@@ -543,21 +544,21 @@ def menu_smiles_conformer_batch():
             'Note that IndexOutOfRangeError will be raised if the range is not valid (on residue index where aa is `X`).',
             required=False,
             source='File'
-            ),
+        ),
         AskedValue(
             'view_highlight',
             'orient',
             str,
             'Whether to reorient the view to highlight the selected residues.',
-            choices=('None','center', 'zoom', 'orient',)),
+            choices=('None', 'center', 'zoom', 'orient',)),
         AskedValue(
             'view_highlight_nbr',
             6,
-            int, 
+            int,
             'Area to rezoom around',
             choices=range(0, 20),
             required=False
-            )
+        )
     )
 )
 def wrapped_pssm_design(**kwargs):
@@ -566,19 +567,22 @@ def wrapped_pssm_design(**kwargs):
     from ..bootstrap.set_config import ConfigConverter
     from ..common.Mutant import Mutant
     from ..common.MutantTree import MutantTree
-    from ..phylogenetics.REvoDesigner import REvoDesigner
     from ..common.MutantVisualizer import MutantVisualizer
+    from ..phylogenetics.REvoDesigner import REvoDesigner
     from ..sidechain_solver.SidechainSolver import SidechainSolver
-    from ..tools.pymol_utils import get_molecule_sequence, make_temperal_input_pdb
     from ..tools.customized_widgets import QbuttonMatrix
-    from ..tools.mutant_tools import expand_range, read_customized_indice, existed_mutant_tree
-    from ..tools.utils import cmap_reverser,get_color,run_worker_thread_with_progress
+    from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
+                                      read_customized_indice)
+    from ..tools.pymol_utils import (get_molecule_sequence,
+                                     make_temperal_input_pdb)
+    from ..tools.utils import (cmap_reverser, get_color,
+                               run_worker_thread_with_progress)
 
     print(kwargs)
 
     bus = ConfigBus()
-    ui=bus.ui
-    
+    ui = bus.ui
+
     molecule: str = bus.get_value('ui.header_panel.input.molecule', reject_none=True)
     chain_id: str = bus.get_value('ui.header_panel.input.chain_id', reject_none=True)
 
@@ -604,7 +608,7 @@ def wrapped_pssm_design(**kwargs):
     print(sequence)
 
     # Get residue range, if none, use full length
-    custom_indices_str:str = kwargs.get('residue_range')
+    custom_indices_str: str = kwargs.get('residue_range')
     if not custom_indices_str:
         custom_indices_str = f'1-{len(sequence)}'
         print(f'Using default residue range: {custom_indices_str}')
@@ -634,13 +638,12 @@ def wrapped_pssm_design(**kwargs):
     df = df.reindex(columns=col_name)
     df[df.columns[0]] = 0
 
-
     # Call REvoDesigner to setup and plot
     designer = REvoDesigner(kwargs['profile'])
     designer.molecule = molecule
     designer.chain_id = chain_id
     designer.sequence = sequence
-    designer.cmap=cmap
+    designer.cmap = cmap
     designer.profile_alphabet = profile_alphabet
     designer.pwd = os.getcwd()
     designer.design_case = 'default'
@@ -649,8 +652,7 @@ def wrapped_pssm_design(**kwargs):
     designer.mutate_runner = SidechainSolver().refresh().mutate_runner
     designer.reject_aa = ''
 
-    max_abs=np.max((np.abs(df.values.min()), df.values.max()))
-    
+    max_abs = np.max((np.abs(df.values.min()), df.values.max()))
 
     cutoff = [
         (bus.get_value("ui.mutate.min_score", float)),
@@ -672,50 +674,49 @@ def wrapped_pssm_design(**kwargs):
         raise issues.InvalidInputError(
             f'A Key Error occurred due to invalid residue range({kwargs["residue_range"]} --> {custom_indices_str}): \n{e}'
         ) from e
-    
 
     custom_indices = expand_range(shortened_str=custom_indices_str, seperator=",", connector="-")
     if custom_indices == []:
         custom_indices = [resi for resi in range(1, len(sequence) + 1)]
     df_button_matrix = df.iloc[:, custom_indices]
 
-    visualizer=MutantVisualizer(molecule=molecule, chain_id=chain_id)
-    visualizer.designable_sequences=designable_sequences
-    visualizer.cmap=cmap
-    visualizer.min_score=-max_abs
-    visualizer.max_score=max_abs
-    
+    visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
+    visualizer.designable_sequences = designable_sequences
+    visualizer.cmap = cmap
+    visualizer.min_score = -max_abs
+    visualizer.max_score = max_abs
 
-    designed_tree=existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
+    designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
     @dataclass
     class ProfilePair:
         df: pd.DataFrame
 
     def mutate_with_gridbuttons(row, col, matrix: QbuttonMatrix, ignore_wt=False):
-        resn: str=matrix.alphabet_row[row]
-        resi: int=int(matrix.alphabet_col[col+1])
-        wt_res=sequence[resi-1]
+        resn: str = matrix.alphabet_row[row]
+        resi: int = int(matrix.alphabet_col[col + 1])
+        wt_res = sequence[resi - 1]
 
-        wt_score=df.loc[wt_res, str(resi-1)]
-        mut_score=df.loc[resn, str(resi-1)]
-        
+        wt_score = df.loc[wt_res, str(resi - 1)]
+        mut_score = df.loc[resn, str(resi - 1)]
+
         print(f"Mutating {resn}, {resi}, ignore_wt={ignore_wt}")
 
-        sidechain_solver=run_worker_thread_with_progress(
+        sidechain_solver = run_worker_thread_with_progress(
             SidechainSolver().refresh,
             progress_bar=bus.ui.progressBar
         )
         if not sidechain_solver:
             raise issues.InternalError("Sidechain solver failed")
-        
-        visualizer.mutate_runner=sidechain_solver.mutate_runner
 
-        group_id= f'mt_manual_{wt_res}{resi}_{wt_score}'
-        mutant=Mutant([Mutation(chain_id=chain_id,position=resi,wt_res=wt_res, mut_res=resn)], wt_protein_sequence=designable_sequences)
-        mutant.mutant_score=mut_score
-        visualizer.group_name=group_id
-        if not mutant in designed_tree.all_mutant_objects:
+        visualizer.mutate_runner = sidechain_solver.mutate_runner
+
+        group_id = f'mt_manual_{wt_res}{resi}_{wt_score}'
+        mutant = Mutant([Mutation(chain_id=chain_id, position=resi, wt_res=wt_res, mut_res=resn)],
+                        wt_protein_sequence=designable_sequences)
+        mutant.mutant_score = mut_score
+        visualizer.group_name = group_id
+        if mutant not in designed_tree.all_mutant_objects:
             score = mutant.mutant_score
 
             color = get_color(cmap, score, -max_abs, max_abs)
@@ -729,26 +730,23 @@ def wrapped_pssm_design(**kwargs):
                 in_place=True,
                 progress_bar=bus.ui.progressBar
             )
-        
+
             designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
         else:
             print(f'{mutant} already exists in the tree')
 
-
-        
         vhm = kwargs['view_highlight']
-        if vhm=='center':
-            vhm_=cmd.center
-        elif vhm=='zoom':
-            vhm_=cmd.zoom
-        elif vhm=='orient':
-            vhm_=cmd.orient
+        if vhm == 'center':
+            vhm_ = cmd.center
+        elif vhm == 'zoom':
+            vhm_ = cmd.zoom
+        elif vhm == 'orient':
+            vhm_ = cmd.orient
         else:
             return
 
-        if kwargs['view_highlight_nbr']>0:
-            vhm_(f'byres {mutant.full_mutant_id} around {kwargs["view_highlight_nbr"]}',animate=1)
-
+        if kwargs['view_highlight_nbr'] > 0:
+            vhm_(f'byres {mutant.full_mutant_id} around {kwargs["view_highlight_nbr"]}', animate=1)
 
     # Prepare the data for the button matrix
     df_pair = ProfilePair(df=df_button_matrix)

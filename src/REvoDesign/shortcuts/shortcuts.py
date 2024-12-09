@@ -523,10 +523,11 @@ def dump_sidechains(
 
         cmd.disable(sel)
 
+
 def smiles_conformer_batch(smi: Dict[str, str], num_conformer: int, save_dir: str, n_jobs: int = 1):
     """
     Generates 3D conformers for a SMILES string using RDKit.
-    
+
     Args:
         smi (Dict[str, str]): Dictionary containing the name of the molecule as the key and the SMILES string as the value.
         num_conformer (int): Number of conformers to generate for each molecule.
@@ -542,7 +543,7 @@ def smiles_conformer_batch(smi: Dict[str, str], num_conformer: int, save_dir: st
 def smiles_conformer_single(ligand_name: str, smiles: str, num_conformer: int, save_dir: str,):
     """
     Generates 3D conformers for a single SMILES string using RDKit.
-    
+
     Args:
         ligand_name (str): Name of the ligand.
         smiles (str): SMILES string of the ligand.
@@ -563,7 +564,6 @@ def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal['New Win
         # cmd.reinitialize()
         cmd.load(sdf_file_path)
         return
-    
 
     # Get the absolute path of the directory containing the SDF file
     tmpdir = os.path.abspath(os.path.dirname(sdf_file_path))

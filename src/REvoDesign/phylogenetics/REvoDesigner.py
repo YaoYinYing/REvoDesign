@@ -12,8 +12,8 @@ import time
 
 import matplotlib
 import matplotlib.pylab as plt
-from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 import pandas as pd
+from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import issues
 from REvoDesign.citations import CitationManager
