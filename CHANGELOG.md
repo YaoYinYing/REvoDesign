@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Visualization:
       - Current Window
       - New Window
+    - Mode:
+      - Single
+      - Batch
+    - Profile Design (by clicking the button matrix loaded from profile data)
 - Text Editors:
   - Qt Text Editor: nearly done (Backup plan)
   - Monaco Editor: unfinished
@@ -52,21 +56,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     4. Integrate the dialog with file browsing functionality for fields requiring file paths.
     
 - `Makefile`: added `kw-test` to support testing with customized keywords.
-
+- `FileExtentions`: added JSON
 
 ### Changed
 
 - UI:
   - refactored menubar
+- `src/REvoDesign/tools/customized_widgets.py`:
+  - `QbuttonMatrix`: 
+    - now accept non-gremlin-pair data (DMS dataset, for example)
+    - need to be refactored.
+    - button tooltip on mutation info
+  - `AskedValue` attrs:
+    - `choices`: now accept callable with range, list or tuple output
+    - `source`: support:
+      - `'File'`: file input opt
+      - `'Directory'`: folder input opt
+      - `'JsonInput'`: multiple key-value pairs input (saved as JSON to be reusable)
+    - `ext`: `FileExtensionCollection`: support multiple extensions.
+  - `AskedValueCollection`: 
+    - `need_action` to check if any of the values need to be interpreted as file paths or multiple key-val inputs.
+    - 
 
 ### Fixed
 - typos: 
   - `tools/release_tag.sh`: `Dump version` -> `Bump version`
   - `src/REvoDesign/shortcuts/shortcuts.py`: `neiborhood` -> `neighborhood`
+- installer:
+  - entrypoint print is moved to `__init_plugin__` to silence the output when it's used as a module.
+- `expand_range`: `try-except` block to raise invalid input error correctly.
+- `REvoDesigner.py`: 
+  - raise `NoResultsError` if error occurs with profile data parses.
+  - typing hints
+- `MenuCollection`: 
+  - `try-except` block to skip non-existent widget binding (this happens during developing).
 
 ### Removed
 - `src/REvoDesign/tools/pymol_utils.py`
   - `PYMOL_VERSION` and `PYMOL_BUILD`: no longer needed.
+- `src/REvoDesign/tools/utils.py`:
+  - `dirname_does_exist` -> `os.path.isdir`
+  - `filepath_does_exists` -> `os.path.isfile`
 
 ## [1.7.7] - 2024-12-05
 
