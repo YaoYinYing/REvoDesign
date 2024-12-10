@@ -117,6 +117,7 @@ class MonacoEditorManager:
         shutil.copy(self.html_template_path, index_path)
         logging.info(f"HTML template copied to {index_path}.")
 
+
 def edit_file_with_monaco(file_path: str):
     """
     Function to invoke the Monaco Editor for editing a specified file.
@@ -133,10 +134,10 @@ def edit_file_with_monaco(file_path: str):
 
     # Initialize Monaco Editor Manager
     monaco_manager = MonacoEditorManager(app_name="REvoDesign.MonacoEditor", app_author="REvoDesignUser")
-    config_store=ConfigStore()
+    config_store = ConfigStore()
 
     # Step 1: Ensure Monaco Editor is ready
-    logging.info("Starting to setup Monaco Editor, this may take a while...")
+    logging.info("Ensuring Monaco Editor is set up...")
     monaco_manager.ensure_editor_downloaded()
 
     # Step 2: Ensure the server is running
@@ -145,38 +146,34 @@ def edit_file_with_monaco(file_path: str):
         logging.info("Starting the server for Monaco Editor...")
         server_control.start_server()
 
-    logging.info(f"Server launch status: {server_control.is_running}") 
-
+    logging.info(f"Server launch status: {server_control.is_running}")
 
     # Step 3: Validate the file path
     target_file = Path(file_path)
     if not target_file.exists():
         raise FileNotFoundError(f"The file '{file_path}' does not exist.")
-    logging.info(f'Reading configuration from ConfigBus ... ')
+    logging.info(f"Validated file path: {file_path}")
+
     # Step 4: Construct the editor URL
-    # use_ssl = ConfigBus().get_value('editor.backend.use_ssl', bool, default_value=False)
-    use_ssl=config_store.get('editor.backend.use_ssl')
+    use_ssl = config_store.get('editor.backend.use_ssl', default=False)
     protocol = "https" if use_ssl else "http"
-    # host = ConfigBus().get_value('editor.backend.host', str, reject_none=True)
-    host=config_store.get('editor.backend.host')
-    # port = ConfigBus().get_value('editor.backend.port', int, reject_none=True)
+    host = config_store.get('editor.backend.host')
     port = config_store.get('editor.backend.port')
-    # token = ConfigBus().get_value('editor.token')
-    token = config_store.get('editor.token')
+    token = config_store.get('editor.token', default=None)
+    no_token = config_store.get('editor.backend.no_token', default=False)
 
-    logging.info(f"Editor URL: {use_ssl=}, {host=}, {port=}, {token=}, {protocol=}")
+    # Build the editor URL
     base_url = f"{protocol}://{host}:{port}"
-    editor_url = f"{base_url}/editor?token={token}"
-    
+    editor_url = f"{base_url}/editor?file_path={file_path}"
+    if not no_token and token:
+        editor_url += f"&token={token}"
 
-    # Add debug logs for the URL and protocol
-    logging.info(f"Editor URL: {editor_url}")
-    logging.info(f"MonacoConfig: {config_store.cfg}")
+    logging.info(f"Editor URL constructed: {editor_url}")
 
     # Open the editor in the browser
     logging.info(f"Opening Monaco Editor for file: {file_path}")
-    time.sleep(10000)
     webbrowser.open(editor_url)
+
 
 def menu_edit_file(file_path):
     run_worker_thread_with_progress(

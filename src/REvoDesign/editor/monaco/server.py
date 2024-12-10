@@ -1,9 +1,10 @@
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi.staticfiles import StaticFiles
 from REvoDesign import ConfigBus
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -64,61 +65,100 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/editor", response_class=HTMLResponse)
-async def serve_editor(token: str = None):
+async def serve_editor(file_path: str, token: str = None):
+    """
+    Serve the Monaco Editor HTML, allowing for file-based editing.
+
+    Args:
+        file_path (str): The path of the file to be edited.
+        token (str): Optional token for authentication.
+
+    Returns:
+        HTMLResponse: The Monaco Editor HTML page.
+    """
     config_store = ConfigStore()
     expected_token = config_store.get("editor.token")
     use_ssl = config_store.get("editor.backend.use_ssl", default=False)
 
+    # Validate token if use_ssl is enabled
     if use_ssl and token != expected_token:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
+    # Validate the file path
+    target_file = Path(file_path)
+    if not target_file.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+
+    # Serve the editor HTML
     html_template_path = os.path.join(config_store.get("editor.backend.html_dir"), 'index.html')
     if not os.path.exists(html_template_path):
-        raise HTTPException(status_code=500, detail=f"Editor HTML template not found: {html_template_path}. \n{config_store.cfg=}")
+        raise HTTPException(status_code=500, detail=f"Editor HTML template not found: {html_template_path}.")
 
     with open(html_template_path, "r") as html_file:
         editor_html = html_file.read()
 
+    # Inject the file path into the editor's HTML template
+    editor_html = editor_html.replace("{{file_path}}", str(target_file))
+
     return HTMLResponse(content=editor_html)
 
 
-
-# Endpoints
 @app.get("/load_file", response_class=JSONResponse)
-async def load_file(file_path: str, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    # Check if no-token mode is enabled
-    config_store=ConfigStore()
+async def load_file(
+    file_path: str,
+    token: str = Query(None),
+):
+    config_store = ConfigStore()
     no_token = config_store.get("editor.backend.no_token", False)
+
+    # Token validation
     if not no_token:
-        token = credentials.credentials
-        if token != config_store.get("editor.token"):
-            raise HTTPException(status_code=401, detail="Unauthorized")
-    
-    # Load the file content
-    if not os.path.exists(file_path):
+        expected_token = config_store.get("editor.token")
+        if token != expected_token:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+
+    # Validate file existence
+    target_file = Path(file_path)
+    if not target_file.exists():
         return JSONResponse(content={"error": "File not found"}, status_code=404)
-    with open(file_path, "r") as file:
-        content = file.read()
-    return {"content": content}
+
+    # Load file content
+    try:
+        content = target_file.read_text()
+        return {"content": content}
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to load file: {str(e)}"}, status_code=500)
 
 class SaveFileRequest(BaseModel):
     file_path: str
     content: str
 
+
 @app.post("/save_file", response_class=JSONResponse)
-async def save_file(data: SaveFileRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    config_store=ConfigStore()
-    # Check if no-token mode is enabled
+async def save_file(
+    data: SaveFileRequest,
+    token: str = Query(None),
+):
+    config_store = ConfigStore()
     no_token = config_store.get("editor.backend.no_token", False)
+
+    # Token validation
     if not no_token:
-        token = credentials.credentials
-        if token !=config_store.get("editor.token"):
-            raise HTTPException(status_code=401, detail="Unauthorized")
-    
-    # Save the file content
-    with open(data.file_path, "w") as file:
-        file.write(data.content)
-    return {"status": "success"}
+        expected_token = config_store.get("editor.token")
+        if token != expected_token:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+
+    # Validate the file path
+    target_file = Path(data.file_path)
+    if not target_file.parent.exists():
+        return JSONResponse(content={"error": f"Directory does not exist: {target_file.parent}"}, status_code=400)
+
+    # Save file content
+    try:
+        target_file.write_text(data.content)
+        return {"status": "success"}
+    except Exception as e:
+        return JSONResponse(content={"error": f"Failed to save file: {str(e)}"}, status_code=500)
 
 class ServerControl(SingletonAbstract):
     def __init__(self):

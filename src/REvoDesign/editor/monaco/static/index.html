@@ -33,33 +33,63 @@
     <button id="saveButton">Save</button>
 
     <script>
+        // Function to determine the language based on file extension
+        function getLanguageFromFileExtension(filePath) {
+            const extension = filePath.split('.').pop().toLowerCase();
+            const languageMap = {
+                py: 'python',
+                js: 'javascript',
+                ts: 'typescript',
+                html: 'html',
+                css: 'css',
+                json: 'json',
+                md: 'markdown',
+                c: 'c',
+                cpp: 'cpp',
+                java: 'java',
+                rb: 'ruby',
+                go: 'go',
+                rs: 'rust',
+                php: 'php',
+                xml: 'xml',
+                yaml: 'yaml',
+                yml: 'yaml',
+                txt: 'plaintext',
+            };
+            return languageMap[extension] || 'plaintext';
+        }
+
         const serverUrl = `${window.location.origin}`;
-        const token = localStorage.getItem('token'); // Retrieve token from localStorage if present
+        const urlParams = new URLSearchParams(window.location.search);
+        const filePath = urlParams.get('file_path');
+        const token = urlParams.get('token');
+
+        if (!filePath) {
+            alert('File path is required to load the editor.');
+            throw new Error('File path parameter is missing.');
+        }
+
+        // Detect platform for hotkey handling
+        const isMacOS = navigator.platform.toUpperCase().includes('MAC');
 
         // Load Monaco Editor
         require.config({ paths: { 'vs': '/static/vs' } });
         require(['vs/editor/editor.main'], function () {
+            const language = getLanguageFromFileExtension(filePath);
             window.editor = monaco.editor.create(document.getElementById('container'), {
                 value: '',
-                language: 'python',
+                language: language, // Set the language dynamically
                 theme: 'vs-dark',
                 automaticLayout: true
             });
 
             // Fetch file content
-            const filePath = new URLSearchParams(window.location.search).get('file_path');
-            const fetchOptions = {
-                headers: {}
-            };
+            const loadFileUrl = `${serverUrl}/load_file?file_path=${encodeURIComponent(filePath)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
-            if (token) {
-                fetchOptions.headers['Authorization'] = `Bearer ${token}`;
-            }
-
-            fetch(`${serverUrl}/load_file?file_path=${encodeURIComponent(filePath)}`, fetchOptions)
+            fetch(loadFileUrl)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Failed to load file content.');
+                        throw new Error(`Failed to load file content. Status: ${response.status}`);
                     }
                     return response.json();
                 })
@@ -70,12 +100,13 @@
                 })
                 .catch(error => {
                     console.error('Failed to load file content:', error);
-                    alert('Failed to load file content.');
+                    alert('Failed to load file content. Check the console for details.');
                 });
 
             // Save file content
-            document.getElementById('saveButton').addEventListener('click', async () => {
+            const saveFile = async () => {
                 const content = window.editor.getValue();
+                const saveFileUrl = `${serverUrl}/save_file${token ? `?token=${encodeURIComponent(token)}` : ''}`;
                 const saveOptions = {
                     method: 'POST',
                     headers: {
@@ -84,12 +115,8 @@
                     body: JSON.stringify({ file_path: filePath, content })
                 };
 
-                if (token) {
-                    saveOptions.headers['Authorization'] = `Bearer ${token}`;
-                }
-
                 try {
-                    const response = await fetch(`${serverUrl}/save_file`, saveOptions);
+                    const response = await fetch(saveFileUrl, saveOptions);
                     if (response.ok) {
                         alert('File saved successfully.');
                     } else {
@@ -99,7 +126,18 @@
                     }
                 } catch (error) {
                     console.error('Error during save operation:', error);
-                    alert('Failed to save file.');
+                    alert('Failed to save file. Check the console for details.');
+                }
+            };
+
+            // Handle Save Button Click
+            document.getElementById('saveButton').addEventListener('click', saveFile);
+
+            // Handle Keyboard Shortcut
+            window.addEventListener('keydown', (event) => {
+                if ((isMacOS && event.metaKey && event.key === 's') || (!isMacOS && event.ctrlKey && event.key === 's')) {
+                    event.preventDefault(); // Prevent default browser save dialog
+                    saveFile(); // Trigger file save
                 }
             });
         });
