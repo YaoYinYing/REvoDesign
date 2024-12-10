@@ -5,6 +5,7 @@ import urllib.request
 
 from platformdirs import user_data_dir
 
+from ...driver.ui_driver import ConfigBus
 from ...logger import root_logger
 from ...tools.package_manager import get_github_repo_tags
 from ...tools.utils import run_worker_thread_with_progress
@@ -116,6 +117,15 @@ class MonacoEditorManager:
         shutil.copy(self.html_template_path, index_path)
         logging.info(f"HTML template copied to {index_path}.")
 
+def ensure_monaco():
+    # Initialize Monaco Editor Manager
+    monaco_manager = MonacoEditorManager(app_name="REvoDesign.MonacoEditor", app_author="REvoDesignUser")
+    
+
+    # Step 1: Ensure Monaco Editor is ready
+    logging.info("Ensuring Monaco Editor is set up...")
+    monaco_manager.ensure_editor_downloaded()
+
 
 def edit_file_with_monaco(file_path: str):
     """
@@ -131,13 +141,7 @@ def edit_file_with_monaco(file_path: str):
     import webbrowser
     from pathlib import Path
 
-    # Initialize Monaco Editor Manager
-    monaco_manager = MonacoEditorManager(app_name="REvoDesign.MonacoEditor", app_author="REvoDesignUser")
     config_store = ConfigStore()
-
-    # Step 1: Ensure Monaco Editor is ready
-    logging.info("Ensuring Monaco Editor is set up...")
-    monaco_manager.ensure_editor_downloaded()
 
     # Step 2: Ensure the server is running
     server_control = ServerControl()
@@ -175,6 +179,11 @@ def edit_file_with_monaco(file_path: str):
 
 
 def menu_edit_file(file_path):
+    run_worker_thread_with_progress(
+        worker_function=ensure_monaco,
+        progress_bar=ConfigBus().ui.progressBar,
+    )
+
     run_worker_thread_with_progress(
         worker_function=edit_file_with_monaco,
         file_path=file_path,
