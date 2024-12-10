@@ -555,7 +555,7 @@ class MenuItem:
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
     name: str
-    func: Callable
+    func: Optional[Callable]= None
     kwargs: Optional[Mapping] = None
 
 
@@ -864,12 +864,15 @@ class REvoDesignPackageManager:
         self.menu = QtWidgets.QMenu(self.installer_ui)
 
         for item in items:
-            # Add the "Upgrade UI" item
-            upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
-            upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
+            if item.func is not None: # active item
+                # Add the item as active
+                upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
+                upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
+                upgrade_action.setEnabled(True)
+                self.menu.addAction(upgrade_action)
+            else: # menu section
+                self.menu.addSection(item.name)
 
-            # Add the action to the menu
-            self.menu.addAction(upgrade_action)
 
         # Set the context menu policy to show the menu on right-click
         self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -906,9 +909,14 @@ class REvoDesignPackageManager:
         # add right-click menu on `self.installer_ui.label_header`,
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
         menuitems = [
+            MenuItem('Upgrades'),
             MenuItem("Upgrade UI", self.ensure_ui_file, kwargs={"upgrade": True}),
             MenuItem("Upgrade this manager", self.self_upgrade),
+
+            MenuItem('Fetch remote data'),
             MenuItem('Refresh GitHub Release tags', self.fetch_tags),
+
+            MenuItem('Diagnostics'),
             MenuItem(
                 'Collect diagnostic data (reduced)',
                 self.collect_diagnostic_data,
@@ -924,6 +932,8 @@ class REvoDesignPackageManager:
                 self.collect_diagnostic_data,
                 kwargs={'collect_dummy': True, 'drop_sensitives':False}
             ),
+
+            MenuItem('Configuration Force Reset'),
             MenuItem(
                 'Reset REvoDesign\'s Configuration',
                 self.reinitialize_config,

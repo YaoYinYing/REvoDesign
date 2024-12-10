@@ -5,7 +5,7 @@ The heart of REvoDesign. A UI-Configuration Bus
 import os
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, overload
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union, overload
 
 import omegaconf.errors
 from immutabledict import immutabledict
@@ -241,6 +241,9 @@ class ConfigBus(SingletonAbstract, CitableModules):
     def get_value(self, cfg_item: str, converter: Callable[[Any], T], reject_none: bool, default_value: None = ...) -> T: ...
     
     @overload
+    def get_value(self, cfg_item: str, converter: Type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
+    
+    @overload
     def get_value(self, cfg_item: str, converter: Callable[[Any], T], reject_none: bool = False, default_value: Optional[T] = ...) -> Optional[T]: ...
     
     
@@ -304,7 +307,7 @@ class ConfigBus(SingletonAbstract, CitableModules):
 
         return value
 
-    def set_value(self, cfg_item: str, value: Union[str, List, Dict], force_add: bool = False) -> None:
+    def set_value(self, cfg_item: str, value: Any, force_add: bool = False) -> None:
         # Sets the value of a configuration item.
         if value is not None:
             try:

@@ -118,7 +118,7 @@ ui:
   
   socket: 
     input:
-      key: ''
+      key: 
 
     server_mode: False
     server_url: localhost
@@ -143,8 +143,11 @@ editor:
   backend:
     host: '127.0.0.1'
     port: 5000
+    use_ssl: False
+    no_token: True
     crt: 
     key:
+    html_dir: 
   token:
 
 rosetta: 

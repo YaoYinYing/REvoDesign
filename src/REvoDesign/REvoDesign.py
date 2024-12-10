@@ -27,7 +27,7 @@ from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.basic import MenuCollection, MenuItem, MenuActionServerMonitor
-from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR,REVODESIGN_CONFIG_FILE
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
@@ -40,6 +40,7 @@ from REvoDesign.driver.environ_register import (add_new_environment_variables,
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.evaluate import Evalutator
+from REvoDesign.editor import edit_file_with_monaco
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
@@ -257,6 +258,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionReconfigure,
                     self.reload_configurations,
+                ),
+                MenuItem(
+                    self.bus.ui.actionEdit_Configuration,
+                    edit_file_with_monaco,
+                    {'file_path': REVODESIGN_CONFIG_FILE}
                 ),
                 MenuItem(
                     self.bus.ui.actionSave_Configurations,
