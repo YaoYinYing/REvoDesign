@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from REvoDesign import ConfigBus
 from REvoDesign.basic.abc_singleton import SingletonAbstract
-from REvoDesign.tools.ssl import SSLCertificateManager
+from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 
 from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
