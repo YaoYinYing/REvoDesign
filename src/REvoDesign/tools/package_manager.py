@@ -32,7 +32,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
-                    Tuple, TypeVar, Union, overload)
+                    Tuple, TypeVar, Union)
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -555,7 +555,7 @@ class MenuItem:
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
     name: str
-    func: Optional[Callable]= None
+    func: Optional[Callable] = None
     kwargs: Optional[Mapping] = None
 
 
@@ -821,18 +821,18 @@ class REvoDesignPackageManager:
         None
         """
         if not drop_sensitives:
-            confirmed=decide(
+            confirmed = decide(
                 title='Agree to collect SENSITIVE data?',
                 description='[!!!CAUSION!!!]Do you REALLY want to collect diagnostic information INCLUDING ALL SENSITIVE data?\n'
                 'Please DO NOT share this information with anyone else or post it to public channels.',
             )
             if not confirmed:
                 return notify_box('Diagnostic information collection cancelled.')
-        
+
         # Clear the clipboard to ensure no old data is mixed in
         cb = QtWidgets.QApplication.clipboard()
         cb.clear(mode=cb.Clipboard)
-        
+
         # Collect diagnostic data using a worker thread
         diagnostic_data = run_worker_thread_with_progress(
             worker_function=issue_collection,
@@ -864,15 +864,14 @@ class REvoDesignPackageManager:
         self.menu = QtWidgets.QMenu(self.installer_ui)
 
         for item in items:
-            if item.func is not None: # active item
+            if item.func is not None:  # active item
                 # Add the item as active
                 upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
                 upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
                 upgrade_action.setEnabled(True)
                 self.menu.addAction(upgrade_action)
-            else: # menu section
+            else:  # menu section
                 self.menu.addSection(item.name)
-
 
         # Set the context menu policy to show the menu on right-click
         self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -930,7 +929,7 @@ class REvoDesignPackageManager:
             MenuItem(
                 'Collect diagnostic data (full, with sensitive)',
                 self.collect_diagnostic_data,
-                kwargs={'collect_dummy': True, 'drop_sensitives':False}
+                kwargs={'collect_dummy': True, 'drop_sensitives': False}
             ),
 
             MenuItem('Configuration Force Reset'),
@@ -1394,15 +1393,16 @@ class REvoDesignPackageManager:
             return
 
     def reinitialize_config(self):
-        comfirmed=decide(
+        comfirmed = decide(
             "Reinitialize REvoDesign configuration?",
             '[WARNING] This will delete your current configuration files.')
-        
+
         if not comfirmed:
             return
-        
+
         from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
         set_REvoDesign_config_file(delete_user_config_tree=True)
+
 
 class WorkerThread(QtCore.QThread):
     """
@@ -1493,7 +1493,6 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
 
-
 def run_worker_thread_with_progress(
     worker_function: Callable[..., R], *args, progress_bar: Optional[Any] = None, **kwargs
 ) -> Optional[R]:
@@ -1532,7 +1531,7 @@ def run_worker_thread_with_progress(
 
     # If a progress bar was used, restore its state after the task is completed
     if progress_bar:
-        # restore the progressbar state 
+        # restore the progressbar state
         progress_bar.setRange(_min, _max)  # type: ignore
         progress_bar.setValue(_val)  # type: ignore
 
@@ -1755,12 +1754,12 @@ def filter_sensitive_data(env):
     """
     # Define the regex pattern to match sensitive keys
     sensitive_pattern = re.compile(
-    r"(token|passwd|password|pass|session|_id|secret|access|auth|api_key|apikey|"
-    r"access_key|accesskey|secret_key|secretkey|auth_token|authtoken|"
-    r"session_id|session_token|private_key|ssh_key|key|login|cred|"
-    r"credential|authenticator|certificate|cert|identity|oauth|jwt|bearer|csrf)",
-    re.IGNORECASE
-)
+        r"(token|passwd|password|pass|session|_id|secret|access|auth|api_key|apikey|"
+        r"access_key|accesskey|secret_key|secretkey|auth_token|authtoken|"
+        r"session_id|session_token|private_key|ssh_key|key|login|cred|"
+        r"credential|authenticator|certificate|cert|identity|oauth|jwt|bearer|csrf)",
+        re.IGNORECASE
+    )
 
     # Filter out sensitive keys
     filtered_env = {
@@ -1769,11 +1768,12 @@ def filter_sensitive_data(env):
 
     return filtered_env
 
+
 def issue_collection(
-        collect_dummy: bool = False, 
-        network: bool = True, 
+        collect_dummy: bool = False,
+        network: bool = True,
         drop_sensitives: bool = True,
-        ) -> Dict[str, Any]:
+) -> Dict[str, Any]:
     """
     Collects system and environment information and returns it as a dictionary.
 
@@ -1940,10 +1940,10 @@ def issue_collection(
     # Dummy
     if collect_dummy:
         if drop_sensitives:
-            env_dict=filter_sensitive_data(os.environ)
+            env_dict = filter_sensitive_data(os.environ)
             print('Sensitive data are removed.')
         else:
-            env_dict=os.environ
+            env_dict = os.environ
             print('Sensitive data may be kept.')
 
         issue_dict.update({'Dummy::Environ': env_dict})

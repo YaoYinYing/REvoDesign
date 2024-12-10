@@ -7,7 +7,6 @@ import uuid
 from REvoDesign import issues
 from REvoDesign.logger import root_logger
 
-
 logging = root_logger.getChild(__name__)
 
 

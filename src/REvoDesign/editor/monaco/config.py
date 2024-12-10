@@ -1,5 +1,7 @@
 from typing import Any
+
 from omegaconf import DictConfig, OmegaConf
+
 from ...basic.abc_singleton import SingletonAbstract
 
 

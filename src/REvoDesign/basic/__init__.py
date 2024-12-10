@@ -5,8 +5,8 @@ from .extensions import FileExtension, FileExtensionCollection
 from .group_registries import GroupRegistryItem
 from .menu_item import MenuCollection, MenuItem
 from .mutate_runner import MutateRunnerAbstract
-from .server_monitor import MenuActionServerMonitor
 from .param_toggle import ParamChangeRegister, ParamChangeRegistryItem
+from .server_monitor import MenuActionServerMonitor
 
 __all__ = [
     "SingletonAbstract",

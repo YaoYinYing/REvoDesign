@@ -1,21 +1,19 @@
-
-
 '''
 This module contains functions and classes related to managing SSL certificates and generating unique identifiers (UUIDs).
 '''
 import datetime
 import os
+import platform
 import ssl
 from dataclasses import dataclass
 from typing import Literal
-import platform
 
 from OpenSSL import crypto
 
 from REvoDesign.logger import root_logger
 
-
 logging = root_logger.getChild(__name__)
+
 
 @dataclass
 class SSLCertificateManager:
@@ -115,8 +113,7 @@ class SSLCertificateManager:
 
         # Get node information from OS or set to 'Unknown' if not available
 
-
-        node =platform.node()
+        node = platform.node()
         user = os.getlogin()
 
         # Generate RSA key
@@ -146,4 +143,3 @@ class SSLCertificateManager:
             f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
         with open(self.key_path, "wb") as f:
             f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k))
-

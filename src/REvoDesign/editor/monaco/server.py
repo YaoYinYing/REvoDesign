@@ -1,18 +1,20 @@
 import os
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi.staticfiles import StaticFiles
-from REvoDesign import ConfigBus
-from fastapi import FastAPI, HTTPException, Depends, Query, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
-import secrets
 import uvicorn
 import uvicorn.server
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from REvoDesign import ConfigBus
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.tools.ssl import SSLCertificateManager
+
 from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
 
@@ -30,9 +32,11 @@ def initialize_token() -> str:
     print(f"Generated SECRET_TOKEN: {SECRET_TOKEN}")
     return SECRET_TOKEN
 
+
 def get_token() -> str:
     config_store = ConfigStore()
     return config_store.get('editor.token')
+
 
 def distruct_token() -> None:
     config_store = ConfigStore()
@@ -43,18 +47,17 @@ def distruct_token() -> None:
 security = HTTPBearer()
 
 
-
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if credentials.credentials != get_token():
         raise HTTPException(status_code=401, detail="Unauthorized")
-    
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
     config_store = ConfigStore()
     app.mount("/static", StaticFiles(directory=config_store.get("editor.backend.html_dir")), name="static")
-    
+
     print("Application startup complete.")
 
     yield  # Application runs here
@@ -68,7 +71,8 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/favicon.svg", include_in_schema=False)
 async def favicon():
-    return FileResponse(os.path.join(this_file_dir, '..','..','meta/images/logo.svg'), media_type="image/svg+xml")
+    return FileResponse(os.path.join(this_file_dir, '..', '..', 'meta/images/logo.svg'), media_type="image/svg+xml")
+
 
 @app.get("/editor", response_class=HTMLResponse)
 async def serve_editor(file_path: str, token: str = None):
@@ -100,7 +104,7 @@ async def serve_editor(file_path: str, token: str = None):
     if not os.path.exists(html_template_path):
         raise HTTPException(status_code=500, detail=f"Editor HTML template not found: {html_template_path}.")
 
-    with open(html_template_path, "r") as html_file:
+    with open(html_template_path) as html_file:
         editor_html = html_file.read()
 
     # Inject the file path into the editor's HTML template
@@ -135,6 +139,7 @@ async def load_file(
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to load file: {str(e)}"}, status_code=500)
 
+
 class SaveFileRequest(BaseModel):
     file_path: str
     content: str
@@ -166,13 +171,14 @@ async def save_file(
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to save file: {str(e)}"}, status_code=500)
 
+
 class ServerControl(SingletonAbstract):
     def __init__(self):
         if not hasattr(self, "initialized"):
             self.server_thread = None  # WorkerThread instance
             self.is_running = False
             self.server = None  # Uvicorn Server instance
-            self.config_store=ConfigStore()
+            self.config_store = ConfigStore()
 
             # Mark the instance as initialized to prevent reinitialization
             self.initialized = True
@@ -188,8 +194,7 @@ class ServerControl(SingletonAbstract):
         if not no_token:
             initialize_token()
         else:
-            self.config_store.set('editor.token', None) # Ensure no token is used
-
+            self.config_store.set('editor.token', None)  # Ensure no token is used
 
         HTML_DIR = self.config_store.get('editor.backend.html_dir')
         print(f'{HTML_DIR=}')
@@ -203,7 +208,7 @@ class ServerControl(SingletonAbstract):
         if use_ssl:
             # Configure SSL
             ssl_manager = SSLCertificateManager(role="server")
-            ssl_context = ssl_manager.generate_ssl_context()
+            ssl_manager.generate_ssl_context()
             ssl_certfile = ssl_manager.crt_path
             ssl_keyfile = ssl_manager.key_path
 
@@ -211,9 +216,9 @@ class ServerControl(SingletonAbstract):
             self.config_store.set('editor.backend.crt', ssl_certfile)
             self.config_store.set('editor.backend.key', ssl_keyfile)
 
-        host=ConfigBus().get_value('editor.backend.host', str, reject_none=True)
+        host = ConfigBus().get_value('editor.backend.host', str, reject_none=True)
         self.config_store.set('editor.backend.host', host)
-        port=ConfigBus().get_value('editor.backend.port', int, reject_none=True)
+        port = ConfigBus().get_value('editor.backend.port', int, reject_none=True)
         self.config_store.set('editor.backend.port', port)
 
         # Configure Uvicorn
@@ -233,7 +238,8 @@ class ServerControl(SingletonAbstract):
         self.server_thread.finished_signal.connect(self._on_server_finished)
         self.server_thread.start()
         self.is_running = True
-        print(f"Server started with {'SSL' if use_ssl else 'no SSL'} and {'no token' if no_token else 'token-based'} authentication.")
+        print(
+            f"Server started with {'SSL' if use_ssl else 'no SSL'} and {'no token' if no_token else 'token-based'} authentication.")
         print(f'ServerControl::Config:{self.config_store.cfg}')
 
     def stop_server(self):

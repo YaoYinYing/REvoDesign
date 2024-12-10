@@ -8,9 +8,8 @@ from dataclasses import dataclass, field
 
 from immutabledict import immutabledict
 
-from ..basic import SingletonAbstract
 from .. import issues
-
+from ..basic import SingletonAbstract
 from .package_manager import issue_collection
 
 

@@ -5,7 +5,7 @@ The heart of REvoDesign. A UI-Configuration Bus
 import os
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union, overload
+from typing import (Any, Callable, Optional, Type, TypeVar, overload)
 
 import omegaconf.errors
 from immutabledict import immutabledict
@@ -25,6 +25,7 @@ logging = root_logger.getChild(__name__)
 
 # Define a generic type for converter
 T = TypeVar("T")
+
 
 class ConfigBus(SingletonAbstract, CitableModules):
     """
@@ -236,24 +237,30 @@ class ConfigBus(SingletonAbstract, CitableModules):
         return self.w2c.widget_id2config_dict.get(widget_id)  # type: ignore
 
     @overload
-    def get_value(self, cfg_item: str, converter=None)  -> Any: ...
+    def get_value(self, cfg_item: str, converter=None) -> Any: ...
+
     @overload
-    def get_value(self, cfg_item: str, converter: Callable[[Any], T], reject_none: bool, default_value: None = ...) -> T: ...
-    
+    def get_value(self, cfg_item: str, converter: Callable[[Any], T],
+                  reject_none: bool, default_value: None = ...) -> T: ...
+
     @overload
     def get_value(self, cfg_item: str, converter: Type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
-    
+
     @overload
-    def get_value(self, cfg_item: str, converter: Callable[[Any], T], reject_none: bool = False, default_value: Optional[T] = ...) -> Optional[T]: ...
-    
-    
+    def get_value(self,
+                  cfg_item: str,
+                  converter: Callable[[Any],
+                                      T],
+                  reject_none: bool = False,
+                  default_value: Optional[T] = ...) -> Optional[T]: ...
+
     def get_value(
-            self,
-            cfg_item: str,
-            converter: Optional[Callable[[Any], T]] = None,
-            reject_none: bool = False,
-            default_value: Optional[T] = None,
-        ) -> Optional[T]:
+        self,
+        cfg_item: str,
+        converter: Optional[Callable[[Any], T]] = None,
+        reject_none: bool = False,
+        default_value: Optional[T] = None,
+    ) -> Optional[T]:
         """
         Retrieves the value of a configuration item with optional type casting.
 

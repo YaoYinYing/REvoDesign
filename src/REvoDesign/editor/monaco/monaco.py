@@ -1,19 +1,18 @@
 import os
-import time
-import urllib.request
-import tarfile
 import shutil
+import tarfile
+import urllib.request
 
 from platformdirs import user_data_dir
 
 from ...logger import root_logger
 from ...tools.package_manager import get_github_repo_tags
-from .server import ServerControl
 from ...tools.utils import run_worker_thread_with_progress
-
 from .config import ConfigStore
+from .server import ServerControl
 
 logging = root_logger.getChild(__name__)
+
 
 class MonacoEditorManager:
     def __init__(self, app_name="YourAppName", app_author="YourCompany", version="latest"):
@@ -28,23 +27,23 @@ class MonacoEditorManager:
         self.editor_path = os.path.join(user_data_dir(app_name, app_author), "monaco")
         self.html_template_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
         self.config_store = ConfigStore()
-        
+
         self.version = version
 
-    def ensure_editor_downloaded(self, no_upgrade:bool=True):
+    def ensure_editor_downloaded(self, no_upgrade: bool = True):
         """
         Ensure the specified version of Monaco Editor is downloaded and the HTML template is copied.
         """
         if not os.path.exists(self.editor_path):
             os.makedirs(self.editor_path)
 
-        installed_monaco=[dirname for dirname in os.listdir(self.editor_path) if dirname.startswith("monaco-editor-")]
+        installed_monaco = [dirname for dirname in os.listdir(self.editor_path) if dirname.startswith("monaco-editor-")]
         if installed_monaco and no_upgrade:
             logging.info(f"Monaco Editor already installed: {installed_monaco[0]}.")
-            version_dir=os.path.join(self.editor_path, installed_monaco[0])
+            version_dir = os.path.join(self.editor_path, installed_monaco[0])
             self.copy_html_template(version_dir)
             self.config_store.set("editor.backend.html_dir", version_dir)
-            
+
             return
 
         # Fetch available tags
@@ -129,8 +128,8 @@ def edit_file_with_monaco(file_path: str):
     Raises:
         FileNotFoundError: If the specified file does not exist.
     """
-    from pathlib import Path
     import webbrowser
+    from pathlib import Path
 
     # Initialize Monaco Editor Manager
     monaco_manager = MonacoEditorManager(app_name="REvoDesign.MonacoEditor", app_author="REvoDesignUser")

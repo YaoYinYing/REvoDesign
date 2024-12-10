@@ -26,21 +26,21 @@ from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
-from REvoDesign.basic import MenuCollection, MenuItem, MenuActionServerMonitor
-from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR,REVODESIGN_CONFIG_FILE
+from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, REVODESIGN_CONFIG_FILE
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
-from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.driver.environ_register import (add_new_environment_variables,
                                                 drop_environment_variables,
                                                 register_environment_variables)
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
-from REvoDesign.evaluate import Evalutator
 from REvoDesign.editor import menu_edit_file
+from REvoDesign.editor.monaco.server import ServerControl
+from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
