@@ -40,7 +40,7 @@ from REvoDesign.driver.environ_register import (add_new_environment_variables,
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.evaluate import Evalutator
-from REvoDesign.editor import edit_file_with_monaco
+from REvoDesign.editor import menu_edit_file
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
@@ -261,7 +261,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
                 MenuItem(
                     self.bus.ui.actionEdit_Configuration,
-                    edit_file_with_monaco,
+                    menu_edit_file,
                     {'file_path': REVODESIGN_CONFIG_FILE}
                 ),
                 MenuItem(

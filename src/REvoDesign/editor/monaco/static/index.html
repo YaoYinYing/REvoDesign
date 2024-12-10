@@ -34,39 +34,35 @@
 
     <script>
         const serverUrl = `${window.location.origin}`;
-        const token = localStorage.getItem('token'); // Ensure token is securely stored in localStorage
+        const token = localStorage.getItem('token'); // Retrieve token from localStorage if present
 
-        // Authenticate and load the editor
-        fetch(`${serverUrl}/editor`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Unauthorized access');
+        // Load Monaco Editor
+        require.config({ paths: { 'vs': '/static/vs' } });
+        require(['vs/editor/editor.main'], function () {
+            window.editor = monaco.editor.create(document.getElementById('container'), {
+                value: '',
+                language: 'python',
+                theme: 'vs-dark',
+                automaticLayout: true
+            });
+
+            // Fetch file content
+            const filePath = new URLSearchParams(window.location.search).get('file_path');
+            const fetchOptions = {
+                headers: {}
+            };
+
+            if (token) {
+                fetchOptions.headers['Authorization'] = `Bearer ${token}`;
             }
-            return response.json(); // Return additional configuration if needed
-        })
-        .then(() => {
-            // Load Monaco Editor
-            require.config({ paths: { 'vs': '/static/vs' } });
-            require(['vs/editor/editor.main'], function () {
-                window.editor = monaco.editor.create(document.getElementById('container'), {
-                    value: '',
-                    language: 'python',
-                    theme: 'vs-dark',
-                    automaticLayout: true
-                });
 
-                // Fetch file content
-                const filePath = new URLSearchParams(window.location.search).get('file_path');
-                fetch(`${serverUrl}/load_file?file_path=${encodeURIComponent(filePath)}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+            fetch(`${serverUrl}/load_file?file_path=${encodeURIComponent(filePath)}`, fetchOptions)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load file content.');
+                    }
+                    return response.json();
                 })
-                .then(response => response.json())
                 .then(data => {
                     if (data.content) {
                         window.editor.setValue(data.content);
@@ -77,30 +73,35 @@
                     alert('Failed to load file content.');
                 });
 
-                // Save file content
-                document.getElementById('saveButton').addEventListener('click', async () => {
-                    const content = window.editor.getValue();
-                    const response = await fetch(`${serverUrl}/save_file`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ file_path: filePath, content })
-                    });
+            // Save file content
+            document.getElementById('saveButton').addEventListener('click', async () => {
+                const content = window.editor.getValue();
+                const saveOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ file_path: filePath, content })
+                };
 
+                if (token) {
+                    saveOptions.headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                try {
+                    const response = await fetch(`${serverUrl}/save_file`, saveOptions);
                     if (response.ok) {
                         alert('File saved successfully.');
                     } else {
+                        const errorText = await response.text();
                         alert('Failed to save file.');
-                        console.error(await response.text());
+                        console.error(errorText);
                     }
-                });
+                } catch (error) {
+                    console.error('Error during save operation:', error);
+                    alert('Failed to save file.');
+                }
             });
-        })
-        .catch(error => {
-            console.error('Failed to authenticate or load editor:', error);
-            alert('Access denied.');
         });
     </script>
 </body>

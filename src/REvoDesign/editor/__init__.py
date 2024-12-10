@@ -1,5 +1,5 @@
-from .monaco.monaco import edit_file_with_monaco
+from .monaco.monaco import menu_edit_file
 
 __all__ = [
-    'edit_file_with_monaco'
+    'menu_edit_file'
 ]
