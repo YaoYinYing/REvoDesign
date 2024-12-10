@@ -2633,6 +2633,7 @@ class Ui_REvoDesignPyMOL_UI(object):
         self.actionChinese.setText(_translate("REvoDesignPyMOL_UI", "Chinese"))
         self.actionFrench.setText(_translate("REvoDesignPyMOL_UI", "French"))
         self.actionEdit_Configuration.setText(_translate("REvoDesignPyMOL_UI", "Edit Configuration"))
+        self.actionEdit_Configuration.setShortcut(_translate("REvoDesignPyMOL_UI", "Ctrl+E"))
         self.actionDocumentation.setText(_translate("REvoDesignPyMOL_UI", "Documentation"))
         self.actionDocumentation.setShortcut(_translate("REvoDesignPyMOL_UI", "Ctrl+D"))
         self.actionRecent_Experiments.setText(_translate("REvoDesignPyMOL_UI", "Recent Experiments"))

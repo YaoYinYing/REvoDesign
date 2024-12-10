@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from REvoDesign import ConfigBus
 from fastapi import FastAPI, HTTPException, Depends, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import secrets
@@ -17,6 +17,8 @@ from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
 
 # FastAPI app
+
+this_file_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 # Token management
@@ -63,6 +65,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon():
+    return FileResponse(os.path.join(this_file_dir, '..','..','meta/images/logo.svg'), media_type="image/svg+xml")
 
 @app.get("/editor", response_class=HTMLResponse)
 async def serve_editor(file_path: str, token: str = None):
@@ -167,6 +173,9 @@ class ServerControl(SingletonAbstract):
             self.is_running = False
             self.server = None  # Uvicorn Server instance
             self.config_store=ConfigStore()
+
+            # Mark the instance as initialized to prevent reinitialization
+            self.initialized = True
 
     def start_server(self):
         if self.is_running:
