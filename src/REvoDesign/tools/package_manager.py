@@ -301,6 +301,7 @@ class GitSolver:
     has_mamba: Optional[str] = None
     has_winget: Optional[str] = None
     has_brew: Optional[str] = None
+    has_choco: Optional[str] = None
 
     def __post_init__(self):
         """
@@ -313,7 +314,7 @@ class GitSolver:
         # subprocess.run on Windows treat conda as a excutable file and will check its existence
         # however conda is AKA a alias in shell and does not exist as a file.
         # shutil.which will return the real path of conda script
-        for cmd_tool in ["git", "conda", "mamba", "winget", "brew"]:
+        for cmd_tool in ["git", "conda", "mamba", "winget", "brew", 'choco']:
             setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
 
     @property
@@ -339,6 +340,8 @@ class GitSolver:
 
         if self.has_brew:
             return [self.has_brew, "install", "git"]
+        if self.has_choco:
+            return [self.has_choco, "install", "git"]
 
         return None
 
@@ -904,6 +907,10 @@ class REvoDesignPackageManager:
                 'Collect diagnostic data (full)',
                 self.collect_diagnostic_data,
                 kwargs={'collect_dummy': True}
+            ),
+            MenuItem(
+                'Reset REvoDesign\'s Configuration',
+                self.reinitialize_config,
             )
         ]
         self.add_right_click_menu(menuitems)
@@ -1360,6 +1367,16 @@ class REvoDesignPackageManager:
             )
             return
 
+    def reinitialize_config(self):
+        comfirmed=decide(
+            "Reinitialize REvoDesign configuration?",
+            '[WARNING] This will delete your current configuration files.')
+        
+        if not comfirmed:
+            return
+        
+        from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
+        set_REvoDesign_config_file(delete_user_config_tree=True)
 
 class WorkerThread(QtCore.QThread):
     """
@@ -1699,7 +1716,7 @@ def is_package_installed(package):
     return package_loader is not None
 
 
-def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
+def issue_collection(collect_dummy: bool = False, network: bool = True) -> Dict[str, Any]:
     """
     Collects system and environment information and returns it as a dictionary.
 
@@ -1819,11 +1836,12 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
 
     issue_dict.update({'Network::IP': ip})
 
-    ip_location = fetch_gist_json('https://ipinfo.io')
-    if ip_location:
-        issue_dict.update({'Network::Location': ip_location})
-    else:
-        issue_dict.update({'Network::Location': 'Failed to fetch client location'})
+    if network:
+        ip_location = fetch_gist_json('https://ipinfo.io')
+        if ip_location:
+            issue_dict.update({'Network::Location': ip_location})
+        else:
+            issue_dict.update({'Network::Location': 'Failed to fetch client location'})
 
     # PyMOL
     issue_dict.update({'PyMOL::Version': cmd.get_version()[0]})

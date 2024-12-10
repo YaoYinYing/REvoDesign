@@ -139,6 +139,13 @@ ui:
       use: "Dunbrack Rotamer Library"
       model: ''
       repack_radius: 0.0
+editor:
+  backend:
+    host: '127.0.0.1'
+    port: 5000
+    crt: 
+    key:
+  token:
 
 rosetta: 
   node_hint: native

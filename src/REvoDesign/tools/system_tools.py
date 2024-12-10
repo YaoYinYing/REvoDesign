@@ -8,7 +8,8 @@ from dataclasses import dataclass, field
 
 from immutabledict import immutabledict
 
-from REvoDesign import SingletonAbstract, issues
+from ..basic import SingletonAbstract
+from .. import issues
 
 from .package_manager import issue_collection
 
@@ -55,7 +56,7 @@ class SystemInfoReduced(SingletonAbstract):
 
     def __init__(self):
         if not hasattr(self, "initialized"):
-            self.info: immutabledict = immutabledict(issue_collection())
+            self.info: immutabledict = immutabledict(issue_collection(network=False))
             self.initialized = True
 
 

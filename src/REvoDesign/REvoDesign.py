@@ -26,13 +26,14 @@ from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
-from REvoDesign.basic import MenuCollection, MenuItem
+from REvoDesign.basic import MenuCollection, MenuItem, MenuActionServerMonitor
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
 from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.driver.environ_register import (add_new_environment_variables,
                                                 drop_environment_variables,
                                                 register_environment_variables)
@@ -331,6 +332,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             ),
         )
+
+        MenuActionServerMonitor(ServerControl, self.bus.ui.actionStartEditor, self.bus.ui.actionStopEditor)
 
         if self.teamwork_enabled:
             self.ws_server = REvoDesignWebSocketServer()
