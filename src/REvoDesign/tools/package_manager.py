@@ -32,7 +32,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
-                    Tuple, TypeVar, Union)
+                    Tuple, TypeVar, Union, overload)
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -805,7 +805,7 @@ class REvoDesignPackageManager:
             self.installer_ui.listView_extras, AVAILABLE_EXTRAS
         )
 
-    def collect_diagnostic_data(self, collect_dummy: bool = False):
+    def collect_diagnostic_data(self, collect_dummy: bool = False, drop_sensitives=True):
         """
         Collects diagnostic data and copies it to the clipboard.
 
@@ -815,18 +815,29 @@ class REvoDesignPackageManager:
 
         Parameters:
         collect_dummy (bool): A flag indicating whether to collect dummy data. Default is False.
+        drop_sensitives (bool): A flag indicating whether to drop sensitive data. Default is True.
 
         Returns:
         None
         """
+        if not drop_sensitives:
+            confirmed=decide(
+                title='Agree to collect SENSITIVE data?',
+                description='[!!!CAUSION!!!]Do you REALLY want to collect diagnostic information INCLUDING ALL SENSITIVE data?\n'
+                'Please DO NOT share this information with anyone else or post it to public channels.',
+            )
+            if not confirmed:
+                return notify_box('Diagnostic information collection cancelled.')
+        
         # Clear the clipboard to ensure no old data is mixed in
         cb = QtWidgets.QApplication.clipboard()
         cb.clear(mode=cb.Clipboard)
-
+        
         # Collect diagnostic data using a worker thread
         diagnostic_data = run_worker_thread_with_progress(
             worker_function=issue_collection,
             collect_dummy=collect_dummy,
+            drop_sensitives=drop_sensitives,
             progress_bar=self.installer_ui.progressBar
         )
 
@@ -904,9 +915,14 @@ class REvoDesignPackageManager:
                 kwargs={'collect_dummy': False}
             ),
             MenuItem(
-                'Collect diagnostic data (full)',
+                'Collect diagnostic data (full, non-sensitive)',
                 self.collect_diagnostic_data,
                 kwargs={'collect_dummy': True}
+            ),
+            MenuItem(
+                'Collect diagnostic data (full, with sensitive)',
+                self.collect_diagnostic_data,
+                kwargs={'collect_dummy': True, 'drop_sensitives':False}
             ),
             MenuItem(
                 'Reset REvoDesign\'s Configuration',
@@ -1467,6 +1483,7 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
 
+
 def run_worker_thread_with_progress(
     worker_function: Callable[..., R], *args, progress_bar: Optional[Any] = None, **kwargs
 ) -> Optional[R]:
@@ -1505,7 +1522,7 @@ def run_worker_thread_with_progress(
 
     # If a progress bar was used, restore its state after the task is completed
     if progress_bar:
-        # restore the progressbar state
+        # restore the progressbar state 
         progress_bar.setRange(_min, _max)  # type: ignore
         progress_bar.setValue(_val)  # type: ignore
 
@@ -1716,12 +1733,44 @@ def is_package_installed(package):
     return package_loader is not None
 
 
-def issue_collection(collect_dummy: bool = False, network: bool = True) -> Dict[str, Any]:
+def filter_sensitive_data(env):
+    """
+    Filters out sensitive data keys from the provided environment dictionary.
+
+    Args:
+        env (dict): The dictionary to filter.
+
+    Returns:
+        dict: A new dictionary with sensitive keys removed.
+    """
+    # Define the regex pattern to match sensitive keys
+    sensitive_pattern = re.compile(
+    r"(token|passwd|password|pass|session|_id|secret|access|auth|api_key|apikey|"
+    r"access_key|accesskey|secret_key|secretkey|auth_token|authtoken|"
+    r"session_id|session_token|private_key|ssh_key|key|login|cred|"
+    r"credential|authenticator|certificate|cert|identity|oauth|jwt|bearer|csrf)",
+    re.IGNORECASE
+)
+
+    # Filter out sensitive keys
+    filtered_env = {
+        key: value for key, value in env.items() if not sensitive_pattern.search(key)
+    }
+
+    return filtered_env
+
+def issue_collection(
+        collect_dummy: bool = False, 
+        network: bool = True, 
+        drop_sensitives: bool = True,
+        ) -> Dict[str, Any]:
     """
     Collects system and environment information and returns it as a dictionary.
 
     Parameters:
     - collect_dummy: A boolean indicating whether to collect additional 'dummy' information for debugging purposes.
+    - network: A boolean indicating whether to collect network information.
+    - drop_sensitives: A boolean indicating whether to drop sensitive information like passwords, tokens, etc.
 
     Returns:
     - A dictionary containing detailed information about the system, environment, and installed software.
@@ -1880,7 +1929,14 @@ def issue_collection(collect_dummy: bool = False, network: bool = True) -> Dict[
 
     # Dummy
     if collect_dummy:
-        issue_dict.update({'Dummy::Environ': dict(os.environ)})
+        if drop_sensitives:
+            env_dict=filter_sensitive_data(os.environ)
+            print('Sensitive data are removed.')
+        else:
+            env_dict=os.environ
+            print('Sensitive data may be kept.')
+
+        issue_dict.update({'Dummy::Environ': env_dict})
 
         pip_list_stdout: List[str] = run_command(['pip', 'list']).stdout.split('\n')
         pip_list_stdout_body: List[List[str]] = [l.split(' ') for l in pip_list_stdout[2:]]
