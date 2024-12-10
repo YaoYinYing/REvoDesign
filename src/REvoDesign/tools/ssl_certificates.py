@@ -114,7 +114,10 @@ class SSLCertificateManager:
         # Get node information from OS or set to 'Unknown' if not available
 
         node = platform.node()
-        user = os.getlogin()
+        try:
+            user = os.getlogin()
+        except OSError:
+            user = "Unknown"
 
         # Generate RSA key
         k = crypto.PKey()
