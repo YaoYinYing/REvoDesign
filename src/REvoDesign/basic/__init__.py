@@ -6,6 +6,7 @@ from .group_registries import GroupRegistryItem
 from .menu_item import MenuCollection, MenuItem
 from .mutate_runner import MutateRunnerAbstract
 from .param_toggle import ParamChangeRegister, ParamChangeRegistryItem
+from .server_monitor import MenuActionServerMonitor
 
 __all__ = [
     "SingletonAbstract",
@@ -19,4 +20,5 @@ __all__ = [
     'ParamChangeRegister',
     'MenuItem',
     'MenuCollection',
+    'MenuActionServerMonitor',
 ]

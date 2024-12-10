@@ -26,8 +26,8 @@ from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
-from REvoDesign.basic import MenuCollection, MenuItem
-from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
+from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, REVODESIGN_CONFIG_FILE
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
@@ -38,6 +38,8 @@ from REvoDesign.driver.environ_register import (add_new_environment_variables,
                                                 register_environment_variables)
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
+from REvoDesign.editor import menu_edit_file
+from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import LoggerT, root_logger
 from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
@@ -258,6 +260,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.reload_configurations,
                 ),
                 MenuItem(
+                    self.bus.ui.actionEdit_Configuration,
+                    menu_edit_file,
+                    {'file_path': REVODESIGN_CONFIG_FILE}
+                ),
+                MenuItem(
                     self.bus.ui.actionSave_Configurations,
                     self.save_configuration_from_ui,
                     {'experiment': "global_config"}
@@ -331,6 +338,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             ),
         )
+
+        MenuActionServerMonitor(ServerControl, self.bus.ui.actionStartEditor, self.bus.ui.actionStopEditor)
 
         if self.teamwork_enabled:
             self.ws_server = REvoDesignWebSocketServer()

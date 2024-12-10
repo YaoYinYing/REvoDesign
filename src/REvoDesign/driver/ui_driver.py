@@ -5,7 +5,7 @@ The heart of REvoDesign. A UI-Configuration Bus
 import os
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import (Any, Callable, Optional, Type, TypeVar, overload)
 
 import omegaconf.errors
 from immutabledict import immutabledict
@@ -22,6 +22,9 @@ from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
 
 logging = root_logger.getChild(__name__)
+
+# Define a generic type for converter
+T = TypeVar("T")
 
 
 class ConfigBus(SingletonAbstract, CitableModules):
@@ -233,47 +236,85 @@ class ConfigBus(SingletonAbstract, CitableModules):
         # Retrieves the configuration item corresponding to a UI widget ID.
         return self.w2c.widget_id2config_dict.get(widget_id)  # type: ignore
 
+    @overload
+    def get_value(self, cfg_item: str, converter=None) -> Any: ...
+
+    @overload
+    def get_value(self, cfg_item: str, converter: Callable[[Any], T],
+                  reject_none: bool, default_value: None = ...) -> T: ...
+
+    @overload
+    def get_value(self, cfg_item: str, converter: Type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
+
+    @overload
+    def get_value(self,
+                  cfg_item: str,
+                  converter: Callable[[Any],
+                                      T],
+                  reject_none: bool = False,
+                  default_value: Optional[T] = ...) -> Optional[T]: ...
+
     def get_value(
         self,
         cfg_item: str,
-        converter: Union[Callable, Any] = None,
+        converter: Optional[Callable[[Any], T]] = None,
         reject_none: bool = False,
-        default_value: Any = None,
-    ) -> Optional[Any]:
-        # Retrieves the value of a configuration item, with optional type casting.
+        default_value: Optional[T] = None,
+    ) -> Optional[T]:
+        """
+        Retrieves the value of a configuration item with optional type casting.
+
+        Args:
+            cfg_item: Name of the configuration item.
+            converter: Callable to convert the value from the configuration item to a desired type.
+            reject_none: If True, raises an exception if the value is None.
+            default_value: Default value to return if the value is None.
+
+        Returns:
+            The converted value, the default value if provided, or None if allowed.
+
+        Raises:
+            ValueError: If `reject_none` is True and the resolved value is None.
+        """
+        # Retrieve the value of a configuration item
         value = OmegaConf.select(self.cfg, cfg_item)
 
         # Default conversions for None values
         default_conversions = {
-            Union[str, None]: "",
-            Union[int, float]: 0,
+            str: "",
+            int: 0,
+            float: 0.0,
             dict: {},
         }
 
-        if reject_none and not value and not default_value:
-            notify_box(
-                "This configure file might be out of date. "
-                "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this.")
-            raise issues.ConfigureOutofDateError(
-                "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
-            )
-
+        # Handle None values
         if value is None:
-            if default_value:
+            if default_value is not None:
                 value = default_value
             elif converter in default_conversions:
                 value = default_conversions[converter]
+            elif reject_none:
+                notify_box(
+                    "This configure file might be out of date. "
+                    "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this."
+                )
+                raise issues.ConfigureOutofDateError(
+                    "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
+                )
+            else:
+                return None  # Return None if reject_none is False and no default is provided
 
+        # Apply the converter if provided
         if converter:
-            value = self.value_converter(value, converter)
+            value = converter(value)
 
-        # Handle list values for groups
-        if cfg_item.endswith("group") and value:
-            value = list(value)
+        # Enforce reject_none post-conversion
+        if reject_none and value is None:
+            raise ValueError("The configuration value is None and reject_none is True.")
 
         return value
 
-    def set_value(self, cfg_item: str, value: Union[str, List, Dict], force_add: bool = False) -> None:
+    def set_value(self, cfg_item: str, value: Any, force_add: bool = False) -> None:
         # Sets the value of a configuration item.
         if value is not None:
             try:

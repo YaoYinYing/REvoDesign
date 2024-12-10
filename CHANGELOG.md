@@ -26,20 +26,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Real SC
   - PSSM to CSV
   - Color by pLDDT
+  - Configuration Edit
   - SMILES conformer sampling, driven by `RosettaPy`'s utils
     - Visualization:
       - Current Window
       - New Window
     - Mode:
       - Single
-      - Batch
+      - Batch (macos arm64 has issues with joblib-multicores, no idea on how to fix it. This is a known issue with `RosettaPy`)
     - Profile Design (by clicking the button matrix loaded from profile data)
 - Text Editors:
   - Qt Text Editor: nearly done (Backup plan)
-  - Monaco Editor: unfinished
+  - Monaco Editor:
     - Bootstrapable
     - Syntax highlighting
     - Code folding
+    - Brower based text editor
+      - HTTP(S) and/or runtime-scope token
+      - Configured with Singleton `ConfigStore`
+      - Driven by FastAPI, `ServerControl` and `MenuActionServerMonitor`
+      - Why not `QtWebEngine`?
+        - `QtWebEngine` breaks pymol's qt deps, which is observed in the past CI runs.
+    - `menu_edit_file` method: re-usable method with a sharing server.
 - Customized widgets:
   - `MultiCheckableComboBox`: Multiple checkable items in one widget.
   - `ValueDialog`: Fixed-keys Value input dialog with:
@@ -57,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     
 - `Makefile`: added `kw-test` to support testing with customized keywords.
 - `FileExtentions`: added JSON
+- installer: 
+  - `GitSolver`: support `choco`, not tested
+  - `collect_diagnostic_data`: drop token-like data by default
+  - `REvoDesignPackageManager` construct menu with sections
 
 ### Changed
 

@@ -301,6 +301,7 @@ class GitSolver:
     has_mamba: Optional[str] = None
     has_winget: Optional[str] = None
     has_brew: Optional[str] = None
+    has_choco: Optional[str] = None
 
     def __post_init__(self):
         """
@@ -313,7 +314,7 @@ class GitSolver:
         # subprocess.run on Windows treat conda as a excutable file and will check its existence
         # however conda is AKA a alias in shell and does not exist as a file.
         # shutil.which will return the real path of conda script
-        for cmd_tool in ["git", "conda", "mamba", "winget", "brew"]:
+        for cmd_tool in ["git", "conda", "mamba", "winget", "brew", 'choco']:
             setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
 
     @property
@@ -339,6 +340,8 @@ class GitSolver:
 
         if self.has_brew:
             return [self.has_brew, "install", "git"]
+        if self.has_choco:
+            return [self.has_choco, "install", "git"]
 
         return None
 
@@ -552,7 +555,7 @@ class MenuItem:
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
     name: str
-    func: Callable
+    func: Optional[Callable] = None
     kwargs: Optional[Mapping] = None
 
 
@@ -802,7 +805,7 @@ class REvoDesignPackageManager:
             self.installer_ui.listView_extras, AVAILABLE_EXTRAS
         )
 
-    def collect_diagnostic_data(self, collect_dummy: bool = False):
+    def collect_diagnostic_data(self, collect_dummy: bool = False, drop_sensitives=True):
         """
         Collects diagnostic data and copies it to the clipboard.
 
@@ -812,10 +815,20 @@ class REvoDesignPackageManager:
 
         Parameters:
         collect_dummy (bool): A flag indicating whether to collect dummy data. Default is False.
+        drop_sensitives (bool): A flag indicating whether to drop sensitive data. Default is True.
 
         Returns:
         None
         """
+        if not drop_sensitives:
+            confirmed = decide(
+                title='Agree to collect SENSITIVE data?',
+                description='[!!!CAUSION!!!]Do you REALLY want to collect diagnostic information INCLUDING ALL SENSITIVE data?\n'
+                'Please DO NOT share this information with anyone else or post it to public channels.',
+            )
+            if not confirmed:
+                return notify_box('Diagnostic information collection cancelled.')
+
         # Clear the clipboard to ensure no old data is mixed in
         cb = QtWidgets.QApplication.clipboard()
         cb.clear(mode=cb.Clipboard)
@@ -824,6 +837,7 @@ class REvoDesignPackageManager:
         diagnostic_data = run_worker_thread_with_progress(
             worker_function=issue_collection,
             collect_dummy=collect_dummy,
+            drop_sensitives=drop_sensitives,
             progress_bar=self.installer_ui.progressBar
         )
 
@@ -850,12 +864,14 @@ class REvoDesignPackageManager:
         self.menu = QtWidgets.QMenu(self.installer_ui)
 
         for item in items:
-            # Add the "Upgrade UI" item
-            upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
-            upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
-
-            # Add the action to the menu
-            self.menu.addAction(upgrade_action)
+            if item.func is not None:  # active item
+                # Add the item as active
+                upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
+                upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
+                upgrade_action.setEnabled(True)
+                self.menu.addAction(upgrade_action)
+            else:  # menu section
+                self.menu.addSection(item.name)
 
         # Set the context menu policy to show the menu on right-click
         self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -892,18 +908,34 @@ class REvoDesignPackageManager:
         # add right-click menu on `self.installer_ui.label_header`,
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
         menuitems = [
+            MenuItem('Upgrades'),
             MenuItem("Upgrade UI", self.ensure_ui_file, kwargs={"upgrade": True}),
             MenuItem("Upgrade this manager", self.self_upgrade),
+
+            MenuItem('Fetch remote data'),
             MenuItem('Refresh GitHub Release tags', self.fetch_tags),
+
+            MenuItem('Diagnostics'),
             MenuItem(
                 'Collect diagnostic data (reduced)',
                 self.collect_diagnostic_data,
                 kwargs={'collect_dummy': False}
             ),
             MenuItem(
-                'Collect diagnostic data (full)',
+                'Collect diagnostic data (full, non-sensitive)',
                 self.collect_diagnostic_data,
                 kwargs={'collect_dummy': True}
+            ),
+            MenuItem(
+                'Collect diagnostic data (full, with sensitive)',
+                self.collect_diagnostic_data,
+                kwargs={'collect_dummy': True, 'drop_sensitives': False}
+            ),
+
+            MenuItem('Configuration Force Reset'),
+            MenuItem(
+                'Reset REvoDesign\'s Configuration',
+                self.reinitialize_config,
             )
         ]
         self.add_right_click_menu(menuitems)
@@ -1360,6 +1392,17 @@ class REvoDesignPackageManager:
             )
             return
 
+    def reinitialize_config(self):
+        comfirmed = decide(
+            "Reinitialize REvoDesign configuration?",
+            '[WARNING] This will delete your current configuration files.')
+
+        if not comfirmed:
+            return
+
+        from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
+        set_REvoDesign_config_file(delete_user_config_tree=True)
+
 
 class WorkerThread(QtCore.QThread):
     """
@@ -1699,12 +1742,45 @@ def is_package_installed(package):
     return package_loader is not None
 
 
-def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
+def filter_sensitive_data(env):
+    """
+    Filters out sensitive data keys from the provided environment dictionary.
+
+    Args:
+        env (dict): The dictionary to filter.
+
+    Returns:
+        dict: A new dictionary with sensitive keys removed.
+    """
+    # Define the regex pattern to match sensitive keys
+    sensitive_pattern = re.compile(
+        r"(token|passwd|password|pass|session|_id|secret|access|auth|api_key|apikey|"
+        r"access_key|accesskey|secret_key|secretkey|auth_token|authtoken|"
+        r"session_id|session_token|private_key|ssh_key|key|login|cred|"
+        r"credential|authenticator|certificate|cert|identity|oauth|jwt|bearer|csrf)",
+        re.IGNORECASE
+    )
+
+    # Filter out sensitive keys
+    filtered_env = {
+        key: value for key, value in env.items() if not sensitive_pattern.search(key)
+    }
+
+    return filtered_env
+
+
+def issue_collection(
+        collect_dummy: bool = False,
+        network: bool = True,
+        drop_sensitives: bool = True,
+) -> Dict[str, Any]:
     """
     Collects system and environment information and returns it as a dictionary.
 
     Parameters:
     - collect_dummy: A boolean indicating whether to collect additional 'dummy' information for debugging purposes.
+    - network: A boolean indicating whether to collect network information.
+    - drop_sensitives: A boolean indicating whether to drop sensitive information like passwords, tokens, etc.
 
     Returns:
     - A dictionary containing detailed information about the system, environment, and installed software.
@@ -1819,11 +1895,12 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
 
     issue_dict.update({'Network::IP': ip})
 
-    ip_location = fetch_gist_json('https://ipinfo.io')
-    if ip_location:
-        issue_dict.update({'Network::Location': ip_location})
-    else:
-        issue_dict.update({'Network::Location': 'Failed to fetch client location'})
+    if network:
+        ip_location = fetch_gist_json('https://ipinfo.io')
+        if ip_location:
+            issue_dict.update({'Network::Location': ip_location})
+        else:
+            issue_dict.update({'Network::Location': 'Failed to fetch client location'})
 
     # PyMOL
     issue_dict.update({'PyMOL::Version': cmd.get_version()[0]})
@@ -1862,7 +1939,14 @@ def issue_collection(collect_dummy: bool = False) -> Dict[str, Any]:
 
     # Dummy
     if collect_dummy:
-        issue_dict.update({'Dummy::Environ': dict(os.environ)})
+        if drop_sensitives:
+            env_dict = filter_sensitive_data(os.environ)
+            print('Sensitive data are removed.')
+        else:
+            env_dict = os.environ
+            print('Sensitive data may be kept.')
+
+        issue_dict.update({'Dummy::Environ': env_dict})
 
         pip_list_stdout: List[str] = run_command(['pip', 'list']).stdout.split('\n')
         pip_list_stdout_body: List[List[str]] = [l.split(' ') for l in pip_list_stdout[2:]]

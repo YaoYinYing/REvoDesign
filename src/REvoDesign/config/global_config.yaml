@@ -118,7 +118,7 @@ ui:
   
   socket: 
     input:
-      key: ''
+      key: 
 
     server_mode: False
     server_url: localhost
@@ -139,6 +139,16 @@ ui:
       use: "Dunbrack Rotamer Library"
       model: ''
       repack_radius: 0.0
+editor:
+  backend:
+    host: '127.0.0.1'
+    port: 5000
+    use_ssl: False
+    no_token: False
+    crt: 
+    key:
+    html_dir: 
+  token:
 
 rosetta: 
   node_hint: native
@@ -182,7 +192,7 @@ log:
       stream: ext://sys.stdout
     stderr:
       class: logging.StreamHandler
-      level: WARNING
+      level: DEBUG
       formatter: simple
       stream: ext://sys.stderr
     file:
