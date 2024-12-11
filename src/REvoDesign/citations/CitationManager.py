@@ -89,37 +89,7 @@ class CitationManager(SingletonAbstract):
         Clear all citations from the citation manager.
         """
         self.called_citations.clear()
-
-    def remove(self, modulename: str):
-        """
-        Remove citations for a specific module.
-
-        Args:
-            modulename (str): The name of the module whose citations are to be removed.
-        """
-        if modulename not in self.called_citations:
-            warnings.warn(
-                issues.REvoDesignWarning(
-                    issues.REvoDesignWarning(f"{modulename} is not in called.")
-                )
-            )
-            return
-        else:
-            self.called_citations.pop(modulename)
-            warnings.warn(
-                issues.REvoDesignWarning(
-                    issues.REvoDesignWarning(f"Will not cite {modulename}.")
-                )
-            )
-
-    def format(self) -> Union[str, Dict, List]:
-        """
-        Format the citations. The specific implementation is not provided in this code snippet.
-
-        Returns:
-            Union[str, Dict, List]: The formatted citations in some structure.
-        """
-        ...
+        
 
     def output(self, cwd: str = "."):
         """
