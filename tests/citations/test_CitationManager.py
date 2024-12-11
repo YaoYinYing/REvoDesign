@@ -1,7 +1,15 @@
+import os
 import pytest
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch, call
 from REvoDesign.citations.CitationManager import CitationManager, CitableModules  # Replace with actual module path
 
+
+@contextmanager
+def mock_citation_manager():
+    
+    yield CitationManager()
+    CitationManager.reset_instance()
 
 def test_citation_manager_singleton():
     manager1 = CitationManager()
@@ -9,56 +17,50 @@ def test_citation_manager_singleton():
     assert manager1 is manager2  # Singleton pattern ensures both instances are the same
 
 def test_citation_manager_update():
-    manager = CitationManager()
-    manager.called_citations.clear()
 
-    new_citations = {"module1": "citation1", "module2": "citation2"}
-    manager.update(new_citations)
+    with mock_citation_manager() as manager:
+        manager.called_citations.clear()
 
-    assert manager.called_citations == new_citations
+        new_citations = {"module1": "citation1", "module2": "citation2"}
+        manager.update(new_citations)
+
+        assert manager.called_citations == new_citations
 
 def test_citation_manager_clear():
-    manager = CitationManager()
-    manager.called_citations = {"module1": "citation1"}
-    manager.clear()
-    assert manager.called_citations == {}
+
+    with mock_citation_manager() as manager:
+        manager.called_citations = {"module1": "citation1"}
+        manager.clear()
+        assert manager.called_citations == {}
 
 
 
-def test_citation_manager_output():
-    manager = CitationManager()
-    manager.called_citations = {"module1": "citation1"}
-
-    with patch("bibtexparser.parse_string") as mock_parse, \
-         patch("REvoDesign.citations.CitationManager.bibtexparser.write_file") as mock_write, \
-         patch("REvoDesign.citations.CitationManager.os.makedirs") as mock_makedirs:
-
-        mock_parse.return_value = MagicMock(failed_blocks=None)
-
-        manager.output(cwd="/mock/path")
-
-        mock_makedirs.assert_called_once_with("/mock/path/citations", exist_ok=True)
-        mock_write.assert_called_once()
+def test_citation_manager_output(test_tmp_dir):
+    with mock_citation_manager() as manager:
+        manager.called_citations = {"module1": "citation1"}
+        manager.output(cwd=test_tmp_dir)
+        citation_dir=os.path.join(test_tmp_dir,'citations')
+        assert os.path.isdir(citation_dir), "Citations directory not created"
+        assert os.listdir(citation_dir), "No citation files found in citations directory"
 
         
 
-def test_citation_manager_dismiss():
-    manager = CitationManager()
-    manager.silenced_citation_modules.clear()
 
-    manager.dismiss("module1")
-    assert "module1" in manager.silenced_citation_modules
+
+def test_citation_manager_dismiss():
+    with mock_citation_manager() as manager:
+        manager.silenced_citation_modules.clear()
+
+        manager.dismiss("module1")
+        assert "module1" in manager.silenced_citation_modules
 
 def test_citable_modules_notice():
     class TestModule(CitableModules):
         __bibtex__ = {"module1": "citation1", "module2": ("citation2a", "citation2b")}
 
-    with patch("REvoDesign.citations.CitationManager.CitationManager") as mock_manager, \
-         patch("REvoDesign.citations.CitationManager.logging.info") as mock_logging:
+    with mock_citation_manager() as mock_manager, patch("REvoDesign.citations.CitationManager.logging.info") as mock_logging:
 
-        mock_manager.return_value = MagicMock(
-            silenced_citation_modules=[]
-        )
+
 
         module = TestModule()
         module.notice()
@@ -72,13 +74,13 @@ def test_citable_modules_notice():
 
 def test_citable_modules_cite():
     class TestModule(CitableModules):
-        __bibtex__ = {"module1": "citation1"}
+        __bibtex__ = {"modulex": "citationx"}
 
-    with patch("REvoDesign.citations.CitationManager.CitationManager.update") as mock_update, \
-         patch("REvoDesign.citations.CitationManager.CitableModules.notice") as mock_notice:
+    with mock_citation_manager() as manager, patch("REvoDesign.citations.CitationManager.CitableModules.notice") as mock_notice, \
+        patch.object(manager, "update") as mock_update:
 
         module = TestModule()
         module.cite()
 
-        mock_update.assert_called_once_with({"module1": "citation1"})
+        mock_update.assert_called_once_with(new_citations={"modulex": "citationx"})
         mock_notice.assert_called_once()

@@ -5,9 +5,7 @@ from omegaconf import DictConfig
 
 from REvoDesign import issues
 
-from ..tools.customized_widgets import (AskedValue, AskedValueCollection,
-                                        ask_for_appendable_values,
-                                        ask_for_values)
+from ..tools.customized_widgets import ask_for_appendable_values
 from .ui_driver import ConfigBus
 
 
