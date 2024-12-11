@@ -173,15 +173,11 @@ async def save_file(
 
 
 class ServerControl(SingletonAbstract):
-    def __init__(self):
-        if not hasattr(self, "initialized"):
-            self.server_thread = None  # WorkerThread instance
-            self.is_running = False
-            self.server = None  # Uvicorn Server instance
-            self.config_store = ConfigStore()
-
-            # Mark the instance as initialized to prevent reinitialization
-            self.initialized = True
+    def singleton_init(self):
+        self.server_thread = None  # WorkerThread instance
+        self.is_running = False
+        self.server = None  # Uvicorn Server instance
+        self.config_store = ConfigStore()
 
     def start_server(self):
         if self.is_running:

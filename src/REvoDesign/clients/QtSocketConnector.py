@@ -380,8 +380,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         self.ssl_manager = SSLCertificateManager(role="server")
         self.ssl_manager.get_certificate()
 
-
-
     @property
     def is_running(self):
         return self.server is not None and self.server.isListening()
@@ -836,7 +834,6 @@ class REvoDesignWebSocketClient(SingletonAbstract):
 
         self.client = None
         self.treeWidget_ws_peers = None
-
 
     def setup_ws_client(self):
         self.server_url = self.bus.get_value("ui.socket.server_url")

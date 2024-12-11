@@ -1,4 +1,5 @@
 import pytest
+
 from REvoDesign.basic import SingletonAbstract
 
 
@@ -85,7 +86,7 @@ def test_reset_instance():
     assert server_a.status(), "ServerAController should be ON after calling on()."
     assert not server_b.status(), "ServerBController should be OFF since we don't call on()."
     assert not server_c.status(), "ServerCController should be OFF since we don't call on()."
-    
+
     # Reset instance
     ServerAController.reset_instance()
 
@@ -102,6 +103,67 @@ def test_reset_instance():
 
     ServerAController.reset_instance()
     assert ServerAController._instance is None, "Instance of A should be reset after calling reset_instance() again."
+
+
+def test_initialize_creates_instance():
+    """
+    Test that initialize creates a singleton instance when none exists.
+    """
+    ServerControl.reset_instance()
+    ServerControl.initialize(name="Server A")
+    server = ServerControl()
+
+    assert server.name == "Server A", "Instance should be initialized with the provided name."
+    assert isinstance(server, ServerControl), "Instance should be of type ServerControl."
+    assert id(server) == id(ServerControl()), "The instance IDs should match for singleton behavior."
+
+
+def test_initialize_updates_instance():
+    """
+    Test that initialize updates attributes of an existing singleton instance.
+    """
+    ServerControl.reset_instance()
+    ServerControl.initialize(name="Server A")
+    server = ServerControl()
+
+    # Update the name attribute
+    ServerControl.initialize(name="Updated Server A")
+    assert server.name == "Updated Server A", "Existing instance should be updated with the new name."
+    assert id(server) == id(ServerControl()), "The instance ID should remain the same."
+
+
+def test_initialize_does_not_reinitialize():
+    """
+    Test that initialize does not reinitialize the instance if it already exists.
+    """
+    ServerControl.reset_instance()
+    ServerControl.initialize(name="Server A")
+    server = ServerControl()
+
+    # Call initialize with no changes
+    ServerControl.initialize()
+    assert server.name == "Server A", "Instance should retain its name if no updates are provided."
+    assert server is ServerControl(), "Singleton instance should remain the same."
+    assert id(server) == id(ServerControl()), "The instance ID should remain unchanged."
+
+
+def test_reset_and_reinitialize():
+    """
+    Test that resetting the instance allows reinitialization with new attributes.
+    """
+    ServerControl.reset_instance()
+    ServerControl.initialize(name="Server A")
+    server = ServerControl()
+    first_instance_id = id(server)
+
+    ServerControl.reset_instance()
+    ServerControl.initialize(name="New Server A")
+    new_server = ServerControl()
+
+    assert new_server is not server, "Resetting should create a new instance."
+    assert new_server.name == "New Server A", "New instance should be initialized with the new name."
+    assert isinstance(new_server, ServerControl), "New instance should be of type ServerControl."
+    assert id(new_server) != first_instance_id, "The instance ID should change after reset."
 
 
 @pytest.fixture

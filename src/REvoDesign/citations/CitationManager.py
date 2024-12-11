@@ -40,12 +40,11 @@ class CitationManager(SingletonAbstract):
 
     def singleton_init(self):
         # Dictionary to store citation information
-            self.called_citations: dict[str, Any] = {}
-            # List to store names of modules for which citations have been silenced
-            self.silenced_citation_modules: list[str] = []
-            # Mark the instance as initialized to prevent reinitialization
-            self.initialize()
-
+        self.called_citations: dict[str, Any] = {}
+        # List to store names of modules for which citations have been silenced
+        self.silenced_citation_modules: list[str] = []
+        # Mark the instance as initialized to prevent reinitialization
+        self.initialize()
 
     @property
     def collected_citations(self) -> list[str]:

@@ -11,7 +11,6 @@ class ConfigStore(SingletonAbstract):
     """
 
     def singleton_init(self):
-        super().__init__()
         self.cfg = DictConfig({})  # Initialize the configuration store with an empty DictConfig
 
     def set(self, key: str, value: Any) -> None:
