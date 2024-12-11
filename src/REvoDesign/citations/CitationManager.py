@@ -38,19 +38,14 @@ class CitationManager(SingletonAbstract):
     ensuring that only one instance of the citation manager exists throughout the application's lifecycle.
     """
 
-    def __init__(self):
-        """
-        Initialize the CitationManager instance, setting up the necessary attributes.
-        """
-        # Check if the instance has already been initialized
-        if not hasattr(self, "initialized"):
-            # Dictionary to store citation information
+    def singleton_init(self):
+        # Dictionary to store citation information
             self.called_citations: dict[str, Any] = {}
             # List to store names of modules for which citations have been silenced
             self.silenced_citation_modules: list[str] = []
             # Mark the instance as initialized to prevent reinitialization
             self.initialize()
-            self.initialized = True
+
 
     @property
     def collected_citations(self) -> list[str]:

@@ -58,20 +58,15 @@ class ConfigBus(SingletonAbstract, CitableModules):
         button(id: str): Retrieves a button widget based on its ID.
     """
 
-    def __init__(self, ui=None):
-        # Check if the instance has already been initialized
-        if not hasattr(self, "initialized"):
-            # If not, set the instance attributes
+    def singleton_init(self, ui=None):
+        self.cfg: DictConfig = reload_config_file()
+        if ui:
+            self.ui = ui
+            self.w2c = Widget2ConfigMapper(ui=self.ui)
+            self.push_buttons = self.w2c.push_buttons
 
-            self.cfg: DictConfig = reload_config_file()
-            if ui:
-                self.ui = ui
-                self.w2c = Widget2ConfigMapper(ui=self.ui)
-                self.push_buttons = self.w2c.push_buttons
-
-            # Mark the instance as initialized to prevent reinitialization
-            self.initialized = True
-            self.cite()
+        
+        self.cite()
 
     @classmethod
     def initialize(cls, ui):

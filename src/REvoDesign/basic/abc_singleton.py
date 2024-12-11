@@ -2,11 +2,22 @@
 This module contains a class that implements the Singleton pattern.
 '''
 
-from abc import ABC
+from abc import ABC, abstractmethod
+from typing import Type, TypeVar,cast
 
+T=TypeVar('T', bound='SingletonAbstract')
 
 class SingletonAbstract(ABC):
     _instance = None
+
+
+    @abstractmethod
+    def singleton_init(self, *args, **kwargs):
+        '''
+        Initializes the singleton instance with the provided arguments.
+        Developer should inplement this method to initialize the singleton instance.
+        this method is called when the singleton instance is created.
+        '''
 
     @classmethod
     def __new__(cls, *args, **kwargs):
@@ -49,7 +60,7 @@ class SingletonAbstract(ABC):
         else:
             ...  # ... (additional logic if needed)
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """
         Abstract initialization method. Must be implemented by subclasses.
 
@@ -57,5 +68,31 @@ class SingletonAbstract(ABC):
         """
         # Check if the instance has already been initialized
         if not hasattr(self, "initialized"):
+            self.singleton_init(*args, **kwargs)
             # If not, set the instance attributes
             self.initialized = True
+
+
+    @classmethod
+    def derive(cls: Type[T], name: str) -> Type[T]:
+        """
+        Dynamically creates a derived class with singleton behavior.
+
+        Parameters:
+        - name: The name of the derived class.
+
+        Returns:
+        - A new class that inherits from the current class.
+        """
+        class DerivedSingleton(cls):  # This class will inherit from `cls`.
+            _instance = None  # Independent instance tracking for the derived class
+
+            def __init__(self, *args, **kwargs):
+                if not hasattr(self, 'initialized'):
+                    self.singleton_init(*args, **kwargs)
+                    self.initialized = True
+
+        DerivedSingleton.__name__ = name
+        # Cast to satisfy the type checker
+        return cast(Type[T], DerivedSingleton)
+        

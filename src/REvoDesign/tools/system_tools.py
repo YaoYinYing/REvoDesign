@@ -53,10 +53,9 @@ class SystemInfoReduced(SingletonAbstract):
     A singleton class that provides system information.
     """
 
-    def __init__(self):
-        if not hasattr(self, "initialized"):
-            self.info: immutabledict = immutabledict(issue_collection(network=False))
-            self.initialized = True
+    def singleton_init(self):
+        self.info: immutabledict = immutabledict(issue_collection(network=False))
+        self.initialized = True
 
 
 @dataclass
