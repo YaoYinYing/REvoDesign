@@ -2,7 +2,7 @@
 PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
-PYTEST_CASES_PATH=../tests/cases
+PYTEST_CASES_PATH=../tests
 PYTEST_KW=all
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 

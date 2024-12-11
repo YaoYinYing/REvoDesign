@@ -18,6 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+- refactored `SingletonAbstract`:
+  - `singleton_init`: an abstract method for each subclass to implement. This method will be called when the subclass is initialized, helps to avoid repeated code duplication. This method is the **only** one developer should implement in subclasses to replace the original `__init__` method.
+  - `derive`: derive a new singleton class from the current one.
+  - `initialize`: initialize with given arguments if no instance exists, or update existing instance.
+  - Documentation about the lifecycle of the `SingletonAbstract`.
+  - Note: after resetting, the original instance will **not** be destructed but left as an **orphan object** in memory, which should **never** be called in following code.
+- Makefile: expand test dir to the full `tests/` directory so that other modules can be tested.
+
+### Fixed
+
+
+### Removed
+
 ## [1.7.8] - 2024-12-11
 
 ### Added
@@ -104,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - typing hints
 - `MenuCollection`: 
   - `try-except` block to skip non-existent widget binding (this happens during developing).
+- `ConfigBus`: typing hints of `get_value` method by adding overload methods.
 
 ### Removed
 - `src/REvoDesign/tools/pymol_utils.py`

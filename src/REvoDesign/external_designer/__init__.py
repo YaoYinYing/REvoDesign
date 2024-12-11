@@ -49,13 +49,10 @@ class MagicianManager:
 
 
 class Magician(SingletonAbstract):
-    def __init__(self):
-        if not hasattr(self, "initialized"):
-            self.bus: ConfigBus = ConfigBus()
-            self.magician: Optional[ExternalDesignerAbstract] = None
-            self.magician_manager = MagicianManager()
-
-            self.initialized = True
+    def singleton_init(self):
+        self.bus: ConfigBus = ConfigBus()
+        self.magician: Optional[ExternalDesignerAbstract] = None
+        self.magician_manager = MagicianManager()
 
     def setup(
         self,

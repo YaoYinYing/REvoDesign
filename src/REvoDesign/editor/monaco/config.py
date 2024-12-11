@@ -10,14 +10,8 @@ class ConfigStore(SingletonAbstract):
     A centralized configuration store using SingletonAbstract and DictConfig for thread-safe configuration management.
     """
 
-    def __init__(self):
-        """
-        Initializes the ConfigStore instance with a DictConfig.
-        """
-        # Ensure the parent class initialization logic is respected
-        if not hasattr(self, "initialized"):
-            super().__init__()
-            self.cfg = DictConfig({})  # Initialize the configuration store with an empty DictConfig
+    def singleton_init(self):
+        self.cfg = DictConfig({})  # Initialize the configuration store with an empty DictConfig
 
     def set(self, key: str, value: Any) -> None:
         """

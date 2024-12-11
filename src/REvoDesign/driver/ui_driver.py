@@ -5,7 +5,7 @@ The heart of REvoDesign. A UI-Configuration Bus
 import os
 import warnings
 from functools import partial
-from typing import (Any, Callable, Optional, Type, TypeVar, overload)
+from typing import Any, Callable, Optional, Type, TypeVar, overload
 
 import omegaconf.errors
 from immutabledict import immutabledict
@@ -58,27 +58,14 @@ class ConfigBus(SingletonAbstract, CitableModules):
         button(id: str): Retrieves a button widget based on its ID.
     """
 
-    def __init__(self, ui=None):
-        # Check if the instance has already been initialized
-        if not hasattr(self, "initialized"):
-            # If not, set the instance attributes
+    def singleton_init(self, ui=None):
+        self.cfg: DictConfig = reload_config_file()
+        if ui:
+            self.ui = ui
+            self.w2c = Widget2ConfigMapper(ui=self.ui)
+            self.push_buttons = self.w2c.push_buttons
 
-            self.cfg: DictConfig = reload_config_file()
-            if ui:
-                self.ui = ui
-                self.w2c = Widget2ConfigMapper(ui=self.ui)
-                self.push_buttons = self.w2c.push_buttons
-
-            # Mark the instance as initialized to prevent reinitialization
-            self.initialized = True
-            self.cite()
-
-    @classmethod
-    def initialize(cls, ui):
-        if not cls._instance:
-            cls(ui=ui)
-        else:
-            cls._instance.ui = ui
+        self.cite()
 
     def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.

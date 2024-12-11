@@ -343,48 +343,42 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     - is_port_available: Checks if a port is available for use.
     """
 
-    def __init__(self):
-        # Check if the instance has already been initialized
-        if not hasattr(self, "initialized"):
-            # If not, set the instance attributes
+    def singleton_init(self):
 
-            self.bus: ConfigBus = ConfigBus()
-            self.meetingroom: MeetingRoom = None
-            self.waiting_room = set()
+        self.bus: ConfigBus = ConfigBus()
+        self.meetingroom: MeetingRoom = None
+        self.waiting_room = set()
 
-            self.server = None  # Initialize server as None
-            self.server_url = self.bus.get_value(
-                "ui.socket.server_url",
-                converter=str,
-                default_value="localhost",
-            )
-            self.port = self.bus.get_value(
-                "ui.socket.server_port", converter=int, default_value=7890
-            )
+        self.server = None  # Initialize server as None
+        self.server_url = self.bus.get_value(
+            "ui.socket.server_url",
+            converter=str,
+            default_value="localhost",
+        )
+        self.port = self.bus.get_value(
+            "ui.socket.server_port", converter=int, default_value=7890
+        )
 
-            self.use_authentication = self.bus.get_value(
-                "ui.socket.use_key", converter=bool
-            )
-            self.authentication_key = self.bus.get_value(
-                "ui.socket.input.key", converter=str
-            )
+        self.use_authentication = self.bus.get_value(
+            "ui.socket.use_key", converter=bool
+        )
+        self.authentication_key = self.bus.get_value(
+            "ui.socket.input.key", converter=str
+        )
 
-            self.bc_worker: Broadcaster = Broadcaster()
-            self.view_broadcast_enabled = False
-            self.view_broadcast_on_air = False
-            self.view_broadcast_worker = None
-            self.view_broadcast_interval = self.bus.get_value(
-                "ui.socket.broadcast.interval",
-                converter=float,
-                default_value=0.1,
-            )
+        self.bc_worker: Broadcaster = Broadcaster()
+        self.view_broadcast_enabled = False
+        self.view_broadcast_on_air = False
+        self.view_broadcast_worker = None
+        self.view_broadcast_interval = self.bus.get_value(
+            "ui.socket.broadcast.interval",
+            converter=float,
+            default_value=0.1,
+        )
 
-            self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
-            self.ssl_manager = SSLCertificateManager(role="server")
-            self.ssl_manager.get_certificate()
-
-            # Mark the instance as initialized to prevent reinitialization
-            self.initialized = True
+        self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
+        self.ssl_manager = SSLCertificateManager(role="server")
+        self.ssl_manager.get_certificate()
 
     @property
     def is_running(self):
@@ -825,26 +819,21 @@ class REvoDesignWebSocketServer(SingletonAbstract):
 
 
 class REvoDesignWebSocketClient(SingletonAbstract):
-    def __init__(self):
-        # Check if the instance has already been initialized
-        if not hasattr(self, "initialized"):
-            # If not, set the instance attributes
-            self.bus: ConfigBus = ConfigBus()
-            self.server_url = "localhost"
-            self.server_port = 7890
+    def singleton_init(self):
+        # If not, set the instance attributes
+        self.bus: ConfigBus = ConfigBus()
+        self.server_url = "localhost"
+        self.server_port = 7890
 
-            self.bc_worker = Broadcaster()
-            self.authentication_key = None
-            self.receive_view_broadcast = False
-            self.receive_mutagenesis_broadcast = True
+        self.bc_worker = Broadcaster()
+        self.authentication_key = None
+        self.receive_view_broadcast = False
+        self.receive_mutagenesis_broadcast = True
 
-            self.uuid = ""
+        self.uuid = ""
 
-            self.client = None
-            self.treeWidget_ws_peers = None
-
-            # Mark the instance as initialized to prevent reinitialization
-            self.initialized = True
+        self.client = None
+        self.treeWidget_ws_peers = None
 
     def setup_ws_client(self):
         self.server_url = self.bus.get_value("ui.socket.server_url")

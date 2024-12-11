@@ -20,15 +20,13 @@ logging = root_logger.getChild(__name__)
 
 
 class FileDialog(SingletonAbstract):
-    def __init__(self, window: Optional[Any], pwd: Optional[str]):
-        # Check if the instance has already been initialized
-        if not hasattr(self, "initialized"):
-            self.window = window
-            self.PWD = pwd if pwd is not None else os.getcwd()
-            self.register_file_dialof_buttons()
-            # Mark the instance as initialized to prevent reinitialization
-            self.initialize()
-            self.initialized = True
+
+    def singleton_init(self, window: Optional[Any], pwd: Optional[str]):
+        self.window = window
+        self.PWD = pwd if pwd is not None else os.getcwd()
+        self.register_file_dialof_buttons()
+        # Mark the instance as initialized to prevent reinitialization
+        self.initialize()
 
     # class public function that can be shared with each tab
     # callback for the "Browse" button
