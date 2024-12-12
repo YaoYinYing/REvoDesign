@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - installer: install from local git: currently not working.
 - Makefile:
-  - removed pytest args: `-x` to continue on error
+  - removed pytest args: `-x` to continue on test case error
 
 ## [1.7.8] - 2024-12-11
 

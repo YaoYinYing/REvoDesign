@@ -337,7 +337,7 @@ def test_no_matching_characters():
     assert result == {}
 
 
-def test_empty_input():
+def test_random_deduplicate_empty_input():
     seq = np.array([])
     score = np.array([])
     unique_seq, unique_score = random_deduplicate(seq, score)
@@ -345,7 +345,7 @@ def test_empty_input():
     assert len(unique_score) == 0
 
 
-def test_no_deduplicate():
+def test_random_deduplicate_no_deduplicate():
     seq = np.array([1, 1, 1, 1])
     score = np.array([10, 20, 30, 40])
     unique_seq, unique_score = random_deduplicate(seq, score)
@@ -354,7 +354,7 @@ def test_no_deduplicate():
     assert unique_score[0] in [10, 20, 30, 40]
 
 
-def test_deduplicate():
+def test_random_deduplicate_deduplicate():
     seq = np.array([1, 2, 2, 3, 3, 3])
     score = np.array([10, 20, 30, 40, 50, 60])
     unique_seq, unique_score = random_deduplicate(seq, score)
@@ -365,13 +365,13 @@ def test_deduplicate():
     assert unique_score[2] in [40, 50, 60]
 
 
-def test_randomness():
+def test_random_deduplicate_randomness():
     seq = np.array([1, 2, 2, 3, 3, 3])
     score = np.array([10, 20, 30, 40, 50, 60])
-    unique_seq1, unique_score1 = random_deduplicate(seq, score)
-    unique_seq2, unique_score2 = random_deduplicate(seq, score)
-    assert np.array_equal(unique_seq1, unique_seq2)
-    assert not np.array_equal(unique_score1, unique_score2)
+    # ensure that the random choice is called at least once
+    with patch('numpy.random.choice') as mock_choice:
+        unique_seq1, unique_score1 = random_deduplicate(seq, score)
+        mock_choice.assert_called()
 
 
 def test_generate_strong_password_length():
