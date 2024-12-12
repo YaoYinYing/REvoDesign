@@ -2075,11 +2075,10 @@ def solve_installation_config(
         if os.path.exists(os.path.join(source, "pyproject.toml")):
             if git_tag:
                 notify_box("Ignore unzipped code directory tag!")
-            
+
             package_string = f"{source}{extra_string}"
             return package_string
         notify_box(f"{source} should atleast be a Git repository or a code directory!", ValueError)
-
 
     # Handle installation from a zipped code file
     if os.path.isfile(source):

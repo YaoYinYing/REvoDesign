@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, create_autospec
-from REvoDesign.basic.server_monitor import MenuActionServerMonitor, ServerProtocol  # Replace with the correct module name
+
+import pytest
+
+from REvoDesign.basic.server_monitor import (  # Replace with the correct module name
+    MenuActionServerMonitor, ServerProtocol)
 
 
 def test_menu_action_server_monitor():

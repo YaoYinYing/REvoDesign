@@ -1,7 +1,9 @@
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, call
-from functools import partial
-from REvoDesign.basic.param_toggle import ParamChangeRegistryItem, ParamChangeRegister  
+
+from REvoDesign.basic.param_toggle import (ParamChangeRegister,
+                                           ParamChangeRegistryItem)
 
 
 def test_param_change_registry_item_signal():
@@ -62,6 +64,7 @@ def test_param_change_registry_item_register():
     # Assert the partial function was set up correctly
     assert connected_partial.func == mock_register_func
     assert connected_partial.args == ("source_item", "target_item", {"key1": ("value1",)})
+
 
 def test_param_change_register_register_all():
     # Mock the UI, widgets, and signals

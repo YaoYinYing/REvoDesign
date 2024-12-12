@@ -10,7 +10,7 @@ import os
 import time
 import warnings
 from abc import ABC
-from typing import Any, Dict, List, Mapping, Union
+from typing import Any, Mapping, Union
 
 from REvoDesign import issues
 from REvoDesign.logger import root_logger
@@ -89,7 +89,6 @@ class CitationManager(SingletonAbstract):
         Clear all citations from the citation manager.
         """
         self.called_citations.clear()
-        
 
     def output(self, cwd: str = "."):
         """

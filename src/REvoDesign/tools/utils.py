@@ -125,7 +125,6 @@ def extract_archive(archive_file, extract_to):
     except Exception as e:
         logging.error(f"Error extracting {archive_file}: {str(e)}")
         raise ValueError(f"Failed to extract {archive_file}: {e}") from e
-        
 
 
 def get_color(

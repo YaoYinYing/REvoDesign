@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import MagicMock
-from functools import partial
+
+import pytest
 
 from REvoDesign.basic.menu_item import MenuCollection, MenuItem
 
