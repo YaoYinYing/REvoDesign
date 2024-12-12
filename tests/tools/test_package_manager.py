@@ -525,15 +525,15 @@ def test_installation_from_github_url():
     expected_output = "REvoDesign @ git+https://github.com/user/revo-design@v1.0.0"
     assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
 
-def test_installation_from_local_git_repo(test_tmp_dir):
-    source = test_tmp_dir
-    os.makedirs(os.path.join(test_tmp_dir,'.git'), exist_ok=True)
-    git_url = "https://github.com/user/revo-design"
-    git_tag = "v1.0.0"
-    extras = None
-    expected_output =f"REvoDesign @ git+file://{test_tmp_dir}@v1.0.0"
+# def test_installation_from_local_git_repo(test_tmp_dir):
+#     source = test_tmp_dir
+#     os.makedirs(os.path.join(test_tmp_dir,'.git'), exist_ok=True)
+#     git_url = "https://github.com/user/revo-design"
+#     git_tag = "v1.0.0"
+#     extras = None
+#     expected_output =f"REvoDesign @ git+file://{test_tmp_dir}@v1.0.0"
 
-    assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
+#     assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
 
 def test_installation_from_local_code_directory(test_tmp_dir):
     source = test_tmp_dir

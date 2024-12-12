@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Removed
+- installer: install from local git: currently not working.
 
 ## [1.7.8] - 2024-12-11
 

@@ -2066,10 +2066,10 @@ def solve_installation_config(
         # preprocess
         if source.endswith("/"):
             source = source[:-1]
-        # a local Git repository?
-        if os.path.isdir(os.path.join(source, ".git")):
-            package_string += f' @ git+file://{source}{f"@{git_tag}" if git_tag else ""}'
-            return package_string
+        # # a local Git repository? # TODO: not fully implemented yet
+        # if os.path.isdir(os.path.join(source, ".git")):
+        #     package_string += f' @ git+file://{source}{f"@{git_tag}" if git_tag else ""}'
+        #     return package_string
 
         # or just an unzipped code directory?
         if os.path.exists(os.path.join(source, "pyproject.toml")):
