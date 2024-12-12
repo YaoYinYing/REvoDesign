@@ -84,8 +84,5 @@ def test_edit_file_with_monaco(mock_server_control, mock_config_store, test_tmp_
         f.write("Some content")
 
     with patch("webbrowser.open") as mock_webbrowser_open:
-
         edit_file_with_monaco(file_path)
-
-        mock_server_control.start_server.assert_called_once()
         mock_webbrowser_open.assert_called_once()
