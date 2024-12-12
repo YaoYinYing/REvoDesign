@@ -94,7 +94,7 @@
             <string/>
            </property>
            <property name="text">
-            <string>Local clone</string>
+            <string>Local Directory</string>
            </property>
           </widget>
          </item>

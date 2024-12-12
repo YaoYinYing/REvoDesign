@@ -2061,42 +2061,38 @@ def solve_installation_config(
         package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
         return package_string
 
-    # Handle installation from a local Git repository with a tag
-    if source.startswith("file://"):
-        repo_dir = git_url.lstrip("file://")
-        if not os.path.isdir(os.path.join(repo_dir, ".git")):
-            notify_box(f'Git dir not found: {os.path.join(repo_dir, ".git")}')
-        package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
-        return package_string
-
-    # Handle installation from an unzipped code directory
+    # Handle installation from a local directory
     if os.path.isdir(source):
-        if not os.path.exists(os.path.join(source, "pyproject.toml")):
-            notify_box(
-                f"{source} is not a directory containing pyproject.toml",
-                FileNotFoundError,
-            )
-        if git_tag:
-            notify_box("unzipped code directory can not have a tag!")
+        # preprocess
         if source.endswith("/"):
             source = source[:-1]
-        package_string = f"{source}{extra_string}"
-        return package_string
+        # # a local Git repository? # TODO: not fully implemented yet
+        # if os.path.isdir(os.path.join(source, ".git")):
+        #     package_string += f' @ git+file://{source}{f"@{git_tag}" if git_tag else ""}'
+        #     return package_string
 
-    # Handle installation from a zipped code archive
+        # or just an unzipped code directory?
+        if os.path.exists(os.path.join(source, "pyproject.toml")):
+            if git_tag:
+                notify_box("Ignore unzipped code directory tag!")
+
+            package_string = f"{source}{extra_string}"
+            return package_string
+        notify_box(f"{source} should atleast be a Git repository or a code directory!", ValueError)
+
+    # Handle installation from a zipped code file
     if os.path.isfile(source):
         if git_tag:
-            notify_box("zipped file can not have a tag!")
+            notify_box("Ignore zipped file tag!")
 
         if source.endswith(".zip") or source.endswith(".tar.gz"):
             package_string = f"{source}{extra_string}"
-        else:
-            notify_box(
-                f"{source} is neither a zipped file nor a tar.gz file!",
-                FileNotFoundError,
-            )
+            return package_string
 
-        return package_string
+        notify_box(
+            f"{source} is neither a zipped file nor a tar.gz file!",
+            FileNotFoundError,
+        )
 
     notify_box(f"Unknown installation source {source}({package_name})!", ValueError)
 

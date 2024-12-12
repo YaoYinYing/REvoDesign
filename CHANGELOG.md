@@ -20,7 +20,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- test case, which were mostly written by prompting with ChatGPT and Tongyi Lingma:
+  - basic tests
+  - bootstrap tests
+  - citation tests
+  - editor:
+    - monaco: `MonacoEditorManager`, `edit_file_with_monaco`
+    - server: `app`, `ServerControl`
+  - tools:
+    - package_manager: `GitSolver`, `PIPInstaller`, `fetch_gist_file`, `fetch_gist_json`, `filter_sensitive_data`, `get_github_repo_tags`, `run_command`, `solve_installation_config`
+    - customized_widgets: `real_bool`
+    - utils: `cmap_reverser`, `count_and_sort_characters`, `generate_strong_password`, `get_color`, `random_deduplicate`, `rescale_number`, `timing`,`extract_archive`, `minibatches`, `minibatches_generator`
+
 ### Changed
+
+- renamed:
+  - `CitableModules` -> `CitableModuleAbstract`: Explicitly named as an abstract class.
+- moved:
+  - `src/REvoDesign/citations/CitationManager.py` -> `src/REvoDesign/citations/citation_manager.py`
+  - `tests/citations/test_CitationManager.py` -> `tests/citations/test_citation_manager.py`
 - refactored `SingletonAbstract`:
   - `singleton_init`: an abstract method for each subclass to implement. This method will be called when the subclass is initialized, helps to avoid repeated code duplication. This method is the **only** one developer should implement in subclasses to replace the original `__init__` method.
   - `derive`: derive a new singleton class from the current one.
@@ -33,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Removed
+
+- installer: install from local git: currently not working.
+- Makefile:
+  - removed pytest args: `-x` to continue on test case error
 
 ## [1.7.8] - 2024-12-11
 

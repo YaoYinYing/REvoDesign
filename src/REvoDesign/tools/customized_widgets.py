@@ -621,7 +621,7 @@ def create_cmap_icon(cmap: str):
     return pixmap
 
 
-def refresh_tree_widget(user_tree: dict[dict], treeWidget_ws_peers):
+def refresh_tree_widget(user_tree: Dict[str, Dict], treeWidget_ws_peers):
     """
     Refreshes a given tree widget with user data.
 

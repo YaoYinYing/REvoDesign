@@ -5,12 +5,12 @@ import os
 from abc import abstractmethod
 from typing import List, Tuple
 
-from ..citations import CitableModules
+from ..citations import CitableModuleAbstract
 from ..common.Mutant import Mutant
 from ..common.MutantTree import MutantTree
 
 
-class MutateRunnerAbstract(CitableModules):
+class MutateRunnerAbstract(CitableModuleAbstract):
     """
     Abstract base class for running mutation tools.
 

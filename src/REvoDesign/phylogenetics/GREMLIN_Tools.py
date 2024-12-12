@@ -31,7 +31,7 @@ from scipy import stats
 from scipy.spatial.distance import pdist, squareform
 
 from REvoDesign import ConfigBus, issues
-from REvoDesign.citations import CitableModules
+from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import root_logger
 
 logging = root_logger.getChild(__name__)
@@ -177,7 +177,7 @@ class CoevolvedPair:
         return self.j + 1
 
 
-class GREMLIN_Tools(CitableModules):
+class GREMLIN_Tools(CitableModuleAbstract):
     def __init__(self, molecule):
         from REvoDesign.tools.utils import cmap_reverser
 
