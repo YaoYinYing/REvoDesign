@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -65,7 +65,6 @@ def test_citable_module_abstract_notice():
 
         module = TestModule()
         module.notice()
-
 
 
 def test_citable_module_abstract_cite():
