@@ -4,8 +4,8 @@ from unittest.mock import call, patch
 
 import pytest
 
-from REvoDesign.citations.CitationManager import (  # Replace with actual module path
-    CitableModules, CitationManager)
+from REvoDesign.citations.CitationManager import (CitableModules,
+                                                  CitationManager)
 
 
 @contextmanager

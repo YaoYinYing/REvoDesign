@@ -1,4 +1,3 @@
-
 import pytest
 
 from REvoDesign.tools.customized_widgets import real_bool
