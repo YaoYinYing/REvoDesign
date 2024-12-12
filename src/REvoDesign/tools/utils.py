@@ -121,9 +121,11 @@ def extract_archive(archive_file, extract_to):
                 tar_ref.extractall(extract_to)
             logging.info(f"Extracted {archive_file} to {extract_to}")
         else:
-            logging.warning(f"Unsupported archive format: {archive_file}")
+            raise ValueError(f"Unsupported archive format: {archive_file}")
     except Exception as e:
         logging.error(f"Error extracting {archive_file}: {str(e)}")
+        raise ValueError(f"Failed to extract {archive_file}: {e}") from e
+        
 
 
 def get_color(

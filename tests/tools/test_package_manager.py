@@ -3,10 +3,12 @@ import subprocess
 import pytest
 import tempfile
 import os
+import urllib.request
 from unittest.mock import MagicMock, patch, mock_open
 import urllib.error
+from urllib.error import HTTPError, URLError
 import json
-from REvoDesign.tools.package_manager import GitSolver, PIPInstaller, fetch_gist_file, fetch_gist_json, filter_sensitive_data, get_github_repo_tags, run_command
+from REvoDesign.tools.package_manager import GitSolver, PIPInstaller, fetch_gist_file, fetch_gist_json, filter_sensitive_data, get_github_repo_tags, run_command, solve_installation_config
 
 # Test for fetch_gist_file
 def test_fetch_gist_file_valid_url():
@@ -323,6 +325,49 @@ def test_ensure_package(pip_installer, mocker):
     )
 
 
+class TestGetGithubRepoTags:
+
+    def test_valid_repo_url(self):
+        # Test a valid repository URL, expecting a list of tags
+        repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
+        tags = get_github_repo_tags(repo_url)
+        assert isinstance(tags, list)
+        assert len(tags) > 0
+        for tag in tags:
+            assert isinstance(tag, str)
+
+    def test_invalid_repo_url(self):
+        # Test an invalid repository URL, expecting an empty list
+        repo_url = "https://github.com/nonexistent/repo"
+        tags = get_github_repo_tags(repo_url)
+        assert isinstance(tags, list)
+        assert len(tags) == 0
+
+    def test_http_error(self, monkeypatch):
+        # Test handling of HTTPError
+        def mock_urlopen(*args, **kwargs):
+            raise HTTPError(args[0], 404, "Not Found", None, None)
+        
+        monkeypatch.setattr(urllib.request, 'urlopen', mock_urlopen)
+        
+        repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
+        tags = get_github_repo_tags(repo_url)
+        assert isinstance(tags, list)
+        assert len(tags) == 0
+
+    def test_url_error(self, monkeypatch):
+        # Test handling of URLError
+        def mock_urlopen(*args, **kwargs):
+            raise URLError("Failed to reach the server")
+        
+        monkeypatch.setattr(urllib.request, 'urlopen', mock_urlopen)
+        
+        repo_url = "https://github.com/BradyAJohnston/MolecularNodes"
+        tags = get_github_repo_tags(repo_url)
+        assert isinstance(tags, list)
+        assert len(tags) == 0
+
+
 def test_get_github_repo_tags_success():
     """Test successful retrieval of tags."""
 
@@ -459,3 +504,77 @@ def test_issue_collection_drop_sensitive(mock_environment):
 
     result = issue_collection(drop_sensitives=True, collect_dummy=True)
     assert not any(k for k in result["Dummy::Environ"] if 'TOKEN' in k.upper())
+
+
+# Mock the notify_box function to capture its calls
+def mock_notify_box(message, exception=None):
+    print(f"Notification: {message}")
+    if exception:
+        raise exception(message)
+
+# Patch the notify_box function to use the mock
+@pytest.fixture(autouse=True)
+def patch_notify_box(monkeypatch):
+    monkeypatch.setattr('REvoDesign.tools.package_manager.notify_box', mock_notify_box)
+
+def test_installation_from_github_url():
+    source = "https://github.com/user/revo-design"
+    git_url = "https://github.com/user/revo-design"
+    git_tag = "v1.0.0"
+    extras = None
+    expected_output = "REvoDesign @ git+https://github.com/user/revo-design@v1.0.0"
+    assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
+
+def test_installation_from_local_git_repo(test_tmp_dir):
+    source = test_tmp_dir
+    os.makedirs(os.path.join(test_tmp_dir,'.git'), exist_ok=True)
+    git_url = "https://github.com/user/revo-design"
+    git_tag = "v1.0.0"
+    extras = None
+    expected_output =f"REvoDesign @ git+file://{test_tmp_dir}@v1.0.0"
+
+    assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
+
+def test_installation_from_local_code_directory(test_tmp_dir):
+    source = test_tmp_dir
+    git_url = "https://github.com/user/revo-design"
+    git_tag = None
+    with open(os.path.join(test_tmp_dir, "pyproject.toml"), "w") as f:
+        f.write("[tool.poetry]\nname = 'REvoDesign'")
+    extras = "extra1,extra2"
+    expected_output = f"{test_tmp_dir}[extra1,extra2]"
+    assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
+
+def test_installation_from_zipped_file():
+    source = "/path/to/local/code.zip"
+    git_url = "https://github.com/user/revo-design"
+    git_tag = None
+    extras = "extra1,extra2"
+    expected_output = "/path/to/local/code.zip[extra1,extra2]"
+    with patch('os.path.isfile', return_value=True):
+        assert solve_installation_config(source, git_url, git_tag, extras) == expected_output
+
+def test_installation_from_invalid_dir(test_tmp_dir):
+    source = test_tmp_dir
+    git_url = "https://github.com/user/revo-design"
+    git_tag = "v1.0.0"
+    extras = None
+
+    with pytest.raises(ValueError, match='should atleast be a Git repository or a code directory'):
+        solve_installation_config(source, git_url, git_tag, extras)
+
+def test_installation_from_invalid_file_type():
+    source = "/path/to/local/code.txt"
+    git_url = "https://github.com/user/revo-design"
+    git_tag = None
+    extras = None
+    with patch('os.path.isfile'),pytest.raises(FileNotFoundError, match='is neither a zipped file nor a tar.gz file!'):
+        solve_installation_config(source, git_url, git_tag, extras)
+
+def test_installation_from_random_shit_source():
+    source = "dudududada"
+    git_url = "https://github.com/user/revo-design"
+    git_tag = None
+    extras = None
+    with pytest.raises(ValueError, match='Unknown installation source'):
+        solve_installation_config(source, git_url, git_tag, extras)

@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- test case, which were mostly written by prompting with ChatGPT and Tongyi Lingma:
+  - basic tests
+  - bootstrap tests
+  - citation tests
+  - tools:
+    - package_manager: `GitSolver`, `PIPInstaller`, `fetch_gist_file`, `fetch_gist_json`, `filter_sensitive_data`, `get_github_repo_tags`, `run_command`, `solve_installation_config`
+    - customized_widgets: `real_bool`
+    - utils: `cmap_reverser`, `count_and_sort_characters`, `generate_strong_password`, `get_color`, `random_deduplicate`, `rescale_number`, `timing`,`extract_archive`, `minibatches`, `minibatches_generator`
 
 ### Changed
 - refactored `SingletonAbstract`:
