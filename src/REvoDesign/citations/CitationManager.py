@@ -131,7 +131,7 @@ class CitationManager(SingletonAbstract):
             self.silenced_citation_modules.append(modulename)
 
 
-class CitableModules(ABC):
+class CitableModuleAbstract(ABC):
     """
     An abstract base class for modules that require citation.
 

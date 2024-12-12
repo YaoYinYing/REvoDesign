@@ -15,7 +15,7 @@ from Bio import SeqIO
 from Bio.Align import PairwiseAligner, substitution_matrices
 from matplotlib import pyplot as plt
 
-from REvoDesign.citations import CitableModules
+from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import refresh_window
 from REvoDesign.tools.utils import minibatches_generator
@@ -26,7 +26,7 @@ logging = root_logger.getChild(__name__)
 matplotlib.use("Agg")
 
 
-class Clustering(CitableModules):
+class Clustering(CitableModuleAbstract):
     def __init__(self, fastafile):
         self.fastafile = fastafile
 

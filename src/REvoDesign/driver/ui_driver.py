@@ -13,7 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 from pymol.Qt import QtWidgets
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
-from REvoDesign.citations import CitableModules
+from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
                                                  set_widget_value)
@@ -27,7 +27,7 @@ logging = root_logger.getChild(__name__)
 T = TypeVar("T")
 
 
-class ConfigBus(SingletonAbstract, CitableModules):
+class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     """
     This class is responsible for handling the configuration and interaction between the UI widgets
     and the application's configuration settings.

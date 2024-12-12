@@ -3,14 +3,14 @@ import traceback
 
 import biolib
 
-from REvoDesign.citations import CitableModules
+from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.utils import timing
 
 logging = root_logger.getChild(__name__)
 
 
-class PythiaBiolib(CitableModules):
+class PythiaBiolib(CitableModuleAbstract):
     def __init__(self, molecule, chain_id):
         """
         Initialize PythiaBiolib instance with molecule and chain ID.

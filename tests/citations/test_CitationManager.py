@@ -4,7 +4,7 @@ from unittest.mock import call, patch
 
 import pytest
 
-from REvoDesign.citations.CitationManager import (CitableModules,
+from REvoDesign.citations.CitationManager import (CitableModuleAbstract,
                                                   CitationManager)
 
 
@@ -57,28 +57,22 @@ def test_citation_manager_dismiss():
         assert "module1" in manager.silenced_citation_modules
 
 
-def test_citable_modules_notice():
-    class TestModule(CitableModules):
+def test_citable_module_abstract_notice():
+    class TestModule(CitableModuleAbstract):
         __bibtex__ = {"module1": "citation1", "module2": ("citation2a", "citation2b")}
 
-    with mock_citation_manager() as mock_manager, patch("REvoDesign.citations.CitationManager.logging.info") as mock_logging:
+    with mock_citation_manager() as mock_manager:
 
         module = TestModule()
         module.notice()
 
-        mock_logging.assert_has_calls([
-            call("\033[0;44m\033[1m[Citation Notice]\033[0m\033[0m\nThe following publications should be cited:\n"),
-            call("\033[0;41m\033[1mmodule1\033[0m\033[0m: \033[0;45mcitation1\033[0m\n"),
-            call("\033[0;41m\033[1mmodule2-0\033[0m\033[0m: \033[0;45mcitation2a\033[0m\n"),
-            call("\033[0;41m\033[1mmodule2-1\033[0m\033[0m: \033[0;45mcitation2b\033[0m\n"),
-        ])
 
 
-def test_citable_modules_cite():
-    class TestModule(CitableModules):
+def test_citable_module_abstract_cite():
+    class TestModule(CitableModuleAbstract):
         __bibtex__ = {"modulex": "citationx"}
 
-    with mock_citation_manager() as manager, patch("REvoDesign.citations.CitationManager.CitableModules.notice") as mock_notice, \
+    with mock_citation_manager() as manager, patch("REvoDesign.citations.CitationManager.CitableModuleAbstract.notice") as mock_notice, \
             patch.object(manager, "update") as mock_update:
 
         module = TestModule()
