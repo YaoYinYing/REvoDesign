@@ -1,6 +1,6 @@
 '''
 Module to import all citation modules
 '''
-from .CitationManager import CitableModuleAbstract, CitationManager
+from .citation_manager import CitableModuleAbstract, CitationManager
 
 __all__ = ["CitationManager", "CitableModuleAbstract"]

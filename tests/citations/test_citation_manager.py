@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from REvoDesign.citations.CitationManager import (CitableModuleAbstract,
+from REvoDesign.citations.citation_manager import (CitableModuleAbstract,
                                                   CitationManager)
 
 
@@ -71,7 +71,7 @@ def test_citable_module_abstract_cite():
     class TestModule(CitableModuleAbstract):
         __bibtex__ = {"modulex": "citationx"}
 
-    with mock_citation_manager() as manager, patch("REvoDesign.citations.CitationManager.CitableModuleAbstract.notice") as mock_notice, \
+    with mock_citation_manager() as manager, patch("REvoDesign.citations.citation_manager.CitableModuleAbstract.notice") as mock_notice, \
             patch.object(manager, "update") as mock_update:
 
         module = TestModule()

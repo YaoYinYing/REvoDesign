@@ -95,6 +95,7 @@ test = [
     "virtualenv<=20.27.1",
     "pooch>=1.8.0",
     "coverage",
+    "httpx",
 ]
 
 
