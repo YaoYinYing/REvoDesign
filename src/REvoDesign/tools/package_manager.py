@@ -1943,7 +1943,7 @@ def issue_collection(
             env_dict = filter_sensitive_data(os.environ)
             print('Sensitive data are removed.')
         else:
-            env_dict = os.environ
+            env_dict = dict(os.environ)
             print('Sensitive data may be kept.')
 
         issue_dict.update({'Dummy::Environ': env_dict})
