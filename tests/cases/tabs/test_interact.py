@@ -3,7 +3,7 @@ import os
 import pytest
 from pymol import cmd
 
-from REvoDesign.tools.customized_widgets import (get_widget_value,
+from REvoDesign.tools.customized_widgets import (QButtonBrick, get_widget_value,
                                                  set_widget_value)
 
 from ...conftest import TestWorker
@@ -141,7 +141,7 @@ class TestREvoDesignPlugin_TabInteract:
 
             test_worker.click(
                 test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton"
+                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
                 )
             )
             test_worker.sleep(200)
@@ -307,7 +307,7 @@ class TestREvoDesignPlugin_TabInteract:
 
             test_worker.click(
                 test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton"
+                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
                 )
             )
             test_worker.sleep(200)
@@ -450,7 +450,7 @@ class TestREvoDesignPlugin_TabInteract:
 
             test_worker.click(
                 test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton"
+                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
                 )
             )
             test_worker.sleep(200)
@@ -605,7 +605,7 @@ class TestREvoDesignPlugin_TabInteract:
             i = test_worker.c.i
             test_worker.click(
                 test_worker.plugin.bus.w2c.get_button_from_id(
-                    f"{row}_vs_{col}", prefix="matrixButton"
+                    f"{row}_vs_{col}", prefix="matrixButton", button_type=QButtonBrick
                 )
             )
             test_worker.sleep(200)

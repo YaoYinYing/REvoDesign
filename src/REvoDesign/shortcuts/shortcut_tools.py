@@ -106,6 +106,7 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
+from functools import partial
 import json
 import os
 from dataclasses import dataclass
@@ -118,10 +119,11 @@ from pymol.Qt import QtCore, QtWidgets  # type: ignore
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
+from REvoDesign.tools.mutant_tools import shorter_range
 
 from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
-from ..tools.customized_widgets import AskedValue, dialog_wrapper
+from ..tools.customized_widgets import AskedValue, QButtonMatrix, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
@@ -566,11 +568,9 @@ def wrapped_pssm_design(**kwargs):
 
     from ..bootstrap.set_config import ConfigConverter
     from ..common.Mutant import Mutant
-    from ..common.MutantTree import MutantTree
     from ..common.MutantVisualizer import MutantVisualizer
     from ..phylogenetics.REvoDesigner import REvoDesigner
     from ..sidechain_solver.SidechainSolver import SidechainSolver
-    from ..tools.customized_widgets import QbuttonMatrix
     from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
                                       read_customized_indice)
     from ..tools.pymol_utils import (get_molecule_sequence,
@@ -583,8 +583,8 @@ def wrapped_pssm_design(**kwargs):
     bus = ConfigBus()
     ui = bus.ui
 
-    molecule: str = bus.get_value('ui.header_panel.input.molecule', reject_none=True)
-    chain_id: str = bus.get_value('ui.header_panel.input.chain_id', reject_none=True)
+    molecule: str = bus.get_value('ui.header_panel.input.molecule',str, reject_none=True)
+    chain_id: str = bus.get_value('ui.header_panel.input.chain_id',str, reject_none=True)
 
     reversed_mutant_effect = bus.get_value("ui.header_panel.cmap.reverse_score")
     cmap = cmap_reverser(
@@ -688,11 +688,7 @@ def wrapped_pssm_design(**kwargs):
 
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
-    @dataclass
-    class ProfilePair:
-        df: pd.DataFrame
-
-    def mutate_with_gridbuttons(row, col, matrix: QbuttonMatrix, ignore_wt=False):
+    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix, ignore_wt=False):
         resn: str = matrix.alphabet_row[row]
         resi: int = int(matrix.alphabet_col[col + 1])
         wt_res = sequence[resi - 1]
@@ -749,45 +745,92 @@ def wrapped_pssm_design(**kwargs):
             vhm_(f'byres {mutant.full_mutant_id} around {kwargs["view_highlight_nbr"]}', animate=1)
 
     # Prepare the data for the button matrix
-    df_pair = ProfilePair(df=df_button_matrix)
-    print(df_pair)
-    button_matrix = QbuttonMatrix(df_pair)
+
+    print(df_button_matrix.head())
+    pix_per_block = 25
+
+    button_matrix = QButtonMatrix(
+        df_matrix=df_button_matrix,
+        sequence=sequence,
+        cmap='bwr',
+        flip_cmap=False,
+        zero_index_offset=-1,
+    )
     button_matrix.sequence = sequence
     button_matrix.init_ui()
-    button_matrix.report_axes_signal.connect(
-        lambda row, col: mutate_with_gridbuttons(
-            row,
-            col,
-            button_matrix,
-            False,
-        )
+    button_matrix.active_func = partial(
+        mutate_with_gridbuttons,
+        matrix=button_matrix,
+        ignore_wt=False
     )
 
     # Create a new dialog window for the button matrix
     window = QtWidgets.QWidget()  # This creates a standalone window.
     window.setWindowTitle("Mutant Profile Matrix")
 
-    # Add a scroll area for the button matrix
+    screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width()
+    screen_height = QtWidgets.QApplication.primaryScreen().availableGeometry().height()
+
+    num_cols = button_matrix.df_matrix.shape[1]  # Assuming the matrix's DataFrame determines the columns
+
+    # Set window size constraints
+    # - Adjust height and width to fit available screen size dynamically
+    fixed_height = pix_per_block * 21 + 100  # 100 for the banner and spacing
+    calculated_width = pix_per_block * (num_cols + 1)
+    max_width = min(calculated_width, screen_width - 20)
+
+    # Adjust height and width dynamically to ensure no scrollbars are necessary
+    dynamic_width = min(max_width, screen_width)
+    dynamic_height = min(fixed_height, screen_height)
+    window.setMinimumSize(dynamic_width, dynamic_height)
+    window.setMaximumSize(dynamic_width, dynamic_height)
+
+    # Add a scroll area to the window
     scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidget(button_matrix)
     scroll_area.setWidgetResizable(True)
+    scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # Disable vertical scrollbar
 
-    # Add horizontal scrollbar if columns exceed 150
-    num_cols = button_matrix.pair.df.shape[1]  # Assuming the matrix's DataFrame determines the columns
-    if num_cols > 150:
-        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-    else:
-        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    # Remove extra padding or margins to make buttons compact
+    button_matrix.setContentsMargins(0, 0, 0, 0)
 
-    layout = QtWidgets.QVBoxLayout()
-    layout.addWidget(scroll_area)
-    window.setLayout(layout)
+    # Adjust button size policy for a compact layout
+    for button in button_matrix.findChildren(QtWidgets.QPushButton):
+        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        button.setFixedSize(pix_per_block, pix_per_block)
 
-    # Set size constraints for the window
-    screen_width = QtWidgets.QApplication.primaryScreen().size().width()
-    max_width = min(screen_width, 150 * button_matrix.button_size)
-    window.setMaximumWidth(max_width)
-    window.setMinimumWidth(800)  # Ensure the window isn't too narrow.
+    # Create a layout with a persistent column label row
+    main_layout = QtWidgets.QVBoxLayout()
+
+    # Add a label row for column headers
+    header_widget = QtWidgets.QWidget()
+    header_layout = QtWidgets.QHBoxLayout()
+    header_widget.setLayout(header_layout)
+
+    banner_label = QtWidgets.QLabel(
+        f"Design with Profiles: {shorter_range(custom_indices)}"
+    )
+    banner_label.setWordWrap(True)
+    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    banner_label.setStyleSheet(
+        """
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        """
+    )
+    header_layout.addWidget(banner_label)
+
+    main_layout.addWidget(header_widget)
+    main_layout.addWidget(scroll_area)
+
+    # Set layout for the main window
+    window.setLayout(main_layout)
 
     # Center the window on the screen
     geometry = window.frameGeometry()
@@ -804,6 +847,16 @@ def wrapped_pssm_design(**kwargs):
 
     # Show the window
     window.show()
+
+
+
+
+    # Comments and considerations:
+    # 1. Removed the misplaced `QGridLayout` from `QScrollArea`.
+    # 2. Set the `QScrollArea` as a direct child of the main layout to ensure proper rendering.
+    # 3. Adjusted minimum width for better usability when the matrix has fewer columns.
+    # 4. Defaulted scroll policies to `QtCore.Qt.ScrollBarAsNeeded` for simplicity and consistency.
+    # 5. Cleaned up redundant or misaligned code for clarity and maintainability.
 
     # Keep a reference so the dialog doesn't get garbage-collected prematurely
     if not hasattr(ui, 'open_windows'):

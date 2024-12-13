@@ -1,26 +1,25 @@
-'''
+"""
 Custom widgets for REvoDesign.
-'''
+"""
+
 import json
 import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import (Any, Callable, Dict, List, Literal, Optional, Protocol,
-                    Tuple, Union)
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
-from REvoDesign.basic import FileExtension as FExt
 from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
 
-from .package_manager import (WorkerThread, decide, hold_trigger_button,
-                              notify_box, refresh_window)
+from .package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
 
 logging = root_logger.getChild(__name__)
 
@@ -39,237 +38,436 @@ class ImageWidget(QtWidgets.QWidget):
         painter.drawImage(self.rect(), image)
 
 
-class NonGremlinPair(Protocol):
-
-    @property
-    def df(self) -> pd.DataFrame: ...
-
-
-class QbuttonMatrix(QtWidgets.QWidget):
+@dataclass(frozen=True)
+class ButtonCoords:
     """
-    QbuttonMatrix - Custom widget for displaying a matrix of buttons.
-
-    TODO: need refactor to make it more generic and simpler.
-
-    Usage:
-        qbm = QbuttonMatrix(csv_file, parent=None, button_size=12)
-        qbm.init_ui()  # Initialize the user interface
+    Immutable data class representing the coordinates and names of a button.
 
     Attributes:
-        report_axes_signal (QtCore.pyqtSignal): Signal for reporting axes.
-        alphabet (str): String containing amino acid symbols.
-        button_size (int): Size of the buttons.
-        _alphabet (list): List containing amino acid symbols as individual characters.
-        matrix (list): 2D list representing the matrix loaded from the CSV file.
-        min_value (float): Minimum value in the loaded matrix.
-        max_value (float): Maximum value in the loaded matrix.
-        sequence (str): String representing a sequence of amino acids.
+        row (int): The row index of the button.
+        row_name (str): The name of the row.
+        col (int): The column index of the button.
+        col_name (str): The name of the column.
     """
+    row: int
+    row_name: str
+    col: int
+    col_name: str
+
+class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
+    """
+    Custom QPushButton subclass representing a button in a matrix.
+
+    Attributes:
+        coords (ButtonCoords): Coordinates and names associated with the button.
+        color (QtGui.QColor): The background color of the button.
+        is_wt (bool): Flag indicating if the button represents a wild type (WT) pair.
+
+    Methods:
+        button_name: Constructs the unique object name for the button.
+        style_sheet: Generates the CSS styling for the button.
+    """
+    def __init__(
+        self,
+        coords: ButtonCoords,
+        color: QtGui.QColor,
+        label: Optional[str] = None,
+        tooltip_text: Optional[str] = None,
+        is_wt: Optional[bool] = False,
+        size_policy: Optional[QtWidgets.QSizePolicy] = None,  # type: ignore
+        parent=None,
+    ):
+        """
+        Initializes the QButtonBrick instance.
+
+        Args:
+            coords (ButtonCoords): Coordinates and metadata for the button.
+            color (QtGui.QColor): Background color of the button.
+            label (Optional[str]): Text to display on the button.
+            tooltip_text (Optional[str]): Tooltip text for the button.
+            is_wt (Optional[bool]): Whether the button is a wild type button.
+            size_policy (Optional[QtWidgets.QSizePolicy]): Size policy for the button.
+            parent: Parent widget for the button.
+        """
+        super().__init__(parent)
+        self.coords = coords
+        self.color = color
+        self.is_wt = is_wt
+
+        self.setStyleSheet(self.style_sheet)
+        self.setObjectName(self.button_name)
+        self.setText(label)
+        self.setToolTip(tooltip_text)
+        self.setSizePolicy(size_policy)
+
+    @property
+    def button_name(self) -> str:
+        """
+        Constructs the unique object name for the button based on its coordinates.
+
+        Returns:
+            str: The unique name of the button.
+        """
+        return f"matrixButton_{self.coords.row}_vs_{self.coords.col}"
+
+    @property
+    def style_sheet(self) -> str:
+        """
+        Generates the CSS style for the button, including background color and text color.
+
+        Returns:
+            str: The CSS style for the button.
+        """
+        return f"""
+    QPushButton {{
+        background-color: {self.color.name()};
+        {'color: black;' if self.is_wt else ''};
+    }}
+    QToolTip {{
+        background-color: black;
+        color: white;
+        border: 1px solid white;
+    }}
+"""
+
+class QButtonMatrix(QtWidgets.QWidget):
+    """
+    A custom widget for displaying a matrix of buttons.
+
+    Attributes:
+        label_size (Optional[List[int]]): Fixed size of row/column labels.
+        report_axes_signal (pyqtSignal): Signal emitted with row and column indices.
+
+    Methods:
+        _map_value_to_color: Maps a matrix value to a QColor.
+        _set_label_size: Sets the fixed size of a label.
+        is_wt_button: Determines if a button is a wild type button.
+        _make_button_tip: Constructs a tooltip for a button.
+        init_ui: Initializes the matrix UI with buttons and labels.
+        signal_process: Handles button click events.
+
+    Usage Example:
+        ```python
+
+        # Example DataFrame
+        data = {
+            'A': [1.0, 2.0, 3.0],
+            'B': [4.0, 5.0, 6.0],
+            'C': [7.0, 8.0, 9.0]
+        }
+        df_button_matrix = pd.DataFrame(data, index=['X', 'Y', 'Z'])
+
+        # Sequence
+        sequence = "XYZ"
+
+        # Function to handle button actions
+        def mutate_with_gridbuttons(row, col, matrix, ignore_wt):
+            print(f"Mutation grid button action executed at row {row}, col {col}.")
+
+        # PyQt Application Setup
+        app = QApplication([])
+
+        # Create QButtonMatrix instance
+        button_matrix = QButtonMatrix(
+            df_matrix=df_button_matrix,
+            sequence=sequence,
+            cmap='bwr',
+            flip_cmap=False,
+        )
+
+        # Method 1: Using internal calls with active_func
+        button_matrix.sequence = sequence
+        button_matrix.init_ui()
+        button_matrix.active_func = partial(
+            mutate_with_gridbuttons,
+            **kwargs,
+        )
+
+        # Method 2: Connecting the signal externally
+        button_matrix.report_axes_signal.connect(
+            lambda row, col: mutate_with_gridbuttons(
+                row,
+                col,
+                *args,
+                **kwargs,
+            )
+        )
+
+        # Show the widget
+        button_matrix.show()
+
+        # Execute the application
+        app.exec_()
+        ```
+
+    Notes:
+    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles 
+        by encapsulating logic within the widget. It ensures centralized management 
+        of button actions and allows for features like holding or freezing the trigger 
+        button during execution.
+    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices, 
+        leveraging the signal-slot mechanism to decouple button actions from widget 
+        logic. Ideal for integrating into larger PyQt applications where events are 
+        handled externally.
+
+    """
+
+    label_size: Optional[List[int]] = [24, 12]
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
 
-    def __init__(self, pair: NonGremlinPair, parent=None, button_size=12):
+    def __init__(
+        self,
+        df_matrix: pd.DataFrame,
+        sequence: str,
+        func: Optional[Callable[[int, int], None]] = None,
+        parent=None,
+        cmap: str = 'bwr',
+        flip_cmap: bool = False,
+        button_size=12,
+        zero_index_offset=0,
+    ):
         """
-        Initialize QbuttonMatrix.
+        Initializes the QButtonMatrix widget.
 
         Args:
-            csv_file (str): Path to the CSV file.
-            parent (QWidget): Parent widget. Defaults to None.
-            button_size (int): Size of the buttons. Defaults to 12.
+            df_matrix (pd.DataFrame): Dataframe representing the matrix.
+            sequence (str): Full sequence of residues.
+            func (Optional[Callable[[int, int], None]]): Function called on button click.
+            parent: Parent widget.
+            cmap (str): Colormap name for button colors.
+            flip_cmap (bool): Whether to reverse the colormap.
+            button_size (int): Size of the buttons.
+            zero_index_offset (int): Offset for zero-based indexing. Default is 0.
         """
+        from REvoDesign.tools.utils import cmap_reverser
+
         super().__init__(parent)
 
-        self.pair = pair
-        self.is_gremlin_pair = hasattr(self.pair, 'i')
         self.button_size = button_size
+        self.sequence = sequence
+        self.active_func = func
+        self.df_matrix = df_matrix.copy()
+        self.zero_index_offset=zero_index_offset
 
-        if self.is_gremlin_pair:
-            alphabet = "ARNDCQEGHILKMFPSTWYV-"
-            _alphabet = list(alphabet)
-            self.alphabet_row = _alphabet
-            self.alphabet_col = _alphabet
-            self.sequence = ""  # user gave the sequence after init
-        else:
-            self.alphabet_row = self.pair.df.index.tolist()
-            self.alphabet_col = self.pair.df.columns.tolist()
-            self.sequence = ''  # user gave the sequence after init
+        self.alphabet_row = self.df_matrix.index.tolist()
+        self.alphabet_col = self.df_matrix.columns.tolist()
 
-        (
-            self.matrix,
-            self.min_value,
-            self.max_value,
-        ) = self.load_matrix_from_pair()
+        max_abs = np.max((np.abs(self.df_matrix.values.min()), self.df_matrix.values.max()))
+        self.min_value, self.max_value = -max_abs, max_abs
 
-    def load_matrix_from_pair(self):
+        cmap = cmap_reverser(
+            cmap=cmap,
+            reverse=flip_cmap,
+        )
+        self.colormap = plt.get_cmap(cmap)
+
+    def _map_value_to_color(self, value):
         """
-        Load matrix data from a CSV file.
-
-        Args:
-            csv_file (str): Path to the CSV file.
-
-        Returns:
-            tuple: Tuple containing matrix (2D list), min_value (float), max_value (float).
-        """
-
-        try:
-
-            df = self.pair.df
-
-            # Remove rows and columns not in the alphabet
-            df = df.loc[
-                df.index.isin(self.alphabet_row), df.columns.isin(self.alphabet_col)
-            ]
-
-            # Convert the DataFrame to a 2D list
-            matrix = df.values.tolist()
-
-            return (
-                matrix,
-                -np.max((np.abs(df.values.min()), df.values.max())),
-                np.max((np.abs(df.values.min()), df.values.max())),
-            )
-        except Exception as e:
-            logging.error(f"Error loading CSV file: {str(e)}")
-            return [], 0, 1  # Default to 0-1 range if there's an error
-
-    def map_value_to_color(self, value):
-        """
-        Map a value to a QColor based on a colormap.
+        Maps a value to a QColor based on the colormap.
 
         Args:
             value (float): Value to be mapped.
 
         Returns:
-            QColor: Color based on the mapped value.
+            QtGui.QColor: Color corresponding to the value.
         """
-        import matplotlib.pyplot as plt
+        normalized_value = 1 - (value - self.min_value) / (self.max_value - self.min_value)
+        rgba_color = self.colormap(normalized_value)
+        return QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
 
-        from REvoDesign import ConfigBus
-        from REvoDesign.tools.utils import cmap_reverser
+    def _set_label_size(self, label: Any):
+        """
+        Sets the fixed size for a label if the class attribute `label_size` is defined.
 
-        self.bus = ConfigBus()
-        self._cmap: str = self.bus.get_value(
-            "ui.header_panel.cmap.default", str
-        )
+        Args:
+            label (QtWidgets.QLabel): The label to resize.
+        """
+        if not (hasattr(self, 'label_size') and self.label_size):
+            return
+        if len(self.label_size) != 2:
+            raise ValueError("label size must be a list of length 2")
+        label.setFixedSize(*self.label_size)
 
-        # follow the original cmap style. bwr_r -> bwr
-        self.cmap = cmap_reverser(
-            cmap=self._cmap,
-            reverse=not self.bus.get_value(
-                "ui.header_panel.cmap.reverse_score", bool
-            ),
-        )
+    def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
+        """
+        Determines if a button corresponds to a wild type (WT) pair.
 
-        # Map a value to a color using the 'bwr' colormap with reversed colors
-        normalized_value = 1 - (value - self.min_value) / (
-            self.max_value - self.min_value
-        )
-        colormap = plt.get_cmap(self.cmap)
-        rgba_color = colormap(normalized_value)
-        color = QtGui.QColor.fromRgbF(
-            rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3]
-        )
-        return color
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            row (int): Row index.
+            col (int): Column index.
+
+        Returns:
+            bool: True if the button represents a WT pair, False otherwise.
+        """
+        return row_name == self.sequence[int(col_name)]
+
+    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+        """
+        Constructs a tooltip for a button.
+
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            value (float): Value associated with the button.
+            row (Optional[int]): Row index.
+            col (Optional[int]): Column index.
+            is_wt_pair (bool): Whether the button is a WT pair.
+
+        Returns:
+            str: Tooltip text for the button.
+        """
+        return f"{self.sequence[int(col_name)]}{str(int(col_name) + 1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
     def init_ui(self):
         """
-        Initialize the user interface by creating buttons and labels based on the matrix and sequence.
+        Initializes the user interface by creating buttons and labels based on the matrix and sequence.
         """
         layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
         font.setPointSize(self.button_size)
         font.setBold(True)
-        if self.is_gremlin_pair:
-            size_policy = QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
-            )
-        else:
-            size_policy = QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
-            )
 
-        if self.is_gremlin_pair:
-            # logging.debug(f"Sequence: {self.sequence}")
-            logging.debug(
-                f"WT pair: {self.sequence[self.pair.i]}{self.pair.i+1}_{self.sequence[self.pair.j]}{self.pair.j+1}"
-            )
+        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
-        # Add row names as labels to the left of buttons
         for row, row_name in enumerate(self.alphabet_row):
             label = QtWidgets.QLabel(row_name)
-            # Set the font size to 9
             label.setFont(font)
-            if self.is_gremlin_pair:
-                label.setFixedSize(self.button_size, self.button_size)
+            if hasattr(self, '_set_label_size'):
+                self._set_label_size(label)
 
             layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
             for col, col_name in enumerate(self.alphabet_col):
-                if row < len(self.matrix) and col < len(self.matrix[0]):
-                    value = self.matrix[row][col]
-                else:
-                    value = 0  # Default value for elements outside the matrix
-                color = self.map_value_to_color(value)
-                if self.is_gremlin_pair:
-                    is_wt_pair = (
-                        row_name == self.sequence[self.pair.i]
-                        and self.alphabet_col[col] == self.sequence[self.pair.j]
-                    )
-                    button_tip_i = f'{self.sequence[self.pair.i]}{str(self.pair.i+1)}{row_name}' if self.sequence[self.pair.i] == row_name else ''
-                    button_tip_j = f'{self.sequence[self.pair.j]}{str(self.pair.j+1)}{col_name}' if self.sequence[self.pair.j] == col_name else ''
-                    button_tip = ' - '.join(t for t in [button_tip_i, button_tip_j] if t)
-                else:
-                    is_wt_pair = (
-                        row_name == self.sequence[int(col_name)]
-                    )
-                    button_tip = f"{self.sequence[int(col_name)]}{str(int(col_name)+1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+                value = self.df_matrix.iloc[row, col]
 
-                button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
-                button.setObjectName(f"matrixButton_{row}_vs_{col}")
-                button.setSizePolicy(size_policy)
-                button.setStyleSheet(
-                    f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''};"
+                is_wt_button = self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
+                button_tip = self._make_button_tip(col_name=col_name, row_name=row_name, value=value, is_wt_pair=is_wt_button)
+                button = QButtonBrick(
+                    coords=ButtonCoords(row, row_name, col, col_name),
+                    color=self._map_value_to_color(value),
+                    label="&WT" if is_wt_button else None,
+                    tooltip_text=button_tip,
+                    is_wt=is_wt_button,
+                    size_policy=size_policy,
                 )
-                button.setToolTip(button_tip if button_tip else 'WT')
-                button.clicked.connect(
-                    lambda checked, r=row, c=col: self.report_axises(r, c)
-                )
-                layout.addWidget(
-                    button, row, col + 1
-                )  # +1 to account for row labels
 
-        # Add a row of column labels as labels after buttons
+                bfont = QtGui.QFont()
+                bfont.setPointSizeF(self.button_size * .9)
+                bfont.setBold(True)
+
+                button.setFont(bfont)
+
+                button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
+                layout.addWidget(button, row, col + 1)
+
         for col, col_name in enumerate(self.alphabet_col):
-            # TODO: This is a hack to make the column labels start from 1
-            # Use zero-indexing adjugement instead
-            if not self.is_gremlin_pair:
-                col_name = str(int(col_name) + 1)
-
+            if self.zero_index_offset:
+                col_name = str(int(col_name)- self.zero_index_offset)
             label = QtWidgets.QLabel(col_name)
-
             label.setFont(font)
-            label.setFixedSize(
-                self.button_size, self.button_size
-            )  # Set fixed size for column labels
-
-            layout.addWidget(
-                label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop
-            )
+            if hasattr(self, '_set_label_size'):
+                self._set_label_size(label)
+            layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop)
 
         self.setLayout(layout)
+        logging.debug("Matrix button matrix initialized.")
+        logging.debug(layout)
 
-    def report_axises(self, row, col):
+    def signal_process(self, row, col):
         """
-        Report the axes when a button is clicked.
+        Handles button click events and processes signals.
 
         Args:
             row (int): Row index of the clicked button.
             col (int): Column index of the clicked button.
         """
-        # if self.pair.transposed:
-        #     row, col = col, row
         logging.debug(f"Button at ({row}, {col}) clicked.")
-        self.report_axes_signal.emit(row, col)
+
+        if self.active_func is not None:
+            trigger_button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
+            with hold_trigger_button(trigger_button):
+                self.active_func(row, col)
+                return
+        else:
+            self.report_axes_signal.emit(row, col)
+
+class QButtonMatrixGremlin(QButtonMatrix):
+    """
+    A specialized variant of QButtonMatrix for Gremlin.
+
+    Attributes:
+        pair_i (int): Index of the first pair.
+        pair_j (int): Index of the second pair.
+
+    Methods:
+        is_wt_button: Redefines wild type button criteria for Gremlin.
+        _make_button_tip: Custom tooltip generation for Gremlin.
+    """
+    label_size: Optional[List[int]] = [12, 12]
+
+    def __init__(self, df_matrix, sequence, pair_i: int, pair_j: int, parent=None, func: Optional[Callable] = None, cmap='bwr', button_size=12):
+        """
+        Initializes the QButtonMatrixGremlin widget.
+
+        Args:
+            df_matrix (pd.DataFrame): Dataframe representing the matrix.
+            sequence (str): Full sequence of residues.
+            pair_i (int): Index of the first pair.
+            pair_j (int): Index of the second pair.
+            parent: Parent widget.
+            func (Optional[Callable]): Function called on button click.
+            cmap (str): Colormap name for button colors.
+            button_size (int): Size of the buttons.
+        """
+        super().__init__(df_matrix, sequence, func, parent, cmap, True, button_size)
+        self.pair_i = pair_i
+        self.pair_j = pair_j
+
+    def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
+        """
+        Determines if a button corresponds to a wild type (WT) pair for Gremlin.
+
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            row (int): Row index.
+            col (int): Column index.
+
+        Returns:
+            bool: True if the button represents a WT pair, False otherwise.
+        """
+        return row_name == self.sequence[self.pair_i] and self.alphabet_col[col] == self.sequence[self.pair_j]
+
+    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+        """
+        Constructs a tooltip for a button in Gremlin.
+
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            value (float): Value associated with the button.
+            row (Optional[int]): Row index.
+            col (Optional[int]): Column index.
+            is_wt_pair (bool): Whether the button is a WT pair.
+
+        Returns:
+            str: Tooltip text for the button.
+        """
+        button_tip_i = (
+            f"{self.sequence[self.pair_i]}{str(self.pair_i + 1)}{row_name}"
+            if self.sequence[self.pair_i] != row_name
+            else ""
+        )
+        button_tip_j = (
+            f"{self.sequence[self.pair_j]}{str(self.pair_j + 1)}{col_name}"
+            if self.sequence[self.pair_j] != col_name
+            else ""
+        )
+        button_tip=" - ".join(t for t in [button_tip_i, button_tip_j] if t)
+        return button_tip if button_tip else 'WT'
 
 
 def getExistingDirectory():
@@ -277,8 +475,7 @@ def getExistingDirectory():
         None,
         "Open Directory",
         os.path.expanduser("~"),
-        QtWidgets.QFileDialog.ShowDirsOnly
-        | QtWidgets.QFileDialog.DontResolveSymlinks,
+        QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,
     )
 
 
@@ -324,22 +521,14 @@ def set_widget_value(widget, value):
     """
 
     def set_value_error(widget, value):
-        logging.warning(
-            f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}"
-        )
+        logging.warning(f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}")
 
     # Preprocess values according to types
     if callable(value):
-        value = (
-            value()
-        )  # Call the function to get the value if value is callable
+        value = value()  # Call the function to get the value if value is callable
 
-    if isinstance(value, Iterable) and not isinstance(
-        value, (str, list, tuple, dict)
-    ):
-        value = list(
-            value
-        )  # Convert iterable (excluding strings, lists, tuples, dicts) to list
+    if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple, dict)):
+        value = list(value)  # Convert iterable (excluding strings, lists, tuples, dicts) to list
 
     # Setting values
     if isinstance(widget, QtWidgets.QDoubleSpinBox):
@@ -378,9 +567,7 @@ def set_widget_value(widget, value):
             while widget.count() > 0:
                 widget.removeWidget(widget.widget(0))
             for image_path in value:
-                image_widget = ImageWidget(
-                    image_path
-                )  # Assuming ImageWidget is defined elsewhere
+                image_widget = ImageWidget(image_path)  # Assuming ImageWidget is defined elsewhere
                 widget.addWidget(image_widget)
             if value:
                 widget.setCurrentIndex(0)
@@ -391,9 +578,7 @@ def set_widget_value(widget, value):
                 widget = widget.itemAt(i).widget()
                 if widget is not None:
                     widget.deleteLater()
-            image_widget = ImageWidget(
-                value
-            )  # Assuming ImageWidget is defined elsewhere
+            image_widget = ImageWidget(value)  # Assuming ImageWidget is defined elsewhere
             widget.addWidget(image_widget)
     else:
         set_value_error(widget, value)
@@ -420,9 +605,7 @@ def get_widget_value(widget):
     Raises:
     - ValueError: If the widget type is not supported for value retrieval.
     """
-    if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(
-        widget, QtWidgets.QSpinBox
-    ):
+    if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(widget, QtWidgets.QSpinBox):
         return widget.value()
     elif isinstance(widget, QtWidgets.QComboBox):
         return widget.currentText()
@@ -435,9 +618,7 @@ def get_widget_value(widget):
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
     else:
-        raise ValueError(
-            f"Widget type {type(widget).__name__} is not supported for value retrieval."
-        )
+        raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
 
 def refresh_widget_while_another_changed(
@@ -454,9 +635,7 @@ def refresh_widget_while_another_changed(
 
     if trigger_value in target_data_group:
 
-        for _, target_data in enumerate(
-            target_data_group.get(trigger_value, "")
-        ):
+        for _, target_data in enumerate(target_data_group.get(trigger_value, "")):
             set_widget_value(widget=target_widget, value=target_data)
 
 
@@ -484,29 +663,22 @@ class ParallelExecutor:
             self.backend = "loky"
 
         self.verbose = verbose
-        logging.debug(
-            f"Parallel Executor initialized with backend {backend}: {self.backend}"
-        )
+        logging.debug(f"Parallel Executor initialized with backend {backend}: {self.backend}")
 
     def run(self):
         from joblib import Parallel, delayed
 
         logging.info(f"Workload in this run: {len(self.args)}")
         if not self.kwargs:
-            return Parallel(
-                n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose
-            )(delayed(self.func)(*arg) for arg in self.args)
-
-        if len(self.kwargs) != len(self.args):
-            raise ValueError(
-                f"Workload kwargs mismatch: {len(self.kwargs)=} != {len(self.args)=}"
+            return Parallel(n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose)(
+                delayed(self.func)(*arg) for arg in self.args
             )
 
-        return Parallel(
-            n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose
-        )(
-            delayed(self.func)(*arg, **kwarg)
-            for arg, kwarg in zip(self.args, self.kwargs)
+        if len(self.kwargs) != len(self.args):
+            raise ValueError(f"Workload kwargs mismatch: {len(self.kwargs)=} != {len(self.args)=}")
+
+        return Parallel(n_jobs=self.n_jobs, backend=self.backend, verbose=self.verbose)(
+            delayed(self.func)(*arg, **kwarg) for arg, kwarg in zip(self.args, self.kwargs)
         )
 
 
@@ -608,9 +780,7 @@ def create_cmap_icon(cmap: str):
 
     # Draw color gradient representing the colormap
     painter = QtGui.QPainter(pixmap)
-    gradient = QtGui.QLinearGradient(
-        0, 0, 100, 100
-    )  # Changed to create a square gradient
+    gradient = QtGui.QLinearGradient(0, 0, 100, 100)  # Changed to create a square gradient
     for i in range(100):
         color = QtGui.QColor.fromRgbF(*color_map(i / 100)[:3])
         gradient.setColorAt(i / 100, color)
@@ -695,13 +865,14 @@ class AskedValue:
             - 'JsonInput': Input is expected to be a JSON file input.
         ext (Optional[FExCol]): File extension filters for file and directory inputs.
     """
+
     key: str
     val: Optional[Any] = None
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
     choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
-    source: Literal['None', 'File', 'Directory', 'JsonInput'] = 'None'
+    source: Literal["None", "File", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
 
 
@@ -761,11 +932,35 @@ def real_bool(val: Any):
              False if the value matches one of the predefined false values.
     """
     # Check if the value matches any of the predefined true values
-    if any(val == ans for ans in ("True", "true", "1", 'yes', 'Yes', 'Y', 1, True,)):
+    if any(
+        val == ans
+        for ans in (
+            "True",
+            "true",
+            "1",
+            "yes",
+            "Yes",
+            "Y",
+            1,
+            True,
+        )
+    ):
         return True
 
     # Check if the value matches any of the predefined false values
-    if any(val == ans for ans in ("False", "false", "0", 'no', 'No', 'N', 0, False,)):
+    if any(
+        val == ans
+        for ans in (
+            "False",
+            "false",
+            "0",
+            "no",
+            "No",
+            "N",
+            0,
+            False,
+        )
+    ):
         return False
 
 
@@ -778,12 +973,13 @@ class AskedValueCollection:
         asked_values (List[AskedValue]): List of input fields for the dialog.
         banner (Optional[str]): A message to be displayed at the top of the dialog.
     """
+
     asked_values: List[AskedValue] = field(default_factory=list)
     banner: Optional[str] = None  # a banner message
 
     @property
     def need_action(self) -> bool:
-        return any(asked.source != 'None' for asked in self.asked_values)
+        return any(asked.source != "None" for asked in self.asked_values)
 
     @property
     def asdict(self) -> Dict[str, Any]:
@@ -795,9 +991,9 @@ class AskedValueCollection:
             Dict[str, Any]: A dictionary representation of the collection.
         """
         return {
-            asked.key: asked.typing(
-                asked.val) if asked.typing is not bool else real_bool(
-                asked.val) for asked in self.asked_values}
+            asked.key: asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val)
+            for asked in self.asked_values
+        }
 
     def __bool__(self):
         """
@@ -835,7 +1031,8 @@ class ValueDialog(QtWidgets.QDialog):
             banner_label = QtWidgets.QLabel(key_dict.banner)
             banner_label.setWordWrap(True)
             banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-            banner_label.setStyleSheet("""
+            banner_label.setStyleSheet(
+                """
                 font-size: 14px;
                 font-weight: bold;
                 color: #333;
@@ -843,7 +1040,8 @@ class ValueDialog(QtWidgets.QDialog):
                 background-color: #f9f9f9;
                 border: 1px solid #ccc;
                 border-radius: 5px;
-            """)
+            """
+            )
             self.layout.addWidget(banner_label)
 
         # Create the table with four columns
@@ -859,13 +1057,13 @@ class ValueDialog(QtWidgets.QDialog):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)          # Input column
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)  # Input column
         if self.has_file_action:
             header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
 
         self.table.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum,  # Compact width
-            QtWidgets.QSizePolicy.Policy.Expanding  # Expanding height
+            QtWidgets.QSizePolicy.Policy.Expanding,  # Expanding height
         )
 
         self.table.verticalHeader().setVisible(False)  # Hide row numbers
@@ -976,17 +1174,13 @@ class ValueDialog(QtWidgets.QDialog):
         # Column 3: Action button if file=True
         if asked_value.source == "File":
             action_button = QtWidgets.QPushButton("Browse")
-            action_button.setToolTip('Browse for a file')
-            action_button.clicked.connect(
-                lambda: self._browse_file(widget, asked_value.ext)
-            )
+            action_button.setToolTip("Browse for a file")
+            action_button.clicked.connect(lambda: self._browse_file(widget, asked_value.ext))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Directory":
             action_button = QtWidgets.QPushButton("Browse")
-            action_button.setToolTip('Browse for a directory')
-            action_button.clicked.connect(
-                lambda: widget.setText(getExistingDirectory())
-            )
+            action_button.setToolTip("Browse for a directory")
+            action_button.clicked.connect(lambda: widget.setText(getExistingDirectory()))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "JsonInput":
             # Create a container widget for the layout
@@ -996,28 +1190,18 @@ class ValueDialog(QtWidgets.QDialog):
 
             # Create and configure the "Input JSON" button
             input_action_button = QtWidgets.QPushButton("Input")
-            input_action_button.setToolTip('Browse for an input JSON file')
-            input_action_button.clicked.connect(
-                lambda: widget.setText(ask_for_multiple_values_as_json())
-            )
+            input_action_button.setToolTip("Browse for an input JSON file")
+            input_action_button.clicked.connect(lambda: widget.setText(ask_for_multiple_values_as_json()))
             # Set size policy to ResizeToContents
-            input_action_button.setSizePolicy(
-                QtWidgets.QSizePolicy.Policy.Minimum,
-                QtWidgets.QSizePolicy.Policy.Fixed
-            )
+            input_action_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
             button_layout.addWidget(input_action_button)
 
             # Create and configure the "Load" button
             load_action_button = QtWidgets.QPushButton("Load")
-            load_action_button.setToolTip(f'Load a auto-savedJSON file($PWD/json_multi_input/***.json)')
-            load_action_button.clicked.connect(
-                lambda: self._browse_file(widget, FileExtentions.JSON)
-            )
+            load_action_button.setToolTip(f"Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
+            load_action_button.clicked.connect(lambda: self._browse_file(widget, FileExtentions.JSON))
             # Set size policy to ResizeToContents
-            load_action_button.setSizePolicy(
-                QtWidgets.QSizePolicy.Policy.Minimum,
-                QtWidgets.QSizePolicy.Policy.Fixed
-            )
+            load_action_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
             button_layout.addWidget(load_action_button)
 
             # Set the container widget as the cell widget
@@ -1057,7 +1241,7 @@ class ValueDialog(QtWidgets.QDialog):
                 if self.input_fields_data_pair[key].typing != bool:
                     value = widget.currentText()
                 else:
-                    value = widget.currentText() == 'True'
+                    value = widget.currentText() == "True"
             elif isinstance(widget, QtWidgets.QLineEdit):
                 # LineEdit returns a single string
                 value = widget.text().strip()
@@ -1066,9 +1250,7 @@ class ValueDialog(QtWidgets.QDialog):
 
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:
-                QtWidgets.QMessageBox.warning(
-                    self, "Missing Input", f"Please provide a value for '{key}'"
-                )
+                QtWidgets.QMessageBox.warning(self, "Missing Input", f"Please provide a value for '{key}'")
                 return
             if original:
                 self.updated_values.append(
@@ -1250,15 +1432,16 @@ def ask_for_appendable_values() -> Optional[AskedValueCollection]:
 def ask_for_multiple_values_as_json() -> str:
     data = ask_for_appendable_values()
     if not data:  # none or empty collection
-        return ''
+        return ""
     data_id = id(data)
-    json_fp = os.path.join('json_multi_input', f'{data_id}.json')
+    json_fp = os.path.join("json_multi_input", f"{data_id}.json")
     os.makedirs(os.path.dirname(json_fp), exist_ok=True)
 
     json.dump(
         obj=data.asdict,
-        fp=open(json_fp, 'w'),
-        indent=4,)
+        fp=open(json_fp, "w"),
+        indent=4,
+    )
 
     return json_fp
 
@@ -1279,14 +1462,13 @@ def dialog_wrapper(
     Returns:
         Callable: The wrapped function that collects input from a dialog before execution.
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Prepare dynamic values with optional index
             dynamic_values_with_index = kwargs.pop("dynamic_values", [])
-            dynamic_values_with_index = sorted(
-                dynamic_values_with_index, key=lambda x: x.get("index", len(options))
-            )
+            dynamic_values_with_index = sorted(dynamic_values_with_index, key=lambda x: x.get("index", len(options)))
 
             # Merge static and dynamic options based on index
             all_options = list(options)
@@ -1306,23 +1488,24 @@ def dialog_wrapper(
 
             # Extract values from the dialog and pass them to the wrapped function
             func(**values.asdict)
+
         return wrapper
+
     return decorator
 
 
 __all__ = [
-    'notify_box',
-    'decide',
-    'refresh_window',
-    'set_widget_value',
-    'ImageWidget',
-    'hold_trigger_button',
-    'getExistingDirectory',
-    'WorkerThread',
-    'ValueDialog',
-    'AskedValueCollection',
-    'ask_for_values',
-    'AppendableValueDialog',
-    'ask_for_appendable_values'
-
+    "notify_box",
+    "decide",
+    "refresh_window",
+    "set_widget_value",
+    "ImageWidget",
+    "hold_trigger_button",
+    "getExistingDirectory",
+    "WorkerThread",
+    "ValueDialog",
+    "AskedValueCollection",
+    "ask_for_values",
+    "AppendableValueDialog",
+    "ask_for_appendable_values",
 ]

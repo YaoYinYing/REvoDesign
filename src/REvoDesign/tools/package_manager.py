@@ -13,6 +13,13 @@ REvoDesign -- Makes enzyme redesign tasks easier to all.
 # pylint: disable=import-outside-toplevel
 # pylint: disable=unused-argument
 
+'''
+This module also serves as standalone REvoDesign Package Manager, 
+meaning that any tools existed here is part of the manager. 
+To make any of them importable in certain modules, import them from here 
+and add to the `__all__` attributes so that they can be discoverable.
+'''
+
 import difflib
 import importlib
 import importlib.util
@@ -32,7 +39,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
-                    Tuple, TypeVar, Union)
+                    Tuple, TypeVar, Union, overload)
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -46,7 +53,8 @@ GIST_BASE_URL: str = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b
 
 # uploaded with `make upload-gists`
 UI_FILE_URL = f'{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui'
-# THIS file
+
+# refer to THIS file, an installable package manager via pymol's plugin manager.
 THIS_FILE_URL = f'{GIST_BASE_URL}/REvoDesign_PyMOL.py'
 # Define the URL of the JSON file
 EXTRAS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTable.json'
@@ -1493,8 +1501,13 @@ class WorkerThread(QtCore.QThread):
         self.interrupt_signal.emit()
 
 
+@overload
 def run_worker_thread_with_progress(
     worker_function: Callable[..., R], *args, progress_bar: Optional[Any] = None, **kwargs
+) -> R: ...
+
+def run_worker_thread_with_progress(
+    worker_function: Callable[..., Optional[R]], *args, progress_bar: Optional[Any] = None, **kwargs
 ) -> Optional[R]:
     """
     Runs a worker function in a separate thread and optionally updates a progress bar.
@@ -2024,12 +2037,14 @@ def hold_trigger_button(
         for b in buttons:
             b.setEnabled(False)
             b.setProperty("held", True)  # Mark the button as held
+            b.setProperty("original_style", b.styleSheet() if b.styleSheet() else "")
             start_breathing_animation(b)
         yield
     finally:
         for b in buttons:
             b.setProperty("held", False)  # Remove the held mark
             stop_breathing_animation(b)
+            b.setStyleSheet(b.property("original_style") if b.property("original_style") else "")
             b.setEnabled(True)  # Re-enable the button
 
 
