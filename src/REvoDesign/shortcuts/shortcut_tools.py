@@ -570,7 +570,7 @@ def wrapped_pssm_design(**kwargs):
     from ..common.MutantVisualizer import MutantVisualizer
     from ..phylogenetics.REvoDesigner import REvoDesigner
     from ..sidechain_solver.SidechainSolver import SidechainSolver
-    from ..tools.customized_widgets import QbuttonMatrix
+    from ..tools.customized_widgets import QButtonMatrix
     from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
                                       read_customized_indice)
     from ..tools.pymol_utils import (get_molecule_sequence,
@@ -692,7 +692,7 @@ def wrapped_pssm_design(**kwargs):
     class ProfilePair:
         df: pd.DataFrame
 
-    def mutate_with_gridbuttons(row, col, matrix: QbuttonMatrix, ignore_wt=False):
+    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix, ignore_wt=False):
         resn: str = matrix.alphabet_row[row]
         resi: int = int(matrix.alphabet_col[col + 1])
         wt_res = sequence[resi - 1]
@@ -751,7 +751,7 @@ def wrapped_pssm_design(**kwargs):
     # Prepare the data for the button matrix
     df_pair = ProfilePair(df=df_button_matrix)
     print(df_pair)
-    button_matrix = QbuttonMatrix(df_pair)
+    button_matrix = QButtonMatrix(df_pair)
     button_matrix.sequence = sequence
     button_matrix.init_ui()
     button_matrix.report_axes_signal.connect(

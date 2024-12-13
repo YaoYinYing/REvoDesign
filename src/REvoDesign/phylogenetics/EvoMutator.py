@@ -25,7 +25,7 @@ from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (QbuttonMatrix,
+from REvoDesign.tools.customized_widgets import (QButtonMatrix,
                                                  hold_trigger_button,
                                                  refresh_window,
                                                  set_widget_value)
@@ -1037,7 +1037,7 @@ class GREMLIN_Analyser:
             # after walking and widget is updated, mark it as in design
             self.mark_pair_state(pairs=pair, state="in_design")
 
-            button_matrix = QbuttonMatrix(pair)
+            button_matrix = QButtonMatrix(pair)
             button_matrix.sequence = self.design_sequence
 
             button_matrix.init_ui()
@@ -1177,7 +1177,7 @@ class GREMLIN_Analyser:
 
     def refresh_magician(self):
 
-        self.magician = run_worker_thread_with_progress(
+        magician = run_worker_thread_with_progress(
             worker_function=self.magician.setup,
             name_cfg_item="ui.interact.use_external_scorer",
             molecule=self.design_molecule,
@@ -1190,6 +1190,11 @@ class GREMLIN_Analyser:
             homooligomeric=self.chain_binding_enabled and self.chains_to_bind,
             progress_bar=self.bus.ui.progressBar,
         )
+        if magician is None:
+            raise issues.UnexpectedWorkflowError(
+                "Magician failed to initialize."
+            )
+        self.magician = magician
 
         return
 
