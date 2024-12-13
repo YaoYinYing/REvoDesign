@@ -60,7 +60,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         coords: ButtonCoords,
         color: QtGui.QColor,
         label: Optional[str] = None,
-        tooltip: Optional[str] = None,
+        tooltip_text: Optional[str] = None,
         is_wt: Optional[bool] = False,
         size_policy: Optional[QtWidgets.QSizePolicy] = None,  # type: ignore
         parent=None,
@@ -69,13 +69,16 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         self.coords = coords
         self.color = color
 
+        self.is_wt = is_wt
+
         self.setStyleSheet(self.style_sheet)
         self.setObjectName(self.button_name)
         self.setText(label)
-        self.setToolTip(tooltip)
+        
+        self.setToolTip(tooltip_text)
         self.setSizePolicy(size_policy)
 
-        self.is_wt = is_wt
+
 
     @property
     def button_name(self) -> str:
@@ -83,10 +86,20 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
 
     @property
     def style_sheet(self) -> str:
-        return f"background-color: {self.color.name()};"
-
+        return f"""
+    QPushButton {{
+        background-color: {self.color.name()};
+        {'color: black;' if self.is_wt else ''};
+    }}
+    QToolTip {{
+        background-color: black;
+        color: white;
+        border: 1px solid white;
+    }}
+"""
 
 class QButtonMatrixNext(QtWidgets.QWidget):
+    label_size: Optional[List[int]]=None
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -95,7 +108,7 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         self,
         df_matrix: pd.DataFrame,
         sequence: str,
-        func: Optional[Callable[[int, int], None]],
+        func: Optional[Callable[[int, int], None]]=None,
         parent=None,
         cmap:str='bwr',
         button_size=12,
@@ -104,7 +117,6 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         Initialize QbuttonMatrix.
 
         """
-        from REvoDesign import ConfigBus
         from REvoDesign.tools.utils import cmap_reverser
 
         super().__init__(parent)
@@ -113,18 +125,18 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         self.sequence = sequence # full sequence
         self.active_func = func  # a callable with parameter (row, col) if no, row and col would be emitted as signal
 
+
         # internal variables
         self.df_matrix = df_matrix.copy()
-        self.min_value: float = -1
-        self.max_value: float = -1
 
         # read alphabet from df_matrix. 
-        # if one need to adjust the alphabet, do it somewhere else
+        # if one need to adjust the alphabet, do it somewhere else after init
         self.alphabet_row = self.df_matrix.index.tolist()
         self.alphabet_col = self.df_matrix.columns.tolist()
 
         max_abs = np.max((np.abs(self.df_matrix.values.min()), self.df_matrix.values.max()))
         self.min_value, self.max_value = -max_abs, max_abs
+
 
         # follow the original cmap style. bwr_r -> bwr
         cmap = cmap_reverser(
@@ -151,6 +163,14 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         color = QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
         return color
     
+    @classmethod
+    def _set_label_size(cls,label:Any):
+        if not (hasattr(cls, 'label_size') and cls.label_size):
+            return
+        if len(cls.label_size)!=2:
+            raise ValueError("label size must be a list of length 2")
+        label.setFixedSize(*cls.label_size)
+        
     # reimplement this if you want to change the behavior
     def is_wt_button(self, row_name: str,  col_name: str,row: int,col:int):
         return row_name == self.sequence[int(col_name)]
@@ -175,6 +195,8 @@ class QButtonMatrixNext(QtWidgets.QWidget):
             label = QtWidgets.QLabel(row_name)
             # Set the font size to 9
             label.setFont(font)
+            if hasattr(self, '_set_label_size'):
+                self._set_label_size(label)
 
             layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
             for col, col_name in enumerate(self.alphabet_col):
@@ -186,10 +208,16 @@ class QButtonMatrixNext(QtWidgets.QWidget):
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
                     label="&WT" if is_wt_button else None,
-                    tooltip=button_tip,
+                    tooltip_text=button_tip,
                     is_wt=is_wt_button,
                     size_policy=size_policy,
                 )
+
+                bfont = QtGui.QFont()
+                bfont.setPointSizeF(self.button_size*.9)
+                bfont.setBold(True)
+
+                button.setFont(bfont)
 
                 button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
                 layout.addWidget(button, row, col + 1)  # +1 to account for row labels
@@ -201,6 +229,8 @@ class QButtonMatrixNext(QtWidgets.QWidget):
             layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop)
 
         self.setLayout(layout)
+        logging.debug("Matrix button matrix initialized.")
+        logging.debug(layout)
 
     def signal_process(self, row, col):
         """
@@ -228,6 +258,7 @@ class QButtonMatrixNext(QtWidgets.QWidget):
             self.report_axes_signal.emit(row, col)
 
 class QButtonMatrixGremlin(QButtonMatrixNext):
+    label_size: Optional[List[int]]= [12, 12]
 
     def __init__(self, df_matrix, sequence,  pair_i:int, pair_j:int, parent=None, func:Optional[Callable]=None,cmap = 'bwr', button_size=12):
         super().__init__(df_matrix, sequence, func, parent, cmap, button_size)
@@ -235,17 +266,18 @@ class QButtonMatrixGremlin(QButtonMatrixNext):
         self.pair_j=pair_j
 
     def is_wt_button(self, row_name: str,  col_name: str,row: int,col:int,):
-        return row_name == self.sequence[self.pair.i] and self.alphabet_col[col] == self.sequence[self.pair.j]
+        return row_name == self.sequence[self.pair_i] and self.alphabet_col[col] == self.sequence[self.pair_j]
 
+    
     def _make_button_tip(self,  row_name: str,  col_name: str, value: float,row: Optional[int]=None,col:Optional[int]=None, is_wt_pair: bool = False):
         button_tip_i = (
             f"{self.sequence[self.pair_i]}{str(self.pair_i+1)}{row_name}"
-            if self.sequence[self.pair_i] == row_name
+            if self.sequence[self.pair_i] != row_name
             else ""
         )
         button_tip_j = (
             f"{self.sequence[self.pair_j]}{str(self.pair_j+1)}{col_name}"
-            if self.sequence[self.pair_j] == col_name
+            if self.sequence[self.pair_j] != col_name
             else ""
         )
         return " - ".join(t for t in [button_tip_i, button_tip_j] if t)

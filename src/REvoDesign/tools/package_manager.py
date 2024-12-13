@@ -39,7 +39,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
-                    Tuple, TypeVar, Union)
+                    Tuple, TypeVar, Union, overload)
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -1500,6 +1500,11 @@ class WorkerThread(QtCore.QThread):
         """
         self.interrupt_signal.emit()
 
+
+@overload
+def run_worker_thread_with_progress(
+    worker_function: Callable[..., R], *args, progress_bar: Optional[Any] = None, **kwargs
+) -> R: ...
 
 def run_worker_thread_with_progress(
     worker_function: Callable[..., Optional[R]], *args, progress_bar: Optional[Any] = None, **kwargs

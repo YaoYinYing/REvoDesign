@@ -10,8 +10,12 @@ from typing import List, Literal, Optional, Tuple, Union
 import Bio.PDB.PDBParser as PDBParser
 from immutabledict import immutabledict
 from joblib import Parallel, delayed
+import pandas as pd
 from pymol import CmdException, cmd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
+import matplotlib
+
+matplotlib.use("Agg")
 
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import IterableLoop
@@ -25,7 +29,7 @@ from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (QButtonMatrix,
+from REvoDesign.tools.customized_widgets import (QButtonMatrix, QButtonMatrixGremlin, QButtonMatrixNext,
                                                  hold_trigger_button,
                                                  refresh_window,
                                                  set_widget_value)
@@ -993,7 +997,169 @@ class GREMLIN_Analyser:
     def load_co_evolving_pairs(
         self,
         walk_to_next=True,
-    ):
+    ): 
+        def mutate_with_gridbuttons(
+        col,
+        row,
+        matrix:pd.DataFrame,
+        min_score,
+        max_score,
+        pair: CoevolvedPair,
+        ignore_wt=False,
+        ):
+            self.refresh_magician()
+            self.picked_gremlin_group_id = "_vs_".join(
+                [
+                    wt.replace("_", "")
+                    for wt in (
+                        pair.i_aa,
+                        pair.j_aa,
+                    )
+                ]
+            )
+
+            # aa from wt
+            wt_i = pair.wt("i")  # in column
+            wt_j = pair.wt("j")  # in row
+
+            # aa from clicked button, mutant
+            mut_i = self.alphabet[col]
+            mut_j = self.alphabet[row]
+
+            # construct this Mutant obj from scratch.
+            _mutant: List[Mutation] = []
+
+            for chain_id_pair in pair.homochains:
+                for chain_id, mut, idx, wt in zip(
+                    chain_id_pair,
+                    [mut_i, mut_j],
+                    [pair.i_1, pair.j_1],
+                    [wt_i, wt_j],
+                ):
+                    expected_mutant = Mutation(
+                        chain_id=chain_id,
+                        position=int(idx),
+                        wt_res=wt,
+                        mut_res=mut,
+                    )
+                    if expected_mutant in _mutant:
+                        logging.warning(
+                            f"Ignore existed mutagenese {expected_mutant}"
+                        )
+                        continue
+                    if wt == mut and ignore_wt:
+                        logging.debug(
+                            f"Ignore WT to WT mutagenese {expected_mutant}"
+                        )
+                        continue
+
+                    if mut == "-":
+                        logging.warning(f"Igore deletion {expected_mutant}")
+                        continue
+
+                    logging.debug(f"Adding mutagenesis {expected_mutant}")
+                    _mutant.append(expected_mutant)
+            logging.debug(_mutant)
+
+            # early return if nothing is created.
+            if not _mutant:
+                logging.info(
+                    "No mutagenesis will be performed since the picked pair is a wt-wt pair"
+                )
+                return
+
+            mutant_obj = Mutant(
+                mutations=_mutant, wt_protein_sequence=self.designable_sequences
+            )
+
+            # call scorer to evaluate wt and mutant
+            if not self.magician.magician:
+                wt_score = matrix.loc[wt_i,wt_j]
+                mut_score = matrix.loc[mut_i,mut_j]
+            else:
+                if self.magician.magician.no_need_to_score_wt:
+                    wt_score = 0
+                else:
+                    wt_score = run_worker_thread_with_progress(
+                        worker_function=self.magician.magician.scorer,
+                        mutant=self.designable_sequences,
+                        progress_bar=self.bus.ui.progressBar,
+                    )
+                mut_score = run_worker_thread_with_progress(
+                    worker_function=self.magician.magician.scorer,
+                    mutant=mutant_obj,
+                    progress_bar=self.bus.ui.progressBar,
+                )
+
+            mutant_obj.wt_score = wt_score
+            mutant_obj.mutant_score = mut_score
+
+            self.picked_gremlin_mutant = mutant_obj
+
+            # if mutant obj exists, activate it.
+            if mutant_obj in self.explored_mutant_tree.all_mutant_objects:
+                logging.info(
+                    f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) already exists. Do nothing."
+                )
+                self.activate_focused_interaction()
+                return
+
+            with timing(f"Visualizing {mutant_obj.short_mutant_id}"):
+                # otherwise, call MutantVisualizer to display it.
+                logging.info(
+                    f"Picked mutant:{(mutant := mutant_obj.short_mutant_id)} {(full_mutant_id:=mutant_obj.full_mutant_id)} "
+                )
+
+                color = get_color(
+                    self.bus.get_value("ui.header_panel.cmap.default"),
+                    mut_score,
+                    min_score,
+                    max_score,
+                )
+
+                logging.info(f"Visualizing {mutant} ({full_mutant_id}): {color}")
+
+                visualizer = MutantVisualizer(
+                    molecule=self.design_molecule, chain_id=self.design_chain_id
+                )
+
+                run_worker_thread_with_progress(
+                    worker_function=SidechainSolver().refresh,
+                    progress_bar=self.bus.ui.progressBar,
+                )
+
+                visualizer.mutate_runner = SidechainSolver().mutate_runner
+                visualizer.designable_sequences = self.designable_sequences
+                visualizer.sequence = self.design_sequence
+
+                visualizer.group_name = self.picked_gremlin_group_id
+
+                run_worker_thread_with_progress(
+                    worker_function=visualizer.create_mutagenesis_objects,
+                    mutant_obj=mutant_obj,
+                    color=color,
+                    progress_bar=self.bus.ui.progressBar,
+                )
+                cmd.hide("everything", "hydrogens and polymer.protein")
+                cmd.hide("cartoon", mutant)
+
+                # create a new record.
+                self.explored_mutant_tree.add_mutant_to_branch(
+                    branch=visualizer.group_name,
+                    mutant=mutant,
+                    mutant_obj=mutant_obj,
+                )
+
+            self.activate_focused_interaction()
+
+            del visualizer
+
+            # create a small mutant tree and send to broadcaster.
+            mutant_tree = MutantTree(
+                {self.picked_gremlin_group_id: {mutant: mutant_obj}}
+            )
+            self.to_broadcaster(mutant_tree)
+            
         with hold_trigger_button(
             buttons=self.bus.buttons(button_ids=("previous", "next"))
         ):
@@ -1037,16 +1203,23 @@ class GREMLIN_Analyser:
             # after walking and widget is updated, mark it as in design
             self.mark_pair_state(pairs=pair, state="in_design")
 
-            button_matrix = QButtonMatrix(pair)
-            button_matrix.sequence = self.design_sequence
+            button_matrix = QButtonMatrixGremlin(
+                df_matrix=pair.df,
+                sequence=self.design_sequence,
+                pair_i=pair.i,
+                pair_j=pair.j,
+                cmap=self.bus.get_value("ui.header_panel.cmap.default"))
+            
+            button_matrix.alphabet_col=list("ARNDCQEGHILKMFPSTWYV-")
+            button_matrix.alphabet_row=list("ARNDCQEGHILKMFPSTWYV-")
 
             button_matrix.init_ui()
 
             button_matrix.report_axes_signal.connect(
-                lambda row, col: self.mutate_with_gridbuttons(
+                lambda row, col: mutate_with_gridbuttons(
                     row,
                     col,
-                    button_matrix.matrix,
+                    button_matrix.df_matrix,
                     button_matrix.min_value,
                     button_matrix.max_value,
                     pair,
@@ -1198,175 +1371,6 @@ class GREMLIN_Analyser:
 
         return
 
-    def mutate_with_gridbuttons(
-        self,
-        col,
-        row,
-        matrix,
-        min_score,
-        max_score,
-        pair: CoevolvedPair,
-        ignore_wt=False,
-    ):
-        import matplotlib
-
-        matplotlib.use("Agg")
-
-        self.refresh_magician()
-
-        self.picked_gremlin_group_id = "_vs_".join(
-            [
-                wt.replace("_", "")
-                for wt in (
-                    pair.i_aa,
-                    pair.j_aa,
-                )
-            ]
-        )
-
-        # aa from wt
-        wt_i = pair.wt("i")  # in column
-        wt_j = pair.wt("j")  # in row
-
-        # aa from clicked button, mutant
-        mut_i = self.alphabet[col]
-        mut_j = self.alphabet[row]
-
-        # construct this Mutant obj from scratch.
-        _mutant: List[Mutation] = []
-
-        for chain_id_pair in pair.homochains:
-            for chain_id, mut, idx, wt in zip(
-                chain_id_pair,
-                [mut_i, mut_j],
-                [pair.i_1, pair.j_1],
-                [wt_i, wt_j],
-            ):
-                expected_mutant = Mutation(
-                    chain_id=chain_id,
-                    position=int(idx),
-                    wt_res=wt,
-                    mut_res=mut,
-                )
-                if expected_mutant in _mutant:
-                    logging.warning(
-                        f"Ignore existed mutagenese {expected_mutant}"
-                    )
-                    continue
-                if wt == mut and ignore_wt:
-                    logging.debug(
-                        f"Ignore WT to WT mutagenese {expected_mutant}"
-                    )
-                    continue
-
-                if mut == "-":
-                    logging.warning(f"Igore deletion {expected_mutant}")
-                    continue
-
-                logging.debug(f"Adding mutagenesis {expected_mutant}")
-                _mutant.append(expected_mutant)
-        logging.debug(_mutant)
-
-        # early return if nothing is created.
-        if not _mutant:
-            logging.info(
-                "No mutagenesis will be performed since the picked pair is a wt-wt pair"
-            )
-            return
-
-        mutant_obj = Mutant(
-            mutations=_mutant, wt_protein_sequence=self.designable_sequences
-        )
-
-        # call scorer to evaluate wt and mutant
-        if not self.magician.magician:
-            wt_score = matrix[self.alphabet.index(wt_i)][
-                self.alphabet.index(wt_j)
-            ]
-            mut_score = matrix[col][row]
-        else:
-            if self.magician.magician.no_need_to_score_wt:
-                wt_score = 0
-            else:
-                wt_score = run_worker_thread_with_progress(
-                    worker_function=self.magician.magician.scorer,
-                    mutant=self.designable_sequences,
-                    progress_bar=self.bus.ui.progressBar,
-                )
-            mut_score = run_worker_thread_with_progress(
-                worker_function=self.magician.magician.scorer,
-                mutant=mutant_obj,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
-        mutant_obj.wt_score = wt_score
-        mutant_obj.mutant_score = mut_score
-
-        self.picked_gremlin_mutant = mutant_obj
-
-        # if mutant obj exists, activate it.
-        if mutant_obj in self.explored_mutant_tree.all_mutant_objects:
-            logging.info(
-                f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) already exists. Do nothing."
-            )
-            self.activate_focused_interaction()
-            return
-
-        with timing(f"Visualizing {mutant_obj.short_mutant_id}"):
-            # otherwise, call MutantVisualizer to display it.
-            logging.info(
-                f"Picked mutant:{(mutant := mutant_obj.short_mutant_id)} {(full_mutant_id:=mutant_obj.full_mutant_id)} "
-            )
-
-            color = get_color(
-                self.bus.get_value("ui.header_panel.cmap.default"),
-                mut_score,
-                min_score,
-                max_score,
-            )
-
-            logging.info(f"Visualizing {mutant} ({full_mutant_id}): {color}")
-
-            visualizer = MutantVisualizer(
-                molecule=self.design_molecule, chain_id=self.design_chain_id
-            )
-
-            run_worker_thread_with_progress(
-                worker_function=SidechainSolver().refresh,
-                progress_bar=self.bus.ui.progressBar,
-            )
-
-            visualizer.mutate_runner = SidechainSolver().mutate_runner
-            visualizer.designable_sequences = self.designable_sequences
-            visualizer.sequence = self.design_sequence
-
-            visualizer.group_name = self.picked_gremlin_group_id
-
-            run_worker_thread_with_progress(
-                worker_function=visualizer.create_mutagenesis_objects,
-                mutant_obj=mutant_obj,
-                color=color,
-                progress_bar=self.bus.ui.progressBar,
-            )
-            cmd.hide("everything", "hydrogens and polymer.protein")
-            cmd.hide("cartoon", mutant)
-
-            # create a new record.
-            self.explored_mutant_tree.add_mutant_to_branch(
-                branch=visualizer.group_name,
-                mutant=mutant,
-                mutant_obj=mutant_obj,
-            )
-
-        self.activate_focused_interaction()
-
-        del visualizer
-
-        # create a small mutant tree and send to broadcaster.
-        mutant_tree = MutantTree(
-            {self.picked_gremlin_group_id: {mutant: mutant_obj}}
-        )
-        self.to_broadcaster(mutant_tree)
 
     def to_broadcaster(self, mutant_tree: MutantTree):
         if (
