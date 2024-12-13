@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.9] - 2024-12-13
+
 ### Added
 
 - test case, which were mostly written by prompting with ChatGPT and Tongyi Lingma:
@@ -31,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - package_manager: `GitSolver`, `PIPInstaller`, `fetch_gist_file`, `fetch_gist_json`, `filter_sensitive_data`, `get_github_repo_tags`, `run_command`, `solve_installation_config`
     - customized_widgets: `real_bool`
     - utils: `cmap_reverser`, `count_and_sort_characters`, `generate_strong_password`, `get_color`, `random_deduplicate`, `rescale_number`, `timing`,`extract_archive`, `minibatches`, `minibatches_generator`
+- prompts:
+  - `prompt/o1/docs.md` for docs
+  - `prompt/o1/inpaint.md` for code inpainting
+  - `prompt/o1/refactor.md` for refactoring code in different temperature factor(larger means more diversity)
 
 ### Changed
 
@@ -45,7 +51,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `initialize`: initialize with given arguments if no instance exists, or update existing instance.
   - Documentation about the lifecycle of the `SingletonAbstract`.
   - Note: after resetting, the original instance will **not** be destructed but left as an **orphan object** in memory, which should **never** be called in following code.
-- Makefile: expand test dir to the full `tests/` directory so that other modules can be tested.
+- Makefile: 
+  - expand test dir to the full `tests/` directory so that other modules can be tested.
+  - keyword tests now use `-vv` for more details with errors.
+- refactored: 
+  - `QbuttonMatrix` -> `QButtonMatrix`
+    - with a subclass `QButtonMatrixGremlin` for gremlin pairs
+    - attrs:
+      - `df_matrix` (pd.DataFrame): Dataframe representing the matrix.
+      - `sequence` (str): Full sequence of residues.
+      - `func` (Optional[Callable[[int, int], None]]): Function called on button click.
+      - `parent`: Parent widget.
+      - `cmap` (str): Colormap name for button colors.
+      - `flip_cmap` (bool): Whether to reverse the colormap.
+      - `button_size` (int): Size of the buttons.
+      - `zero_index_offset` (int): Offset for zero-based indexing. Default is 0.
+    - uses `QButtonBrick` as basic button objects, which inherits from `QtWidgets.QPushButton`
+      - Button's tooltip is set as black-bg with white text
+    - methods:
+      - `load_matrix_from_pair` -> now directly uses dataframes and nolonger use matrix (nested lists)
+      - `_set_label_size` to set label size
+      - `_make_button_tip` to set button tips
+      - `map_value_to_color` -> `_map_value_to_color`
+      - `report_axises` -> `signal_process`
+- `hold_trigger_button`: now restore the original button stylesheets as property `original_style` and restore them back after the job is done.
+- `Widget2ConfigMapper.get_button_from_id` now accept `button_type` to accept more button types (eg. `QButtonBrick`).
+- `GREMLIN_Analyser`: `mutate_with_gridbuttons` now is a internal function of method `load_co_evolving_pairs`, instead of self method in this class.
+- tests:
+  - `test_interact.py`: `TestREvoDesignPlugin_TabInteract`: search buttons by `button_type=QButtonBrick` due to the change in `QButtonMatrix`.
 
 ### Fixed
 
