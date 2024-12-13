@@ -226,6 +226,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         cmap: str = 'bwr',
         flip_cmap: bool = False,
         button_size=12,
+        zero_index_offset=0,
     ):
         """
         Initializes the QButtonMatrix widget.
@@ -238,6 +239,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             cmap (str): Colormap name for button colors.
             flip_cmap (bool): Whether to reverse the colormap.
             button_size (int): Size of the buttons.
+            zero_index_offset (int): Offset for zero-based indexing. Default is 0.
         """
         from REvoDesign.tools.utils import cmap_reverser
 
@@ -247,6 +249,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         self.sequence = sequence
         self.active_func = func
         self.df_matrix = df_matrix.copy()
+        self.zero_index_offset=zero_index_offset
 
         self.alphabet_row = self.df_matrix.index.tolist()
         self.alphabet_col = self.df_matrix.columns.tolist()
@@ -274,19 +277,18 @@ class QButtonMatrix(QtWidgets.QWidget):
         rgba_color = self.colormap(normalized_value)
         return QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
 
-    @classmethod
-    def _set_label_size(cls, label: Any):
+    def _set_label_size(self, label: Any):
         """
         Sets the fixed size for a label if the class attribute `label_size` is defined.
 
         Args:
             label (QtWidgets.QLabel): The label to resize.
         """
-        if not (hasattr(cls, 'label_size') and cls.label_size):
+        if not (hasattr(self, 'label_size') and self.label_size):
             return
-        if len(cls.label_size) != 2:
+        if len(self.label_size) != 2:
             raise ValueError("label size must be a list of length 2")
-        label.setFixedSize(*cls.label_size)
+        label.setFixedSize(*self.label_size)
 
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
         """
@@ -362,6 +364,8 @@ class QButtonMatrix(QtWidgets.QWidget):
                 layout.addWidget(button, row, col + 1)
 
         for col, col_name in enumerate(self.alphabet_col):
+            if self.zero_index_offset:
+                col_name = str(int(col_name)- self.zero_index_offset)
             label = QtWidgets.QLabel(col_name)
             label.setFont(font)
             if hasattr(self, '_set_label_size'):

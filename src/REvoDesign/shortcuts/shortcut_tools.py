@@ -119,6 +119,7 @@ from pymol.Qt import QtCore, QtWidgets  # type: ignore
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
+from REvoDesign.tools.mutant_tools import shorter_range
 
 from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
@@ -747,15 +748,18 @@ def wrapped_pssm_design(**kwargs):
 
     print(df_button_matrix.head())
 
+    pix_per_block=30
+
     button_matrix = QButtonMatrix(
         df_matrix=df_button_matrix,
         sequence=sequence,
         cmap='bwr',
         flip_cmap=False,
-        )
+        zero_index_offset=-1
+    )
     button_matrix.sequence = sequence
     button_matrix.init_ui()
-    button_matrix.active_func=partial(
+    button_matrix.active_func = partial(
         mutate_with_gridbuttons,
         matrix=button_matrix,
         ignore_wt=False
@@ -765,27 +769,62 @@ def wrapped_pssm_design(**kwargs):
     window = QtWidgets.QWidget()  # This creates a standalone window.
     window.setWindowTitle("Mutant Profile Matrix")
 
-    # Add a scroll area for the button matrix
+    screen_width = QtWidgets.QApplication.primaryScreen().size().width()
+    screen_height = QtWidgets.QApplication.primaryScreen().size().height()
+
+    num_cols = button_matrix.df_matrix.shape[1]  # Assuming the matrix's DataFrame determines the columns
+
+    # Set window size constraints
+    # - Height: dynamically adjusted with a minimum of 630
+    # - Width: dynamically adjusted with a minimum of 400
+    fixed_height = pix_per_block*21
+    calculated_width = pix_per_block * (num_cols + 1)
+    max_width = min(calculated_width, screen_width - 100)
+
+    dynamic_height = min(fixed_height, screen_height - 200)
+    window.setMinimumSize(400, dynamic_height)  # Ensure a minimum size for usability
+    window.setMaximumSize(max_width, dynamic_height)
+
+    # Add a scroll area to the window
     scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidget(button_matrix)
     scroll_area.setWidgetResizable(True)
+    scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
 
-    # Add horizontal scrollbar if columns exceed 150
-    num_cols = button_matrix.df_matrix.shape[1]  # Assuming the matrix's DataFrame determines the columns
-    if num_cols > 150:
-        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-    else:
-        scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    # Add padding or margins for better visual alignment
+    button_matrix.setContentsMargins(10, 10, 10, 10)
 
-    layout = QtWidgets.QVBoxLayout()
-    layout.addWidget(scroll_area)
-    window.setLayout(layout)
+    # Create a layout with a persistent column label row
+    main_layout = QtWidgets.QVBoxLayout()
 
-    # Set size constraints for the window
-    screen_width = QtWidgets.QApplication.primaryScreen().size().width()
-    max_width = min(screen_width, 150 * button_matrix.button_size)
-    window.setMaximumWidth(max_width)
-    window.setMinimumWidth(800)  # Ensure the window isn't too narrow.
+    # Add a label row for column headers
+    header_widget = QtWidgets.QWidget()
+    header_layout = QtWidgets.QHBoxLayout()
+    header_widget.setLayout(header_layout)
+
+    banner_label = QtWidgets.QLabel(
+        f"Design with Profiles: {shorter_range(custom_indices)}"
+    )
+    banner_label.setWordWrap(True)
+    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    banner_label.setStyleSheet(
+        """
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    """
+    )
+    header_layout.addWidget(banner_label)
+
+    main_layout.addWidget(header_widget)
+    main_layout.addWidget(scroll_area)
+
+    # Set layout for the main window
+    window.setLayout(main_layout)
 
     # Center the window on the screen
     geometry = window.frameGeometry()
@@ -802,6 +841,13 @@ def wrapped_pssm_design(**kwargs):
 
     # Show the window
     window.show()
+
+    # Comments and considerations:
+    # 1. Removed the misplaced `QGridLayout` from `QScrollArea`.
+    # 2. Set the `QScrollArea` as a direct child of the main layout to ensure proper rendering.
+    # 3. Adjusted minimum width for better usability when the matrix has fewer columns.
+    # 4. Defaulted scroll policies to `QtCore.Qt.ScrollBarAsNeeded` for simplicity and consistency.
+    # 5. Cleaned up redundant or misaligned code for clarity and maintainability.
 
     # Keep a reference so the dialog doesn't get garbage-collected prematurely
     if not hasattr(ui, 'open_windows'):
