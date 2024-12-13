@@ -99,7 +99,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
 """
 
 class QButtonMatrixNext(QtWidgets.QWidget):
-    label_size: Optional[List[int]]=None
+    label_size: Optional[List[int]]=[24,12]
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -111,6 +111,7 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         func: Optional[Callable[[int, int], None]]=None,
         parent=None,
         cmap:str='bwr',
+        flip_cmap:bool=False,
         button_size=12,
     ):
         """
@@ -141,7 +142,7 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         # follow the original cmap style. bwr_r -> bwr
         cmap = cmap_reverser(
             cmap=cmap,
-            reverse=True,
+            reverse=flip_cmap,
         )
         self.colormap = plt.get_cmap(cmap)
 
@@ -226,6 +227,8 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         for col, col_name in enumerate(self.alphabet_col):
             label = QtWidgets.QLabel(col_name)
             label.setFont(font)
+            if hasattr(self, '_set_label_size'):
+                self._set_label_size(label)
             layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop)
 
         self.setLayout(layout)
@@ -260,8 +263,8 @@ class QButtonMatrixNext(QtWidgets.QWidget):
 class QButtonMatrixGremlin(QButtonMatrixNext):
     label_size: Optional[List[int]]= [12, 12]
 
-    def __init__(self, df_matrix, sequence,  pair_i:int, pair_j:int, parent=None, func:Optional[Callable]=None,cmap = 'bwr', button_size=12):
-        super().__init__(df_matrix, sequence, func, parent, cmap, button_size)
+    def __init__(self, df_matrix, sequence,  pair_i:int, pair_j:int,  parent=None, func:Optional[Callable]=None,cmap = 'bwr', button_size=12):
+        super().__init__(df_matrix, sequence, func, parent, cmap, True,button_size)
         self.pair_i=pair_i
         self.pair_j=pair_j
 

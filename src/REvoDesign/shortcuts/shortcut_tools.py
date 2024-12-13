@@ -121,7 +121,7 @@ from REvoDesign import issues
 
 from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
-from ..tools.customized_widgets import AskedValue, dialog_wrapper
+from ..tools.customized_widgets import AskedValue, QButtonMatrixNext, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
@@ -688,11 +688,7 @@ def wrapped_pssm_design(**kwargs):
 
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
-    @dataclass
-    class ProfilePair:
-        df: pd.DataFrame
-
-    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix, ignore_wt=False):
+    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrixNext, ignore_wt=False):
         resn: str = matrix.alphabet_row[row]
         resi: int = int(matrix.alphabet_col[col + 1])
         wt_res = sequence[resi - 1]
@@ -749,9 +745,15 @@ def wrapped_pssm_design(**kwargs):
             vhm_(f'byres {mutant.full_mutant_id} around {kwargs["view_highlight_nbr"]}', animate=1)
 
     # Prepare the data for the button matrix
-    df_pair = ProfilePair(df=df_button_matrix)
-    print(df_pair)
-    button_matrix = QButtonMatrix(df_pair)
+
+    print(df_button_matrix)
+
+    button_matrix = QButtonMatrixNext(
+        df_matrix=df_button_matrix,
+        sequence=sequence,
+        cmap='bwr',
+        flip_cmap=False,
+        )
     button_matrix.sequence = sequence
     button_matrix.init_ui()
     button_matrix.report_axes_signal.connect(
@@ -773,7 +775,7 @@ def wrapped_pssm_design(**kwargs):
     scroll_area.setWidgetResizable(True)
 
     # Add horizontal scrollbar if columns exceed 150
-    num_cols = button_matrix.pair.df.shape[1]  # Assuming the matrix's DataFrame determines the columns
+    num_cols = button_matrix.df_matrix.shape[1]  # Assuming the matrix's DataFrame determines the columns
     if num_cols > 150:
         scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
     else:
