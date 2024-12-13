@@ -747,15 +747,14 @@ def wrapped_pssm_design(**kwargs):
     # Prepare the data for the button matrix
 
     print(df_button_matrix.head())
-
-    pix_per_block=30
+    pix_per_block = 25
 
     button_matrix = QButtonMatrix(
         df_matrix=df_button_matrix,
         sequence=sequence,
         cmap='bwr',
         flip_cmap=False,
-        zero_index_offset=-1
+        zero_index_offset=-1,
     )
     button_matrix.sequence = sequence
     button_matrix.init_ui()
@@ -769,30 +768,37 @@ def wrapped_pssm_design(**kwargs):
     window = QtWidgets.QWidget()  # This creates a standalone window.
     window.setWindowTitle("Mutant Profile Matrix")
 
-    screen_width = QtWidgets.QApplication.primaryScreen().size().width()
-    screen_height = QtWidgets.QApplication.primaryScreen().size().height()
+    screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width()
+    screen_height = QtWidgets.QApplication.primaryScreen().availableGeometry().height()
 
     num_cols = button_matrix.df_matrix.shape[1]  # Assuming the matrix's DataFrame determines the columns
 
     # Set window size constraints
-    # - Height: dynamically adjusted with a minimum of 630
-    # - Width: dynamically adjusted with a minimum of 400
-    fixed_height = pix_per_block*21
+    # - Adjust height and width to fit available screen size dynamically
+    fixed_height = pix_per_block * 21 + 100  # 100 for the banner and spacing
     calculated_width = pix_per_block * (num_cols + 1)
-    max_width = min(calculated_width, screen_width - 100)
+    max_width = min(calculated_width, screen_width - 20)
 
-    dynamic_height = min(fixed_height, screen_height - 200)
-    window.setMinimumSize(400, dynamic_height)  # Ensure a minimum size for usability
-    window.setMaximumSize(max_width, dynamic_height)
+    # Adjust height and width dynamically to ensure no scrollbars are necessary
+    dynamic_width = min(max_width, screen_width)
+    dynamic_height = min(fixed_height, screen_height)
+    window.setMinimumSize(dynamic_width, dynamic_height)
+    window.setMaximumSize(dynamic_width, dynamic_height)
 
     # Add a scroll area to the window
     scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidget(button_matrix)
     scroll_area.setWidgetResizable(True)
-    scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+    scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # Disable vertical scrollbar
 
-    # Add padding or margins for better visual alignment
-    button_matrix.setContentsMargins(10, 10, 10, 10)
+    # Remove extra padding or margins to make buttons compact
+    button_matrix.setContentsMargins(0, 0, 0, 0)
+
+    # Adjust button size policy for a compact layout
+    for button in button_matrix.findChildren(QtWidgets.QPushButton):
+        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        button.setFixedSize(pix_per_block, pix_per_block)
 
     # Create a layout with a persistent column label row
     main_layout = QtWidgets.QVBoxLayout()
@@ -816,7 +822,7 @@ def wrapped_pssm_design(**kwargs):
         background-color: #f9f9f9;
         border: 1px solid #ccc;
         border-radius: 5px;
-    """
+        """
     )
     header_layout.addWidget(banner_label)
 
@@ -841,6 +847,9 @@ def wrapped_pssm_design(**kwargs):
 
     # Show the window
     window.show()
+
+
+
 
     # Comments and considerations:
     # 1. Removed the misplaced `QGridLayout` from `QScrollArea`.
