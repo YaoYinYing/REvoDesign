@@ -106,6 +106,7 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
+from functools import partial
 import json
 import os
 from dataclasses import dataclass
@@ -121,7 +122,7 @@ from REvoDesign import issues
 
 from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
-from ..tools.customized_widgets import AskedValue, QButtonMatrixNext, dialog_wrapper
+from ..tools.customized_widgets import AskedValue, QButtonMatrix, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
@@ -566,11 +567,9 @@ def wrapped_pssm_design(**kwargs):
 
     from ..bootstrap.set_config import ConfigConverter
     from ..common.Mutant import Mutant
-    from ..common.MutantTree import MutantTree
     from ..common.MutantVisualizer import MutantVisualizer
     from ..phylogenetics.REvoDesigner import REvoDesigner
     from ..sidechain_solver.SidechainSolver import SidechainSolver
-    from ..tools.customized_widgets import QButtonMatrix
     from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
                                       read_customized_indice)
     from ..tools.pymol_utils import (get_molecule_sequence,
@@ -583,8 +582,8 @@ def wrapped_pssm_design(**kwargs):
     bus = ConfigBus()
     ui = bus.ui
 
-    molecule: str = bus.get_value('ui.header_panel.input.molecule', reject_none=True)
-    chain_id: str = bus.get_value('ui.header_panel.input.chain_id', reject_none=True)
+    molecule: str = bus.get_value('ui.header_panel.input.molecule',str, reject_none=True)
+    chain_id: str = bus.get_value('ui.header_panel.input.chain_id',str, reject_none=True)
 
     reversed_mutant_effect = bus.get_value("ui.header_panel.cmap.reverse_score")
     cmap = cmap_reverser(
@@ -688,7 +687,7 @@ def wrapped_pssm_design(**kwargs):
 
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
-    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrixNext, ignore_wt=False):
+    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix, ignore_wt=False):
         resn: str = matrix.alphabet_row[row]
         resi: int = int(matrix.alphabet_col[col + 1])
         wt_res = sequence[resi - 1]
@@ -746,9 +745,9 @@ def wrapped_pssm_design(**kwargs):
 
     # Prepare the data for the button matrix
 
-    print(df_button_matrix)
+    print(df_button_matrix.head())
 
-    button_matrix = QButtonMatrixNext(
+    button_matrix = QButtonMatrix(
         df_matrix=df_button_matrix,
         sequence=sequence,
         cmap='bwr',
@@ -756,13 +755,10 @@ def wrapped_pssm_design(**kwargs):
         )
     button_matrix.sequence = sequence
     button_matrix.init_ui()
-    button_matrix.report_axes_signal.connect(
-        lambda row, col: mutate_with_gridbuttons(
-            row,
-            col,
-            button_matrix,
-            False,
-        )
+    button_matrix.active_func=partial(
+        mutate_with_gridbuttons,
+        matrix=button_matrix,
+        ignore_wt=False
     )
 
     # Create a new dialog window for the button matrix

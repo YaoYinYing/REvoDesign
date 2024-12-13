@@ -7,7 +7,7 @@ import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,7 +15,6 @@ import numpy as np
 import pandas as pd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
-from REvoDesign.basic import FileExtension as FExt
 from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
@@ -39,19 +38,12 @@ class ImageWidget(QtWidgets.QWidget):
         painter.drawImage(self.rect(), image)
 
 
-class NonGremlinPair(Protocol):
-
-    @property
-    def df(self) -> pd.DataFrame: ...
-
-
 @dataclass(frozen=True)
 class ButtonCoords:
     row: int
     row_name: str
     col: int
     col_name: str
-
 
 class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
 
@@ -98,7 +90,10 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
     }}
 """
 
-class QButtonMatrixNext(QtWidgets.QWidget):
+class QButtonMatrix(QtWidgets.QWidget):
+    '''
+    QbuttonMatrix - Custom widget for displaying a matrix of buttons.
+    '''
     label_size: Optional[List[int]]=[24,12]
 
     # Define a custom signal for reporting axes
@@ -124,7 +119,8 @@ class QButtonMatrixNext(QtWidgets.QWidget):
 
         self.button_size = button_size
         self.sequence = sequence # full sequence
-        self.active_func = func  # a callable with parameter (row, col) if no, row and col would be emitted as signal
+        # a callable with parameter (row, col) if no, row and col would be emitted as signal
+        self.active_func = func
 
 
         # internal variables
@@ -249,7 +245,7 @@ class QButtonMatrixNext(QtWidgets.QWidget):
         # Check if an active function is set
         if self.active_func is not None:
             # Find the clicked button object based on row and column indices
-            trigger_button = self.findChild(QtWidgets.QPushButton, f"matrixButton_{row}_vs_{col}")
+            trigger_button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
             
             # Use a context manager to handle the trigger button
             with hold_trigger_button(trigger_button):
@@ -260,7 +256,10 @@ class QButtonMatrixNext(QtWidgets.QWidget):
             # If no active function is set, emit a signal to report the axes
             self.report_axes_signal.emit(row, col)
 
-class QButtonMatrixGremlin(QButtonMatrixNext):
+class QButtonMatrixGremlin(QButtonMatrix):
+    '''
+    A variant of QButtonMatrix for Gremlin.
+    '''
     label_size: Optional[List[int]]= [12, 12]
 
     def __init__(self, df_matrix, sequence,  pair_i:int, pair_j:int,  parent=None, func:Optional[Callable]=None,cmap = 'bwr', button_size=12):
@@ -284,209 +283,7 @@ class QButtonMatrixGremlin(QButtonMatrixNext):
             else ""
         )
         return " - ".join(t for t in [button_tip_i, button_tip_j] if t)
-
-class QButtonMatrix(QtWidgets.QWidget):
-    """
-    QbuttonMatrix - Custom widget for displaying a matrix of buttons.
-
-    TODO: need refactor to make it more generic and simpler.
-
-    Usage(out-of-dated):
-        qbm = QbuttonMatrix(csv_file, parent=None, button_size=12)
-        qbm.init_ui()  # Initialize the user interface
-
-    Attributes(out-of-dated):
-        report_axes_signal (QtCore.pyqtSignal): Signal for reporting axes.
-        alphabet (str): String containing amino acid symbols.
-        button_size (int): Size of the buttons.
-        _alphabet (list): List containing amino acid symbols as individual characters.
-        matrix (list): 2D list representing the matrix loaded from the CSV file.
-        min_value (float): Minimum value in the loaded matrix.
-        max_value (float): Maximum value in the loaded matrix.
-        sequence (str): String representing a sequence of amino acids.
-    """
-
-    # Define a custom signal for reporting axes
-    report_axes_signal = QtCore.pyqtSignal(int, int)
-
-    def _setup_alphabet(self):
-        if self.is_gremlin_pair:
-            _alphabet = list("ARNDCQEGHILKMFPSTWYV-")
-            self.alphabet_row = _alphabet
-            self.alphabet_col = _alphabet
-        else:
-            self.alphabet_row = self.pair.df.index.tolist()
-            self.alphabet_col = self.pair.df.columns.tolist()
-
-    def __init__(self, pair: NonGremlinPair, parent=None, button_size=12):
-        """
-        Initialize QbuttonMatrix.
-
-        Args:
-            csv_file (str): Path to the CSV file.
-            parent (QWidget): Parent widget. Defaults to None.
-            button_size (int): Size of the buttons. Defaults to 12.
-        """
-        super().__init__(parent)
-
-        self.pair = pair
-        self.is_gremlin_pair = hasattr(self.pair, "i")
-        self.button_size = button_size
-        self.sequence = ""  # user gave the sequence after init
-        self._setup_alphabet()
-
-        (
-            self.matrix,
-            self.min_value,
-            self.max_value,
-        ) = self._load_matrix_from_pair()
-
-    def _load_matrix_from_pair(self):
-        """
-        Load matrix data from a CSV file.
-
-        Args:
-            csv_file (str): Path to the CSV file.
-
-        Returns:
-            tuple: Tuple containing matrix (2D list), min_value (float), max_value (float).
-        """
-
-        try:
-            df = self.pair.df
-            # Remove rows and columns not in the alphabet
-            df = df.loc[df.index.isin(self.alphabet_row), df.columns.isin(self.alphabet_col)]
-
-            # Convert the DataFrame to a 2D list
-            matrix = df.values.tolist()
-
-            return (
-                matrix,
-                -np.max((np.abs(df.values.min()), df.values.max())),
-                np.max((np.abs(df.values.min()), df.values.max())),
-            )
-        except Exception as e:
-            raise ValueError(f"Error loading CSV file: {str(e)}") from e
-
-    def _map_value_to_color(self, value):
-        """
-        Map a value to a QColor based on a colormap.
-
-        Args:
-            value (float): Value to be mapped.
-
-        Returns:
-            QColor: Color based on the mapped value.
-        """
-        import matplotlib.pyplot as plt
-
-        from REvoDesign import ConfigBus
-        from REvoDesign.tools.utils import cmap_reverser
-
-        bus = ConfigBus()
-        self._cmap: str = bus.get_value("ui.header_panel.cmap.default", str)
-
-        # follow the original cmap style. bwr_r -> bwr
-        self.cmap = cmap_reverser(
-            cmap=self._cmap,
-            reverse=not bus.get_value("ui.header_panel.cmap.reverse_score", bool),
-        )
-
-        # Map a value to a color using the 'bwr' colormap with reversed colors
-        normalized_value = 1 - (value - self.min_value) / (self.max_value - self.min_value)
-        colormap = plt.get_cmap(self.cmap)
-        rgba_color = colormap(normalized_value)
-        color = QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
-        return color
-
-    def init_ui(self):
-        """
-        Initialize the user interface by creating buttons and labels based on the matrix and sequence.
-        """
-        layout = QtWidgets.QGridLayout()
-        font = QtGui.QFont()
-        font.setPointSize(self.button_size)
-        font.setBold(True)
-        if self.is_gremlin_pair:
-            size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
-        else:
-            size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-
-        if self.is_gremlin_pair:
-            # logging.debug(f"Sequence: {self.sequence}")
-            logging.debug(
-                f"WT pair: {self.sequence[self.pair.i]}{self.pair.i+1}_{self.sequence[self.pair.j]}{self.pair.j+1}"
-            )
-
-        # Add row names as labels to the left of buttons
-        for row, row_name in enumerate(self.alphabet_row):
-            label = QtWidgets.QLabel(row_name)
-            # Set the font size to 9
-            label.setFont(font)
-            if self.is_gremlin_pair:
-                label.setFixedSize(self.button_size, self.button_size)
-
-            layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
-            for col, col_name in enumerate(self.alphabet_col):
-                if row < len(self.matrix) and col < len(self.matrix[0]):
-                    value = self.matrix[row][col]
-                else:
-                    value = 0  # Default value for elements outside the matrix
-                color = self.map_value_to_color(value)
-                if self.is_gremlin_pair:
-                    is_wt_pair = (
-                        row_name == self.sequence[self.pair.i] and self.alphabet_col[col] == self.sequence[self.pair.j]
-                    )
-                    button_tip_i = (
-                        f"{self.sequence[self.pair.i]}{str(self.pair.i+1)}{row_name}"
-                        if self.sequence[self.pair.i] == row_name
-                        else ""
-                    )
-                    button_tip_j = (
-                        f"{self.sequence[self.pair.j]}{str(self.pair.j+1)}{col_name}"
-                        if self.sequence[self.pair.j] == col_name
-                        else ""
-                    )
-                    button_tip = " - ".join(t for t in [button_tip_i, button_tip_j] if t)
-                else:
-                    is_wt_pair = row_name == self.sequence[int(col_name)]
-                    button_tip = f"{self.sequence[int(col_name)]}{str(int(col_name)+1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
-
-                button = QtWidgets.QPushButton("&WT" if is_wt_pair else None)
-                button.setObjectName(f"matrixButton_{row}_vs_{col}")
-                button.setSizePolicy(size_policy)
-                button.setStyleSheet(f"background-color: {color.name()};{'color: black;' if is_wt_pair else ''};")
-                button.setToolTip(button_tip if button_tip else "WT")
-                button.clicked.connect(lambda checked, r=row, c=col: self.report_axises(r, c))
-                layout.addWidget(button, row, col + 1)  # +1 to account for row labels
-
-        # Add a row of column labels as labels after buttons
-        for col, col_name in enumerate(self.alphabet_col):
-            # TODO: This is a hack to make the column labels start from 1
-            # Use zero-indexing adjugement instead
-            if not self.is_gremlin_pair:
-                col_name = str(int(col_name) + 1)
-
-            label = QtWidgets.QLabel(col_name)
-
-            label.setFont(font)
-            label.setFixedSize(self.button_size, self.button_size)  # Set fixed size for column labels
-
-            layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop)
-
-        self.setLayout(layout)
-
-    def report_axises(self, row, col):
-        """
-        Report the axes when a button is clicked.
-
-        Args:
-            row (int): Row index of the clicked button.
-            col (int): Column index of the clicked button.
-        """
-        logging.debug(f"Button at ({row}, {col}) clicked.")
-        self.report_axes_signal.emit(row, col)
-
+    
 
 def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(

@@ -29,7 +29,7 @@ from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
 from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (QButtonMatrix, QButtonMatrixGremlin, QButtonMatrixNext,
+from REvoDesign.tools.customized_widgets import (QButtonMatrixGremlin,
                                                  hold_trigger_button,
                                                  refresh_window,
                                                  set_widget_value)
@@ -1214,17 +1214,13 @@ class GREMLIN_Analyser:
             button_matrix.alphabet_row=list("ARNDCQEGHILKMFPSTWYV-")
 
             button_matrix.init_ui()
-
-            button_matrix.report_axes_signal.connect(
-                lambda row, col: mutate_with_gridbuttons(
-                    row,
-                    col,
-                    button_matrix.df_matrix,
-                    button_matrix.min_value,
-                    button_matrix.max_value,
-                    pair,
-                    ignore_wt,
-                )
+            button_matrix.active_func=partial(
+                mutate_with_gridbuttons,
+                matrix=button_matrix.df_matrix,
+                min_score=button_matrix.min_value,
+                max_score=button_matrix.max_value,
+                pair=pair,
+                ignore_wt=ignore_wt,
             )
 
             self.bus.ui.gridLayout_interact_pairs.addWidget(button_matrix)
