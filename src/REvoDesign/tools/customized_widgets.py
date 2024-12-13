@@ -40,13 +40,33 @@ class ImageWidget(QtWidgets.QWidget):
 
 @dataclass(frozen=True)
 class ButtonCoords:
+    """
+    Immutable data class representing the coordinates and names of a button.
+
+    Attributes:
+        row (int): The row index of the button.
+        row_name (str): The name of the row.
+        col (int): The column index of the button.
+        col_name (str): The name of the column.
+    """
     row: int
     row_name: str
     col: int
     col_name: str
 
 class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
+    """
+    Custom QPushButton subclass representing a button in a matrix.
 
+    Attributes:
+        coords (ButtonCoords): Coordinates and names associated with the button.
+        color (QtGui.QColor): The background color of the button.
+        is_wt (bool): Flag indicating if the button represents a wild type (WT) pair.
+
+    Methods:
+        button_name: Constructs the unique object name for the button.
+        style_sheet: Generates the CSS styling for the button.
+    """
     def __init__(
         self,
         coords: ButtonCoords,
@@ -57,27 +77,47 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         size_policy: Optional[QtWidgets.QSizePolicy] = None,  # type: ignore
         parent=None,
     ):
+        """
+        Initializes the QButtonBrick instance.
+
+        Args:
+            coords (ButtonCoords): Coordinates and metadata for the button.
+            color (QtGui.QColor): Background color of the button.
+            label (Optional[str]): Text to display on the button.
+            tooltip_text (Optional[str]): Tooltip text for the button.
+            is_wt (Optional[bool]): Whether the button is a wild type button.
+            size_policy (Optional[QtWidgets.QSizePolicy]): Size policy for the button.
+            parent: Parent widget for the button.
+        """
         super().__init__(parent)
         self.coords = coords
         self.color = color
-
         self.is_wt = is_wt
 
         self.setStyleSheet(self.style_sheet)
         self.setObjectName(self.button_name)
         self.setText(label)
-        
         self.setToolTip(tooltip_text)
         self.setSizePolicy(size_policy)
 
-
-
     @property
     def button_name(self) -> str:
+        """
+        Constructs the unique object name for the button based on its coordinates.
+
+        Returns:
+            str: The unique name of the button.
+        """
         return f"matrixButton_{self.coords.row}_vs_{self.coords.col}"
 
     @property
     def style_sheet(self) -> str:
+        """
+        Generates the CSS style for the button, including background color and text color.
+
+        Returns:
+            str: The CSS style for the button.
+        """
         return f"""
     QPushButton {{
         background-color: {self.color.name()};
@@ -91,10 +131,88 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
 """
 
 class QButtonMatrix(QtWidgets.QWidget):
-    '''
-    QbuttonMatrix - Custom widget for displaying a matrix of buttons.
-    '''
-    label_size: Optional[List[int]]=[24,12]
+    """
+    A custom widget for displaying a matrix of buttons.
+
+    Attributes:
+        label_size (Optional[List[int]]): Fixed size of row/column labels.
+        report_axes_signal (pyqtSignal): Signal emitted with row and column indices.
+
+    Methods:
+        _map_value_to_color: Maps a matrix value to a QColor.
+        _set_label_size: Sets the fixed size of a label.
+        is_wt_button: Determines if a button is a wild type button.
+        _make_button_tip: Constructs a tooltip for a button.
+        init_ui: Initializes the matrix UI with buttons and labels.
+        signal_process: Handles button click events.
+
+    Usage Example:
+        ```python
+
+        # Example DataFrame
+        data = {
+            'A': [1.0, 2.0, 3.0],
+            'B': [4.0, 5.0, 6.0],
+            'C': [7.0, 8.0, 9.0]
+        }
+        df_button_matrix = pd.DataFrame(data, index=['X', 'Y', 'Z'])
+
+        # Sequence
+        sequence = "XYZ"
+
+        # Function to handle button actions
+        def mutate_with_gridbuttons(row, col, matrix, ignore_wt):
+            print(f"Mutation grid button action executed at row {row}, col {col}.")
+
+        # PyQt Application Setup
+        app = QApplication([])
+
+        # Create QButtonMatrix instance
+        button_matrix = QButtonMatrix(
+            df_matrix=df_button_matrix,
+            sequence=sequence,
+            cmap='bwr',
+            flip_cmap=False,
+        )
+
+        # Method 1: Using internal calls with active_func
+        button_matrix.sequence = sequence
+        button_matrix.init_ui()
+        button_matrix.active_func = partial(
+            mutate_with_gridbuttons,
+            **kwargs,
+        )
+
+        # Method 2: Connecting the signal externally
+        button_matrix.report_axes_signal.connect(
+            lambda row, col: mutate_with_gridbuttons(
+                row,
+                col,
+                *args,
+                **kwargs,
+            )
+        )
+
+        # Show the widget
+        button_matrix.show()
+
+        # Execute the application
+        app.exec_()
+        ```
+
+    Notes:
+    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles 
+        by encapsulating logic within the widget. It ensures centralized management 
+        of button actions and allows for features like holding or freezing the trigger 
+        button during execution.
+    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices, 
+        leveraging the signal-slot mechanism to decouple button actions from widget 
+        logic. Ideal for integrating into larger PyQt applications where events are 
+        handled externally.
+
+    """
+
+    label_size: Optional[List[int]] = [24, 12]
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -103,39 +221,39 @@ class QButtonMatrix(QtWidgets.QWidget):
         self,
         df_matrix: pd.DataFrame,
         sequence: str,
-        func: Optional[Callable[[int, int], None]]=None,
+        func: Optional[Callable[[int, int], None]] = None,
         parent=None,
-        cmap:str='bwr',
-        flip_cmap:bool=False,
+        cmap: str = 'bwr',
+        flip_cmap: bool = False,
         button_size=12,
     ):
         """
-        Initialize QbuttonMatrix.
+        Initializes the QButtonMatrix widget.
 
+        Args:
+            df_matrix (pd.DataFrame): Dataframe representing the matrix.
+            sequence (str): Full sequence of residues.
+            func (Optional[Callable[[int, int], None]]): Function called on button click.
+            parent: Parent widget.
+            cmap (str): Colormap name for button colors.
+            flip_cmap (bool): Whether to reverse the colormap.
+            button_size (int): Size of the buttons.
         """
         from REvoDesign.tools.utils import cmap_reverser
 
         super().__init__(parent)
 
         self.button_size = button_size
-        self.sequence = sequence # full sequence
-        # a callable with parameter (row, col) if no, row and col would be emitted as signal
+        self.sequence = sequence
         self.active_func = func
-
-
-        # internal variables
         self.df_matrix = df_matrix.copy()
 
-        # read alphabet from df_matrix. 
-        # if one need to adjust the alphabet, do it somewhere else after init
         self.alphabet_row = self.df_matrix.index.tolist()
         self.alphabet_col = self.df_matrix.columns.tolist()
 
         max_abs = np.max((np.abs(self.df_matrix.values.min()), self.df_matrix.values.max()))
         self.min_value, self.max_value = -max_abs, max_abs
 
-
-        # follow the original cmap style. bwr_r -> bwr
         cmap = cmap_reverser(
             cmap=cmap,
             reverse=flip_cmap,
@@ -144,41 +262,67 @@ class QButtonMatrix(QtWidgets.QWidget):
 
     def _map_value_to_color(self, value):
         """
-        Map a value to a QColor based on a colormap.
+        Maps a value to a QColor based on the colormap.
 
         Args:
             value (float): Value to be mapped.
 
         Returns:
-            QColor: Color based on the mapped value.
+            QtGui.QColor: Color corresponding to the value.
         """
-        
-        # Map a value to a color using the 'bwr' colormap with reversed colors
         normalized_value = 1 - (value - self.min_value) / (self.max_value - self.min_value)
-        
         rgba_color = self.colormap(normalized_value)
-        color = QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
-        return color
-    
+        return QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
+
     @classmethod
-    def _set_label_size(cls,label:Any):
+    def _set_label_size(cls, label: Any):
+        """
+        Sets the fixed size for a label if the class attribute `label_size` is defined.
+
+        Args:
+            label (QtWidgets.QLabel): The label to resize.
+        """
         if not (hasattr(cls, 'label_size') and cls.label_size):
             return
-        if len(cls.label_size)!=2:
+        if len(cls.label_size) != 2:
             raise ValueError("label size must be a list of length 2")
         label.setFixedSize(*cls.label_size)
-        
-    # reimplement this if you want to change the behavior
-    def is_wt_button(self, row_name: str,  col_name: str,row: int,col:int):
+
+    def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
+        """
+        Determines if a button corresponds to a wild type (WT) pair.
+
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            row (int): Row index.
+            col (int): Column index.
+
+        Returns:
+            bool: True if the button represents a WT pair, False otherwise.
+        """
         return row_name == self.sequence[int(col_name)]
 
-    # reimplement this if you want to change the definition of tooltip
-    def _make_button_tip(self,  row_name: str,  col_name: str, value: float,row: Optional[int]=None,col:Optional[int]=None, is_wt_pair: bool = False):
-        return f"{self.sequence[int(col_name)]}{str(int(col_name)+1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+        """
+        Constructs a tooltip for a button.
+
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            value (float): Value associated with the button.
+            row (Optional[int]): Row index.
+            col (Optional[int]): Column index.
+            is_wt_pair (bool): Whether the button is a WT pair.
+
+        Returns:
+            str: Tooltip text for the button.
+        """
+        return f"{self.sequence[int(col_name)]}{str(int(col_name) + 1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
     def init_ui(self):
         """
-        Initialize the user interface by creating buttons and labels based on the matrix and sequence.
+        Initializes the user interface by creating buttons and labels based on the matrix and sequence.
         """
         layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
@@ -187,10 +331,8 @@ class QButtonMatrix(QtWidgets.QWidget):
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
-        # Add row names as labels to the left of buttons
         for row, row_name in enumerate(self.alphabet_row):
             label = QtWidgets.QLabel(row_name)
-            # Set the font size to 9
             label.setFont(font)
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
@@ -199,7 +341,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             for col, col_name in enumerate(self.alphabet_col):
                 value = self.df_matrix.iloc[row, col]
 
-                is_wt_button=self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
+                is_wt_button = self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
                 button_tip = self._make_button_tip(col_name=col_name, row_name=row_name, value=value, is_wt_pair=is_wt_button)
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
@@ -211,15 +353,14 @@ class QButtonMatrix(QtWidgets.QWidget):
                 )
 
                 bfont = QtGui.QFont()
-                bfont.setPointSizeF(self.button_size*.9)
+                bfont.setPointSizeF(self.button_size * .9)
                 bfont.setBold(True)
 
                 button.setFont(bfont)
 
                 button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
-                layout.addWidget(button, row, col + 1)  # +1 to account for row labels
+                layout.addWidget(button, row, col + 1)
 
-        # Add a row of column labels as labels after buttons
         for col, col_name in enumerate(self.alphabet_col):
             label = QtWidgets.QLabel(col_name)
             label.setFont(font)
@@ -233,57 +374,97 @@ class QButtonMatrix(QtWidgets.QWidget):
 
     def signal_process(self, row, col):
         """
-        Report the axes when a button is clicked.
+        Handles button click events and processes signals.
 
         Args:
             row (int): Row index of the clicked button.
             col (int): Column index of the clicked button.
         """
-        # Log debug information to track button click events
         logging.debug(f"Button at ({row}, {col}) clicked.")
-        
-        # Check if an active function is set
+
         if self.active_func is not None:
-            # Find the clicked button object based on row and column indices
             trigger_button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
-            
-            # Use a context manager to handle the trigger button
             with hold_trigger_button(trigger_button):
-                # Call the active function and pass the row and column indices as arguments
                 self.active_func(row, col)
                 return
         else:
-            # If no active function is set, emit a signal to report the axes
             self.report_axes_signal.emit(row, col)
 
 class QButtonMatrixGremlin(QButtonMatrix):
-    '''
-    A variant of QButtonMatrix for Gremlin.
-    '''
-    label_size: Optional[List[int]]= [12, 12]
+    """
+    A specialized variant of QButtonMatrix for Gremlin.
 
-    def __init__(self, df_matrix, sequence,  pair_i:int, pair_j:int,  parent=None, func:Optional[Callable]=None,cmap = 'bwr', button_size=12):
-        super().__init__(df_matrix, sequence, func, parent, cmap, True,button_size)
-        self.pair_i=pair_i
-        self.pair_j=pair_j
+    Attributes:
+        pair_i (int): Index of the first pair.
+        pair_j (int): Index of the second pair.
 
-    def is_wt_button(self, row_name: str,  col_name: str,row: int,col:int,):
+    Methods:
+        is_wt_button: Redefines wild type button criteria for Gremlin.
+        _make_button_tip: Custom tooltip generation for Gremlin.
+    """
+    label_size: Optional[List[int]] = [12, 12]
+
+    def __init__(self, df_matrix, sequence, pair_i: int, pair_j: int, parent=None, func: Optional[Callable] = None, cmap='bwr', button_size=12):
+        """
+        Initializes the QButtonMatrixGremlin widget.
+
+        Args:
+            df_matrix (pd.DataFrame): Dataframe representing the matrix.
+            sequence (str): Full sequence of residues.
+            pair_i (int): Index of the first pair.
+            pair_j (int): Index of the second pair.
+            parent: Parent widget.
+            func (Optional[Callable]): Function called on button click.
+            cmap (str): Colormap name for button colors.
+            button_size (int): Size of the buttons.
+        """
+        super().__init__(df_matrix, sequence, func, parent, cmap, True, button_size)
+        self.pair_i = pair_i
+        self.pair_j = pair_j
+
+    def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
+        """
+        Determines if a button corresponds to a wild type (WT) pair for Gremlin.
+
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            row (int): Row index.
+            col (int): Column index.
+
+        Returns:
+            bool: True if the button represents a WT pair, False otherwise.
+        """
         return row_name == self.sequence[self.pair_i] and self.alphabet_col[col] == self.sequence[self.pair_j]
 
-    
-    def _make_button_tip(self,  row_name: str,  col_name: str, value: float,row: Optional[int]=None,col:Optional[int]=None, is_wt_pair: bool = False):
+    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+        """
+        Constructs a tooltip for a button in Gremlin.
+
+        Args:
+            row_name (str): Name of the row.
+            col_name (str): Name of the column.
+            value (float): Value associated with the button.
+            row (Optional[int]): Row index.
+            col (Optional[int]): Column index.
+            is_wt_pair (bool): Whether the button is a WT pair.
+
+        Returns:
+            str: Tooltip text for the button.
+        """
         button_tip_i = (
-            f"{self.sequence[self.pair_i]}{str(self.pair_i+1)}{row_name}"
+            f"{self.sequence[self.pair_i]}{str(self.pair_i + 1)}{row_name}"
             if self.sequence[self.pair_i] != row_name
             else ""
         )
         button_tip_j = (
-            f"{self.sequence[self.pair_j]}{str(self.pair_j+1)}{col_name}"
+            f"{self.sequence[self.pair_j]}{str(self.pair_j + 1)}{col_name}"
             if self.sequence[self.pair_j] != col_name
             else ""
         )
-        return " - ".join(t for t in [button_tip_i, button_tip_j] if t)
-    
+        button_tip=" - ".join(t for t in [button_tip_i, button_tip_j] if t)
+        return button_tip if button_tip else 'WT'
+
 
 def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(
