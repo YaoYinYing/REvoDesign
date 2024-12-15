@@ -522,7 +522,7 @@ def menu_smiles_conformer_batch():
     options=(
         AskedValue(
             "profile",
-            '/Users/yyy/Documents/protein_design/REvoDesign/tests/expanded_compressed_files/1SUO_A_PSSM_GREMLIN_results/pssm_msa/1SUO_A_ascii_mtx_file',
+            '',
             str,
             'Profile path for design',
             required=True,
@@ -550,9 +550,9 @@ def menu_smiles_conformer_batch():
         ),
         AskedValue(
             'residue_range',
-            '/Users/yyy/Documents/protein_design/REvoDesign/tmp-test-dir-with-unique-name/surface_residue_records/1SUO_residues_cutoff_30.0.txt',
+            '',
             str,
-            'Residue range to be shown, plotted and designed. Can be comma-separated digits, or textfile path. Default is all for the full length sequence.'
+            'Residue range to be shown, plotted and designed. Can be comma-separated digits, or textfile path. Default is empty for the full length sequence.'
             'Note that IndexOutOfRangeError will be raised if the range is not valid (on residue index where aa is `X`).',
             required=False,
             source='File'

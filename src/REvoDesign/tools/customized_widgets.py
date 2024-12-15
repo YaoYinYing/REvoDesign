@@ -962,7 +962,8 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
 
     def currentText(self) -> str:
         """Override to show a comma-separated list of selected items."""
-        return ", ".join(self.checked_items)
+        return ", ".join(sorted(self.checked_items))
+
 
 
 def real_bool(val: Any):
@@ -1137,7 +1138,9 @@ class ValueDialog(QtWidgets.QDialog):
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
+        ok_button.setObjectName("OK")
         cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.setObjectName("Cancel")
         ok_button.clicked.connect(self._on_ok_clicked)
         cancel_button.clicked.connect(self.reject)
 
@@ -1367,7 +1370,9 @@ class AppendableValueDialog(QtWidgets.QDialog):
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
+        ok_button.setObjectName("OK")
         cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.setObjectName("Cancel")
         ok_button.clicked.connect(self._on_ok_clicked)
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(ok_button)
