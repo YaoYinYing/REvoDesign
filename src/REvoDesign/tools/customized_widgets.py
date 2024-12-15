@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
+from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
@@ -303,7 +304,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             bool: True if the button represents a WT pair, False otherwise.
         """
-        return row_name == self.sequence[int(col_name)]
+        return row_name == self.sequence[int(col_name)-1+self.zero_index_offset]
 
     def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
         """
@@ -320,7 +321,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             str: Tooltip text for the button.
         """
-        return f"{self.sequence[int(col_name)]}{str(int(col_name) + 1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+        return f"{self.sequence[int(col_name)-1+self.zero_index_offset]}{str(int(col_name) + self.zero_index_offset)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
     def init_ui(self):
         """
@@ -364,8 +365,12 @@ class QButtonMatrix(QtWidgets.QWidget):
                 layout.addWidget(button, row, col + 1)
 
         for col, col_name in enumerate(self.alphabet_col):
-            if self.zero_index_offset:
-                col_name = str(int(col_name)- self.zero_index_offset)
+            try:
+                col_name = str(int(col_name) - self.zero_index_offset)
+            except ValueError as e:
+                raise issues.UnsupportedDataTypeError(
+                    f'Zero-index offset is not supported for Column where {self.alphabet_col}.\n'
+                    f'Expected type is int or digit string, not {type(col_name)}.') from e
             label = QtWidgets.QLabel(col_name)
             label.setFont(font)
             if hasattr(self, '_set_label_size'):

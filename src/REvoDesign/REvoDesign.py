@@ -162,7 +162,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if new_dir and os.path.exists(new_dir):
             self.PWD = new_dir
         else:
-            self.PWD = getExistingDirectory()
+            PWD = getExistingDirectory()
+            if not PWD:
+                return
+            self.PWD=PWD
+
         os.chdir(self.PWD)
 
         self.bus.set_value("work_dir", os.path.abspath(self.PWD))

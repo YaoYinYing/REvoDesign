@@ -276,18 +276,24 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         # Handle None values
         if value is None:
+            # Fall back to use default value
             if default_value is not None:
                 value = default_value
-            elif converter in default_conversions:
-                value = default_conversions[converter]
+            # Reject to raise an error
             elif reject_none:
+                # not loaded? 
+                if self.get_value('ui.header_panel.input.molecule', None) is None:
+                    notify_box(
+                        "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
+                    )
+                    return
+                # out-of-dated?
                 notify_box(
                     "This configure file might be out of date. "
-                    "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this."
+                    "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this.", 
+                    issues.ConfigureOutofDateError
                 )
-                raise issues.ConfigureOutofDateError(
-                    "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
-                )
+                return
             else:
                 return None  # Return None if reject_none is False and no default is provided
 
@@ -296,6 +302,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             value = converter(value)
 
         # Enforce reject_none post-conversion
+        # Respect to `reject_none` option
         if reject_none and value is None:
             raise ValueError("The configuration value is None and reject_none is True.")
 

@@ -24,7 +24,7 @@ class FileDialog(SingletonAbstract):
     def singleton_init(self, window: Optional[Any], pwd: Optional[str]):
         self.window = window
         self.PWD = pwd if pwd is not None else os.getcwd()
-        self.register_file_dialof_buttons()
+        self.register_file_dialog_buttons()
         # Mark the instance as initialized to prevent reinitialization
         self.initialize()
 
@@ -150,7 +150,7 @@ class FileDialog(SingletonAbstract):
 
         logging.warning(f"Invalid output path: {output_mut_txt_fn}.")
 
-    def register_file_dialof_buttons(self):
+    def register_file_dialog_buttons(self):
         bus = ConfigBus()
         bus.button("open_customized_indices").clicked.connect(
             partial(

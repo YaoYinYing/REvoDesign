@@ -9,9 +9,11 @@ import os
 import random
 import re
 import time
+from typing import List, Union
 
 import matplotlib
 import matplotlib.pylab as plt
+import numpy as np
 import pandas as pd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
@@ -104,11 +106,18 @@ class REvoDesigner:
         """
         df = df_ori.copy()
 
+        first_idx: Union[str,int]=df.columns.tolist()[0]
+        if  first_idx==0 or first_idx == '0':
+            logging.debug("Input profile is zero-indexed, convert to 1-indexed")
+            df.columns = df.columns.map(lambda x: int(x)+1)
+        else:
+            df.columns=df.columns.map(int)
+
         logging.debug(custom_indices_str)
 
         if custom_indices_str == "":
-            custom_indices_str = f"1-{len(self.sequence)}"
-            logging.debug(f" --> {custom_indices_str}")
+            custom_indices_str = shorter_range([i+1 for i,aa in enumerate(self.sequence) if aa is not 'X'], connector='-', seperator=",")
+            logging.debug(f"Got empty custonmized indices, fix to non-X full length --> \n {custom_indices_str}")
 
         custom_indices = expand_range(
             shortened_str=custom_indices_str, seperator=",", connector="-"
@@ -120,53 +129,57 @@ class REvoDesigner:
                 resi for resi in range(1, len(self.sequence) + 1)
             ]
 
-        custom_indices = [0] + custom_indices
-
-        df = df.iloc[:, custom_indices]
+        # pick out the columns selected by custom indices input
+        # one-indexed
+        logging.debug(f'Apply custom indices to df: {custom_indices}')
+        logging.debug(f'Column names: {df.columns}')
+        df_trunc = df.loc[:, custom_indices]
+        logging.debug(f'Trucated Dataframe: \n {df_trunc.head()}')
 
         sequence = list(self.sequence)
-        sequence = [sequence[i - 1] for i in custom_indices[1:] if i >= 1]
-        sequence = "".join(sequence)
 
-        df.pop(0)
+        # truncate sequence for labels
+        sequence_trunc = "".join([sequence[i - 1] for i in custom_indices])
+        logging.debug(f'Trucated sequence: {sequence_trunc}')
 
-        max_abs_value = df.abs().max().max()
+        max_abs_value = np.max((np.abs(df_trunc.values.min()), df_trunc.values.max()))
 
-        plt.figure(figsize=(0.31 * len(sequence), 5))
+        plt.figure(figsize=(0.31 * len(sequence_trunc), 5))
         pcm = plt.imshow(
-            df, cmap=self.cmap, vmin=-max_abs_value, vmax=max_abs_value
+            df_trunc, cmap=self.cmap, vmin=-max_abs_value, vmax=max_abs_value
         )
 
-        al_a = list(self.profile_alphabet)
+        alphabet_row: List[str] = df_trunc.index.to_list()
 
-        x_ax = custom_indices[1:]
+        x_ax = [i for i in map(str, custom_indices)]
         plt.xticks(range(len(x_ax)), x_ax, rotation=45)
-        plt.yticks(range(20), list(self.profile_alphabet))
+        plt.yticks(range(20), alphabet_row)
         plt.grid(False)
 
         plt.colorbar(pcm).minorticks_on()
 
-        for pos, aa in enumerate(sequence):
-            for a_idx, _ in enumerate(self.profile_alphabet):
-                if al_a[a_idx] == aa:
+        for truc_seq_idx_x, aa_in_trunc_seq in enumerate(sequence_trunc):
+            for aa_ab_idx_y, aa_type in enumerate(alphabet_row):
+                if aa_type == aa_in_trunc_seq:
                     plt.text(
-                        pos,
-                        a_idx,
-                        al_a[a_idx],
+                        truc_seq_idx_x,
+                        aa_ab_idx_y,
+                        aa_type,
                         ha="center",
                         va="center",
                         color="k",
                     )
 
         mutation_candidates = {
-            "indices": custom_indices[1:],
+            "indices": custom_indices,
             "cutoff": cutoff,
             "mutations": {},
         }
         mutations = []
-        for _, resid in enumerate(custom_indices[1:]):
-            wt_aa = sequence[_]
-            profile_scores = df_ori.iloc[:, resid]
+        for idx, resid in enumerate(custom_indices):
+            # fetch wt aa from untruncated sequence
+            wt_aa = sequence[resid -1]
+            profile_scores = df_trunc.loc[:, resid]
             mutation_candidates["mutations"][resid] = {
                 "wt": wt_aa,
                 "wt_profile_score": profile_scores.loc[wt_aa],
@@ -526,10 +539,6 @@ class REvoDesigner:
 
         logging.debug(df.head())
 
-        col_name = df.columns.tolist()
-        col_name.insert(0, 0)
-        df = df.reindex(columns=col_name)
-        df[df.columns[0]] = 0
 
         if self.preffered_substitutions:
             preffered_dict = self.parse_preffered_mutation_string(
