@@ -108,6 +108,7 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 
 from functools import partial
 import json
+import json.tool
 import os
 from dataclasses import dataclass
 from typing import Literal, Union
@@ -583,8 +584,6 @@ def wrapped_pssm_design(**kwargs):
     from ..sidechain_solver.SidechainSolver import SidechainSolver
     from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
                                       read_customized_indice)
-    from ..tools.pymol_utils import (get_molecule_sequence,
-                                     make_temperal_input_pdb)
     from ..tools.utils import (cmap_reverser, get_color,
                                run_worker_thread_with_progress)
 
@@ -669,10 +668,7 @@ def wrapped_pssm_design(**kwargs):
     ]
 
     try:
-        (
-            mutation_json_fp,
-            mutation_png_fp,
-        ) = designer.plot_custom_indices_segments(
+        designer.plot_custom_indices_segments(
             df_ori=df,
             custom_indices_str=custom_indices_str,
             cutoff=cutoff,
@@ -767,12 +763,14 @@ def wrapped_pssm_design(**kwargs):
         sequence=sequence,
         cmap=cmap,
         flip_cmap=True,
+        button_size=12
     )
+    button_matrix.label_size=[18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
     button_matrix.active_func = partial(
         mutate_with_gridbuttons,
-        matrix=button_matrix
+        matrix=button_matrix,
     )
 
     # Create a new dialog window for the button matrix
@@ -786,7 +784,7 @@ def wrapped_pssm_design(**kwargs):
 
     # Set window size constraints
     # - Adjust height and width to fit available screen size dynamically
-    fixed_height = pix_per_block * 21 + 100  # 100 for the banner and spacing
+    fixed_height = pix_per_block * 21 + 110  # 110 for the banner and spacing
     calculated_width = pix_per_block * (num_cols + 1)
     max_width = min(calculated_width, screen_width - 20)
 
@@ -795,6 +793,9 @@ def wrapped_pssm_design(**kwargs):
     dynamic_height = min(fixed_height, screen_height)
     window.setMinimumSize(dynamic_width, dynamic_height)
     window.setMaximumSize(dynamic_width, dynamic_height)
+    window.setToolTip(
+        f'''Design with Profile: {kwargs})\nClick on a button to mutate the corresponding residue.'''
+    )
 
     # Add a scroll area to the window
     scroll_area = QtWidgets.QScrollArea()

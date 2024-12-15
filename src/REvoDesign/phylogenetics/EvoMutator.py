@@ -1097,7 +1097,7 @@ class GREMLIN_Analyser:
             self.picked_gremlin_mutant = mutant_obj
 
             # if mutant obj exists, activate it.
-            if mutant_obj in self.explored_mutant_tree.all_mutant_objects:
+            if self.explored_mutant_tree.has(mutant_obj):
                 logging.info(
                     f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) already exists. Do nothing."
                 )
@@ -1260,12 +1260,10 @@ class GREMLIN_Analyser:
             )
         else:
             logging.debug(
-                f" Rejecting  co-evolved mutant {picked_gremlin_mutant_id}"
+                f" Rejecting co-evolved mutant {picked_gremlin_mutant_id}"
             )
             cmd.disable(picked_gremlin_mutant_id)
-            if (
-                picked_gremlin_mutant_id
-                not in self.mutant_tree_coevolved.all_mutant_ids
+            if ( not self.mutant_tree_coevolved.has(picked_gremlin_mutant_id)
             ):
                 logging.warning(
                     f"{picked_gremlin_mutant_id} has not been accepted yet. Skipped."
@@ -1312,9 +1310,7 @@ class GREMLIN_Analyser:
                 "Co-evolved pairs are not loaded. "
             )
 
-        if (
-            self.picked_gremlin_mutant
-            in self.explored_mutant_tree.all_mutant_objects
+        if ( self.explored_mutant_tree.has(self.picked_gremlin_mutant)
         ):
             logging.warning(
                 f"Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})"

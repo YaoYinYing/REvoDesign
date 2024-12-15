@@ -100,6 +100,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         self.setText(label)
         self.setToolTip(tooltip_text)
         self.setSizePolicy(size_policy)
+        # self.setContentsMargins(0, 0, 0, 0)
 
     @property
     def button_name(self) -> str:
@@ -213,7 +214,7 @@ class QButtonMatrix(QtWidgets.QWidget):
 
     """
 
-    label_size: Optional[List[int]] = [24, 12]
+    label_size: Optional[List[int]] = [18, 12]
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -305,6 +306,9 @@ class QButtonMatrix(QtWidgets.QWidget):
             bool: True if the button represents a WT pair, False otherwise.
         """
         return row_name == self.sequence[int(col_name)-1+self.zero_index_offset]
+    
+    def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
+        return row_name
 
     def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
         """
@@ -329,7 +333,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         """
         layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
-        font.setPointSize(self.button_size)
+        font.setPointSizeF(self.button_size*0.8)
         font.setBold(True)
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
@@ -340,7 +344,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
 
-            layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
+            layout.addWidget(label, row, 0, QtCore.Qt.AlignRight)
             for col, col_name in enumerate(self.alphabet_col):
                 value = self.df_matrix.iloc[row, col]
 
@@ -349,7 +353,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
-                    label="&WT" if is_wt_button else None,
+                    label=f"&{self.get_WT_label( row_name, col_name, row, col)}" if is_wt_button else None,
                     tooltip_text=button_tip,
                     is_wt=is_wt_button,
                     size_policy=size_policy,
@@ -365,17 +369,18 @@ class QButtonMatrix(QtWidgets.QWidget):
                 layout.addWidget(button, row, col + 1)
 
         for col, col_name in enumerate(self.alphabet_col):
-            try:
-                col_name = str(int(col_name) - self.zero_index_offset)
-            except ValueError as e:
-                raise issues.UnsupportedDataTypeError(
-                    f'Zero-index offset is not supported for Column where {self.alphabet_col}.\n'
-                    f'Expected type is int or digit string, not {type(col_name)}.') from e
+            if self.zero_index_offset:
+                try:
+                    col_name = str(int(col_name) - self.zero_index_offset)
+                except ValueError as e:
+                    raise issues.UnsupportedDataTypeError(
+                        f'Zero-index offset is not supported for Column where {self.alphabet_col}.\n'
+                        f'Expected type is int or digit string, not {type(col_name)}.') from e
             label = QtWidgets.QLabel(col_name)
             label.setFont(font)
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
-            layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop)
+            layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
         self.setLayout(layout)
         logging.debug("Matrix button matrix initialized.")
@@ -430,6 +435,10 @@ class QButtonMatrixGremlin(QButtonMatrix):
         super().__init__(df_matrix, sequence, func, parent, cmap, True, button_size)
         self.pair_i = pair_i
         self.pair_j = pair_j
+
+
+    def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
+        return 'WT'
 
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
         """
