@@ -106,17 +106,18 @@ class REvoDesigner:
         """
         df = df_ori.copy()
 
-        first_idx: Union[str,int]=df.columns.tolist()[0]
-        if  first_idx==0 or first_idx == '0':
+        first_idx: Union[str, int] = df.columns.tolist()[0]
+        if first_idx == 0 or first_idx == '0':
             logging.debug("Input profile is zero-indexed, convert to 1-indexed")
-            df.columns = df.columns.map(lambda x: int(x)+1)
+            df.columns = df.columns.map(lambda x: int(x) + 1)
         else:
-            df.columns=df.columns.map(int)
+            df.columns = df.columns.map(int)
 
         logging.debug(custom_indices_str)
 
         if custom_indices_str == "":
-            custom_indices_str = shorter_range([i+1 for i,aa in enumerate(self.sequence) if aa is not 'X'], connector='-', seperator=",")
+            custom_indices_str = shorter_range(
+                [i + 1 for i, aa in enumerate(self.sequence) if aa != 'X'], connector='-', seperator=",")
             logging.debug(f"Got empty custonmized indices, fix to non-X full length --> \n {custom_indices_str}")
 
         custom_indices = expand_range(
@@ -178,7 +179,7 @@ class REvoDesigner:
         mutations = []
         for idx, resid in enumerate(custom_indices):
             # fetch wt aa from untruncated sequence
-            wt_aa = sequence[resid -1]
+            wt_aa = sequence[resid - 1]
             profile_scores = df_trunc.loc[:, resid]
             mutation_candidates["mutations"][resid] = {
                 "wt": wt_aa,
@@ -538,7 +539,6 @@ class REvoDesigner:
         self.profile_alphabet = "".join(df.T.columns.to_list())
 
         logging.debug(df.head())
-
 
         if self.preffered_substitutions:
             preffered_dict = self.parse_preffered_mutation_string(

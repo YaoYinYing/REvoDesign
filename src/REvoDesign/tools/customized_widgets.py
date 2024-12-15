@@ -20,7 +20,8 @@ from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
 
-from .package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
+from .package_manager import (WorkerThread, decide, hold_trigger_button,
+                              notify_box, refresh_window)
 
 logging = root_logger.getChild(__name__)
 
@@ -55,6 +56,7 @@ class ButtonCoords:
     col: int
     col_name: str
 
+
 class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
     """
     Custom QPushButton subclass representing a button in a matrix.
@@ -68,6 +70,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         button_name: Constructs the unique object name for the button.
         style_sheet: Generates the CSS styling for the button.
     """
+
     def __init__(
         self,
         coords: ButtonCoords,
@@ -131,6 +134,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         border: 1px solid white;
     }}
 """
+
 
 class QButtonMatrix(QtWidgets.QWidget):
     """
@@ -203,13 +207,13 @@ class QButtonMatrix(QtWidgets.QWidget):
         ```
 
     Notes:
-    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles 
-        by encapsulating logic within the widget. It ensures centralized management 
-        of button actions and allows for features like holding or freezing the trigger 
+    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles
+        by encapsulating logic within the widget. It ensures centralized management
+        of button actions and allows for features like holding or freezing the trigger
         button during execution.
-    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices, 
-        leveraging the signal-slot mechanism to decouple button actions from widget 
-        logic. Ideal for integrating into larger PyQt applications where events are 
+    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices,
+        leveraging the signal-slot mechanism to decouple button actions from widget
+        logic. Ideal for integrating into larger PyQt applications where events are
         handled externally.
 
     """
@@ -251,7 +255,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         self.sequence = sequence
         self.active_func = func
         self.df_matrix = df_matrix.copy()
-        self.zero_index_offset=zero_index_offset
+        self.zero_index_offset = zero_index_offset
 
         self.alphabet_row = self.df_matrix.index.tolist()
         self.alphabet_col = self.df_matrix.columns.tolist()
@@ -305,12 +309,19 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             bool: True if the button represents a WT pair, False otherwise.
         """
-        return row_name == self.sequence[int(col_name)-1+self.zero_index_offset]
-    
+        return row_name == self.sequence[int(col_name) - 1 + self.zero_index_offset]
+
     def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
         return row_name
 
-    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+    def _make_button_tip(
+            self,
+            row_name: str,
+            col_name: str,
+            value: float,
+            row: Optional[int] = None,
+            col: Optional[int] = None,
+            is_wt_pair: bool = False):
         """
         Constructs a tooltip for a button.
 
@@ -333,7 +344,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         """
         layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
-        font.setPointSizeF(self.button_size*0.8)
+        font.setPointSizeF(self.button_size * 0.8)
         font.setBold(True)
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
@@ -349,7 +360,11 @@ class QButtonMatrix(QtWidgets.QWidget):
                 value = self.df_matrix.iloc[row, col]
 
                 is_wt_button = self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
-                button_tip = self._make_button_tip(col_name=col_name, row_name=row_name, value=value, is_wt_pair=is_wt_button)
+                button_tip = self._make_button_tip(
+                    col_name=col_name,
+                    row_name=row_name,
+                    value=value,
+                    is_wt_pair=is_wt_button)
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
@@ -404,6 +419,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         else:
             self.report_axes_signal.emit(row, col)
 
+
 class QButtonMatrixGremlin(QButtonMatrix):
     """
     A specialized variant of QButtonMatrix for Gremlin.
@@ -418,7 +434,16 @@ class QButtonMatrixGremlin(QButtonMatrix):
     """
     label_size: Optional[List[int]] = [12, 12]
 
-    def __init__(self, df_matrix, sequence, pair_i: int, pair_j: int, parent=None, func: Optional[Callable] = None, cmap='bwr', button_size=12):
+    def __init__(
+            self,
+            df_matrix,
+            sequence,
+            pair_i: int,
+            pair_j: int,
+            parent=None,
+            func: Optional[Callable] = None,
+            cmap='bwr',
+            button_size=12):
         """
         Initializes the QButtonMatrixGremlin widget.
 
@@ -435,7 +460,6 @@ class QButtonMatrixGremlin(QButtonMatrix):
         super().__init__(df_matrix, sequence, func, parent, cmap, True, button_size)
         self.pair_i = pair_i
         self.pair_j = pair_j
-
 
     def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
         return 'WT'
@@ -455,7 +479,14 @@ class QButtonMatrixGremlin(QButtonMatrix):
         """
         return row_name == self.sequence[self.pair_i] and self.alphabet_col[col] == self.sequence[self.pair_j]
 
-    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+    def _make_button_tip(
+            self,
+            row_name: str,
+            col_name: str,
+            value: float,
+            row: Optional[int] = None,
+            col: Optional[int] = None,
+            is_wt_pair: bool = False):
         """
         Constructs a tooltip for a button in Gremlin.
 
@@ -480,7 +511,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
             if self.sequence[self.pair_j] != col_name
             else ""
         )
-        button_tip=" - ".join(t for t in [button_tip_i, button_tip_j] if t)
+        button_tip = " - ".join(t for t in [button_tip_i, button_tip_j] if t)
         return button_tip if button_tip else 'WT'
 
 

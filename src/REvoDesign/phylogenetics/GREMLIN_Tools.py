@@ -41,7 +41,7 @@ matplotlib.use("Agg")
 @dataclass
 class CoevolvedPair:
     """A data class that represents a coevolved pair of amino acids.
-    
+
     """
     # zero-indexed positions
     i: int

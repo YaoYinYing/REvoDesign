@@ -140,13 +140,13 @@ class MutantTree:
         index = tree.get_branch_index('branch_id')
         """
         return self.all_mutant_branch_ids.index(branch_id)
-    
+
     def has(self, obj: Union[str, Mutant]) -> bool:
         """
         Check if the given object exists in the instance.
 
         This function accepts an object of type string or Mutant and determines whether the object is present in the instance's mutant collection.
-        
+
         Parameters:
         - obj (Union[str, Mutant]): The object to check. It can be a string representing a mutant ID or a Mutant object.
 
@@ -156,7 +156,7 @@ class MutantTree:
         # Check if obj is a string and if it exists in all_mutant_ids
         if isinstance(obj, str):
             return obj in self.all_mutant_ids
-        
+
         # Check if obj is a Mutant and if it exists in all_mutant_objects
         return any(obj == m for m in self.all_mutant_objects)
 

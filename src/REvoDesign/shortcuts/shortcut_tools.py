@@ -106,11 +106,10 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
-from functools import partial
 import json
 import json.tool
 import os
-from dataclasses import dataclass
+from functools import partial
 from typing import Literal, Union
 
 import numpy as np
@@ -124,16 +123,16 @@ from REvoDesign.tools.mutant_tools import shorter_range
 
 from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
-from ..tools.customized_widgets import AskedValue, QButtonMatrix, dialog_wrapper
+from ..logger import root_logger
+from ..tools.customized_widgets import (AskedValue, QButtonMatrix,
+                                        dialog_wrapper)
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
                         smiles_conformer_batch, smiles_conformer_single,
                         visualize_conformer_sdf)
 
-from ..logger import root_logger
-
-logging=root_logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 
 @dialog_wrapper(
@@ -592,8 +591,8 @@ def wrapped_pssm_design(**kwargs):
     bus = ConfigBus()
     ui = bus.ui
 
-    molecule= bus.get_value('ui.header_panel.input.molecule',str, reject_none=True)
-    chain_id = bus.get_value('ui.header_panel.input.chain_id',str, reject_none=True)
+    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
+    chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)
 
     prefer_lower_score = kwargs['prefer_lower_score']
     cmap = cmap_reverser(
@@ -613,13 +612,13 @@ def wrapped_pssm_design(**kwargs):
     print(sequence)
 
     # Get residue range, if none, use full length
-    custom_indices_str: str = kwargs.get('residue_range', shorter_range([i for i,aa in enumerate(sequence) if aa!='X']))
-    
+    custom_indices_str: str = kwargs.get('residue_range', shorter_range(
+        [i for i, aa in enumerate(sequence) if aa != 'X']))
+
     custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_str.strip())
     logging.debug(f"Read:  {custom_indices_str=}")
-    custom_indices_str= ','.join([str(int(resi)) for resi in custom_indices_str.split(',')])
+    custom_indices_str = ','.join([str(int(resi)) for resi in custom_indices_str.split(',')])
     logging.debug(f"Fixed: {custom_indices_str=}")
-
 
     # Parse profile with MutantVisualizer's profile reading
     profile_parser = MutantVisualizer(molecule=molecule, chain_id=chain_id)
@@ -631,12 +630,12 @@ def wrapped_pssm_design(**kwargs):
 
     df = profile_parser.parse_profile(profile_fp=kwargs["profile"], profile_format=kwargs["profile_type"])
 
-    first_idx: Union[str,int]=df.columns.tolist()[0]
-    if  first_idx==0 or first_idx == '0':
+    first_idx: Union[str, int] = df.columns.tolist()[0]
+    if first_idx == 0 or first_idx == '0':
         logging.debug("Input profile is zero-indexed, convert to 1-indexed")
-        df.columns = df.columns.map(lambda x: int(x)+1)
+        df.columns = df.columns.map(lambda x: int(x) + 1)
     else:
-        df.columns=df.columns.map(int)
+        df.columns = df.columns.map(int)
 
     if df is None or df.empty:
         raise issues.NoResultsError(
@@ -692,7 +691,7 @@ def wrapped_pssm_design(**kwargs):
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
     def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix):
-        
+
         resn: str = matrix.alphabet_row[row]
         # one-indexed, int
         resi: int = int(matrix.alphabet_col[col])
@@ -702,7 +701,7 @@ def wrapped_pssm_design(**kwargs):
         mut_score = df.loc[resn, resi]
 
         with timing(f"Mutating picked {chain_id}{wt_res}{resi}{resn}"):
-            
+
             group_id = f'mt_manual_{wt_res}{resi}_{wt_score}'
             mutant = Mutant([Mutation(chain_id=chain_id, position=resi, wt_res=wt_res, mut_res=resn)],
                             wt_protein_sequence=designable_sequences)
@@ -737,7 +736,6 @@ def wrapped_pssm_design(**kwargs):
 
                 designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
 
-
         highlight_method_name = kwargs['view_highlight']
         if highlight_method_name == 'center':
             highlight_method = cmd.center
@@ -765,7 +763,7 @@ def wrapped_pssm_design(**kwargs):
         flip_cmap=True,
         button_size=12
     )
-    button_matrix.label_size=[18, 9]
+    button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
     button_matrix.active_func = partial(
@@ -859,7 +857,6 @@ def wrapped_pssm_design(**kwargs):
 
     # Show the window
     window.show()
-
 
     # Keep a reference so the dialog doesn't get garbage-collected prematurely
     if not hasattr(ui, 'open_windows'):

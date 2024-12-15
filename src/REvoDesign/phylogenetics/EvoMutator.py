@@ -1,3 +1,25 @@
+from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
+                                    run_worker_thread_with_progress, timing)
+from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
+                                          is_a_REvoDesign_session,
+                                          make_temperal_input_pdb)
+from REvoDesign.tools.mutant_tools import save_mutant_choices
+from REvoDesign.tools.customized_widgets import (QButtonMatrixGremlin,
+                                                 hold_trigger_button,
+                                                 refresh_window,
+                                                 set_widget_value)
+from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
+from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
+from REvoDesign.logger import root_logger
+from REvoDesign.external_designer import Magician, implemented_designers
+from REvoDesign.common.MutantVisualizer import MutantVisualizer
+from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common.Mutant import Mutant
+from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
+from REvoDesign.citations import CitationManager
+from REvoDesign.basic import IterableLoop
+from REvoDesign import ConfigBus, issues
 import asyncio
 import itertools
 import os
@@ -8,37 +30,15 @@ from functools import partial
 from typing import List, Literal, Optional, Tuple, Union
 
 import Bio.PDB.PDBParser as PDBParser
+import matplotlib
+import pandas as pd
 from immutabledict import immutabledict
 from joblib import Parallel, delayed
-import pandas as pd
 from pymol import CmdException, cmd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
-import matplotlib
 
 matplotlib.use("Agg")
 
-from REvoDesign import ConfigBus, issues
-from REvoDesign.basic import IterableLoop
-from REvoDesign.citations import CitationManager
-from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.external_designer import Magician, implemented_designers
-from REvoDesign.logger import root_logger
-from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
-from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
-from REvoDesign.sidechain_solver import SidechainSolver
-from REvoDesign.tools.customized_widgets import (QButtonMatrixGremlin,
-                                                 hold_trigger_button,
-                                                 refresh_window,
-                                                 set_widget_value)
-from REvoDesign.tools.mutant_tools import save_mutant_choices
-from REvoDesign.tools.pymol_utils import (any_posision_has_been_selected,
-                                          is_a_REvoDesign_session,
-                                          make_temperal_input_pdb)
-from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
-                                    run_worker_thread_with_progress, timing)
 
 logging = root_logger.getChild(__name__)
 
@@ -997,15 +997,15 @@ class GREMLIN_Analyser:
     def load_co_evolving_pairs(
         self,
         walk_to_next=True,
-    ): 
+    ):
         def mutate_with_gridbuttons(
-        col,
-        row,
-        matrix:pd.DataFrame,
-        min_score,
-        max_score,
-        pair: CoevolvedPair,
-        ignore_wt=False,
+            col,
+            row,
+            matrix: pd.DataFrame,
+            min_score,
+            max_score,
+            pair: CoevolvedPair,
+            ignore_wt=False,
         ):
             self.refresh_magician()
             self.picked_gremlin_group_id = "_vs_".join(
@@ -1074,8 +1074,8 @@ class GREMLIN_Analyser:
 
             # call scorer to evaluate wt and mutant
             if not self.magician.magician:
-                wt_score = matrix.loc[wt_i,wt_j]
-                mut_score = matrix.loc[mut_i,mut_j]
+                wt_score = matrix.loc[wt_i, wt_j]
+                mut_score = matrix.loc[mut_i, mut_j]
             else:
                 if self.magician.magician.no_need_to_score_wt:
                     wt_score = 0
@@ -1159,7 +1159,7 @@ class GREMLIN_Analyser:
                 {self.picked_gremlin_group_id: {mutant: mutant_obj}}
             )
             self.to_broadcaster(mutant_tree)
-            
+
         with hold_trigger_button(
             buttons=self.bus.buttons(button_ids=("previous", "next"))
         ):
@@ -1209,12 +1209,12 @@ class GREMLIN_Analyser:
                 pair_i=pair.i,
                 pair_j=pair.j,
                 cmap=self.bus.get_value("ui.header_panel.cmap.default"))
-            
-            button_matrix.alphabet_col=list("ARNDCQEGHILKMFPSTWYV-")
-            button_matrix.alphabet_row=list("ARNDCQEGHILKMFPSTWYV-")
+
+            button_matrix.alphabet_col = list("ARNDCQEGHILKMFPSTWYV-")
+            button_matrix.alphabet_row = list("ARNDCQEGHILKMFPSTWYV-")
 
             button_matrix.init_ui()
-            button_matrix.active_func=partial(
+            button_matrix.active_func = partial(
                 mutate_with_gridbuttons,
                 matrix=button_matrix.df_matrix,
                 min_score=button_matrix.min_value,
@@ -1263,8 +1263,8 @@ class GREMLIN_Analyser:
                 f" Rejecting co-evolved mutant {picked_gremlin_mutant_id}"
             )
             cmd.disable(picked_gremlin_mutant_id)
-            if ( not self.mutant_tree_coevolved.has(picked_gremlin_mutant_id)
-            ):
+            if (not self.mutant_tree_coevolved.has(picked_gremlin_mutant_id)
+                ):
                 logging.warning(
                     f"{picked_gremlin_mutant_id} has not been accepted yet. Skipped."
                 )
@@ -1310,8 +1310,8 @@ class GREMLIN_Analyser:
                 "Co-evolved pairs are not loaded. "
             )
 
-        if ( self.explored_mutant_tree.has(self.picked_gremlin_mutant)
-        ):
+        if (self.explored_mutant_tree.has(self.picked_gremlin_mutant)
+            ):
             logging.warning(
                 f"Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})"
             )
@@ -1362,7 +1362,6 @@ class GREMLIN_Analyser:
         self.magician = magician
 
         return
-
 
     def to_broadcaster(self, mutant_tree: MutantTree):
         if (

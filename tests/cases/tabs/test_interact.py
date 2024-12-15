@@ -3,7 +3,8 @@ import os
 import pytest
 from pymol import cmd
 
-from REvoDesign.tools.customized_widgets import (QButtonBrick, get_widget_value,
+from REvoDesign.tools.customized_widgets import (QButtonBrick,
+                                                 get_widget_value,
                                                  set_widget_value)
 
 from ...conftest import TestWorker

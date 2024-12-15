@@ -281,7 +281,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 value = default_value
             # Reject to raise an error
             elif reject_none:
-                # not loaded? 
+                # not loaded?
                 if self.get_value('ui.header_panel.input.molecule', None) is None:
                     notify_box(
                         "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
@@ -290,7 +290,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 # out-of-dated?
                 notify_box(
                     "This configure file might be out of date. "
-                    "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this.", 
+                    "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this.",
                     issues.ConfigureOutofDateError
                 )
                 return
@@ -497,7 +497,7 @@ class Widget2ConfigMapper:
             f"Could not find {widget_type=} and {name=} in {dir(self.ui)=} or {self.run_button_ids=} or {layouts=}"
         )
 
-    def get_button_from_id(self, button_id: str, prefix="pushButton", button_type:Any=QtWidgets.QPushButton):
+    def get_button_from_id(self, button_id: str, prefix="pushButton", button_type: Any = QtWidgets.QPushButton):
         return self.find_child(button_type, f"{prefix}_{button_id}")
 
     @property

@@ -165,7 +165,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             PWD = getExistingDirectory()
             if not PWD:
                 return
-            self.PWD=PWD
+            self.PWD = PWD
 
         os.chdir(self.PWD)
 

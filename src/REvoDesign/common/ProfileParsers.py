@@ -201,7 +201,6 @@ class PSSM_Parser(ProfileParserAbstract):
         return self.df
 
 
-
 class CSVProfileParser(ProfileParserAbstract):
     name = "CSV"
     prefer_lower = True
