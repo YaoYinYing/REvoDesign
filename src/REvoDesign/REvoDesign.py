@@ -46,9 +46,8 @@ from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.shortcuts.shortcut_tools import (menu_color_by_plddt,
                                                  menu_dump_sidechains,
-                                                 menu_pssm2csv,
                                                  menu_profile_pick_design,
-                                                 menu_real_sc,
+                                                 menu_pssm2csv, menu_real_sc,
                                                  menu_smiles_conformer_batch,
                                                  menu_smiles_conformer_single)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder

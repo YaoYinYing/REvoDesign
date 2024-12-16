@@ -568,6 +568,7 @@ def menu_smiles_conformer_batch():
 def wrapped_profile_pick_design(**kwargs):
     logging.info(kwargs)
     pick_design_from_profile(**kwargs)
-    
+
+
 def menu_profile_pick_design():
     return wrapped_profile_pick_design()

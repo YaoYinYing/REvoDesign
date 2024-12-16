@@ -148,6 +148,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
     }}
 """
 
+
 class QHoverCross(QtWidgets.QWidget):
     """
     Floating hover cross widget that visually appears over the buttons as empty rectangular boxes.

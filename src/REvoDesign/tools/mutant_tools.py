@@ -2,19 +2,18 @@
 This module contains functions for handling mutants.
 '''
 
-from functools import partial
 import json
 import os
 import re
 import time
 import warnings
+from functools import partial
 from typing import List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from Bio.Data import IUPACData
 from pymol import cmd
-
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, FileExtentions, issues
@@ -537,7 +536,8 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
     molecule = bus.get_value("ui.header_panel.input.molecule")
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
-    designable_sequences:RosettaPyProteinSequence= bus.get_value("designable_sequences", RosettaPyProteinSequence.from_dict)
+    designable_sequences: RosettaPyProteinSequence = bus.get_value(
+        "designable_sequences", RosettaPyProteinSequence.from_dict)
     sequence: str = designable_sequences.get_sequence_by_chain(chain_id)
 
     nproc = bus.get_value("ui.header_panel.nproc")
@@ -709,18 +709,17 @@ def get_mutant_table_columns(mutfile: str):
     return list(mutation_data.columns)
 
 
-
 def pick_design_from_profile(
-        profile:str,
-        profile_type:str,
-        prefer_lower_score:bool=False,
-        keep_missing:bool=True,
-        residue_range:str='',
-        view_highlight:str='orient',
-        view_highlight_nbr:int=6
-        ):
-    from RosettaPy.common.mutation import Mutation
+        profile: str,
+        profile_type: str,
+        prefer_lower_score: bool = False,
+        keep_missing: bool = True,
+        residue_range: str = '',
+        view_highlight: str = 'orient',
+        view_highlight_nbr: int = 6
+):
     from pymol.Qt import QtCore, QtWidgets  # type: ignore
+    from RosettaPy.common.mutation import Mutation
 
     from ..bootstrap.set_config import ConfigConverter
     from ..common.Mutant import Mutant
@@ -920,8 +919,8 @@ def pick_design_from_profile(
 
     window.setWindowTitle(f"Mutant Profile Matrix: {profile_type} ({profile})")
 
-    screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width() # type: ignore
-    screen_height = QtWidgets.QApplication.primaryScreen().availableGeometry().height() # type: ignore
+    screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width()  # type: ignore
+    screen_height = QtWidgets.QApplication.primaryScreen().availableGeometry().height()  # type: ignore
 
     num_cols = button_matrix.df_matrix.shape[1]  # Assuming the matrix's DataFrame determines the columns
 
@@ -937,9 +936,9 @@ def pick_design_from_profile(
     window.setMinimumSize(dynamic_width, dynamic_height)
     window.setMaximumSize(dynamic_width, dynamic_height)
     window.setToolTip(
-        f'''Click on a button to mutate the corresponding residue. 
+        f'''Click on a button to mutate the corresponding residue.
 
-Design with Profile: 
+Design with Profile:
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-
 Profile: {profile})
 Profile Type: {profile_type}
@@ -952,7 +951,7 @@ View Highlight Nbr: {view_highlight_nbr}
     )
 
     # Add a scroll area to the window
-    scroll_area = QtWidgets.QScrollArea() # type: ignore
+    scroll_area = QtWidgets.QScrollArea()  # type: ignore
     scroll_area.setWidget(button_matrix)
     scroll_area.setWidgetResizable(True)
     scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -962,19 +961,19 @@ View Highlight Nbr: {view_highlight_nbr}
     button_matrix.setContentsMargins(0, 0, 0, 0)
 
     # Adjust button size policy for a compact layout
-    for button in button_matrix.findChildren(QtWidgets.QPushButton): # type: ignore
-        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed) # type: ignore
+    for button in button_matrix.findChildren(QtWidgets.QPushButton):  # type: ignore
+        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)  # type: ignore
         button.setFixedSize(pix_per_block, pix_per_block)
 
     # Create a layout with a persistent column label row
-    main_layout = QtWidgets.QVBoxLayout() # type: ignore
+    main_layout = QtWidgets.QVBoxLayout()  # type: ignore
 
     # Add a label row for column headers
-    header_widget = QtWidgets.QWidget() # type: ignore
-    header_layout = QtWidgets.QHBoxLayout() # type: ignore
+    header_widget = QtWidgets.QWidget()  # type: ignore
+    header_layout = QtWidgets.QHBoxLayout()  # type: ignore
     header_widget.setLayout(header_layout)
 
-    banner_label = QtWidgets.QLabel( # type: ignore
+    banner_label = QtWidgets.QLabel(  # type: ignore
         f"Design with Profiles: {shorter_range(custom_indices)}"
     )
     banner_label.setWordWrap(True)
@@ -1000,7 +999,7 @@ View Highlight Nbr: {view_highlight_nbr}
 
     # Center the window on the screen
     geometry = window.frameGeometry()
-    geometry.moveCenter(QtWidgets.QApplication.primaryScreen().availableGeometry().center()) # type: ignore
+    geometry.moveCenter(QtWidgets.QApplication.primaryScreen().availableGeometry().center())  # type: ignore
     window.move(geometry.topLeft())
 
     # Ensure the window is properly destroyed
@@ -1018,4 +1017,3 @@ View Highlight Nbr: {view_highlight_nbr}
     if not hasattr(ui, 'open_windows'):
         ui.open_windows = []
     ui.open_windows.append(window)
-
