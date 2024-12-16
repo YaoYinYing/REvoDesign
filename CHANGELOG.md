@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.10] - 2024-12-16
+
 ### Added
 - `MutantTree`: 
   - `has`: check if a mutant full id of mutant obj exists.
