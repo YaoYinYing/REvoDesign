@@ -794,7 +794,7 @@ def wrapped_pssm_design(**kwargs):
     window.setMinimumSize(dynamic_width, dynamic_height)
     window.setMaximumSize(dynamic_width, dynamic_height)
     window.setToolTip(
-        f'''Design with Profile: {kwargs})\nClick on a button to mutate the corresponding residue.'''
+        f'''Click on a button to mutate the corresponding residue. </br>Design with Profile: </br>{kwargs})'''
     )
 
     # Add a scroll area to the window
