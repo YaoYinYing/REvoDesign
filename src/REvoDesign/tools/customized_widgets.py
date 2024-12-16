@@ -5,6 +5,7 @@ Custom widgets for REvoDesign.
 import json
 import os
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
@@ -391,7 +392,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                     raise issues.UnsupportedDataTypeError(
                         f'Zero-index offset is not supported for Column where {self.alphabet_col}.\n'
                         f'Expected type is int or digit string, not {type(col_name)}.') from e
-            label = QtWidgets.QLabel(col_name)
+            label = QtWidgets.QLabel(str(col_name))
             label.setFont(font)
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
@@ -965,7 +966,6 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         return ", ".join(sorted(self.checked_items))
 
 
-
 def real_bool(val: Any):
     """
     Convert the given value to its most likely boolean equivalent.
@@ -1028,6 +1028,23 @@ class AskedValueCollection:
         return any(asked.source != "None" for asked in self.asked_values)
 
     @property
+    def typing_fixed(self) -> 'AskedValueCollection':
+        """
+        Returns a new object with the `asked_values` field where each element's `val` attribute has been type-converted.
+
+        This method creates a deep copy of the current object to avoid modifying the original data.
+        It then iterates over the `asked_values` list and applies the `typing` function to each `val` attribute.
+        If the `typing` attribute is `bool`, a special `real_bool` function is used for conversion.
+
+        Returns:
+            AskedValueCollection: A new object with the type-converted `asked_values`.
+        """
+        self_mirror = deepcopy(self)
+        for asked in self_mirror.asked_values:
+            asked.val = asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val)
+        return self_mirror
+
+    @property
     def asdict(self) -> Dict[str, Any]:
         """
         Converts the collection into a dictionary where the keys are the field labels
@@ -1036,10 +1053,7 @@ class AskedValueCollection:
         Returns:
             Dict[str, Any]: A dictionary representation of the collection.
         """
-        return {
-            asked.key: asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val)
-            for asked in self.asked_values
-        }
+        return {asked.key: asked.val for asked in self.asked_values}
 
     def __bool__(self):
         """
@@ -1315,7 +1329,6 @@ class ValueDialog(QtWidgets.QDialog):
 
 
 def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
-
     dialog = ValueDialog(title, key_dict)
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return AskedValueCollection(dialog.updated_values)
@@ -1537,7 +1550,7 @@ def dialog_wrapper(
                 return
 
             # Extract values from the dialog and pass them to the wrapped function
-            func(**values.asdict)
+            func(**values.typing_fixed.asdict)
 
         return wrapper
 

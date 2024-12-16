@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `MutantTree`: 
   - `has`: check if a mutant full id of mutant obj exists.
+- tests: 
+  - `customized_widgets`:
+    - `MultiCheckableComboBox`, `real_bool`,  `AskedValue`, `AskedValueCollection`, `ValueDialog`
+    - `dialog_wrapper`: currently **untestable** since it is challenging with `QDialog` mocks and decorator tests
 
 ### Changed
 - `REvoDesigner`: `plot_custom_indices_segments`: now convert table column names to one-indexed integers.

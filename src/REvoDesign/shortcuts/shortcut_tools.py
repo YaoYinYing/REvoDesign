@@ -773,6 +773,8 @@ def wrapped_pssm_design(**kwargs):
 
     # Create a new dialog window for the button matrix
     window = QtWidgets.QWidget()  # This creates a standalone window.
+    window.setObjectName("ProfileDesignButtonMatrix")
+
     window.setWindowTitle(f"Mutant Profile Matrix: {kwargs['profile_type']} ({kwargs['profile']})")
 
     screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width()

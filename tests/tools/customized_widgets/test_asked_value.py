@@ -1,6 +1,9 @@
 import pytest
-from pymol.Qt import QtWidgets,QtCore
-from REvoDesign.tools.customized_widgets import MultiCheckableComboBox, real_bool
+from pymol.Qt import QtCore, QtWidgets
+
+from REvoDesign.tools.customized_widgets import (MultiCheckableComboBox,
+                                                 real_bool)
+
 
 @pytest.mark.parametrize("input_value, expected", [
     ("True", True),
@@ -18,10 +21,12 @@ from REvoDesign.tools.customized_widgets import MultiCheckableComboBox, real_boo
 ])
 def test_real_bool(input_value, expected):
     assert real_bool(input_value) is expected
-    
+
+
 @pytest.fixture
 def sample_asked_value_collection():
-    from REvoDesign.tools.customized_widgets import AskedValue, AskedValueCollection
+    from REvoDesign.tools.customized_widgets import (AskedValue,
+                                                     AskedValueCollection)
 
     asked_values = [
         AskedValue(key="field1", val="test", typing=str, required=True),
@@ -62,6 +67,7 @@ def test_value_dialog_initialization(qtbot, sample_asked_value_collection):
     assert dialog.table.rowCount() == 2
     assert dialog.table.columnCount() == 3
 
+
 def test_value_dialog_ok_button(qtbot, sample_asked_value_collection):
     from REvoDesign.tools.customized_widgets import ValueDialog
 
@@ -79,6 +85,7 @@ def test_value_dialog_ok_button(qtbot, sample_asked_value_collection):
     # Verify updated values
     assert len(dialog.updated_values) == 2
     assert dialog.updated_values[0].val == "updated_value"
+
 
 def test_appendable_value_dialog(qtbot):
     from REvoDesign.tools.customized_widgets import AppendableValueDialog
