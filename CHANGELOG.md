@@ -18,6 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+- Menu Profile Design:
+  - `wrapped_pssm_design` -> 
+    - `wrapped_profile_pick_design`: decorator modified wrapper only(input: `**kwargs`)
+    - `pick_design_from_profile`: the worker function, moved to `REvoDesign.tools.mutant_tools`
+    - menu entry: `menu_pssm_design` -> `menu_profile_pick_design`
+
+### Fixed
+- `mutant_tools`: 
+  - `quick_mutagenesis`: fixed out-of-dated `designable_sequences` typing as `RosettaPyProteinSequence`.
+  - `extract_mutant_from_pymol_object`: explicitly check if `mutant_score` is a None before updating mutant object with `mutant_score`.
+
+### Removed
+
 ## [1.7.10] - 2024-12-16
 
 ### Added

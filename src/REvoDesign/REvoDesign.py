@@ -46,9 +46,8 @@ from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.shortcuts.shortcut_tools import (menu_color_by_plddt,
                                                  menu_dump_sidechains,
-                                                 menu_pssm2csv,
-                                                 menu_pssm_design,
-                                                 menu_real_sc,
+                                                 menu_profile_pick_design,
+                                                 menu_pssm2csv, menu_real_sc,
                                                  menu_smiles_conformer_batch,
                                                  menu_smiles_conformer_single)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
@@ -328,7 +327,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 ),
                 MenuItem(
                     self.bus.ui.actionProfile_Design,
-                    menu_pssm_design
+                    menu_profile_pick_design
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,

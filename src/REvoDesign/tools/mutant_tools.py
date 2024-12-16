@@ -7,8 +7,10 @@ import os
 import re
 import time
 import warnings
+from functools import partial
 from typing import List, Mapping, Optional, Tuple, Union
 
+import numpy as np
 import pandas as pd
 from Bio.Data import IUPACData
 from pymol import cmd
@@ -19,9 +21,10 @@ from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign.tools.customized_widgets import QButtonMatrix
 from REvoDesign.tools.pymol_utils import is_hidden_object
 
-from .utils import get_color
+from .utils import get_color, timing
 
 logging = root_logger.getChild(__name__)
 
@@ -335,7 +338,7 @@ def expand_range(
 
 
 def extract_mutant_from_pymol_object(
-    pymol_object, sequences: RosettaPyProteinSequence
+    pymol_object: str, sequences: RosettaPyProteinSequence
 ) -> Mutant:
     """
     Extract mutant info from an existing pymol object.
@@ -375,7 +378,9 @@ def extract_mutant_from_pymol_object(
                 continue
 
     mutant_obj = Mutant(mutations=mutant_info, wt_protein_sequence=sequences)
-    mutant_obj.mutant_score = extract_mutant_score_from_string(pymol_object)
+    mutant_score = extract_mutant_score_from_string(pymol_object)
+    if mutant_score is not None:
+        mutant_obj.mutant_score = mutant_score
 
     return mutant_obj
 
@@ -531,8 +536,9 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
     molecule = bus.get_value("ui.header_panel.input.molecule")
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
-    designable_sequences: dict = bus.get_value("designable_sequences")
-    sequence: str = designable_sequences.get(chain_id)
+    designable_sequences: RosettaPyProteinSequence = bus.get_value(
+        "designable_sequences", RosettaPyProteinSequence.from_dict)
+    sequence: str = designable_sequences.get_sequence_by_chain(chain_id)
 
     nproc = bus.get_value("ui.header_panel.nproc")
 
@@ -701,3 +707,313 @@ def get_mutant_table_columns(mutfile: str):
         raise issues.UnsupportedDataTypeError(f'Unsupported file type for mutant table: {filename_ext}')
 
     return list(mutation_data.columns)
+
+
+def pick_design_from_profile(
+        profile: str,
+        profile_type: str,
+        prefer_lower_score: bool = False,
+        keep_missing: bool = True,
+        residue_range: str = '',
+        view_highlight: str = 'orient',
+        view_highlight_nbr: int = 6
+):
+    from pymol.Qt import QtCore, QtWidgets  # type: ignore
+    from RosettaPy.common.mutation import Mutation
+
+    from ..bootstrap.set_config import ConfigConverter
+    from ..common.Mutant import Mutant
+    from ..common.MutantVisualizer import MutantVisualizer
+    from ..phylogenetics.REvoDesigner import REvoDesigner
+    from ..sidechain_solver.SidechainSolver import SidechainSolver
+    from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
+                                      read_customized_indice)
+    from ..tools.utils import (cmap_reverser, get_color,
+                               run_worker_thread_with_progress)
+
+    bus = ConfigBus()
+    ui = bus.ui
+
+    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
+    chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)
+
+    cmap = cmap_reverser(
+        cmap=bus.get_value("ui.header_panel.cmap.default"),
+        reverse=prefer_lower_score,
+    )
+
+    if sequences := bus.get_value('designable_sequences', ConfigConverter.convert, reject_none=True):
+        designable_sequences = RosettaPyProteinSequence.from_dict(sequences)
+    else:
+        raise issues.NoInputError("Failed to get sequence from Config, Session or PDB file!")
+
+    print(designable_sequences)
+    sequence = designable_sequences.get_sequence_by_chain(chain_id)
+    if not keep_missing:
+        sequence = sequence.replace("X", "")
+    print(sequence)
+
+    # Get residue range, if none, use full length
+    custom_indices_str: str = residue_range if residue_range else shorter_range(
+        [i for i, aa in enumerate(sequence) if aa != 'X'])
+
+    custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_str.strip())
+    logging.debug(f"Read:  {custom_indices_str=}")
+    custom_indices_str = ','.join([str(int(resi)) for resi in custom_indices_str.split(',')])
+    logging.debug(f"Fixed: {custom_indices_str=}")
+
+    # Parse profile with MutantVisualizer's profile reading
+    profile_parser = MutantVisualizer(molecule=molecule, chain_id=chain_id)
+    profile_parser.designable_sequences = designable_sequences
+    profile_parser.sequence = sequence
+
+    if not os.path.isfile(profile):
+        raise issues.NoInputError(f"Not Found: {profile=}")
+
+    df = profile_parser.parse_profile(profile_fp=profile, profile_format=profile_type)
+
+    first_idx: Union[str, int] = df.columns.tolist()[0]
+    if first_idx == 0 or first_idx == '0':
+        logging.debug("Input profile is zero-indexed, convert to 1-indexed")
+        df.columns = df.columns.map(lambda x: int(x) + 1)
+    else:
+        df.columns = df.columns.map(int)
+
+    if df is None or df.empty:
+        raise issues.NoResultsError(
+            f"Error occurs while parsing profile {profile} with format {profile_type}"
+        )
+
+    profile_alphabet = "".join(df.T.columns.to_list())
+    logging.info(df.head())
+
+    # Call REvoDesigner to setup and plot
+    designer = REvoDesigner(profile)
+    designer.molecule = molecule
+    designer.chain_id = chain_id
+    designer.sequence = sequence
+    designer.cmap = cmap
+    designer.profile_alphabet = profile_alphabet
+    designer.pwd = os.getcwd()
+    designer.design_case = 'default'
+    designer.designable_sequences = designable_sequences
+
+    designer.mutate_runner = SidechainSolver().refresh().mutate_runner
+    designer.reject_aa = ''
+
+    max_abs = np.max((np.abs(df.values.min()), df.values.max()))
+
+    cutoff = [
+        (bus.get_value("ui.mutate.min_score", float)),
+        (bus.get_value("ui.mutate.max_score", float)),
+    ]
+
+    try:
+        designer.plot_custom_indices_segments(
+            df_ori=df,
+            custom_indices_str=custom_indices_str,
+            cutoff=cutoff,
+            preferred_substitutions='',
+        )
+
+    except KeyError as e:
+        raise issues.InvalidInputError(
+            f'A Key Error occurred due to invalid residue range({residue_range} --> {custom_indices_str}): \n{e}'
+        ) from e
+
+    custom_indices = expand_range(shortened_str=custom_indices_str, seperator=",", connector="-")
+    df_button_matrix = df.loc[:, custom_indices]
+
+    visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
+    visualizer.designable_sequences = designable_sequences
+    visualizer.cmap = cmap
+    visualizer.min_score = -max_abs
+    visualizer.max_score = max_abs
+
+    designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
+
+    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix):
+
+        resn: str = matrix.alphabet_row[row]
+        # one-indexed, int
+        resi: int = int(matrix.alphabet_col[col])
+        wt_res = sequence[resi - 1]
+
+        wt_score = df.loc[wt_res, resi]
+        mut_score = df.loc[resn, resi]
+
+        with timing(f"Mutating picked {chain_id}{wt_res}{resi}{resn}"):
+
+            group_id = f'mt_manual_{wt_res}{resi}_{wt_score}'
+            mutant = Mutant([Mutation(chain_id=chain_id, position=resi, wt_res=wt_res, mut_res=resn)],
+                            wt_protein_sequence=designable_sequences)
+            mutant.mutant_score = mut_score
+            visualizer.group_name = group_id
+
+            # build the sidechain if not existed
+            if designed_tree.has(mutant.full_mutant_id):
+                logging.info(f'{mutant} already exists in the tree')
+            else:
+                sidechain_solver = run_worker_thread_with_progress(
+                    SidechainSolver().refresh,
+                    progress_bar=bus.ui.progressBar
+                )
+                if not sidechain_solver:
+                    raise issues.InternalError("Sidechain solver failed")
+
+                visualizer.mutate_runner = sidechain_solver.mutate_runner
+                score = mutant.mutant_score
+
+                color = get_color(cmap, score, -max_abs, max_abs)
+                print(
+                    f" Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
+                )
+                run_worker_thread_with_progress(
+                    visualizer.create_mutagenesis_objects,
+                    mutant_obj=mutant,
+                    color=color,
+                    in_place=True,
+                    progress_bar=bus.ui.progressBar
+                )
+
+                designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
+
+        highlight_method_name = view_highlight
+        if highlight_method_name == 'center':
+            highlight_method = cmd.center
+        elif highlight_method_name == 'zoom':
+            highlight_method = cmd.zoom
+        elif highlight_method_name == 'orient':
+            highlight_method = cmd.orient
+        else:
+            return
+
+        if view_highlight_nbr > 0:
+            highlight_method(f'byres {mutant.full_mutant_id} around {view_highlight_nbr}', animate=1)
+        else:
+            highlight_method(mutant.full_mutant_id)
+
+    # Prepare the data for the button matrix
+
+    print(df_button_matrix.head())
+    pix_per_block = 25
+
+    button_matrix = QButtonMatrix(
+        df_matrix=df_button_matrix,
+        sequence=sequence,
+        cmap=cmap,
+        flip_cmap=True,
+        button_size=12
+    )
+    button_matrix.label_size = [18, 9]
+    button_matrix.sequence = sequence
+    button_matrix.init_ui()
+    button_matrix.active_func = partial(
+        mutate_with_gridbuttons,
+        matrix=button_matrix,
+    )
+
+    # Create a new dialog window for the button matrix
+    window = QtWidgets.QWidget()  # type: ignore # This creates a standalone window.
+    window.setObjectName("ProfileDesignButtonMatrix")
+
+    window.setWindowTitle(f"Mutant Profile Matrix: {profile_type} ({profile})")
+
+    screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width()  # type: ignore
+    screen_height = QtWidgets.QApplication.primaryScreen().availableGeometry().height()  # type: ignore
+
+    num_cols = button_matrix.df_matrix.shape[1]  # Assuming the matrix's DataFrame determines the columns
+
+    # Set window size constraints
+    # - Adjust height and width to fit available screen size dynamically
+    fixed_height = pix_per_block * 21 + 110  # 110 for the banner and spacing
+    calculated_width = pix_per_block * (num_cols + 1)
+    max_width = min(calculated_width, screen_width - 20)
+
+    # Adjust height and width dynamically to ensure no scrollbars are necessary
+    dynamic_width = min(max_width, screen_width)
+    dynamic_height = min(fixed_height, screen_height)
+    window.setMinimumSize(dynamic_width, dynamic_height)
+    window.setMaximumSize(dynamic_width, dynamic_height)
+    window.setToolTip(
+        f'''Click on a button to mutate the corresponding residue.
+
+Design with Profile:
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-
+Profile: {profile})
+Profile Type: {profile_type}
+Residue Range: {residue_range}
+Prefer Lower Score: {prefer_lower_score}
+Keep Missing Residues: {keep_missing}
+View Highlight: {view_highlight}
+View Highlight Nbr: {view_highlight_nbr}
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-'''
+    )
+
+    # Add a scroll area to the window
+    scroll_area = QtWidgets.QScrollArea()  # type: ignore
+    scroll_area.setWidget(button_matrix)
+    scroll_area.setWidgetResizable(True)
+    scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+    scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  # Disable vertical scrollbar
+
+    # Remove extra padding or margins to make buttons compact
+    button_matrix.setContentsMargins(0, 0, 0, 0)
+
+    # Adjust button size policy for a compact layout
+    for button in button_matrix.findChildren(QtWidgets.QPushButton):  # type: ignore
+        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)  # type: ignore
+        button.setFixedSize(pix_per_block, pix_per_block)
+
+    # Create a layout with a persistent column label row
+    main_layout = QtWidgets.QVBoxLayout()  # type: ignore
+
+    # Add a label row for column headers
+    header_widget = QtWidgets.QWidget()  # type: ignore
+    header_layout = QtWidgets.QHBoxLayout()  # type: ignore
+    header_widget.setLayout(header_layout)
+
+    banner_label = QtWidgets.QLabel(  # type: ignore
+        f"Design with Profiles: {shorter_range(custom_indices)}"
+    )
+    banner_label.setWordWrap(True)
+    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    banner_label.setStyleSheet(
+        """
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        """
+    )
+    header_layout.addWidget(banner_label)
+
+    main_layout.addWidget(header_widget)
+    main_layout.addWidget(scroll_area)
+
+    # Set layout for the main window
+    window.setLayout(main_layout)
+
+    # Center the window on the screen
+    geometry = window.frameGeometry()
+    geometry.moveCenter(QtWidgets.QApplication.primaryScreen().availableGeometry().center())  # type: ignore
+    window.move(geometry.topLeft())
+
+    # Ensure the window is properly destroyed
+    def cleanup_window():
+        if hasattr(ui, 'open_windows') and window in ui.open_windows:
+            ui.open_windows.remove(window)
+        print("Window destroyed and cleaned up.")
+
+    window.destroyed.connect(cleanup_window)
+
+    # Show the window
+    window.show()
+
+    # Keep a reference so the dialog doesn't get garbage-collected prematurely
+    if not hasattr(ui, 'open_windows'):
+        ui.open_windows = []
+    ui.open_windows.append(window)

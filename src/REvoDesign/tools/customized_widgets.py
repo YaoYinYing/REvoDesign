@@ -151,56 +151,86 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
 
 class QHoverCross(QtWidgets.QWidget):
     """
-    Floating hover cross widget that visually appears over the buttons without blocking mouse events.
+    Floating hover cross widget that visually appears over the buttons as empty rectangular boxes.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, button_size: int, parent=None):
+        """
+        Initializes the hover cross.
+
+        Args:
+            button_size (int): Size of the button (width and height).
+            parent: Parent widget.
+        """
         super().__init__(parent)
 
-        # Enable transparent background and mouse event passthrough
+        # Allow mouse events to pass through and enable background transparency
         self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
-        self.line_thickness = 4  # Thickness for better visibility
-        self.hover_position = None  # Store the current hover center position
+        # Rectangle sizes
+        self.button_size = button_size
+        self.hover_position = None  # Hovered button geometry
+        self.edge_width = 2  # Adjust edge width to a moderate thickness
 
     def update_position(self, button_rect: QtCore.QRect):
         """
-        Update the hover cross position to align with the hovered button.
+        Updates the hover rectangles' position based on the hovered button.
 
         Args:
             button_rect (QRect): Geometry of the hovered button.
         """
-        self.hover_position = button_rect.center()
-        self.raise_()  # Ensure hover widget renders on top
-        self.update()  # Trigger a repaint
+        self.hover_position = button_rect
+        self.raise_()  # Ensure the hover widget renders on top
+        self.update()
         self.show()
 
     def hide_hover(self):
-        """Hide the hover cross when leaving a button."""
+        """Hides the hover rectangles."""
         self.hover_position = None
         self.update()
         self.hide()
 
     def paintEvent(self, event):
-        """Custom paint event to draw the hover cross as an overlay."""
+        """
+        Paints empty rectangular boxes as hover indicators for row and column.
+
+        Rectangles:
+            - Horizontal rectangle: spans horizontally across the widget.
+            - Vertical rectangle: spans vertically across the widget.
+        """
         if not self.hover_position:
-            return  # Nothing to draw if no hover position
+            return  # Nothing to paint if no position exists
 
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
-        # Draw hover cross lines with high Z-order
-        pen = QtGui.QPen(QtGui.QColor("red"), self.line_thickness)
+        # Define rectangle pen (moderate edge width, transparent fill)
+        pen = QtGui.QPen(QtGui.QColor("red"), self.edge_width)  # Red border
         painter.setPen(pen)
+        painter.setBrush(QtCore.Qt.NoBrush)  # Transparent inside
 
-        center_x = self.hover_position.x()
-        center_y = self.hover_position.y()
+        button_width = self.button_size
+        button_height = self.button_size
 
-        # Draw horizontal and vertical lines
-        painter.drawLine(0, center_y, self.width(), center_y)  # Horizontal line
-        painter.drawLine(center_x, 0, center_x, self.height())  # Vertical line
+        # Get center position
+        center_x = self.hover_position.center().x()
+        center_y = self.hover_position.center().y()
+
+        # Horizontal rectangle: full width, centered at button
+        horizontal_rect = QtCore.QRect(
+            0, center_y - button_height // 2, self.width(), button_height
+        )
+
+        # Vertical rectangle: full height, centered at button
+        vertical_rect = QtCore.QRect(
+            center_x - button_width // 2, 0, button_width, self.height()
+        )
+
+        # Draw the empty rectangles
+        painter.drawRect(horizontal_rect)
+        painter.drawRect(vertical_rect)
 
 
 class QButtonMatrix(QtWidgets.QWidget):
@@ -300,6 +330,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         flip_cmap: bool = False,
         button_size=12,
         zero_index_offset=0,
+        scroll_x: bool = False,
     ):
         """
         Initializes the QButtonMatrix widget.
@@ -317,17 +348,17 @@ class QButtonMatrix(QtWidgets.QWidget):
         from REvoDesign.tools.utils import cmap_reverser
 
         super().__init__(parent)
-        # Stacked layout to ensure layers
+        # Stacked layout for hover cross above the button grid
         self.main_layout = QtWidgets.QStackedLayout(self)
         self.main_layout.setStackingMode(QtWidgets.QStackedLayout.StackAll)
 
-        # Matrix widget for buttons
+        # Button grid layout
         self.matrix_widget = QtWidgets.QWidget()
         self.button_layout = QtWidgets.QGridLayout()
         self.matrix_widget.setLayout(self.button_layout)
 
-        # Hover cross overlay
-        self.hover_cross = QHoverCross(self)
+        # Hover cross with rectangular boxes
+        self.hover_cross = QHoverCross(button_size, self)
 
         # Add widgets to the stacked layout
         self.main_layout.addWidget(self.matrix_widget)  # Button layer
