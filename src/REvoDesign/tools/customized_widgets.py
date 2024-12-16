@@ -71,6 +71,9 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         button_name: Constructs the unique object name for the button.
         style_sheet: Generates the CSS styling for the button.
     """
+    hover_signal = QtCore.pyqtSignal(int, int)
+    leave_signal = QtCore.pyqtSignal()
+
 
     def __init__(
         self,
@@ -104,7 +107,17 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         self.setText(label)
         self.setToolTip(tooltip_text)
         self.setSizePolicy(size_policy)
-        # self.setContentsMargins(0, 0, 0, 0)
+        self.setMouseTracking(True)  # Enable mouse tracking for hover events.
+
+    def enterEvent(self, event):
+        """Trigger when mouse enters the button."""
+        self.hover_signal.emit(self.coords.row, self.coords.col)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        """Trigger when mouse leaves the button."""
+        self.leave_signal.emit()
+        super().leaveEvent(event)
 
     @property
     def button_name(self) -> str:
@@ -135,6 +148,59 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         border: 1px solid white;
     }}
 """
+class QHoverCross(QtWidgets.QWidget):
+    """
+    Floating hover cross widget that visually appears over the buttons without blocking mouse events.
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Enable transparent background and mouse event passthrough
+        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+
+        self.line_thickness = 4  # Thickness for better visibility
+        self.hover_position = None  # Store the current hover center position
+
+    def update_position(self, button_rect: QtCore.QRect):
+        """
+        Update the hover cross position to align with the hovered button.
+
+        Args:
+            button_rect (QRect): Geometry of the hovered button.
+        """
+        self.hover_position = button_rect.center()
+        self.raise_()  # Ensure hover widget renders on top
+        self.update()  # Trigger a repaint
+        self.show()
+
+    def hide_hover(self):
+        """Hide the hover cross when leaving a button."""
+        self.hover_position = None
+        self.update()
+        self.hide()
+
+    def paintEvent(self, event):
+        """Custom paint event to draw the hover cross as an overlay."""
+        if not self.hover_position:
+            return  # Nothing to draw if no hover position
+
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        # Draw hover cross lines with high Z-order
+        pen = QtGui.QPen(QtGui.QColor("red"), self.line_thickness)
+        painter.setPen(pen)
+
+        center_x = self.hover_position.x()
+        center_y = self.hover_position.y()
+
+        # Draw horizontal and vertical lines
+        painter.drawLine(0, center_y, self.width(), center_y)  # Horizontal line
+        painter.drawLine(center_x, 0, center_x, self.height())  # Vertical line
+
 
 
 class QButtonMatrix(QtWidgets.QWidget):
@@ -251,6 +317,23 @@ class QButtonMatrix(QtWidgets.QWidget):
         from REvoDesign.tools.utils import cmap_reverser
 
         super().__init__(parent)
+        # Stacked layout to ensure layers
+        self.main_layout = QtWidgets.QStackedLayout(self)
+        self.main_layout.setStackingMode(QtWidgets.QStackedLayout.StackAll)
+
+        # Matrix widget for buttons
+        self.matrix_widget = QtWidgets.QWidget()
+        self.button_layout = QtWidgets.QGridLayout()
+        self.matrix_widget.setLayout(self.button_layout)
+
+        # Hover cross overlay
+        self.hover_cross = QHoverCross(self)
+
+        # Add widgets to the stacked layout
+        self.main_layout.addWidget(self.matrix_widget)  # Button layer
+        self.main_layout.addWidget(self.hover_cross)    # Hover cross layer
+
+
 
         self.button_size = button_size
         self.sequence = sequence
@@ -269,6 +352,21 @@ class QButtonMatrix(QtWidgets.QWidget):
             reverse=flip_cmap,
         )
         self.colormap = plt.get_cmap(cmap)
+
+    def on_hover(self, row: int, col: int):
+        """
+        Update the hover cross position when hovering over a button.
+        """
+        button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
+        if button:
+            self.hover_cross.update_position(button.geometry())
+
+    def on_leave(self):
+        """
+        Hide the hover cross when the mouse leaves a button.
+        """
+        self.hover_cross.hide_hover()
+    
 
     def _map_value_to_color(self, value):
         """
@@ -343,7 +441,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         """
         Initializes the user interface by creating buttons and labels based on the matrix and sequence.
         """
-        layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
         font.setPointSizeF(self.button_size * 0.8)
         font.setBold(True)
@@ -356,7 +453,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
 
-            layout.addWidget(label, row, 0, QtCore.Qt.AlignRight)
+            self.button_layout.addWidget(label, row, 0, QtCore.Qt.AlignRight)
             for col, col_name in enumerate(self.alphabet_col):
                 value = self.df_matrix.iloc[row, col]
 
@@ -366,6 +463,8 @@ class QButtonMatrix(QtWidgets.QWidget):
                     row_name=row_name,
                     value=value,
                     is_wt_pair=is_wt_button)
+                
+                # new button
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
@@ -375,14 +474,21 @@ class QButtonMatrix(QtWidgets.QWidget):
                     size_policy=size_policy,
                 )
 
+                # set style
                 bfont = QtGui.QFont()
                 bfont.setPointSizeF(self.button_size * .9)
                 bfont.setBold(True)
-
                 button.setFont(bfont)
 
+                # Connect hover signals
+                button.hover_signal.connect(self.on_hover)
+                button.leave_signal.connect(self.on_leave)
+
+                # connect click signals
                 button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
-                layout.addWidget(button, row, col + 1)
+
+                #add to layout
+                self.button_layout.addWidget(button, row, col + 1)
 
         for col, col_name in enumerate(self.alphabet_col):
             if self.zero_index_offset:
@@ -396,11 +502,7 @@ class QButtonMatrix(QtWidgets.QWidget):
             label.setFont(font)
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
-            layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-
-        self.setLayout(layout)
-        logging.debug("Matrix button matrix initialized.")
-        logging.debug(layout)
+            self.button_layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
     def signal_process(self, row, col):
         """
