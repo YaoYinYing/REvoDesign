@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+- Menu Profile Design:
+  - `wrapped_pssm_design` -> 
+    - `wrapped_profile_pick_design`: decorator modified wrapper only(input: `**kwargs`)
+    - `pick_design_from_profile`: the worker function, moved to `REvoDesign.tools.mutant_tools`
+
+### Fixed
+
+### Removed
+
 ## [1.7.10] - 2024-12-16
 
 ### Added
