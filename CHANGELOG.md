@@ -18,6 +18,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `MutantTree`: 
+  - `has`: check if a mutant full id of mutant obj exists.
+- tests: 
+  - `customized_widgets`:
+    - `MultiCheckableComboBox`, `real_bool`,  `AskedValue`, `AskedValueCollection`, `ValueDialog`
+    - `dialog_wrapper`: currently **untestable** since it is challenging with `QDialog` mocks and decorator tests
+
+### Changed
+- `REvoDesigner`: `plot_custom_indices_segments`: now convert table column names to one-indexed integers.
+
+### Fixed
+
+- Profile Design:
+  - fixed index error
+- main plugin:
+  - fixed work directory setup if an empty string is passed in.
+- typo:
+  - `FileDialog`: `register_file_dialof_buttons` -> `register_file_dialog_buttons`
+- `ConfigBus`: fixed notification on non-loaded config. This distinguishes from the case where the config is out-of-dated.
+
+### Removed
+
 ## [1.7.9] - 2024-12-13
 
 ### Added

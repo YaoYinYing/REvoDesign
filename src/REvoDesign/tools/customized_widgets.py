@@ -5,6 +5,7 @@ Custom widgets for REvoDesign.
 import json
 import os
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
@@ -15,11 +16,13 @@ import numpy as np
 import pandas as pd
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
+from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import FileExtentions
 from REvoDesign.logger import root_logger
 
-from .package_manager import WorkerThread, decide, hold_trigger_button, notify_box, refresh_window
+from .package_manager import (WorkerThread, decide, hold_trigger_button,
+                              notify_box, refresh_window)
 
 logging = root_logger.getChild(__name__)
 
@@ -54,6 +57,7 @@ class ButtonCoords:
     col: int
     col_name: str
 
+
 class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
     """
     Custom QPushButton subclass representing a button in a matrix.
@@ -67,6 +71,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         button_name: Constructs the unique object name for the button.
         style_sheet: Generates the CSS styling for the button.
     """
+
     def __init__(
         self,
         coords: ButtonCoords,
@@ -99,6 +104,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         self.setText(label)
         self.setToolTip(tooltip_text)
         self.setSizePolicy(size_policy)
+        # self.setContentsMargins(0, 0, 0, 0)
 
     @property
     def button_name(self) -> str:
@@ -129,6 +135,7 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         border: 1px solid white;
     }}
 """
+
 
 class QButtonMatrix(QtWidgets.QWidget):
     """
@@ -201,18 +208,18 @@ class QButtonMatrix(QtWidgets.QWidget):
         ```
 
     Notes:
-    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles 
-        by encapsulating logic within the widget. It ensures centralized management 
-        of button actions and allows for features like holding or freezing the trigger 
+    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles
+        by encapsulating logic within the widget. It ensures centralized management
+        of button actions and allows for features like holding or freezing the trigger
         button during execution.
-    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices, 
-        leveraging the signal-slot mechanism to decouple button actions from widget 
-        logic. Ideal for integrating into larger PyQt applications where events are 
+    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices,
+        leveraging the signal-slot mechanism to decouple button actions from widget
+        logic. Ideal for integrating into larger PyQt applications where events are
         handled externally.
 
     """
 
-    label_size: Optional[List[int]] = [24, 12]
+    label_size: Optional[List[int]] = [18, 12]
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -249,7 +256,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         self.sequence = sequence
         self.active_func = func
         self.df_matrix = df_matrix.copy()
-        self.zero_index_offset=zero_index_offset
+        self.zero_index_offset = zero_index_offset
 
         self.alphabet_row = self.df_matrix.index.tolist()
         self.alphabet_col = self.df_matrix.columns.tolist()
@@ -303,9 +310,19 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             bool: True if the button represents a WT pair, False otherwise.
         """
-        return row_name == self.sequence[int(col_name)]
+        return row_name == self.sequence[int(col_name) - 1 + self.zero_index_offset]
 
-    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+    def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
+        return row_name
+
+    def _make_button_tip(
+            self,
+            row_name: str,
+            col_name: str,
+            value: float,
+            row: Optional[int] = None,
+            col: Optional[int] = None,
+            is_wt_pair: bool = False):
         """
         Constructs a tooltip for a button.
 
@@ -320,7 +337,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             str: Tooltip text for the button.
         """
-        return f"{self.sequence[int(col_name)]}{str(int(col_name) + 1)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+        return f"{self.sequence[int(col_name)-1+self.zero_index_offset]}{str(int(col_name) + self.zero_index_offset)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
     def init_ui(self):
         """
@@ -328,7 +345,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         """
         layout = QtWidgets.QGridLayout()
         font = QtGui.QFont()
-        font.setPointSize(self.button_size)
+        font.setPointSizeF(self.button_size * 0.8)
         font.setBold(True)
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
@@ -339,16 +356,20 @@ class QButtonMatrix(QtWidgets.QWidget):
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
 
-            layout.addWidget(label, row, 0, QtCore.Qt.AlignLeft)
+            layout.addWidget(label, row, 0, QtCore.Qt.AlignRight)
             for col, col_name in enumerate(self.alphabet_col):
                 value = self.df_matrix.iloc[row, col]
 
                 is_wt_button = self.is_wt_button(row_name=row_name, col_name=col_name, row=row, col=col)
-                button_tip = self._make_button_tip(col_name=col_name, row_name=row_name, value=value, is_wt_pair=is_wt_button)
+                button_tip = self._make_button_tip(
+                    col_name=col_name,
+                    row_name=row_name,
+                    value=value,
+                    is_wt_pair=is_wt_button)
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
-                    label="&WT" if is_wt_button else None,
+                    label=f"&{self.get_WT_label( row_name, col_name, row, col)}" if is_wt_button else None,
                     tooltip_text=button_tip,
                     is_wt=is_wt_button,
                     size_policy=size_policy,
@@ -365,12 +386,17 @@ class QButtonMatrix(QtWidgets.QWidget):
 
         for col, col_name in enumerate(self.alphabet_col):
             if self.zero_index_offset:
-                col_name = str(int(col_name)- self.zero_index_offset)
-            label = QtWidgets.QLabel(col_name)
+                try:
+                    col_name = str(int(col_name) - self.zero_index_offset)
+                except ValueError as e:
+                    raise issues.UnsupportedDataTypeError(
+                        f'Zero-index offset is not supported for Column where {self.alphabet_col}.\n'
+                        f'Expected type is int or digit string, not {type(col_name)}.') from e
+            label = QtWidgets.QLabel(str(col_name))
             label.setFont(font)
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
-            layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop)
+            layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
         self.setLayout(layout)
         logging.debug("Matrix button matrix initialized.")
@@ -394,6 +420,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         else:
             self.report_axes_signal.emit(row, col)
 
+
 class QButtonMatrixGremlin(QButtonMatrix):
     """
     A specialized variant of QButtonMatrix for Gremlin.
@@ -408,7 +435,16 @@ class QButtonMatrixGremlin(QButtonMatrix):
     """
     label_size: Optional[List[int]] = [12, 12]
 
-    def __init__(self, df_matrix, sequence, pair_i: int, pair_j: int, parent=None, func: Optional[Callable] = None, cmap='bwr', button_size=12):
+    def __init__(
+            self,
+            df_matrix,
+            sequence,
+            pair_i: int,
+            pair_j: int,
+            parent=None,
+            func: Optional[Callable] = None,
+            cmap='bwr',
+            button_size=12):
         """
         Initializes the QButtonMatrixGremlin widget.
 
@@ -426,6 +462,9 @@ class QButtonMatrixGremlin(QButtonMatrix):
         self.pair_i = pair_i
         self.pair_j = pair_j
 
+    def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
+        return 'WT'
+
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
         """
         Determines if a button corresponds to a wild type (WT) pair for Gremlin.
@@ -441,7 +480,14 @@ class QButtonMatrixGremlin(QButtonMatrix):
         """
         return row_name == self.sequence[self.pair_i] and self.alphabet_col[col] == self.sequence[self.pair_j]
 
-    def _make_button_tip(self, row_name: str, col_name: str, value: float, row: Optional[int] = None, col: Optional[int] = None, is_wt_pair: bool = False):
+    def _make_button_tip(
+            self,
+            row_name: str,
+            col_name: str,
+            value: float,
+            row: Optional[int] = None,
+            col: Optional[int] = None,
+            is_wt_pair: bool = False):
         """
         Constructs a tooltip for a button in Gremlin.
 
@@ -466,7 +512,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
             if self.sequence[self.pair_j] != col_name
             else ""
         )
-        button_tip=" - ".join(t for t in [button_tip_i, button_tip_j] if t)
+        button_tip = " - ".join(t for t in [button_tip_i, button_tip_j] if t)
         return button_tip if button_tip else 'WT'
 
 
@@ -917,7 +963,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
 
     def currentText(self) -> str:
         """Override to show a comma-separated list of selected items."""
-        return ", ".join(self.checked_items)
+        return ", ".join(sorted(self.checked_items))
 
 
 def real_bool(val: Any):
@@ -982,6 +1028,23 @@ class AskedValueCollection:
         return any(asked.source != "None" for asked in self.asked_values)
 
     @property
+    def typing_fixed(self) -> 'AskedValueCollection':
+        """
+        Returns a new object with the `asked_values` field where each element's `val` attribute has been type-converted.
+
+        This method creates a deep copy of the current object to avoid modifying the original data.
+        It then iterates over the `asked_values` list and applies the `typing` function to each `val` attribute.
+        If the `typing` attribute is `bool`, a special `real_bool` function is used for conversion.
+
+        Returns:
+            AskedValueCollection: A new object with the type-converted `asked_values`.
+        """
+        self_mirror = deepcopy(self)
+        for asked in self_mirror.asked_values:
+            asked.val = asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val)
+        return self_mirror
+
+    @property
     def asdict(self) -> Dict[str, Any]:
         """
         Converts the collection into a dictionary where the keys are the field labels
@@ -990,10 +1053,7 @@ class AskedValueCollection:
         Returns:
             Dict[str, Any]: A dictionary representation of the collection.
         """
-        return {
-            asked.key: asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val)
-            for asked in self.asked_values
-        }
+        return {asked.key: asked.val for asked in self.asked_values}
 
     def __bool__(self):
         """
@@ -1092,7 +1152,9 @@ class ValueDialog(QtWidgets.QDialog):
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
+        ok_button.setObjectName("OK")
         cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.setObjectName("Cancel")
         ok_button.clicked.connect(self._on_ok_clicked)
         cancel_button.clicked.connect(self.reject)
 
@@ -1267,7 +1329,6 @@ class ValueDialog(QtWidgets.QDialog):
 
 
 def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
-
     dialog = ValueDialog(title, key_dict)
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return AskedValueCollection(dialog.updated_values)
@@ -1322,7 +1383,9 @@ class AppendableValueDialog(QtWidgets.QDialog):
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
+        ok_button.setObjectName("OK")
         cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.setObjectName("Cancel")
         ok_button.clicked.connect(self._on_ok_clicked)
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(ok_button)
@@ -1487,7 +1550,7 @@ def dialog_wrapper(
                 return
 
             # Extract values from the dialog and pass them to the wrapped function
-            func(**values.asdict)
+            func(**values.typing_fixed.asdict)
 
         return wrapper
 

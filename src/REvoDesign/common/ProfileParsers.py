@@ -184,6 +184,10 @@ class PSSM_Parser(ProfileParserAbstract):
         df_pssm_raw = self.convert_PSSM_file_to_df(
             input_pssm_file=self.profile_input
         )
+
+        # Explanation: Add 1 to each column index to convert to one-indexing
+        df_pssm_raw.columns = [col + 1 for col in range(len(df_pssm_raw.columns))]
+
         csv_fp = os.path.join(
             os.path.dirname(self.profile_input), f"{self.profile_input_bn}.csv"
         )

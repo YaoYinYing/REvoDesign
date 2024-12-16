@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from REvoDesign.citations.citation_manager import (CitableModuleAbstract,
-                                                  CitationManager)
+                                                   CitationManager)
 
 
 @contextmanager

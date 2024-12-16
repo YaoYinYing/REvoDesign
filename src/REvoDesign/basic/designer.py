@@ -72,7 +72,7 @@ class ExternalDesignerAbstract(CitableModuleAbstract):
 
     def scorer(
         self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
-    )-> float:
+    ) -> float:
         """
         Abstract method to evaluate or score a given sequence design.
         Determines the quality or fitness of the designed sequence.

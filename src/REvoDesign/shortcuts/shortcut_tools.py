@@ -106,11 +106,11 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
-from functools import partial
 import json
+import json.tool
 import os
-from dataclasses import dataclass
-from typing import Literal
+from functools import partial
+from typing import Literal, Union
 
 import numpy as np
 import pandas as pd
@@ -123,12 +123,16 @@ from REvoDesign.tools.mutant_tools import shorter_range
 
 from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
-from ..tools.customized_widgets import AskedValue, QButtonMatrix, dialog_wrapper
+from ..logger import root_logger
+from ..tools.customized_widgets import (AskedValue, QButtonMatrix,
+                                        dialog_wrapper)
 from ..tools.pymol_utils import get_all_groups
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
                         smiles_conformer_batch, smiles_conformer_single,
                         visualize_conformer_sdf)
+
+logging = root_logger.getChild(__name__)
 
 
 @dialog_wrapper(
@@ -533,6 +537,12 @@ def menu_smiles_conformer_batch():
             choices=CallableGroupValues.list_all_profile_parsers
         ),
         AskedValue(
+            'prefer_lower_score',
+            False,
+            bool,
+            'Whether to prefer lower score. Usefule when design with ddg data. Default is False.',
+        ),
+        AskedValue(
             'keep_missing',
             True,
             bool,
@@ -540,9 +550,9 @@ def menu_smiles_conformer_batch():
         ),
         AskedValue(
             'residue_range',
-            '50-60,100-120',
+            '',
             str,
-            'Residue range to be shown, plotted and designed.'
+            'Residue range to be shown, plotted and designed. Can be comma-separated digits, or textfile path. Default is empty for the full length sequence.'
             'Note that IndexOutOfRangeError will be raised if the range is not valid (on residue index where aa is `X`).',
             required=False,
             source='File'
@@ -573,47 +583,42 @@ def wrapped_pssm_design(**kwargs):
     from ..sidechain_solver.SidechainSolver import SidechainSolver
     from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
                                       read_customized_indice)
-    from ..tools.pymol_utils import (get_molecule_sequence,
-                                     make_temperal_input_pdb)
     from ..tools.utils import (cmap_reverser, get_color,
                                run_worker_thread_with_progress)
 
-    print(kwargs)
+    logging.info(kwargs)
 
     bus = ConfigBus()
     ui = bus.ui
 
-    molecule: str = bus.get_value('ui.header_panel.input.molecule',str, reject_none=True)
-    chain_id: str = bus.get_value('ui.header_panel.input.chain_id',str, reject_none=True)
+    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
+    chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)
 
-    reversed_mutant_effect = bus.get_value("ui.header_panel.cmap.reverse_score")
+    prefer_lower_score = kwargs['prefer_lower_score']
     cmap = cmap_reverser(
         cmap=bus.get_value("ui.header_panel.cmap.default"),
-        reverse=reversed_mutant_effect,
+        reverse=prefer_lower_score,
     )
 
-    if sequences := bus.get_value('designable_sequences', reject_none=True):
-        designable_sequences = RosettaPyProteinSequence.from_dict(ConfigConverter.convert(sequences))
-    elif sequences := get_molecule_sequence(molecule, chain_id, keep_missing=kwargs.get('keep_missing', True)):
-        designable_sequences = RosettaPyProteinSequence.from_dict({chain_id: sequences})
-    elif pdb := make_temperal_input_pdb(molecule, chain_id, reload=False):
-        designable_sequences = RosettaPyProteinSequence.from_pdb(pdb)
+    if sequences := bus.get_value('designable_sequences', ConfigConverter.convert, reject_none=True):
+        designable_sequences = RosettaPyProteinSequence.from_dict(sequences)
     else:
         raise issues.NoInputError("Failed to get sequence from Config, Session or PDB file!")
 
     print(designable_sequences)
     sequence = designable_sequences.get_sequence_by_chain(chain_id)
     if not kwargs.get('keep_missing'):
-        sequence = sequence.replace("-", "")
+        sequence = sequence.replace("X", "")
     print(sequence)
 
     # Get residue range, if none, use full length
-    custom_indices_str: str = kwargs.get('residue_range')
-    if not custom_indices_str:
-        custom_indices_str = f'1-{len(sequence)}'
-        print(f'Using default residue range: {custom_indices_str}')
+    custom_indices_str: str = kwargs.get('residue_range', shorter_range(
+        [i for i, aa in enumerate(sequence) if aa != 'X']))
 
     custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_str.strip())
+    logging.debug(f"Read:  {custom_indices_str=}")
+    custom_indices_str = ','.join([str(int(resi)) for resi in custom_indices_str.split(',')])
+    logging.debug(f"Fixed: {custom_indices_str=}")
 
     # Parse profile with MutantVisualizer's profile reading
     profile_parser = MutantVisualizer(molecule=molecule, chain_id=chain_id)
@@ -625,18 +630,20 @@ def wrapped_pssm_design(**kwargs):
 
     df = profile_parser.parse_profile(profile_fp=kwargs["profile"], profile_format=kwargs["profile_type"])
 
+    first_idx: Union[str, int] = df.columns.tolist()[0]
+    if first_idx == 0 or first_idx == '0':
+        logging.debug("Input profile is zero-indexed, convert to 1-indexed")
+        df.columns = df.columns.map(lambda x: int(x) + 1)
+    else:
+        df.columns = df.columns.map(int)
+
     if df is None or df.empty:
         raise issues.NoResultsError(
             f"Error occurs while parsing profile {kwargs['profile']} with format {kwargs['profile_type']}"
         )
 
     profile_alphabet = "".join(df.T.columns.to_list())
-    print(df.head())
-
-    col_name = df.columns.tolist()
-    col_name.insert(0, 0)
-    df = df.reindex(columns=col_name)
-    df[df.columns[0]] = 0
+    logging.info(df.head())
 
     # Call REvoDesigner to setup and plot
     designer = REvoDesigner(kwargs['profile'])
@@ -660,10 +667,7 @@ def wrapped_pssm_design(**kwargs):
     ]
 
     try:
-        (
-            mutation_json_fp,
-            mutation_png_fp,
-        ) = designer.plot_custom_indices_segments(
+        designer.plot_custom_indices_segments(
             df_ori=df,
             custom_indices_str=custom_indices_str,
             cutoff=cutoff,
@@ -676,9 +680,7 @@ def wrapped_pssm_design(**kwargs):
         ) from e
 
     custom_indices = expand_range(shortened_str=custom_indices_str, seperator=",", connector="-")
-    if custom_indices == []:
-        custom_indices = [resi for resi in range(1, len(sequence) + 1)]
-    df_button_matrix = df.iloc[:, custom_indices]
+    df_button_matrix = df.loc[:, custom_indices]
 
     visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
     visualizer.designable_sequences = designable_sequences
@@ -688,61 +690,66 @@ def wrapped_pssm_design(**kwargs):
 
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
-    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix, ignore_wt=False):
+    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix):
+
         resn: str = matrix.alphabet_row[row]
-        resi: int = int(matrix.alphabet_col[col + 1])
+        # one-indexed, int
+        resi: int = int(matrix.alphabet_col[col])
         wt_res = sequence[resi - 1]
 
-        wt_score = df.loc[wt_res, str(resi - 1)]
-        mut_score = df.loc[resn, str(resi - 1)]
+        wt_score = df.loc[wt_res, resi]
+        mut_score = df.loc[resn, resi]
 
-        print(f"Mutating {resn}, {resi}, ignore_wt={ignore_wt}")
+        with timing(f"Mutating picked {chain_id}{wt_res}{resi}{resn}"):
 
-        sidechain_solver = run_worker_thread_with_progress(
-            SidechainSolver().refresh,
-            progress_bar=bus.ui.progressBar
-        )
-        if not sidechain_solver:
-            raise issues.InternalError("Sidechain solver failed")
+            group_id = f'mt_manual_{wt_res}{resi}_{wt_score}'
+            mutant = Mutant([Mutation(chain_id=chain_id, position=resi, wt_res=wt_res, mut_res=resn)],
+                            wt_protein_sequence=designable_sequences)
+            mutant.mutant_score = mut_score
+            visualizer.group_name = group_id
 
-        visualizer.mutate_runner = sidechain_solver.mutate_runner
+            # build the sidechain if not existed
+            if designed_tree.has(mutant.full_mutant_id):
+                logging.info(f'{mutant} already exists in the tree')
+            else:
+                sidechain_solver = run_worker_thread_with_progress(
+                    SidechainSolver().refresh,
+                    progress_bar=bus.ui.progressBar
+                )
+                if not sidechain_solver:
+                    raise issues.InternalError("Sidechain solver failed")
 
-        group_id = f'mt_manual_{wt_res}{resi}_{wt_score}'
-        mutant = Mutant([Mutation(chain_id=chain_id, position=resi, wt_res=wt_res, mut_res=resn)],
-                        wt_protein_sequence=designable_sequences)
-        mutant.mutant_score = mut_score
-        visualizer.group_name = group_id
-        if mutant not in designed_tree.all_mutant_objects:
-            score = mutant.mutant_score
+                visualizer.mutate_runner = sidechain_solver.mutate_runner
+                score = mutant.mutant_score
 
-            color = get_color(cmap, score, -max_abs, max_abs)
-            print(
-                f" Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
-            )
-            run_worker_thread_with_progress(
-                visualizer.create_mutagenesis_objects,
-                mutant_obj=mutant,
-                color=color,
-                in_place=True,
-                progress_bar=bus.ui.progressBar
-            )
+                color = get_color(cmap, score, -max_abs, max_abs)
+                print(
+                    f" Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} with {visualizer.mutate_runner.__class__.__name__}"
+                )
+                run_worker_thread_with_progress(
+                    visualizer.create_mutagenesis_objects,
+                    mutant_obj=mutant,
+                    color=color,
+                    in_place=True,
+                    progress_bar=bus.ui.progressBar
+                )
 
-            designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
-        else:
-            print(f'{mutant} already exists in the tree')
+                designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
 
-        vhm = kwargs['view_highlight']
-        if vhm == 'center':
-            vhm_ = cmd.center
-        elif vhm == 'zoom':
-            vhm_ = cmd.zoom
-        elif vhm == 'orient':
-            vhm_ = cmd.orient
+        highlight_method_name = kwargs['view_highlight']
+        if highlight_method_name == 'center':
+            highlight_method = cmd.center
+        elif highlight_method_name == 'zoom':
+            highlight_method = cmd.zoom
+        elif highlight_method_name == 'orient':
+            highlight_method = cmd.orient
         else:
             return
 
         if kwargs['view_highlight_nbr'] > 0:
-            vhm_(f'byres {mutant.full_mutant_id} around {kwargs["view_highlight_nbr"]}', animate=1)
+            highlight_method(f'byres {mutant.full_mutant_id} around {kwargs["view_highlight_nbr"]}', animate=1)
+        else:
+            highlight_method(mutant.full_mutant_id)
 
     # Prepare the data for the button matrix
 
@@ -752,21 +759,23 @@ def wrapped_pssm_design(**kwargs):
     button_matrix = QButtonMatrix(
         df_matrix=df_button_matrix,
         sequence=sequence,
-        cmap='bwr',
-        flip_cmap=False,
-        zero_index_offset=-1,
+        cmap=cmap,
+        flip_cmap=True,
+        button_size=12
     )
+    button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
     button_matrix.active_func = partial(
         mutate_with_gridbuttons,
         matrix=button_matrix,
-        ignore_wt=False
     )
 
     # Create a new dialog window for the button matrix
     window = QtWidgets.QWidget()  # This creates a standalone window.
-    window.setWindowTitle("Mutant Profile Matrix")
+    window.setObjectName("ProfileDesignButtonMatrix")
+
+    window.setWindowTitle(f"Mutant Profile Matrix: {kwargs['profile_type']} ({kwargs['profile']})")
 
     screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width()
     screen_height = QtWidgets.QApplication.primaryScreen().availableGeometry().height()
@@ -775,7 +784,7 @@ def wrapped_pssm_design(**kwargs):
 
     # Set window size constraints
     # - Adjust height and width to fit available screen size dynamically
-    fixed_height = pix_per_block * 21 + 100  # 100 for the banner and spacing
+    fixed_height = pix_per_block * 21 + 110  # 110 for the banner and spacing
     calculated_width = pix_per_block * (num_cols + 1)
     max_width = min(calculated_width, screen_width - 20)
 
@@ -784,6 +793,9 @@ def wrapped_pssm_design(**kwargs):
     dynamic_height = min(fixed_height, screen_height)
     window.setMinimumSize(dynamic_width, dynamic_height)
     window.setMaximumSize(dynamic_width, dynamic_height)
+    window.setToolTip(
+        f'''Design with Profile: {kwargs})\nClick on a button to mutate the corresponding residue.'''
+    )
 
     # Add a scroll area to the window
     scroll_area = QtWidgets.QScrollArea()
@@ -847,16 +859,6 @@ def wrapped_pssm_design(**kwargs):
 
     # Show the window
     window.show()
-
-
-
-
-    # Comments and considerations:
-    # 1. Removed the misplaced `QGridLayout` from `QScrollArea`.
-    # 2. Set the `QScrollArea` as a direct child of the main layout to ensure proper rendering.
-    # 3. Adjusted minimum width for better usability when the matrix has fewer columns.
-    # 4. Defaulted scroll policies to `QtCore.Qt.ScrollBarAsNeeded` for simplicity and consistency.
-    # 5. Cleaned up redundant or misaligned code for clarity and maintainability.
 
     # Keep a reference so the dialog doesn't get garbage-collected prematurely
     if not hasattr(ui, 'open_windows'):
