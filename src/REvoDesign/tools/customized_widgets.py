@@ -74,7 +74,6 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
     hover_signal = QtCore.pyqtSignal(int, int)
     leave_signal = QtCore.pyqtSignal()
 
-
     def __init__(
         self,
         coords: ButtonCoords,
@@ -148,6 +147,8 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         border: 1px solid white;
     }}
 """
+
+
 class QHoverCross(QtWidgets.QWidget):
     """
     Floating hover cross widget that visually appears over the buttons without blocking mouse events.
@@ -200,7 +201,6 @@ class QHoverCross(QtWidgets.QWidget):
         # Draw horizontal and vertical lines
         painter.drawLine(0, center_y, self.width(), center_y)  # Horizontal line
         painter.drawLine(center_x, 0, center_x, self.height())  # Vertical line
-
 
 
 class QButtonMatrix(QtWidgets.QWidget):
@@ -333,8 +333,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         self.main_layout.addWidget(self.matrix_widget)  # Button layer
         self.main_layout.addWidget(self.hover_cross)    # Hover cross layer
 
-
-
         self.button_size = button_size
         self.sequence = sequence
         self.active_func = func
@@ -366,7 +364,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         Hide the hover cross when the mouse leaves a button.
         """
         self.hover_cross.hide_hover()
-    
 
     def _map_value_to_color(self, value):
         """
@@ -463,7 +460,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                     row_name=row_name,
                     value=value,
                     is_wt_pair=is_wt_button)
-                
+
                 # new button
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
@@ -487,7 +484,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                 # connect click signals
                 button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
 
-                #add to layout
+                # add to layout
                 self.button_layout.addWidget(button, row, col + 1)
 
         for col, col_name in enumerate(self.alphabet_col):
@@ -502,7 +499,8 @@ class QButtonMatrix(QtWidgets.QWidget):
             label.setFont(font)
             if hasattr(self, '_set_label_size'):
                 self._set_label_size(label)
-            self.button_layout.addWidget(label, len(self.alphabet_col), col + 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+            self.button_layout.addWidget(label, len(self.alphabet_col), col + 1,
+                                         QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
     def signal_process(self, row, col):
         """
