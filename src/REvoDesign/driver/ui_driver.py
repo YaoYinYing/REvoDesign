@@ -266,14 +266,6 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         # Retrieve the value of a configuration item
         value = OmegaConf.select(self.cfg, cfg_item)
 
-        # Default conversions for None values
-        default_conversions = {
-            str: "",
-            int: 0,
-            float: 0.0,
-            dict: {},
-        }
-
         # Handle None values
         if value is None:
             # Fall back to use default value
@@ -282,7 +274,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             # Reject to raise an error
             elif reject_none:
                 # not loaded?
-                if self.get_value('ui.header_panel.input.molecule', None) is None:
+                if not self.get_value('ui.header_panel.input.molecule', None):
                     notify_box(
                         "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
                     )

@@ -1008,7 +1008,7 @@ class GREMLIN_Analyser:
             pair: CoevolvedPair,
             ignore_wt=False,
         ):
-            self.refresh_magician()
+
             self.picked_gremlin_group_id = "_vs_".join(
                 [
                     wt.replace("_", "")
@@ -1073,6 +1073,8 @@ class GREMLIN_Analyser:
                 mutations=_mutant, wt_protein_sequence=self.designable_sequences
             )
 
+            self.refresh_magician()
+
             # call scorer to evaluate wt and mutant
             if not self.magician.magician:
                 wt_score = matrix.loc[wt_i, wt_j]
@@ -1097,8 +1099,8 @@ class GREMLIN_Analyser:
 
             self.picked_gremlin_mutant = mutant_obj
 
-            # if mutant obj exists, activate it.
-            if self.explored_mutant_tree.has(mutant_obj):
+            # if mutant obj exists, activate it and return early.
+            if self.explored_mutant_tree.has(mutant_obj.full_mutant_id):
                 logging.info(
                     f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) already exists. Do nothing."
                 )
@@ -1311,7 +1313,7 @@ class GREMLIN_Analyser:
                 "Co-evolved pairs are not loaded. "
             )
 
-        if (self.explored_mutant_tree.has(self.picked_gremlin_mutant)
+        if (self.explored_mutant_tree.has(self.picked_gremlin_mutant.full_mutant_id)
             ):
             logging.warning(
                 f"Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})"
