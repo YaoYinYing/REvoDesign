@@ -1204,6 +1204,7 @@ class AskedValueCollection:
 # 5. by given object names on the widget, it should be easier for qtbot to test with.
 # 6. widget representing value where typing == bool: use checkbox instead of ComboBox
 
+
 class ValueDialog(QtWidgets.QDialog):
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
@@ -1438,11 +1439,10 @@ class ValueDialog(QtWidgets.QDialog):
                 value = widget.get_checked_items()
             else:
                 try:
-                    value= get_widget_value(widget)
+                    value = get_widget_value(widget)
                 except Exception as e:
                     logging.error(f"Error getting value from widget {widget}: {e}")
                     raise ValueError(f"Error getting value from widget {widget}: {e}") from e
-            
 
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:

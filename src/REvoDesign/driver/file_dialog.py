@@ -18,6 +18,7 @@ IO_MODE = Literal["r", "w"]
 
 logging = root_logger.getChild(__name__)
 
+
 class FileDialog(SingletonAbstract):
     """
     FileDialog class inherits from SingletonAbstract to implement a singleton pattern for file dialog functionality.
@@ -27,13 +28,13 @@ class FileDialog(SingletonAbstract):
     def singleton_init(self, window: Optional[Any], pwd: Optional[str]):
         """
         Initializes the singleton instance of FileDialog.
-        
+
         Parameters:
         - window: Optional[Any] - The window object where the file dialog is displayed.
-        - pwd: Optional[str] - The current working directory, if not provided, defaults to the system's 
+        - pwd: Optional[str] - The current working directory, if not provided, defaults to the system's
         current working directory.
-        
-        This method initializes the file dialog with the provided window and directory, registers file 
+
+        This method initializes the file dialog with the provided window and directory, registers file
         dialog buttons, and marks the instance as initialized.
         """
         self.window = window

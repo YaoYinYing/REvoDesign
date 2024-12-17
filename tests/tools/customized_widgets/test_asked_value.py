@@ -1,9 +1,10 @@
 import pytest
 from pymol.Qt import QtCore, QtWidgets
 
-from REvoDesign.tools.customized_widgets import (MultiCheckableComboBox,
-                                                 real_bool,AskedValue,
-                                                     AskedValueCollection,ValueDialog)
+from REvoDesign.tools.customized_widgets import (AskedValue,
+                                                 AskedValueCollection,
+                                                 MultiCheckableComboBox,
+                                                 ValueDialog, real_bool)
 
 
 @pytest.mark.parametrize("input_value, expected", [
@@ -35,17 +36,18 @@ def sample_asked_value_collection():
     return AskedValueCollection(asked_values=asked_values, banner="Test Banner")
 
 
-def test_typing_fixed(sample_asked_value_collection:AskedValueCollection):
-    sample_asked_value_collection.asked_values[2].val='30'
-    fixed=sample_asked_value_collection.typing_fixed
-    assert fixed.asked_values[2].val==30
+def test_typing_fixed(sample_asked_value_collection: AskedValueCollection):
+    sample_asked_value_collection.asked_values[2].val = '30'
+    fixed = sample_asked_value_collection.typing_fixed
+    assert fixed.asked_values[2].val == 30
 
 
-def test_as_dict(sample_asked_value_collection:AskedValueCollection):
-    dict_form=sample_asked_value_collection.asdict
-    for i,asked in enumerate(sample_asked_value_collection.asked_values):
+def test_as_dict(sample_asked_value_collection: AskedValueCollection):
+    dict_form = sample_asked_value_collection.asdict
+    for i, asked in enumerate(sample_asked_value_collection.asked_values):
         assert asked.key in dict_form, f"{asked.key} should be in dict_form"
-        assert dict_form[asked.key]==asked.val, f"{asked.key} in dict form should be {asked.val}"
+        assert dict_form[asked.key] == asked.val, f"{asked.key} in dict form should be {asked.val}"
+
 
 def test_multicheckable_combobox(qtbot):
     choices = ["Option1", "Option2", "Option3"]
