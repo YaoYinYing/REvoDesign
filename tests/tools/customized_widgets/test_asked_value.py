@@ -1,8 +1,10 @@
 import pytest
 from pymol.Qt import QtCore, QtWidgets
 
-from REvoDesign.tools.customized_widgets import (MultiCheckableComboBox,
-                                                 real_bool)
+from REvoDesign.tools.customized_widgets import (AskedValue,
+                                                 AskedValueCollection,
+                                                 MultiCheckableComboBox,
+                                                 ValueDialog, real_bool)
 
 
 @pytest.mark.parametrize("input_value, expected", [
@@ -25,14 +27,26 @@ def test_real_bool(input_value, expected):
 
 @pytest.fixture
 def sample_asked_value_collection():
-    from REvoDesign.tools.customized_widgets import (AskedValue,
-                                                     AskedValueCollection)
 
     asked_values = [
         AskedValue(key="field1", val="test", typing=str, required=True),
         AskedValue(key="field2", val=42, typing=int, required=False, choices=range(0, 100)),
+        AskedValue(key="field3", val=42, typing=int, required=False, choices=(29, 30, 42,)),
     ]
     return AskedValueCollection(asked_values=asked_values, banner="Test Banner")
+
+
+def test_typing_fixed(sample_asked_value_collection: AskedValueCollection):
+    sample_asked_value_collection.asked_values[2].val = '30'
+    fixed = sample_asked_value_collection.typing_fixed
+    assert fixed.asked_values[2].val == 30
+
+
+def test_as_dict(sample_asked_value_collection: AskedValueCollection):
+    dict_form = sample_asked_value_collection.asdict
+    for i, asked in enumerate(sample_asked_value_collection.asked_values):
+        assert asked.key in dict_form, f"{asked.key} should be in dict_form"
+        assert dict_form[asked.key] == asked.val, f"{asked.key} in dict form should be {asked.val}"
 
 
 def test_multicheckable_combobox(qtbot):
@@ -55,7 +69,6 @@ def test_multicheckable_combobox(qtbot):
 
 
 def test_value_dialog_initialization(qtbot, sample_asked_value_collection):
-    from REvoDesign.tools.customized_widgets import ValueDialog
 
     dialog = ValueDialog("Test Dialog", sample_asked_value_collection)
     qtbot.addWidget(dialog)
@@ -64,12 +77,11 @@ def test_value_dialog_initialization(qtbot, sample_asked_value_collection):
     assert dialog.layout.itemAt(0).widget().text() == "Test Banner"
 
     # Verify table population
-    assert dialog.table.rowCount() == 2
+    assert dialog.table.rowCount() == 3
     assert dialog.table.columnCount() == 3
 
 
 def test_value_dialog_ok_button(qtbot, sample_asked_value_collection):
-    from REvoDesign.tools.customized_widgets import ValueDialog
 
     dialog = ValueDialog("Test Dialog", sample_asked_value_collection)
     qtbot.addWidget(dialog)
@@ -83,7 +95,7 @@ def test_value_dialog_ok_button(qtbot, sample_asked_value_collection):
     qtbot.mouseClick(dialog.layout.itemAt(2).itemAt(0).widget(), QtCore.Qt.LeftButton)
 
     # Verify updated values
-    assert len(dialog.updated_values) == 2
+    assert len(dialog.updated_values) == 3
     assert dialog.updated_values[0].val == "updated_value"
 
 

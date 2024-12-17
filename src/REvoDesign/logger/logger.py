@@ -51,7 +51,7 @@ class REvoDesignLogFormatter(python_logging.Formatter):
         fmt_keys: Union[dict[str, str], None] = None,
     ):
         super().__init__()
-        self.fmt_keys = fmt_keys if fmt_keys is not None else {}
+        self.fmt_keys = fmt_keys or {}
 
     @override
     def format(self, record: python_logging.LogRecord) -> str:

@@ -503,7 +503,7 @@ class PIPInstaller:
             pip_cmd.append("--force-reinstall")
 
         result: subprocess.CompletedProcess = run_command(
-            pip_cmd, verbose=self.verbose, env=env if env is not None else self.env)
+            pip_cmd, verbose=self.verbose, env=env or self.env)
         return result
 
     def uninstall(self, package_name: str = 'REvoDesign'):
@@ -1449,8 +1449,8 @@ class WorkerThread(QtCore.QThread):
     def __init__(self, func, args=None, kwargs=None):
         super().__init__()
         self.func = func
-        self.args = args if args is not None else ()
-        self.kwargs = kwargs if kwargs is not None else {}
+        self.args = args or ()
+        self.kwargs = kwargs or {}
         self.results = None  # Define the results attribute
 
     def run(self):

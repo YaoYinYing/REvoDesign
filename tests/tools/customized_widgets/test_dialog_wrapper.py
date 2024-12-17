@@ -5,7 +5,8 @@ from pymol.Qt import QtCore, QtWidgets
 
 from REvoDesign.tools.customized_widgets import (AskedValue,
                                                  AskedValueCollection,
-                                                 ValueDialog)
+                                                 MultiCheckableComboBox,
+                                                 ValueDialog, set_widget_value)
 
 SCREENSHOT_DIR = "screenshots/unit/value_dialog"
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
@@ -20,6 +21,11 @@ def sample_asked_value_collection():
         AskedValue(key="field1", val="default", typing=str, required=True, reason="Field 1 Reason"),
         AskedValue(key="field2", val=42, typing=int, choices=range(10, 100)),
         AskedValue(key="field3", val=True, typing=bool, required=False),
+        AskedValue(key="field4", val=1.0, typing=float, choices=(1.0, 2.5, 3.5,)),
+        AskedValue(key="field5", val='choice1', typing=str, choices=("choice1", "choice2", "choice3",)),
+        AskedValue(
+            key="field6", val='', typing=list, reason="Field 6 Reason",
+            choices=["choice1", "choice2", "choice3",]),
     ]
     return AskedValueCollection(asked_values=asked_values, banner="Sample Banner")
 
@@ -45,7 +51,10 @@ def save_screenshot(widget, name):
 @pytest.mark.parametrize("index, expected_widget_type", [
     (0, QtWidgets.QLineEdit),
     (1, QtWidgets.QSpinBox),
-    (2, QtWidgets.QComboBox),
+    (2, QtWidgets.QCheckBox),
+    (3, QtWidgets.QComboBox),
+    (4, QtWidgets.QComboBox),
+    (5, MultiCheckableComboBox),
 ])
 def test_field_widget_types(dialog, index, expected_widget_type):
     """
@@ -62,7 +71,7 @@ def test_dialog_initialization(dialog):
     """
     assert dialog.windowTitle() == "Test Dialog"
     assert dialog.layout.itemAt(0).widget().text() == "Sample Banner"
-    assert dialog.table.rowCount() == 3
+    assert dialog.table.rowCount() == 6
     save_screenshot(dialog, "dialog_initialization")
 
 
@@ -92,29 +101,33 @@ def test_required_field_validation(dialog, qtbot, monkeypatch):
     assert not dialog.result()  # Dialog should not close
 
 
-def test_valid_field_submission(dialog, qtbot):
+@pytest.mark.parametrize("index, expected_widget_type, updated_value, expected_value", [
+    (0, QtWidgets.QLineEdit, "Updated Text", "Updated Text"),
+    (1, QtWidgets.QSpinBox, 50, 50),
+    (2, QtWidgets.QCheckBox, False, False),
+    (3, QtWidgets.QComboBox, 2.5, '2.5'),
+    (4, QtWidgets.QComboBox, "choice2", "choice2"),
+    (5, MultiCheckableComboBox, ["choice2", "choice3"], ["choice2", "choice3"]),
+])
+def test_valid_field_submission(index, expected_widget_type, updated_value, expected_value, dialog, qtbot):
     """
     Tests that valid fields are correctly submitted and captures a screenshot.
     """
-    # Modify field values
-    line_edit = dialog.table.cellWidget(0, 2)
-    line_edit.setText("Updated Text")
-
-    spin_box = dialog.table.cellWidget(1, 2)
-    spin_box.setValue(50)
-
-    combo_box = dialog.table.cellWidget(2, 2)
-    combo_box.setCurrentText("False")
+    widget = dialog.table.cellWidget(index, 2)
+    assert isinstance(widget, expected_widget_type)
+    if not isinstance(widget, MultiCheckableComboBox):
+        set_widget_value(widget, updated_value)
+    else:
+        widget.set_checked_items(updated_value)
 
     # Simulate OK button click
     qtbot.mouseClick(dialog.layout.itemAt(2).itemAt(0).widget(), QtCore.Qt.LeftButton)
 
     # Verify updated values
-    assert len(dialog.updated_values) == 3
-    assert dialog.updated_values[0].val == "Updated Text"
-    assert dialog.updated_values[1].val == 50
-    assert dialog.updated_values[2].val is False
-    save_screenshot(dialog, "valid_field_submission")
+    assert len(dialog.updated_values) == 6
+    assert dialog.updated_values[index].val == expected_value
+
+    save_screenshot(dialog, f"valid_field_submission-{index}-{expected_widget_type.__name__}")
 
 
 def test_dialog_rejection(dialog, qtbot):
@@ -129,11 +142,28 @@ def test_dialog_rejection(dialog, qtbot):
     save_screenshot(dialog, "dialog_rejection")
 
 
+'''
+AskedValue(key="field1", val="default", typing=str, required=True, reason="Field 1 Reason"),
+AskedValue(key="field2", val=42, typing=int, choices=range(10, 100)),
+AskedValue(key="field3", val=True, typing=bool, required=False),
+AskedValue(key="field4", val=1.0, typing=float, choices=(1.0, 2.5, 3.5,)),
+AskedValue(key="field5", val='choice1', typing=str, choices=("choice1", "choice2", "choice3",)),
+AskedValue(key="field6", val='', typing=list, reason="Field 6 Reason", choices=["choice1", "choice2", "choice3",]),
+
+'''
+
+
 def test_field_populates_correctly(dialog):
     """
     Tests that fields are populated with the correct initial values and captures a screenshot.
     """
+
     assert dialog.table.cellWidget(0, 2).text() == "default"
     assert dialog.table.cellWidget(1, 2).value() == 42
-    assert dialog.table.cellWidget(2, 2).currentText() == "True"
+    assert dialog.table.cellWidget(2, 2).isChecked()
+    assert dialog.table.cellWidget(3, 2).currentText() == "1.0"
+    assert dialog.table.cellWidget(4, 2).currentText() == "choice1"
+    assert isinstance(widget := dialog.table.cellWidget(5, 2), MultiCheckableComboBox)
+    assert widget.get_checked_items() == []
+
     save_screenshot(dialog, "field_populates_correctly")
