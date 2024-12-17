@@ -13,27 +13,84 @@
             width: 100%;
             height: 100%;
         }
-        #saveButton {
+        .notification-container {
             position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999; /* ensure it stays on top */
         }
-        #saveButton:hover {
-            background-color: #45a049;
+
+        .notification {
+            background: #333;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 4px;
+            opacity: 0.9;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 14px;
+            max-width: 250px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
+
+        .notification:hover {
+            opacity: 1;
+        }
+
+        .notification-success {
+            background: #28a745;
+        }
+
+        .notification-error {
+            background: #dc3545;
+        }
+
+        .notification-info {
+            background: #17a2b8;
+        }
+
+        .notification.fade-out {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
     </style>
 </head>
 <body>
     <div id="container"></div>
-    <button id="saveButton">Save</button>
 
     <script>
+        function showNotification(message, type = 'info') {
+            // Create container if it doesn't exist
+            let container = document.querySelector('.notification-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.classList.add('notification-container');
+                document.body.appendChild(container);
+            }
+
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.classList.add('notification', `notification-${type}`);
+            notification.textContent = message;
+
+            // Append notification
+            container.appendChild(notification);
+
+            // Fade out and remove after a few seconds
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                notification.addEventListener('transitionend', () => {
+                    notification.remove();
+                    if (!container.hasChildNodes()) {
+                        container.remove();
+                    }
+                });
+            }, 3000);
+        }
+
         // Function to determine the language based on file extension
         function getLanguageFromFileExtension(filePath) {
             const extension = filePath.split('.').pop().toLowerCase();
@@ -119,20 +176,18 @@
                 try {
                     const response = await fetch(saveFileUrl, saveOptions);
                     if (response.ok) {
-                        alert('File saved successfully.');
+                        showNotification('File saved successfully.', 'success');
                     } else {
                         const errorText = await response.text();
-                        alert('Failed to save file.');
+                        showNotification('Failed to save file.', 'error');
                         console.error(errorText);
                     }
                 } catch (error) {
                     console.error('Error during save operation:', error);
-                    alert('Failed to save file. Check the console for details.');
+                    showNotification('Failed to save file. Check the console for details.', 'error');
                 }
-            };
 
-            // Handle Save Button Click
-            document.getElementById('saveButton').addEventListener('click', saveFile);
+            };
 
             // Handle Keyboard Shortcut
             window.addEventListener('keydown', (event) => {
