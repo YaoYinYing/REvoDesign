@@ -21,18 +21,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
 - Menu Profile Design:
   - `wrapped_pssm_design` -> 
     - `wrapped_profile_pick_design`: decorator modified wrapper only(input: `**kwargs`)
     - `pick_design_from_profile`: the worker function, moved to `REvoDesign.tools.mutant_tools`
     - menu entry: `menu_pssm_design` -> `menu_profile_pick_design`
+- ValueDialog:
+  - use `QCheckbox` for bool typing values
+- `QButtonMatrix`:
+  - Floating hover cross -> box cross
 
 ### Fixed
 - `mutant_tools`: 
   - `quick_mutagenesis`: fixed out-of-dated `designable_sequences` typing as `RosettaPyProteinSequence`.
   - `extract_mutant_from_pymol_object`: explicitly check if `mutant_score` is a None before updating mutant object with `mutant_score`.
+- Tests: `ValueDialog`: 
+  - Multiple widget types and `AskedValue` input
+  - Incorporate `MultiCheckableComboBox` usage into `ValueDialog` tests
 
 ### Removed
+
+- Some unnecessary comprehensions
+  - Pattern: `var = foo if foo is not None else bar`
+    - Replaced with `var = foo or bar`, where `bar` is a fallback value of `foo`
+  - Learned from ChatGPT's code.
+  - example:
+  
+    ```python
+    >>> d1={x:i for i,x in enumerate('elf')} # normal dict
+    >>> d2={} # empty dict
+    >>> d3=None # None
+    >>> d1 or d2
+    {'e': 0, 'l': 1, 'f': 2}
+    >>> d2 or d3
+    >>> d3 or d2
+    {}
+    >>> d2 or d3
+    >>> d3 or d2 or d1 # `d3(None:False)` -> `d2(empty:False)` -> `d1(not None|empty:True)`
+    {'e': 0, 'l': 1, 'f': 2}
+    >>> d3 or d1 or d2 # `d3(None:False)` -> `d1(not None|empty:True) -> Stop Checking`
+    {'e': 0, 'l': 1, 'f': 2}
+    ```
 
 ## [1.7.10] - 2024-12-16
 
