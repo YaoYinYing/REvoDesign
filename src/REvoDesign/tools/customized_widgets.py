@@ -1195,6 +1195,14 @@ class AskedValueCollection:
         """
         return bool(self.asked_values)
 
+# TODO: use QtWidgets.QWidget instead
+# refactor purpose: to make the code more readable, testable and maintainable
+# 1. replace class parent with QWidget
+# 2. refactor the code to fit the new QWidget
+# 3. at bottom, add a pair of ok/cancel buttons (since Qwidgets.QDialog has them while QWidget doesn't), contained with a horizontal layout
+# 4. size policy: ??? set a fixed according to the content ?
+# 5. by given object names on the widget, it should be easier for qtbot to test with.
+# 6. widget representing value where typing == bool: use checkbox instead of ComboBox
 
 class ValueDialog(QtWidgets.QDialog):
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
@@ -1349,16 +1357,18 @@ class ValueDialog(QtWidgets.QDialog):
             if asked_value.val:
                 widget.setCurrentText(str(asked_value.val))
         elif asked_value.typing == bool:
-            widget = QtWidgets.QComboBox()
-            widget.addItems(["True", "False"])
-            widget.setCurrentText(str(asked_value.val))
+            widget = QtWidgets.QCheckBox()
+            widget.setChecked(bool(asked_value.val))
+            # widget.addItems(["True", "False"])
+            # widget.setCurrentText(str(asked_value.val))
         else:
             # Default: QLineEdit
             widget = QtWidgets.QLineEdit()
-            widget.setText(str(asked_value.val) if asked_value.val is not None else "")
+            widget.setText(str(asked_value.val) or "")
             if asked_value.required:
                 widget.setPlaceholderText("Required")
 
+        widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget
         self.input_fields_data_pair[asked_value.key] = asked_value
@@ -1426,20 +1436,13 @@ class ValueDialog(QtWidgets.QDialog):
             if isinstance(widget, MultiCheckableComboBox):
                 # MultiCheckableComboBox returns a list of selected items
                 value = widget.get_checked_items()
-            elif isinstance(widget, QtWidgets.QSpinBox) or isinstance(widget, QtWidgets.QDoubleSpinBox):
-                # SpinBox or DoubleSpinBox returns a single value
-                value = widget.value()
-            elif isinstance(widget, QtWidgets.QComboBox):
-                # ComboBox returns the selected value
-                if self.input_fields_data_pair[key].typing != bool:
-                    value = widget.currentText()
-                else:
-                    value = widget.currentText() == "True"
-            elif isinstance(widget, QtWidgets.QLineEdit):
-                # LineEdit returns a single string
-                value = widget.text().strip()
             else:
-                value = None
+                try:
+                    value= get_widget_value(widget)
+                except Exception as e:
+                    logging.error(f"Error getting value from widget {widget}: {e}")
+                    raise ValueError(f"Error getting value from widget {widget}: {e}") from e
+            
 
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:
