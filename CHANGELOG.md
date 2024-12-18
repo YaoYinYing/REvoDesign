@@ -39,9 +39,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `mutant_tools`: 
   - `quick_mutagenesis`: fixed out-of-dated `designable_sequences` typing as `RosettaPyProteinSequence`.
   - `extract_mutant_from_pymol_object`: explicitly check if `mutant_score` is a None before updating mutant object with `mutant_score`.
-- Tests: `ValueDialog`: 
-  - Multiple widget types and `AskedValue` input
-  - Incorporate `MultiCheckableComboBox` usage into `ValueDialog` tests
+- Tests: 
+  - `ValueDialog`: 
+    - Multiple widget types and `AskedValue` input
+    - Incorporate `MultiCheckableComboBox` usage into `ValueDialog` tests
+  - Monaco Server:
+    - w|wo token
+    - rate limmit
+    - file whitelists
+    - xss-injection protection? 
 - **Security Vulnerability**:
   - Monaco Server:
     - Rate limiter (max 5 failed requests per minute)

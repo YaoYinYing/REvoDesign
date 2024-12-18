@@ -176,6 +176,30 @@ def test_load_file_success(use_token, mock_config_store, test_client):
     assert response.status_code == 200
     assert response.json() == {"content": "I am readonly"}
 
+@pytest.mark.parametrize(
+    "file_path, expected_status, description",
+    [
+        ("<script>alert('XSS')</script>", 404, "XSS injection with script tags"),
+        ("../unauthorized", 404, "Path traversal attempt"),
+        ("valid_file.txt", 404, "Valid file path"),
+        ("<img src=x onerror=alert('XSS')>", 404, "XSS injection with image tag"),
+        ("<svg onload=alert('XSS')>", 404, "XSS injection with SVG tag"),
+    ]
+)
+def test_editor_xss_injection(file_path, expected_status, description, test_client, mock_config_store):
+    """Test various XSS injection and path traversal attacks on the editor endpoint."""
+    reset_rate_limits()
+    cfg, token = mock_config_store
+    url = f"/editor?file_path={file_path}"
+    if token:
+        url += f"&token={token}"
+    response = test_client.get(url)
+    assert response.status_code == expected_status, description
+    if expected_status == 400:
+        assert "<script>" not in response.text, "Response should not include script tags"
+        assert "alert" not in response.text, "Response should not include alert calls"
+
+
 @pytest.mark.parametrize("use_token", [True, False])
 def test_save_file_success(use_token, mock_config_store, test_client):
     """Test the /save_file endpoint with a valid file path under both token and no-token scenarios."""
