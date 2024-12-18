@@ -33,7 +33,7 @@ def get_file_whitelist():
     """
     Retrieve the editable and readonly file whitelists.
     """
-    from platformdirs import user_cache_dir, user_data_dir, user_log_path
+    from platformdirs import user_log_path
 
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
     from REvoDesign.driver.ui_driver import ConfigBus
@@ -229,7 +229,7 @@ async def load_file(
 
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
-        raise HTTPException(status_code=403, detail="Loading this file is not allowed.")
+        raise HTTPException(status_code=403, detail=f"Loading this file is not allowed: Permission denied.")
 
     # Load file content
     try:
