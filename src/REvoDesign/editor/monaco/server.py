@@ -1,10 +1,10 @@
 import os
 import secrets
 import time
-from contextlib import asynccontextmanager
-from pathlib import Path
-from html import escape
 from collections import defaultdict
+from contextlib import asynccontextmanager
+from html import escape
+from pathlib import Path
 
 import uvicorn
 import uvicorn.server
@@ -17,28 +17,30 @@ from pydantic import BaseModel
 from REvoDesign import ConfigBus
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
+
+from ...logger import root_logger
 from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
-from ...logger import root_logger
 
-logging=root_logger.getChild(__name__)
+logging = root_logger.getChild(__name__)
 
 # -----------------------
 # Whitelist Management
 # -----------------------
+
+
 def get_file_whitelist():
     """
     Retrieve the editable and readonly file whitelists.
     """
+    from platformdirs import user_cache_dir, user_data_dir, user_log_path
+
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
     from REvoDesign.driver.ui_driver import ConfigBus
-    from platformdirs import user_data_dir, user_cache_dir, user_log_path
 
-
-    bus=ConfigBus()
+    bus = ConfigBus()
     logfile = bus.cfg.log.handlers.file.filename
     notebookfile = bus.cfg.log.handlers.notebook.filename
-
 
     if logfile == "AUTO":
         logfile_dir = user_log_path("REvoDesign", ensure_exists=True)
@@ -58,7 +60,7 @@ def get_file_whitelist():
         logfile,
     )
     readonly_files = (
-        
+
         notebookfile,
     )
     print(f"Editable files: {editable_files}")
@@ -85,11 +87,13 @@ failed_attempts = defaultdict(list)
 MAX_FAILURES = 5
 TIME_WINDOW = 60  # seconds
 
+
 def record_failure(ip: str):
     now = time.time()
     failed_attempts[ip].append(now)
     # Remove outdated entries
     failed_attempts[ip] = [t for t in failed_attempts[ip] if now - t < TIME_WINDOW]
+
 
 def should_block(ip: str):
     return len(failed_attempts[ip]) >= MAX_FAILURES
@@ -105,6 +109,7 @@ def initialize_token() -> str:
 
     print(f"Generated SECRET_TOKEN: {SECRET_TOKEN}")
     return SECRET_TOKEN
+
 
 def get_token() -> str:
     config_store = ConfigStore()
