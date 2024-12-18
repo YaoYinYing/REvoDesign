@@ -25,8 +25,15 @@ def _make_token_fixture(use_token: bool):
         editable = create_mock_file_with_content(tmp_path, "editable.txt", "I am editable")
         readonly = create_mock_file_with_content(tmp_path, "readonly.txt", "I am readonly")
 
-        cfg.set("monaco.file_whitelist.editable", [editable])
-        cfg.set("monaco.file_whitelist.readonly", [readonly])
+        # Luckydog file that may hit by xss
+        luckydog = create_mock_file_with_content(tmp_path, "luckydog.txt", "I am luckydog")
+
+        not_exists_file= str(tmp_path / "not_exists.txt")
+        not_exists_dir_and_file = str(tmp_path / "not_exists_dir" / "not_exists_file.txt")
+
+        cfg.set("monaco.file_whitelist.editable", [editable, not_exists_dir_and_file])
+        cfg.set("monaco.file_whitelist.readonly", [readonly, not_exists_file])
+        cfg.set("monaco.file.luckydog", luckydog)
 
         return cfg, token
 
@@ -76,8 +83,11 @@ def test_load_file_not_found(use_token, mock_config_store, test_client):
     reset_rate_limits()
     if not use_token and mock_config_store[1]:
         pytest.skip("Token required but not provided in mock_config_store.")
+    
     cfg, token = mock_config_store
-    url = "/load_file?file_path=/invalid/path.txt"
+
+    file_path=cfg.get("monaco.file_whitelist.readonly")[1]
+    url = f"/load_file?file_path={file_path}"
     if use_token and token:
         url += f"&token={token}"
     response = test_client.get(url)
@@ -123,7 +133,8 @@ def test_save_file_directory_not_found(use_token, test_client, mock_config_store
     if not use_token and mock_config_store[1]:
         pytest.skip("Token required but not provided in mock_config_store.")
     cfg, token = mock_config_store
-    data = {"file_path": "/invalid/path/test.txt", "content": "Content"}
+    file_path=cfg.get("monaco.file_whitelist.editable")[1]
+    data = {"file_path": file_path, "content": "Content"}
     url = "/save_file"
     if use_token and token:
         url += f"?token={token}"
@@ -179,17 +190,23 @@ def test_load_file_success(use_token, mock_config_store, test_client):
 @pytest.mark.parametrize(
     "file_path, expected_status, description",
     [
-        ("<script>alert('XSS')</script>", 404, "XSS injection with script tags"),
-        ("../unauthorized", 404, "Path traversal attempt"),
-        ("valid_file.txt", 404, "Valid file path"),
-        ("<img src=x onerror=alert('XSS')>", 404, "XSS injection with image tag"),
-        ("<svg onload=alert('XSS')>", 404, "XSS injection with SVG tag"),
+        ("<script>alert('XSS')</script>", 403, "XSS injection with script tags"),
+        ("../unauthorized", 403, "Path traversal attempt"),
+        ("valid_file.txt", 403, "Valid file path"),
+        ('../../../../../../../../etc/passwd', 403, 'Path traversal attempt: Hit'),
+        ('../../../../../../../../etcdss/passwd', 403, 'Path traversal attempt: Not hit'),
+        ("lucky.dog", 403, "Lucky dog gets caught"), # a file that does exist and gets caught by attacker
+        ("<img src=x onerror=alert('XSS')>", 403, "XSS injection with image tag"),
+        ("<svg onload=alert('XSS')>", 403, "XSS injection with SVG tag"),
     ]
 )
 def test_editor_xss_injection(file_path, expected_status, description, test_client, mock_config_store):
     """Test various XSS injection and path traversal attacks on the editor endpoint."""
     reset_rate_limits()
     cfg, token = mock_config_store
+    if file_path == "lucky.dog": 
+        file_path = cfg.get("monaco.file.luckydog")
+
     url = f"/editor?file_path={file_path}"
     if token:
         url += f"&token={token}"
