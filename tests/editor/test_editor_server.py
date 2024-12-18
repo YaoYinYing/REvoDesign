@@ -1,41 +1,58 @@
 from pathlib import Path
-
+import os
 import pytest
 from fastapi.testclient import TestClient
-
 from REvoDesign.editor.monaco.config import ConfigStore
 from REvoDesign.editor.monaco.server import ServerControl, app, is_file_allowed
 
+def create_mock_file_with_content(tmp_path, filename, content):
+    """Helper function to create a mock file with content."""
+    file_path = tmp_path / filename
+    file_path.write_text(content)
+    return str(file_path.resolve())
 
-@pytest.fixture
-def mock_config_store(test_tmp_dir):
-    """Fixture to mock the ConfigStore."""
-    cfg = ConfigStore()
-    cfg.set("editor.backend.no_token", True)  # Allow bypassing token for testing
-    cfg.set("editor.backend.html_dir", Path(test_tmp_dir))
+def _make_token_fixture(use_token: bool):
+    """Factory function to create token-related fixtures."""
+    def _fixture(tmp_path):
+        cfg = ConfigStore()
+        cfg.set("editor.backend.no_token", not use_token)
 
-    # Mock whitelists
-    editable=Path(test_tmp_dir).resolve() / "editable.txt"
-    editable.write_text('I am editable')
-    readonly=Path(test_tmp_dir).resolve() / "readonly.txt"
-    readonly.write_text('I am readonly')
-    cfg.set("monaco.file_whitelist.editable", [str(editable)])
-    cfg.set("monaco.file_whitelist.readonly", [str(readonly)])
+        token = None
+        if use_token:
+            token = "mock_token"
+            cfg.set("editor.token", token)
 
-    yield cfg
-    ConfigStore.reset_instance()
+        editable = create_mock_file_with_content(tmp_path, "editable.txt", "I am editable")
+        readonly = create_mock_file_with_content(tmp_path, "readonly.txt", "I am readonly")
 
+        cfg.set("monaco.file_whitelist.editable", [editable])
+        cfg.set("monaco.file_whitelist.readonly", [readonly])
+
+        return cfg, token
+
+    return _fixture
+
+@pytest.fixture(params=[True, False])
+def mock_config_store(request, tmp_path):
+    """Parameterized fixture for token and no-token scenarios."""
+    use_token = request.param
+    return _make_token_fixture(use_token)(tmp_path)
 
 @pytest.fixture
 def test_client(mock_config_store):
     """Fixture to create a test client for the FastAPI app."""
     return TestClient(app)
 
-
 @pytest.fixture
 def mock_temp_dir(test_tmp_dir):
     """Fixture to use the test temporary directory."""
     return Path(test_tmp_dir)
+
+
+# Helper to reset rate limits
+def reset_rate_limits():
+    from REvoDesign.editor.monaco.server import failed_attempts
+    failed_attempts.clear()
 
 
 @pytest.fixture
@@ -45,7 +62,6 @@ def initialize_server():
     yield server_control
     server_control.stop_server()
 
-
 # Test cases
 
 def test_favicon(test_client):
@@ -54,94 +70,126 @@ def test_favicon(test_client):
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/svg+xml"
 
-
-def test_load_file_success(test_client,mock_config_store):
-    """Test the /load_file endpoint with a valid file path."""
-
-    temp_file = mock_config_store.get('monaco.file_whitelist.readonly')[0]
-    temp_file=Path(temp_file).resolve()
-
-    response = test_client.get(f"/load_file?file_path={str(temp_file)}")
-
-    assert not 'Permission denied' in response.text, "Permission denied message should not be found in response"
-    assert response.status_code == 200, "Status code should be 200"
-    assert response.json() == {"content": "I am readonly"}
-
-
-def test_load_file_not_found(test_client):
+@pytest.mark.parametrize("use_token", [True, False])
+def test_load_file_not_found(use_token, mock_config_store, test_client):
     """Test the /load_file endpoint with an invalid file path."""
-    response = test_client.get("/load_file?file_path=/invalid/path.txt")
+    reset_rate_limits()
+    if not use_token and mock_config_store[1]:
+        pytest.skip("Token required but not provided in mock_config_store.")
+    cfg, token = mock_config_store
+    url = "/load_file?file_path=/invalid/path.txt"
+    if use_token and token:
+        url += f"&token={token}"
+    response = test_client.get(url)
     assert response.status_code == 404
     assert response.json() == {"error": "File not found"}
 
-
-def test_load_file_not_allowed(mock_temp_dir, test_client, mock_config_store):
+@pytest.mark.parametrize("use_token", [True, False])
+def test_load_file_not_allowed(use_token, mock_temp_dir, test_client, mock_config_store):
     """Test the /load_file endpoint with a file not in the whitelist."""
-    cfg = ConfigStore()
-    editable_files_real = cfg.get("monaco.file_whitelist.editable", default=()) 
-    editable_files_mock = mock_config_store.get("monaco.file_whitelist.editable", default=())
-
-    assert editable_files_real == editable_files_mock, "Mock and real configs differ"
+    reset_rate_limits()
+    if not use_token and mock_config_store[1]:
+        pytest.skip("Token required but not provided in mock_config_store.")
+    cfg, token = mock_config_store
     temp_file = mock_temp_dir / "not_allowed.txt"
     temp_file.write_text("Unauthorized access")
-
-    response = test_client.get(f"/load_file?file_path={temp_file}")
+    url = f"/load_file?file_path={temp_file}"
+    if use_token and token:
+        url += f"&token={token}"
+    response = test_client.get(url)
     assert response.status_code == 403
     assert response.json()["detail"] == "Loading this file is not allowed: Permission denied."
 
-
-def test_save_file_success(test_client,mock_config_store):
-
-    """Test the /save_file endpoint to save file content."""
-    temp_file = mock_config_store.get('monaco.file_whitelist.editable')[0]
-    temp_file=Path(temp_file).resolve()
-    data = {"file_path": str(temp_file), "content": "New Content"}
-    # assert is_file_allowed(temp_file, require_editable=True)
-
-    response = test_client.post(f"/save_file", json=data)
-    assert response.status_code == 200, 'Status code should be 200'
-    assert response.json() == {"status": "success"}, 'Response should be success'
-    assert temp_file.read_text() == "New Content", 'File content should be updated'
-
-
-def test_save_file_not_allowed(mock_temp_dir, test_client, mock_config_store):
+@pytest.mark.parametrize("use_token", [True, False])
+def test_save_file_not_allowed(use_token, mock_temp_dir, test_client, mock_config_store):
     """Test the /save_file endpoint with a file not in the editable whitelist."""
+    reset_rate_limits()
+    if not use_token and mock_config_store[1]:
+        pytest.skip("Token required but not provided in mock_config_store.")
+    cfg, token = mock_config_store
     temp_file = mock_temp_dir / "readonly.txt"
     data = {"file_path": str(temp_file), "content": "Invalid Write"}
-
-    response = test_client.post("/save_file", json=data)
+    url = "/save_file"
+    if use_token and token:
+        url += f"?token={token}"
+    response = test_client.post(url, json=data)
     assert response.status_code == 403
     assert response.json()["detail"] == "Writing into this file is not allowed."
 
-
-def test_save_file_directory_not_found(test_client):
+@pytest.mark.parametrize("use_token", [True, False])
+def test_save_file_directory_not_found(use_token, test_client, mock_config_store):
     """Test the /save_file endpoint with an invalid directory."""
+    reset_rate_limits()
+    if not use_token and mock_config_store[1]:
+        pytest.skip("Token required but not provided in mock_config_store.")
+    cfg, token = mock_config_store
     data = {"file_path": "/invalid/path/test.txt", "content": "Content"}
-
-    response = test_client.post("/save_file", json=data)
+    url = "/save_file"
+    if use_token and token:
+        url += f"?token={token}"
+    response = test_client.post(url, json=data)
     assert response.status_code == 400
     assert response.json()["error"].startswith("Directory does not exist")
 
-
-def test_rate_limiting(mock_temp_dir, test_client, mock_config_store):
+@pytest.mark.parametrize("use_token", [True, False])
+def test_rate_limiting(use_token, mock_temp_dir, test_client, mock_config_store):
     """Test rate limiting on repeated failed authentication attempts."""
+    reset_rate_limits()
+    if not use_token and mock_config_store[1]:
+        pytest.skip("Token required but not provided in mock_config_store.")
+    cfg, token = mock_config_store
     temp_file = mock_temp_dir / "invalid_readonly.txt"
     temp_file.write_text("Rate limit test")
-
+    url = f"/load_file?file_path={temp_file}"
+    if use_token and token:
+        url += f"&token={token}"
     # Simulate repeated failed requests
     for _ in range(10):
-        response = test_client.get(f"/load_file?file_path={temp_file}")
-
+        response = test_client.get(url)
     # After the limit is exceeded, a 429 response should be returned
-    response = test_client.get(f"/load_file?file_path={temp_file}")
+    response = test_client.get(url)
     assert response.status_code == 429
     assert response.json()["detail"] == "Too many failed attempts. Please try again later."
 
-
 def test_server_control(mock_config_store, initialize_server):
     """Test starting and stopping the server."""
+    reset_rate_limits()
     initialize_server.start_server()
     assert initialize_server.is_running is True
 
     initialize_server.stop_server()
     assert initialize_server.is_running is False
+
+@pytest.mark.parametrize("use_token", [True, False])
+def test_load_file_success(use_token, mock_config_store, test_client):
+    """Test the /load_file endpoint with a valid file path under both token and no-token scenarios."""
+    reset_rate_limits()
+    if not use_token and mock_config_store[1]:
+        pytest.skip("Token required but not provided in mock_config_store.")
+
+    cfg, token = mock_config_store
+    temp_file = cfg.get("monaco.file_whitelist.readonly")[0]
+    url = f"/load_file?file_path={temp_file}"
+    if use_token and token:
+        url += f"&token={token}"
+    response = test_client.get(url)
+    assert response.status_code == 200
+    assert response.json() == {"content": "I am readonly"}
+
+@pytest.mark.parametrize("use_token", [True, False])
+def test_save_file_success(use_token, mock_config_store, test_client):
+    """Test the /save_file endpoint with a valid file path under both token and no-token scenarios."""
+    reset_rate_limits()
+    if not use_token and mock_config_store[1]:
+        pytest.skip("Token required but not provided in mock_config_store.")
+
+    cfg, token = mock_config_store
+    temp_file = cfg.get("monaco.file_whitelist.editable")[0]
+    data = {"file_path": temp_file, "content": "Updated Content"}
+    url = f"/save_file"
+    if use_token and token:
+        url += f"?token={token}"
+    response = test_client.post(url, json=data)
+    assert response.status_code == 200
+    assert response.json() == {"status": "success"}
+    assert Path(temp_file).read_text() == "Updated Content"
