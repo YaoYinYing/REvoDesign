@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Incorporate `MultiCheckableComboBox` usage into `ValueDialog` tests
   - Monaco Server:
     - w|wo token
-    - rate limmit
+    - rate limit
     - file whitelists
     - xss-injection protection? 
 - **Security Vulnerability**:
