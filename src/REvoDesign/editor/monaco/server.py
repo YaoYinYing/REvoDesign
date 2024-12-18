@@ -8,9 +8,9 @@ from pathlib import Path
 
 import uvicorn
 import uvicorn.server
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -57,10 +57,10 @@ def get_file_whitelist():
     # Example hardcoded lists:
     editable_files = (
         REVODESIGN_CONFIG_FILE,
-        logfile,
+        
     )
     readonly_files = (
-
+        logfile,
         notebookfile,
     )
     print(f"Editable files: {editable_files}")
@@ -88,14 +88,16 @@ MAX_FAILURES = 5
 TIME_WINDOW = 60  # seconds
 
 
-def record_failure(ip: str):
+def record_failure(request: Request):
+    ip = request.client.host if request.client else "unknown"
     now = time.time()
     failed_attempts[ip].append(now)
     # Remove outdated entries
     failed_attempts[ip] = [t for t in failed_attempts[ip] if now - t < TIME_WINDOW]
 
 
-def should_block(ip: str):
+def should_block(request: Request):
+    ip = request.client.host if request.client else "unknown"
     return len(failed_attempts[ip]) >= MAX_FAILURES
 
 
@@ -125,8 +127,19 @@ def distruct_token() -> None:
 security = HTTPBearer()
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials != get_token():
+def verify_token(token: str, request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+
+    config_store = ConfigStore()
+    expected_token = config_store.get("editor.token")
+    no_token = config_store.get("editor.backend.no_token", default=False)
+
+    if should_block(request):
+        print(f"Blocked IP: {client_ip}")
+        raise HTTPException(status_code=429, detail="Too many failed attempts. Please try again later.")
+
+    if (not no_token) and token != expected_token:
+        record_failure(request)
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
@@ -162,7 +175,7 @@ async def favicon():
 
 
 @app.get("/editor", response_class=HTMLResponse)
-async def serve_editor(file_path: str, token: str = None):
+async def serve_editor(file_path: str, token: str = None, request: Request = None):
     """
     Serve the Monaco Editor HTML, allowing for file-based editing.
 
@@ -173,13 +186,9 @@ async def serve_editor(file_path: str, token: str = None):
     Returns:
         HTMLResponse: The Monaco Editor HTML page.
     """
-    config_store = ConfigStore()
-    expected_token = config_store.get("editor.token")
-    use_ssl = config_store.get("editor.backend.use_ssl", default=False)
 
-    # Validate token if use_ssl is enabled
-    if use_ssl and token != expected_token:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    verify_token(token, request)
+    config_store = ConfigStore()
 
     # Validate the file path and ensure it's allowed for editing
     target_file = Path(file_path)
@@ -187,6 +196,7 @@ async def serve_editor(file_path: str, token: str = None):
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
     if not is_file_allowed(target_file, require_editable=False):
+        record_failure(request)
         raise HTTPException(status_code=403, detail="Access to this file is not allowed.")
 
     # Serve the editor HTML
@@ -208,15 +218,9 @@ async def serve_editor(file_path: str, token: str = None):
 async def load_file(
     file_path: str,
     token: str = Query(None),
+    request: Request = None
 ):
-    config_store = ConfigStore()
-    no_token = config_store.get("editor.backend.no_token", False)
-
-    # Token validation
-    if not no_token:
-        expected_token = config_store.get("editor.token")
-        if token != expected_token:
-            raise HTTPException(status_code=403, detail="Unauthorized")
+    verify_token(token, request)
 
     # Validate file existence
     target_file = Path(file_path)
@@ -224,6 +228,7 @@ async def load_file(
         return JSONResponse(content={"error": "File not found"}, status_code=404)
 
     if not is_file_allowed(target_file, require_editable=False):
+        record_failure(request)
         raise HTTPException(status_code=403, detail="Loading this file is not allowed.")
 
     # Load file content
@@ -243,15 +248,9 @@ class SaveFileRequest(BaseModel):
 async def save_file(
     data: SaveFileRequest,
     token: str = Query(None),
+    request: Request = None
 ):
-    config_store = ConfigStore()
-    no_token = config_store.get("editor.backend.no_token", False)
-
-    # Token validation
-    if not no_token:
-        expected_token = config_store.get("editor.token")
-        if token != expected_token:
-            raise HTTPException(status_code=403, detail="Unauthorized")
+    verify_token(token, request)
 
     # Validate the file path
     # Validate the file path for editing
@@ -260,6 +259,7 @@ async def save_file(
         return JSONResponse(content={"error": f"Directory does not exist: {target_file.parent}"}, status_code=400)
 
     if not is_file_allowed(target_file, require_editable=True):
+        record_failure(request)
         raise HTTPException(status_code=403, detail="Writing into this file is not allowed.")
 
     # Save file content
