@@ -33,7 +33,7 @@ def get_file_whitelist():
     """
     Retrieve the editable and readonly file whitelists.
     """
-    from platformdirs import user_cache_dir, user_data_dir, user_log_path
+    from platformdirs import user_log_path
 
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
     from REvoDesign.driver.ui_driver import ConfigBus
@@ -192,12 +192,14 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
 
     # Validate the file path and ensure it's allowed for editing
     target_file = Path(file_path)
-    if not target_file.exists():
-        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
         raise HTTPException(status_code=403, detail="Access to this file is not allowed.")
+
+    if not target_file.exists():
+        record_failure(request)
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
 
     # Serve the editor HTML
     html_template_path = os.path.join(config_store.get("editor.backend.html_dir"), 'index.html')
@@ -224,12 +226,14 @@ async def load_file(
 
     # Validate file existence
     target_file = Path(file_path)
-    if not target_file.exists():
-        return JSONResponse(content={"error": "File not found"}, status_code=404)
 
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
-        raise HTTPException(status_code=403, detail="Loading this file is not allowed.")
+        raise HTTPException(status_code=403, detail=f"Loading this file is not allowed: Permission denied.")
+
+    if not target_file.exists():
+        record_failure(request)
+        return JSONResponse(content={"error": "File not found"}, status_code=404)
 
     # Load file content
     try:
@@ -255,12 +259,14 @@ async def save_file(
     # Validate the file path
     # Validate the file path for editing
     target_file = Path(data.file_path).resolve()
-    if not target_file.parent.exists():
-        return JSONResponse(content={"error": f"Directory does not exist: {target_file.parent}"}, status_code=400)
 
     if not is_file_allowed(target_file, require_editable=True):
         record_failure(request)
         raise HTTPException(status_code=403, detail="Writing into this file is not allowed.")
+
+    if not target_file.parent.exists():
+        record_failure(request)
+        return JSONResponse(content={"error": f"Directory does not exist: {target_file.parent}"}, status_code=400)
 
     # Save file content
     try:

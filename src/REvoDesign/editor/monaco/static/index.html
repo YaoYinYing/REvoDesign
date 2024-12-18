@@ -60,6 +60,83 @@
 </head>
 <body>
     <div id="container"></div>
+    <script>
+        let lastSavedContent = ''; // To keep track of the last saved content
+        let isContentChanged = false; // To track if the content is changed
+    
+        const refreshInterval = 10000; // 10 seconds
+    
+        // Function to check if the editor content has changed
+        const checkContentChange = () => {
+            const currentContent = window.editor.getValue();
+            isContentChanged = currentContent !== lastSavedContent;
+            return isContentChanged;
+        };
+    
+        // Function to reload the file if no changes have been made
+        const reloadFile = async () => {
+            if (!isContentChanged) {
+                try {
+                    const response = await fetch(`${serverUrl}/load_file?file_path=${encodeURIComponent(filePath)}${token ? `&token=${encodeURIComponent(token)}` : ''}`);
+                    if (!response.ok) {
+                        throw new Error(`Failed to reload file. Status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    if (data.content) {
+                        window.editor.setValue(data.content);
+                        lastSavedContent = data.content; // Update the last saved content
+                        showNotification('File refreshed successfully.', 'info');
+                    }
+                } catch (error) {
+                    console.error('Error during file reload:', error);
+                    showNotification('Failed to reload file. Check the console for details.', 'error');
+                }
+            }
+        };
+    
+        // Function to save the editor content
+        const saveFile = async () => {
+            const content = window.editor.getValue();
+            if (content !== lastSavedContent) {
+                const saveFileUrl = `${serverUrl}/save_file${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+                const saveOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ file_path: filePath, content })
+                };
+    
+                try {
+                    const response = await fetch(saveFileUrl, saveOptions);
+                    if (response.ok) {
+                        lastSavedContent = content; // Update the last saved content
+                        isContentChanged = false; // Reset change status
+                        showNotification('File saved successfully.', 'success');
+                    } else {
+                        const errorText = await response.text();
+                        showNotification(`Failed to save file. ${errorText}`, 'error');
+                        console.error(errorText);
+                    }
+                } catch (error) {
+                    console.error('Error during save operation:', error);
+                    showNotification('Failed to save file. Check the console for details.', 'error');
+                }
+            }
+        };
+    
+        // Set an interval to handle file refresh and autosave
+        setInterval(() => {
+            checkContentChange();
+            if (isContentChanged) {
+                saveFile();
+            } else {
+                reloadFile();
+            }
+        }, refreshInterval);
+    
+    </script>
+    
 
     <script>
         function showNotification(message, type = 'info') {
