@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - use `QCheckbox` for bool typing values
 - `QButtonMatrix`:
   - Floating hover cross -> box cross
+- Monaco
+  - Editor:
+    - js alert -> message bubbles (`showNotification`)
 
 ### Fixed
 - `mutant_tools`: 
@@ -39,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests: `ValueDialog`: 
   - Multiple widget types and `AskedValue` input
   - Incorporate `MultiCheckableComboBox` usage into `ValueDialog` tests
+- **Security Vulnerability**:
+  - Monaco Server:
+    - Rate limiter (max 5 failed requests per minute)
+    - unified token validation
+    - XSS-injection prevention
+    - File Whitelists for editable and readonly.
 
 ### Removed
 
