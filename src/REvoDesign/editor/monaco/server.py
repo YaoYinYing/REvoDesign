@@ -1,7 +1,10 @@
 import os
 import secrets
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from html import escape
+from collections import defaultdict
 
 import uvicorn
 import uvicorn.server
@@ -14,16 +17,87 @@ from pydantic import BaseModel
 from REvoDesign import ConfigBus
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
-
 from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
+from ...logger import root_logger
 
-# FastAPI app
+logging=root_logger.getChild(__name__)
 
-this_file_dir = os.path.dirname(os.path.abspath(__file__))
+# -----------------------
+# Whitelist Management
+# -----------------------
+def get_file_whitelist():
+    """
+    Retrieve the editable and readonly file whitelists.
+    """
+    from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
+    from REvoDesign.driver.ui_driver import ConfigBus
+    from platformdirs import user_data_dir, user_cache_dir, user_log_path
 
 
-# Token management
+    bus=ConfigBus()
+    logfile = bus.cfg.log.handlers.file.filename
+    notebookfile = bus.cfg.log.handlers.notebook.filename
+
+
+    if logfile == "AUTO":
+        logfile_dir = user_log_path("REvoDesign", ensure_exists=True)
+        logfile = os.path.join(
+            logfile_dir, "REvoDesign.runtime.log"
+        )
+
+    if notebookfile == "AUTO":
+        notebookfile_dir = user_log_path("REvoDesign", ensure_exists=True)
+        notebookfile = os.path.join(
+            notebookfile_dir, "REvoDesign.notebook.log"
+        )
+
+    # Example hardcoded lists:
+    editable_files = (
+        REVODESIGN_CONFIG_FILE,
+        logfile,
+    )
+    readonly_files = (
+        
+        notebookfile,
+    )
+    print(f"Editable files: {editable_files}")
+    print(f"Readonly files: {readonly_files}")
+    return editable_files, readonly_files
+
+
+def is_file_allowed(file_path: Path, require_editable=False):
+    config_store = ConfigStore()
+    editable_files = config_store.get("monaco.file_whitelist.editable", default=())
+    readonly_files = config_store.get("monaco.file_whitelist.readonly", default=())
+    abs_path = str(file_path.resolve())
+
+    if require_editable:
+        return abs_path in editable_files
+    else:
+        return abs_path in editable_files or abs_path in readonly_files
+
+
+# -----------------------
+# Rate Limiting Setup
+# -----------------------
+failed_attempts = defaultdict(list)
+MAX_FAILURES = 5
+TIME_WINDOW = 60  # seconds
+
+def record_failure(ip: str):
+    now = time.time()
+    failed_attempts[ip].append(now)
+    # Remove outdated entries
+    failed_attempts[ip] = [t for t in failed_attempts[ip] if now - t < TIME_WINDOW]
+
+def should_block(ip: str):
+    return len(failed_attempts[ip]) >= MAX_FAILURES
+
+
+# -----------------------
+# Token Management
+# -----------------------
 def initialize_token() -> str:
     config_store = ConfigStore()
     SECRET_TOKEN = secrets.token_urlsafe(32)
@@ -31,7 +105,6 @@ def initialize_token() -> str:
 
     print(f"Generated SECRET_TOKEN: {SECRET_TOKEN}")
     return SECRET_TOKEN
-
 
 def get_token() -> str:
     config_store = ConfigStore()
@@ -52,25 +125,34 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
+# -----------------------
+# Application Lifecycle
+# -----------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup logic
     config_store = ConfigStore()
     app.mount("/static", StaticFiles(directory=config_store.get("editor.backend.html_dir")), name="static")
 
+    # Load and store whitelists at application startup
+    editable_files, readonly_files = get_file_whitelist()
+    config_store.set("monaco.file_whitelist.editable", editable_files)
+    config_store.set("monaco.file_whitelist.readonly", readonly_files)
+
     print("Application startup complete.")
-
-    yield  # Application runs here
-
-    # Shutdown logic
+    yield
     config_store.reset()
     print("Application shutdown complete.")
 
 app = FastAPI(lifespan=lifespan)
 
 
+# -----------------------
+# Routes
+# -----------------------
+
 @app.get("/favicon.svg", include_in_schema=False)
 async def favicon():
+    this_file_dir = os.path.dirname(os.path.abspath(__file__))
     return FileResponse(os.path.join(this_file_dir, '..', '..', 'meta/images/logo.svg'), media_type="image/svg+xml")
 
 
@@ -94,10 +176,13 @@ async def serve_editor(file_path: str, token: str = None):
     if use_ssl and token != expected_token:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
-    # Validate the file path
+    # Validate the file path and ensure it's allowed for editing
     target_file = Path(file_path)
     if not target_file.exists():
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+
+    if not is_file_allowed(target_file, require_editable=False):
+        raise HTTPException(status_code=403, detail="Access to this file is not allowed.")
 
     # Serve the editor HTML
     html_template_path = os.path.join(config_store.get("editor.backend.html_dir"), 'index.html')
@@ -107,8 +192,9 @@ async def serve_editor(file_path: str, token: str = None):
     with open(html_template_path) as html_file:
         editor_html = html_file.read()
 
-    # Inject the file path into the editor's HTML template
-    editor_html = editor_html.replace("{{file_path}}", str(target_file))
+    # Escape file path before injecting to prevent XSS
+    safe_file_path = escape(str(target_file.resolve()))
+    editor_html = editor_html.replace("{{file_path}}", safe_file_path)
 
     return HTMLResponse(content=editor_html)
 
@@ -131,6 +217,9 @@ async def load_file(
     target_file = Path(file_path)
     if not target_file.exists():
         return JSONResponse(content={"error": "File not found"}, status_code=404)
+
+    if not is_file_allowed(target_file, require_editable=False):
+        raise HTTPException(status_code=403, detail="Loading this file is not allowed.")
 
     # Load file content
     try:
@@ -160,9 +249,13 @@ async def save_file(
             raise HTTPException(status_code=403, detail="Unauthorized")
 
     # Validate the file path
-    target_file = Path(data.file_path)
+    # Validate the file path for editing
+    target_file = Path(data.file_path).resolve()
     if not target_file.parent.exists():
         return JSONResponse(content={"error": f"Directory does not exist: {target_file.parent}"}, status_code=400)
+
+    if not is_file_allowed(target_file, require_editable=True):
+        raise HTTPException(status_code=403, detail="Writing into this file is not allowed.")
 
     # Save file content
     try:

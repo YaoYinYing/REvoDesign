@@ -179,7 +179,7 @@
                         showNotification('File saved successfully.', 'success');
                     } else {
                         const errorText = await response.text();
-                        showNotification('Failed to save file.', 'error');
+                        showNotification(`Failed to save file. ${errorText}`, 'error');
                         console.error(errorText);
                     }
                 } catch (error) {
