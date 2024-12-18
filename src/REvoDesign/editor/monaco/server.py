@@ -57,7 +57,7 @@ def get_file_whitelist():
     # Example hardcoded lists:
     editable_files = (
         REVODESIGN_CONFIG_FILE,
-        
+
     )
     readonly_files = (
         logfile,
