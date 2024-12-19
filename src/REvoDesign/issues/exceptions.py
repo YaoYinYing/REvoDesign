@@ -87,3 +87,7 @@ class UnsupportedDataTypeError(SocketError):
 
 class FobbidenDataTypeError(SocketError):
     """Exception raised when requiring sending fobbiden data type"""
+
+
+class NetworkError(ConnectionAbortedError):
+    """Exception raised when a network error occurs"""

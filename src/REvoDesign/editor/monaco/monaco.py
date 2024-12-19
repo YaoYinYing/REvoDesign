@@ -1,13 +1,16 @@
 import os
 import shutil
 import tarfile
+import urllib.error
 import urllib.request
 
 from platformdirs import user_data_dir
 
+from REvoDesign import issues
+
 from ...driver.ui_driver import ConfigBus
 from ...logger import root_logger
-from ...tools.package_manager import get_github_repo_tags
+from ...tools.package_manager import get_github_repo_tags, notify_box
 from ...tools.utils import run_worker_thread_with_progress
 from .config import ConfigStore
 from .server import ServerControl
@@ -38,7 +41,12 @@ class MonacoEditorManager:
         if not os.path.exists(self.editor_path):
             os.makedirs(self.editor_path)
 
-        installed_monaco = [dirname for dirname in os.listdir(self.editor_path) if dirname.startswith("monaco-editor-")]
+        # must be a valid un-tarballed directory
+        installed_monaco = [
+                dirname 
+                for dirname in os.listdir(self.editor_path) 
+                if dirname.startswith("monaco-editor-") and os.path.isdir(os.path.join(self.editor_path, dirname))
+            ]
         if installed_monaco and no_upgrade:
             logging.info(f"Monaco Editor already installed: {installed_monaco[0]}.")
             version_dir = os.path.join(self.editor_path, installed_monaco[0])
@@ -49,7 +57,7 @@ class MonacoEditorManager:
 
         # Fetch available tags
         tags = get_github_repo_tags("https://github.com/microsoft/monaco-editor")
-        tags = [tag for tag in tags if not tag.endswith("rc") and 'dev' not in tag]
+        tags = [tag for tag in tags if not ("rc" in tag or 'dev' in tag)]
         logging.info(f"Available Monaco Editor tags: {tags}")
 
         if self.version == "latest":
@@ -73,7 +81,7 @@ class MonacoEditorManager:
             self.copy_html_template(version_dir)
             self.config_store.set("editor.backend.html_dir", version_dir)
         except Exception as e:
-            raise RuntimeError(f"Failed to set up Monaco Editor: {e}")
+            raise RuntimeError(f"Failed to set up Monaco Editor: {e}") from e 
 
     def download_monaco_editor(self, version="latest"):
         """
@@ -88,8 +96,16 @@ class MonacoEditorManager:
         extract_path = os.path.join(self.editor_path, f"monaco-editor-{version}")
 
         # Download tarball
-        logging.info(f"Downloading tarball from {tarball_url}")
-        urllib.request.urlretrieve(tarball_url, tarball_path)
+        try:
+            logging.info(f"Downloading tarball from {tarball_url}")
+            urllib.request.urlretrieve(tarball_url, tarball_path)
+        except (
+            urllib.error.ContentTooShortError, 
+            urllib.error.HTTPError,
+            urllib.error.URLError) as e:
+            logging.error(f"Error downloading tarball: {e}, cleaning up...")
+            os.remove(tarball_path)
+            raise issues.NetworkError from e
 
         # Extract tarball
         logging.info(f"Extracting tarball to {extract_path}")
@@ -118,14 +134,26 @@ class MonacoEditorManager:
         logging.info(f"HTML template copied to {index_path}.")
 
 
-def ensure_monaco():
+def ensure_monaco() -> bool:
+    """
+    Ensures that the Monaco Editor is set up and ready to use.
+
+    Returns:
+        bool: True if the Monaco Editor is successfully set up, False otherwise.
+    """
+
     # Initialize Monaco Editor Manager
     monaco_manager = MonacoEditorManager(app_name="REvoDesign.MonacoEditor", app_author="REvoDesignUser")
 
-    # Step 1: Ensure Monaco Editor is ready
-    logging.info("Ensuring Monaco Editor is set up...")
-    monaco_manager.ensure_editor_downloaded()
-
+    try:
+        # Step 1: Ensure Monaco Editor is ready
+        logging.info("Ensuring Monaco Editor is set up...")
+        monaco_manager.ensure_editor_downloaded()
+        return True
+    except issues.NetworkError as e:
+        # Log the network error and return False
+        logging.error("Network error occurred while setting up Monaco Editor. Please check your network connection.")
+        return False
 
 def edit_file_with_monaco(file_path: str):
     """
@@ -179,11 +207,28 @@ def edit_file_with_monaco(file_path: str):
 
 
 def menu_edit_file(file_path):
-    run_worker_thread_with_progress(
+    """
+    Edit the specified file using Monaco Editor.
+
+    Args:
+        file_path (str): The path to the file that needs to be edited.
+
+    Returns:
+        None
+    """
+    # Check if Monaco Editor is available
+    has_monaco = run_worker_thread_with_progress(
         worker_function=ensure_monaco,
         progress_bar=ConfigBus().ui.progressBar,
     )
+    if not has_monaco:
+        return notify_box(
+            message='Monaco Editor is not available. Please check your network connection '
+            'or set `https_proxy` as environment variables (Menu->Edit->Environment Variables->Add) and try again.', 
+            error_type=issues.DependencyError
+        )
 
+    # Edit the file using Monaco Editor
     run_worker_thread_with_progress(
         worker_function=edit_file_with_monaco,
         file_path=file_path,
