@@ -1,7 +1,7 @@
 # This is the configuration of REvoDesign program.
-# A copy of `REvoDesign/config/revodesign/global_config.yaml` will be created inside `$HOME/.REvoDesign/config/` 
+# A copy of `src/REvoDesign/config/revodesign/global_config.yaml` will be created inside `<user_data_dir>/REvoDesign/config/` 
 # to perform customized configurations while REvoDesign is called at the very first time.
-# Click menu-REvoDesign-Reconfigure to apply changes from this copy. 
+# Click menu-File-Reconfigure to apply changes from this copy. 
 
 language: eng-eng
 work_dir: '.'

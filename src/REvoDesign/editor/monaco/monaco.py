@@ -43,10 +43,10 @@ class MonacoEditorManager:
 
         # must be a valid un-tarballed directory
         installed_monaco = [
-                dirname 
-                for dirname in os.listdir(self.editor_path) 
-                if dirname.startswith("monaco-editor-") and os.path.isdir(os.path.join(self.editor_path, dirname))
-            ]
+            dirname
+            for dirname in os.listdir(self.editor_path)
+            if dirname.startswith("monaco-editor-") and os.path.isdir(os.path.join(self.editor_path, dirname))
+        ]
         if installed_monaco and no_upgrade:
             logging.info(f"Monaco Editor already installed: {installed_monaco[0]}.")
             version_dir = os.path.join(self.editor_path, installed_monaco[0])
@@ -81,7 +81,7 @@ class MonacoEditorManager:
             self.copy_html_template(version_dir)
             self.config_store.set("editor.backend.html_dir", version_dir)
         except Exception as e:
-            raise RuntimeError(f"Failed to set up Monaco Editor: {e}") from e 
+            raise RuntimeError(f"Failed to set up Monaco Editor: {e}") from e
 
     def download_monaco_editor(self, version="latest"):
         """
@@ -100,9 +100,9 @@ class MonacoEditorManager:
             logging.info(f"Downloading tarball from {tarball_url}")
             urllib.request.urlretrieve(tarball_url, tarball_path)
         except (
-            urllib.error.ContentTooShortError, 
-            urllib.error.HTTPError,
-            urllib.error.URLError) as e:
+                urllib.error.ContentTooShortError,
+                urllib.error.HTTPError,
+                urllib.error.URLError) as e:
             logging.error(f"Error downloading tarball: {e}, cleaning up...")
             os.remove(tarball_path)
             raise issues.NetworkError from e
@@ -154,6 +154,7 @@ def ensure_monaco() -> bool:
         # Log the network error and return False
         logging.error("Network error occurred while setting up Monaco Editor. Please check your network connection.")
         return False
+
 
 def edit_file_with_monaco(file_path: str):
     """
@@ -224,7 +225,7 @@ def menu_edit_file(file_path):
     if not has_monaco:
         return notify_box(
             message='Monaco Editor is not available. Please check your network connection '
-            'or set `https_proxy` as environment variables (Menu->Edit->Environment Variables->Add) and try again.', 
+            'or set `https_proxy` as environment variables (Menu->Edit->Environment Variables->Add) and try again.',
             error_type=issues.DependencyError
         )
 

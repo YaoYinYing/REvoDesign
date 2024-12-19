@@ -19,8 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `ConfigBus`: 
+  - Headless mode
+  - `require_non_headless`: raise when creating Qt-related calls in headless mode.
+- Customized Widgets:
+  - `widget_signal_tape`: taping common widgets with specific event signals.
+- Tests: 
+  - `ConfigBus`: Headless mode
 
 ### Changed
+- `ConfigBus`: `get_widget_value`: `converter` is now mandatory.
 
 ### Fixed
 - Monaco Editor:
@@ -31,8 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - This would be helpful for users living under GFW.
   - Version tag
     - drop all release candidates with `rc` in tag
+- Out-of-date comment in config file `global_config.yaml`
+- `ConfigBus`: typing overloads:
+  - `get_value`
 
 ### Removed
+- `ConfigBus`: `value_converter`: no longer needed.
+
 
 ## [1.7.11] - 2024-12-18
 

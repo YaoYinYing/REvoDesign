@@ -1142,7 +1142,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         and sets them as values in combo boxes.
         """
         mut_table_fp = self.bus.get_widget_value(
-            "ui.visualize.input.from_mutant_txt"
+            "ui.visualize.input.from_mutant_txt", str
         )
         if not os.path.exists(mut_table_fp):
             warnings.warn(

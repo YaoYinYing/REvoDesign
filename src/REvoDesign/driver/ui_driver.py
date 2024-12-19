@@ -3,9 +3,8 @@ The heart of REvoDesign. A UI-Configuration Bus
 '''
 
 import os
-import warnings
-from functools import partial
-from typing import Any, Callable, Optional, Type, TypeVar, overload
+from functools import partial, wraps
+from typing import Any, Callable, Optional, Protocol, Type, TypeVar, overload
 
 import omegaconf.errors
 from immutabledict import immutabledict
@@ -16,7 +15,8 @@ from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
-                                                 set_widget_value)
+                                                 set_widget_value,
+                                                 widget_signal_tape)
 
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
@@ -24,7 +24,56 @@ from .widget_link import Config2WidgetIds, PushButtons
 logging = root_logger.getChild(__name__)
 
 # Define a generic type for converter
-T = TypeVar("T")
+ValueFromConfigT = TypeVar("ValueFromConfigT")
+
+# Define the decorator to enforce the non-headless requirement
+
+
+class HeadlessProtocol(Protocol):
+    """
+    Defines a protocol for objects that can run in headless mode.
+
+    This class inherits from Protocol and is primarily used for type annotations and type checking.
+    It includes an attribute `headless` of type bool, which indicates whether the object runs in headless mode.
+
+    Attributes:
+    headless: bool -- A boolean attribute indicating whether the object runs in headless mode.
+    """
+    headless: bool
+
+
+ConfigBusT = TypeVar("ConfigBusT", bound=HeadlessProtocol)
+
+NON_HEADLESS_ARGSLICE = slice(1, None)
+
+
+def require_non_headless(method):
+    """
+    A decorator to ensure that certain methods are only called when the application is not running in headless mode.
+    It also prevents the method from being used with `partial`.
+
+    Parameters:
+    - method (Callable[..., Any]): The method to be decorated.
+
+    Returns:
+    - Callable[..., Any]: The wrapped method.
+    """
+
+    @wraps(method)
+    def wrapper(*args, **kwargs):
+        # Extract the first argument which should be an instance of HeadlessProtocol
+        self: HeadlessProtocol = args[0]
+
+        # Check if the application is running in headless mode
+        if self.headless:
+            raise RuntimeError(
+                f"The method '{method.__name__}' cannot be called when the application is running in headless mode."
+            )
+
+        # Call the original method with the modified arguments
+        return method(self, *args[NON_HEADLESS_ARGSLICE], **kwargs)
+
+    return wrapper
 
 
 class ConfigBus(SingletonAbstract, CitableModuleAbstract):
@@ -33,40 +82,50 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     and the application's configuration settings.
 
     Attributes:
+        headless (bool): Indicates whether the application is running in headless mode.
         ui (QtWidgets.QWidget): The main UI widget of the application.
         cfg (OmegaConf): The application's configuration settings.
         w2c (Widget2ConfigMapper): A mapper object that maps UI widgets to configuration settings.
         push_buttons (dict): A dictionary of UI buttons.
 
     Methods:
-        initialize_widget_with_cfg_group(): Initializes UI widgets with their corresponding configuration settings.
-        update_cfg_item_from_widget(widget_id: str): Updates a configuration setting based on the value of a UI widget.
-        register_widget_changes_to_cfg(): Registers UI widget changes to update the configuration settings.
-        get_widget_from_id(widget_id: str): Retrieves a UI widget based on its ID.
-        get_widget_from_cfg_item(cfg_item: str): Retrieves a UI widget based on its corresponding configuration item.
-        get_widget_value(cfg_item: str): Retrieves the value of a UI widget based on its corresponding
-            configuration item.
-        set_widget_value(cfg_item: str, value): Sets the value of a UI widget based on its corresponding
-            configuration item.
-        restore_widget_value(cfg_item: str): Restores the value of a UI widget to its default configuration setting.
-        get_cfg_item(widget_id: str): Retrieves the configuration item corresponding to a UI widget ID.
-        get_value(cfg_item: str, typing=None): Retrieves the value of a configuration item, with optional type casting.
-        set_value(cfg_item: str, value): Sets the value of a configuration item.
-        toggle_buttons(buttons: Iterable, set_enabled: bool = False): Toggles the enabled state of a list of buttons.
+        Non-headless Methods:
+            initialize_widget_with_cfg_group(): Initializes UI widgets with their corresponding configuration settings.
+            update_cfg_item_from_widget(widget_id: str): Updates a configuration setting based on the value of a UI widget.
+            register_widget_changes_to_cfg(): Registers UI widget changes to update the configuration settings.
+            get_widget_from_id(widget_id: str): Retrieves a UI widget based on its ID.
+            get_widget_from_cfg_item(cfg_item: str): Retrieves a UI widget based on its corresponding configuration item.
+            get_widget_value(cfg_item: str): Retrieves the value of a UI widget based on its corresponding
+                configuration item.
+            set_widget_value(cfg_item: str, value): Sets the value of a UI widget based on its corresponding
+                configuration item.
+            restore_widget_value(cfg_item: str): Restores the value of a UI widget to its default configuration setting.
+            get_cfg_item(widget_id: str): Retrieves the configuration item corresponding to a UI widget ID.
+            button(id: str): Retrieves a button widget based on its ID.
+            toggle_buttons(buttons: Iterable, set_enabled: bool = False): Toggles the enabled state of a list of buttons.
+
+        Headless Only Methods:
+            get_value(cfg_item: str, typing=None): Retrieves the value of a configuration item, with optional type casting.
+            set_value(cfg_item: str, value): Sets the value of a configuration item.
+
         fp_lock(cfg_fps: Union[list, tuple, str], buttons_id_to_release: Union[list, tuple, str]): Locks or unlocks
             buttons based on the existence of file paths in the configuration.
-        button(id: str): Retrieves a button widget based on its ID.
+
     """
+    headless: bool = True
 
     def singleton_init(self, ui=None):
         self.cfg: DictConfig = reload_config_file()
         if ui:
+            self.headless = False
             self.ui = ui
             self.w2c = Widget2ConfigMapper(ui=self.ui)
             self.push_buttons = self.w2c.push_buttons
 
         self.cite()
 
+    # TODO: need refactor
+    @require_non_headless
     def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
 
@@ -127,32 +186,17 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     def _widget_link(self, widget_id: str):
         return partial(self.update_cfg_item_from_widget, widget_id)
 
+    @require_non_headless
     def register_widget_changes_to_cfg(self):
         # Registers UI widget changes to update the configuration settings.
         for widget_id in self.w2c.all_widget_ids:
             widget = self.get_widget_from_id(widget_id=widget_id)
-            if isinstance(
-                widget,
-                (
-                    QtWidgets.QDoubleSpinBox,
-                    QtWidgets.QSpinBox,
-                    QtWidgets.QProgressBar,
-                ),
-            ):
-                widget.valueChanged.connect(self._widget_link(widget_id))
-            elif isinstance(widget, QtWidgets.QComboBox):
-                widget.currentTextChanged.connect(self._widget_link(widget_id))
-                widget.editTextChanged.connect(self._widget_link(widget_id))
-            elif isinstance(widget, QtWidgets.QLineEdit):
-                widget.textChanged.connect(self._widget_link(widget_id))
-                widget.textEdited.connect(self._widget_link(widget_id))
-            elif isinstance(widget, QtWidgets.QCheckBox):
-                widget.stateChanged.connect(self._widget_link(widget_id))
-            else:
-                raise NotImplementedError(
-                    f"{widget} {type(widget)} is not supported yet"
-                )
+            try:
+                widget_signal_tape(widget, self._widget_link(widget_id))
+            except Exception as e:
+                raise issues.UnknownWidgetError(f'Expect link of {widget_id} with {widget.__name__} is broken.') from e
 
+    @require_non_headless
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its ID.
         if widget_id not in self.w2c.widget_id2widget_map:
@@ -160,35 +204,13 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         return self.w2c.widget_id2widget_map.get(widget_id)
 
+    @require_non_headless
     def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:  # type: ignore
         # Retrieves a UI widget based on its corresponding configuration item.
         return self.w2c.config2widget_map.get(cfg_item)
 
-    @staticmethod
-    def value_converter(value: Any, converter: Any):
-        # Handle predefined converters
-        predefined_conversions = {
-            str: lambda v: str(v),
-            float: lambda v: float(v),
-            int: lambda v: int(v),
-            bool: lambda v: bool(v),
-            dict: lambda v: dict(v),
-        }
-        if converter in predefined_conversions:
-            value = predefined_conversions[converter](value)
-
-        # Handle custom callable converters
-        elif callable(converter):
-            value = converter(value)
-        else:
-            warnings.warn(
-                issues.FallingBackWarning(
-                    f"value_converter is asked but no convertion is performed from {type(value)=} to {converter}."
-                )
-            )
-        return value
-
-    def get_widget_value(self, cfg_item: str, converter=None):
+    @require_non_headless
+    def get_widget_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT]) -> ValueFromConfigT:
         try:
             value = get_widget_value(
                 widget=self.get_widget_from_cfg_item(cfg_item)
@@ -200,12 +222,10 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 f"Error in the configuration item: {cfg_item}"
             ) from e
 
-        if converter:
-            value = self.value_converter(value, converter)
-
         # Retrieves the value of a UI widget based on its corresponding configuration item.
-        return value
+        return converter(value)
 
+    @require_non_headless
     def set_widget_value(self, cfg_item: str, value, hard=False):
         # Sets the value of a UI widget based on its corresponding configuration item.
         widget = self.get_widget_from_cfg_item(cfg_item)
@@ -213,6 +233,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         if hard:
             self.set_value(cfg_item=cfg_item, value=value)
 
+    @require_non_headless
     def restore_widget_value(self, cfg_item: str):
         # Restores the value of a UI widget to its default configuration setting.
         widget = self.get_widget_from_cfg_item(cfg_item)
@@ -224,11 +245,8 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         return self.w2c.widget_id2config_dict.get(widget_id)  # type: ignore
 
     @overload
-    def get_value(self, cfg_item: str, converter=None) -> Any: ...
-
-    @overload
-    def get_value(self, cfg_item: str, converter: Callable[[Any], T],
-                  reject_none: bool, default_value: None = ...) -> T: ...
+    def get_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT],
+                  reject_none: bool, default_value: None = ...) -> ValueFromConfigT: ...
 
     @overload
     def get_value(self, cfg_item: str, converter: Type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
@@ -237,17 +255,20 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     def get_value(self,
                   cfg_item: str,
                   converter: Callable[[Any],
-                                      T],
+                                      ValueFromConfigT],
                   reject_none: bool = False,
-                  default_value: Optional[T] = ...) -> Optional[T]: ...
+                  default_value: Optional[ValueFromConfigT] = ...) -> Optional[ValueFromConfigT]: ...
+
+    @overload
+    def get_value(self, cfg_item: str, converter=None) -> Any: ...
 
     def get_value(
         self,
         cfg_item: str,
-        converter: Optional[Callable[[Any], T]] = None,
+        converter: Optional[Callable[[Any], ValueFromConfigT]] = None,
         reject_none: bool = False,
-        default_value: Optional[T] = None,
-    ) -> Optional[T]:
+        default_value: Optional[ValueFromConfigT] = None,
+    ) -> Optional[ValueFromConfigT]:
         """
         Retrieves the value of a configuration item with optional type casting.
 
@@ -282,7 +303,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 # out-of-dated?
                 notify_box(
                     "This configure file might be out of date. "
-                    "Please reinitialize REvoDesign (menu->REvoDesign->Reinitialize) and restart PyMOL to fix this.",
+                    "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
                     issues.ConfigureOutofDateError
                 )
                 return
@@ -310,6 +331,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                     "This configure file might be out of date. Please remove it and restart PyMOL to fix this."
                 ) from e
 
+    @require_non_headless
     def toggle_buttons(
         self,
         button_ids: tuple[str, ...],
@@ -349,6 +371,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=True)
 
+    @require_non_headless
     def button(self, button_id: str) -> QtWidgets.QPushButton:  # type: ignore
         """Retrieves a button widget based on its ID.
 
@@ -361,6 +384,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         assert button_id in self.w2c.run_button_ids
         return self.w2c.push_buttons.get(button_id)
 
+    @require_non_headless
     def buttons(self, button_ids: tuple[str, ...]) -> tuple[QtWidgets.QPushButton, ...]:  # type: ignore
         """Retrieves all button widgets based on its ID.
 

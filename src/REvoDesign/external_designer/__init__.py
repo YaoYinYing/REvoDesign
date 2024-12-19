@@ -62,9 +62,9 @@ class Magician(SingletonAbstract):
         **kwargs,
     ) -> "Magician":
         if name_badget_id:
-            name: str = str(self.bus.get_widget_value(name_badget_id))
+            name = self.bus.get_widget_value(name_badget_id, str)
         elif name_cfg_term:
-            name: str = str(self.bus.get_value(name_cfg_term))
+            name = self.bus.get_value(name_cfg_term, str, reject_none=True)
         elif magician_name:
             name = magician_name
 
