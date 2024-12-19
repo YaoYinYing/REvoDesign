@@ -65,3 +65,7 @@ tests/data/pssm/1nww_A_ascii_mtx_file.csv
 /json_multi_input
 error.log
 /screenshots
+/pymol_screenshots
+/performance
+/analysis
+/experiments
