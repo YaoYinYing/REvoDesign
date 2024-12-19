@@ -15,7 +15,8 @@ from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
-                                                 set_widget_value, widget_signal_tape)
+                                                 set_widget_value,
+                                                 widget_signal_tape)
 
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
@@ -123,7 +124,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         self.cite()
 
-    #TODO: need refactor
+    # TODO: need refactor
     @require_non_headless
     def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.

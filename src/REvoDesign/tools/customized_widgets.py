@@ -797,6 +797,7 @@ def get_widget_value(widget):
     else:
         raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
+
 def widget_signal_tape(widget: QtWidgets.QWidget, event):
     """
     Connects the appropriate signal of a QWidget to the specified event handler.
