@@ -797,6 +797,29 @@ def get_widget_value(widget):
     else:
         raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
+def widget_signal_tape(widget: QtWidgets.QWidget, event):
+    if isinstance(
+        widget,
+        (
+            QtWidgets.QDoubleSpinBox,
+            QtWidgets.QSpinBox,
+            QtWidgets.QProgressBar,
+        ),
+    ):
+        widget.valueChanged.connect(event)
+    elif isinstance(widget, QtWidgets.QComboBox):
+        widget.currentTextChanged.connect(event)
+        widget.editTextChanged.connect(event)
+    elif isinstance(widget, QtWidgets.QLineEdit):
+        widget.textChanged.connect(event)
+        widget.textEdited.connect(event)
+    elif isinstance(widget, QtWidgets.QCheckBox):
+        widget.stateChanged.connect(event)
+    else:
+        raise NotImplementedError(
+            f"{widget} {type(widget)} is not supported yet"
+        )
+
 
 def refresh_widget_while_another_changed(
     trigger_widget_id: str, target_widget_id: str, target_data_group: Dict[str, tuple]

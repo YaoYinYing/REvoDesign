@@ -15,7 +15,7 @@ from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
-                                                 set_widget_value)
+                                                 set_widget_value, widget_signal_tape)
 
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
@@ -123,6 +123,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         self.cite()
 
+    #TODO: need refactor
     @require_non_headless
     def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
@@ -189,27 +190,10 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         # Registers UI widget changes to update the configuration settings.
         for widget_id in self.w2c.all_widget_ids:
             widget = self.get_widget_from_id(widget_id=widget_id)
-            if isinstance(
-                widget,
-                (
-                    QtWidgets.QDoubleSpinBox,
-                    QtWidgets.QSpinBox,
-                    QtWidgets.QProgressBar,
-                ),
-            ):
-                widget.valueChanged.connect(self._widget_link(widget_id))
-            elif isinstance(widget, QtWidgets.QComboBox):
-                widget.currentTextChanged.connect(self._widget_link(widget_id))
-                widget.editTextChanged.connect(self._widget_link(widget_id))
-            elif isinstance(widget, QtWidgets.QLineEdit):
-                widget.textChanged.connect(self._widget_link(widget_id))
-                widget.textEdited.connect(self._widget_link(widget_id))
-            elif isinstance(widget, QtWidgets.QCheckBox):
-                widget.stateChanged.connect(self._widget_link(widget_id))
-            else:
-                raise NotImplementedError(
-                    f"{widget} {type(widget)} is not supported yet"
-                )
+            try:
+                widget_signal_tape(widget, self._widget_link(widget_id))
+            except Exception as e:
+                raise issues.UnknownWidgetError(f'Expect link of {widget_id} with {widget.__name__} is broken.') from e
 
     @require_non_headless
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:  # type: ignore
