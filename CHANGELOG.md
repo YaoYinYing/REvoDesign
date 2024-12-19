@@ -18,6 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+- Monaco Editor:
+  - Failure on setup: mainly due to network censorship.
+    - remove remainings
+    - interrupt server launching
+    - Notify user to set proxy as environment variable if network issues still occur.
+    - This would be helpful for users living under GFW.
+  - Version tag
+    - drop all release candidates with `rc` in tag
+
+### Removed
+
 ## [1.7.11] - 2024-12-18
 
 ### Added
