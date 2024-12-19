@@ -798,6 +798,22 @@ def get_widget_value(widget):
         raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
 def widget_signal_tape(widget: QtWidgets.QWidget, event):
+    """
+    Connects the appropriate signal of a QWidget to the specified event handler.
+
+    This function connects specific signals from different types of QWidgets to a unified event handler.
+    It handles several common Qt widget types such as QDoubleSpinBox, QSpinBox, QProgressBar,
+    QComboBox, QLineEdit, and QCheckBox, binding their respective signals to the provided event handler.
+
+    Parameters:
+    - widget (QtWidgets.QWidget): The widget instance whose signal will be connected.
+    - event (callable): The event handler function that will be called when the widget's signal is emitted.
+
+    Raises:
+    - NotImplementedError: If the widget type is not supported by this function.
+    """
+
+    # Handle numeric input widgets and progress bar
     if isinstance(
         widget,
         (
@@ -807,14 +823,22 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event):
         ),
     ):
         widget.valueChanged.connect(event)
+
+    # Handle combo box widgets with text change signals
     elif isinstance(widget, QtWidgets.QComboBox):
         widget.currentTextChanged.connect(event)
         widget.editTextChanged.connect(event)
+
+    # Handle line edit widgets with text change signals
     elif isinstance(widget, QtWidgets.QLineEdit):
         widget.textChanged.connect(event)
         widget.textEdited.connect(event)
+
+    # Handle checkbox widgets with state change signals
     elif isinstance(widget, QtWidgets.QCheckBox):
         widget.stateChanged.connect(event)
+
+    # Raise an error for unsupported widget types
     else:
         raise NotImplementedError(
             f"{widget} {type(widget)} is not supported yet"
