@@ -148,6 +148,16 @@ class TestData:
     @property
     def visualize_2_pse(self):
         return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_2_design_case}.pze"
+    
+    visualize_3_profile_type: str = ""
+    visualize_3_score_reversed: bool = False
+    visualize_3_design_case: str = "csv_vis"
+    visualize_3_use_global_score: bool = True
+
+    @property
+    def visualize_3_pse(self):
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_3_design_case}.pze"
+    
 
     @property
     def entropy_best_hits(self):
@@ -264,6 +274,7 @@ class KeyData:
     mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.besthits.mut.txt'
     minimum_mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.mannual.mut.txt'
     ddg_file: str = '../tests/data/pytia_ddg/1SUO_pred_mask.csv'
+    visualize_csv: str = '../tests/data/csv/experimetal_data_mock.csv'
     evaluate_pse_path: str = None  # type: ignore
     gremlin_pkl_fp_homomer: str = None  # type: ignore
 
