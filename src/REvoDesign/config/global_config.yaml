@@ -37,7 +37,7 @@ ui:
   mutate:
     input:
       profile: ''
-      profile_type: ''
+      profile_type: PSSM
       residue_ids: ''
       to_pse: ''
       design_case: default
