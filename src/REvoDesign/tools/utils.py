@@ -8,16 +8,45 @@ import string
 import tarfile
 import time
 import zipfile
+from functools import wraps
 from typing import Union
 
 import matplotlib
 import numpy as np
 
+from REvoDesign import issues
 from REvoDesign.logger import root_logger
 
 from .package_manager import run_command, run_worker_thread_with_progress
 
 logging = root_logger.getChild(__name__)
+
+
+CLASS_ARGSLICE = slice(1, None)
+
+
+def require_not_none(attribute_name, error_type: type[Exception] = issues.UnexpectedWorkflowError):
+    """
+    Decorator factory to ensure a specific attribute of the instance is not None before the method is called.
+
+    Args:
+        attribute_name (str): Name of the attribute to check.
+        error_type (type): Exception type to raise if the attribute is None. Defaults to issues.UnexpectedWorkflowError.
+    """
+    def decorator(method):
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            # Check if the attribute exists and is not None
+            if not hasattr(self, attribute_name) or getattr(self, attribute_name) is None:
+                raise error_type(
+                    f"The method '{method.__name__}' cannot be called because '{attribute_name}' is None."
+                )
+            # Call the original method
+            return method(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def minibatches(inputs_data, batch_size):

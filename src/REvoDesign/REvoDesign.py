@@ -64,7 +64,7 @@ from REvoDesign.tools.pymol_utils import (
     find_design_molecules, find_small_molecules_in_protein,
     get_molecule_sequence, is_empty_session)
 from REvoDesign.tools.system_tools import check_mac_rosetta2
-from REvoDesign.tools.utils import (generate_strong_password,
+from REvoDesign.tools.utils import (generate_strong_password, require_not_none,
                                     run_worker_thread_with_progress, timing)
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 
@@ -93,14 +93,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.design_chain_id = ""
         self.design_sequence = ""
 
-        self.gremlin_worker = None
-        self.evaluator = None
+        self.gremlin_worker: GREMLIN_Analyser = None  # type: ignore
+        self.evaluator: Evalutator = None  # type: ignore
         global logging
         logging = root_logger.getChild(self.__class__.__name__)
 
         self.pssm_gremlin_calculator = PSSMGremlinCalculator()
 
-        self.multi_designer = None
+        self.multi_designer: MultiMutantDesigner = None  # type: ignore
 
         try:
             # if QtWebsockets is available, teamwork is activated.
@@ -488,10 +488,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     "accept_this_mutant",
                 ),
             )
-        )
-
-        self.bus.ui.checkBox_rock_pymol.stateChanged.connect(
-            self.set_pymol_session_rock
         )
 
         self.bus.button("reinitialize_mutant_choosing").clicked.connect(
@@ -1037,15 +1033,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         del worker
 
-    # Tab `Evaluate`
-    def set_pymol_session_rock(self):
-        """Rock PyMOl view"""
-        if not self.evaluator:
-            raise issues.UnexpectedWorkflowError(
-                "Faild to call evaluator because it is not initialized."
-            )
-        self.evaluator.set_pymol_session_rock()
-
     def initialize_design_candidates(self):
         """Initialize Evaluator for human checks"""
 
@@ -1053,16 +1040,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.evaluator.initialize_design_candidates()
 
-    def recover_mutant_choices_from_checkpoint(self):
+    @require_not_none("evaluator")
+    def recover_mutant_choices_from_checkpoint(self, *args, **kwargs):
         """
         This function recovers mutant choices from a checkpoint file
         using an evaluator.
         """
-
-        if not self.evaluator:
-            raise issues.UnexpectedWorkflowError(
-                "Faild to call evaluator because it is not initialized."
-            )
         mutant_choice_checkpoint_fn = self.file_dialog.browse_filename(
             mode="r",
             exts=(FileExtentions.Mutable, FileExtentions.Any),
@@ -1072,48 +1055,37 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             mutant_choice_checkpoint_fn
         )
 
-    def jump_to_the_best_mutant(self):
+    @require_not_none("evaluator")
+    def jump_to_the_best_mutant(self, *args, **kwargs):
         """
         This function checks if the evaluator is initialized
         and then jumps to the best mutant.
         """
-        if not self.evaluator:
-            raise issues.UnexpectedWorkflowError(
-                "Faild to call evaluator because it is not initialized."
-            )
         self.evaluator.jump_to_the_best_mutant()
 
-    def jump_to_branch(self):
+    @require_not_none("evaluator")
+    def jump_to_branch(self, *args, **kwargs):
         """
         This function checks if the evaluator is initialized
         and then jumps to a branch.
         """
-        if not self.evaluator:
-            raise issues.UnexpectedWorkflowError(
-                "Faild to call evaluator because it is not initialized."
-            )
         self.evaluator.jump_to_branch()
 
-    def jump_to_a_mutant(self):
+    @require_not_none("evaluator")
+    def jump_to_a_mutant(self, *args, **kwargs):
         """
         This function checks if the evaluator is initialized
         and then jumps to a mutant.
         """
-        if not self.evaluator:
-            raise issues.UnexpectedWorkflowError(
-                "Faild to call evaluator because it is not initialized."
-            )
         self.evaluator.jump_to_a_mutant()
 
-    def find_all_best_mutants(self):
+    @require_not_none("evaluator")
+    def find_all_best_mutants(self, *args, **kwargs):
         """
         This function checks if the evaluator is initialized and
         then calls a method to find all the best mutants.
         """
-        if not self.evaluator:
-            raise issues.UnexpectedWorkflowError(
-                "Faild to call evaluator because it is not initialized."
-            )
+
         self.evaluator.find_all_best_mutants()
 
     # combination and clustering
@@ -1144,12 +1116,22 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         mut_table_fp = self.bus.get_widget_value(
             "ui.visualize.input.from_mutant_txt", str
         )
+        comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
+            "ui.visualize.input.best_leaf"
+        )
+        comboBox_totalscore = self.bus.get_widget_from_cfg_item(
+            "ui.visualize.input.totalscore"
+        )
+
         if not os.path.exists(mut_table_fp):
             warnings.warn(
                 issues.NoInputWarning(
                     f"Mutant Table path is not valid: {mut_table_fp}"
                 )
             )
+            # reset cols to combo boxes to empty
+            for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
+                set_widget_value(comboBox, [''])
             return
 
         mut_table_cols = get_mutant_table_columns(mutfile=mut_table_fp)
@@ -1161,13 +1143,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return
-
-        comboBox_best_leaf = self.bus.get_widget_from_cfg_item(
-            "ui.visualize.input.best_leaf"
-        )
-        comboBox_totalscore = self.bus.get_widget_from_cfg_item(
-            "ui.visualize.input.totalscore"
-        )
 
         # set cols to combo boxes
         for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
@@ -1309,13 +1284,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         with hold_trigger_button(self.bus.button("multi_design_initialize")):
             self.multi_designer = MultiMutantDesigner()
 
-    def multi_mutagenesis_design_start(self):
+    @require_not_none("multi_designer")
+    def multi_mutagenesis_design_start(self, *args, **kwargs):
         """Start a new multi design."""
-
-        if not self.multi_designer:
-            raise issues.UnexpectedWorkflowError(
-                "Multi design is not initialized."
-            )
 
         with hold_trigger_button(
             self.bus.button("multi_design_start_new_design")
@@ -1339,15 +1310,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     return
             self.multi_designer.start_new_design()
 
-    def multi_mutagenesis_design_pick_next_mut(self):
+    @require_not_none("multi_designer")
+    def multi_mutagenesis_design_pick_next_mut(self, *args, **kwargs):
         """
         Picking the next mutant in a multi mutagenesis design process.
         """
-        if not self.multi_designer:
-            raise issues.UnexpectedWorkflowError(
-                "Multi design is not initialized."
-            )
-
         with hold_trigger_button(
             buttons=self.bus.buttons(
                 button_ids=("multi_design_left", "multi_design_right")
@@ -1356,15 +1323,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.refresh_options()
             self.multi_designer.pick_next_mutant()
 
-    def multi_mutagenesis_design_undo_picking(self):
+    @require_not_none("multi_designer")
+    def multi_mutagenesis_design_undo_picking(self, *args, **kwargs):
         """
         Undo a single step of operation in multi mutagenesis design.
         """
-        if not self.multi_designer:
-            raise issues.UnexpectedWorkflowError(
-                "Multi design is not initialized."
-            )
-
         with hold_trigger_button(
             buttons=self.bus.buttons(
                 ("multi_design_left", "multi_design_right")
@@ -1373,14 +1336,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.refresh_options()
             self.multi_designer.undo_previous_mutant()
 
-    def multi_mutagenesis_design_stop_design(self):
+    @require_not_none("multi_designer")
+    def multi_mutagenesis_design_stop_design(self, *args, **kwargs):
         """
         Terminates the picking process if in a multi design case.
         """
-        if not self.multi_designer:
-            raise issues.UnexpectedWorkflowError(
-                "Multi design is not initialized."
-            )
 
         with hold_trigger_button(
             self.bus.button("multi_design_end_this_design")
@@ -1389,15 +1349,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             if self.multi_designer.in_design_multi_design_case:
                 self.multi_designer.terminate_picking(continue_design=False)
 
-    def multi_mutagenesis_design_save_design(self):
+    @require_not_none("multi_designer")
+    def multi_mutagenesis_design_save_design(self, *args, **kwargs):
         """
         Exports designed variants.
         """
-        if not self.multi_designer:
-            raise issues.UnexpectedWorkflowError(
-                "Multi design is not initialized."
-            )
-
         with hold_trigger_button(
             self.bus.button("multi_design_export_mutants_from_table")
         ):
@@ -1449,15 +1405,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.gremlin_worker = GREMLIN_Analyser()
             self.gremlin_worker.load_gremlin_mrf()
 
-    def run_gremlin_tool(self):
+    @require_not_none("gremlin_worker")
+    def run_gremlin_tool(self, *args, **kwargs):
         """
         Runs Gremlin tool if a Gremlin worker is available.
         """
-        if not self.gremlin_worker:
-            raise issues.UnexpectedWorkflowError(
-                "Gremlin tool is not started."
-            )
-
         trigger_button = self.bus.button("run_interact_scan")
 
         with (
@@ -1474,10 +1426,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 reject a coevolved mutant.
 
         """
-        if not self.gremlin_worker:
-            raise issues.UnexpectedWorkflowError(
-                "Gremlin tool is not started."
-            )
         self.gremlin_worker.coevoled_mutant_decision(accept=decision_to_accept)
 
     def generate_ws_server_key(self):

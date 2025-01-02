@@ -268,7 +268,7 @@ class VisualizingWorker:
 
         output_pse = self.bus.get_value("ui.visualize.input.to_pse")
         best_leaf = self.bus.get_value("ui.visualize.input.best_leaf")
-        totalscore = self.bus.get_value("ui.visualize.input.totalscore")
+        totalscore = self.bus.get_value("ui.visualize.input.totalscore", str)
         nproc = self.bus.get_value("ui.header_panel.nproc", int)
         group_name = self.bus.get_value("ui.visualize.input.group_name", str)
 
@@ -311,7 +311,10 @@ class VisualizingWorker:
             self.visualizer.profile_scoring_df = None
             self.visualizer.consider_global_score_from_profile = False
 
-            if design_profile_format in implemented_designers:
+            if design_profile_format == '':
+                logging.debug("No profile is given. Expected to use score labels")
+
+            elif design_profile_format in implemented_designers:
                 run_worker_thread_with_progress(
                     worker_function=self.visualizer.magician.setup,
                     magician_name=design_profile_format,
@@ -329,10 +332,8 @@ class VisualizingWorker:
                     )
                 )
 
-            if best_leaf:
-                self.visualizer.key_col = best_leaf
-            if totalscore:
-                self.visualizer.score_col = totalscore
+            self.visualizer.key_col = best_leaf or self.visualizer.key_col
+            self.visualizer.score_col = totalscore or self.visualizer.score_col
 
             self.visualizer.save_session = output_pse
             self.visualizer.full = False

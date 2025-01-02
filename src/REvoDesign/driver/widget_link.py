@@ -155,7 +155,6 @@ class Config2WidgetIds:
             "ui.mutate.input.design_case": "lineEdit_design_case",
             "ui.mutate.input.residue_ids": "lineEdit_input_customized_indices",
             "ui.evaluate.input.to_mutant_txt": "lineEdit_output_mut_table",
-            "ui.evaluate.rock": "checkBox_rock_pymol",
             "ui.evaluate.show_wt": "checkBox_show_wt",
             "ui.cluster.input.from_mutant_txt": "lineEdit_input_mut_table",
             "ui.visualize.input.to_pse": "lineEdit_output_pse_visualize",

@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `widget_signal_tape`: taping common widgets with specific event signals.
 - Tests: 
   - `ConfigBus`: Headless mode
+- Utils:
+  - `require_not_none`: A decorator to require non-None values of a specific object attribute.
+    - Useful to interrupt unexpected workflow execution.
 
 ### Changed
 - `ConfigBus`: `get_widget_value`: `converter` is now mandatory.
@@ -42,10 +45,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Out-of-date comment in config file `global_config.yaml`
 - `ConfigBus`: typing overloads:
   - `get_value`
+- Mutant Visualizer:
+  - fixed direct loading of mutant object with mut and score columns from mutant file (CSV), etc.
+    - by adding `GroupProfileTypeTabVisualize` with a `CallableGroupValues.list_some_blanks`
+
+- `pyproject.toml`: added depts: `psutil`
 
 ### Removed
-- `ConfigBus`: `value_converter`: no longer needed.
 
+- `ConfigBus`: `value_converter`: no longer needed.
+- UI & Evaluator & config YAML:
+  - PyMOL's `rock` wrapping
 
 ## [1.7.11] - 2024-12-18
 
