@@ -130,3 +130,58 @@ class TestREvoDesignPlugin_TabVisualize:
 
         assert os.path.exists(test_worker.test_data.visualize_2_pse)
         test_worker.check_existed_mutant_tree()
+
+    def test_visualize_from_csv(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
+        test_worker.test_id = test_worker.method_name()
+        test_worker.load_session_and_check()
+        test_worker.go_to_tab(tab_name="config")
+
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_sidechain_solver,
+            "Dunbrack Rotamer Library",
+        )
+        test_worker.go_to_tab(tab_name="visualize")
+
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_input_mut_table_csv,
+            KeyDataDuringTests.visualize_csv,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_output_pse_visualize,
+            test_worker.test_data.visualize_3_pse,
+        )
+        test_worker.do_typing(test_worker.plugin.ui.lineEdit_input_csv_2, "")
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_profile_type_2,
+            test_worker.test_data.visualize_3_profile_type,
+        )
+
+        set_widget_value(
+            test_worker.plugin.ui.checkBox_global_score_policy,
+            test_worker.test_data.visualize_3_use_global_score,
+        )
+        set_widget_value(
+            test_worker.plugin.ui.checkBox_reverse_mutant_effect,
+            test_worker.test_data.visualize_3_score_reversed,
+        )
+        test_worker.do_typing(
+            test_worker.plugin.ui.lineEdit_group_name,
+            test_worker.test_data.visualize_3_design_case,
+        )
+
+        test_worker.save_screenshot(
+            widget=test_worker.plugin.window,
+            basename=f"{test_worker.test_id}_before_run",
+        )
+
+        test_worker.save_new_experiment()
+        test_worker.click(test_worker.plugin.ui.pushButton_run_visualizing)
+        test_worker.save_pymol_png(basename=test_worker.test_id)
+
+        test_worker.save_screenshot(
+            widget=test_worker.plugin.window,
+            basename=f"{test_worker.test_id}_after_run",
+        )
+
+        assert os.path.exists(test_worker.test_data.visualize_3_pse)
+        test_worker.check_existed_mutant_tree()
