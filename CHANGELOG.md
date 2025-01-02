@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.12] - 2025-01-02
+
 ### Added
 - `ConfigBus`: 
   - Headless mode
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `widget_signal_tape`: taping common widgets with specific event signals.
 - Tests: 
   - `ConfigBus`: Headless mode
+  - Tab `Visualize`: mutant loading from CSV files (mutant and score as colnames)
 - Utils:
   - `require_not_none`: A decorator to require non-None values of a specific object attribute.
     - Useful to interrupt unexpected workflow execution.
