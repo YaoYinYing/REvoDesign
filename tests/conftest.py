@@ -370,7 +370,9 @@ class TestWorker:
         return self.mutant_tree
 
     def check_existed_mutant_tree(self):
-        assert not self.existed_mutant_tree.empty
+        mt= self.existed_mutant_tree
+        assert not mt.empty
+        return mt
 
     def focus_on_tree(self, method="orient"):
         objs = self.existed_mutant_tree.all_mutant_ids

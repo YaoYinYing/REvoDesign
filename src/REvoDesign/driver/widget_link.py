@@ -161,7 +161,7 @@ class Config2WidgetIds:
             "ui.visualize.input.from_mutant_txt": "lineEdit_input_mut_table_csv",
             "ui.visualize.input.profile": "lineEdit_input_csv_2",
             "ui.visualize.input.profile_type": "comboBox_profile_type_2",
-            "ui.visualize.input.group_name": "lineEdit_group_name",
+            "ui.visualize.input.group_name": "comboBox_group_name",
             "ui.visualize.input.best_leaf": "comboBox_best_leaf",
             "ui.visualize.input.totalscore": "comboBox_totalscore",
             "ui.visualize.input.multi_design.to_mutant_txt": "lineEdit_multi_design_mutant_table",

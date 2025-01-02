@@ -294,6 +294,15 @@ class MutantVisualizer:
                 variant_objs, nproc=self.nproc
             )
 
+            self.mutant_tree.update_tree_with_new_branches(
+                {
+                    self.group_name: {
+                        mutant_obj.short_mutant_id: mutant_obj
+                        for mutant_obj in variant_objs
+                    }
+                }
+            )
+
         # the profile scoring is a bit more complicated if the mutant contains multiple substitutions.
         # so we have to igore it here.
         elif (
@@ -312,28 +321,29 @@ class MutantVisualizer:
                     f"Reading profile score for variant {variant_obj.short_mutant_id}: {_score}"
                 )
                 variant_obj.mutant_score = float(_score)  # type: ignore
+                self.mutant_tree.add_mutant_to_branch(
+                    self.group_name, variant_obj.short_mutant_id, variant_obj
+                )
 
         else:
-            variant_objs = []
+            use_col_id = self.group_name in mutation_data.columns
             for _, row in mutation_data.iterrows():
                 variant_obj = extract_mutants_from_mutant_id(
                     mutant_string=row[self.key_col],
                     sequences=self.designable_sequences,
                 )
                 _score = row[self.score_col]
-                logging.debug(
-                    f"Reading mutant table score for variant {variant_obj.short_mutant_id}: {_score}"
+                _group_name = row[self.group_name] if use_col_id else self.group_name
+                logging.info(
+                    f"Reading mutant table score for variant {variant_obj.short_mutant_id} - {_score} --> {_group_name} ({use_col_id})"
                 )
 
                 variant_obj.mutant_score = float(_score)  # type: ignore
-                variant_objs.append(variant_obj)
-
-        for variant_obj in variant_objs:
-            self.mutant_tree.add_mutant_to_branch(
-                branch=self.group_name,
-                mutant=variant_obj.short_mutant_id,
-                mutant_obj=variant_obj,
-            )
+                self.mutant_tree.add_mutant_to_branch(
+                    _group_name,
+                    variant_obj.short_mutant_id,
+                    variant_obj
+                )
 
         # Determine the range for color bar
         score_list = self.mutant_tree.all_mutant_scores
@@ -391,8 +401,11 @@ class MutantVisualizer:
             )
 
         self.mutagenesis_sessions = []
-        for m in self.mutant_tree.all_mutant_objects:
-            self.mutagenesis_sessions.append(self.process_mutant(m))
+        for md in self.mutant_tree.list_mutants():
+            # reset the group name temporarily for each branch.
+            self.group_name = md["branch"]
+
+            self.mutagenesis_sessions.append(self.process_mutant(md["mutant_obj"]))
             gc.collect()
 
         self.merge_sessions_via_commandline()

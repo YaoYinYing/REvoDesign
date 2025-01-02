@@ -2,13 +2,19 @@
 Module for managing mutant trees.
 '''
 
-from typing import List, Mapping, Optional, Protocol, Tuple, Union
+from typing import List, Mapping, Optional, Protocol, Tuple, TypedDict, Union
 
 from joblib_progress import joblib_progress
 from RosettaPy.utils.tools import squeeze
 
 from REvoDesign import issues
 from REvoDesign.common.Mutant import Mutant
+
+
+class MutantDict(TypedDict):
+    branch: str
+    mutant_id: str
+    mutant_obj: Mutant
 
 
 class MutateRunner(Protocol):
@@ -489,7 +495,7 @@ class MutantTree:
                 self.mutant_tree[self.current_branch_id].keys()
             )[0]
 
-    def list_mutants(self) -> list[dict]:
+    def list_mutants(self) -> List[MutantDict]:
         if self.empty:
             return []
 
