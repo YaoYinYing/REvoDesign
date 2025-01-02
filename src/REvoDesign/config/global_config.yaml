@@ -37,13 +37,13 @@ ui:
   mutate:
     input:
       profile: ''
-      profile_type: PSSM
+      profile_type: ''
       residue_ids: ''
       to_pse: ''
       design_case: default
     min_score: -2
     max_score: 10
-    reject: PC
+    reject: 'PC'
     accept: E:DATY K:RATY N:ATY Q:EDATY
     designer:
       temperature: 0.1
@@ -57,7 +57,6 @@ ui:
   evaluate:
     input:
       to_mutant_txt: ''
-    rock: False
     show_wt: True
 
   cluster:

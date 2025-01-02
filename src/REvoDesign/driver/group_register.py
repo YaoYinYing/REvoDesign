@@ -104,6 +104,7 @@ GroupProfileTypeTabMutate = GR("comboBox_profile_type", (
 
 # Tab Visualize
 GroupProfileTypeTabVisualize = GR("comboBox_profile_type_2", (
+    CallableGroupValues.list_some_blanks, # blank for reading scores from table directly
     CallableGroupValues.list_all_profile_parsers,
     CallableGroupValues.list_all_scorers,
 ),)

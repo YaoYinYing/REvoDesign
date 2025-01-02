@@ -519,9 +519,6 @@ class Evalutator:
             )
         )
 
-    def set_pymol_session_rock(self):
-        cmd.set("rock", self.bus.get_value("ui.evaluate.rock"))
-
     def center_design_area(self, mutant_id):
         if self.mutant_tree_candidates and mutant_id:
             logging.debug(f"Centering design area: {mutant_id}")

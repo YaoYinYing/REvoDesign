@@ -1513,22 +1513,6 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="checkBox_rock_pymol">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="statusTip">
-             <string>Rock the space while making choices.</string>
-            </property>
-            <property name="text">
-             <string>Rock</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QCheckBox" name="checkBox_show_wt">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">

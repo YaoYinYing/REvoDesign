@@ -210,27 +210,15 @@ class MutantVisualizer:
         self.max_score_profile = pm.parser.max_score_profile
 
         return self.profile_scoring_df
-
-    def run(self):
-        """
-        Runs mutation tasks.
-
-        Reads mutation data from different file formats (CSV, TXT, FASTA) and performs mutation-related operations.
-        Calculates scores for mutants and adds them to the mutant tree.
-        Determines the range for the color bar based on mutant scores.
-        Adjusts score ranges based on certain conditions.
-
-        Raises:
-        - ValueError: If an invalid file format is encountered or if required columns are missing in the data.
-
-        """
+    
+    def _get_mutation_data(self):
         # Check the file format and read data accordingly
         if self.mutfile.lower().endswith(".csv"):
             # Read mutation data from CSV file using pandas
-            mutation_data = pd.read_csv(self.mutfile)
+            return pd.read_csv(self.mutfile)
         elif self.mutfile.lower().endswith(".txt"):
             # Read mutation data from TXT file using pandas and use 'key_col' as the column name
-            mutation_data = pd.read_csv(
+            return pd.read_csv(
                 self.mutfile, sep="\t", names=[self.key_col]
             )
         elif any(
@@ -249,7 +237,7 @@ class MutantVisualizer:
                 )
             ]
 
-            mutation_data = pd.DataFrame.from_dict(
+            return pd.DataFrame.from_dict(
                 {
                     self.key_col: [
                         mut_obj.short_mutant_id
@@ -263,6 +251,23 @@ class MutantVisualizer:
             raise issues.InvalidInputError(
                 "Invalid file format. Only CSV, FASTA and TXT formats are supported."
             )
+
+
+    def run(self):
+        """
+        Runs mutation tasks.
+
+        Reads mutation data from different file formats (CSV, TXT, FASTA) and performs mutation-related operations.
+        Calculates scores for mutants and adds them to the mutant tree.
+        Determines the range for the color bar based on mutant scores.
+        Adjusts score ranges based on certain conditions.
+
+        Raises:
+        - ValueError: If an invalid file format is encountered or if required columns are missing in the data.
+
+        """
+        mutation_data=self._get_mutation_data()
+        
 
         # Check if the key_col exists in the dataframe
         if self.key_col not in mutation_data.columns:
