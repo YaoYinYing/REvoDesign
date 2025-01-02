@@ -3,12 +3,12 @@ Orphaneous functions for REvoDesign
 '''
 
 import contextlib
-from functools import wraps
 import random
 import string
 import tarfile
 import time
 import zipfile
+from functools import wraps
 from typing import Union
 
 import matplotlib
@@ -35,7 +35,7 @@ def require_not_none(attribute_name, error_type: type[Exception] = issues.Unexpe
     """
     def decorator(method):
         @wraps(method)
-        def wrapper(self, *args, **kwargs): 
+        def wrapper(self, *args, **kwargs):
             # Check if the attribute exists and is not None
             if not hasattr(self, attribute_name) or getattr(self, attribute_name) is None:
                 raise error_type(

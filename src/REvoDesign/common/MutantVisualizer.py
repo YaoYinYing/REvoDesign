@@ -210,7 +210,7 @@ class MutantVisualizer:
         self.max_score_profile = pm.parser.max_score_profile
 
         return self.profile_scoring_df
-    
+
     def _get_mutation_data(self):
         # Check the file format and read data accordingly
         if self.mutfile.lower().endswith(".csv"):
@@ -252,7 +252,6 @@ class MutantVisualizer:
                 "Invalid file format. Only CSV, FASTA and TXT formats are supported."
             )
 
-
     def run(self):
         """
         Runs mutation tasks.
@@ -266,8 +265,7 @@ class MutantVisualizer:
         - ValueError: If an invalid file format is encountered or if required columns are missing in the data.
 
         """
-        mutation_data=self._get_mutation_data()
-        
+        mutation_data = self._get_mutation_data()
 
         # Check if the key_col exists in the dataframe
         if self.key_col not in mutation_data.columns:

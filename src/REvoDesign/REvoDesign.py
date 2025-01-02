@@ -93,14 +93,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.design_chain_id = ""
         self.design_sequence = ""
 
-        self.gremlin_worker: GREMLIN_Analyser = None # type: ignore
-        self.evaluator: Evalutator = None # type: ignore
+        self.gremlin_worker: GREMLIN_Analyser = None  # type: ignore
+        self.evaluator: Evalutator = None  # type: ignore
         global logging
         logging = root_logger.getChild(self.__class__.__name__)
 
         self.pssm_gremlin_calculator = PSSMGremlinCalculator()
 
-        self.multi_designer:MultiMutantDesigner = None # type: ignore
+        self.multi_designer: MultiMutantDesigner = None  # type: ignore
 
         try:
             # if QtWebsockets is available, teamwork is activated.
@@ -1144,7 +1144,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
             return
 
-        
         # set cols to combo boxes
         for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
             set_widget_value(comboBox, mut_table_cols)
