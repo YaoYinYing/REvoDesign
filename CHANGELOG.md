@@ -18,6 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Cluster:
+  - summary Rosetta scoring results to ingle csv/xlsx file
+- Tests:
+  - mutant loading from MS Excel files (Rosetta Mutate&Relax, etc)
+
+### Changed
+
+- Tab `Visualize`: added mutant loading from MS Excel files files with WT labels
+
+### Fixed
+
+### Removed
+
 ## [1.7.13] - 2025-01-03
 
 ### Added
@@ -28,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Tab `Visualize`: mutant loading from CSV files with WT labels
+- Tab `Visualize`: added mutant loading from CSV files with WT labels
 - UI: `lineEdit_group_name` -> `comboBox_group_name` to support csv col name
 - `MutantVisualizer`: allow `run_mutagenesis_tasks` to handel multi-branch mutant tree
 - Test: 
