@@ -221,6 +221,12 @@ class MutantVisualizer:
             return pd.read_csv(
                 self.mutfile, sep="\t", names=[self.key_col]
             )
+        elif self.mutfile.lower().endswith(".xlsx") or self.mutfile.lower().endswith(".xls"):
+            # Read mutation data from Excel file using pandas
+            return pd.read_excel(self.mutfile)
+        elif self.mutfile.lower().endswith(".tsv"):
+            # Read mutation data from TSV file using pandas
+            return pd.read_fwf(self.mutfile)
         elif any(
             self.mutfile.lower().endswith(ext)
             for ext in [".fasta", ".fas", ".fa"]
@@ -249,7 +255,7 @@ class MutantVisualizer:
 
         else:
             raise issues.InvalidInputError(
-                "Invalid file format. Only CSV, FASTA and TXT formats are supported."
+                "Invalid file format. Only CSV, TSV, Microsoft Excel Table, FASTA and TXT formats are supported."
             )
 
     def run(self):
