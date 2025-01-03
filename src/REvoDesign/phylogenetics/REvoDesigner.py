@@ -32,7 +32,7 @@ from REvoDesign.tools.mutant_tools import (expand_range,
                                            shorter_range)
 from REvoDesign.tools.pymol_utils import (
     find_all_protein_chain_ids_in_protein, get_molecule_sequence)
-from REvoDesign.tools.utils import random_deduplicate
+from REvoDesign.tools.utils import random_deduplicate, require_not_none
 
 matplotlib.use("Agg")
 logging = root_logger.getChild(__name__)
@@ -589,6 +589,7 @@ class REvoDesigner:
             self.visualizer.min_score = -self.max_abs_profile
             self.visualizer.max_score = self.max_abs_profile
 
+    @require_not_none("visualizer", fallback_setup='setup_visualizer')
     def run_mutagenesis_via_mutant_visualizer(self, group_id):
         """
         Runs mutagenesis using MutantVisualizer based on specified parameters.
@@ -608,8 +609,6 @@ class REvoDesigner:
         - Sets nproc and parallel_run based on the number of processors available.
         - Saves the resulting session file and returns the file path.
         """
-        if not self.visualizer:
-            self.setup_visualizer()
 
         self.visualizer.group_name = group_id
 

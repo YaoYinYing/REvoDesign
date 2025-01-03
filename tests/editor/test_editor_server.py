@@ -242,7 +242,7 @@ def test_save_file_success(use_token, mock_config_store, test_client):
     cfg, token = mock_config_store
     temp_file = cfg.get("monaco.file_whitelist.editable")[0]
     data = {"file_path": temp_file, "content": "Updated Content"}
-    url = f"/save_file"
+    url = "/save_file"
     if use_token and token:
         url += f"?token={token}"
     response = test_client.post(url, json=data)

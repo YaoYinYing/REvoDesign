@@ -1123,6 +1123,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             "ui.visualize.input.totalscore"
         )
 
+        comboBox_group_name = self.bus.get_widget_from_cfg_item(
+            "ui.visualize.input.group_name"
+        )
+
         if not os.path.exists(mut_table_fp):
             warnings.warn(
                 issues.NoInputWarning(
@@ -1132,6 +1136,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             # reset cols to combo boxes to empty
             for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
                 set_widget_value(comboBox, [''])
+
+            set_widget_value(comboBox_group_name, ['default'])
             return
 
         mut_table_cols = get_mutant_table_columns(mutfile=mut_table_fp)
@@ -1148,10 +1154,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
             set_widget_value(comboBox, mut_table_cols)
 
+        set_widget_value(comboBox_group_name, [""] + mut_table_cols)
+
         # set default col value
         if len(mut_table_cols) > 1:
             set_widget_value(comboBox_best_leaf, mut_table_cols[0])
             set_widget_value(comboBox_totalscore, mut_table_cols[-1])
+            set_widget_value(comboBox_group_name, "")
 
     def save_visualizing_mutant_tree(
         self, cfg_mutant_table_fp, cfg_group_name

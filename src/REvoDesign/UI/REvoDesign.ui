@@ -2409,7 +2409,7 @@
          <x>10</x>
          <y>30</y>
          <width>161</width>
-         <height>151</height>
+         <height>161</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -2515,7 +2515,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QLineEdit" name="lineEdit_group_name">
+           <widget class="QComboBox" name="comboBox_group_name">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -2524,16 +2524,26 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>90</width>
+              <width>100</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="statusTip">
-             <string>Group these variant.</string>
+             <string>Group ID column in CSV file, or just a group id.</string>
             </property>
-            <property name="text">
-             <string>default</string>
+            <property name="editable">
+             <bool>true</bool>
             </property>
+            <item>
+             <property name="text">
+              <string/>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>default</string>
+             </property>
+            </item>
            </widget>
           </item>
          </layout>
