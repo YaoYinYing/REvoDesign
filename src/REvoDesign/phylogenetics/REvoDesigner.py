@@ -609,7 +609,7 @@ class REvoDesigner:
         - Sets nproc and parallel_run based on the number of processors available.
         - Saves the resulting session file and returns the file path.
         """
-        
+
         self.visualizer.group_name = group_id
 
         self.visualizer.save_session = os.path.join(

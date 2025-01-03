@@ -6,7 +6,6 @@ import gc
 import os
 import sys
 import tempfile
-from typing import Optional
 import warnings
 
 import matplotlib
@@ -330,18 +329,18 @@ class MutantVisualizer:
 
         else:
             logging.info(
-                f"Reading profile score for CSV mutant table"
+                f"Reading profile score for CSV mutant table: Mutant: {self.key_col}, Score: {self.score_col}"
             )
             use_col_id = self.group_name in mutation_data.columns
             logging.debug(f"Using {self.group_name} as group name label: {use_col_id}")
             # read wt record from the mutation data
-            _df_wt=mutation_data.loc[mutation_data[self.key_col].str.contains(r'WT|wt')]
-            
+            _df_wt = mutation_data.loc[mutation_data[self.key_col].str.contains(r'WT|wt')]
+
             # use mean score of wt tests as the default wt score for all mutants or none
-            _wt_score=_df_wt[self.score_col].mean(0) if not _df_wt.empty else None
-            
+            _wt_score = _df_wt[self.score_col].mean(0) if not _df_wt.empty else None
+
             # non wt variants
-            df_non_wt=mutation_data.loc[~(mutation_data[self.key_col].str.contains(r'WT|wt'))]
+            df_non_wt = mutation_data.loc[~(mutation_data[self.key_col].str.contains(r'WT|wt'))]
 
             for _, row in df_non_wt.iterrows():
                 variant_obj = extract_mutants_from_mutant_id(

@@ -1267,8 +1267,7 @@ class GREMLIN_Analyser:
                 f" Rejecting co-evolved mutant {picked_gremlin_mutant_id}"
             )
             cmd.disable(picked_gremlin_mutant_id)
-            if (not self.mutant_tree_coevolved.has(picked_gremlin_mutant_id)
-                ):
+            if not self.mutant_tree_coevolved.has(picked_gremlin_mutant_id):
                 logging.warning(
                     f"{picked_gremlin_mutant_id} has not been accepted yet. Skipped."
                 )
@@ -1314,8 +1313,7 @@ class GREMLIN_Analyser:
                 "Co-evolved pairs are not loaded. "
             )
 
-        if (self.explored_mutant_tree.has(self.picked_gremlin_mutant.full_mutant_id)
-            ):
+        if self.explored_mutant_tree.has(self.picked_gremlin_mutant.full_mutant_id):
             logging.warning(
                 f"Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})"
             )

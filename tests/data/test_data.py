@@ -157,7 +157,7 @@ class TestData:
     @property
     def visualize_3_pse(self):
         return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_3_design_case}.pze"
-    
+
     # visualize_4_profile_type: str = ""
     # visualize_4_score_reversed: bool = False
     visualize_4_design_case: str = "csv_vis_grouped"
@@ -169,7 +169,6 @@ class TestData:
     @property
     def visualize_4_pse(self):
         return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_4_design_case}.pze"
-
 
     @property
     def entropy_best_hits(self):

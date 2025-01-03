@@ -184,9 +184,8 @@ class TestREvoDesignPlugin_TabVisualize:
         )
 
         assert os.path.exists(test_worker.test_data.visualize_3_pse)
-        mt=test_worker.check_existed_mutant_tree()
-        assert mt.all_mutant_branch_ids==[test_worker.test_data.visualize_3_design_case]
-
+        mt = test_worker.check_existed_mutant_tree()
+        assert mt.all_mutant_branch_ids == [test_worker.test_data.visualize_3_design_case]
 
     def test_visualize_from_csv_grouped(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
@@ -229,7 +228,7 @@ class TestREvoDesignPlugin_TabVisualize:
             test_worker.plugin.ui.comboBox_totalscore,
             test_worker.test_data.visualize_4_score_label,
         )
-        
+
         set_widget_value(
             test_worker.plugin.ui.comboBox_group_name,
             test_worker.test_data.visualize_4_group_label,
@@ -250,7 +249,7 @@ class TestREvoDesignPlugin_TabVisualize:
         )
 
         assert os.path.exists(test_worker.test_data.visualize_4_pse)
-        mt=test_worker.check_existed_mutant_tree()
-        assert len(mt.all_mutant_branch_ids)==3
+        mt = test_worker.check_existed_mutant_tree()
+        assert len(mt.all_mutant_branch_ids) == 3
         for _id in ['low', 'medium', 'high']:
             assert _id in mt.all_mutant_branch_ids

@@ -1450,7 +1450,7 @@ class ValueDialog(QtWidgets.QDialog):
 
             # Create and configure the "Load" button
             load_action_button = QtWidgets.QPushButton("Load")
-            load_action_button.setToolTip(f"Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
+            load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
             load_action_button.clicked.connect(lambda: self._browse_file(widget, FileExtentions.JSON))
             # Set size policy to ResizeToContents
             load_action_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)

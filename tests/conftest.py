@@ -375,7 +375,7 @@ class TestWorker:
         return self.mutant_tree
 
     def check_existed_mutant_tree(self):
-        mt= self.existed_mutant_tree
+        mt = self.existed_mutant_tree
         assert not mt.empty
         return mt
 
@@ -486,7 +486,7 @@ class TestWorker:
         cmd.reinitialize()
 
         # reset singleton classes
-        # in case of potential pollution of singleton instances accross tests, 
+        # in case of potential pollution of singleton instances accross tests,
         # all subclasses inherit from SingletonAbstract must be reset immediately on teardown.
         CitationManager.reset_instance()
         REvoDesignWebSocketClient.reset_instance()
