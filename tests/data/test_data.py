@@ -169,6 +169,19 @@ class TestData:
     @property
     def visualize_4_pse(self):
         return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_4_design_case}.pze"
+    
+    # visualize_5_profile_type: str = ""
+    visualize_5_score_reversed: bool = True
+    visualize_5_design_case: str = "excel_vis_grouped"
+    visualize_5_group_label: str = "branch"
+    visualize_5_mutant_label: str = "description"
+    visualize_5_score_label: str = "total_score"
+
+    # visualize_5_use_global_score: bool = True
+    @property
+    def visualize_5_pse(self):
+        return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_5_design_case}.pze"
+    
 
     @property
     def entropy_best_hits(self):
@@ -287,6 +300,7 @@ class KeyData:
     ddg_file: str = '../tests/data/pytia_ddg/1SUO_pred_mask.csv'
     visualize_csv: str = '../tests/data/csv/experimetal_data_mock.csv'
     visualize_csv_grouped: str = '../tests/data/csv/experimetal_data_mock_label.csv'
+    visualize_excel:str = '../tests/data/csv/1SUO.cluster.2.xlsx'
     evaluate_pse_path: str = None  # type: ignore
     gremlin_pkl_fp_homomer: str = None  # type: ignore
 
