@@ -20,8 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Utils: 
+  - `require_not_none`:
+    - `fallback_setup`:  Function to call if the attribute is None
+
 ### Changed
 
+- Tab `Visualize`: mutant loading from CSV files with WT labels
 - UI: `lineEdit_group_name` -> `comboBox_group_name` to support csv col name
 - `MutantVisualizer`: allow `run_mutagenesis_tasks` to handel multi-branch mutant tree
 - Test: 
@@ -29,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - tests on visualizing csv with group label
   
 ### Fixed
+
+- Tests: 
+  - Teardown: `SingletonAbstract` subclass resets
+    - to avoid instance reused across multiple tests
 
 ### Removed
 

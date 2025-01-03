@@ -158,14 +158,14 @@ class TestData:
     def visualize_3_pse(self):
         return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_3_design_case}.pze"
     
-    visualize_4_profile_type: str = ""
-    visualize_4_score_reversed: bool = False
+    # visualize_4_profile_type: str = ""
+    # visualize_4_score_reversed: bool = False
     visualize_4_design_case: str = "csv_vis_grouped"
     visualize_4_group_label: str = "group"
     visualize_4_mutant_label: str = "mutant"
     visualize_4_score_label: str = "normalized"
 
-    visualize_4_use_global_score: bool = True
+    # visualize_4_use_global_score: bool = True
     @property
     def visualize_4_pse(self):
         return f"{self.test_data_repo}/analysis/1SUO.xtal.{self.visualize_4_design_case}.pze"

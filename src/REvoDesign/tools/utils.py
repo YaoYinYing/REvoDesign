@@ -9,7 +9,7 @@ import tarfile
 import time
 import zipfile
 from functools import wraps
-from typing import Union
+from typing import Any, Callable, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -25,22 +25,45 @@ logging = root_logger.getChild(__name__)
 CLASS_ARGSLICE = slice(1, None)
 
 
-def require_not_none(attribute_name, error_type: type[Exception] = issues.UnexpectedWorkflowError):
+def require_not_none(
+        attribute_name: str, 
+        fallback_setup: Optional[Union[Callable[[], Any], str]]=None, 
+        error_type: type[Exception] = issues.UnexpectedWorkflowError
+    ):
     """
     Decorator factory to ensure a specific attribute of the instance is not None before the method is called.
 
     Args:
         attribute_name (str): Name of the attribute to check.
-        error_type (type): Exception type to raise if the attribute is None. Defaults to issues.UnexpectedWorkflowError.
+        fallback_setup (callable): Function to call if the attribute is None. Defaults to None.
+        error_type (type): Exception type to raise if the attribute is None and no fallback. 
+            Defaults to issues.UnexpectedWorkflowError.
     """
     def decorator(method):
         @wraps(method)
         def wrapper(self, *args, **kwargs):
             # Check if the attribute exists and is not None
             if not hasattr(self, attribute_name) or getattr(self, attribute_name) is None:
-                raise error_type(
+                # no fallback setup, raise error
+                if callable(fallback_setup):
+                    logging.warning(f"Method called {method.__name__}' with None attribute, falling back to setup by {fallback_setup.__name__}")
+                    fallback_setup()
+                # fallback setup is a string, try call the method with the same name
+                elif isinstance(fallback_setup, str):
+                    if not hasattr(self, fallback_setup):
+                        raise AttributeError(f"Attribute '{fallback_setup}' not found in {self}")
+                    fallback_setup_ : Optional[Callable[[], Any]]= getattr(self, fallback_setup)
+                    # not a callable, raise error
+                    if not callable(fallback_setup_):
+                        raise AttributeError(f"Attribute '{fallback_setup}' is not callable in {self}")
+                    logging.warning(f"Method called {method.__name__}' with None attribute, falling back to setup by {fallback_setup}")
+                    fallback_setup_()
+                else:
+                    # no fallback setup, raise error
+                    raise error_type(
                     f"The method '{method.__name__}' cannot be called because '{attribute_name}' is None."
                 )
+
             # Call the original method
             return method(self, *args, **kwargs)
 

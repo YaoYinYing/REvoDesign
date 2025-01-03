@@ -26,9 +26,14 @@ from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.driver.file_dialog import FileDialog
+from REvoDesign.editor.monaco.config import ConfigStore
+from REvoDesign.editor.monaco.server import ServerControl
+from REvoDesign.external_designer import Magician
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
+from REvoDesign.tools.system_tools import SystemInfoReduced
 
 from .data import TestData
 from .data.test_data import KeyData
@@ -481,11 +486,18 @@ class TestWorker:
         cmd.reinitialize()
 
         # reset singleton classes
+        # in case of potential pollution of singleton instances accross tests, 
+        # all subclasses inherit from SingletonAbstract must be reset immediately on teardown.
         CitationManager.reset_instance()
         REvoDesignWebSocketClient.reset_instance()
         REvoDesignWebSocketServer.reset_instance()
         SidechainSolver.reset_instance()
         ConfigBus.reset_instance()
+        Magician.reset_instance()
+        FileDialog.reset_instance()
+        ConfigStore.reset_instance()
+        ServerControl.reset_instance()
+        SystemInfoReduced.reset_instance()
 
         gc.collect()
 

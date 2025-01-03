@@ -1,4 +1,7 @@
 mutant,normalized,group
+WT_1,0.0,control
+wt_2,-0.1,control
+WT,0.0,control
 AE93D,0.1,low
 AK191R,0.2,medium
 AQ204E,0.3,high

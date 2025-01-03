@@ -207,19 +207,19 @@ class TestREvoDesignPlugin_TabVisualize:
             test_worker.plugin.ui.lineEdit_output_pse_visualize,
             test_worker.test_data.visualize_4_pse,
         )
-        test_worker.do_typing(test_worker.plugin.ui.lineEdit_input_csv_2, "")
+        # test_worker.do_typing(test_worker.plugin.ui.lineEdit_input_csv_2, "")
         set_widget_value(
             test_worker.plugin.ui.comboBox_profile_type_2,
-            test_worker.test_data.visualize_4_profile_type,
+            test_worker.test_data.visualize_3_profile_type,
         )
 
         set_widget_value(
             test_worker.plugin.ui.checkBox_global_score_policy,
-            test_worker.test_data.visualize_4_use_global_score,
+            test_worker.test_data.visualize_3_use_global_score,
         )
         set_widget_value(
             test_worker.plugin.ui.checkBox_reverse_mutant_effect,
-            test_worker.test_data.visualize_4_score_reversed,
+            test_worker.test_data.visualize_3_score_reversed,
         )
         set_widget_value(
             test_worker.plugin.ui.comboBox_best_leaf,

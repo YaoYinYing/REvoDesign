@@ -6,6 +6,7 @@ import gc
 import os
 import sys
 import tempfile
+from typing import Optional
 import warnings
 
 import matplotlib
@@ -21,7 +22,7 @@ from REvoDesign.external_designer import Magician
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
                                            extract_mutants_from_mutant_id)
-from REvoDesign.tools.utils import get_color, run_command
+from REvoDesign.tools.utils import get_color, require_not_none, run_command
 
 matplotlib.use("Agg")
 logging = root_logger.getChild(__name__)
@@ -285,11 +286,12 @@ class MutantVisualizer:
                 mutant_string=row[self.key_col],
                 sequences=self.designable_sequences,
             )
-            for _, row in mutation_data.iterrows()
+            for _, row in mutation_data.loc[~(mutation_data[self.key_col].str.contains(r'WT|wt'))].iterrows()
         ]
 
         # margician stays highest priority.
         if self.magician.magician is not None:
+            logging.info(f'Using magician for parallel scoring: {self.magician.magician.name}')
             self.magician.magician.parallel_scorer(
                 variant_objs, nproc=self.nproc
             )
@@ -312,13 +314,14 @@ class MutantVisualizer:
             and self.profile_scoring_df is not None
             and (not self.profile_scoring_df.empty)
         ):
+            logging.info('Using profile scoring for single substitution mutants.')
             for variant_obj in variant_objs:
                 _score = self.profile_scoring_df.loc[
                     variant_obj.mutations[0].mut_res,
                     str(variant_obj.mutations[0].position - 1),
                 ]
-                logging.warning(
-                    f"Reading profile score for variant {variant_obj.short_mutant_id}: {_score}"
+                logging.debug(
+                    f"Reading profile score for variant DMS table {variant_obj.short_mutant_id}: {_score}"
                 )
                 variant_obj.mutant_score = float(_score)  # type: ignore
                 self.mutant_tree.add_mutant_to_branch(
@@ -326,17 +329,32 @@ class MutantVisualizer:
                 )
 
         else:
+            logging.info(
+                f"Reading profile score for CSV mutant table"
+            )
             use_col_id = self.group_name in mutation_data.columns
-            for _, row in mutation_data.iterrows():
+            logging.debug(f"Using {self.group_name} as group name label: {use_col_id}")
+            # read wt record from the mutation data
+            _df_wt=mutation_data.loc[mutation_data[self.key_col].str.contains(r'WT|wt')]
+            
+            # use mean score of wt tests as the default wt score for all mutants or none
+            _wt_score=_df_wt[self.score_col].mean(0) if not _df_wt.empty else None
+            
+            # non wt variants
+            df_non_wt=mutation_data.loc[~(mutation_data[self.key_col].str.contains(r'WT|wt'))]
+
+            for _, row in df_non_wt.iterrows():
                 variant_obj = extract_mutants_from_mutant_id(
                     mutant_string=row[self.key_col],
                     sequences=self.designable_sequences,
                 )
                 _score = row[self.score_col]
                 _group_name = row[self.group_name] if use_col_id else self.group_name
-                logging.info(
-                    f"Reading mutant table score for variant {variant_obj.short_mutant_id} - {_score} --> {_group_name} ({use_col_id})"
+                logging.debug(
+                    f"Reading mutant table score for variant {variant_obj.short_mutant_id} - {_score} --> {_group_name}"
                 )
+                if _wt_score:
+                    variant_obj.wt_score = _wt_score
 
                 variant_obj.mutant_score = float(_score)  # type: ignore
                 self.mutant_tree.add_mutant_to_branch(
@@ -344,6 +362,8 @@ class MutantVisualizer:
                     variant_obj.short_mutant_id,
                     variant_obj
                 )
+
+        logging.debug(f"Mutant tree: {self.mutant_tree}")
 
         # Determine the range for color bar
         score_list = self.mutant_tree.all_mutant_scores
@@ -365,6 +385,7 @@ class MutantVisualizer:
 
         self.run_mutagenesis_tasks()
 
+    @require_not_none("mutate_runner")
     def run_mutagenesis_tasks(self):
         """
         Runs mutagenesis tasks based on the MutantTree.
@@ -383,9 +404,6 @@ class MutantVisualizer:
             - Executes mutagenesis tasks sequentially without parallel processing.
         - After executing mutagenesis tasks, it performs merging sessions via command line.
         """
-
-        if not self.mutate_runner:
-            raise RuntimeError("no mutate runner is instantiated yet.")
 
         if any(
             not (m.pdb_fp and os.path.isfile(m.pdb_fp))
