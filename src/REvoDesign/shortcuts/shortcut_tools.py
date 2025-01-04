@@ -111,6 +111,8 @@ import json.tool
 import os
 from typing import Literal
 
+from pymol import cmd
+
 from REvoDesign import issues
 from REvoDesign.tools.mutant_tools import pick_design_from_profile
 
@@ -118,7 +120,7 @@ from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
 from ..logger import root_logger
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
-from ..tools.pymol_utils import get_all_groups
+from ..tools.pymol_utils import get_all_groups, renumber_protein_chain
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
                         smiles_conformer_batch, smiles_conformer_single,
@@ -572,3 +574,46 @@ def wrapped_profile_pick_design(**kwargs):
 
 def menu_profile_pick_design():
     return wrapped_profile_pick_design()
+
+
+@dialog_wrapper(
+    title="Renumber Residue index",
+    banner="Renumber Residue index by giving an offset.",
+    options=(
+        AskedValue(
+            "molecule",
+            "",
+            typing=list,
+            reason="Molecule to operated on.",
+            required=True,
+            choices=cmd.get_object_list
+        ),
+        AskedValue(
+            "chain",
+            'A',
+            typing=str,
+            reason="Chain ID to operate on. Accept PyMOL chain syntax (A+B+C for chain A and B and C). Default is A.",
+        ),
+        AskedValue(
+            "offset",
+            0,
+            typing=int,
+            reason="Renumber offset. Default is 0.",
+        ),
+    )
+)
+def wrapped_resi_renumber(**kwargs):
+    """
+    Runs the renumber_protein_chain function with parameters collected from the dialog.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    renumber_protein_chain(**kwargs)
+
+
+def menu_resi_renumber():
+    """
+    Launches the dialog for renumber_protein_chain.
+    """
+    wrapped_resi_renumber()

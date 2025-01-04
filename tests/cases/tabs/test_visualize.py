@@ -254,7 +254,6 @@ class TestREvoDesignPlugin_TabVisualize:
         for _id in ['low', 'medium', 'high']:
             assert _id in mt.all_mutant_branch_ids
 
-
     def test_visualize_from_excel_grouped(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
@@ -319,5 +318,5 @@ class TestREvoDesignPlugin_TabVisualize:
         assert os.path.exists(test_worker.test_data.visualize_5_pse)
         mt = test_worker.check_existed_mutant_tree()
         assert len(mt.all_mutant_branch_ids) == 10
-        for _id in [f'c.{i}' for i in range(0,10)]:
+        for _id in [f'c.{i}' for i in range(0, 10)]:
             assert _id in mt.all_mutant_branch_ids
