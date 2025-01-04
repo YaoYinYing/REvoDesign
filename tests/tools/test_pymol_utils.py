@@ -4,7 +4,6 @@ from pymol import cmd
 
 from REvoDesign.tools.pymol_utils import renumber_protein_chain
 
-
 @pytest.mark.parametrize(
     "molecule, chain, offset, expected_residues",
     [
@@ -24,7 +23,6 @@ def test_renumber_protein_chain(molecule, chain, offset, expected_residues):
     cmd.reinitialize()
 
     cmd.fab("ACDEFGHIKLMNPQRSTVWY", molecule, chain=chain)  # Generate a peptide chain
-
     renumber_protein_chain(molecule, chain, offset)
 
     resi_list = sorted({atom.resi for atom in cmd.get_model(

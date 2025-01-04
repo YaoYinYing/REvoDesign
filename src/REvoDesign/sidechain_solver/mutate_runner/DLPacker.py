@@ -11,6 +11,7 @@ from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.logger import root_logger
+from REvoDesign.tools.utils import timing
 
 logging = root_logger.getChild(__name__)
 
@@ -65,9 +66,6 @@ class DLPacker_worker(MutateRunnerAbstract):
         self.reconstruct_area_radius = radius
 
         self.temp_dir = self.new_cache_dir
-
-        # call DLPacker to initialize with cache dir
-        from DLPacker.dlpacker import DLPacker
 
     def reconstruct(self):
         """
@@ -210,6 +208,9 @@ class DLPacker_worker(MutateRunnerAbstract):
         Returns:
         - List of paths to the mutated PDB files
         """
+        with timing('setting up DLPacker'):
+            # call DLPacker to initialize with cache dir
+            from DLPacker.dlpacker import DLPacker
 
         if nproc is None:
             nproc = os.cpu_count()
