@@ -4810,12 +4810,19 @@
      <addaction name="actionStopEditor"/>
      <addaction name="separator"/>
     </widget>
+    <widget class="QMenu" name="menuStructure_Tools">
+     <property name="title">
+      <string>Structure Tools</string>
+     </property>
+     <addaction name="actionRenumber_Residue_Index"/>
+    </widget>
     <addaction name="actionSMILES_Conformers"/>
     <addaction name="actionSMILES_Conformers_Batch"/>
     <addaction name="separator"/>
     <addaction name="actionProfile_Design"/>
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
+    <addaction name="menuStructure_Tools"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5133,6 +5140,11 @@
   <action name="actionStopEditor">
    <property name="text">
     <string>Stop</string>
+   </property>
+  </action>
+  <action name="actionRenumber_Residue_Index">
+   <property name="text">
+    <string>Renumber Residue Index</string>
    </property>
   </action>
  </widget>

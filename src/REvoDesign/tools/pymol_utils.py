@@ -6,7 +6,7 @@ TODO: deprecate this module with biotite or biopython
 
 import os
 import warnings
-from typing import List
+from typing import List, Optional, Union
 
 from pymol import cmd, get_version_message
 from pymol.parsing import QuietException
@@ -572,3 +572,30 @@ def any_posision_has_been_selected():
 
 def get_all_groups(enabled_only: bool = False) -> List[str]:
     return cmd.get_names("group_objects", int(enabled_only))
+
+
+def renumber_protein_chain(molecule: Union[str, List[str]], chain: Optional[str] = None, offset: int = 0) -> None:
+    """
+    Renumbers a protein chain in PyMOL by applying an offset to residue indices.
+
+    Args:
+        molecule (str|List[str]): Name of the PyMOL molecule object.
+        chain (Optional[str]): Name of the chain to be renumbered. If None, applies to all chains.
+        offset (int): Residue index offset to apply (default is 0, meaning no change).
+
+    Usage:
+        # Example 1: Renumber all residues in chain A of '8X3E' by adding 32
+        renumber_protein_chain("8X3E", "A", 32)
+
+        # Example 2: Renumber all residues in '1ABC' by subtracting 10
+        renumber_protein_chain("1ABC", offset=-10)
+    """
+    if offset == 0:
+        return  # No change needed
+    
+    if isinstance(molecule, (list, tuple)):
+        molecule= f' ({" or ".join(molecule)}) '
+
+    selection = f"{molecule}" if chain is None else f"{molecule} and chain {chain}"
+    cmd.alter(selection, f"resv += {offset}")
+    cmd.rebuild()  # Ensure the visualization updates properly

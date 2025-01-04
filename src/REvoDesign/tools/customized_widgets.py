@@ -1078,9 +1078,9 @@ class AskedValue:
         required (bool): Indicates whether the field is mandatory.
         choices (Optional[Union[List, Tuple, Callable[[], Union[List, Tuple]]]]):
             Specifies available choices for the field. Can be:
-            - List[Any]: A predefined list of options.
-            - Tuple[Any]: A predefined tuple of options.
-            - range: A range of values.
+            - List[Any]: A predefined list of options used as multiple choice.
+            - Tuple[Any]: A predefined tuple of options used as single choice.
+            - range: A range of values useed as integer options.
             - Callable[[], Union[List, Tuple, range]]: A function to dynamically generate options.
         source (Literal['None', 'File', 'Directory', 'JsonInput']):
             Specifies the source of the input field. Can be:
