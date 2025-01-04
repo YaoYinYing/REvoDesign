@@ -112,6 +112,7 @@ import os
 from typing import Literal
 
 from pymol import cmd
+
 from REvoDesign import issues
 from REvoDesign.tools.mutant_tools import pick_design_from_profile
 
@@ -119,13 +120,11 @@ from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
 from ..logger import root_logger
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
-from ..tools.pymol_utils import get_all_groups
+from ..tools.pymol_utils import get_all_groups, renumber_protein_chain
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
                         smiles_conformer_batch, smiles_conformer_single,
                         visualize_conformer_sdf)
-
-from ..tools.pymol_utils import renumber_protein_chain
 
 logging = root_logger.getChild(__name__)
 
@@ -576,6 +575,7 @@ def wrapped_profile_pick_design(**kwargs):
 def menu_profile_pick_design():
     return wrapped_profile_pick_design()
 
+
 @dialog_wrapper(
     title="Renumber Residue index",
     banner="Renumber Residue index by giving an offset.",
@@ -610,6 +610,7 @@ def wrapped_resi_renumber(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     renumber_protein_chain(**kwargs)
+
 
 def menu_resi_renumber():
     """

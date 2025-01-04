@@ -1,9 +1,8 @@
-from REvoDesign.tools.pymol_utils import renumber_protein_chain
-
 import pymol
-from pymol import cmd
 import pytest
+from pymol import cmd
 
+from REvoDesign.tools.pymol_utils import renumber_protein_chain
 
 
 @pytest.mark.parametrize(
@@ -28,8 +27,9 @@ def test_renumber_protein_chain(molecule, chain, offset, expected_residues):
 
     renumber_protein_chain(molecule, chain, offset)
 
-    resi_list = sorted(set(atom.resi for atom in cmd.get_model(f"{molecule} and chain {chain}" if chain else molecule).atom), key=int)
-    
+    resi_list = sorted({atom.resi for atom in cmd.get_model(
+        f"{molecule} and chain {chain}" if chain else molecule).atom}, key=int)
+
     assert resi_list == expected_residues, f"Expected {expected_residues}, but got {resi_list}"
 
     cmd.delete(molecule)

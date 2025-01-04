@@ -592,9 +592,9 @@ def renumber_protein_chain(molecule: Union[str, List[str]], chain: Optional[str]
     """
     if offset == 0:
         return  # No change needed
-    
+
     if isinstance(molecule, (list, tuple)):
-        molecule= f' ({" or ".join(molecule)}) '
+        molecule = f' ({" or ".join(molecule)}) '
 
     selection = f"{molecule}" if chain is None else f"{molecule} and chain {chain}"
     cmd.alter(selection, f"resv += {offset}")
