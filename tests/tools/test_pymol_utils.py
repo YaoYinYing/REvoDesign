@@ -4,6 +4,7 @@ from pymol import cmd
 
 from REvoDesign.tools.pymol_utils import renumber_protein_chain
 
+
 @pytest.mark.parametrize(
     "molecule, chain, offset, expected_residues",
     [
