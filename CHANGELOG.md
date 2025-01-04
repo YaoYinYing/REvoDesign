@@ -24,12 +24,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - summary Rosetta scoring results to ingle csv/xlsx file
 - Tests:
   - mutant loading from MS Excel files (Rosetta Mutate&Relax, etc)
+  - data: small molecule json file
+- Utils:
+  - pymol_utils:
+    - `renumber_protein_chain`
+- Menu:
+  - Renumber Residue index: by calling `renumber_protein_chain`
 
 ### Changed
 
 - Tab `Visualize`: added mutant loading from MS Excel files files with WT labels
 
 ### Fixed
+- fixed `DLPacker_worker.run_mutate_parallel` parallel weight setup in calling `run_mutate`
 
 ### Removed
 
