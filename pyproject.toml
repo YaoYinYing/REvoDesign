@@ -47,6 +47,7 @@ dependencies = [
     "bibtexparser @ git+https://github.com/sciunto-org/python-bibtexparser.git@v2.0.0b7#egg=bibtexparser",
     "platformdirs",
     "fastapi",
+    "uvicorn",
     "requests",
     "openpyxl",
 ]

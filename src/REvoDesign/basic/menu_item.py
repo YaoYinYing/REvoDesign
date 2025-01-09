@@ -4,7 +4,7 @@ Data classes for menu items and menu collections.
 
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Mapping, Optional
+from typing import Callable, Mapping, Optional, Tuple
 
 from pymol.Qt import QtWidgets
 
@@ -22,10 +22,12 @@ class MenuItem:
         name (str): The name of the menu item, used for display and identification.
         action (QtWidgets.QAction): The action associated with the menu item.
         func (Callable): The function associated with the menu item, which is executed when the item is selected.
+        args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
     action: QtWidgets.QAction  # type: ignore
     func: Callable
+    args: Optional[Tuple] = None
     kwargs: Optional[Mapping] = None
 
 
@@ -53,6 +55,6 @@ class MenuCollection:
 
         for m in self.menu_items:
             try:
-                m.action.triggered.connect(partial(m.func, **m.kwargs if m.kwargs else {}))
+                m.action.triggered.connect(partial(m.func,*m.args if m.args else (), **m.kwargs if m.kwargs else {}))
             except AttributeError as e:
                 print(f"Skipping binding menu item due to error: {m}: {e}")
