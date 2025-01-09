@@ -20,31 +20,31 @@ To make any of them importable in certain modules, import them from here
 and add to the `__all__` attributes so that they can be discoverable.
 '''
 
+import importlib
+import difflib
+import importlib.util
+import json
+import math
+import os
+import platform
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import time
+import urllib.request
+import warnings
+from contextlib import contextmanager
+from dataclasses import dataclass
+from functools import partial
+from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn,
+                    Optional, Tuple, Type, TypeVar, Union, overload)
+from urllib.error import HTTPError, URLError
+from pymol import cmd, get_version_message
+from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
 from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
-from pymol.plugins import addmenuitemqt
-from pymol import cmd, get_version_message
-from urllib.error import HTTPError, URLError
-from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn, Optional,
-                    Tuple, Type, TypeVar, Union, overload)
-from functools import partial
-from dataclasses import dataclass
-from contextlib import contextmanager
-import warnings
-import urllib.request
-import time
-import sys
-import subprocess
-import socket
-import shutil
-import re
-import platform
-import os
-import math
-import json
-import importlib.util
-import difflib
-import importlib
 
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
@@ -1398,7 +1398,6 @@ class REvoDesignPackageManager:
                 message="REvoDesign is not installed. \nPlease install it first.",
                 error_type=RuntimeError,
             )
-            
 
     def reinitialize_config(self):
         comfirmed = decide(
@@ -1673,6 +1672,8 @@ def refresh_window():
     QtWidgets.QApplication.processEvents()
 
 # Overload #1: None or Warning => returns bool
+
+
 @overload
 def notify_box(
     message: str = "",
@@ -1681,6 +1682,8 @@ def notify_box(
     ...
 
 # Overload #2: Exception => NoReturn
+
+
 @overload
 def notify_box(
     message: str,
@@ -1734,6 +1737,7 @@ def raise_error(error_type: Type[Exception], message: str) -> NoReturn:
     - message: str, the error message.
     """
     raise error_type(message)
+
 
 def decide(title="", description="", rich: bool = False):
     """

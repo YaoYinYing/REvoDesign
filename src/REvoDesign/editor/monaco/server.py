@@ -292,9 +292,10 @@ class ServerControl(SingletonAbstract):
         ```python
         MenuActionServerMonitor(ServerControl, ui.actionStartEditor, ui.actionStopEditor)
         ```
-        
+
         The ServerMonitor will automatically start and stop the server when the actions are triggered.
     """
+
     def singleton_init(self):
         self.server_thread = None  # WorkerThread instance
         self.is_running = False
