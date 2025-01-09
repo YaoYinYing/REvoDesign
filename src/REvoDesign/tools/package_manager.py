@@ -1689,7 +1689,6 @@ def notify_box(
     message: str,
     error_type: Type[Exception]
 ) -> NoReturn:
-    """Display a notification message box and raise given Error"""
     ...
 
 

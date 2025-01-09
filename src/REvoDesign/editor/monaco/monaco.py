@@ -223,7 +223,7 @@ def menu_edit_file(file_path):
         progress_bar=ConfigBus().ui.progressBar,
     )
     if not has_monaco:
-        return notify_box(
+        notify_box(
             message='Monaco Editor is not available. Please check your network connection '
             'or set `https_proxy` as environment variables (Menu->Edit->Environment Variables->Add) and try again.',
             error_type=issues.DependencyError
