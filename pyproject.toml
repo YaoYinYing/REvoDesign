@@ -99,6 +99,7 @@ test = [
     "coverage",
     "httpx",
     "psutil",
+    "fastapi[all]",
 ]
 
 
