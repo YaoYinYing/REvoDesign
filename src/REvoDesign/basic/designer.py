@@ -49,6 +49,7 @@ class ExternalDesignerAbstract(CitableModuleAbstract):
         Retrieve the weights used in the design process.
         The implementation should define how these weights are calculated or retrieved.
         """
+        raise NotImplementedError("Get_weights method not implemented")
 
     @abstractmethod
     def initialize(self, *args, **kwargs):
@@ -83,7 +84,12 @@ class ExternalDesignerAbstract(CitableModuleAbstract):
         """
         raise NotImplementedError("Scorer method not implemented")
 
-    def preffer_substitutions(self, aa: Any): ...
+    def preffer_substitutions(self, aa: Any):
+        """
+        Method to setup amino acids that are preferred for substitution in further design.
+        """
+        raise NotImplementedError(
+            f"Preffer_substitutions method not implemented in this subclass of {self.__class__.__name__}")
 
     def parallel_scorer(
         self, mutants: List[Mutant], nproc: int = 2, **kwargs
