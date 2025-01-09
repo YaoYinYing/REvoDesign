@@ -266,27 +266,27 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionEdit_Configuration,
                     menu_edit_file,
-                    {'file_path': REVODESIGN_CONFIG_FILE}
+                    kwargs={'file_path': REVODESIGN_CONFIG_FILE}
                 ),
                 MenuItem(
                     self.bus.ui.actionSave_Configurations,
                     self.save_configuration_from_ui,
-                    {'experiment': "global_config"}
+                    kwargs={'experiment': "global_config"}
                 ),
                 MenuItem(
                     self.bus.ui.action_LoadExperiment,
                     self.load_and_save_experiment,
-                    {'mode': "r"},
+                    kwargs={'mode': "r"},
                 ),
                 MenuItem(
                     self.bus.ui.action_Save_to_Experiment,
                     self.load_and_save_experiment,
-                    {'mode': "w"},
+                    kwargs={'mode': "w"},
                 ),
                 MenuItem(
                     self.bus.ui.actionReinitialize,
                     self.reinitialize,
-                    {'delete': True},
+                    kwargs={'delete': True},
                 ),
                 MenuItem(
                     self.bus.ui.actionAddEnvironVar,
@@ -299,12 +299,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionRenderPickedSidechainGroup,
                     menu_dump_sidechains,
-                    {'dump_all': False},
+                    kwargs={'dump_all': False},
                 ),
                 MenuItem(
                     self.bus.ui.actionRenderAllSidechains,
                     menu_dump_sidechains,
-                    {'dump_all': True},
+                    kwargs={'dump_all': True},
                 ),
                 MenuItem(
                     self.bus.ui.actionColor_by_pLDDT,
@@ -337,12 +337,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionSource_Code,
                     QtGui.QDesktopServices.openUrl,
-                    {'url': QtCore.QUrl(REPO_URL)}
+                    (QtCore.QUrl(REPO_URL),)
                 ),
                 MenuItem(
                     self.bus.ui.actionVersion,
                     notify_box,
-                    {'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
+                    kwargs={'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
                 )
             ),
         )

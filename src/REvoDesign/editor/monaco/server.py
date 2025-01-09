@@ -277,6 +277,25 @@ async def save_file(
 
 
 class ServerControl(SingletonAbstract):
+    """
+    A singleton class that manages the Monaco backend server lifecycle.
+
+    Attributes:
+        server_thread (WorkerThread): The worker thread that runs the Uvicorn server.
+        is_running (bool): Indicates whether the server is running.
+        server (Uvicorn Server): The Uvicorn server instance.
+        config_store (ConfigStore): The configuration store for the server.
+
+    Usage:
+        Register the server control actions in the application's menu actions:
+
+        ```python
+        MenuActionServerMonitor(ServerControl, ui.actionStartEditor, ui.actionStopEditor)
+        ```
+
+        The ServerMonitor will automatically start and stop the server when the actions are triggered.
+    """
+
     def singleton_init(self):
         self.server_thread = None  # WorkerThread instance
         self.is_running = False

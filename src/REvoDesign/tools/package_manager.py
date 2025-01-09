@@ -25,8 +25,8 @@ from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from pymol.plugins import addmenuitemqt
 from pymol import cmd, get_version_message
 from urllib.error import HTTPError, URLError
-from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
-                    Tuple, TypeVar, Union, overload)
+from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn,
+                    Optional, Tuple, Type, TypeVar, Union, overload)
 from functools import partial
 from dataclasses import dataclass
 from contextlib import contextmanager
@@ -413,7 +413,6 @@ class PIPInstaller:
         ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose, env=self.env)
         if ensurepip.returncode:
             notify_box(f"ensurepip failed: \nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}.", RuntimeError)
-            return
 
     def __post_init__(self):
         """
@@ -769,7 +768,6 @@ class REvoDesignPackageManager:
         if not any(proxy.startswith(prefix) for prefix in ALLOWED_PROXY_PROTOCOLS):
             notify_box(f'Unsupported proxy type: {proxy}\nPlease use one of the following protocols: \n'
                        + "\n".join(f"{p}://..." for p in ALLOWED_PROXY_PROTOCOLS), ValueError)
-            raise ValueError(f'Unsupported proxy type: {proxy}')
 
         if proxy.startswith('socks5'):
             print('Ensuring pysocks is installed...')
@@ -909,7 +907,9 @@ class REvoDesignPackageManager:
         # Create a new dialog window
         dialog = QtWidgets.QDialog()
 
-        ui_file = self.ensure_ui_file()
+        ui_file = run_worker_thread_with_progress(
+            worker_function=self.ensure_ui_file
+        )
         # Set up the UI for the dialog
         self.installer_ui = loadUi(ui_file, dialog)
 
@@ -1291,7 +1291,7 @@ class REvoDesignPackageManager:
             install_source = local_source
 
         else:
-            return notify_box("Installation configuration is failed. Aborded. ", ValueError)
+            notify_box("Installation configuration is failed. Aborded. ", ValueError)
 
         env: Dict[str, str] = {}
 
@@ -1398,7 +1398,6 @@ class REvoDesignPackageManager:
                 message="REvoDesign is not installed. \nPlease install it first.",
                 error_type=RuntimeError,
             )
-            return
 
     def reinitialize_config(self):
         comfirmed = decide(
@@ -1672,8 +1671,31 @@ def refresh_window():
     """
     QtWidgets.QApplication.processEvents()
 
+# Overload #1: None or Warning => returns bool
 
-def notify_box(message: str = "", error_type: Optional[Union[type[Exception], type[Warning]]] = None) -> bool:
+
+@overload
+def notify_box(
+    message: str = "",
+    error_type: Union[None, Type[Warning]] = None
+) -> None:
+    ...
+
+# Overload #2: Exception => NoReturn
+
+
+@overload
+def notify_box(
+    message: str,
+    error_type: Type[Exception]
+) -> NoReturn:
+    ...
+
+
+def notify_box(
+    message: str = "",
+    error_type: Optional[Type[Exception]] = None
+) -> Union[None, NoReturn]:
     """
     Display a notification message box.
 
@@ -1681,8 +1703,8 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
     - message: str, the content of the message box.
     - error_type: Optional[Union[Exception, Warning]], the type of error or warning, can be None.
 
-    Returns:
-    - None, but if error_type is not None, it either shows a warning or raises an exception.
+    If `error_type` is None or a Warning, returns bool.
+    If `error_type` is an Exception (and not a Warning), raises => NoReturn.
     """
     refresh_window()
     # Create an information message box
@@ -1690,23 +1712,30 @@ def notify_box(message: str = "", error_type: Optional[Union[type[Exception], ty
     msg.setIcon(QtWidgets.QMessageBox.Information)
     msg.setText(message)
     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-
     # Display the message box
     msg.exec_()
     # If error_type is None, end the function execution
     if error_type is None:
-        return True
+        return
 
-    # if it is warning, show the warning message and return
-    if isinstance(error_type, Warning):
+    # error_type is a Warning => also bool
+    if issubclass(error_type, Warning):
         warnings.warn(error_type(message))  # type: ignore
-        return True
+        return
 
-    # otherwise raise the exception
-    if isinstance(error_type, Exception):
-        raise error_type(message)
+    # Otherwise, raise => NoReturn
+    raise_error(error_type, message)
 
-    return False
+
+def raise_error(error_type: Type[Exception], message: str) -> NoReturn:
+    """
+    Raises an error of the specified type with the given message.
+
+    Args:
+    - error_type: Type[Exception], the type of error to raise.
+    - message: str, the error message.
+    """
+    raise error_type(message)
 
 
 def decide(title="", description="", rich: bool = False):

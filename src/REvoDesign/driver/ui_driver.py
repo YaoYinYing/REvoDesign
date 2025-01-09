@@ -298,14 +298,12 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                     notify_box(
                         "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
                     )
-                    return
                 # out-of-dated?
                 notify_box(
                     "This configure file might be out of date. "
                     "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
                     issues.ConfigureOutofDateError
                 )
-                return
             else:
                 return None  # Return None if reject_none is False and no default is provided
 
