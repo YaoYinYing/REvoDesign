@@ -6,7 +6,7 @@ from typing import Protocol
 from ..basic import ParamChangeRegister as PCR
 from ..basic import ParamChangeRegistryItem as PCRI
 from ..common.ProfileParsers import all_parser_classes
-from ..external_designer import all_designer_classes
+from ..magician import all_designer_classes
 from ..sidechain_solver.SidechainSolver import all_runner_c
 from ..tools.customized_widgets import refresh_widget_while_another_changed
 

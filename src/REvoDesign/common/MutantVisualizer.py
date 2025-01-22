@@ -17,7 +17,7 @@ from REvoDesign import issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.ProfileParsers import ProfileManager
-from REvoDesign.external_designer import Magician
+from REvoDesign.magician import Magician
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
                                            extract_mutants_from_mutant_id)

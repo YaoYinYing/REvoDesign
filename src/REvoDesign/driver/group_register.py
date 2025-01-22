@@ -53,7 +53,7 @@ class CallableGroupValues:
 
     @staticmethod
     def list_all_designers() -> List[str]:
-        from REvoDesign.external_designer import all_designer_classes
+        from REvoDesign.magician import all_designer_classes
 
         return [
             dc.name
@@ -63,14 +63,14 @@ class CallableGroupValues:
 
     @staticmethod
     def list_all_scorers() -> List[str]:
-        from REvoDesign.external_designer import all_designer_classes
+        from REvoDesign.magician import all_designer_classes
 
         return [dc.name for dc in all_designer_classes if dc.installed]
 
     @staticmethod
     def list_all_rosetta_node_hints() -> List[str]:
 
-        from REvoDesign.external_designer.designers.cart_ddg import \
+        from REvoDesign.magician.designers.cart_ddg import \
             is_run_node_available
 
         node_hints: List[NodeHintT] = [

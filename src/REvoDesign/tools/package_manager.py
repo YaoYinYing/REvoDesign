@@ -1955,7 +1955,7 @@ def issue_collection(
     if is_package_installed('REvoDesign'):
         import REvoDesign
         from REvoDesign.driver.ui_driver import ConfigBus
-        from REvoDesign.external_designer import all_designer_classes
+        from REvoDesign.magician import all_designer_classes
         from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
 
         issue_dict.update({'REvoDesign::Version': REvoDesign.__version__})
