@@ -22,7 +22,7 @@ from REvoDesign.citations import CitationManager
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.external_designer import Magician, implemented_designers
+from REvoDesign.magician import Magician, implemented_designers
 from REvoDesign.logger import root_logger
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (expand_range,
@@ -339,7 +339,7 @@ class REvoDesigner:
             return
 
         self.magician = self.magician.setup(
-            magician_name=self.input_profile_format,
+            gimmick_name=self.input_profile_format,
             molecule=self.molecule,
             fix_pos=",".join(
                 [
@@ -380,9 +380,9 @@ class REvoDesigner:
             custom_indices_str=custom_indices_str,
         )
 
-        if self.magician.magician is None:
+        if self.magician.gimmick is None:
             logging.error(
-                f"Failed to initialize magician {self.input_profile_format}: {self.magician.magician}"
+                f"Failed to initialize magician {self.input_profile_format}: {self.magician.gimmick}"
             )
             self.output_pse = ""
             return
@@ -391,7 +391,7 @@ class REvoDesigner:
             f"Setting preffered substitutions {self.preffered_substitutions}."
         )
 
-        self.magician.magician.preffer_substitutions(
+        self.magician.gimmick.preffer_substitutions(
             aa=self.preffered_substitutions
         )
 
@@ -400,7 +400,7 @@ class REvoDesigner:
             "depending on your molecule size, sampling batch and design number that you required."
         )
 
-        designs = self.magician.magician.designer(
+        designs = self.magician.gimmick.designer(
             num=self.magician_num_samples,
             batch=self.batch,
             temperature=self.magician_temperature,
@@ -576,7 +576,7 @@ class REvoDesigner:
         self.visualizer.mutate_runner = self.mutate_runner
 
         if (
-            self.magician.magician
+            self.magician.gimmick
             or self.input_profile_format in implemented_designers
         ):
             score_list = [

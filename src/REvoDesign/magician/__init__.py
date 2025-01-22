@@ -32,7 +32,7 @@ __all__ = ["ExternalDesignerAbstract", "ColabDesigner_MPNN"]
 
 
 @dataclass(frozen=True)
-class MagicianManager:
+class MagicianAssistant:
     """
     A class to manage the installation and usage of external design tools.
     """
@@ -46,57 +46,83 @@ class MagicianManager:
     def get(self, name, **kwargs) -> ExternalDesignerAbstract:
         designer_class = implemented_designers[name]
         return designer_class(**kwargs)
-
-
 class Magician(SingletonAbstract):
+    """
+    The Magician class inherits from SingletonAbstract, ensuring that there is only one instance of Magician.
+    This class is responsible for setting up and managing the magician's gimmicks, including initializing 
+    and cooling down gimmicks based on different configurations.
+    """
+    
     def singleton_init(self):
+        """
+        Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick, 
+        and creating an instance of the assistant.
+        """
+        # Initialize the configuration bus for accessing configuration information
         self.bus: ConfigBus = ConfigBus()
-        self.magician: Optional[ExternalDesignerAbstract] = None
-        self.magician_manager = MagicianManager()
+        # Initialize the gimmick as None, to be set up later
+        self.gimmick: Optional[ExternalDesignerAbstract] = None
+        # Create an instance of the assistant for helping with gimmick management
+        self.magician_assistant = MagicianAssistant()
 
     def setup(
         self,
         name_badget_id: Optional[str] = "",
         name_cfg_term: Optional[str] = "",
-        magician_name: Optional[str] = "",
+        gimmick_name: Optional[str] = "",
         **kwargs,
     ) -> "Magician":
+        """
+        Sets up the magician's gimmick based on different methods.
+        
+        Parameters:
+        - name_badget_id: Optional[str] - The ID badge for obtaining the name.
+        - name_cfg_term: Optional[str] - The configuration term for obtaining the name.
+        - gimmick_name: Optional[str] - The directly provided name of the gimmick.
+        - **kwargs: Additional parameters for setting up the gimmick.
+        
+        Returns:
+        - Magician: Returns the instance of the Magician for method chaining.
+        """
+        
+        # Attempt to obtain the name of the gimmick through different means
         if name_badget_id:
             name = self.bus.get_widget_value(name_badget_id, str)
         elif name_cfg_term:
             name = self.bus.get_value(name_cfg_term, str, reject_none=True)
-        elif magician_name:
-            name = magician_name
+        elif gimmick_name:
+            name = gimmick_name
 
         # if the name is empty and the magician is initialized, cool it down
         else:
-            if self.magician is not None:
-                logging.info(f"Cooling down {self.magician.name} ...")
-            self.magician = None
-
+            if self.gimmick is not None:
+                logging.info(f"Cooling down {self.gimmick.name} ...")
+            self.gimmick = None
             return self
 
+        # If the current gimmick does not match the required name, pre-heat up a new gimmick
         if not (
-            isinstance(self.magician, ExternalDesignerAbstract)
-            and self.magician.name == name
+            isinstance(self.gimmick, ExternalDesignerAbstract)
+            and self.gimmick.name == name
         ):
 
-            with timing(f"Pre-heating up Magician {name}"):
+            with timing(f"Pre-heating up Magician's gimmick {name}"):
                 try:
                     # if not ready, initialize it and return
                     logging.info("This could take a while ...")
-                    self.magician = self.magician_manager.get(
+                    self.gimmick = self.magician_assistant.get(
                         name=name, **kwargs
                     )
-                    self.magician.initialize(**kwargs)
+                    self.gimmick.initialize(**kwargs)
                     return self
                 except KeyError:
                     # not a valid class, return with cooled down.
                     return self.setup()
                 except Exception as e:
                     raise issues.DependencyError(
-                        f"Failed to setup Magician {name}"
+                        f"Failed to setup Magician's gimmick {name}"
                     ) from e
 
-        logging.info(f"Designer stays unchanged: {self.magician.name}")
+        # If the gimmick does not need to change, log information and return
+        logging.info(f"Designer stays unchanged: {self.gimmick.name}")
         return self

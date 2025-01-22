@@ -22,7 +22,7 @@ from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.external_designer import Magician, implemented_designers
+from REvoDesign.magician import Magician, implemented_designers
 from REvoDesign.logger import root_logger
 from REvoDesign.phylogenetics.GREMLIN_Tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.REvoDesigner import REvoDesigner
@@ -1077,20 +1077,20 @@ class GREMLIN_Analyser:
             self.refresh_magician()
 
             # call scorer to evaluate wt and mutant
-            if not self.magician.magician:
+            if not self.magician.gimmick:
                 wt_score = matrix.loc[wt_i, wt_j]
                 mut_score = matrix.loc[mut_i, mut_j]
             else:
-                if self.magician.magician.no_need_to_score_wt:
+                if self.magician.gimmick.no_need_to_score_wt:
                     wt_score = 0
                 else:
                     wt_score = run_worker_thread_with_progress(
-                        worker_function=self.magician.magician.scorer,
+                        worker_function=self.magician.gimmick.scorer,
                         mutant=self.designable_sequences,
                         progress_bar=self.bus.ui.progressBar,
                     )
                 mut_score = run_worker_thread_with_progress(
-                    worker_function=self.magician.magician.scorer,
+                    worker_function=self.magician.gimmick.scorer,
                     mutant=mutant_obj,
                     progress_bar=self.bus.ui.progressBar,
                 )

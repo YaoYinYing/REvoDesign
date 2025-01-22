@@ -17,7 +17,7 @@ from REvoDesign import issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.common.ProfileParsers import ProfileManager
-from REvoDesign.external_designer import Magician
+from REvoDesign.magician import Magician
 from REvoDesign.sidechain_solver import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
                                            extract_mutants_from_mutant_id)
@@ -295,9 +295,9 @@ class MutantVisualizer:
         ]
 
         # margician stays highest priority.
-        if self.magician.magician is not None:
-            logging.info(f'Using magician for parallel scoring: {self.magician.magician.name}')
-            self.magician.magician.parallel_scorer(
+        if self.magician.gimmick is not None:
+            logging.info(f'Using designer for parallel scoring: {self.magician.gimmick.name}')
+            self.magician.gimmick.parallel_scorer(
                 variant_objs, nproc=self.nproc
             )
 
@@ -379,7 +379,7 @@ class MutantVisualizer:
             self.consider_global_score_from_profile  # Toggle the global score flag
             and (self.profile_scoring_df is not None)  # profile df is not None
             and (not self.profile_scoring_df.empty)  # profile df is not empty
-            and (self.magician.magician is None)  # no magician enabled
+            and (self.magician.gimmick is None)  # no magician enabled
         ):
             self.min_score = self.min_score_profile
             self.max_score = self.max_score_profile

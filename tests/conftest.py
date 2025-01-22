@@ -29,7 +29,7 @@ from REvoDesign.common.MutantTree import MutantTree
 from REvoDesign.driver.file_dialog import FileDialog
 from REvoDesign.editor.monaco.config import ConfigStore
 from REvoDesign.editor.monaco.server import ServerControl
-from REvoDesign.external_designer import Magician
+from REvoDesign.magician import Magician
 from REvoDesign.sidechain_solver import SidechainSolver
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)

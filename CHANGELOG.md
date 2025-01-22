@@ -17,6 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 ## [Unreleased]
+### Added
+- `package_manager`: 
+  - typing hints: `notify_box`
+
+### Changed
+- `MenuItem`: support args and kwargs
+- renamed:
+  - `external_designer` -> `magician`
+  - `MagicianManager` -> `MagicianAssistant`
+  - `Magician`: 
+    - `magician` -> `gimmick`
+    - `magician_manager` -> `magician_assistant`
+    - `setup`:
+      - `magician_name` -> `gimmick_name`
+
+### Fixed
+- depts: `uvicorn`
+
+### Removed
 
 ## [1.7.14] - 2025-01-04
 

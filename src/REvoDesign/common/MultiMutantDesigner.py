@@ -23,7 +23,7 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign import ConfigBus, issues, root_logger
 from REvoDesign.common.Mutant import Mutant
 from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.external_designer import Magician
+from REvoDesign.magician import Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
 from REvoDesign.tools.utils import cmap_reverser, get_color
@@ -157,13 +157,13 @@ class MultiMutantDesigner:
         )
 
         # color via magician
-        if self.color_by_scores and self.magician.magician is not None:
+        if self.color_by_scores and self.magician.gimmick is not None:
             for mut_obj in self.all_design_multi_design_mutant_object:
                 mut_obj.wt_protein_sequence = self.designable_sequences
                 if mut_obj.mutant_score:
                     continue
 
-                mut_obj.mutant_score = self.magician.magician.scorer(
+                mut_obj.mutant_score = self.magician.gimmick.scorer(
                     mutant=mut_obj
                 )
 
@@ -228,7 +228,7 @@ class MultiMutantDesigner:
         tmp_mutant_obj.mutant_score = 0.0
         tmp_mutant_obj.wt_protein_sequence = self.designable_sequences
 
-        if not self.magician.magician:
+        if not self.magician.gimmick:
             warnings.warn(
                 issues.ConflictWarning(
                     "Abord design evaluation because no external scorer is defined."
@@ -236,7 +236,7 @@ class MultiMutantDesigner:
             )
 
         else:
-            tmp_mutant_obj.mutant_score = self.magician.magician.scorer(
+            tmp_mutant_obj.mutant_score = self.magician.gimmick.scorer(
                 mutant=tmp_mutant_obj
             )
 
