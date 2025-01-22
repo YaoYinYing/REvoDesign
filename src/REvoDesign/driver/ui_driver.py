@@ -255,8 +255,8 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                   cfg_item: str,
                   converter: Callable[[Any],
                                       ValueFromConfigT],
-                  reject_none: bool = False,
-                  default_value: Optional[ValueFromConfigT] = ...) -> Optional[ValueFromConfigT]: ...
+                  reject_none: bool = True,
+                  default_value: Optional[ValueFromConfigT] = ...) -> ValueFromConfigT: ...
 
     @overload
     def get_value(self, cfg_item: str, converter=None) -> Any: ...
