@@ -285,7 +285,7 @@ class CSVProfileParser(ProfileParserAbstract):
             logging.debug(
                 f"Failed to process profile data {self.profile_input}.."
             )
-            return
+            raise issues.InvalidInputError(f"Failed to process profile data {self.profile_input}..")
 
 
 # TODO this may not work

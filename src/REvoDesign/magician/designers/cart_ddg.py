@@ -20,7 +20,7 @@ from RosettaPy.node.wsl import which_wsl
 
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
-from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 

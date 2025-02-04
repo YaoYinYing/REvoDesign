@@ -8,7 +8,7 @@ from typing import Any, Literal, Optional
 from pymol.Qt.utils import getSaveFileNameWithExt
 
 from ..basic import FileExtensionCollection, SingletonAbstract
-from ..common import FileExtentions
+from ..common import file_extensions
 from ..logger import root_logger
 from ..tools.customized_widgets import decide, getOpenFileNameWithExt
 from ..tools.utils import extract_archive
@@ -47,7 +47,7 @@ class FileDialog(SingletonAbstract):
     # callback for the "Browse" button
 
     def browse_filename(
-        self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection, ...] = (FileExtentions.Any,)
+        self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,)
     ) -> Optional[str]:
         """Open Finder/Explorer to browse from a filename
 
@@ -88,7 +88,7 @@ class FileDialog(SingletonAbstract):
 
         # Check if the selected file is a compressed archive
         # if not, return
-        if filename_ext not in FileExtentions.Compressed:
+        if filename_ext not in file_extensions.Compressed:
             return filename
 
         # if so, ask user whether to extract this compressed file
@@ -110,7 +110,7 @@ class FileDialog(SingletonAbstract):
     # A universal and versatile function for input file path browsing.
 
     def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (
-            FileExtentions.Any,)) -> Optional[str]:
+            file_extensions.Any,)) -> Optional[str]:
         """Open Any File
 
         Args:
@@ -136,9 +136,9 @@ class FileDialog(SingletonAbstract):
         if mode == "r":
             input_mut_txt_fn = self.open_file(
                 cfg_mutant_table,
-                (FileExtentions.Mutable,
-                    FileExtentions.Any,
-                    FileExtentions.Compressed,),
+                (file_extensions.Mutable,
+                    file_extensions.Any,
+                    file_extensions.Compressed,),
             )
             if input_mut_txt_fn:
                 ConfigBus().set_widget_value(cfg_mutant_table, input_mut_txt_fn)
@@ -152,8 +152,8 @@ class FileDialog(SingletonAbstract):
         output_mut_txt_fn = self.browse_filename(
             mode=mode,
             exts=(
-                FileExtentions.Mutable,
-                FileExtentions.Any,
+                file_extensions.Mutable,
+                file_extensions.Any,
             ),
         )
         if output_mut_txt_fn and os.path.exists(
@@ -171,7 +171,7 @@ class FileDialog(SingletonAbstract):
             partial(
                 self.open_file,
                 "ui.mutate.input.residue_ids",
-                (FileExtentions.TXT, FileExtentions.Any),
+                (file_extensions.TXT, file_extensions.Any),
             )
         )
 
@@ -179,9 +179,9 @@ class FileDialog(SingletonAbstract):
             partial(
                 self.open_file,
                 "ui.mutate.input.profile",
-                (FileExtentions.PSSM,
-                    FileExtentions.Any,
-                    FileExtentions.Compressed,)
+                (file_extensions.PSSM,
+                    file_extensions.Any,
+                    file_extensions.Compressed,)
             )
         )
 
@@ -189,9 +189,9 @@ class FileDialog(SingletonAbstract):
             partial(
                 self.open_file,
                 "ui.visualize.input.profile",
-                (FileExtentions.PSSM,
-                    FileExtentions.Any,
-                    FileExtentions.Compressed,),
+                (file_extensions.PSSM,
+                    file_extensions.Any,
+                    file_extensions.Compressed,),
             )
         )
         bus.button("open_gremlin_mtx").clicked.connect(
@@ -199,8 +199,8 @@ class FileDialog(SingletonAbstract):
                 self.open_file,
                 "ui.interact.input.gremlin_pkl",
                 (
-                    FileExtentions.PickledObject,
-                    FileExtentions.Any,
+                    file_extensions.PickledObject,
+                    file_extensions.Any,
                 ),
             )
         )

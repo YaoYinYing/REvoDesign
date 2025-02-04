@@ -14,7 +14,7 @@ from pymol import cmd
 from PyQt5 import QtCore, QtNetwork, QtWebSockets  # type: ignore
 
 from REvoDesign import ConfigBus, SingletonAbstract, issues
-from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import refresh_tree_widget
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager

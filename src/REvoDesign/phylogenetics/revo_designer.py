@@ -19,12 +19,11 @@ from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import issues
 from REvoDesign.citations import CitationManager
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.common.MutantVisualizer import MutantVisualizer
+from REvoDesign.common import Mutant,  MutantTree
+from REvoDesign.common.mutant_visualise import MutantVisualizer
 from REvoDesign.magician import Magician, implemented_designers
 from REvoDesign.logger import root_logger
-from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,
                                            read_customized_indice,

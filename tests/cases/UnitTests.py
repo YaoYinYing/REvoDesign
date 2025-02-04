@@ -18,14 +18,12 @@ from REvoDesign import (REVODESIGN_CONFIG_FILE, ConfigBus, issues,
                         set_REvoDesign_config_file)
 from REvoDesign.bootstrap.set_config import ConfigConverter
 from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
-from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
+from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
                                                        PIPPack_worker)
-from REvoDesign.structure.PocketSearcher import PocketSearcher
-from REvoDesign.structure.SurfaceFinder import SurfaceFinder
+from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,
                                            extract_mutant_score_from_string,

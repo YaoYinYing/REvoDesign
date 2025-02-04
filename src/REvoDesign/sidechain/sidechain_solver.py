@@ -11,7 +11,7 @@ from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.logger import root_logger
 # 1. implement the mutate runner and import then here
-from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
+from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
                                                        PIPPack_worker,
                                                        PyMOL_mutate)
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
@@ -20,7 +20,7 @@ from REvoDesign.tools.utils import timing
 logging = root_logger.getChild(__name__)
 
 # 2. collect all the runners here
-all_runner_c: List[type[MutateRunnerAbstract]] = [
+all_runner_classes: List[type[MutateRunnerAbstract]] = [
     PyMOL_mutate,
     DLPacker_worker,
     PIPPack_worker,
@@ -29,7 +29,7 @@ all_runner_c: List[type[MutateRunnerAbstract]] = [
 
 # create table of implemented runners
 implemented_runner: Mapping[str, type[MutateRunnerAbstract]] = (
-    MappingProxyType({c.name: c for c in all_runner_c})
+    MappingProxyType({c.name: c for c in all_runner_classes})
 )
 
 __all__ = [
@@ -38,7 +38,7 @@ __all__ = [
     "PyMOL_mutate",
     "DLPacker_worker",
     "PIPPack_worker",
-    "all_runner_c",
+    "all_runner_classes",
     "implemented_runner",
 ]
 
@@ -47,7 +47,7 @@ __all__ = [
 class MutateRunnerManager:
     # create list of installed runners here
     installed_worker: List[str] = field(
-        default_factory=lambda: [c.name for c in all_runner_c if c.installed]
+        default_factory=lambda: [c.name for c in all_runner_classes if c.installed]
     )
 
     def get(

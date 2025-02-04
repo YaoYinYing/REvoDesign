@@ -5,9 +5,9 @@ from typing import Protocol
 
 from ..basic import ParamChangeRegister as PCR
 from ..basic import ParamChangeRegistryItem as PCRI
-from ..common.ProfileParsers import all_parser_classes
+from ..common.profile_parsers import all_parser_classes
 from ..magician import all_designer_classes
-from ..sidechain_solver.SidechainSolver import all_runner_c
+from ..sidechain.sidechain_solver import all_runner_classes
 from ..tools.customized_widgets import refresh_widget_while_another_changed
 
 # write all connected cases
@@ -18,7 +18,7 @@ ParamChangeSidechainSolverWeights = PCRI(
     "ui.config.sidechain_solver.model",
     {
         c.name: (c.weights_preset, c.default_weight_preset,)
-        for c in all_runner_c
+        for c in all_runner_classes
         if c.installed
     },
 )

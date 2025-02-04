@@ -8,7 +8,7 @@ from pymol import cmd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus
-from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign.common import MutantTree
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.customized_widgets import (decide, get_widget_value,
                                                  set_widget_value)

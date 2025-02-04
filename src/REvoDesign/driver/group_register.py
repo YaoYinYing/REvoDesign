@@ -41,13 +41,13 @@ class CallableGroupValues:
 
     @staticmethod
     def list_installed_mutate_runners() -> List[str]:
-        from REvoDesign.sidechain_solver.SidechainSolver import all_runner_c
+        from REvoDesign.sidechain.sidechain_solver import all_runner_classes
 
-        return [c.name for c in all_runner_c if c.installed]
+        return [c.name for c in all_runner_classes if c.installed]
 
     @staticmethod
     def list_all_profile_parsers() -> List[str]:
-        from REvoDesign.common.ProfileParsers import all_parser_classes
+        from REvoDesign.common.profile_parsers import all_parser_classes
 
         return [p.name for p in all_parser_classes]
 

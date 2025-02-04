@@ -4,7 +4,7 @@ import random
 import pytest
 from pymol import cmd
 
-from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
+from REvoDesign.sidechain.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 

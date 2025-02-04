@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import root_logger
 from REvoDesign.tools.utils import timing
 

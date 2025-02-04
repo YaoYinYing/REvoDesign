@@ -9,7 +9,7 @@ from joblib import Parallel, delayed
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.mutant import Mutant
 
 
 class ExternalDesignerAbstract(CitableModuleAbstract):

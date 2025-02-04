@@ -15,7 +15,7 @@ from pymol import cmd, util
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 
 from REvoDesign import issues, root_logger
-from REvoDesign.common.ProfileParsers import PSSM_Parser
+from REvoDesign.common.profile_parsers import PSSM_Parser
 from REvoDesign.data.protein_code import rAA
 from REvoDesign.tools.pymol_utils import get_all_groups
 
