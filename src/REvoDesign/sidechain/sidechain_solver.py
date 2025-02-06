@@ -9,18 +9,17 @@ from RosettaPy.utils.escape import print_diff
 
 from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.basic import MutateRunnerAbstract
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 # 1. implement the mutate runner and import then here
-from REvoDesign.sidechain_solver.mutate_runner import (DLPacker_worker,
-                                                       PIPPack_worker,
-                                                       PyMOL_mutate)
+from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
+                                                PIPPack_worker, PyMOL_mutate)
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import timing
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # 2. collect all the runners here
-all_runner_c: List[type[MutateRunnerAbstract]] = [
+ALL_RUNNER_CLASSES: List[type[MutateRunnerAbstract]] = [
     PyMOL_mutate,
     DLPacker_worker,
     PIPPack_worker,
@@ -28,8 +27,8 @@ all_runner_c: List[type[MutateRunnerAbstract]] = [
 
 
 # create table of implemented runners
-implemented_runner: Mapping[str, type[MutateRunnerAbstract]] = (
-    MappingProxyType({c.name: c for c in all_runner_c})
+IMPLEMENTED_RUNNER: Mapping[str, type[MutateRunnerAbstract]] = (
+    MappingProxyType({c.name: c for c in ALL_RUNNER_CLASSES})
 )
 
 __all__ = [
@@ -38,8 +37,8 @@ __all__ = [
     "PyMOL_mutate",
     "DLPacker_worker",
     "PIPPack_worker",
-    "all_runner_c",
-    "implemented_runner",
+    "ALL_RUNNER_CLASSES",
+    "IMPLEMENTED_RUNNER",
 ]
 
 
@@ -47,13 +46,13 @@ __all__ = [
 class MutateRunnerManager:
     # create list of installed runners here
     installed_worker: List[str] = field(
-        default_factory=lambda: [c.name for c in all_runner_c if c.installed]
+        default_factory=lambda: [c.name for c in ALL_RUNNER_CLASSES if c.installed]
     )
 
     def get(
         self, sidechain_solver_name: str, **kwargs
     ) -> MutateRunnerAbstract:
-        runner_class = implemented_runner[sidechain_solver_name]
+        runner_class = IMPLEMENTED_RUNNER[sidechain_solver_name]
         return runner_class(**kwargs)
 
 

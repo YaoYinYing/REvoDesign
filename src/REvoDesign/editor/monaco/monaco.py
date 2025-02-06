@@ -9,13 +9,13 @@ from platformdirs import user_data_dir
 from REvoDesign import issues
 
 from ...driver.ui_driver import ConfigBus
-from ...logger import root_logger
+from ...logger import ROOT_LOGGER
 from ...tools.package_manager import get_github_repo_tags, notify_box
 from ...tools.utils import run_worker_thread_with_progress
 from .config import ConfigStore
 from .server import ServerControl
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class MonacoEditorManager:

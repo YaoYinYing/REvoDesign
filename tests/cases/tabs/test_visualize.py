@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from REvoDesign.sidechain_solver.mutate_runner.PIPPack import PIPPack_worker
+from REvoDesign.sidechain.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import set_widget_value
 
 from ...conftest import TestWorker

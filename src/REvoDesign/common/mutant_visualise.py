@@ -13,18 +13,17 @@ import pandas as pd
 from Bio import SeqIO
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign import issues, root_logger
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.common.ProfileParsers import ProfileManager
+from REvoDesign import ROOT_LOGGER, issues
+from REvoDesign.common import Mutant, MutantTree
+from REvoDesign.common.profile_parsers import ProfileManager
 from REvoDesign.magician import Magician
-from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.sidechain import MutateRunnerAbstract
 from REvoDesign.tools.mutant_tools import (extract_mutant_from_sequences,
                                            extract_mutants_from_mutant_id)
 from REvoDesign.tools.utils import get_color, require_not_none, run_command
 
 matplotlib.use("Agg")
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class MutantVisualizer:

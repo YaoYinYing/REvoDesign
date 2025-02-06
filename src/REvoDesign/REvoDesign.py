@@ -21,7 +21,7 @@ from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
-from REvoDesign import (ConfigBus, FileExtentions, issues, reload_config_file,
+from REvoDesign import (ConfigBus, file_extensions, issues, reload_config_file,
                         save_configuration, set_REvoDesign_config_file)
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
@@ -32,7 +32,7 @@ from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
-from REvoDesign.common.MultiMutantDesigner import MultiMutantDesigner
+from REvoDesign.common.multi_mutant_designer import MultiMutantDesigner
 from REvoDesign.driver.environ_register import (add_new_environment_variables,
                                                 drop_environment_variables,
                                                 register_environment_variables)
@@ -41,8 +41,8 @@ from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.editor import menu_edit_file
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
-from REvoDesign.logger import LoggerT, root_logger
-from REvoDesign.phylogenetics import (GREMLIN_Analyser, MutateWorker,
+from REvoDesign.logger import ROOT_LOGGER, LoggerT
+from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.shortcuts.shortcut_tools import (menu_color_by_plddt,
                                                  menu_dump_sidechains,
@@ -94,10 +94,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.design_chain_id = ""
         self.design_sequence = ""
 
-        self.gremlin_worker: GREMLIN_Analyser = None  # type: ignore
+        self.gremlin_worker: GremlinAnalyser = None  # type: ignore
         self.evaluator: Evalutator = None  # type: ignore
         global logging
-        logging = root_logger.getChild(self.__class__.__name__)
+        logging = ROOT_LOGGER.getChild(self.__class__.__name__)
 
         self.pssm_gremlin_calculator = PSSMGremlinCalculator()
 
@@ -739,9 +739,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             new_session_file = self.file_dialog.browse_filename(
                 mode="r",
                 exts=(
-                    FileExtentions.Session,
-                    FileExtentions.PDB,
-                    FileExtentions.Any,
+                    file_extensions.Session,
+                    file_extensions.PDB,
+                    file_extensions.Any,
                 ),
             )
             if not new_session_file:
@@ -778,7 +778,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         output_pse_fn = self.file_dialog.browse_filename(
             mode="w",
-            exts=(FileExtentions.Session, FileExtentions.Any),
+            exts=(file_extensions.Session, file_extensions.Any),
         )
 
         if output_pse_fn and os.path.exists(os.path.dirname(output_pse_fn)):
@@ -839,7 +839,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return self.file_dialog.browse_filename(
-                mode="w", exts=(FileExtentions.Session,)
+                mode="w", exts=(file_extensions.Session,)
             )
 
         if not os.path.exists(session_path):
@@ -849,7 +849,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return self.file_dialog.browse_filename(
-                mode="w", exts=(FileExtentions.Session,)
+                mode="w", exts=(file_extensions.Session,)
             )
 
         if os.path.basename(session_path).startswith(
@@ -862,7 +862,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return self.file_dialog.browse_filename(
-                mode="w", exts=(FileExtentions.Session,)
+                mode="w", exts=(file_extensions.Session,)
             )
 
         return session_path
@@ -1053,7 +1053,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         mutant_choice_checkpoint_fn = self.file_dialog.browse_filename(
             mode="r",
-            exts=(FileExtentions.Mutable, FileExtentions.Any),
+            exts=(file_extensions.Mutable, file_extensions.Any),
         )
 
         self.evaluator.recover_mutant_choices_from_checkpoint(
@@ -1283,7 +1283,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
                 if not confirmed:
                     session = self.file_dialog.browse_filename(
-                        mode="w", exts=(FileExtentions.Session,)
+                        mode="w", exts=(file_extensions.Session,)
                     )
 
                 if not session:
@@ -1416,7 +1416,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         trigger_button = self.bus.button("reinitialize_interact")
 
         with hold_trigger_button(trigger_button), timing("Load GREMLIN mrf"):
-            self.gremlin_worker = GREMLIN_Analyser()
+            self.gremlin_worker = GremlinAnalyser()
             self.gremlin_worker.load_gremlin_mrf()
 
     @require_not_none("gremlin_worker")
@@ -1716,7 +1716,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         new_cfg_file = self.file_dialog.browse_filename(
             mode=mode,
-            exts=(FileExtentions.YAML, FileExtentions.Any),
+            exts=(file_extensions.YAML, file_extensions.Any),
         )
         if not new_cfg_file:
             return

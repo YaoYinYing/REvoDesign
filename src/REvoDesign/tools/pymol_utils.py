@@ -12,9 +12,9 @@ from pymol import cmd, get_version_message
 from pymol.parsing import QuietException
 
 from REvoDesign import issues
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 def is_empty_session():

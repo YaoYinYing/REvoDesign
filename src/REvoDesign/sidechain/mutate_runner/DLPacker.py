@@ -9,11 +9,11 @@ from joblib import Parallel, delayed
 
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.logger import root_logger
+from REvoDesign.common.mutant import Mutant
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class DLPacker_worker(MutateRunnerAbstract):

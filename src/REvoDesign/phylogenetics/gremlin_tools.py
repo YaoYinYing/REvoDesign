@@ -32,9 +32,9 @@ from scipy.spatial.distance import pdist, squareform
 
 from REvoDesign import ConfigBus, issues
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 matplotlib.use("Agg")
 
 

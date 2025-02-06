@@ -18,13 +18,12 @@ import pandas as pd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import issues
+from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.citations import CitationManager
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.common.MutantVisualizer import MutantVisualizer
-from REvoDesign.magician import Magician, implemented_designers
-from REvoDesign.logger import root_logger
-from REvoDesign.sidechain_solver import MutateRunnerAbstract
+from REvoDesign.common import Mutant, MutantTree
+from REvoDesign.common.mutant_visualise import MutantVisualizer
+from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,
                                            read_customized_indice,
@@ -35,7 +34,7 @@ from REvoDesign.tools.pymol_utils import (
 from REvoDesign.tools.utils import random_deduplicate, require_not_none
 
 matplotlib.use("Agg")
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class REvoDesigner:
@@ -577,7 +576,7 @@ class REvoDesigner:
 
         if (
             self.magician.gimmick
-            or self.input_profile_format in implemented_designers
+            or self.input_profile_format in IMPLEMENTED_DESIGNERS
         ):
             score_list = [
                 mut_obj.mutant_score

@@ -14,12 +14,12 @@ from immutabledict import immutabledict
 from pymol import cmd, util
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 
-from REvoDesign import issues, root_logger
-from REvoDesign.common.ProfileParsers import PSSM_Parser
+from REvoDesign import ROOT_LOGGER, issues
+from REvoDesign.common.profile_parsers import PSSM_Parser
 from REvoDesign.data.protein_code import rAA
 from REvoDesign.tools.pymol_utils import get_all_groups
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 def pssm2csv(pssm: str) -> None:

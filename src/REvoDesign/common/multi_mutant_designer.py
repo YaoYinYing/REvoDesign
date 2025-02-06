@@ -1,5 +1,6 @@
 '''
 Running Randomized Multi-Design
+
 '''
 import itertools
 import os
@@ -7,7 +8,7 @@ import random
 import warnings
 
 try:
-    from itertools import pairwise
+    from itertools import pairwise  # type: ignore
 except ImportError:
 
     def pairwise(iterable):
@@ -20,15 +21,14 @@ except ImportError:
 from pymol import cmd, util
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign import ConfigBus, issues, root_logger
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
+from REvoDesign import ROOT_LOGGER, ConfigBus, issues
+from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.magician import Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
 from REvoDesign.tools.utils import cmap_reverser, get_color
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class MultiMutantDesigner:

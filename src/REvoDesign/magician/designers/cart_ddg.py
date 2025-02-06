@@ -20,7 +20,7 @@ from RosettaPy.node.wsl import which_wsl
 
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
-from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 
@@ -114,10 +114,10 @@ class ddg(ExternalDesignerAbstract):
         self.nproc: int = int(bus.get_value("ui.header_panel.nproc"))
 
         self.relax_nstruct: int = bus.get_value("rosetta.cart_ddg.relax.nstruct")  # type: ignore
-        self.use_legacy =  bus.get_value("rosetta.cart_ddg.use_legacy", bool, default_value=False, reject_none=True)
-        
-        self.ddg_iterations = bus.get_value("rosetta.cart_ddg.iterations",int, default_value=3, reject_none=True)
-        
+        self.use_legacy = bus.get_value("rosetta.cart_ddg.use_legacy", bool, default_value=False, reject_none=True)
+
+        self.ddg_iterations = bus.get_value("rosetta.cart_ddg.iterations", int, default_value=3, reject_none=True)
+
         self.node_config: Optional[Dict[str, Any]] = bus.get_value(
             "rosetta.node_config"
         )

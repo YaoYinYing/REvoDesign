@@ -2,6 +2,6 @@
 Imports of Font Manager
 """
 
-from .FontManager import FontSetter
+from .font_manager import FontSetter
 
 __all__ = ["FontSetter"]

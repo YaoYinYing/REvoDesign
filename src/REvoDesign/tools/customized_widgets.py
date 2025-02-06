@@ -18,13 +18,13 @@ from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 
 from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
-from REvoDesign.common import FileExtentions
-from REvoDesign.logger import root_logger
+from REvoDesign.common import file_extensions
+from REvoDesign.logger import ROOT_LOGGER
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
                               notify_box, refresh_window)
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 
@@ -1451,7 +1451,7 @@ class ValueDialog(QtWidgets.QDialog):
             # Create and configure the "Load" button
             load_action_button = QtWidgets.QPushButton("Load")
             load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
-            load_action_button.clicked.connect(lambda: self._browse_file(widget, FileExtentions.JSON))
+            load_action_button.clicked.connect(lambda: self._browse_file(widget, file_extensions.JSON))
             # Set size policy to ResizeToContents
             load_action_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
             button_layout.addWidget(load_action_button)
@@ -1471,7 +1471,7 @@ class ValueDialog(QtWidgets.QDialog):
 
         file_dialog = FileDialog(None, os.getcwd())
         selected_file = file_dialog.browse_filename(
-            mode="r", exts=(FileExtentions.Any, exts) if exts else (FileExtentions.Any,)
+            mode="r", exts=(file_extensions.Any, exts) if exts else (file_extensions.Any,)
         )
         if selected_file:
             widget.setText(selected_file)

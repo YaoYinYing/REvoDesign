@@ -8,12 +8,12 @@ from RosettaPy.node import NodeHintT
 from REvoDesign import ConfigBus
 from REvoDesign.citations import CitationManager
 from REvoDesign.clusters.score_clusters import score_clusters
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import set_widget_value
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import run_worker_thread_with_progress
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class ClusterRunner:

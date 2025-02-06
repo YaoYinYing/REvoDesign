@@ -5,9 +5,9 @@ from typing import Protocol
 
 from ..basic import ParamChangeRegister as PCR
 from ..basic import ParamChangeRegistryItem as PCRI
-from ..common.ProfileParsers import all_parser_classes
-from ..magician import all_designer_classes
-from ..sidechain_solver.SidechainSolver import all_runner_c
+from ..common.profile_parsers import ALL_PARSER_CLASSES
+from ..magician import ALL_DESIGNER_CLASSES
+from ..sidechain.sidechain_solver import ALL_RUNNER_CLASSES
 from ..tools.customized_widgets import refresh_widget_while_another_changed
 
 # write all connected cases
@@ -18,7 +18,7 @@ ParamChangeSidechainSolverWeights = PCRI(
     "ui.config.sidechain_solver.model",
     {
         c.name: (c.weights_preset, c.default_weight_preset,)
-        for c in all_runner_c
+        for c in ALL_RUNNER_CLASSES
         if c.installed
     },
 )
@@ -38,13 +38,13 @@ class ParserOrDesigner(Protocol):
     prefer_lower: bool
 
 
-all_profile_or_designers: tuple[type[ParserOrDesigner], ...] = all_parser_classes + tuple(all_designer_classes)
+ALL_PROFILE_OR_DESIGNERS: tuple[type[ParserOrDesigner], ...] = ALL_PARSER_CLASSES + tuple(ALL_DESIGNER_CLASSES)
 
 
 profile_or_designer_vs_is_prefer_lower_score = {
     profile_or_designer.name: (
         profile_or_designer.prefer_lower,
-    ) for profile_or_designer in all_profile_or_designers}
+    ) for profile_or_designer in ALL_PROFILE_OR_DESIGNERS}
 
 ParamChangePreferLowerScoreTabMutate = PCRI(
     "comboBox_profile_type",

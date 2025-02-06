@@ -16,17 +16,16 @@ from Bio.Data import IUPACData
 from pymol import cmd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
-from REvoDesign import ConfigBus, FileExtentions, issues
-from REvoDesign.common.Mutant import Mutant
-from REvoDesign.common.MutantTree import MutantTree
-from REvoDesign.logger import root_logger
-from REvoDesign.sidechain_solver import SidechainSolver
+from REvoDesign import ConfigBus, file_extensions, issues
+from REvoDesign.common import Mutant, MutantTree
+from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.sidechain import SidechainSolver
 from REvoDesign.tools.customized_widgets import QButtonMatrix
 from REvoDesign.tools.pymol_utils import is_hidden_object
 
 from .utils import get_color, timing
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
 # It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.
@@ -526,7 +525,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     Args:
         mutant_tree (MutantTree): input mutant tree object.
     """
-    from REvoDesign.common.MutantVisualizer import MutantVisualizer
+    from REvoDesign.common.mutant_visualise import MutantVisualizer
 
     from .pymol_utils import make_temperal_input_pdb
     from .utils import timing
@@ -686,10 +685,10 @@ def get_mutant_table_columns(mutfile: str):
     filename_bn = os.path.basename(mutfile)
     filename_ext = filename_bn.split(".")[-1]
 
-    if not FileExtentions.Mutable.match(filename_ext):
+    if not file_extensions.Mutable.match(filename_ext):
         raise issues.InvalidInputError(
             f"Invalid file extention {mutfile=}. \n"
-            f"All available: {FileExtentions.Mutable.list_dot_ext=}"
+            f"All available: {file_extensions.Mutable.list_dot_ext=}"
         )
 
     elif mutfile.lower().endswith(".txt"):
@@ -722,10 +721,10 @@ def pick_design_from_profile(
     from RosettaPy.common.mutation import Mutation
 
     from ..bootstrap.set_config import ConfigConverter
-    from ..common.Mutant import Mutant
-    from ..common.MutantVisualizer import MutantVisualizer
-    from ..phylogenetics.REvoDesigner import REvoDesigner
-    from ..sidechain_solver.SidechainSolver import SidechainSolver
+    from ..common.mutant import Mutant
+    from ..common.mutant_visualise import MutantVisualizer
+    from ..phylogenetics.revo_designer import REvoDesigner
+    from ..sidechain.sidechain_solver import SidechainSolver
     from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
                                       read_customized_indice)
     from ..tools.utils import (cmap_reverser, get_color,

@@ -3,6 +3,6 @@ Module for sidechain solvers
 '''
 
 from ..basic import MutateRunnerAbstract
-from .SidechainSolver import SidechainSolver
+from .sidechain_solver import SidechainSolver
 
 __all__ = ["SidechainSolver", "MutateRunnerAbstract"]

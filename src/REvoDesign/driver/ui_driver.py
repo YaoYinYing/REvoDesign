@@ -13,7 +13,7 @@ from pymol.Qt import QtWidgets
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
                                                  set_widget_value,
                                                  widget_signal_tape)
@@ -22,7 +22,7 @@ from REvoDesign.tools.utils import CLASS_ARGSLICE
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # Define a generic type for converter
 ValueFromConfigT = TypeVar("ValueFromConfigT")

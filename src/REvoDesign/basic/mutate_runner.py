@@ -6,8 +6,8 @@ from abc import abstractmethod
 from typing import List, Tuple
 
 from ..citations import CitableModuleAbstract
-from ..common.Mutant import Mutant
-from ..common.MutantTree import MutantTree
+from ..common.mutant import Mutant
+from ..common.mutant_tree import MutantTree
 
 
 class MutateRunnerAbstract(CitableModuleAbstract):

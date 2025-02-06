@@ -23,19 +23,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `MenuItem`: support args and kwargs
-- renamed:
-  - `external_designer` -> `magician`
-  - `MagicianManager` -> `MagicianAssistant`
-  - `Magician`: 
-    - `magician` -> `gimmick`
-    - `magician_manager` -> `magician_assistant`
-    - `setup`:
-      - `magician_name` -> `gimmick_name`
+- renamed for consistency of namespaces:
+  - Classes & Props:
+    - `MagicianManager` -> `MagicianAssistant`
+    - `Magician`: 
+      - `magician` -> `gimmick`
+      - `magician_manager` -> `magician_assistant`
+      - `setup`:
+        - `magician_name` -> `gimmick_name`
+    - `GREMLIN_Analyser` -> `GremlinAnalyser`
+  - Modules:
+    | Module | Renamed |
+    | :-- | :-- |
+    | `FileExtentions` |`file_extensions`|
+    | `MultiMutantDesigner`|`multi_mutant_designer`|
+    | `external_designer`|`magician`|
+    | `FontManager`|`font_manager`|
+    | `Mutant`| `mutant`|
+    | `MutantTree`| `mutant_tree`|
+    |`ClusterRunner`|`cluster_runner`|
+    |`sidechain_solver`| `sidechain`|
+    | `SidechainSolver`| `sidechain_solver`|
+    | `ProfileParsers`| `profile_parsers`|
+    | `Evaluator`| `evaluator`|
+    | `EvoMutator`| `evo_mutator`|
+    | `REvoDesigner`|`revo_designer`|
+    | `GREMLIN_Tools`| `gremlin_tools`|
+    | `MutantVisualizer`| `mutant_visualise`|
+  - Constants:
+    | Constant | Renamed |
+    | :-- | :-- |
+    | `all_runner_c`| `ALL_RUNNER_CLASSES`|
+    | `all_parser_classes`| `ALL_PARSER_CLASSES`|
+    | `all_designer_classes`| `ALL_DESIGNER_CLASSES`|
+    | `all_profile_or_designers`| `ALL_PROFILE_OR_DESIGNERS`|
+    | `implemented_runner`| `IMPLEMENTED_RUNNER`|
+    | `implemented_designers`| `IMPLEMENTED_DESIGNERS`|
+    | `root_logger`| `ROOT_LOGGER`|
 
 ### Fixed
 - depts: `uvicorn`
 
 ### Removed
+- `qteditor`: no longer needed
 
 ## [1.7.14] - 2025-01-04
 

@@ -8,7 +8,7 @@ from joblib_progress import joblib_progress
 from RosettaPy.utils.tools import squeeze
 
 from REvoDesign import issues
-from REvoDesign.common.Mutant import Mutant
+from REvoDesign.common.mutant import Mutant
 
 
 class MutantDict(TypedDict):

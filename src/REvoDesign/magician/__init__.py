@@ -10,21 +10,21 @@ from typing import List, Mapping, Optional
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.basic.abc_singleton import SingletonAbstract
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
 # 1. implement and import the designer
 from .designers import ColabDesigner_MPNN, ddg
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # 2. add the designer class to this list
-all_designer_classes: List[type[ExternalDesignerAbstract]] = [
+ALL_DESIGNER_CLASSES: List[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,
 ]
-implemented_designers: Mapping[str, type[ExternalDesignerAbstract]] = (
-    MappingProxyType({c.name: c for c in all_designer_classes})
+IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = (
+    MappingProxyType({c.name: c for c in ALL_DESIGNER_CLASSES})
 )
 
 
@@ -39,23 +39,25 @@ class MagicianAssistant:
 
     installed_worker: List[str] = field(
         default_factory=lambda: [
-            c.name for c in all_designer_classes if c.installed
+            c.name for c in ALL_DESIGNER_CLASSES if c.installed
         ]
     )
 
     def get(self, name, **kwargs) -> ExternalDesignerAbstract:
-        designer_class = implemented_designers[name]
+        designer_class = IMPLEMENTED_DESIGNERS[name]
         return designer_class(**kwargs)
+
+
 class Magician(SingletonAbstract):
     """
     The Magician class inherits from SingletonAbstract, ensuring that there is only one instance of Magician.
-    This class is responsible for setting up and managing the magician's gimmicks, including initializing 
+    This class is responsible for setting up and managing the magician's gimmicks, including initializing
     and cooling down gimmicks based on different configurations.
     """
-    
+
     def singleton_init(self):
         """
-        Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick, 
+        Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick,
         and creating an instance of the assistant.
         """
         # Initialize the configuration bus for accessing configuration information
@@ -74,17 +76,17 @@ class Magician(SingletonAbstract):
     ) -> "Magician":
         """
         Sets up the magician's gimmick based on different methods.
-        
+
         Parameters:
         - name_badget_id: Optional[str] - The ID badge for obtaining the name.
         - name_cfg_term: Optional[str] - The configuration term for obtaining the name.
         - gimmick_name: Optional[str] - The directly provided name of the gimmick.
         - **kwargs: Additional parameters for setting up the gimmick.
-        
+
         Returns:
         - Magician: Returns the instance of the Magician for method chaining.
         """
-        
+
         # Attempt to obtain the name of the gimmick through different means
         if name_badget_id:
             name = self.bus.get_widget_value(name_badget_id, str)
