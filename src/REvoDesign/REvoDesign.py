@@ -41,7 +41,7 @@ from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.editor import menu_edit_file
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
-from REvoDesign.logger import LoggerT, ROOT_LOGGER
+from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.shortcuts.shortcut_tools import (menu_color_by_plddt,

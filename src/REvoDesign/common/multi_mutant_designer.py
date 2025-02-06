@@ -8,7 +8,7 @@ import random
 import warnings
 
 try:
-    from itertools import pairwise # type: ignore
+    from itertools import pairwise  # type: ignore
 except ImportError:
 
     def pairwise(iterable):
@@ -21,7 +21,7 @@ except ImportError:
 from pymol import cmd, util
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign import ConfigBus, issues, ROOT_LOGGER
+from REvoDesign import ROOT_LOGGER, ConfigBus, issues
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.magician import Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree

@@ -21,8 +21,7 @@ from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
-from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
-                                                       PIPPack_worker)
+from REvoDesign.sidechain.mutate_runner import DLPacker_worker, PIPPack_worker
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,

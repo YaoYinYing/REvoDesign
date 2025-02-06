@@ -21,8 +21,8 @@ from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.mutant_visualise import MutantVisualizer
-from REvoDesign.magician import Magician, IMPLEMENTED_DESIGNERS
 from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
 from REvoDesign.phylogenetics.gremlin_tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.revo_designer import REvoDesigner
 from REvoDesign.sidechain import SidechainSolver

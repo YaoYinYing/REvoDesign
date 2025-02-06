@@ -13,7 +13,7 @@ import pandas as pd
 from Bio import SeqIO
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign import issues, ROOT_LOGGER
+from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.profile_parsers import ProfileManager
 from REvoDesign.magician import Magician

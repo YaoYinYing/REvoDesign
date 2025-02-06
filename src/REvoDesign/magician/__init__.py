@@ -46,16 +46,18 @@ class MagicianAssistant:
     def get(self, name, **kwargs) -> ExternalDesignerAbstract:
         designer_class = IMPLEMENTED_DESIGNERS[name]
         return designer_class(**kwargs)
+
+
 class Magician(SingletonAbstract):
     """
     The Magician class inherits from SingletonAbstract, ensuring that there is only one instance of Magician.
-    This class is responsible for setting up and managing the magician's gimmicks, including initializing 
+    This class is responsible for setting up and managing the magician's gimmicks, including initializing
     and cooling down gimmicks based on different configurations.
     """
-    
+
     def singleton_init(self):
         """
-        Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick, 
+        Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick,
         and creating an instance of the assistant.
         """
         # Initialize the configuration bus for accessing configuration information
@@ -74,17 +76,17 @@ class Magician(SingletonAbstract):
     ) -> "Magician":
         """
         Sets up the magician's gimmick based on different methods.
-        
+
         Parameters:
         - name_badget_id: Optional[str] - The ID badge for obtaining the name.
         - name_cfg_term: Optional[str] - The configuration term for obtaining the name.
         - gimmick_name: Optional[str] - The directly provided name of the gimmick.
         - **kwargs: Additional parameters for setting up the gimmick.
-        
+
         Returns:
         - Magician: Returns the instance of the Magician for method chaining.
         """
-        
+
         # Attempt to obtain the name of the gimmick through different means
         if name_badget_id:
             name = self.bus.get_widget_value(name_badget_id, str)

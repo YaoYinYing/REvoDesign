@@ -18,12 +18,12 @@ import pandas as pd
 from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import issues
-from REvoDesign.citations import CitationManager
-from REvoDesign.common import Mutant,  MutantTree
-from REvoDesign.common.mutant_visualise import MutantVisualizer
-from REvoDesign.magician import Magician, IMPLEMENTED_DESIGNERS
-from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.basic import MutateRunnerAbstract
+from REvoDesign.citations import CitationManager
+from REvoDesign.common import Mutant, MutantTree
+from REvoDesign.common.mutant_visualise import MutantVisualizer
+from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.magician import IMPLEMENTED_DESIGNERS, Magician
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,
                                            read_customized_indice,

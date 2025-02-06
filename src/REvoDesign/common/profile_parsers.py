@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from REvoDesign import issues, ROOT_LOGGER
+from REvoDesign import ROOT_LOGGER, issues
 
 logging = ROOT_LOGGER.getChild(__name__)
 
