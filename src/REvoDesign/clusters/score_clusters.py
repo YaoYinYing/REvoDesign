@@ -9,9 +9,9 @@ from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 from RosettaPy.app.mutate_relax import ScoreClusters
 from RosettaPy.node import NodeHintT, node_picker
 
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 def score_clusters(

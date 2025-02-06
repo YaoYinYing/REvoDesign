@@ -41,31 +41,31 @@ class CallableGroupValues:
 
     @staticmethod
     def list_installed_mutate_runners() -> List[str]:
-        from REvoDesign.sidechain.sidechain_solver import all_runner_classes
+        from REvoDesign.sidechain.sidechain_solver import ALL_RUNNER_CLASSES
 
-        return [c.name for c in all_runner_classes if c.installed]
+        return [c.name for c in ALL_RUNNER_CLASSES if c.installed]
 
     @staticmethod
     def list_all_profile_parsers() -> List[str]:
-        from REvoDesign.common.profile_parsers import all_parser_classes
+        from REvoDesign.common.profile_parsers import ALL_PARSER_CLASSES
 
-        return [p.name for p in all_parser_classes]
+        return [p.name for p in ALL_PARSER_CLASSES]
 
     @staticmethod
     def list_all_designers() -> List[str]:
-        from REvoDesign.magician import all_designer_classes
+        from REvoDesign.magician import ALL_DESIGNER_CLASSES
 
         return [
             dc.name
-            for dc in all_designer_classes
+            for dc in ALL_DESIGNER_CLASSES
             if dc.installed and not dc.scorer_only
         ]
 
     @staticmethod
     def list_all_scorers() -> List[str]:
-        from REvoDesign.magician import all_designer_classes
+        from REvoDesign.magician import ALL_DESIGNER_CLASSES
 
-        return [dc.name for dc in all_designer_classes if dc.installed]
+        return [dc.name for dc in ALL_DESIGNER_CLASSES if dc.installed]
 
     @staticmethod
     def list_all_rosetta_node_hints() -> List[str]:

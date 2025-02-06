@@ -18,14 +18,14 @@ from RosettaPy.common.mutation import Mutation, RosettaPyProteinSequence
 
 from REvoDesign import ConfigBus, file_extensions, issues
 from REvoDesign.common import Mutant, MutantTree
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.sidechain import SidechainSolver
 from REvoDesign.tools.customized_widgets import QButtonMatrix
 from REvoDesign.tools.pymol_utils import is_hidden_object
 
 from .utils import get_color, timing
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # Dictionary comprehension to create a mapping from 3-letter amino acid codes to 1-letter codes.
 # It utilizes the IUPACData module from Biopython, which contains standard codes for amino acids.

@@ -16,11 +16,11 @@ from Bio.Align import PairwiseAligner, substitution_matrices
 from matplotlib import pyplot as plt
 
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.customized_widgets import refresh_window
 from REvoDesign.tools.utils import minibatches_generator
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 matplotlib.use("Agg")

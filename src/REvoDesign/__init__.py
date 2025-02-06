@@ -17,7 +17,7 @@ from REvoDesign.common import file_extensions
 # 4. import UI bus, depending on SingletonAbstract, logger, configuration
 from REvoDesign.driver.ui_driver import ConfigBus
 # 5. import logger
-from REvoDesign.logger import root_logger, setup_logging
+from REvoDesign.logger import ROOT_LOGGER, setup_logging
 # 6. import the major plugin for PyMOL
 from REvoDesign.REvoDesign import REvoDesignPlugin
 # 7. add shortcuts to PyMOL commandline prompt
@@ -38,7 +38,7 @@ __all__ = [
     "reload_config_file",
     "set_cache_dir",
     "save_configuration",
-    "root_logger",
+    "ROOT_LOGGER",
     "setup_logging",
     "REVODESIGN_CONFIG_FILE",
     "set_REvoDesign_config_file",

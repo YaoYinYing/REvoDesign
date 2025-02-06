@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from REvoDesign import issues, root_logger
+from REvoDesign import issues, ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class ProfileParserAbstract(ABC):
@@ -381,7 +381,7 @@ class Pythia_ddG_Parser(ProfileParserAbstract):
         ddg_runner.cite()
 
 
-all_parser_classes = (
+ALL_PARSER_CLASSES = (
     PSSM_Parser,
     CSVProfileParser,
     TSVProfileParser,
@@ -399,7 +399,7 @@ class ProfileManager:
         try:
             parser_class = [
                 parser
-                for parser in all_parser_classes
+                for parser in ALL_PARSER_CLASSES
                 if parser.name == self.profile_type
             ][0]
             return parser_class(**kwargs)

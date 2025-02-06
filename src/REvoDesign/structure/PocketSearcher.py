@@ -8,9 +8,9 @@ from typing import Tuple
 from pymol import cmd
 
 from REvoDesign import ConfigBus
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class PocketSearcher:

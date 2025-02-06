@@ -11,9 +11,9 @@ from joblib import Parallel, delayed
 
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class PyMOL_mutate(MutateRunnerAbstract):

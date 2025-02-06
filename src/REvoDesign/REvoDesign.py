@@ -41,7 +41,7 @@ from REvoDesign.driver.param_toggle_register import ParamChangeCollections
 from REvoDesign.editor import menu_edit_file
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
-from REvoDesign.logger import LoggerT, root_logger
+from REvoDesign.logger import LoggerT, ROOT_LOGGER
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.shortcuts.shortcut_tools import (menu_color_by_plddt,
@@ -97,7 +97,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.gremlin_worker: GremlinAnalyser = None  # type: ignore
         self.evaluator: Evalutator = None  # type: ignore
         global logging
-        logging = root_logger.getChild(self.__class__.__name__)
+        logging = ROOT_LOGGER.getChild(self.__class__.__name__)
 
         self.pssm_gremlin_calculator = PSSMGremlinCalculator()
 

@@ -10,21 +10,21 @@ from typing import List, Mapping, Optional
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.basic.abc_singleton import SingletonAbstract
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
 # 1. implement and import the designer
 from .designers import ColabDesigner_MPNN, ddg
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # 2. add the designer class to this list
-all_designer_classes: List[type[ExternalDesignerAbstract]] = [
+ALL_DESIGNER_CLASSES: List[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,
 ]
-implemented_designers: Mapping[str, type[ExternalDesignerAbstract]] = (
-    MappingProxyType({c.name: c for c in all_designer_classes})
+IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = (
+    MappingProxyType({c.name: c for c in ALL_DESIGNER_CLASSES})
 )
 
 
@@ -39,12 +39,12 @@ class MagicianAssistant:
 
     installed_worker: List[str] = field(
         default_factory=lambda: [
-            c.name for c in all_designer_classes if c.installed
+            c.name for c in ALL_DESIGNER_CLASSES if c.installed
         ]
     )
 
     def get(self, name, **kwargs) -> ExternalDesignerAbstract:
-        designer_class = implemented_designers[name]
+        designer_class = IMPLEMENTED_DESIGNERS[name]
         return designer_class(**kwargs)
 class Magician(SingletonAbstract):
     """

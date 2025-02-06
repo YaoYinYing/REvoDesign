@@ -5,9 +5,9 @@ This module contains functions and classes related to generating unique identifi
 import uuid
 
 from REvoDesign import issues
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 def check_response_code(response, successfull_opt="Submitted"):

@@ -19,12 +19,12 @@ from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import file_extensions
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
                               notify_box, refresh_window)
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 PYQT_VERSION_STR = QtCore.PYQT_VERSION_STR
 

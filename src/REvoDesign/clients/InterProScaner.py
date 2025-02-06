@@ -11,9 +11,9 @@ import time
 import requests
 from lxml import etree
 
-from REvoDesign import root_logger
+from REvoDesign import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class InterProScanner:

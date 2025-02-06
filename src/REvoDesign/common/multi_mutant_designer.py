@@ -21,14 +21,14 @@ except ImportError:
 from pymol import cmd, util
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign import ConfigBus, issues, root_logger
+from REvoDesign import ConfigBus, issues, ROOT_LOGGER
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.magician import Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
 from REvoDesign.tools.utils import cmap_reverser, get_color
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class MultiMutantDesigner:

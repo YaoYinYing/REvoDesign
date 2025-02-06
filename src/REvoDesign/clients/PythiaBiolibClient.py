@@ -4,10 +4,10 @@ import traceback
 import biolib
 
 from REvoDesign.citations import CitableModuleAbstract
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class PythiaBiolib(CitableModuleAbstract):

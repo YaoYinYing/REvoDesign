@@ -118,7 +118,7 @@ from REvoDesign.tools.mutant_tools import pick_design_from_profile
 
 from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
-from ..logger import root_logger
+from ..logger import ROOT_LOGGER
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import get_all_groups, renumber_protein_chain
 from ..tools.utils import run_worker_thread_with_progress, timing
@@ -126,7 +126,7 @@ from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
                         smiles_conformer_batch, smiles_conformer_single,
                         visualize_conformer_sdf)
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 @dialog_wrapper(

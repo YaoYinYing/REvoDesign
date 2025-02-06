@@ -1955,8 +1955,8 @@ def issue_collection(
     if is_package_installed('REvoDesign'):
         import REvoDesign
         from REvoDesign.driver.ui_driver import ConfigBus
-        from REvoDesign.magician import all_designer_classes
-        from REvoDesign.sidechain.sidechain_solver import all_runner_classes
+        from REvoDesign.magician import ALL_DESIGNER_CLASSES
+        from REvoDesign.sidechain.sidechain_solver import ALL_RUNNER_CLASSES
 
         issue_dict.update({'REvoDesign::Version': REvoDesign.__version__})
         issue_dict.update({'REvoDesign::Config': REvoDesign.REVODESIGN_CONFIG_FILE})
@@ -1973,9 +1973,9 @@ def issue_collection(
 
         issue_dict.update({'REvoDesign::Logger::File': logfile})
         issue_dict.update({'REvoDesign::Extras::SidechainSolver': [
-                          runner.name for runner in all_runner_classes if runner.installed]})
+                          runner.name for runner in ALL_RUNNER_CLASSES if runner.installed]})
         issue_dict.update({'REvoDesign::Extras::Designers': [
-                          designer.name for designer in all_designer_classes if designer.installed]})
+                          designer.name for designer in ALL_DESIGNER_CLASSES if designer.installed]})
         issue_dict.update({'REvoDesign::Extras::TestSuite': is_package_installed('pytest')})
     else:
         issue_dict.update({'REvoDesign::Version': 'Not Installed'})

@@ -21,8 +21,8 @@ from REvoDesign.citations import CitationManager
 from REvoDesign.clients.QtSocketConnector import REvoDesignWebSocketServer
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.common.mutant_visualise import MutantVisualizer
-from REvoDesign.magician import Magician, implemented_designers
-from REvoDesign.logger import root_logger
+from REvoDesign.magician import Magician, IMPLEMENTED_DESIGNERS
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.phylogenetics.gremlin_tools import CoevolvedPair, GREMLIN_Tools
 from REvoDesign.phylogenetics.revo_designer import REvoDesigner
 from REvoDesign.sidechain import SidechainSolver
@@ -40,7 +40,7 @@ from REvoDesign.tools.utils import (cmap_reverser, get_color, rescale_number,
 matplotlib.use("Agg")
 
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 @dataclass
@@ -186,7 +186,7 @@ class MutateWorker:
             self.design.cmap = cmap
             self.design.create_full_pdb = False
 
-            if design_profile_format in implemented_designers:
+            if design_profile_format in IMPLEMENTED_DESIGNERS:
                 run_worker_thread_with_progress(
                     worker_function=self.design.design_protein_via_magician,
                     custom_indices_fp=custom_indices_fp,
@@ -313,7 +313,7 @@ class VisualizingWorker:
             if design_profile_format == '':
                 logging.debug("No profile is given. Expected to use score labels")
 
-            elif design_profile_format in implemented_designers:
+            elif design_profile_format in IMPLEMENTED_DESIGNERS:
                 run_worker_thread_with_progress(
                     worker_function=self.visualizer.magician.setup,
                     magician_name=design_profile_format,

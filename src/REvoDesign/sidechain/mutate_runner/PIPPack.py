@@ -8,9 +8,9 @@ from REvoDesign import reload_config_file, set_cache_dir
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class PIPPack_worker(MutateRunnerAbstract):

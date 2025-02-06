@@ -10,9 +10,9 @@ from typing import Literal
 
 from OpenSSL import crypto
 
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 @dataclass

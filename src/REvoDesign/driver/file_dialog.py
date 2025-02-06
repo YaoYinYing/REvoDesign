@@ -9,14 +9,14 @@ from pymol.Qt.utils import getSaveFileNameWithExt
 
 from ..basic import FileExtensionCollection, SingletonAbstract
 from ..common import file_extensions
-from ..logger import root_logger
+from ..logger import ROOT_LOGGER
 from ..tools.customized_widgets import decide, getOpenFileNameWithExt
 from ..tools.utils import extract_archive
 from .ui_driver import ConfigBus
 
 IO_MODE = Literal["r", "w"]
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class FileDialog(SingletonAbstract):

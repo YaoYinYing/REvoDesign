@@ -13,11 +13,11 @@ from abc import ABC
 from typing import Any, Mapping, Union
 
 from REvoDesign import issues
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 
 from ..basic import SingletonAbstract
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # Color escape sequences
 GREEN = "\033[0;32m"

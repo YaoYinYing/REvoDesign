@@ -5,10 +5,10 @@ from typing import Union
 import requests
 from requests.auth import HTTPBasicAuth
 
-from REvoDesign.logger import root_logger
+from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.client_tools import check_response_code
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 class PSSMGremlinCalculator:

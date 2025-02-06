@@ -212,6 +212,6 @@ def setup_logging() -> python_logging.Logger:
 
 
 # 3. initialize logging config and root logger, depending on config
-root_logger = setup_logging()
+ROOT_LOGGER = setup_logging()
 
 LoggerT = python_logging.Logger

@@ -18,11 +18,11 @@ from REvoDesign import ConfigBus
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 
-from ...logger import root_logger
+from ...logger import ROOT_LOGGER
 from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
 
-logging = root_logger.getChild(__name__)
+logging = ROOT_LOGGER.getChild(__name__)
 
 # -----------------------
 # Whitelist Management
