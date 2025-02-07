@@ -11,7 +11,7 @@ import traceback
 import warnings
 # using partial module to reduce duplicate code.
 from functools import partial
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
@@ -97,7 +97,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.evaluator: Evalutator = None  # type: ignore
         global logging
         logging = ROOT_LOGGER.getChild(self.__class__.__name__)
-
 
         self.multi_designer: MultiMutantDesigner = None  # type: ignore
 
@@ -372,7 +371,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             max_proc = 4  # fallback to use default nproc
         self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
         self.bus.set_widget_value("ui.header_panel.nproc", max_proc, hard=True)
-
 
         # Set up general arguments
         # Tab `Prepare`
@@ -836,7 +834,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     """
     Private functions used only in a specific tab.
     """
-
 
     # Tab `Determine`
     def reload_determine_tab_setup(self):

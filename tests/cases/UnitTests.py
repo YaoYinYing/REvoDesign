@@ -3,7 +3,6 @@ import glob
 import json
 import logging as python_logging
 import os
-import random
 from typing import Any, Dict
 
 import pytest
@@ -653,6 +652,7 @@ class TestMutantTree(absltest.TestCase):
         assert all(
             m in combined_mutant.mutations for m in expected_mutant_info
         )
+
 
 class TestPymolUtils(absltest.TestCase):
     def setUp(self):
