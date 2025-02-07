@@ -72,3 +72,5 @@ error.log
 /1SUO_A_evaluate_pssm_ent_surf.besthits.mut_designs_1
 /1SUO_A_evaluate_pssm_ent_surf.besthits.mut_designs_2
 /cluster_scorings
+*.seqxml
+*.sff

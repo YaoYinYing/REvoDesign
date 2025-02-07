@@ -4646,6 +4646,7 @@
       <string>Structure Tools</string>
      </property>
      <addaction name="actionRenumber_Residue_Index"/>
+     <addaction name="actionDump_Sequence"/>
     </widget>
     <addaction name="actionSMILES_Conformers"/>
     <addaction name="actionSMILES_Conformers_Batch"/>
@@ -4976,6 +4977,11 @@
   <action name="actionRenumber_Residue_Index">
    <property name="text">
     <string>Renumber Residue Index</string>
+   </property>
+  </action>
+  <action name="actionDump_Sequence">
+   <property name="text">
+    <string>Dump Molecule/Chain Sequence</string>
    </property>
   </action>
  </widget>

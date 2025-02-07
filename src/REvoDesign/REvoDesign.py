@@ -43,7 +43,8 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
-from REvoDesign.shortcuts.shortcut_tools import (menu_color_by_plddt,
+from REvoDesign.shortcuts.menu_shortcuts import (menu_color_by_plddt,
+                                                 menu_dump_fasta_from_struct,
                                                  menu_dump_sidechains,
                                                  menu_profile_pick_design,
                                                  menu_pssm2csv, menu_real_sc,
@@ -329,6 +330,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionRenumber_Residue_Index,
                     menu_resi_renumber
+                ),
+                MenuItem(
+                    self.bus.ui.actionDump_Sequence,
+                    menu_dump_fasta_from_struct
                 ),
                 MenuItem(
                     self.bus.ui.actionSource_Code,
