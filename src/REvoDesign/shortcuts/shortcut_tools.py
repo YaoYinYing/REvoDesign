@@ -109,8 +109,12 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 import json
 import json.tool
 import os
-from typing import Literal
+from typing import List, Literal, Mapping, Optional
 
+import Bio
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from pymol import cmd
 
 from REvoDesign import issues
@@ -120,7 +124,7 @@ from ..driver.group_register import CallableGroupValues
 from ..driver.ui_driver import ConfigBus
 from ..logger import ROOT_LOGGER
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
-from ..tools.pymol_utils import get_all_groups, renumber_protein_chain
+from ..tools.pymol_utils import renumber_protein_chain
 from ..tools.utils import run_worker_thread_with_progress, timing
 from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
                         smiles_conformer_batch, smiles_conformer_single,
@@ -213,27 +217,6 @@ def wrapped_menu_dump_sidechains(**kwargs):
         )
 
 
-def menu_dump_sidechains(dump_all=False):
-    """
-    Prepares and launches the sidechain dumping menu.
-
-    Args:
-        dump_all (bool): If True, preselects all groups for sidechain dumping.
-    """
-    dynamic_value = {
-        "value": AskedValue(
-            "sele",
-            val=get_all_groups() if dump_all else None,
-            typing=list,
-            reason="Select the models to dump sidechains.",
-            choices=get_all_groups(),
-        ),
-        "index": 0,  # Specify the position in the options list
-    }
-
-    wrapped_menu_dump_sidechains(dynamic_values=[dynamic_value])
-
-
 @dialog_wrapper(
     title="Color by pLDDT",
     banner="Color Predicted Protein structures by pLDDT values recorded in the B-factor column of the PDB file. "
@@ -275,15 +258,6 @@ def wrapped_color_by_plddt(**kwargs):
         )
 
 
-def menu_color_by_plddt():
-    """
-    Launches the wrapped dialog for coloring by pLDDT values.
-
-    Dynamic values, if any, can be appended here before invoking the wrapped function.
-    """
-    wrapped_color_by_plddt()
-
-
 @dialog_wrapper(
     title="PSSM to CSV",
     banner="Convert a PSSM raw file to a CSV format for downstream processing.",
@@ -312,13 +286,6 @@ def wrapped_pssm2csv(**kwargs):
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
-
-
-def menu_pssm2csv():
-    """
-    Launches the dialog for PSSM to CSV conversion.
-    """
-    wrapped_pssm2csv()
 
 
 @dialog_wrapper(
@@ -360,13 +327,6 @@ def wrapped_real_sc(**kwargs):
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
-
-
-def menu_real_sc():
-    """
-    Launches the dialog for setting sidechain representation.
-    """
-    wrapped_real_sc()
 
 
 @dialog_wrapper(
@@ -433,13 +393,6 @@ def wrapped_smiles_conformer_single(**kwargs):
     visualize_conformer_sdf(sdf_path, show_conformer)
 
 
-def menu_smiles_conformer_single():
-    """
-    Launches the dialog for generating 3D conformers for a SMILES string.
-    """
-    wrapped_smiles_conformer_single()
-
-
 @dialog_wrapper(
     title="Get SMILES Conformers (Many)",
     banner="Generate 3D conformers for multiple SMILES strings using RDKit.",
@@ -501,13 +454,6 @@ def wrapped_smiles_conformer_batch(**kwargs):
     for k in kwargs["smi"]:
         sdf_path = os.path.join(kwargs["save_dir"], f"{k}.sdf")
         visualize_conformer_sdf(sdf_path, show_conformer)
-
-
-def menu_smiles_conformer_batch():
-    """
-    Launches the dialog for generating 3D conformers for multiple SMILES strings.
-    """
-    wrapped_smiles_conformer_batch()
 
 
 @dialog_wrapper(
@@ -572,10 +518,6 @@ def wrapped_profile_pick_design(**kwargs):
     pick_design_from_profile(**kwargs)
 
 
-def menu_profile_pick_design():
-    return wrapped_profile_pick_design()
-
-
 @dialog_wrapper(
     title="Renumber Residue index",
     banner="Renumber Residue index by giving an offset.",
@@ -612,8 +554,96 @@ def wrapped_resi_renumber(**kwargs):
     renumber_protein_chain(**kwargs)
 
 
-def menu_resi_renumber():
+@dialog_wrapper(
+    title="Dump Sequenece from Structure",
+    banner="Dump the sequence of the selected molecule/chain to a sequence file.",
+    options=(
+        AskedValue(
+            "format",
+            "fasta",
+            typing=str,
+            reason="Output format. Default is fasta.",
+            required=True,
+            choices=lambda: tuple(SeqIO._FormatToWriter.keys())
+        ),
+        AskedValue(
+            "chain_ids",
+            "",
+            typing=list,
+            reason="Chain IDs to operated on. Default is empty for the chain picked on UI.",
+            choices=lambda: list(ConfigBus().get_value("designable_sequences", dict, reject_none=True).keys())
+        ),
+        AskedValue(
+            "output_dir",
+            'dumped_sequences',
+            typing=str,
+            required=True,
+            reason="Output directory. Default is 'dumped_sequences'.",
+        ),
+        AskedValue(
+            "drop_missing_residue",
+            False,
+            typing=bool,
+            reason="Drop missing residues(`X`) in the sequence if True. Default is False.",
+        ),
+        AskedValue(
+            "suffix",
+            '',
+            typing=str,
+            reason="Suffix for the output file. Default is empty.",
+        ),
+    )
+)
+def wrapped_dump_fasta_from_struct(**kwargs):
     """
-    Launches the dialog for renumber_protein_chain.
+    Runs the dump_fasta_from_struct function with parameters collected from the dialog.
+    Args:
+        **kwargs: Parameters collected from the dialog.
     """
-    wrapped_resi_renumber()
+    logging.info(kwargs)
+    format: str = kwargs['format']
+    output_dir: str = kwargs['output_dir']
+    suffix: str = kwargs['suffix']
+    chain_ids: List[str] = kwargs['chain_ids']
+    drop_missing_residue: bool = kwargs['drop_missing_residue']
+
+    bus = ConfigBus()
+    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
+    if not chain_ids:
+        logging.warning("No chain selected. Dumping the chain picked on UI.")
+        chain_ids = [bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)]
+    designable_sequences: Optional[Mapping] = bus.get_value("designable_sequences", dict, reject_none=True)
+
+    os.makedirs(output_dir, exist_ok=True)
+    if suffix:
+        suffix = f"_{suffix}"
+    output_path = os.path.join(output_dir, f"{molecule}_{''.join(chain_ids)}{suffix}.{format}")
+    all_seq_records = []
+    for chain_id in chain_ids:
+        sequence: Optional[str] = designable_sequences.get(chain_id)
+        if sequence is None:
+            raise issues.NoResultsError(f"No designable sequence found for chain {chain_id}")
+        if drop_missing_residue:
+            sequence = sequence.replace('X', '')
+        logging.debug(
+            f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}"
+        )
+
+        all_seq_records.append(
+            SeqRecord(
+                Seq(sequence),
+                id=f"{molecule}_{chain_id}", description=f"{suffix.lstrip('_')}"))
+
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            SeqIO.write(all_seq_records, f, format)
+    except Bio.StreamModeError as e:
+        logging.warning(f"Error occurs while dumping sequence: {e} Retry with binary mode.")
+        with open(output_path, 'wb') as f:
+            SeqIO.write(all_seq_records, f, format)  # type: ignore
+    except ValueError as e:
+        os.remove(output_path)
+        logging.error(f"Error occurs while dumping sequence: {e} Clean up the output file.")
+        raise issues.InternalError(f"Error occurs while dumping sequence: {e}.") from e
+
+    logging.info(f"Sequence dumped to {output_path}")

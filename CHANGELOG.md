@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `package_manager`: 
   - typing hints: `notify_box`
+- menu: dump sequence
 
 ### Changed
 - `MenuItem`: support args and kwargs
@@ -60,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     | `implemented_runner`| `IMPLEMENTED_RUNNER`|
     | `implemented_designers`| `IMPLEMENTED_DESIGNERS`|
     | `root_logger`| `ROOT_LOGGER`|
+- move all menu shortcut functions to module `menu_shortcuts`
 
 ### Fixed
 - depts: `uvicorn`
