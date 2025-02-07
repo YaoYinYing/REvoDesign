@@ -786,8 +786,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 "designable_sequences", self.designable_sequences.as_dict, force_add=True
             )
 
-        self.setup_pssm_gremlin_calculator()
-
     def find_session_path(self) -> Optional[str]:
         """Find and validate if current session is saved as a session file.
 
