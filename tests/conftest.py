@@ -123,7 +123,6 @@ class TestWorker:
                 "cluster": self.plugin.ui.tab_cluster,
                 "visualize": self.plugin.ui.tab_visualize,
                 "interact": self.plugin.ui.tab_interact,
-                "client": self.plugin.ui.tab_client,
                 "socket": self.plugin.ui.tab_socket,
                 "config": self.plugin.ui.tab_config,
             }

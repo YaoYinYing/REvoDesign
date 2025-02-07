@@ -19,9 +19,6 @@ class PushButtons:
     """
 
     button_ids: Tuple = (
-        "submit_pssm_gremlin_job",
-        "cancel_pssm_gremlin_job",
-        "download_pssm_gremlin_job",
         "open_output_pse_pocket",
         "open_output_pse_surface",
         "run_surface_refresh",
@@ -98,9 +95,6 @@ class Config2WidgetIds:
     c2wi: immutabledict[str, str] = immutabledict(
         {
             "ui.header_panel.cmap.default": "comboBox_cmap",
-            "ui.client.pssm_gremlin_url": "lineEdit_pssm_gremlin_url",
-            "ui.client.pssm_gremlin_user": "lineEdit_pssm_gremlin_user",
-            "ui.client.pssm_gremlin_passwd": "lineEdit_pssm_gremlin_passwd",
             "ui.prepare.cofactor_radius": "doubleSpinBox_cofactor_radius",
             "ui.prepare.ligand_radius": "doubleSpinBox_ligand_radius",
             "ui.prepare.chain_dist": "doubleSpinBox_interface_cutoff",

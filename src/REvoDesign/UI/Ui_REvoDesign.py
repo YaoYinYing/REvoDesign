@@ -1613,84 +1613,6 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_45.addLayout(self.horizontalLayout_60)
         self.verticalLayout_18.addLayout(self.horizontalLayout_45)
         self.tabWidget.addTab(self.tab_interact, "")
-        self.tab_client = QtWidgets.QWidget()
-        self.tab_client.setObjectName("tab_client")
-        self.groupBox_3 = QtWidgets.QGroupBox(self.tab_client)
-        self.groupBox_3.setGeometry(QtCore.QRect(10, 10, 611, 121))
-        self.groupBox_3.setObjectName("groupBox_3")
-        self.horizontalLayoutWidget = QtWidgets.QWidget(self.groupBox_3)
-        self.horizontalLayoutWidget.setGeometry(QtCore.QRect(10, 30, 591, 80))
-        self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
-        self.horizontalLayout_21 = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
-        self.horizontalLayout_21.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout_21.setObjectName("horizontalLayout_21")
-        self.verticalLayout_21 = QtWidgets.QVBoxLayout()
-        self.verticalLayout_21.setSpacing(0)
-        self.verticalLayout_21.setObjectName("verticalLayout_21")
-        self.horizontalLayout_66 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_66.setObjectName("horizontalLayout_66")
-        self.label_molecule_7 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        self.label_molecule_7.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.label_molecule_7.setObjectName("label_molecule_7")
-        self.horizontalLayout_66.addWidget(self.label_molecule_7)
-        self.lineEdit_pssm_gremlin_url = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
-        self.lineEdit_pssm_gremlin_url.setObjectName("lineEdit_pssm_gremlin_url")
-        self.horizontalLayout_66.addWidget(self.lineEdit_pssm_gremlin_url)
-        self.verticalLayout_21.addLayout(self.horizontalLayout_66)
-        self.horizontalLayout_65 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_65.setObjectName("horizontalLayout_65")
-        self.pushButton_submit_pssm_gremlin_job = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_submit_pssm_gremlin_job.setObjectName("pushButton_submit_pssm_gremlin_job")
-        self.horizontalLayout_65.addWidget(self.pushButton_submit_pssm_gremlin_job)
-        self.pushButton_cancel_pssm_gremlin_job = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_cancel_pssm_gremlin_job.setObjectName("pushButton_cancel_pssm_gremlin_job")
-        self.horizontalLayout_65.addWidget(self.pushButton_cancel_pssm_gremlin_job)
-        self.pushButton_download_pssm_gremlin_job = QtWidgets.QPushButton(self.horizontalLayoutWidget)
-        self.pushButton_download_pssm_gremlin_job.setObjectName("pushButton_download_pssm_gremlin_job")
-        self.horizontalLayout_65.addWidget(self.pushButton_download_pssm_gremlin_job)
-        self.verticalLayout_21.addLayout(self.horizontalLayout_65)
-        self.horizontalLayout_21.addLayout(self.verticalLayout_21)
-        self.gridLayout_7 = QtWidgets.QGridLayout()
-        self.gridLayout_7.setObjectName("gridLayout_7")
-        self.label_molecule_9 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_9.sizePolicy().hasHeightForWidth())
-        self.label_molecule_9.setSizePolicy(sizePolicy)
-        self.label_molecule_9.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.label_molecule_9.setObjectName("label_molecule_9")
-        self.gridLayout_7.addWidget(self.label_molecule_9, 0, 0, 1, 1)
-        self.lineEdit_pssm_gremlin_user = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_pssm_gremlin_user.sizePolicy().hasHeightForWidth())
-        self.lineEdit_pssm_gremlin_user.setSizePolicy(sizePolicy)
-        self.lineEdit_pssm_gremlin_user.setObjectName("lineEdit_pssm_gremlin_user")
-        self.gridLayout_7.addWidget(self.lineEdit_pssm_gremlin_user, 0, 1, 1, 1)
-        self.label_molecule_10 = QtWidgets.QLabel(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_molecule_10.sizePolicy().hasHeightForWidth())
-        self.label_molecule_10.setSizePolicy(sizePolicy)
-        self.label_molecule_10.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
-        self.label_molecule_10.setObjectName("label_molecule_10")
-        self.gridLayout_7.addWidget(self.label_molecule_10, 1, 0, 1, 1)
-        self.lineEdit_pssm_gremlin_passwd = QtWidgets.QLineEdit(self.horizontalLayoutWidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.lineEdit_pssm_gremlin_passwd.sizePolicy().hasHeightForWidth())
-        self.lineEdit_pssm_gremlin_passwd.setSizePolicy(sizePolicy)
-        self.lineEdit_pssm_gremlin_passwd.setInputMethodHints(QtCore.Qt.ImhHiddenText)
-        self.lineEdit_pssm_gremlin_passwd.setText("")
-        self.lineEdit_pssm_gremlin_passwd.setMaxLength(32767)
-        self.lineEdit_pssm_gremlin_passwd.setObjectName("lineEdit_pssm_gremlin_passwd")
-        self.gridLayout_7.addWidget(self.lineEdit_pssm_gremlin_passwd, 1, 1, 1, 1)
-        self.horizontalLayout_21.addLayout(self.gridLayout_7)
-        self.tabWidget.addTab(self.tab_client, "")
         self.tab_socket = QtWidgets.QWidget()
         self.tab_socket.setObjectName("tab_socket")
         self.groupBox_ws_server_settings = QtWidgets.QGroupBox(self.tab_socket)
@@ -2275,13 +2197,13 @@ class Ui_REvoDesignPyMOL_UI:
         self.retranslateUi(REvoDesignPyMOL_UI)
         self.tabWidget.setCurrentIndex(0)
         self.stackedWidget.setCurrentIndex(1)
-        self.checkBox_randomized_sampling.toggled['bool'].connect(
-            self.spinBox_randomized_sampling.setEnabled)  # type: ignore
-        self.checkBox_ws_server_mode.toggled['bool'].connect(
-            self.groupBox_ws_client_settings.setDisabled)  # type: ignore
         self.checkBox_ws_server_mode.toggled['bool'].connect(
             self.groupBox_ws_server_settings.setEnabled)  # type: ignore
+        self.checkBox_ws_server_mode.toggled['bool'].connect(
+            self.groupBox_ws_client_settings.setDisabled)  # type: ignore
         self.checkBox_ws_server_use_key.toggled['bool'].connect(self.lineEdit_ws_server_key.setEnabled)  # type: ignore
+        self.checkBox_randomized_sampling.toggled['bool'].connect(
+            self.spinBox_randomized_sampling.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(REvoDesignPyMOL_UI)
 
     def retranslateUi(self, REvoDesignPyMOL_UI):
@@ -2652,32 +2574,6 @@ class Ui_REvoDesignPyMOL_UI:
             self.tabWidget.indexOf(
                 self.tab_interact), _translate(
                 "REvoDesignPyMOL_UI", "Interact"))
-        self.groupBox_3.setTitle(_translate("REvoDesignPyMOL_UI", "GREMLIN-PSSM-Calculator"))
-        self.label_molecule_7.setText(_translate("REvoDesignPyMOL_UI", "Sever:"))
-        self.lineEdit_pssm_gremlin_url.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Server URL for PSSM GREMLIN calculation."))
-        self.lineEdit_pssm_gremlin_url.setText(_translate("REvoDesignPyMOL_UI", "https://revodesign.yaoyy.moe/"))
-        self.pushButton_submit_pssm_gremlin_job.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Submit the selected molecule and chain."))
-        self.pushButton_submit_pssm_gremlin_job.setText(_translate("REvoDesignPyMOL_UI", "Submit"))
-        self.pushButton_cancel_pssm_gremlin_job.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Cancel running/queuing task."))
-        self.pushButton_cancel_pssm_gremlin_job.setText(_translate("REvoDesignPyMOL_UI", "Cancel"))
-        self.pushButton_download_pssm_gremlin_job.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Download completed results."))
-        self.pushButton_download_pssm_gremlin_job.setText(_translate("REvoDesignPyMOL_UI", "Download"))
-        self.label_molecule_9.setText(_translate("REvoDesignPyMOL_UI", "User: "))
-        self.lineEdit_pssm_gremlin_user.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Server username for PSSM GREMLIN calculation."))
-        self.lineEdit_pssm_gremlin_user.setText(_translate("REvoDesignPyMOL_UI", "revodesign_users"))
-        self.label_molecule_10.setText(_translate("REvoDesignPyMOL_UI", "Passwd:"))
-        self.lineEdit_pssm_gremlin_passwd.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Server password for PSSM GREMLIN calculation."))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_client), _translate("REvoDesignPyMOL_UI", "Client"))
         self.groupBox_ws_server_settings.setTitle(_translate("REvoDesignPyMOL_UI", "Host options"))
         self.label_molecule_11.setStatusTip(_translate("REvoDesignPyMOL_UI", "Broadcast time interval."))
         self.label_molecule_11.setText(_translate("REvoDesignPyMOL_UI", "Broadcast interval:"))

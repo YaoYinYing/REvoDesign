@@ -110,10 +110,6 @@ ui:
       enabled: False
       chains_to_bind: "ABCD"
   
-  client:
-    pssm_gremlin_url: https://revodesign.yaoyy.moe/
-    pssm_gremlin_user: revodesign_users
-    pssm_gremlin_passwd: 1234567
   
   socket: 
     input:
