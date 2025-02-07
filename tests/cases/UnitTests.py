@@ -17,7 +17,6 @@ from REvoDesign import (REVODESIGN_CONFIG_FILE, ConfigBus, issues,
                         reload_config_file, save_configuration, set_cache_dir,
                         set_REvoDesign_config_file)
 from REvoDesign.bootstrap.set_config import ConfigConverter
-from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
@@ -654,63 +653,6 @@ class TestMutantTree(absltest.TestCase):
         assert all(
             m in combined_mutant.mutations for m in expected_mutant_info
         )
-
-
-class TestPSSMGremlinCalculator(absltest.TestCase):
-    def setUp(self):
-        from requests.auth import HTTPBasicAuth
-
-        self.calculator = PSSMGremlinCalculator()
-        user = os.environ["REVODESIGN_USERS"]
-        password = os.environ["REVODESIGN_SERVER_PASS"]
-
-        self.calculator.url = "https://revodesign.yaoyy.moe/"
-        self.calculator.user = user
-        self.calculator.password = password
-        self.calculator.auth = HTTPBasicAuth(
-            self.calculator.user, self.calculator.password
-        )
-
-        # Mock working_directory to a temporary directory
-        tmp_dir = TEST_DATA_RES
-        random.seed(42)
-        self.calculator.setup_calculator(
-            tmp_dir,
-            MOLECULE,
-            CHAIN_ID,
-            "".join(random.sample(SEQUENCE, len(SEQUENCE))),
-        )
-
-    def tearDown(self):
-        if os.path.exists(self.calculator.temp_file_path):
-            os.remove(self.calculator.temp_file_path)
-
-    def test_setup_url(self):
-        self.assertEqual(self.calculator.url, "https://revodesign.yaoyy.moe/")
-        self.assertIsNotNone(self.calculator.auth)
-        self.assertEqual(self.calculator.user, os.environ["REVODESIGN_USERS"])
-        self.assertEqual(
-            self.calculator.password, os.environ["REVODESIGN_SERVER_PASS"]
-        )
-
-    def test_setup_calculator(self):
-        self.assertTrue(os.path.exists(self.calculator.temp_file_path))
-
-    def test_submit_fasta_file(self):
-        fasta_file_path = os.path.join(
-            TEST_DATA_RES, f"{MOLECULE}_{CHAIN_ID}.fasta"
-        )
-        result = self.calculator.submit_fasta_file(fasta_file_path)
-        print(result.content)
-
-        self.assertIn(result.status_code, [202, 404, 200, 403, 400, 502, 530])
-
-        md5sum = self.calculator.md5sum
-        result = self.calculator.cancel_job(md5sum)
-        print(result.content)
-
-        self.assertIn(result.status_code, [202, 404, 200, 403, 400, 502, 530])
-
 
 class TestPymolUtils(absltest.TestCase):
     def setUp(self):

@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - `qteditor`: no longer needed
+- PSSM-GREMLIN calculator in plugin: no longer needed
 
 ## [1.7.14] - 2025-01-04
 

@@ -28,7 +28,6 @@ from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
 from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, REVODESIGN_CONFIG_FILE
-from REvoDesign.clients.PSSM_GREMLIN_client import PSSMGremlinCalculator
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.clusters import ClusterRunner
@@ -99,7 +98,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         global logging
         logging = ROOT_LOGGER.getChild(self.__class__.__name__)
 
-        self.pssm_gremlin_calculator = PSSMGremlinCalculator()
 
         self.multi_designer: MultiMutantDesigner = None  # type: ignore
 
@@ -188,7 +186,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 Defaults to False.
         """
         self.multi_designer = None
-        self.pssm_gremlin_calculator = None
 
         self.gremlin_worker = None
         self.evaluator = None
@@ -376,37 +373,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
         self.bus.set_widget_value("ui.header_panel.nproc", max_proc, hard=True)
 
-        # Tab Client
-        self.bus.ui.comboBox_chain_id.currentIndexChanged.connect(
-            self.setup_pssm_gremlin_calculator,
-        )
-
-        self.bus.button("submit_pssm_gremlin_job").clicked.connect(
-            partial(
-                run_worker_thread_with_progress,
-                worker_function=self.pssm_gremlin_calculator.submit_calc,
-                opt="submit",
-                progress_bar=self.bus.ui.progressBar,
-            )
-        )
-
-        self.bus.button("cancel_pssm_gremlin_job").clicked.connect(
-            partial(
-                run_worker_thread_with_progress,
-                worker_function=self.pssm_gremlin_calculator.submit_calc,
-                opt="cancel",
-                progress_bar=self.bus.ui.progressBar,
-            )
-        )
-
-        self.bus.button("download_pssm_gremlin_job").clicked.connect(
-            partial(
-                run_worker_thread_with_progress,
-                worker_function=self.pssm_gremlin_calculator.submit_calc,
-                opt="download",
-                progress_bar=self.bus.ui.progressBar,
-            )
-        )
 
         # Set up general arguments
         # Tab `Prepare`
@@ -871,57 +837,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     Private functions used only in a specific tab.
     """
 
-    # Tab Client
-    def setup_pssm_gremlin_calculator(self):
-        """Setup PSSM/GREMLIN calculation"""
-
-        molecule = self.bus.get_widget_value(
-            "ui.header_panel.input.molecule", str
-        )
-        chain_id = self.bus.get_widget_value(
-            "ui.header_panel.input.chain_id", str
-        )
-        designable_sequences: Optional[Mapping] = self.bus.get_value("designable_sequences", dict)
-        if not designable_sequences:
-            return
-
-        sequence = designable_sequences.get(chain_id)
-
-        if (not molecule) or (not chain_id) or (not sequence):
-            return
-
-        logging.debug(
-            f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}"
-        )
-        if not isinstance(self.pssm_gremlin_calculator, PSSMGremlinCalculator):
-            self.pssm_gremlin_calculator = PSSMGremlinCalculator()
-
-        if molecule and chain_id and sequence:
-            self.pssm_gremlin_calculator.setup_calculator(
-                working_directory=self.PWD,
-                molecule=molecule,
-                chain_id=chain_id,
-                sequence=sequence,
-            )
-        self.pssm_gremlin_calculator.url = self.bus.get_widget_value(
-            "ui.client.pssm_gremlin_url", str
-        )
-        self.pssm_gremlin_calculator.user = self.bus.get_widget_value(
-            "ui.client.pssm_gremlin_user", str
-        )
-        self.pssm_gremlin_calculator.password = self.bus.get_widget_value(
-            "ui.client.pssm_gremlin_passwd", str
-        )
-        if (
-            self.pssm_gremlin_calculator.user
-            and self.pssm_gremlin_calculator.password
-        ):
-            self.pssm_gremlin_calculator.auth = HTTPBasicAuth(
-                self.pssm_gremlin_calculator.user,
-                self.pssm_gremlin_calculator.password,
-            )
-        else:
-            self.pssm_gremlin_calculator.auth = None
 
     # Tab `Determine`
     def reload_determine_tab_setup(self):
