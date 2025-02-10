@@ -3,7 +3,11 @@ This module contains the menu shortcuts for REvoDesign.
 '''
 
 
-from REvoDesign.shortcuts.shortcut_tools import wrapped_color_by_plddt, wrapped_dump_fasta_from_struct, wrapped_menu_dump_sidechains, wrapped_profile_pick_design, wrapped_pssm2csv, wrapped_real_sc, wrapped_resi_renumber, wrapped_smiles_conformer_batch, wrapped_smiles_conformer_single
+from REvoDesign.shortcuts.shortcut_tools import (
+    wrapped_color_by_plddt, wrapped_dump_fasta_from_struct,
+    wrapped_menu_dump_sidechains, wrapped_profile_pick_design,
+    wrapped_pssm2csv, wrapped_real_sc, wrapped_resi_renumber,
+    wrapped_smiles_conformer_batch, wrapped_smiles_conformer_single)
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
 

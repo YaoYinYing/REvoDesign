@@ -564,7 +564,7 @@ def wrapped_resi_renumber(**kwargs):
             typing=str,
             reason="Output format. Default is fasta.",
             required=True,
-            choices=lambda: tuple(SeqIO._FormatToWriter.keys())
+            choices=filter(lambda x: x.startswith('fas'), SeqIO._FormatToWriter.keys())
         ),
         AskedValue(
             "chain_ids",

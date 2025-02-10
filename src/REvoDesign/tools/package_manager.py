@@ -668,7 +668,7 @@ class REvoDesignPackageManager:
             f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
             '</table>'
             'You must check out these changes carefully.<p>'
-            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", rich=True)
+            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", rich=True, details='\n'.join(diffs))
 
         # Clean up the diff file
         if os.path.isfile(diff_file):
@@ -1694,7 +1694,8 @@ def notify_box(
 
 def notify_box(
     message: str = "",
-    error_type: Optional[Type[Exception]] = None
+    error_type: Optional[Type[Exception]] = None,
+    details: Optional[str] = None
 ) -> Union[None, NoReturn]:
     """
     Display a notification message box.
@@ -1709,8 +1710,18 @@ def notify_box(
     refresh_window()
     # Create an information message box
     msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Information)
+
+    if error_type is None:
+        msg.setIcon(QtWidgets.QMessageBox.Information)
+    elif issubclass(error_type, Warning):
+        msg.setIcon(QtWidgets.QMessageBox.Warning)
+    elif issubclass(error_type, Exception):
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
+
     msg.setText(message)
+    if details is not None:
+        msg.setDetailedText(details)
+
     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
     # Display the message box
     msg.exec_()
@@ -1738,7 +1749,7 @@ def raise_error(error_type: Type[Exception], message: str) -> NoReturn:
     raise error_type(message)
 
 
-def decide(title="", description="", rich: bool = False):
+def decide(title="", description="", rich: bool = False, details: Optional[str] = None):
     """
     Function: decide
     Usage: result = decide(title='', description='', rich=True)
@@ -1760,6 +1771,8 @@ def decide(title="", description="", rich: bool = False):
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
+    if details is not None:
+        msg.setDetailedText(details)
     if rich:
         msg.setTextFormat(QtCore.Qt.RichText)
     msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
