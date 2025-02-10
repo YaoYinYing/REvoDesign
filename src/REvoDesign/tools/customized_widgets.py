@@ -1438,7 +1438,8 @@ class ValueDialog(QtWidgets.QDialog):
         # a tuple or list or filter
         elif isinstance(choices, (tuple, list, filter)):
             # QComboBox for tuple of any
-            choices = tuple(choices)
+            # filter and generator should be deepcopied to avoid side effects
+            choices = tuple(choices) if not isinstance(choices, filter) else tuple(deepcopy(choices))
             if not choices:
                 raise issues.InternalError(f"Drop-down field must have a valid choices, not {choices}")
             widget = QtWidgets.QComboBox()
