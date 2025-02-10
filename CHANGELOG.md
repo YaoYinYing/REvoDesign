@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 ## [Unreleased]
+### Added
+
+### Changed
+- `customized_widgets`:
+  - `AskedValue`: 
+    - `choices` now accepts Iterables including `KeyView`, `ValueView`, `filter`.
+  - `MultiCheckableComboBox`:
+    - added methods:
+      - `select_all`
+      - `unselect_all`
+      - `invert_selection`
+    - changed methods:
+      - `need_action`:
+        - now support more action (`select_all`, `unselect_all`, `invert_selection`) 
+  - `ValueDialog`:
+    - Whether to use MultiCheckableComboBox now depends on `typing=list`, solely.
+    - Table Header:
+      - `Source` --> `Action`
+      - Added action buttons for `select_all`, `unselect_all`, `invert_selection` of multi-checkable combo box
+
+### Fixed
+
+### Removed
+
 
 ## [1.7.15] - 2025-02-07
 ### Added

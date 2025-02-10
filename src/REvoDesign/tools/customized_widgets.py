@@ -8,7 +8,8 @@ from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import (Any, Callable, Dict, KeysView, List, Literal, Optional,
+                    Tuple, Union, ValuesView)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -1074,14 +1075,21 @@ class AskedValue:
         key (str): The unique identifier or label for the input field.
         val (Optional[Any]): The default or current value of the field.
         typing (type): The expected data type for the field's value.
+            Specifies available typing for the field. Can be:
+                - list: Output a list of options used as multiple choice.
+                - non-list: Output a non-list-typed-object that is used as single choice.
         reason (Optional[str]): Additional description or reason for the field.
         required (bool): Indicates whether the field is mandatory.
-        choices (Optional[Union[List, Tuple, Callable[[], Union[List, Tuple]]]]):
-            Specifies available choices for the field. Can be:
-            - List[Any]: A predefined list of options used as multiple choice.
-            - Tuple[Any]: A predefined tuple of options used as single choice.
-            - range: A range of values useed as integer options.
-            - Callable[[], Union[List, Tuple, range]]: A function to dynamically generate options.
+        choices (Optional[Union[Iterable, Callable[[], Iterable]]]):
+            Specifies available iterable choices for the field. Can be:
+            - Iterable:
+                - List[Any]: A list of options used as single choice.
+                - Tuple[Any]: A tuple of options used as single choice.
+                - range: A range of values useed as integer options.
+                - filter: A filter of values used as string options.
+                - KeysView: A view of keys used as string options.
+                - ValuesView: A view of values used as string options.
+            - Callable[[], Iterable]: A function to dynamically generate those iterable options.
         source (Literal['None', 'File', 'Directory', 'JsonInput']):
             Specifies the source of the input field. Can be:
             - 'None': No specific source.
@@ -1096,7 +1104,7 @@ class AskedValue:
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[List, Tuple, range, Callable[[], Union[List, Tuple, range]]]] = None
+    choices: Optional[Union[Iterable, Callable[[], Iterable]]] = None
     source: Literal["None", "File", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
 
@@ -1118,6 +1126,25 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
         item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
         self.model().appendRow(item)
+
+    def select_all(self):
+        """Check all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+    
+    def unselect_all(self):
+        """Uncheck all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+
+    def invert_selection(self):
+        """Reverse the selection of all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            current_state = item.data(QtCore.Qt.CheckStateRole)
+            item.setData(QtCore.Qt.Checked if current_state == QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
 
     def get_checked_items(self) -> List[str]:
         """Retrieve all checked items."""
@@ -1204,7 +1231,7 @@ class AskedValueCollection:
 
     @property
     def need_action(self) -> bool:
-        return any(asked.source != "None" for asked in self.asked_values)
+        return any(asked.source != "None" for asked in self.asked_values) or any(asked.typing is list for asked in self.asked_values)
 
     @property
     def typing_fixed(self) -> 'AskedValueCollection':
@@ -1295,7 +1322,7 @@ class ValueDialog(QtWidgets.QDialog):
         # Create the table with four columns
         if self.has_file_action:
             self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
-            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Source"])
+            self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
         else:
             self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)
             self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
@@ -1361,8 +1388,9 @@ class ValueDialog(QtWidgets.QDialog):
             asked_value (AskedValue): The field details.
         """
         # Column 0: Field label
-        key_label = QtWidgets.QLabel(asked_value.key)
-        key_label.setToolTip(asked_value.reason or "")
+        required_star='<span style=" font-weight:600; color:#ff0000;">*</span> '
+        key_label = QtWidgets.QLabel(f"{required_star if asked_value.required else ''}{asked_value.key}")
+        key_label.setToolTip(f"{'[REQUIRED] ' if asked_value.required else ''}{asked_value.reason}" or "")
         self.table.setCellWidget(row, 0, key_label)
 
         # Column 1: Typing information
@@ -1370,23 +1398,27 @@ class ValueDialog(QtWidgets.QDialog):
         type_label.setToolTip(f"Expected type: {asked_value.typing.__name__}")
         self.table.setCellWidget(row, 1, type_label)
 
-        # Column 2: Input widget
+        # Preprocess choices if callable
         choices = asked_value.choices
+
         if callable(choices):
             try:
                 choices = choices()
-                if asked_value.typing != list:  # not a multi-choice
-                    choices = tuple(choices)  # ensure the choices are tuple to prevent multiple choices
             except Exception as e:
                 QtWidgets.QMessageBox.warning(
                     self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
                 )
-                choices = []
+                choices = ()
+        
+        if isinstance(choices, Iterable):
+            choices = tuple(choices) #  ensure the choices are tuple to prevent multiple choices
+        else:
+            choices = ()
 
         # Column 2: Input widget
-        if isinstance(choices, list):
+        if asked_value.typing is list:  # not a multi-choice
             # MultiCheckableComboBox for list of choices
-            widget = MultiCheckableComboBox(choices=choices)
+            widget = MultiCheckableComboBox(choices=list(choices))
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
         elif isinstance(choices, range):
@@ -1398,18 +1430,15 @@ class ValueDialog(QtWidgets.QDialog):
             else:
                 widget = QtWidgets.QSpinBox()
                 widget.setRange(choices.start, choices.stop)
-            widget.setValue(asked_value.val if asked_value.val else choices.start)
-        elif isinstance(choices, tuple):
+            widget.setValue(asked_value.val or choices.start)
+        elif isinstance(choices, tuple) and len(choices) > 1:
             # QComboBox for tuple of any
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
-            if asked_value.val:
-                widget.setCurrentText(str(asked_value.val))
+            widget.setCurrentText(str(asked_value.val) or str(choices[0]))
         elif asked_value.typing == bool:
             widget = QtWidgets.QCheckBox()
             widget.setChecked(bool(asked_value.val))
-            # widget.addItems(["True", "False"])
-            # widget.setCurrentText(str(asked_value.val))
         else:
             # Default: QLineEdit
             widget = QtWidgets.QLineEdit()
@@ -1422,6 +1451,8 @@ class ValueDialog(QtWidgets.QDialog):
         self.input_fields[asked_value.key] = widget
         self.input_fields_data_pair[asked_value.key] = asked_value
         self.table.setCellWidget(row, 2, widget)
+
+        action_button_size_policy=QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
 
         # Column 3: Action button if file=True
         if asked_value.source == "File":
@@ -1445,7 +1476,7 @@ class ValueDialog(QtWidgets.QDialog):
             input_action_button.setToolTip("Browse for an input JSON file")
             input_action_button.clicked.connect(lambda: widget.setText(ask_for_multiple_values_as_json()))
             # Set size policy to ResizeToContents
-            input_action_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+            input_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(input_action_button)
 
             # Create and configure the "Load" button
@@ -1453,10 +1484,38 @@ class ValueDialog(QtWidgets.QDialog):
             load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
             load_action_button.clicked.connect(lambda: self._browse_file(widget, file_extensions.JSON))
             # Set size policy to ResizeToContents
-            load_action_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+            load_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(load_action_button)
 
             # Set the container widget as the cell widget
+            self.table.setCellWidget(row, 3, container_widget)
+        
+        # Column 4: Action button if list=True for multiple choices
+        elif asked_value.typing is list:
+            # Create a container widget for the layout
+            container_widget = QtWidgets.QWidget()
+            button_layout = QtWidgets.QHBoxLayout(container_widget)
+            button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins for proper cell fit
+
+            select_all_button = QtWidgets.QPushButton("All")
+            select_all_button.setToolTip("Select all")
+            select_all_button.clicked.connect(widget.select_all)
+            select_all_button.setSizePolicy(action_button_size_policy)
+            button_layout.addWidget(select_all_button)
+
+            select_none_button = QtWidgets.QPushButton("None")
+            select_none_button.setToolTip("Unselect all")
+            select_none_button.clicked.connect(widget.unselect_all)
+            select_none_button.setSizePolicy(action_button_size_policy)
+            button_layout.addWidget(select_none_button)
+
+
+            select_invert_button = QtWidgets.QPushButton("Invert")
+            select_invert_button.setToolTip("Invert selection")
+            select_invert_button.clicked.connect(widget.invert_selection)
+            select_invert_button.setSizePolicy(action_button_size_policy)
+            button_layout.addWidget(select_invert_button)
+
             self.table.setCellWidget(row, 3, container_widget)
 
     def _browse_file(self, widget, exts: Optional[FExCol] = None):
