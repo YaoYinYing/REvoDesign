@@ -36,7 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Table Header:
       - `Source` --> `Action`
       - Added action buttons for `select_all`, `unselect_all`, `invert_selection` of multi-checkable combo box
-
+- `package_manager`:
+  - `notify_box` and `decide`: now supports detailed messages
 ### Fixed
 
 ### Removed

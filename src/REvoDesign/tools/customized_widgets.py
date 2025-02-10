@@ -8,8 +8,7 @@ from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple,
-                    Union)
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -1412,17 +1411,19 @@ class ValueDialog(QtWidgets.QDialog):
                 )
                 choices = ()
 
-        if isinstance(choices, Iterable):
-            choices = tuple(choices)  # ensure the choices are tuple to prevent multiple choices
-        else:
-            choices = ()
-
-        # Column 2: Input widget
-        if asked_value.typing is list:  # not a multi-choice
+        # a multi-choice
+        if asked_value.typing == list:
+            if not choices:
+                raise issues.InternalError(f"Multi-choice field must have a valid choices, not {choices}")
             # MultiCheckableComboBox for list of choices
             widget = MultiCheckableComboBox(choices=list(choices))
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
+        elif asked_value.typing == bool:
+            widget = QtWidgets.QCheckBox()
+            widget.setChecked(bool(asked_value.val))
+
+        # a range
         elif isinstance(choices, range):
             # QSpinBox or QDoubleSpinBox for range of numbers
             if asked_value.typing == float:
@@ -1433,14 +1434,18 @@ class ValueDialog(QtWidgets.QDialog):
                 widget = QtWidgets.QSpinBox()
                 widget.setRange(choices.start, choices.stop)
             widget.setValue(asked_value.val or choices.start)
-        elif isinstance(choices, tuple) and len(choices) > 0:
+
+        # a tuple or list or filter
+        elif isinstance(choices, (tuple, list, filter)):
             # QComboBox for tuple of any
+            choices = tuple(choices)
+            if not choices:
+                raise issues.InternalError(f"Drop-down field must have a valid choices, not {choices}")
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
-        elif asked_value.typing == bool:
-            widget = QtWidgets.QCheckBox()
-            widget.setChecked(bool(asked_value.val))
+
+        # a normal text input
         else:
             # Default: QLineEdit
             widget = QtWidgets.QLineEdit()
@@ -1448,6 +1453,7 @@ class ValueDialog(QtWidgets.QDialog):
             if asked_value.required:
                 widget.setPlaceholderText("Required")
 
+        # Column 2: Input widget
         widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget
