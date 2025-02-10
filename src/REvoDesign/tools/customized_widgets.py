@@ -1431,7 +1431,7 @@ class ValueDialog(QtWidgets.QDialog):
                 widget = QtWidgets.QSpinBox()
                 widget.setRange(choices.start, choices.stop)
             widget.setValue(asked_value.val or choices.start)
-        elif isinstance(choices, tuple) and len(choices) > 1:
+        elif isinstance(choices, tuple) and len(choices) > 0:
             # QComboBox for tuple of any
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
