@@ -8,8 +8,8 @@ from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import (Any, Callable, Dict, KeysView, List, Literal, Optional,
-                    Tuple, Union, ValuesView)
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple,
+                    Union)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -1132,7 +1132,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
-    
+
     def unselect_all(self):
         """Uncheck all items."""
         for row in range(self.model().rowCount()):
@@ -1144,7 +1144,8 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             current_state = item.data(QtCore.Qt.CheckStateRole)
-            item.setData(QtCore.Qt.Checked if current_state == QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+            item.setData(QtCore.Qt.Checked if current_state ==
+                         QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
 
     def get_checked_items(self) -> List[str]:
         """Retrieve all checked items."""
@@ -1231,7 +1232,8 @@ class AskedValueCollection:
 
     @property
     def need_action(self) -> bool:
-        return any(asked.source != "None" for asked in self.asked_values) or any(asked.typing is list for asked in self.asked_values)
+        return any(asked.source != "None" for asked in self.asked_values) or any(
+            asked.typing is list for asked in self.asked_values)
 
     @property
     def typing_fixed(self) -> 'AskedValueCollection':
@@ -1296,7 +1298,7 @@ class ValueDialog(QtWidgets.QDialog):
         self.updated_values = []
 
         # Check if any AskedValue has file=True
-        self.has_file_action = key_dict.need_action
+        self.need_action = key_dict.need_action
 
         # Main layout
         self.layout = QtWidgets.QVBoxLayout()
@@ -1320,7 +1322,7 @@ class ValueDialog(QtWidgets.QDialog):
             self.layout.addWidget(banner_label)
 
         # Create the table with four columns
-        if self.has_file_action:
+        if self.need_action:
             self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
             self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
         else:
@@ -1333,7 +1335,7 @@ class ValueDialog(QtWidgets.QDialog):
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
         header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)  # Input column
-        if self.has_file_action:
+        if self.need_action:
             header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
 
         self.table.setSizePolicy(
@@ -1388,7 +1390,7 @@ class ValueDialog(QtWidgets.QDialog):
             asked_value (AskedValue): The field details.
         """
         # Column 0: Field label
-        required_star='<span style=" font-weight:600; color:#ff0000;">*</span> '
+        required_star = '<span style=" font-weight:600; color:#ff0000;">*</span> '
         key_label = QtWidgets.QLabel(f"{required_star if asked_value.required else ''}{asked_value.key}")
         key_label.setToolTip(f"{'[REQUIRED] ' if asked_value.required else ''}{asked_value.reason}" or "")
         self.table.setCellWidget(row, 0, key_label)
@@ -1409,9 +1411,9 @@ class ValueDialog(QtWidgets.QDialog):
                     self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
                 )
                 choices = ()
-        
+
         if isinstance(choices, Iterable):
-            choices = tuple(choices) #  ensure the choices are tuple to prevent multiple choices
+            choices = tuple(choices)  # ensure the choices are tuple to prevent multiple choices
         else:
             choices = ()
 
@@ -1452,7 +1454,9 @@ class ValueDialog(QtWidgets.QDialog):
         self.input_fields_data_pair[asked_value.key] = asked_value
         self.table.setCellWidget(row, 2, widget)
 
-        action_button_size_policy=QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        action_button_size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum,
+            QtWidgets.QSizePolicy.Policy.Fixed)
 
         # Column 3: Action button if file=True
         if asked_value.source == "File":
@@ -1489,7 +1493,7 @@ class ValueDialog(QtWidgets.QDialog):
 
             # Set the container widget as the cell widget
             self.table.setCellWidget(row, 3, container_widget)
-        
+
         # Column 4: Action button if list=True for multiple choices
         elif asked_value.typing is list:
             # Create a container widget for the layout
@@ -1508,7 +1512,6 @@ class ValueDialog(QtWidgets.QDialog):
             select_none_button.clicked.connect(widget.unselect_all)
             select_none_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(select_none_button)
-
 
             select_invert_button = QtWidgets.QPushButton("Invert")
             select_invert_button.setToolTip("Invert selection")
