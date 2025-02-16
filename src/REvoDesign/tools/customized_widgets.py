@@ -664,7 +664,7 @@ def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol,...]] = None):
 
     if exts:
         ext = FExCol.squeeze(exts)
-        dialog.setNameFilters(ext.filter_string)
+        dialog.setNameFilter(ext.filter_string)
 
 
     # Show the dialog and check if user pressed "Open" (Accepted)
@@ -1562,7 +1562,7 @@ class ValueDialog(QtWidgets.QDialog):
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
 
-        ext=(file_extensions.Any, exts) if exts else (file_extensions.Any,)
+        ext=(exts,file_extensions.Any,) if exts else (file_extensions.Any,)
 
         file_dialog = FileDialog(None, os.getcwd())
         if multiple:
