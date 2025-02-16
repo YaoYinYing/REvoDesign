@@ -696,6 +696,7 @@ def shortcut_sdf2rosetta_params(
 def shortcut_rosettaligand(
         pdb: str,
         ligands: List[str],
+        nstruct: int = 10,
         save_dir: str = "tests/outputs",
         job_id: str = "rosettaligand",
         cst: Optional[str] = None,
@@ -704,9 +705,14 @@ def shortcut_rosettaligand(
         gridwidth: int = 45,
         chain_id_for_dock="B",
         start_from_xyz: Optional[Tuple[float, float, float]] = None,
-        node_hint: NodeHintT = 'native',
 ):
-    ConfigBus()
+    bus=ConfigBus()
+
+    node_config=bus.get_value('rosetta.node_config', dict,default_value={})
+    if node_config is None:
+        logging.warning("No node config found. Using empty.")
+        node_config={}
+    logging.info(f"Using node config: {node_config}")
 
     app = RosettaLigand(
         pdb=pdb,
@@ -719,5 +725,13 @@ def shortcut_rosettaligand(
         gridwidth=gridwidth,
         chain_id_for_dock=chain_id_for_dock,
         start_from_xyz=start_from_xyz,
-        node=node_picker(node_hint)
+        node=node_picker(
+            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True), # type: ignore
+            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
+            **node_config
+            )
     )
+    
+    best_pdb=app.dock(nstruct=nstruct)
+    
+    logging.info(f"RosettaLigand docking finished. Best pdb: {best_pdb}")

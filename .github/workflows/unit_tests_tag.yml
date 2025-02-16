@@ -11,6 +11,7 @@ on:
 
 env: 
   conda_env: REvoDesign
+  GITHUB_CONTAINER_ROSETTA_TEST: "YES" # Github Actions: run python against container node
 
 jobs:
   BareTests:
@@ -85,6 +86,11 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           make setup-ubuntu
+
+      - name: Verify Docker Version and Pull Rosetta Image
+        run: |
+          docker --version
+          docker pull --platform=linux/amd64 rosettacommons/rosetta:mpi
 
       - name: setup Qt headless Display on Windows
         if: startsWith(matrix.os, 'windows')

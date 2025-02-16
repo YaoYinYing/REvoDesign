@@ -74,3 +74,4 @@ error.log
 /cluster_scorings
 *.seqxml
 *.sff
+/tests/outputs

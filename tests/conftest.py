@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import gc
 import os
+import shutil
 import time
 import warnings
+import platform
 from dataclasses import dataclass
 from typing import Literal, Optional
 from unittest.mock import MagicMock
@@ -762,3 +764,51 @@ def mock_lcd_number():
 def test_tmp_dir():
     with tmpdir_manager() as tmpdir:
         yield tmpdir
+
+
+## rosetta test configuration from RosettaPy
+
+def no_rosetta():
+    import subprocess
+
+    result = subprocess.run(["whichrosetta", "rosetta_scripts"], capture_output=True, text=True)
+    # Check that the command was successful
+    has_rosetta_installed = "rosetta_scripts" in result.stdout
+    warnings.warn(UserWarning(f"Rosetta Installed: {has_rosetta_installed} - {result.stdout}"))
+    return not has_rosetta_installed
+
+
+NO_NATIVE_ROSETTA = no_rosetta()
+
+
+def github_rosetta_test():
+    return os.environ.get("GITHUB_ROSETTA_TEST", "NO") == "YES"
+
+
+# Determine if running in GitHub Actions
+is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
+
+has_docker = shutil.which("docker") is not None
+
+# Github Actions, Ubuntu-latest with Rosetta Docker container enabled
+GITHUB_CONTAINER_ROSETTA_TEST = os.environ.get("GITHUB_CONTAINER_ROSETTA_TEST", "NO") == "YES"
+
+WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not None
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(
+            "docker",
+            marks=pytest.mark.skipif(
+                not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
+            ),
+        ),
+        pytest.param(
+            None,
+            marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed."),
+        ),
+    ]
+)
+def test_node_hint(request):
+    return request.param

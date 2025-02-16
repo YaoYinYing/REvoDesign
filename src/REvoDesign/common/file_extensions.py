@@ -29,6 +29,11 @@ PDB = ExtColl(
         Ext("mmcif", "Macromolecular Crystallographic Information File"),
     )
 )
+PDB_STRICT = ExtColl(
+    (
+        Ext("pdb", "Protein Data Bank format file"),
+    )
+)
 MOL = ExtColl(
     (
         Ext("mol", "Mol2 file"),
@@ -85,5 +90,11 @@ YAML = ExtColl(
 JSON = ExtColl(
     (
         Ext("json", "JSON file"),
+    )
+)
+
+RosettaParams = ExtColl(
+    (
+        Ext("params", "Rosetta Parameter file"),
     )
 )

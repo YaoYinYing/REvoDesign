@@ -13,6 +13,7 @@ from REvoDesign.shortcuts.wrappers.ligand_converters import (
 from REvoDesign.shortcuts.wrappers.represents import (wrapped_color_by_plddt,
                                                       wrapped_real_sc)
 
+from REvoDesign.shortcuts.wrappers.rosetta_tasks import wrapped_rosettaligand
 from REvoDesign.shortcuts.wrappers.structure import wrapped_resi_renumber
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
@@ -102,3 +103,10 @@ def menu_sdf2rosetta_params():
     Launches the dialog for converting SDF to Rosetta parameters.
     """
     wrapper_sdf2rosetta_params()
+
+
+def menu_rosettaligand():
+    """
+    Launches the dialog for docking a ligand to a protein.
+    """
+    wrapped_rosettaligand()
