@@ -4600,26 +4600,6 @@
     <addaction name="actionDocumentation"/>
     <addaction name="actionContact"/>
    </widget>
-   <widget class="QMenu" name="menuExport">
-    <property name="title">
-     <string>Export</string>
-    </property>
-    <widget class="QMenu" name="menuRenderSidechains">
-     <property name="title">
-      <string>Render Sidechains</string>
-     </property>
-     <addaction name="separator"/>
-     <addaction name="actionRenderAllSidechains"/>
-     <addaction name="actionRenderPickedSidechainGroup"/>
-     <addaction name="actionRenderPickedSidechainObject"/>
-    </widget>
-    <addaction name="actionRender_to_Clipboard"/>
-    <addaction name="actionRender_to_File"/>
-    <addaction name="separator"/>
-    <addaction name="menuRenderSidechains"/>
-    <addaction name="separator"/>
-    <addaction name="actionPSSM_to_CSV"/>
-   </widget>
    <widget class="QMenu" name="menuStyle">
     <property name="title">
      <string>Style</string>
@@ -4670,12 +4650,29 @@
       <string>Design Tools</string>
      </property>
      <addaction name="actionProfile_Design"/>
+     <addaction name="actionPSSM_to_CSV"/>
      <addaction name="actionPROSS"/>
+    </widget>
+    <widget class="QMenu" name="menuExport_Tools">
+     <property name="title">
+      <string>Export</string>
+     </property>
+     <widget class="QMenu" name="menuRender_Sidechains">
+      <property name="title">
+       <string>Render Sidechains</string>
+      </property>
+      <addaction name="separator"/>
+      <addaction name="actionRenderAllSidechains"/>
+      <addaction name="actionRenderPickedSidechainGroup"/>
+      <addaction name="actionRenderPickedSidechainObject"/>
+     </widget>
+     <addaction name="menuRender_Sidechains"/>
     </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
     <addaction name="menuRosetta_Tools"/>
+    <addaction name="menuExport_Tools"/>
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
     <addaction name="separator"/>
@@ -4684,7 +4681,6 @@
    <addaction name="menuEdit"/>
    <addaction name="menuStyle"/>
    <addaction name="menuTools"/>
-   <addaction name="menuExport"/>
    <addaction name="menuHelp"/>
    <addaction name="menuAbout"/>
   </widget>
