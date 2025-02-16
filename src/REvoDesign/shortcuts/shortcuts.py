@@ -16,17 +16,18 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from immutabledict import immutabledict
 from pymol import cmd, util
+from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 from RosettaPy.node import node_picker
 from RosettaPy.utils.task import RosettaCmdTask, execute
-from RosettaPy.app.pross import PROSS
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.common.profile_parsers import PSSM_Parser
 from REvoDesign.data.protein_code import rAA
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.utils import (read_rosetta_node_config, smiles_conformer_batch,
+from REvoDesign.shortcuts.utils import (read_rosetta_node_config,
+                                        smiles_conformer_batch,
                                         smiles_conformer_single,
                                         visualize_conformer_sdf)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
@@ -692,7 +693,6 @@ def shortcut_sdf2rosetta_params(
     )
 
 
-
 def shortcut_rosettaligand(
         pdb: str,
         ligands: List[str],
@@ -721,11 +721,11 @@ def shortcut_rosettaligand(
         gridwidth (int, optional): Width of the grid for docking. Defaults to 45.
         chain_id_for_dock (str, optional): Chain ID for docking. Defaults to "B".
         start_from_xyz (Optional[Tuple[float, float, float]], optional): Coordinates to start from. Defaults to None.
-    
-    '''
-    bus=ConfigBus()
 
-    node_config=read_rosetta_node_config()
+    '''
+    bus = ConfigBus()
+
+    node_config = read_rosetta_node_config()
 
     app = RosettaLigand(
         pdb=pdb,
@@ -739,26 +739,26 @@ def shortcut_rosettaligand(
         chain_id_for_dock=chain_id_for_dock,
         start_from_xyz=start_from_xyz,
         node=node_picker(
-            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True), # type: ignore
+            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
             nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
             **node_config
-            )
+        )
     )
-    
-    best_pdb=app.dock(nstruct=nstruct)
-    
+
+    best_pdb = app.dock(nstruct=nstruct)
+
     logging.info(f"RosettaLigand docking finished. Best pdb: {best_pdb}")
 
 
 def shortcut_pross(
         pdb: str,
         pssm: str,
-        res_to_fix:str,
-        res_to_restrict:str,
-        nstruct_refine:int=4,
+        res_to_fix: str,
+        res_to_restrict: str,
+        nstruct_refine: int = 4,
         save_dir: str = "design/pross",
         job_id: str = "pross_design",
-        ):
+):
     '''
     Runs the pross function with parameters collected from the dialog.
 
@@ -770,13 +770,13 @@ def shortcut_pross(
         nstruct_refine (int, optional): Number of structures to refine. Defaults to 4.
         save_dir (str, optional): Directory to save the output files. Defaults to "design/pross".
         job_id (str, optional): Job ID for the output files. Defaults to "pross_design".
-    
+
     '''
     bus = ConfigBus()
 
-    node_config=read_rosetta_node_config()
+    node_config = read_rosetta_node_config()
 
-    pross=PROSS(
+    pross = PROSS(
         pdb=pdb,
         pssm=pssm,
         res_to_fix=res_to_fix,
@@ -784,14 +784,14 @@ def shortcut_pross(
         save_dir=save_dir,
         job_id=job_id,
         node=node_picker(
-            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True), # type: ignore
+            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
             nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
             **node_config
-            )
+        )
     )
     best_refined = pross.refine(nstruct_refine)
 
     filters, filterscan_dir = pross.filterscan(best_refined)
-    best_pdb_path=pross.design(filters=filters, refined_pdb=best_refined, filterscan_dir=filterscan_dir)
+    best_pdb_path = pross.design(filters=filters, refined_pdb=best_refined, filterscan_dir=filterscan_dir)
 
     logging.info(f"PROSS design finished. Best pdb: {best_pdb_path}")

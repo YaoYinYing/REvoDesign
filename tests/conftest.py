@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import gc
 import os
+import platform
 import shutil
 import time
 import warnings
-import platform
 from dataclasses import dataclass
 from typing import Literal, Optional
 from unittest.mock import MagicMock
@@ -766,7 +766,7 @@ def test_tmp_dir():
         yield tmpdir
 
 
-## rosetta test configuration from RosettaPy
+# rosetta test configuration from RosettaPy
 
 def no_rosetta():
     import subprocess

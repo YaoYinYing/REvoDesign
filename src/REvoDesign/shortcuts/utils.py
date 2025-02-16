@@ -6,26 +6,30 @@ import subprocess
 from typing import Dict, Literal
 
 from pymol import cmd
-from REvoDesign.driver.ui_driver import ConfigBus
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
+
 from REvoDesign import ROOT_LOGGER
+from REvoDesign.driver.ui_driver import ConfigBus
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
 def read_rosetta_node_config() -> Dict[str, str]:
     '''
     Read the Rosetta node configuration from the configuration bus.
 
     Returns:
-        Dict[str, str]: Dictionary containing the Rosetta node configuration. 
+        Dict[str, str]: Dictionary containing the Rosetta node configuration.
             If no node config is found, it returns an empty dictionary.
     '''
-    bus=ConfigBus()
-    node_config=bus.get_value('rosetta.node_config', dict,default_value={})
+    bus = ConfigBus()
+    node_config = bus.get_value('rosetta.node_config', dict, default_value={})
     if node_config is None:
         logging.warning("No node config found. Using empty.")
-        node_config={}
+        node_config = {}
     logging.info(f"Using node config: {node_config}")
     return node_config
+
 
 def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal['New Window', 'Current Window']):
     """

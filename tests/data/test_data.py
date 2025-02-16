@@ -284,7 +284,7 @@ class TestData:
 
     @property
     def used_molecules(self):
-        return tuple([self.molecule, self.gremlin_homomer_molecule,'9gbw'])
+        return tuple([self.molecule, self.gremlin_homomer_molecule, '9gbw'])
 
 
 @dataclass

@@ -1,4 +1,3 @@
-
 from tests.conftest import TestWorker
 
 # def test_smiles_conformer_single(tmpdir, test_worker: TestWorker):

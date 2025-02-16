@@ -5,17 +5,14 @@ Shortcut wrappers of Rosetta-related tasks
 from pymol import cmd
 
 from REvoDesign.common import file_extensions as FExt
-
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
-
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
-from ..shortcuts import shortcut_pross, shortcut_rosettaligand
 
 from ...logger import ROOT_LOGGER
+from ..shortcuts import shortcut_pross, shortcut_rosettaligand
 
 logging = ROOT_LOGGER.getChild(__name__)
-
 
 
 @dialog_wrapper(
@@ -95,15 +92,15 @@ logging = ROOT_LOGGER.getChild(__name__)
             45,
             typing=int,
             reason="Grid width for the docking.",
-            choices=range(10,90)
+            choices=range(10, 90)
         ),
-        
+
         AskedValue(
             "start_from_xyz_sele",
             '',
             typing=str,
             reason="Startpoint selection from XYZ coordinates. Will use center of mass coordinates if provided.",
-            choices=lambda: ['']+list(cmd.get_names("selections")),
+            choices=lambda: [''] + list(cmd.get_names("selections")),
         ),
     )
 )
@@ -116,27 +113,24 @@ def wrapped_rosettaligand(**kwargs):
     """
     logging.info(kwargs)
 
-    # Parse ligand params 
-    ligand_params: str=kwargs.pop('ligand_params')
-    ligands=ligand_params.split('|')
-    kwargs['ligands']=ligands
-
+    # Parse ligand params
+    ligand_params: str = kwargs.pop('ligand_params')
+    ligands = ligand_params.split('|')
+    kwargs['ligands'] = ligands
 
     # parse start_from_xyz_sele to start_from_xyz coordinates
-    start_from_xyz_sele=kwargs.pop('start_from_xyz_sele')
+    start_from_xyz_sele = kwargs.pop('start_from_xyz_sele')
     if not start_from_xyz_sele:
-        kwargs['start_from_xyz']=None
+        kwargs['start_from_xyz'] = None
     else:
-        kwargs['start_from_xyz']=cmd.centerofmass(start_from_xyz_sele)
-    
+        kwargs['start_from_xyz'] = cmd.centerofmass(start_from_xyz_sele)
 
     with timing('running RosettaLigand docking'):
-        
+
         run_worker_thread_with_progress(
             shortcut_rosettaligand,
             **kwargs,
         )
-
 
 
 @dialog_wrapper(
@@ -207,10 +201,8 @@ def wrapped_pross(**kwargs):
     logging.info(kwargs)
 
     with timing('running RosettaLigand docking'):
-        
+
         run_worker_thread_with_progress(
             shortcut_pross,
             **kwargs,
         )
-
-

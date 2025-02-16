@@ -648,39 +648,41 @@ class QButtonMatrixGremlin(QButtonMatrix):
 
 
 def getExistingDirectory():
-    return QtWidgets.QFileDialog.getExistingDirectory( # type: ignore
+    return QtWidgets.QFileDialog.getExistingDirectory(  # type: ignore
         None,
         "Open Directory",
         os.path.expanduser("~"),
-        QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks, # type: ignore
+        QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,  # type: ignore
     )
 
-def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol,...]] = None):
+
+def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol, ...]] = None):
     # Create the dialog instance
-    dialog = QtWidgets.QFileDialog(parent, "Select file(s)") # type: ignore
+    dialog = QtWidgets.QFileDialog(parent, "Select file(s)")  # type: ignore
 
     # For multiple file selection
-    dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles) # type: ignore
+    dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)  # type: ignore
 
     if exts:
         ext = FExCol.squeeze(exts)
         dialog.setNameFilter(ext.filter_string)
 
-
     # Show the dialog and check if user pressed "Open" (Accepted)
-    if dialog.exec() == QtWidgets.QDialog.Accepted: # type: ignore
+    if dialog.exec() == QtWidgets.QDialog.Accepted:  # type: ignore
         # Now call `selectedFiles()` on the dialog instance
         return dialog.selectedFiles()
-    
+
     return []
 # an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
+
+
 def getOpenFileNameWithExt(*args, **kwargs):
     """
     Return a file name, append extension from filter if no extension provided.
     """
     import re
 
-    fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs) # type: ignore
+    fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)  # type: ignore
 
     if not fname:
         return ""
@@ -1110,7 +1112,7 @@ class AskedValue:
             Specifies the source of the input field. Can be:
             - 'None': No specific source.
             - 'File': Input is expected to be a file path.
-            - 'Files': Input is expected to be a list of file paths, which will be converted 
+            - 'Files': Input is expected to be a list of file paths, which will be converted
                 as a string of '|' separated file paths.
             - 'Directory': Input is expected to be a directory path.
             - 'JsonInput': Input is expected to be a JSON file input.
@@ -1567,7 +1569,7 @@ class ValueDialog(QtWidgets.QDialog):
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
 
-        ext=(exts,file_extensions.Any,) if exts else (file_extensions.Any,)
+        ext = (exts, file_extensions.Any,) if exts else (file_extensions.Any,)
 
         file_dialog = FileDialog(None, os.getcwd())
         if multiple:
@@ -1575,7 +1577,7 @@ class ValueDialog(QtWidgets.QDialog):
             if selected_file:
                 widget.setText('|'.join(selected_file))
             return
-            
+
         selected_file = file_dialog.browse_filename(
             mode="r", exts=ext
         )

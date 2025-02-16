@@ -10,7 +10,8 @@ from pymol.Qt.utils import getSaveFileNameWithExt
 from ..basic import FileExtensionCollection, SingletonAbstract
 from ..common import file_extensions
 from ..logger import ROOT_LOGGER
-from ..tools.customized_widgets import decide, getOpenFileNameWithExt,getMultipleFiles
+from ..tools.customized_widgets import (decide, getMultipleFiles,
+                                        getOpenFileNameWithExt)
 from ..tools.utils import extract_archive
 from .ui_driver import ConfigBus
 
@@ -47,9 +48,9 @@ class FileDialog(SingletonAbstract):
     # callback for the "Browse" button
 
     def browse_multiple_files(self, exts: Optional[tuple[FileExtensionCollection, ...]] = (file_extensions.Any,)
-    ) -> List[str]:
+                              ) -> List[str]:
         return getMultipleFiles(self.window, exts)
-        
+
     def browse_filename(
         self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,)
     ) -> Optional[str]:
