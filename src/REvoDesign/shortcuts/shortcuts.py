@@ -1,5 +1,5 @@
 '''
-Shortcut functions exposed to PyMOL scripting interface.
+Shortcut functions exposed to PyMOL scripting interface and REvoDesign Menu
 '''
 import itertools
 import json
