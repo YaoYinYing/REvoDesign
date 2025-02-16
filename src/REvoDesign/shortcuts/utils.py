@@ -1,11 +1,11 @@
 '''
 Utils for shortcuts
 '''
-from pymol import cmd
 import os
 import subprocess
 from typing import Dict, Literal
 
+from pymol import cmd
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 
 

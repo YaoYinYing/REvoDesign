@@ -106,18 +106,9 @@ Here’s a concise summary of the wrapping structure for converting a **normal f
 '''
 
 
-import json
-import json.tool
-import os
-from typing import List, Literal, Mapping, Optional
-
-import Bio
 from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
 from pymol import cmd
 
-from REvoDesign import issues
 from REvoDesign.tools.mutant_tools import pick_design_from_profile
 
 from ..driver.group_register import CallableGroupValues
@@ -126,17 +117,11 @@ from ..logger import ROOT_LOGGER
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import renumber_protein_chain
 from ..tools.utils import run_worker_thread_with_progress, timing
-from .shortcuts import (
-    shortcut_color_by_plddt,
-    shortcut_dump_fasta_from_struct,
-    shortcut_dump_sidechains,
-    shortcut_pssm2csv,
-    shortcut_real_sc,
-    shortcut_smiles_conformer_batch,
-    shortcut_smiles_conformer_single,
-    smiles_conformer_batch,
-    smiles_conformer_single,
-    visualize_conformer_sdf)
+from .shortcuts import (shortcut_color_by_plddt,
+                        shortcut_dump_fasta_from_struct,
+                        shortcut_dump_sidechains, shortcut_pssm2csv,
+                        shortcut_real_sc, shortcut_smiles_conformer_batch,
+                        shortcut_smiles_conformer_single)
 
 logging = ROOT_LOGGER.getChild(__name__)
 

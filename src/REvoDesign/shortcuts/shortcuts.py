@@ -10,13 +10,11 @@ from typing import List, Literal, Mapping, Optional, Union
 import Bio
 from Bio import SeqIO
 from Bio.Align import substitution_matrices
-from Bio.Align.substitution_matrices import Array
 from Bio.Data import IUPACData
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from immutabledict import immutabledict
 from pymol import cmd, util
-from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.common.profile_parsers import PSSM_Parser

@@ -1,8 +1,5 @@
 from REvoDesign.shortcuts.shortcut_tools import wrapped_smiles_conformer_single
-import os
-
 from tests.conftest import TestWorker
-
 
 # def test_smiles_conformer_single(tmpdir, test_worker: TestWorker):
 #     """
