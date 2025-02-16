@@ -79,7 +79,7 @@ def test_shortcut_sdf2rosetta_params(test_worker: TestWorker):
     assert os.path.getsize(os.path.join(res_dir, 'HEM.fa.params')
                            ) > 0, f'HEM.fa.params is empty in the directory {res_dir}/HEM'
     assert os.path.getsize(os.path.join(res_dir, 'HEM.fa_conformers.pdb')
-                           ) == 0, f'HEM.fa_conformers.pdb should be empty since there is only one conformer.'
+                           ) == 0, 'HEM.fa_conformers.pdb should be empty since there is only one conformer.'
 
 
 @pytest.mark.parametrize(
