@@ -10,7 +10,7 @@ from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
-from ..shortcuts import shortcut_rosettaligand
+from ..shortcuts import shortcut_pross, shortcut_rosettaligand
 
 from ...logger import ROOT_LOGGER
 
@@ -136,3 +136,81 @@ def wrapped_rosettaligand(**kwargs):
             shortcut_rosettaligand,
             **kwargs,
         )
+
+
+
+@dialog_wrapper(
+    title="PROSS design",
+    banner="Perform PROSS design",
+    options=(
+        AskedValue(
+            "pdb",
+            "",
+            typing=str,
+            reason="Path to the PDB file",
+            source='File',  # Mark this as a file input
+            required=True,
+            ext=FExt.PDB_STRICT,
+        ),
+        AskedValue(
+            "pssm",
+            "",
+            typing=str,
+            reason="Path to the PSSM file. ",
+            source='File',  # Mark this as a file input
+            required=True,
+            ext=FExt.PSSM
+        ),
+        AskedValue(
+            "res_to_fix",
+            "1A",
+            typing=str,
+            reason="Residue to fix. Default is 1A.",
+        ),
+        AskedValue(
+            "res_to_restrict",
+            "1A",
+            typing=str,
+            reason="Residue to restrict. Default is 1A.",
+        ),
+        AskedValue(
+            "nstruct_refine",
+            4,
+            typing=int,
+            reason="Number of structures to be generated in refinement.",
+            required=True,
+        ),
+        AskedValue(
+            "save_dir",
+            "design/pross",
+            typing=str,
+            reason="Path to the directory to save the results.",
+            source='Directory',  # Mark this as a folder input
+            required=True,
+        ),
+        AskedValue(
+            "job_id",
+            "pross_design",
+            typing=str,
+            reason="Job ID for the PROSS design.",
+            required=True,
+        ),
+    )
+)
+def wrapped_pross(**kwargs):
+    """
+    Runs the PROSS design.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    logging.info(kwargs)
+
+    with timing('running RosettaLigand docking'):
+        
+        run_worker_thread_with_progress(
+            shortcut_pross,
+            **kwargs,
+        )
+
+

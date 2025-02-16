@@ -41,6 +41,12 @@ MOL = ExtColl(
     )
 )
 
+SDF = ExtColl(
+    (
+        Ext("sdf", "SDF file"),
+    )
+)
+
 PSSM = ExtColl(
     (
         Ext("csv", "CSV file"),

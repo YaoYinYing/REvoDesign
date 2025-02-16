@@ -2,10 +2,12 @@
 Shortcut wrappers of ligand file converting
 '''
 
+from REvoDesign.common import file_extensions as FExt
 from REvoDesign.shortcuts.shortcuts import (shortcut_sdf2rosetta_params,
                                             shortcut_smiles_conformer_batch,
                                             shortcut_smiles_conformer_single)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
+from REvoDesign.tools.utils import timing
 
 from ...logger import ROOT_LOGGER
 
@@ -125,7 +127,8 @@ def wrapped_smiles_conformer_batch(**kwargs):
             typing=str,
             reason="File path of the SDF.",
             required=True,
-            source='File'
+            source='File',
+            ext=FExt.SDF
 
         ),
         AskedValue(
@@ -138,7 +141,7 @@ def wrapped_smiles_conformer_batch(**kwargs):
         AskedValue(
             "save_dir",
             '',
-            typing=bool,
+            typing=str,
             reason="Save directory. Default is './ligands_sdf/'.",
             source='Directory'
         ),
@@ -146,4 +149,5 @@ def wrapped_smiles_conformer_batch(**kwargs):
 )
 def wrapper_sdf2rosetta_params(**kwargs):
     logging.info(kwargs)
-    shortcut_sdf2rosetta_params(**kwargs)
+    with timing('converting sdf to rosetta params'):
+        shortcut_sdf2rosetta_params(**kwargs)

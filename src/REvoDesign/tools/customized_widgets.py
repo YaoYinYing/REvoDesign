@@ -1452,7 +1452,12 @@ class ValueDialog(QtWidgets.QDialog):
             else:
                 widget = QtWidgets.QSpinBox()
                 widget.setRange(choices.start, choices.stop)
-            widget.setValue(asked_value.val or choices.start)
+
+            # Avoid not setting a value if it is a zero (bool(0) == False)
+            if asked_value.val is not None:
+                widget.setValue(asked_value.typing(asked_value.val))
+            else:
+                widget.setValue(choices.start)
 
         # a tuple or list or filter
         elif isinstance(choices, (tuple, list, filter)):
