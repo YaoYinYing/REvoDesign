@@ -4653,6 +4653,8 @@
       <string>Rosetta Tools</string>
      </property>
      <addaction name="actionRosettaLigand"/>
+     <addaction name="separator"/>
+     <addaction name="actionRosetta_Score_Analyser"/>
     </widget>
     <widget class="QMenu" name="menuSmall_Molecule">
      <property name="title">
@@ -4668,6 +4670,7 @@
       <string>Design Tools</string>
      </property>
      <addaction name="actionProfile_Design"/>
+     <addaction name="actionPROSS"/>
     </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
@@ -5013,6 +5016,16 @@
   <action name="actionSDF_to_Rosetta_Parameters">
    <property name="text">
     <string>SDF-to-Rosetta Parameters</string>
+   </property>
+  </action>
+  <action name="actionRosetta_Score_Analyser">
+   <property name="text">
+    <string>Rosetta Score Analyser</string>
+   </property>
+  </action>
+  <action name="actionPROSS">
+   <property name="text">
+    <string>PROSS</string>
    </property>
   </action>
  </widget>

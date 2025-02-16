@@ -48,7 +48,7 @@ from REvoDesign.shortcuts.shortcut_menu_items import (menu_color_by_plddt,
                                                  menu_dump_sidechains,
                                                  menu_profile_pick_design,
                                                  menu_pssm2csv, menu_real_sc,
-                                                 menu_resi_renumber,
+                                                 menu_resi_renumber, menu_sdf2rosetta_params,
                                                  menu_smiles_conformer_batch,
                                                  menu_smiles_conformer_single)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
@@ -322,6 +322,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionSMILES_Conformers_Batch,
                     menu_smiles_conformer_batch
+                ),
+                MenuItem(
+                    self.bus.ui.actionSDF_to_Rosetta_Parameters,
+                    menu_sdf2rosetta_params
                 ),
                 MenuItem(
                     self.bus.ui.actionProfile_Design,

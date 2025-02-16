@@ -4,11 +4,14 @@ This module contains the menu shortcuts for REvoDesign.
 
 # To create a dialog form, one must implement a wrapper function that
 # decorated by `dialog_wrapper` and import it here
-from REvoDesign.shortcuts.shortcut_wrappers import (
-    wrapped_color_by_plddt, wrapped_dump_fasta_from_struct,
-    wrapped_menu_dump_sidechains, wrapped_profile_pick_design,
-    wrapped_pssm2csv, wrapped_real_sc, wrapped_resi_renumber,
-    wrapped_smiles_conformer_batch, wrapped_smiles_conformer_single)
+from REvoDesign.shortcuts.wrappers.structure import wrapped_resi_renumber
+from REvoDesign.shortcuts.wrappers.ligand_converters import (
+    wrapped_smiles_conformer_batch, wrapped_smiles_conformer_single,
+    wrapper_sdf2rosetta_params)
+from REvoDesign.shortcuts.wrappers.exports import wrapped_dump_fasta_from_struct,wrapped_menu_dump_sidechains
+from REvoDesign.shortcuts.wrappers.represents import wrapped_color_by_plddt,wrapped_real_sc
+from REvoDesign.shortcuts.wrappers.designs import (
+    wrapped_profile_pick_design, wrapped_pssm2csv)
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
 
@@ -90,3 +93,10 @@ def menu_dump_fasta_from_struct():
     Launches the dialog for dumping sequences from a structure.
     """
     wrapped_dump_fasta_from_struct()
+
+
+def menu_sdf2rosetta_params():
+    """
+    Launches the dialog for converting SDF to Rosetta parameters.
+    """
+    wrapper_sdf2rosetta_params()

@@ -4,8 +4,9 @@ Shortcut functions exposed to PyMOL scripting interface and REvoDesign Menu
 import itertools
 import json
 import os
+import sys
 import warnings
-from typing import List, Literal, Mapping, Optional, Union
+from typing import List, Literal, Mapping, Optional, Tuple, Union
 
 import Bio
 from Bio import SeqIO
@@ -15,6 +16,14 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from immutabledict import immutabledict
 from pymol import cmd, util
+
+from platformdirs import user_cache_dir
+
+from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
+from RosettaPy.app.rosettaligand import RosettaLigand
+from RosettaPy.node import NodeHintT, Native, NodeClassType, node_picker
+from RosettaPy.utils.task import RosettaCmdTask, execute
+from RosettaPy.utils.tools import tmpdir_manager
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.common.profile_parsers import PSSM_Parser
@@ -602,7 +611,11 @@ def shortcut_dump_fasta_from_struct(
     """
     Runs the dump_fasta_from_struct function with parameters collected from the dialog.
     Args:
-        **kwargs: Parameters collected from the dialog.
+        format (str): Format of the output file. Defaults to "fasta".
+        chain_ids (list[str]): List of chain IDs to dump. Defaults to [].
+        output_dir (str): Directory path to save the output file. Defaults to 'dumped_sequences'.
+        drop_missing_residue (bool): Whether to drop missing residues. Defaults to False.
+        suffix (str): Suffix to add to the output file name. Defaults to ''.
     """
 
     bus = ConfigBus()
@@ -645,3 +658,72 @@ def shortcut_dump_fasta_from_struct(
         raise issues.InternalError(f"Error occurs while dumping sequence: {e}.") from e
 
     logging.info(f"Sequence dumped to {output_path}")
+
+
+def shortcut_sdf2rosetta_params(
+        ligand_name:str,
+        sdf_path: str,
+        charge: int=0,
+        save_dir: str = './ligands_sdf/',
+):
+    '''
+    Runs the sdf2rosetta_params function with parameters collected from the dialog.
+    
+    Args:
+
+        '''
+    converter=SmallMoleculeParamsGenerator(save_dir=save_dir)
+    if not os.path.isfile(sdf_path):
+        raise issues.InvalidInputError(f"No found ligand: {ligand_name}. Expected file: {sdf_path}")
+    
+    return execute(
+            RosettaCmdTask(
+                cmd=[
+                    sys.executable,
+                    os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),
+                    f"{sdf_path}",
+                    "-n",
+                    ligand_name,
+                    "--conformers-in-one-file",
+                    f"--recharge={str(charge)}",
+                    "-c",
+                    "--clobber",
+                ],
+                base_dir=save_dir,
+                task_label=ligand_name,
+            )
+        )
+
+
+
+
+
+def shortcut_rosettaligand(
+        pdb: str,
+        ligands: List[str],
+        save_dir: str = "tests/outputs",
+        job_id: str = "rosettaligand",
+        cst: Optional[str] = None,
+        box_size: int = 30,
+        move_distance: float = 0.5,
+        gridwidth: int = 45,
+        chain_id_for_dock = "B",
+        start_from_xyz: Optional[Tuple[float, float, float]] = None,
+        node_hint: NodeHintT = 'native',
+):
+    bus=ConfigBus()
+
+    
+    app=RosettaLigand(
+        pdb=pdb,
+        ligands=ligands,
+        save_dir=save_dir,
+        job_id=job_id,
+        cst=cst,
+        box_size=box_size,
+        move_distance=move_distance,
+        gridwidth=gridwidth,
+        chain_id_for_dock=chain_id_for_dock,
+        start_from_xyz=start_from_xyz,
+        node=node_picker(node_hint)
+    )
