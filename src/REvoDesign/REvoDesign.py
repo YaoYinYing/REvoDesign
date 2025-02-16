@@ -43,7 +43,7 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
-from REvoDesign.shortcuts.menu_shortcuts import (menu_color_by_plddt,
+from REvoDesign.shortcuts.shortcut_menu_items import (menu_color_by_plddt,
                                                  menu_dump_fasta_from_struct,
                                                  menu_dump_sidechains,
                                                  menu_profile_pick_design,

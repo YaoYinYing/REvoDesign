@@ -2,7 +2,8 @@
 This module contains the menu shortcuts for REvoDesign.
 '''
 
-
+# To create a dialog form, one must implement a wrapper function that
+# decorated by `dialog_wrapper` and import it here
 from REvoDesign.shortcuts.shortcut_wrappers import (
     wrapped_color_by_plddt, wrapped_dump_fasta_from_struct,
     wrapped_menu_dump_sidechains, wrapped_profile_pick_design,

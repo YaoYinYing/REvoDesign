@@ -4648,13 +4648,34 @@
      <addaction name="actionRenumber_Residue_Index"/>
      <addaction name="actionDump_Sequence"/>
     </widget>
-    <addaction name="actionSMILES_Conformers"/>
-    <addaction name="actionSMILES_Conformers_Batch"/>
-    <addaction name="separator"/>
-    <addaction name="actionProfile_Design"/>
+    <widget class="QMenu" name="menuRosetta_Tools">
+     <property name="title">
+      <string>Rosetta Tools</string>
+     </property>
+     <addaction name="actionRosettaLigand"/>
+    </widget>
+    <widget class="QMenu" name="menuSmall_Molecule">
+     <property name="title">
+      <string>Small Molecule Tools</string>
+     </property>
+     <addaction name="actionSMILES_Conformers"/>
+     <addaction name="actionSMILES_Conformers_Batch"/>
+     <addaction name="separator"/>
+     <addaction name="actionSDF_to_Rosetta_Parameters"/>
+    </widget>
+    <widget class="QMenu" name="menuDesign_Tools">
+     <property name="title">
+      <string>Design Tools</string>
+     </property>
+     <addaction name="actionProfile_Design"/>
+    </widget>
+    <addaction name="menuDesign_Tools"/>
+    <addaction name="menuSmall_Molecule"/>
+    <addaction name="menuStructure_Tools"/>
+    <addaction name="menuRosetta_Tools"/>
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
-    <addaction name="menuStructure_Tools"/>
+    <addaction name="separator"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -4944,21 +4965,6 @@
     <string>PSSM to CSV</string>
    </property>
   </action>
-  <action name="actionSMILES_Conformers">
-   <property name="text">
-    <string>SMILES Conformers</string>
-   </property>
-  </action>
-  <action name="actionSMILES_Conformers_Batch">
-   <property name="text">
-    <string>SMILES Conformers Batch</string>
-   </property>
-  </action>
-  <action name="actionProfile_Design">
-   <property name="text">
-    <string>Profile Design</string>
-   </property>
-  </action>
   <action name="actionStart">
    <property name="text">
     <string>Start</string>
@@ -4982,6 +4988,31 @@
   <action name="actionDump_Sequence">
    <property name="text">
     <string>Dump Molecule/Chain Sequence</string>
+   </property>
+  </action>
+  <action name="actionRosettaLigand">
+   <property name="text">
+    <string>RosettaLigand</string>
+   </property>
+  </action>
+  <action name="actionSMILES_Conformers">
+   <property name="text">
+    <string>SMILES Conformers</string>
+   </property>
+  </action>
+  <action name="actionSMILES_Conformers_Batch">
+   <property name="text">
+    <string>SMILES Conformers Batch</string>
+   </property>
+  </action>
+  <action name="actionProfile_Design">
+   <property name="text">
+    <string>Profile Design</string>
+   </property>
+  </action>
+  <action name="actionSDF_to_Rosetta_Parameters">
+   <property name="text">
+    <string>SDF-to-Rosetta Parameters</string>
    </property>
   </action>
  </widget>
