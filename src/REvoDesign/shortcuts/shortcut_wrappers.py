@@ -126,9 +126,17 @@ from ..logger import ROOT_LOGGER
 from ..tools.customized_widgets import AskedValue, dialog_wrapper
 from ..tools.pymol_utils import renumber_protein_chain
 from ..tools.utils import run_worker_thread_with_progress, timing
-from .shortcuts import (color_by_plddt, dump_sidechains, pssm2csv, real_sc,
-                        smiles_conformer_batch, smiles_conformer_single,
-                        visualize_conformer_sdf)
+from .shortcuts import (
+    shortcut_color_by_plddt,
+    shortcut_dump_fasta_from_struct,
+    shortcut_dump_sidechains,
+    shortcut_pssm2csv,
+    shortcut_real_sc,
+    shortcut_smiles_conformer_batch,
+    shortcut_smiles_conformer_single,
+    smiles_conformer_batch,
+    smiles_conformer_single,
+    visualize_conformer_sdf)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -209,9 +217,9 @@ def wrapped_menu_dump_sidechains(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     with timing("Dumping sidechains"):
-        print(kwargs)
+        logging.info(kwargs)
         run_worker_thread_with_progress(
-            dump_sidechains,
+            shortcut_dump_sidechains,
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
@@ -252,7 +260,7 @@ def wrapped_color_by_plddt(**kwargs):
     with timing("Coloring by pLDDT"):
         print(kwargs)
         run_worker_thread_with_progress(
-            color_by_plddt,
+            shortcut_color_by_plddt,
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
@@ -280,9 +288,9 @@ def wrapped_pssm2csv(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     with timing("PSSM to CSV Conversion"):
-        print(kwargs)
+        logging.info(kwargs)
         run_worker_thread_with_progress(
-            pssm2csv,
+            shortcut_pssm2csv,
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
@@ -321,9 +329,9 @@ def wrapped_real_sc(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     with timing("Set Sidechain Representation"):
-        print(kwargs)
+        logging.info(kwargs)
         run_worker_thread_with_progress(
-            real_sc,
+            shortcut_real_sc,
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
@@ -373,24 +381,8 @@ def wrapped_smiles_conformer_single(**kwargs):
     """
     Runs the smiles_conformer_single function with parameters collected from the dialog.
     """
-    # take out the show_conformer option and handle it separately
-    show_conformer: Literal['None', 'Current Window', 'New Window'] = kwargs.pop("show_conformer")
-    with timing("Get SMILES Conformer"):
-        print(kwargs)
-        run_worker_thread_with_progress(
-            smiles_conformer_single,
-            **kwargs,
-            progress_bar=ConfigBus().ui.progressBar
-        )
-    if show_conformer == 'None':
-        return
-
-    sdf_path = os.path.join(kwargs["save_dir"], f"{kwargs['ligand_name']}.sdf")
-
-    if not os.path.isfile(sdf_path):
-        raise issues.NoResultsError(f"No output results found for {kwargs['ligand_name']}. Expected file: {sdf_path}")
-
-    visualize_conformer_sdf(sdf_path, show_conformer)
+    logging.info(kwargs)
+    shortcut_smiles_conformer_single(**kwargs)
 
 
 @dialog_wrapper(
@@ -436,24 +428,9 @@ def wrapped_smiles_conformer_batch(**kwargs):
     """
     Runs the smiles_conformer_batch function with parameters collected from the dialog.
     """
-    # take out the show_conformer option and handle it separately
-    show_conformer: Literal['None', 'Current Window', 'New Window'] = kwargs.pop("show_conformer")
+    logging.info(kwargs)
 
-    smiles = kwargs.pop("smiles")
-    kwargs["smi"] = json.load(open(smiles))
-    with timing("Get SMILES Conformers (Many)"):
-        print(kwargs)
-        run_worker_thread_with_progress(
-            smiles_conformer_batch,
-            **kwargs,
-            progress_bar=ConfigBus().ui.progressBar
-        )
-    if show_conformer == 'None':
-        return
-
-    for k in kwargs["smi"]:
-        sdf_path = os.path.join(kwargs["save_dir"], f"{k}.sdf")
-        visualize_conformer_sdf(sdf_path, show_conformer)
+    shortcut_smiles_conformer_batch(**kwargs)
 
 
 @dialog_wrapper(
@@ -551,6 +528,7 @@ def wrapped_resi_renumber(**kwargs):
     Args:
         **kwargs: Parameters collected from the dialog.
     """
+    logging.info(kwargs)
     renumber_protein_chain(**kwargs)
 
 
@@ -601,49 +579,5 @@ def wrapped_dump_fasta_from_struct(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     logging.info(kwargs)
-    format: str = kwargs['format']
-    output_dir: str = kwargs['output_dir']
-    suffix: str = kwargs['suffix']
-    chain_ids: List[str] = kwargs['chain_ids']
-    drop_missing_residue: bool = kwargs['drop_missing_residue']
 
-    bus = ConfigBus()
-    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
-    if not chain_ids:
-        logging.warning("No chain selected. Dumping the chain picked on UI.")
-        chain_ids = [bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)]
-    designable_sequences: Optional[Mapping] = bus.get_value("designable_sequences", dict, reject_none=True)
-
-    os.makedirs(output_dir, exist_ok=True)
-    if suffix:
-        suffix = f"_{suffix}"
-    output_path = os.path.join(output_dir, f"{molecule}_{''.join(chain_ids)}{suffix}.{format}")
-    all_seq_records = []
-    for chain_id in chain_ids:
-        sequence: Optional[str] = designable_sequences.get(chain_id)
-        if sequence is None:
-            raise issues.NoResultsError(f"No designable sequence found for chain {chain_id}")
-        if drop_missing_residue:
-            sequence = sequence.replace('X', '')
-        logging.debug(
-            f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}"
-        )
-
-        all_seq_records.append(
-            SeqRecord(
-                Seq(sequence),
-                id=f"{molecule}_{chain_id}", description=f"{suffix.lstrip('_')}"))
-
-    try:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            SeqIO.write(all_seq_records, f, format)
-    except Bio.StreamModeError as e:
-        logging.warning(f"Error occurs while dumping sequence: {e} Retry with binary mode.")
-        with open(output_path, 'wb') as f:
-            SeqIO.write(all_seq_records, f, format)  # type: ignore
-    except ValueError as e:
-        os.remove(output_path)
-        logging.error(f"Error occurs while dumping sequence: {e} Clean up the output file.")
-        raise issues.InternalError(f"Error occurs while dumping sequence: {e}.") from e
-
-    logging.info(f"Sequence dumped to {output_path}")
+    shortcut_dump_fasta_from_struct(**kwargs)
