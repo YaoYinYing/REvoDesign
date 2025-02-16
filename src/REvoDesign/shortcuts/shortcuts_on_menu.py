@@ -1,7 +1,8 @@
 '''
 This module contains the menu shortcuts for REvoDesign.
 '''
-
+# To create a dialog form, one must implement a wrapper function that
+# decorated by `dialog_wrapper` and import it here
 from REvoDesign.shortcuts.wrappers.designs import (wrapped_profile_pick_design,
                                                    wrapped_pssm2csv)
 from REvoDesign.shortcuts.wrappers.exports import (
@@ -11,8 +12,7 @@ from REvoDesign.shortcuts.wrappers.ligand_converters import (
     wrapper_sdf2rosetta_params)
 from REvoDesign.shortcuts.wrappers.represents import (wrapped_color_by_plddt,
                                                       wrapped_real_sc)
-# To create a dialog form, one must implement a wrapper function that
-# decorated by `dialog_wrapper` and import it here
+
 from REvoDesign.shortcuts.wrappers.structure import wrapped_resi_renumber
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
