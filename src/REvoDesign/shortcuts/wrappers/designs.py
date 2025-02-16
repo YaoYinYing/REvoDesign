@@ -9,9 +9,10 @@ from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.mutant_tools import pick_design_from_profile
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
-from ...logger import ROOT_LOGGER
-logging = ROOT_LOGGER.getChild(__name__)
 
+from ...logger import ROOT_LOGGER
+
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 @dialog_wrapper(
@@ -42,7 +43,6 @@ def wrapped_pssm2csv(**kwargs):
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
-
 
 
 @dialog_wrapper(

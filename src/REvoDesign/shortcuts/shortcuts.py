@@ -15,13 +15,11 @@ from Bio.Data import IUPACData
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from immutabledict import immutabledict
-from pymol import cmd, util
-
 from platformdirs import user_cache_dir
-
-from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
+from pymol import cmd, util
 from RosettaPy.app.rosettaligand import RosettaLigand
-from RosettaPy.node import NodeHintT, Native, NodeClassType, node_picker
+from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
+from RosettaPy.node import Native, NodeClassType, NodeHintT, node_picker
 from RosettaPy.utils.task import RosettaCmdTask, execute
 from RosettaPy.utils.tools import tmpdir_manager
 
@@ -661,41 +659,38 @@ def shortcut_dump_fasta_from_struct(
 
 
 def shortcut_sdf2rosetta_params(
-        ligand_name:str,
+        ligand_name: str,
         sdf_path: str,
-        charge: int=0,
+        charge: int = 0,
         save_dir: str = './ligands_sdf/',
 ):
     '''
     Runs the sdf2rosetta_params function with parameters collected from the dialog.
-    
+
     Args:
 
         '''
-    converter=SmallMoleculeParamsGenerator(save_dir=save_dir)
+    converter = SmallMoleculeParamsGenerator(save_dir=save_dir)
     if not os.path.isfile(sdf_path):
         raise issues.InvalidInputError(f"No found ligand: {ligand_name}. Expected file: {sdf_path}")
-    
+
     return execute(
-            RosettaCmdTask(
-                cmd=[
-                    sys.executable,
-                    os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),
-                    f"{sdf_path}",
-                    "-n",
-                    ligand_name,
-                    "--conformers-in-one-file",
-                    f"--recharge={str(charge)}",
-                    "-c",
-                    "--clobber",
-                ],
-                base_dir=save_dir,
-                task_label=ligand_name,
-            )
+        RosettaCmdTask(
+            cmd=[
+                sys.executable,
+                os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),
+                f"{sdf_path}",
+                "-n",
+                ligand_name,
+                "--conformers-in-one-file",
+                f"--recharge={str(charge)}",
+                "-c",
+                "--clobber",
+            ],
+            base_dir=save_dir,
+            task_label=ligand_name,
         )
-
-
-
+    )
 
 
 def shortcut_rosettaligand(
@@ -707,14 +702,13 @@ def shortcut_rosettaligand(
         box_size: int = 30,
         move_distance: float = 0.5,
         gridwidth: int = 45,
-        chain_id_for_dock = "B",
+        chain_id_for_dock="B",
         start_from_xyz: Optional[Tuple[float, float, float]] = None,
         node_hint: NodeHintT = 'native',
 ):
-    bus=ConfigBus()
+    ConfigBus()
 
-    
-    app=RosettaLigand(
+    app = RosettaLigand(
         pdb=pdb,
         ligands=ligands,
         save_dir=save_dir,

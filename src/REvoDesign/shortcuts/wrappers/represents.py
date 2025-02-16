@@ -3,13 +3,15 @@ Shortcut wrappers of structure representation
 '''
 
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.shortcuts import shortcut_color_by_plddt, shortcut_real_sc
+from REvoDesign.shortcuts.shortcuts import (shortcut_color_by_plddt,
+                                            shortcut_real_sc)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
-from ...logger import ROOT_LOGGER
-logging = ROOT_LOGGER.getChild(__name__)
 
+from ...logger import ROOT_LOGGER
+
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 @dialog_wrapper(
@@ -53,8 +55,6 @@ def wrapped_color_by_plddt(**kwargs):
         )
 
 
-
-
 @dialog_wrapper(
     title="Set Sidechain Representation",
     banner="Set the molecular representation focusing on the sidechain or alpha carbon.",
@@ -94,4 +94,3 @@ def wrapped_real_sc(**kwargs):
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
-

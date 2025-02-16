@@ -43,14 +43,11 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
-from REvoDesign.shortcuts.shortcut_menu_items import (menu_color_by_plddt,
-                                                 menu_dump_fasta_from_struct,
-                                                 menu_dump_sidechains,
-                                                 menu_profile_pick_design,
-                                                 menu_pssm2csv, menu_real_sc,
-                                                 menu_resi_renumber, menu_sdf2rosetta_params,
-                                                 menu_smiles_conformer_batch,
-                                                 menu_smiles_conformer_single)
+from REvoDesign.shortcuts.shortcut_menu_items import (
+    menu_color_by_plddt, menu_dump_fasta_from_struct, menu_dump_sidechains,
+    menu_profile_pick_design, menu_pssm2csv, menu_real_sc, menu_resi_renumber,
+    menu_sdf2rosetta_params, menu_smiles_conformer_batch,
+    menu_smiles_conformer_single)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,

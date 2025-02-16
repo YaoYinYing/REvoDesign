@@ -4,14 +4,12 @@ Shortcut wrappers of structure manipulation
 
 from pymol import cmd
 
-
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.pymol_utils import renumber_protein_chain
 
 from ...logger import ROOT_LOGGER
+
 logging = ROOT_LOGGER.getChild(__name__)
-
-
 
 
 @dialog_wrapper(

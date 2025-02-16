@@ -2,11 +2,15 @@
 Shortcut wrappers of ligand file converting
 '''
 
-from REvoDesign.shortcuts.shortcuts import shortcut_sdf2rosetta_params, shortcut_smiles_conformer_batch, shortcut_smiles_conformer_single
+from REvoDesign.shortcuts.shortcuts import (shortcut_sdf2rosetta_params,
+                                            shortcut_smiles_conformer_batch,
+                                            shortcut_smiles_conformer_single)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 
 from ...logger import ROOT_LOGGER
+
 logging = ROOT_LOGGER.getChild(__name__)
+
 
 @dialog_wrapper(
     title="Get SMILES Conformer",
@@ -104,8 +108,6 @@ def wrapped_smiles_conformer_batch(**kwargs):
     shortcut_smiles_conformer_batch(**kwargs)
 
 
-
-
 @dialog_wrapper(
     title="Convert SDF to Rosetta Parameter File",
     banner="Convert a given SDF to Rosetta Parameter File",
@@ -124,7 +126,7 @@ def wrapped_smiles_conformer_batch(**kwargs):
             reason="File path of the SDF.",
             required=True,
             source='File'
-            
+
         ),
         AskedValue(
             "charge",
