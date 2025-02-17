@@ -18,16 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- tests: `color_by_mutation`
+- tests: 
+  - `color_by_mutation`
+  - `pick_design_from_profile`
 
 ### Changed
 - tests:
   - use `pytest.mark` to mark test cases with different performances and behaviors
   - use `pytest-xdist` to run short tests in parallel
   - mark gremlin tests with `very_slow` label and run at the most end of the test run.
+- `Makefile`: refactor `make all-test` to run re-organized tests. If any of the tests failed, the whole test run will complete but fail to CI. This helps to avoid CI fake passing due to test failures hidden by semicolons in testing command.
 
 ### Fixed
 - `Makefile`: remove pdb file cleanups statement in `make clean`
+- typo in `shortcuts/wrappers/rosetta_tasks.py`
 
 ### Removed
 

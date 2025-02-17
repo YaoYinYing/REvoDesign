@@ -8,6 +8,7 @@ from ...conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
+
 @pytest.mark.serial
 @pytest.mark.order(1)
 class TestREvoDesignPlugin:

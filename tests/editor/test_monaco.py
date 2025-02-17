@@ -37,6 +37,7 @@ def mock_run_worker_thread_with_progress():
     with patch("REvoDesign.tools.utils.run_worker_thread_with_progress") as mock:
         yield mock
 
+
 @pytest.mark.serial
 def test_ensure_editor_downloaded(test_tmp_dir, mock_user_data_dir, mock_config_store):
     manager = MonacoEditorManager(app_name="TestApp", app_author="TestAuthor")
@@ -46,6 +47,7 @@ def test_ensure_editor_downloaded(test_tmp_dir, mock_user_data_dir, mock_config_
     manager.html_template_path = os.path.join(test_tmp_dir, "index.html")
     Path(manager.html_template_path).touch()  # Create a dummy template
     manager.ensure_editor_downloaded(no_upgrade=True)
+
 
 @pytest.mark.serial
 def test_download_monaco_editor(test_tmp_dir):

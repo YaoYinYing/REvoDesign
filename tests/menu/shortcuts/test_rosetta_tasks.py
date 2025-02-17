@@ -7,6 +7,7 @@ from REvoDesign.shortcuts.shortcuts import (shortcut_pross,
                                             shortcut_rosettaligand)
 from tests.conftest import TestWorker
 
+
 @pytest.mark.serial
 # a variant test from RosettaPy's short app tests
 @pytest.mark.parametrize(

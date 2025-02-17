@@ -225,7 +225,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         logging.debug(f"REvoDesign is installed in {installed_dir}")
         check_mac_rosetta2()
 
-        main_window = QtWidgets.QMainWindow()
+        main_window = QtWidgets.QMainWindow()  # type: ignore
 
         # loadUi fails on translations so we have to compile the form as `Ui_REvoDesignPyMOL_UI`
         # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')

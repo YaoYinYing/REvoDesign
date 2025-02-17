@@ -9,6 +9,7 @@ from ...data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
+
 @pytest.mark.serial
 class TestREvoDesignPlugin_TabMutate:
     def test_pssm_ent_surf(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):

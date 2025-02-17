@@ -9,6 +9,7 @@ from ...data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
+
 @pytest.mark.serial
 class TestREvoDesignPlugin_TabCluster:
     def test_cluster(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):

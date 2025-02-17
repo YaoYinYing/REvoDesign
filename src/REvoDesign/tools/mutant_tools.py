@@ -904,6 +904,7 @@ def pick_design_from_profile(
         flip_cmap=True,
         button_size=12
     )
+    button_matrix.setObjectName('ProfileDesignButtonMatrix')
     button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
@@ -914,7 +915,7 @@ def pick_design_from_profile(
 
     # Create a new dialog window for the button matrix
     window = QtWidgets.QWidget()  # type: ignore # This creates a standalone window.
-    window.setObjectName("ProfileDesignButtonMatrix")
+    window.setObjectName("ProfileDesignButtonMatrixWindow")
 
     window.setWindowTitle(f"Mutant Profile Matrix: {profile_type} ({profile})")
 
@@ -1005,8 +1006,11 @@ View Highlight Nbr: {view_highlight_nbr}
     def cleanup_window():
         if hasattr(ui, 'open_windows') and window in ui.open_windows:
             ui.open_windows.remove(window)
+        if isinstance(ui.open_windows, list) and len(ui.open_windows) == 0:
+            delattr(ui, 'open_windows')
         print("Window destroyed and cleaned up.")
 
+    # Graceful cleanup
     window.destroyed.connect(cleanup_window)
 
     # Show the window
