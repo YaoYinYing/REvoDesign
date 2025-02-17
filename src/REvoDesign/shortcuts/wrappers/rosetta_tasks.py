@@ -123,7 +123,7 @@ def wrapped_rosettaligand(**kwargs):
     if not start_from_xyz_sele:
         kwargs['start_from_xyz'] = None
     else:
-        kwargs['start_from_xyz'] = cmd.centerofmass(start_from_xyz_sele)
+        kwargs['start_from_xyz'] = tuple(cmd.centerofmass(start_from_xyz_sele))
 
     with timing('running RosettaLigand docking'):
 
