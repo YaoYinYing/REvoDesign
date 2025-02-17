@@ -11,6 +11,7 @@ on:
 
 env: 
   conda_env: REvoDesign
+  GITHUB_CONTAINER_ROSETTA_TEST: "YES" # Github Actions: run python against container node
 
 jobs:
   BareTests:
@@ -22,7 +23,7 @@ jobs:
         conda-channel:
           - -c conda-forge
         pymol-version:
-          - "pymol-open-source"
+          - "pymol-open-source<3.1"
         pymol-tag:
           - 'latest pymol open source'
         python-version: 
@@ -30,7 +31,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
-        # include:
+        include:
         #   # windows
         #   - os: windows-latest
         #     python-version: "3.11"
@@ -45,13 +46,13 @@ jobs:
         #     pymol-tag: 'latest pymol bundle'
         #     conda-channel: -c schrodinger -c conda-forge
           
-        #   # pymol-open-source, v2
-        #   - os: ubuntu-latest
-        #     python-version: "3.11"
-        #     pymol-version: "pymol-open-source<3"
-        #     conda-channel: -c conda-forge
-        #     pymol-tag:
-        #       - 'legacy (v2) pymol open source'
+          # pymol-open-source, v2
+          - os: ubuntu-latest
+            python-version: "3.11"
+            pymol-version: "pymol-open-source<3"
+            conda-channel: -c conda-forge
+            pymol-tag:
+              - 'legacy (v2) pymol open source'
 
         #   # bundled pymol, v2
         #   - os: ubuntu-latest
@@ -85,6 +86,11 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           make setup-ubuntu
+
+      - name: Verify Docker Version and Pull Rosetta Image
+        run: |
+          docker --version
+          docker pull --platform=linux/amd64 rosettacommons/rosetta:mpi
 
       - name: setup Qt headless Display on Windows
         if: startsWith(matrix.os, 'windows')

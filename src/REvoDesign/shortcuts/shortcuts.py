@@ -1,28 +1,43 @@
 '''
-Shortcut functions exposed to PyMOL scripting interface.
+Shortcut functions exposed to PyMOL scripting interface and REvoDesign Menu
 '''
 import itertools
+import json
 import os
-import subprocess
+import sys
 import warnings
-from typing import Dict, List, Literal, Union
+from typing import List, Literal, Mapping, Optional, Tuple, Union
 
+import Bio
+from Bio import SeqIO
 from Bio.Align import substitution_matrices
-from Bio.Align.substitution_matrices import Array
 from Bio.Data import IUPACData
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from immutabledict import immutabledict
 from pymol import cmd, util
+from RosettaPy.app.pross import PROSS
+from RosettaPy.app.rosettaligand import RosettaLigand
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
+from RosettaPy.node import node_picker
+from RosettaPy.utils.task import RosettaCmdTask, execute
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.common.profile_parsers import PSSM_Parser
 from REvoDesign.data.protein_code import rAA
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.shortcuts.utils import (read_rosetta_node_config,
+                                        smiles_conformer_batch,
+                                        smiles_conformer_single,
+                                        visualize_conformer_sdf)
+from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.pymol_utils import get_all_groups
+from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
 
-def pssm2csv(pssm: str) -> None:
+def shortcut_pssm2csv(pssm: str) -> None:
     """Shortcut for PSSM to CSV conversion.
 
     Args:
@@ -42,7 +57,7 @@ def pssm2csv(pssm: str) -> None:
     logging.info(expected_csv)
 
 
-def real_sc(selection="(all)", representation="lines", hydrogen=False):
+def shortcut_real_sc(selection="(all)", representation="lines", hydrogen=False):
     """
     DESCRIPTION
         Set the representation of a molecular structure focusing on the sidechain or alpha carbon.
@@ -75,7 +90,7 @@ def real_sc(selection="(all)", representation="lines", hydrogen=False):
     )
 
 
-def color_by_plddt(selection="all", align_target=0, chain_to_align="A"):
+def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A"):
     """
     AUTHOR
             Yinying Yao
@@ -137,10 +152,10 @@ def color_by_plddt(selection="all", align_target=0, chain_to_align="A"):
     cmd.delete("test_b_scale")
 
     # set color based on plddt values
-    cmd.set("cartoon_color", "high_lddt_c", "high_lddt")
-    cmd.set("cartoon_color", "normal_lddt_c", "normal_lddt")
-    cmd.set("cartoon_color", "medium_lddt_c", "medium_lddt")
-    cmd.set("cartoon_color", "low_lddt_c", "low_lddt")
+    cmd.set("cartoon_color", "high_lddt_c", "high_lddt")  # type: ignore
+    cmd.set("cartoon_color", "normal_lddt_c", "normal_lddt")  # type: ignore
+    cmd.set("cartoon_color", "medium_lddt_c", "medium_lddt")  # type: ignore
+    cmd.set("cartoon_color", "low_lddt_c", "low_lddt")  # type: ignore
 
     # set background color
     cmd.bg_color("white")
@@ -180,7 +195,7 @@ def color_by_plddt(selection="all", align_target=0, chain_to_align="A"):
         cmd.delete("not_aligned_but_enabled")
 
 
-def find_interface(
+def shortcut_find_interface(
     selection="all",
     interact_dist=4,
 ):
@@ -251,7 +266,7 @@ to visualize their differences.
 blosum90 = substitution_matrices.load("BLOSUM90")
 
 aa_3l = {}
-for i, x in enumerate(blosum90.alphabet):
+for i, x in enumerate(blosum90.alphabet):  # type: ignore
     if a := IUPACData.protein_letters_1to3.get(x):
         aa_3l[a.upper()] = i
     else:
@@ -287,7 +302,7 @@ def getBlosum90ColorName(aa1, aa2):
     return col_name
 
 
-def color_by_mutation(obj1, obj2, waters=0, labels=0):
+def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     """
     DESCRIPTION
 
@@ -323,7 +338,8 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
 
                     super
     """
-    from pymol import CmdException, stored
+    # TODO: deprecating the usage of pymol's internal stored variable
+    from pymol import CmdException, stored  # type: ignore
 
     if cmd.count_atoms(obj1) == 0:
         print("%s is empty" % obj1)
@@ -429,7 +445,7 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
     if labels:
         cmd.label("mutations and name CA", '"(%s-%s-%s)"%(chain, resi, resn)')
     if waters:
-        cmd.set("sphere_scale", "0.1")
+        cmd.set("sphere_scale", "0.1")  # type: ignore
         cmd.show("spheres", f"resn HOH and ({obj1} or {obj2})")
         cmd.color("red", "resn HOH and %s" % obj1)
         cmd.color("salmon", "resn HOH and %s" % obj2)
@@ -448,7 +464,7 @@ def color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.deselect()
 
 
-def dump_sidechains(
+def shortcut_dump_sidechains(
     sele: Union[str, List[str]],
     enabled_only: bool = False,
     save_dir: str = "png/sidechain_dump/",
@@ -524,71 +540,258 @@ def dump_sidechains(
         cmd.disable(sel)
 
 
-def smiles_conformer_batch(smi: Dict[str, str], num_conformer: int, save_dir: str, n_jobs: int = 1):
+def shortcut_smiles_conformer_single(
+        ligand_name: str,
+        smiles: str,
+        num_conformer: int = 100,
+        save_dir: str = './ligands/',
+        show_conformer: Literal['None', 'Current Window', 'New Window'] = 'New Window'):
     """
-    Generates 3D conformers for a SMILES string using RDKit.
-
-    Args:
-        smi (Dict[str, str]): Dictionary containing the name of the molecule as the key and the SMILES string as the value.
-        num_conformer (int): Number of conformers to generate for each molecule.
-        save_dir (str): Directory to save the generated conformer files.
-        n_jobs (int, optional): Number of parallel jobs to run. Defaults to 1.
+    Runs the smiles_conformer_single function with parameters collected from the dialog.
     """
-    print(f'Converting {len(smi)} molecules to 3D conformers({num_conformer})...')
-    # Initialize the SmallMoleculeParamsGenerator and convert the specified molecules
-    converter = SmallMoleculeParamsGenerator(save_dir=save_dir, num_conformer=num_conformer)
-    converter.convert(ligands=smi, n_jobs=n_jobs)
-
-
-def smiles_conformer_single(ligand_name: str, smiles: str, num_conformer: int, save_dir: str,):
-    """
-    Generates 3D conformers for a single SMILES string using RDKit.
-
-    Args:
-        ligand_name (str): Name of the ligand.
-        smiles (str): SMILES string of the ligand.
-        num_conformer (int): Number of conformers to generate.
-        save_dir (str): Directory to save the generated conformer file.
-    """
-    return smiles_conformer_batch(smi={ligand_name: smiles}, num_conformer=num_conformer, save_dir=save_dir)
-
-
-def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal['New Window', 'Current Window']):
-    """
-    Visualize a ligand conformer file (SDF) in a new PyMOL window.
-
-    Args:
-        sdf_file_path (str): Path to the SDF file containing the conformers.
-    """
-    if show_conformer == 'Current Window':
-        # cmd.reinitialize()
-        cmd.load(sdf_file_path)
+    # take out the show_conformer option and handle it separately
+    with timing("Get SMILES Conformer"):
+        run_worker_thread_with_progress(
+            smiles_conformer_single,
+            ligand_name=ligand_name,
+            smiles=smiles,
+            num_conformer=num_conformer,
+            save_dir=save_dir,
+            progress_bar=ConfigBus().ui.progressBar
+        )
+    if show_conformer == 'None':
         return
 
-    # Get the absolute path of the directory containing the SDF file
-    tmpdir = os.path.abspath(os.path.dirname(sdf_file_path))
-    # Get the base name of the SDF file
-    sdf_bn = os.path.basename(sdf_file_path)
-    # Remove the file extension to get the file name
-    sdf_bn_wo_ext, _ = os.path.splitext(sdf_bn)
-    # Path for the temporary PML file
-    pml_file_path = os.path.join(tmpdir, f'{sdf_bn_wo_ext}_load_to_preview.pml')
+    sdf_path = os.path.join(save_dir, f"{ligand_name}.sdf")
 
-    # Create the PML file with visualization commands
-    with open(pml_file_path, 'w') as pmlh:
-        # Command to load the SDF file
-        pmlh.write(f"load {os.path.abspath(sdf_file_path)}\n")
-        # Zoom and orient the view
-        pmlh.write("zoom\norient\n")
-        # Disable internal feedback in PyMOL
-        pmlh.write("set internal_feedback, 0\n")
-        # Set the viewport size
-        pmlh.write("viewport 800, 600\n")
-        # Set the background color to white
-        pmlh.write("bg_color white\n")
+    if not os.path.isfile(sdf_path):
+        raise issues.NoResultsError(f"No output results found for {ligand_name}. Expected file: {sdf_path}")
 
-    # Explicitly call a new PyMOL instance in the background
-    pymol_command = ["pymol", "-xi", pml_file_path]
-    subprocess.Popen(pymol_command)
+    visualize_conformer_sdf(sdf_path, show_conformer)
 
-    print(f"PyMOL launched in the background with {sdf_file_path}.")
+
+def shortcut_smiles_conformer_batch(
+        smiles: str,
+        num_conformer: int = 100,
+        save_dir: str = './ligands/',
+        show_conformer: Literal['None', 'Current Window', 'New Window'] = 'None',
+        n_jobs: int = 1,
+):
+    """
+    Runs the smiles_conformer_batch function with parameters collected from the dialog.
+    """
+
+    smi = json.load(open(smiles))
+    with timing("Get SMILES Conformers (Many)"):
+        run_worker_thread_with_progress(
+            smiles_conformer_batch,
+            smi=smi,
+            num_conformer=num_conformer,
+            save_dir=save_dir,
+            n_jobs=n_jobs,
+            progress_bar=ConfigBus().ui.progressBar
+        )
+    if show_conformer == 'None':
+        return
+
+    for k in smi:
+        sdf_path = os.path.join(save_dir, f"{k}.sdf")
+        visualize_conformer_sdf(sdf_path, show_conformer)
+
+
+def shortcut_dump_fasta_from_struct(
+        format: str = "fasta",
+        chain_ids: list[str] = [],
+        output_dir: str = 'dumped_sequences',
+        drop_missing_residue: bool = False,
+        suffix: str = '',
+):
+    """
+    Runs the dump_fasta_from_struct function with parameters collected from the dialog.
+    Args:
+        format (str): Format of the output file. Defaults to "fasta".
+        chain_ids (list[str]): List of chain IDs to dump. Defaults to [].
+        output_dir (str): Directory path to save the output file. Defaults to 'dumped_sequences'.
+        drop_missing_residue (bool): Whether to drop missing residues. Defaults to False.
+        suffix (str): Suffix to add to the output file name. Defaults to ''.
+    """
+
+    bus = ConfigBus()
+    molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
+    if not chain_ids:
+        logging.warning("No chain selected. Dumping the chain picked on UI.")
+        chain_ids = [bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)]
+    designable_sequences: Optional[Mapping] = bus.get_value("designable_sequences", dict, reject_none=True)
+
+    os.makedirs(output_dir, exist_ok=True)
+    if suffix:
+        suffix = f"_{suffix}"
+    output_path = os.path.join(output_dir, f"{molecule}_{''.join(chain_ids)}{suffix}.{format}")
+    all_seq_records = []
+    for chain_id in chain_ids:
+        sequence: Optional[str] = designable_sequences.get(chain_id)
+        if sequence is None:
+            raise issues.NoResultsError(f"No designable sequence found for chain {chain_id}")
+        if drop_missing_residue:
+            sequence = sequence.replace('X', '')
+        logging.debug(
+            f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}"
+        )
+
+        all_seq_records.append(
+            SeqRecord(
+                Seq(sequence),
+                id=f"{molecule}_{chain_id}", description=f"{suffix.lstrip('_')}"))
+
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            SeqIO.write(all_seq_records, f, format)
+    except Bio.StreamModeError as e:
+        logging.warning(f"Error occurs while dumping sequence: {e} Retry with binary mode.")
+        with open(output_path, 'wb') as f:
+            SeqIO.write(all_seq_records, f, format)  # type: ignore
+    except ValueError as e:
+        os.remove(output_path)
+        logging.error(f"Error occurs while dumping sequence: {e} Clean up the output file.")
+        raise issues.InternalError(f"Error occurs while dumping sequence: {e}.") from e
+
+    logging.info(f"Sequence dumped to {output_path}")
+
+
+def shortcut_sdf2rosetta_params(
+        ligand_name: str,
+        sdf_path: str,
+        charge: int = 0,
+        save_dir: str = './ligands_sdf/',
+):
+    '''
+    Runs the sdf2rosetta_params function with parameters collected from the dialog.
+
+    Args:
+
+        '''
+    converter = SmallMoleculeParamsGenerator(save_dir=save_dir)
+    if not os.path.isfile(sdf_path):
+        raise issues.InvalidInputError(f"No found ligand: {ligand_name}. Expected file: {sdf_path}")
+
+    return execute(
+        RosettaCmdTask(
+            cmd=[
+                sys.executable,
+                os.path.join(converter._rosetta_python_script_dir, "molfile_to_params.py"),
+                f"{sdf_path}",
+                "-n",
+                ligand_name,
+                "--conformers-in-one-file",
+                f"--recharge={str(charge)}",
+                "-c",
+                "--clobber",
+            ],
+            base_dir=save_dir,
+            task_label=ligand_name,
+        )
+    )
+
+
+def shortcut_rosettaligand(
+        pdb: str,
+        ligands: List[str],
+        nstruct: int = 10,
+        save_dir: str = "tests/outputs",
+        job_id: str = "rosettaligand",
+        cst: Optional[str] = None,
+        box_size: int = 30,
+        move_distance: float = 0.5,
+        gridwidth: int = 45,
+        chain_id_for_dock="B",
+        start_from_xyz: Optional[Tuple[float, float, float]] = None,
+):
+    '''
+    Runs the rosettaligand function with parameters collected from the dialog.
+
+    Args:
+        pdb (str): Path to the input PDB file.
+        ligands (List[str]): List of ligand SMILES strings.
+        nstruct (int, optional): Number of structures to generate. Defaults to 10.
+        save_dir (str, optional): Directory to save the output files. Defaults to "tests/outputs".
+        job_id (str, optional): Job ID for the output files. Defaults to "rosettaligand".
+        cst (Optional[str], optional): Path to the constraint file. Defaults to None.
+        box_size (int, optional): Size of the box for docking. Defaults to 30.
+        move_distance (float, optional): Distance to move the ligand during docking. Defaults to 0.5.
+        gridwidth (int, optional): Width of the grid for docking. Defaults to 45.
+        chain_id_for_dock (str, optional): Chain ID for docking. Defaults to "B".
+        start_from_xyz (Optional[Tuple[float, float, float]], optional): Coordinates to start from. Defaults to None.
+
+    '''
+    bus = ConfigBus()
+
+    node_config = read_rosetta_node_config()
+
+    app = RosettaLigand(
+        pdb=pdb,
+        ligands=ligands,
+        save_dir=save_dir,
+        job_id=job_id,
+        cst=cst,
+        box_size=box_size,
+        move_distance=move_distance,
+        gridwidth=gridwidth,
+        chain_id_for_dock=chain_id_for_dock,
+        start_from_xyz=start_from_xyz,
+        node=node_picker(
+            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
+            **node_config
+        )
+    )
+
+    best_pdb = app.dock(nstruct=nstruct)
+
+    logging.info(f"RosettaLigand docking finished. Best pdb: {best_pdb}")
+
+
+def shortcut_pross(
+        pdb: str,
+        pssm: str,
+        res_to_fix: str,
+        res_to_restrict: str,
+        nstruct_refine: int = 4,
+        save_dir: str = "design/pross",
+        job_id: str = "pross_design",
+):
+    '''
+    Runs the pross function with parameters collected from the dialog.
+
+    Args:
+        pdb (str): Path to the input PDB file.
+        pssm (str): Path to the PSSM file.
+        res_to_fix (str): Residues to fix.
+        res_to_restrict (str): Residues to restrict.
+        nstruct_refine (int, optional): Number of structures to refine. Defaults to 4.
+        save_dir (str, optional): Directory to save the output files. Defaults to "design/pross".
+        job_id (str, optional): Job ID for the output files. Defaults to "pross_design".
+
+    '''
+    bus = ConfigBus()
+
+    node_config = read_rosetta_node_config()
+
+    pross = PROSS(
+        pdb=pdb,
+        pssm=pssm,
+        res_to_fix=res_to_fix,
+        res_to_restrict=res_to_restrict,
+        save_dir=save_dir,
+        job_id=job_id,
+        node=node_picker(
+            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
+            **node_config
+        )
+    )
+    best_refined = pross.refine(nstruct_refine)
+
+    filters, filterscan_dir = pross.filterscan(best_refined)
+    best_pdb_path = pross.design(filters=filters, refined_pdb=best_refined, filterscan_dir=filterscan_dir)
+
+    logging.info(f"PROSS design finished. Best pdb: {best_pdb_path}")

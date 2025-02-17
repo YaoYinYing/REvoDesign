@@ -648,22 +648,41 @@ class QButtonMatrixGremlin(QButtonMatrix):
 
 
 def getExistingDirectory():
-    return QtWidgets.QFileDialog.getExistingDirectory(
+    return QtWidgets.QFileDialog.getExistingDirectory(  # type: ignore
         None,
         "Open Directory",
         os.path.expanduser("~"),
-        QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,
+        QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,  # type: ignore
     )
 
 
+def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol, ...]] = None):
+    # Create the dialog instance
+    dialog = QtWidgets.QFileDialog(parent, "Select file(s)")  # type: ignore
+
+    # For multiple file selection
+    dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)  # type: ignore
+
+    if exts:
+        ext = FExCol.squeeze(exts)
+        dialog.setNameFilter(ext.filter_string)
+
+    # Show the dialog and check if user pressed "Open" (Accepted)
+    if dialog.exec() == QtWidgets.QDialog.Accepted:  # type: ignore
+        # Now call `selectedFiles()` on the dialog instance
+        return dialog.selectedFiles()
+
+    return []
 # an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
+
+
 def getOpenFileNameWithExt(*args, **kwargs):
     """
     Return a file name, append extension from filter if no extension provided.
     """
     import re
 
-    fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
+    fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)  # type: ignore
 
     if not fname:
         return ""
@@ -1093,6 +1112,8 @@ class AskedValue:
             Specifies the source of the input field. Can be:
             - 'None': No specific source.
             - 'File': Input is expected to be a file path.
+            - 'Files': Input is expected to be a list of file paths, which will be converted
+                as a string of '|' separated file paths.
             - 'Directory': Input is expected to be a directory path.
             - 'JsonInput': Input is expected to be a JSON file input.
         ext (Optional[FExCol]): File extension filters for file and directory inputs.
@@ -1104,7 +1125,7 @@ class AskedValue:
     reason: Optional[str] = None
     required: bool = False
     choices: Optional[Union[Iterable, Callable[[], Iterable]]] = None
-    source: Literal["None", "File", "Directory", "JsonInput"] = "None"
+    source: Literal["None", "File", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
 
 
@@ -1433,7 +1454,12 @@ class ValueDialog(QtWidgets.QDialog):
             else:
                 widget = QtWidgets.QSpinBox()
                 widget.setRange(choices.start, choices.stop)
-            widget.setValue(asked_value.val or choices.start)
+
+            # Avoid not setting a value if it is a zero (bool(0) == False)
+            if asked_value.val is not None:
+                widget.setValue(asked_value.typing(asked_value.val))
+            else:
+                widget.setValue(choices.start)
 
         # a tuple or list or filter
         elif isinstance(choices, (tuple, list, filter)):
@@ -1470,6 +1496,11 @@ class ValueDialog(QtWidgets.QDialog):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a file")
             action_button.clicked.connect(lambda: self._browse_file(widget, asked_value.ext))
+            self.table.setCellWidget(row, 3, action_button)
+        elif asked_value.source == "Files":
+            action_button = QtWidgets.QPushButton("Browse")
+            action_button.setToolTip("Browse for multiple files")
+            action_button.clicked.connect(lambda: self._browse_file(widget, multiple=True))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Directory":
             action_button = QtWidgets.QPushButton("Browse")
@@ -1528,7 +1559,7 @@ class ValueDialog(QtWidgets.QDialog):
 
             self.table.setCellWidget(row, 3, container_widget)
 
-    def _browse_file(self, widget, exts: Optional[FExCol] = None):
+    def _browse_file(self, widget, exts: Optional[FExCol] = None, multiple: bool = False):
         """
         Opens a file dialog to select a file and updates the input field.
 
@@ -1538,9 +1569,17 @@ class ValueDialog(QtWidgets.QDialog):
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
 
+        ext = (exts, file_extensions.Any,) if exts else (file_extensions.Any,)
+
         file_dialog = FileDialog(None, os.getcwd())
+        if multiple:
+            selected_file = file_dialog.browse_multiple_files(ext)
+            if selected_file:
+                widget.setText('|'.join(selected_file))
+            return
+
         selected_file = file_dialog.browse_filename(
-            mode="r", exts=(file_extensions.Any, exts) if exts else (file_extensions.Any,)
+            mode="r", exts=ext
         )
         if selected_file:
             widget.setText(selected_file)

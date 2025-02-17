@@ -18,6 +18,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- ci: 
+  - add rosetta docker image pull
+- `file_extensions`:
+  - `PDB_STRICT`: only `pdb`
+  - `SDF`: only `sdf`
+  - `RosettaParams`: `*.params`
+- menu:
+  - refactored arrangements
+  - shortcuts:
+    - `Rosetta Tools`:
+      - `RosettaLigand`
+      - `PROSS`
+      - `SDF-to-Rosetta Parameters`
+- config:
+  - hints about `node_config`
+- `FileDialog`:
+  - methods `browse_multiple_files` for opening multiple files
+- `customized_widgets`:
+  - `getMultipleFiles`: for opening multiple files
+  - `AskedValue`: `source` now support `Files` for '|' separated file names
+- tests:
+  - conftest: add `RosettaPy` configures
 
 ### Changed
 - `customized_widgets`:
@@ -38,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       - Added action buttons for `select_all`, `unselect_all`, `invert_selection` of multi-checkable combo box
 - `package_manager`:
   - `notify_box` and `decide`: now supports detailed messages
+- major refactors of `shortcuts` module
+  - `menu_shortcuts` --> `shortcuts_on_menu`
+  - all wrappers now at `shortcuts.wrappers`
+  - `wrappers` are still not testable due to the QDialog widget.
+
 ### Fixed
 
 ### Removed
