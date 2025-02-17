@@ -10,7 +10,7 @@ from REvoDesign.shortcuts.shortcuts import (shortcut_dump_fasta_from_struct,
                                             shortcut_smiles_conformer_single)
 from tests.conftest import TestWorker
 
-
+@pytest.mark.serial
 def test_shortcut_smiles_conformer_single(test_worker: TestWorker):
     ligand_name = 'MOR'
     smiles = "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)O)O[C@H]3[C@H](C=C4)O"  # morphine
@@ -36,7 +36,7 @@ def test_shortcut_smiles_conformer_single(test_worker: TestWorker):
         'TER')]) > 1, f'{ligand_name}.fa_conformers.pdb should have multiple TER record in the directory {res_dir}/{ligand_name}'
     assert os.path.isfile(os.path.join(res_dir, f'{ligand_name}.fa.params'))
 
-
+@pytest.mark.serial
 def test_shortcut_smiles_conformer_batch(test_worker: TestWorker):
     smiles = '../tests/data/json/sm_input/12968814160.json'
     res_dir = os.path.abspath('./ligands_conformers_batch/')
@@ -60,7 +60,6 @@ def test_shortcut_smiles_conformer_batch(test_worker: TestWorker):
         assert os.path.getsize(
             os.path.join(
                 params_dir, f"{k}.fa.params")) > 0, f'{k}.fa.params should not be empty in the directory {res_dir}'
-
 
 def test_shortcut_sdf2rosetta_params(test_worker: TestWorker):
     sdf_path = os.path.abspath('../tests/data/sdf/HEM.sdf')

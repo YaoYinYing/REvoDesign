@@ -6,3 +6,5 @@ omit =
     */server/*
     */prompt/*
     */REvoDesign.PyMOL.py
+
+parallel = True

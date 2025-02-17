@@ -7,6 +7,10 @@ PYTEST_NON_DIST_SERIAL_ARGS=-m "serial and not very_slow"
 PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "serial and very_slow"
 PYTEST_XDIST_ARGS=-n 4 -m "not serial"
 PYTEST_KW=all
+
+PYTEST_RUN_ONE_ARGS=$(PYTEST_ARGS) $(PYTEST_NON_DIST_SERIAL_ARGS) $(PYTEST_CASES_PATH)
+PYTEST_RUN_TWO_ARGS=$(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH)
+PYTEST_RUN_THREE_ARGS=$(PYTEST_ARGS) $(PYTEST_NON_DIST_SLOW_SERIAL_ARGS) $(PYTEST_CASES_PATH)
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
@@ -23,34 +27,29 @@ MACOS_PYMOL_BIN_PATH=/Applications/PyMOL.app/Contents/bin/
 help:
 	@echo "Commands:"
 	@echo ""
-	@echo "  help                   print this message and exit"
-	@echo "  build                  build source and wheel distributions"
+	@echo "  help                   Print this message and exit"
+	@echo "  build                  Build source and wheel distributions"
 	@echo "  setup-ubuntu           Setup ubuntu display for GitHub Actions"
 	@echo "  setup-display          Setup ubuntu display for CircleCI"
 	@echo "  upload-gists           Upload Gist files"
-	@echo "  install                install from pip "
-	@echo "  install-no-dept        install from pip, no dependencies"
-	@echo "  install-pytorch-cpu    install torch-cpu for ci runner image"
-	@echo "  reinstall              reinstall after code changes"
-	@echo "  translate              translate UI"
-	@echo "  prepare-test           run pip to install pytest-related packages"
-	@echo "  test                   run the UnitTest suite"
-	@echo "  ui-test                run the QtTest suite"
-	@echo "  ui-test-pymol          run the QtTest suite with PyMOL GUI integration."
-	@echo "  all-test               run all tests"
-	@echo "  macos-rosetta-test     run UI tests versus PyMOL incentive installation (MacOS Application)"
-	@echo "  memray                 memoray profile for leakage, saved as html file"
-	@echo "  memray-live            memoray profile for leakage in live mode"
-	@echo "  format                 automatically format the code"
-	@echo "  tag                    pin a new tag from package version to github tag"
-	@echo "  black                  black format for all python files"
-	@echo "  reverse                run pyreverse for package and methods and create SVGs"
-	@echo "  license-update         license updates for all files"
-	@echo "  license-check          check license for all files"
-	@echo "  flake8                 "
-	@echo "  flake8-lazy            "
-	@echo "  lint                   run pylint for a deeper (and slower) quality check"
-	@echo "  clean                  clean up build and generated files" 
+	@echo "  install                Install from pip "
+	@echo "  install-no-dept        Install from pip, no dependencies"
+	@echo "  install-pytorch-cpu    Install torch-cpu for ci runner image"
+	@echo "  reinstall              Reinstall after code changes"
+	@echo "  translate              Translate UI"
+	@echo "  prepare-test           Run pip to install pytest-related packages"
+	@echo "  test                   Run the UnitTest suite"
+	@echo "  all-test               Run all tests"
+	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
+	@echo "  memray                 Memoray profile for leakage, saved as html file"
+	@echo "  memray-live            Memoray profile for leakage in live mode"
+	@echo "  format                 Automatically format the code"
+	@echo "  tag                    Bump a new tag from package version to github tag"
+	@echo "  black                  Reformat the code with pre-commit hook"
+	@echo "  reverse                Run pyreverse for package and methods and create SVGs"
+	@echo "  license-update         License updates for all files"
+	@echo "  license-check          Check license for all files"
+	@echo "  clean                  Clean up build and generated files" 
 	@echo ""
 
 build:
@@ -112,32 +111,33 @@ test:
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/UnitTests.py
 
-# ui test
-ui-test:
-	# Run a tmp folder to make sure the tests are run on the installed version
-	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/tabs;
-
-ui-test-lan:
-	# Run a tmp folder to make sure the tests are run on the installed version
-	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/tabs -k 'test_non_english_input';
 
 
 # ui test with pymol
 # see https://github.com/schrodinger/pymol-open-source/pull/106/files#diff-5c3fa597431eda03ac3339ae6bf7f05e1a50d6fc7333679ec38e21b337cb6721R57
-ui-test-pymol:
-	# Run a tmp folder to make sure the tests are run on the installed version
-	mkdir -p $(TESTDIR)
-	cd $(TESTDIR); pymol -ckqy /Users/yyy/miniconda_py39_arm64/lib/python3.10/site-packages/REvoDesign/tests/cases/tabs/;
+# ui-test-pymol:
+# 	# Run a tmp folder to make sure the tests are run on the installed version
+# 	mkdir -p $(TESTDIR)
+# 	cd $(TESTDIR); pymol -ckqy /Users/yyy/miniconda_py39_arm64/lib/python3.10/site-packages/REvoDesign/tests/cases/tabs/;
 
 # all test
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_NON_DIST_SERIAL_ARGS) $(PYTEST_CASES_PATH);  python -m pytest $(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH);python -m pytest $(PYTEST_ARGS) $(PYTEST_NON_DIST_SLOW_SERIAL_ARGS) $(PYTEST_CASES_PATH);
-	cp $(TESTDIR)/.coverage* .
+	cd $(TESTDIR); \
+	status_1=0; status_2=0; status_3=0; \
+	python -m pytest $(PYTEST_RUN_ONE_ARGS) || status_1=$$?; \
+	python -m pytest $(PYTEST_RUN_TWO_ARGS) || status_2=$$?; \
+	python -m pytest $(PYTEST_RUN_THREE_ARGS) || status_3=$$?; \
+	if [ $$status_1 -eq 0 -a $$status_2 -eq 0 -a $$status_3 -eq 0 ]; then \
+	  echo "All tests passed! Combining coverage."; \
+	  coverage combine; \
+	  exit 0; \
+	else \
+	  echo "One or more tests failed! Not combining coverage."; \
+	  exit 1; \
+	fi
+
 
 # all test with keyword
 kw-test:
@@ -193,17 +193,9 @@ license-update:
 license-check:
 	python tools/license_notice.py --check
 
-flake8:
-	python -m pip install flake8
-	flake8 $(CHECK_STYLE)
 
-flake8-lazy:
-	python -m pip install flake8
-	flake8 $(CHECK_STYLE_LAZY)
 
-lint:
-	python -m pip install pylint
-	pylint --jobs=0 $(LINT_FILES)
+
 
 clean:
 	find . -name "*.pyc" -exec rm -v {} \;
