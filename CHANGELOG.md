@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 ## [Unreleased]
+### Added
+- tests: `color_by_mutation`
+
+### Changed
+
+### Fixed
+
+### Removed
 
 ## [1.7.16] - 2025-02-17
 ### Added
