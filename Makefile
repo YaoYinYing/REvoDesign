@@ -125,14 +125,10 @@ all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); \
-	@set -e; \
-	# Default them to 0 (meaning "passed")
 	status_1=0; status_2=0; status_3=0; \
 	python -m pytest $(PYTEST_RUN_ONE_ARGS) || status_1=$$?; \
 	python -m pytest $(PYTEST_RUN_TWO_ARGS) || status_2=$$?; \
 	python -m pytest $(PYTEST_RUN_THREE_ARGS) || status_3=$$?; \
-	\
-	# If all zero, coverage combine & exit 0; otherwise fail
 	if [ $$status_1 -eq 0 -a $$status_2 -eq 0 -a $$status_3 -eq 0 ]; then \
 	  echo "All tests passed! Combining coverage."; \
 	  coverage combine; \
