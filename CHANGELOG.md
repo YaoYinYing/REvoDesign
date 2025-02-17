@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 ## [Unreleased]
+
+## [1.7.16] - 2025-02-17
 ### Added
 - ci: 
   - add rosetta docker image pull
