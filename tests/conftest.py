@@ -377,7 +377,7 @@ class TestWorker:
 
     def check_existed_mutant_tree(self):
         mt = self.existed_mutant_tree
-        assert not mt.empty
+        assert not mt.empty, f"No mutant tree found in test {self.test_id}"
         return mt
 
     def focus_on_tree(self, method="orient"):
