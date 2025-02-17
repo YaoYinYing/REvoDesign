@@ -10,7 +10,7 @@ from ...conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
-
+@pytest.mark.serial
 @pytest.mark.order(2)
 class TestREvoDesignPlugin_TabPrepare:
     def test_load_molecule(self, test_worker: TestWorker):

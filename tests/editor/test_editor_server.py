@@ -84,7 +84,7 @@ def test_favicon(test_client):
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/svg+xml"
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("use_token", [True, False])
 def test_load_file_not_found(use_token, mock_config_store, test_client):
     """Test the /load_file endpoint with an invalid file path."""
@@ -102,7 +102,7 @@ def test_load_file_not_found(use_token, mock_config_store, test_client):
     assert response.status_code == 404
     assert response.json() == {"error": "File not found"}
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("use_token", [True, False])
 def test_load_file_not_allowed(use_token, mock_temp_dir, test_client, mock_config_store):
     """Test the /load_file endpoint with a file not in the whitelist."""
@@ -119,7 +119,7 @@ def test_load_file_not_allowed(use_token, mock_temp_dir, test_client, mock_confi
     assert response.status_code == 403
     assert response.json()["detail"] == "Loading this file is not allowed: Permission denied."
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("use_token", [True, False])
 def test_save_file_not_allowed(use_token, mock_temp_dir, test_client, mock_config_store):
     """Test the /save_file endpoint with a file not in the editable whitelist."""
@@ -136,7 +136,7 @@ def test_save_file_not_allowed(use_token, mock_temp_dir, test_client, mock_confi
     assert response.status_code == 403
     assert response.json()["detail"] == "Writing into this file is not allowed."
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("use_token", [True, False])
 def test_save_file_directory_not_found(use_token, test_client, mock_config_store):
     """Test the /save_file endpoint with an invalid directory."""
@@ -153,7 +153,7 @@ def test_save_file_directory_not_found(use_token, test_client, mock_config_store
     assert response.status_code == 400
     assert response.json()["error"].startswith("Directory does not exist")
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("use_token", [True, False])
 def test_rate_limiting(use_token, mock_temp_dir, test_client, mock_config_store):
     """Test rate limiting on repeated failed authentication attempts."""
@@ -174,7 +174,7 @@ def test_rate_limiting(use_token, mock_temp_dir, test_client, mock_config_store)
     assert response.status_code == 429
     assert response.json()["detail"] == "Too many failed attempts. Please try again later."
 
-
+@pytest.mark.serial
 def test_server_control(mock_config_store, initialize_server):
     """Test starting and stopping the server."""
     reset_rate_limits()
@@ -184,7 +184,7 @@ def test_server_control(mock_config_store, initialize_server):
     initialize_server.stop_server()
     assert initialize_server.is_running is False
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("use_token", [True, False])
 def test_load_file_success(use_token, mock_config_store, test_client):
     """Test the /load_file endpoint with a valid file path under both token and no-token scenarios."""
@@ -201,7 +201,7 @@ def test_load_file_success(use_token, mock_config_store, test_client):
     assert response.status_code == 200
     assert response.json() == {"content": "I am readonly"}
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize(
     "file_path, expected_status, description",
     [
@@ -231,7 +231,7 @@ def test_editor_xss_injection(file_path, expected_status, description, test_clie
         assert "<script>" not in response.text, "Response should not include script tags"
         assert "alert" not in response.text, "Response should not include alert calls"
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize("use_token", [True, False])
 def test_save_file_success(use_token, mock_config_store, test_client):
     """Test the /save_file endpoint with a valid file path under both token and no-token scenarios."""

@@ -21,8 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - tests: `color_by_mutation`
 
 ### Changed
+- tests:
+  - use `pytest.mark` to mark test cases with different performances and behaviors
+  - use `pytest-xdist` to run short tests in parallel
+  - mark gremlin tests with `very_slow` label and run at the most end of the test run.
 
 ### Fixed
+- `Makefile`: remove pdb file cleanups statement in `make clean`
 
 ### Removed
 

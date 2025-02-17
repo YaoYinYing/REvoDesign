@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from REvoDesign.tools.customized_widgets import set_widget_value
 
 from ...conftest import TestWorker
@@ -7,7 +9,7 @@ from ...data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
-
+@pytest.mark.serial
 class TestREvoDesignPlugin_TabCluster:
     def test_cluster(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()

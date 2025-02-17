@@ -182,6 +182,8 @@ markers = [
     "spark: marks tests which need Spark",
     "slow: marks tests as slow",
     "unit: fast offline tests",
+    "serial: mark as serial tests that can not be run in parallel with xdist",
+    "very_slow: marks tests as very slow that should be run only in a independent run",
 ]
 filterwarnings = [
     "ignore::Bio.PDB.PDBExceptions.PDBConstructionWarning",
