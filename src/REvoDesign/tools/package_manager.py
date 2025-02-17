@@ -1677,7 +1677,8 @@ def refresh_window():
 @overload
 def notify_box(
     message: str = "",
-    error_type: Union[None, Type[Warning]] = None
+    error_type: Union[None, Type[Warning]] = None,
+    details: Optional[str] = None
 ) -> None:
     ...
 
@@ -1687,7 +1688,8 @@ def notify_box(
 @overload
 def notify_box(
     message: str,
-    error_type: Type[Exception]
+    error_type: Type[Exception],
+    details: Optional[str] = None
 ) -> NoReturn:
     ...
 

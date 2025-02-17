@@ -4,12 +4,14 @@ Shortcut wrappers of structure representation
 
 from pymol import cmd
 
+from REvoDesign import issues
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.shortcuts import (shortcut_color_by_mutation,
                                             shortcut_color_by_plddt,
                                             shortcut_real_sc)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
-from REvoDesign.tools.package_manager import run_worker_thread_with_progress
+from REvoDesign.tools.package_manager import (notify_box,
+                                              run_worker_thread_with_progress)
 from REvoDesign.tools.utils import timing
 
 from ...logger import ROOT_LOGGER
@@ -142,6 +144,14 @@ def wrapped_color_by_mutation(**kwargs):
     Args:
         **kwargs: Parameters collected from the dialog.
     """
+    if kwargs["obj1"] == kwargs["obj2"]:
+        notify_box(
+            "The two objects cannot be the same.",
+            issues.InvalidInputError,
+            details=f'obj1={kwargs["obj1"]}, obj2={kwargs["obj2"]}'
+
+        )
+
     with timing("Coloring by mutation"):
         print(kwargs)
         run_worker_thread_with_progress(
