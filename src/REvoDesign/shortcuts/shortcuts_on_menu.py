@@ -10,7 +10,7 @@ from REvoDesign.shortcuts.wrappers.exports import (
 from REvoDesign.shortcuts.wrappers.ligand_converters import (
     wrapped_smiles_conformer_batch, wrapped_smiles_conformer_single,
     wrapper_sdf2rosetta_params)
-from REvoDesign.shortcuts.wrappers.represents import (wrapped_color_by_plddt,
+from REvoDesign.shortcuts.wrappers.represents import (wrapped_color_by_mutation, wrapped_color_by_plddt,
                                                       wrapped_real_sc)
 from REvoDesign.shortcuts.wrappers.rosetta_tasks import (wrapped_pross,
                                                          wrapped_rosettaligand)
@@ -62,7 +62,12 @@ def menu_real_sc():
     """
     wrapped_real_sc()
 
+def menu_color_by_mutation():
+    '''
+    Launches the dialog for coloring by mutation.
+    '''
 
+    wrapped_color_by_mutation()
 def menu_smiles_conformer_single():
     """
     Launches the dialog for generating 3D conformers for a SMILES string.

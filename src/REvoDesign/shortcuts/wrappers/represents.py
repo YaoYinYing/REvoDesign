@@ -2,9 +2,11 @@
 Shortcut wrappers of structure representation
 '''
 
+from pymol import cmd
+
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.shortcuts import (shortcut_color_by_plddt,
-                                            shortcut_real_sc)
+                                            shortcut_real_sc,shortcut_color_by_mutation)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
@@ -93,4 +95,56 @@ def wrapped_real_sc(**kwargs):
             shortcut_real_sc,
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
+        )
+
+
+
+@dialog_wrapper(
+    title="Color by mutation",
+    banner="""Creates an alignment of two proteins and superimposes them.
+Aligned residues that are different in the two (i.e. mutations) are highlighted and
+colored according to their difference in the BLOSUM90 matrix.
+Is meant to be used for similar proteins, e.g. close homologs or point mutants,
+to visualize their differences.""",
+    options=(
+        AskedValue(
+            "obj1",
+            typing=str,
+            reason="The PyMOL selection of the first object to color.",
+            choices=lambda: cmd.get_names("objects"),
+            required=True
+        ),
+        AskedValue(
+            "obj2",
+            typing=str,
+            reason="The PyMOL selection of the second object to color.",
+            choices=lambda: cmd.get_names("objects"),
+            required=True
+        ),
+        AskedValue(
+            "waters",
+            False,
+            typing=bool,
+            reason="Whether water should be included in the comparison. Default is False."
+        ),
+        AskedValue(
+            "labels",
+            False,
+            typing=bool,
+            reason="Whether to show mutation labels. Default is False."
+        ),
+    )
+)
+def wrapped_color_by_mutation(**kwargs):
+    """
+    Runs the color_by_mutation function with parameters collected from the dialog.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    with timing("Coloring by mutation"):
+        print(kwargs)
+        run_worker_thread_with_progress(
+            shortcut_color_by_mutation,
+            **kwargs,
         )

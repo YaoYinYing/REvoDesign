@@ -4627,6 +4627,7 @@
      </property>
      <addaction name="actionRenumber_Residue_Index"/>
      <addaction name="actionDump_Sequence"/>
+     <addaction name="actionColor_by_Mutations"/>
     </widget>
     <widget class="QMenu" name="menuRosetta_Tools">
      <property name="title">
@@ -5022,6 +5023,11 @@
   <action name="actionPROSS">
    <property name="text">
     <string>PROSS</string>
+   </property>
+  </action>
+  <action name="actionColor_by_Mutations">
+   <property name="text">
+    <string>Color by Mutations</string>
    </property>
   </action>
  </widget>

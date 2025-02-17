@@ -200,7 +200,7 @@ def wrapped_pross(**kwargs):
     """
     logging.info(kwargs)
 
-    with timing('running RosettaLigand docking'):
+    with timing('running PROSS design'):
 
         run_worker_thread_with_progress(
             shortcut_pross,
