@@ -5,7 +5,7 @@ PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJEC
 PYTEST_CASES_PATH=../tests
 PYTEST_NON_DIST_SERIAL_ARGS=-m "serial and not very_slow"
 PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "serial and very_slow"
-PYTEST_XDIST_ARGS=-n auto -m "not serial"
+PYTEST_XDIST_ARGS=-n 4 -m "not serial"
 PYTEST_KW=all
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
