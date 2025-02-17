@@ -3,7 +3,8 @@ PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
 PYTEST_CASES_PATH=../tests
-PYTEST_NON_DIST_SERIAL_ARGS=-m "serial"
+PYTEST_NON_DIST_SERIAL_ARGS=-m "serial and not very_slow"
+PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "serial and very_slow"
 PYTEST_XDIST_ARGS=-n auto -m "not serial"
 PYTEST_KW=all
 LINT_FILES=$(PROJECT)
@@ -135,7 +136,7 @@ all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_NON_DIST_SERIAL_ARGS) $(PYTEST_CASES_PATH);  python -m pytest $(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH)
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_NON_DIST_SERIAL_ARGS) $(PYTEST_CASES_PATH);  python -m pytest $(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH);python -m pytest $(PYTEST_ARGS) $(PYTEST_NON_DIST_SLOW_SERIAL_ARGS) $(PYTEST_CASES_PATH);
 	cp $(TESTDIR)/.coverage* .
 
 # all test with keyword

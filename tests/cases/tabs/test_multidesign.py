@@ -14,7 +14,7 @@ from ...data.test_data import KeyData
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
 @pytest.mark.serial
-@pytest.mark.order(-2)
+@pytest.mark.order(-1)
 class TestREvoDesignPlugin_TabVisualize_MultiDesign:
     def test_multiple_design(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
