@@ -5,8 +5,9 @@ Shortcut wrappers of structure representation
 from pymol import cmd
 
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.shortcuts import (shortcut_color_by_plddt,
-                                            shortcut_real_sc,shortcut_color_by_mutation)
+from REvoDesign.shortcuts.shortcuts import (shortcut_color_by_mutation,
+                                            shortcut_color_by_plddt,
+                                            shortcut_real_sc)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
@@ -96,7 +97,6 @@ def wrapped_real_sc(**kwargs):
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
-
 
 
 @dialog_wrapper(
