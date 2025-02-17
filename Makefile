@@ -3,6 +3,8 @@ PROJECT=REvoDesign
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
 PYTEST_CASES_PATH=../tests
+PYTEST_NON_DIST_SERIAL_ARGS=-m "serial"
+PYTEST_XDIST_ARGS=-n auto -m "not serial"
 PYTEST_KW=all
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
@@ -133,7 +135,7 @@ all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_NON_DIST_SERIAL_ARGS) $(PYTEST_CASES_PATH);  python -m pytest $(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH)
 	cp $(TESTDIR)/.coverage* .
 
 # all test with keyword
@@ -207,7 +209,6 @@ clean:
 	find . -name "*.orig" -exec rm -v {} \;
 	find . -name ".coverage.*" -exec rm -v {} \;
 	find . -name ".DS_Store" -exec rm -v {} \;
-	find . -name "*.pdb" -exec rm -v {} \;
 	find . -name "*.fasta" -exec rm -v {} \;
 	find . -name "*.cif" -exec rm -v {} \;
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py tests/testdata/pssm/1nww_A_ascii_mtx_file.csv

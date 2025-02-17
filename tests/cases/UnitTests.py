@@ -967,7 +967,7 @@ class TestMutantTools(absltest.TestCase):
     def tearDown(self):
         cmd.reinitialize()
 
-
+@pytest.mark.serial
 class TestSidechainSolver(absltest.TestCase):
     def setUp(self):
         self.mutant_string = "AI5R_AK26T_0.4567"
