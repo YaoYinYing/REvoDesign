@@ -10,9 +10,10 @@ from ...conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
+
 @pytest.mark.serial
 class TestREvoDesignPlugin_TabConfig:
-    
+
     @pytest.mark.skipif(
         not PIPPack_worker.installed, reason="PIPPack not installed"
     )

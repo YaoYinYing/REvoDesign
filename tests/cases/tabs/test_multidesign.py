@@ -13,6 +13,7 @@ from ...data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
+
 @pytest.mark.serial
 @pytest.mark.order(-1)
 class TestREvoDesignPlugin_TabVisualize_MultiDesign:
