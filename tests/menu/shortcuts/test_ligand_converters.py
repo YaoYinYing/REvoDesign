@@ -36,7 +36,7 @@ def test_shortcut_smiles_conformer_single(test_worker: TestWorker):
         'TER')]) > 1, f'{ligand_name}.fa_conformers.pdb should have multiple TER record in the directory {res_dir}/{ligand_name}'
     assert os.path.isfile(os.path.join(res_dir, f'{ligand_name}.fa.params'))
 
-
+@pytest.mark.serial
 def test_shortcut_smiles_conformer_batch(test_worker: TestWorker):
     smiles = '../tests/data/json/sm_input/12968814160.json'
     res_dir = os.path.abspath('./ligands_conformers_batch/')
