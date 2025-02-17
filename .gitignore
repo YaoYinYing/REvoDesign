@@ -77,3 +77,4 @@ error.log
 /tests/outputs
 tests/data/3fap_hf3_A_short.pdb
 tests/data/6zcy_lig.pdb
+/debug

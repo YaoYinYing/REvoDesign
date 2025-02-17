@@ -23,7 +23,7 @@ jobs:
         conda-channel:
           - -c conda-forge
         pymol-version:
-          - "pymol-open-source"
+          - "pymol-open-source<3.1"
         pymol-tag:
           - 'latest pymol open source'
         python-version: 
@@ -46,13 +46,13 @@ jobs:
         #     pymol-tag: 'latest pymol bundle'
         #     conda-channel: -c schrodinger -c conda-forge
           
-        #   # pymol-open-source, v2
-        #   - os: ubuntu-latest
-        #     python-version: "3.11"
-        #     pymol-version: "pymol-open-source<3"
-        #     conda-channel: -c conda-forge
-        #     pymol-tag:
-        #       - 'legacy (v2) pymol open source'
+          # pymol-open-source, v2
+          - os: ubuntu-latest
+            python-version: "3.11"
+            pymol-version: "pymol-open-source<3"
+            conda-channel: -c conda-forge
+            pymol-tag:
+              - 'legacy (v2) pymol open source'
 
         #   # bundled pymol, v2
         #   - os: ubuntu-latest
