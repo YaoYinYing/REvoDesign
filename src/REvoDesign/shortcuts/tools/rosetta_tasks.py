@@ -223,27 +223,21 @@ def shortcut_fast_relax(
 class RelaxWithCaConstraints:
     def __init__(self,
                  pdb: str,
-                 nstruct_per_round: int = 1,
+                 node: NodeClassType,
+                 nstructs_per_round: int = 1,
                  ncycles: int = 10,
                  save_dir: str = "tests/outputs",
                  job_id: str = "relax_w_ca_constraints",
-                 node_hint: NodeHintT = "native",
-                 node_config: Optional[Dict[str, Any]] = {},
                  relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
                  ):
         self.pdb = pdb
-        self.nstruct_per_round = nstruct_per_round
+        self.nstructs_per_round = nstructs_per_round
         self.ncycles = ncycles
         self.save_dir = save_dir
         self.job_id = job_id
-        self.node_hint = node_hint
-        self.node_config = node_config or read_rosetta_node_config()
+
         self.relax_opts = relax_opts or []
-        self.node = node_picker(
-            node_type=node_hint,
-            nproc=1,
-            **self.node_config
-        )
+        self.node =node
 
     def run_a_round(self, round_id: int, newpdb: str) -> str:
         rosetta = Rosetta(
@@ -268,7 +262,7 @@ class RelaxWithCaConstraints:
             verbose=True
         )
         with timing(f'relaxing with Ca Constrains (round #{round_id})'):
-            rosetta.run(nstruct=self.nstruct_per_round)
+            rosetta.run(nstruct=self.nstructs_per_round)
 
         analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
 
@@ -294,23 +288,28 @@ class RelaxWithCaConstraints:
 
 def shortcut_relax_w_ca_constraints(
         pdb: str,
-        nstruct_per_round: int = 1,
+        nstructs_per_round: int = 1,
         ncycles: int = 10,
         save_dir: str = "tests/outputs",
         job_id: str = "relax_w_ca_constraints",
-        node_hint: NodeHintT = "native",
-        node_config: Optional[Dict[str, Any]] = {},
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
 ):
+    bus=ConfigBus()
+
+    node_config = read_rosetta_node_config()
+
+    node=node_picker(
+            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
+            **node_config)
 
     app = RelaxWithCaConstraints(
         pdb=pdb,
-        nstruct_per_round=nstruct_per_round,
+        node=node,
+        nstructs_per_round=nstructs_per_round,
         ncycles=ncycles,
         save_dir=save_dir,
         job_id=job_id,
-        node_hint=node_hint,
-        node_config=node_config,
         relax_opts=relax_opts,
     )
 

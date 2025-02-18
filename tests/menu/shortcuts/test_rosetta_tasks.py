@@ -165,7 +165,7 @@ def test_shortcut_relax_w_ca_constraints(job_id, pdb, ligand, test_worker: TestW
         pdb=os.path.abspath(pdb),
         job_id=job_id,
         save_dir=save_dir,
-        nstruct_per_round=4,
+        nstructs_per_round=4,
         ncycles=3,
         relax_opts=relax_opts,
     )

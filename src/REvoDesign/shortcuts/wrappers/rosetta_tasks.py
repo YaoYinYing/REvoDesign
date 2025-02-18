@@ -326,7 +326,7 @@ def wrapped_fast_relax(**kwargs):
             ext=FExt.PDB_STRICT,
         ),
         AskedValue(
-            "nstruct_per_round",
+            "nstructs_per_round",
             1,
             typing=int,
             reason="Number of structures to generate per round. Default is 1.",
@@ -338,7 +338,8 @@ def wrapped_fast_relax(**kwargs):
             3,
             typing=int,
             reason="Number of cycles to run. Default is 3.",
-            choices=range(3, 100)
+            choices=range(3, 100),
+            required=True,
         ),
 
         AskedValue(
@@ -357,6 +358,14 @@ def wrapped_fast_relax(**kwargs):
             required=True,
         ),
         AskedValue(
+            "ligand_params",
+            "",
+            typing=str,
+            reason="Path to the ligands (*.params) to be docked.",
+            source='Files',  # Mark this as a multi-file input
+            ext=FExt.RosettaParams
+        ),
+        AskedValue(
             "opts",
             "",
             typing=str,
@@ -373,13 +382,6 @@ def wrapped_relax_w_ca_constraints(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     logging.info(kwargs)
-    bus = ConfigBus()
-
-    node_hint = bus.get_value('rosetta.node_hint')
-    node_config = read_rosetta_node_config()
-
-    kwargs['node_hint'] = node_hint
-    kwargs['node_config'] = node_config
 
     ligand_params: str = kwargs.pop('ligand_params')
     opts: str = kwargs.pop('opts')
