@@ -4,9 +4,9 @@ from typing import Dict
 
 import pytest
 
-from REvoDesign.shortcuts.tools.ligand_converters import (shortcut_sdf2rosetta_params,
-                                            shortcut_smiles_conformer_batch,
-                                            shortcut_smiles_conformer_single)
+from REvoDesign.shortcuts.tools.ligand_converters import (
+    shortcut_sdf2rosetta_params, shortcut_smiles_conformer_batch,
+    shortcut_smiles_conformer_single)
 from tests.conftest import TestWorker
 
 
@@ -62,6 +62,7 @@ def test_shortcut_smiles_conformer_batch(test_worker: TestWorker):
             os.path.join(
                 params_dir, f"{k}.fa.params")) > 0, f'{k}.fa.params should not be empty in the directory {res_dir}'
 
+
 @pytest.mark.serial
 def test_shortcut_sdf2rosetta_params(test_worker: TestWorker):
     sdf_path = os.path.abspath('../tests/data/sdf/HEM.sdf')
@@ -81,4 +82,3 @@ def test_shortcut_sdf2rosetta_params(test_worker: TestWorker):
                            ) > 0, f'HEM.fa.params is empty in the directory {res_dir}/HEM'
     assert os.path.getsize(os.path.join(res_dir, 'HEM.fa_conformers.pdb')
                            ) == 0, 'HEM.fa_conformers.pdb should be empty since there is only one conformer.'
-

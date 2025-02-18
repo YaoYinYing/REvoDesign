@@ -3,26 +3,22 @@ Shortcut functions on Rosetta-related tasks
 '''
 
 import os
-
 from typing import List, Optional, Tuple, Union
-
 
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.app.fastrelax import FastRelax
 from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
-
 from RosettaPy.node import node_picker
-
 
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.utils import read_rosetta_node_config,
-
+from REvoDesign.shortcuts.utils import read_rosetta_node_config
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
+
 
 def shortcut_rosettaligand(
         pdb: str,
@@ -222,4 +218,3 @@ def shortcut_fast_relax(
     best_relaxed_decoy = analyser.best_decoy
 
     logging.info(f"FastRelax finished. Best decoy: {best_relaxed_decoy}")
-

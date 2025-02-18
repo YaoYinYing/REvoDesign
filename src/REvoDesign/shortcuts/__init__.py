@@ -6,10 +6,10 @@ from pymol import cmd
 
 from .tools.designs import shortcut_pssm2csv
 from .tools.exports import shortcut_dump_sidechains
-from .tools.represents import shortcut_color_by_mutation, shortcut_color_by_plddt,shortcut_real_sc
-from .tools.structure import shortcut_find_interface
-                        
 from .tools.ligand_converters import visualize_conformer_sdf
+from .tools.represents import (shortcut_color_by_mutation,
+                               shortcut_color_by_plddt, shortcut_real_sc)
+from .tools.structure import shortcut_find_interface
 
 cmd.extend("pssm2csv", shortcut_pssm2csv)
 cmd.extend("real_sc", shortcut_real_sc)

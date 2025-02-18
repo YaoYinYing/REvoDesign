@@ -4,13 +4,10 @@ Shortcut functions of sequence designs
 
 
 import os
-
 import warnings
-
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.common.profile_parsers import PSSM_Parser
-
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -33,4 +30,3 @@ def shortcut_pssm2csv(pssm: str) -> None:
         warnings.warn(issues.NoResultsWarning(f"Expected {expected_csv=}"))
 
     logging.info(expected_csv)
-

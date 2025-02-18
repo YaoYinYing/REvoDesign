@@ -5,12 +5,11 @@ Shortcut functions of structure representation
 
 from Bio.Align import substitution_matrices
 from Bio.Data import IUPACData
-
 from immutabledict import immutabledict
 from pymol import cmd, util
 
-
 from REvoDesign import ROOT_LOGGER
+
 logging = ROOT_LOGGER.getChild(__name__)
 
 
@@ -366,4 +365,3 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     )
     cmd.delete(aln)
     cmd.deselect()
-

@@ -1,11 +1,9 @@
-
 import os
 
 import pytest
 
 from REvoDesign.shortcuts.tools.exports import shortcut_dump_fasta_from_struct
 from tests.conftest import TestWorker
-
 
 
 @pytest.mark.parametrize(

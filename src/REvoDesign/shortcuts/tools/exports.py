@@ -4,23 +4,17 @@ Shortcut functions of results exporting
 
 
 import os
-
-from typing import List, Mapping, Optional, Tuple, Union
+from typing import List, Mapping, Optional, Union
 
 import Bio
 from Bio import SeqIO
-
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-
 from pymol import cmd
 
 from REvoDesign import ROOT_LOGGER, issues
-
 from REvoDesign.driver.ui_driver import ConfigBus
-
 from REvoDesign.tools.pymol_utils import get_all_groups
-
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -158,4 +152,3 @@ def shortcut_dump_fasta_from_struct(
         raise issues.InternalError(f"Error occurs while dumping sequence: {e}.") from e
 
     logging.info(f"Sequence dumped to {output_path}")
-

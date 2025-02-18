@@ -6,13 +6,12 @@ Shortcut functions of ligand file converting
 import json
 import os
 import sys
-
 from typing import Literal
+
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 from RosettaPy.utils.task import RosettaCmdTask, execute
 
 from REvoDesign import ROOT_LOGGER, issues
-
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.utils import (smiles_conformer_batch,
                                         smiles_conformer_single,
@@ -21,6 +20,7 @@ from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
+
 
 def shortcut_smiles_conformer_single(
         ligand_name: str,
@@ -114,4 +114,3 @@ def shortcut_sdf2rosetta_params(
             task_label=ligand_name,
         )
     )
-

@@ -8,9 +8,7 @@ from pymol import cmd
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.data.protein_code import rAA
 
-
 logging = ROOT_LOGGER.getChild(__name__)
-
 
 
 def shortcut_find_interface(
@@ -64,4 +62,3 @@ def shortcut_find_interface(
                 continue
             ifc_residues.sort()
             print(ifc_residues)
-
