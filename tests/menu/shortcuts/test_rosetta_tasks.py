@@ -19,9 +19,8 @@ from tests.conftest import TestWorker
     ],
 )
 def test_rosetta_ligand(job_id, start_from, cst, test_worker: TestWorker, test_node_hint):
-    if test_node_hint == 'docker':
-        test_worker.plugin.bus.set_value('rosetta.node_hint', test_node_hint)
-        test_worker.plugin.bus.set_value('rosetta.node_config', {"mpi_available": True, 'prohibit_mpi': False})
+
+    test_worker.inject_rosetta_node_config(test_node_hint)
 
     save_dir = 'rosetta_tests/outputs'
 
@@ -50,9 +49,7 @@ def test_rosetta_ligand(job_id, start_from, cst, test_worker: TestWorker, test_n
 
 # time expensive test
 # def test_pross(test_worker: TestWorker, test_node_hint):
-#     if test_node_hint == 'docker':
-#         test_worker.plugin.bus.set_value('rosetta.node_hint', test_node_hint)
-#         test_worker.plugin.bus.set_value('rosetta.node_config', {"mpi_available": True, 'prohibit_mpi': False})
+#     test_worker.inject_rosetta_node_config(test_node_hint)
 
 #     save_dir = 'rosetta_tests/outputs'
 #     shortcut_pross(
