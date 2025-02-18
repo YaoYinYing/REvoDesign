@@ -2,6 +2,7 @@
 Shortcut functions on Rosetta-related tasks
 '''
 
+from dataclasses import dataclass, field
 import os
 from typing import List, Optional, Tuple, Union
 
@@ -10,7 +11,7 @@ from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
 from RosettaPy.app.fastrelax import FastRelax
 from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
-from RosettaPy.node import NodeClassType, NodeHintT, node_picker
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker, Native
 
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.driver.ui_driver import ConfigBus
@@ -219,25 +220,20 @@ def shortcut_fast_relax(
 
     logging.info(f"FastRelax finished. Best decoy: {best_relaxed_decoy}")
 
-
+@dataclass
 class RelaxWithCaConstraints:
-    def __init__(self,
-                 pdb: str,
-                 node: NodeClassType,
-                 nstructs_per_round: int = 1,
-                 ncycles: int = 10,
-                 save_dir: str = "tests/outputs",
-                 job_id: str = "relax_w_ca_constraints",
-                 relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
-                 ):
-        self.pdb = pdb
-        self.nstructs_per_round = nstructs_per_round
-        self.ncycles = ncycles
-        self.save_dir = save_dir
-        self.job_id = job_id
 
-        self.relax_opts = relax_opts or []
-        self.node = node
+    pdb: str
+    node: NodeClassType= field(default_factory=Native)
+    nstructs_per_round: int = 1
+    ncycles: int = 10
+    save_dir: str = "tests/outputs"
+    job_id: str = "relax_w_ca_constraints"
+    relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None
+
+    def __post_init__(self):
+        self.relax_opts = self.relax_opts or []
+
 
     def run_a_round(self, round_id: int, newpdb: str) -> str:
         rosetta = Rosetta(
@@ -255,7 +251,7 @@ class RelaxWithCaConstraints:
                 '-flip_HNQ',
                 '-no_optH', 'false',
                 '-in:file:s', os.path.abspath(newpdb)
-            ] + self.relax_opts,
+            ] + self.relax_opts, # type: ignore
             save_all_together=True, output_dir=os.path.join(self.save_dir, self.job_id),
             job_id=f'{self.job_id}_round_{round_id}',
             run_node=self.node,
