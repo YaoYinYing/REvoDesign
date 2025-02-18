@@ -2,12 +2,11 @@
 Utils for Rosetta
 '''
 import os
-from typing import List, Union
 import warnings
-
-from RosettaPy.utils.repository import partial_clone
+from typing import List, Union
 
 from platformdirs import user_cache_dir
+from RosettaPy.utils.repository import partial_clone
 
 from REvoDesign import issues
 
@@ -58,7 +57,7 @@ def list_fastrelax_scripts() -> List[str]:
         f.rstrip('.txt') for f in os.listdir(
             os.path.join(
                 rosetta3_db_path,
-                subdirectory)) if f.endswith('.txt') and not f.startswith('README') and not '.dualspace' in f]
+                subdirectory)) if f.endswith('.txt') and not f.startswith('README') and '.dualspace' not in f]
     return all_relax_scripts
 
 

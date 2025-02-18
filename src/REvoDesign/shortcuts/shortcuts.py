@@ -6,7 +6,6 @@ import json
 import os
 import sys
 import warnings
-from dataclasses import dataclass
 from typing import List, Literal, Mapping, Optional, Tuple, Union
 
 import Bio
@@ -818,7 +817,8 @@ def shortcut_fast_relax(
     node_config = read_rosetta_node_config()
 
     class FastRelaxOpts(FastRelax):
-        def run(self, nstruct: int = 8, default_repeats: int = 15, relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]]=None) -> RosettaEnergyUnitAnalyser:
+        def run(self, nstruct: int = 8, default_repeats: int = 15,
+                relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
             """
             Runs the fast relaxation process using the specified parameters.
 
@@ -860,7 +860,7 @@ def shortcut_fast_relax(
             with timing("FastRelax"):
                 rosetta.run(nstruct=nstruct)
 
-            analyser= RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
+            analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
             best_hit = analyser.best_decoy
             pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
 

@@ -490,7 +490,7 @@ class TestWorker:
 
         elif node_hint == "docker":
             node_config = {"mpi_available": False, 'prohibit_mpi': True, "image": "rosettacommons/rosetta:latest"}
-            
+
         elif node_hint == 'mpi':
             node_config = {"mpi_available": True, 'prohibit_mpi': False}
         else:
