@@ -2,17 +2,18 @@
 Shortcut functions on Rosetta-related tasks
 '''
 
-from dataclasses import dataclass, field
 import os
+from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Union
 
+from pymol import cmd
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.app.fastrelax import FastRelax
 from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
-from RosettaPy.node import NodeClassType, NodeHintT, node_picker, Native
-from pymol import cmd
+from RosettaPy.node import Native, NodeClassType, NodeHintT, node_picker
+
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.utils import read_rosetta_node_config
@@ -220,11 +221,12 @@ def shortcut_fast_relax(
 
     logging.info(f"FastRelax finished. Best decoy: {best_relaxed_decoy}")
 
+
 @dataclass
 class RelaxWithCaConstraints:
 
     pdb: str
-    node: NodeClassType= field(default_factory=Native)
+    node: NodeClassType = field(default_factory=Native)
     nstructs_per_round: int = 1
     ncycles: int = 10
     save_dir: str = "tests/outputs"
@@ -233,7 +235,6 @@ class RelaxWithCaConstraints:
 
     def __post_init__(self):
         self.relax_opts = self.relax_opts or []
-
 
     def run_a_round(self, round_id: int, newpdb: str) -> str:
         rosetta = Rosetta(
@@ -251,7 +252,7 @@ class RelaxWithCaConstraints:
                 '-flip_HNQ',
                 '-no_optH', 'false',
                 '-in:file:s', os.path.abspath(newpdb)
-            ] + self.relax_opts, # type: ignore
+            ] + self.relax_opts,  # type: ignore
             save_all_together=True, output_dir=os.path.join(self.save_dir, self.job_id),
             job_id=f'{self.job_id}_round_{round_id}',
             run_node=self.node,
@@ -274,8 +275,8 @@ class RelaxWithCaConstraints:
         print(f'Best Hit on this Relax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
         return pdb_path
 
-    def run(self, load_to_preview: bool=False):
-        
+    def run(self, load_to_preview: bool = False):
+
         new_pdb_path = self.pdb
         if load_to_preview:
             # state starts from 1
