@@ -63,7 +63,7 @@ def test_shortcut_smiles_conformer_batch(test_worker: TestWorker):
             os.path.join(
                 params_dir, f"{k}.fa.params")) > 0, f'{k}.fa.params should not be empty in the directory {res_dir}'
 
-
+@pytest.mark.serial
 def test_shortcut_sdf2rosetta_params(test_worker: TestWorker):
     sdf_path = os.path.abspath('../tests/data/sdf/HEM.sdf')
     save_dir = os.path.abspath('./ligands_sdf/')
