@@ -12,9 +12,9 @@ from REvoDesign.shortcuts.wrappers.ligand_converters import (
     wrapper_sdf2rosetta_params)
 from REvoDesign.shortcuts.wrappers.represents import (
     wrapped_color_by_mutation, wrapped_color_by_plddt, wrapped_real_sc)
-from REvoDesign.shortcuts.wrappers.rosetta_tasks import (wrapped_fast_relax,
-                                                         wrapped_pross,
-                                                         wrapped_rosettaligand)
+from REvoDesign.shortcuts.wrappers.rosetta_tasks import (
+    wrapped_fast_relax, wrapped_pross, wrapped_relax_w_ca_constraints,
+    wrapped_rosettaligand)
 from REvoDesign.shortcuts.wrappers.structure import wrapped_resi_renumber
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
@@ -133,3 +133,10 @@ def menu_fast_relax():
     Launches the dialog for fast relax dialog
     """
     wrapped_fast_relax()
+
+
+def menu_relax_w_ca_constraints():
+    """
+    Launches the dialog for relax with CA constraints dialog
+    """
+    wrapped_relax_w_ca_constraints()

@@ -4635,6 +4635,7 @@
      </property>
      <addaction name="actionRosettaLigand"/>
      <addaction name="actionFastRelax"/>
+     <addaction name="actionRelax_w_Ca_Constraints"/>
      <addaction name="separator"/>
      <addaction name="actionRosetta_Score_Analyser"/>
     </widget>
@@ -5034,6 +5035,11 @@
   <action name="actionFastRelax">
    <property name="text">
     <string>FastRelax</string>
+   </property>
+  </action>
+  <action name="actionRelax_w_Ca_Constraints">
+   <property name="text">
+    <string>Relax w/ Ca Constraints</string>
    </property>
   </action>
  </widget>
