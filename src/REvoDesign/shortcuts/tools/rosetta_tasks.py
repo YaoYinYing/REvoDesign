@@ -3,7 +3,7 @@ Shortcut functions on Rosetta-related tasks
 '''
 
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
@@ -237,7 +237,7 @@ class RelaxWithCaConstraints:
         self.job_id = job_id
 
         self.relax_opts = relax_opts or []
-        self.node =node
+        self.node = node
 
     def run_a_round(self, round_id: int, newpdb: str) -> str:
         rosetta = Rosetta(
@@ -294,14 +294,14 @@ def shortcut_relax_w_ca_constraints(
         job_id: str = "relax_w_ca_constraints",
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
 ):
-    bus=ConfigBus()
+    bus = ConfigBus()
 
     node_config = read_rosetta_node_config()
 
-    node=node_picker(
-            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
-            **node_config)
+    node = node_picker(
+        node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
+        **node_config)
 
     app = RelaxWithCaConstraints(
         pdb=pdb,
