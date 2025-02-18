@@ -952,7 +952,7 @@ View Highlight Nbr: {view_highlight_nbr}
     )
 
     # Add a scroll area to the window
-    scroll_area = QtWidgets.QScrollArea() 
+    scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidget(button_matrix)
     scroll_area.setWidgetResizable(True)
     scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -962,23 +962,23 @@ View Highlight Nbr: {view_highlight_nbr}
     button_matrix.setContentsMargins(0, 0, 0, 0)
 
     # Adjust button size policy for a compact layout
-    for button in button_matrix.findChildren(QtWidgets.QPushButton): 
-        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)  
+    for button in button_matrix.findChildren(QtWidgets.QPushButton):
+        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         button.setFixedSize(pix_per_block, pix_per_block)
 
     # Create a layout with a persistent column label row
-    main_layout = QtWidgets.QVBoxLayout()  
+    main_layout = QtWidgets.QVBoxLayout()
 
     # Add a label row for column headers
-    header_widget = QtWidgets.QWidget()  
-    header_layout = QtWidgets.QHBoxLayout()  
+    header_widget = QtWidgets.QWidget()
+    header_layout = QtWidgets.QHBoxLayout()
     header_widget.setLayout(header_layout)
 
-    banner_label = QtWidgets.QLabel(  
+    banner_label = QtWidgets.QLabel(
         f"Design with Profiles: {shorter_range(custom_indices)}"
     )
     banner_label.setWordWrap(True)
-    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft) # type: ignore
+    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # type: ignore
     banner_label.setStyleSheet(
         """
         font-size: 14px;
