@@ -7,10 +7,13 @@ from pymol import cmd
 from REvoDesign.common import file_extensions as FExt
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
+from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
+                                            list_fastrelax_scripts)
 from REvoDesign.tools.utils import timing
 
 from ...logger import ROOT_LOGGER
-from ..shortcuts import shortcut_pross, shortcut_rosettaligand
+from ..shortcuts import (shortcut_fast_relax, shortcut_pross,
+                         shortcut_rosettaligand)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -204,5 +207,99 @@ def wrapped_pross(**kwargs):
 
         run_worker_thread_with_progress(
             shortcut_pross,
+            **kwargs,
+        )
+
+
+@dialog_wrapper(
+    title="FastRelax",
+    banner="Perform Rosetta FastRelax",
+    options=(
+        AskedValue(
+            "pdb",
+            "",
+            typing=str,
+            reason="Path to the PDB file",
+            source='File',  # Mark this as a file input
+            required=True,
+            ext=FExt.PDB_STRICT,
+        ),
+        AskedValue(
+            "relax_script",
+            "MonomerRelax2019",
+            typing=str,
+            reason="Name of the fastrelax script.",
+            choices=list_fastrelax_scripts,
+            required=True,
+        ),
+        AskedValue(
+            "default_repeats",
+            3,
+            typing=int,
+            choices=range(3, 100),
+            reason="Default number of repeats.",
+        ),
+        AskedValue(
+            "nstruct",
+            4,
+            typing=int,
+            reason="Number of structures to be generated in relax.",
+            required=True,
+        ),
+        AskedValue(
+            "save_dir",
+            "relaxed/fastrelax",
+            typing=str,
+            reason="Path to the directory to save the results.",
+            source='Directory',  # Mark this as a folder input
+            required=True,
+        ),
+        AskedValue(
+            "job_id",
+            "relaxed",
+            typing=str,
+            reason="Job ID for the FastRelax design.",
+            required=True,
+        ),
+        AskedValue(
+            "ligand_params",
+            "",
+            typing=str,
+            reason="Path to the ligands (*.params) to be docked.",
+            source='Files',  # Mark this as a multi-file input
+            ext=FExt.RosettaParams
+        ),
+        AskedValue(
+            "opts",
+            "",
+            typing=str,
+            reason="Other options for the FastRelax.",
+
+        ),
+    )
+)
+def wrapped_fast_relax(**kwargs):
+    """
+    Runs the FastRelax.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    logging.info(kwargs)
+    ligand_params: str = kwargs.pop('ligand_params')
+    opts: str = kwargs.pop('opts')
+
+    kwargs['dualspace'] = kwargs["relax_script"].endswith('.dualspace')
+
+    relax_opts = opts.split(' ')
+    if ligand_params:
+        relax_opts.extend(extra_res_to_opts(ligand_params))
+
+    kwargs['relax_opts'] = relax_opts
+
+    with timing('running Rosetta FastRelax'):
+
+        run_worker_thread_with_progress(
+            shortcut_fast_relax,
             **kwargs,
         )
