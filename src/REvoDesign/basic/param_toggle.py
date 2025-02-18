@@ -3,15 +3,11 @@ Module to register parameter changes in the UI.
 '''
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Dict, Protocol, Tuple
+from typing import Any, Callable, Dict, Tuple
 
-from pymol.Qt import QtWidgets
+from REvoDesign.Qt import QtCore, QtWidgets
 
 from .. import issues
-
-
-class QtEventSignal(Protocol):
-    def connect(self): ...
 
 
 @dataclass(frozen=True)
@@ -37,7 +33,7 @@ class ParamChangeRegistryItem:
 
     param_mapping: Dict[Any, Tuple]
 
-    def widget_signal(self, ui) -> QtEventSignal:
+    def widget_signal(self, ui) -> QtCore.pyqtBoundSignal:
         """
         Retrieves the specified signal from the specified widget on the UI.
 
@@ -51,7 +47,7 @@ class ParamChangeRegistryItem:
             issues.InternalError: If the widget does not have the specified signal.
         """
         try:
-            widget: QtWidgets = getattr(ui, self.widget_name)  # type: ignore
+            widget: QtWidgets.QWidget = getattr(ui, self.widget_name)
             event = getattr(widget, self.widget_signal_name)  # type: ignore
             return event
         except AttributeError as e:
@@ -73,7 +69,7 @@ class ParamChangeRegistryItem:
                 self.source_cfg_item,
                 self.target_cfg_item,
                 self.param_mapping
-            )  # type: ignore
+            )
         )
 
 

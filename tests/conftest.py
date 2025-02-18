@@ -20,6 +20,7 @@ from immutabledict import immutabledict
 from pymol import CmdException, cmd
 from pymol.Qt import QtCore, QtWidgets  # type: ignore
 from pytestqt import qtbot
+from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
 from REvoDesign import ConfigBus, REvoDesignPlugin
@@ -481,6 +482,22 @@ class TestWorker:
         with open(mem_count_file, "w") as mc:
             mc.write("\n".join([self.print_mem(p) for p in procs]))
 
+    def inject_rosetta_node_config(self, node_hint: NodeHintT):
+        self.plugin.bus.set_value('rosetta.node_hint', node_hint or 'native')
+
+        if node_hint == "docker_mpi":
+            node_config = {"mpi_available": True, 'prohibit_mpi': False, "image": "rosettacommons/rosetta:mpi"}
+
+        elif node_hint == "docker":
+            node_config = {"mpi_available": False, 'prohibit_mpi': True, "image": "rosettacommons/rosetta:latest"}
+
+        elif node_hint == 'mpi':
+            node_config = {"mpi_available": True, 'prohibit_mpi': False}
+        else:
+            node_config = {"mpi_available": False, 'prohibit_mpi': True}
+
+        self.plugin.bus.set_value('rosetta.node_config', node_config)
+
     def teardown(self):
         self.performace_report()
         self.plugin.reinitialize()
@@ -799,7 +816,7 @@ WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not
 @pytest.fixture(
     params=[
         pytest.param(
-            "docker",
+            "docker_mpi",
             marks=pytest.mark.skipif(
                 not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
             ),

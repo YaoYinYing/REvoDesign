@@ -717,8 +717,9 @@ def pick_design_from_profile(
         view_highlight: str = 'orient',
         view_highlight_nbr: int = 6
 ):
-    from pymol.Qt import QtCore, QtWidgets  # type: ignore
     from RosettaPy.common.mutation import Mutation
+
+    from REvoDesign.Qt import QtCore, QtWidgets
 
     from ..bootstrap.set_config import ConfigConverter
     from ..common.mutant import Mutant
@@ -914,7 +915,7 @@ def pick_design_from_profile(
     )
 
     # Create a new dialog window for the button matrix
-    window = QtWidgets.QWidget()  # type: ignore # This creates a standalone window.
+    window = QtWidgets.QWidget()  # This creates a standalone window.
     window.setObjectName("ProfileDesignButtonMatrixWindow")
 
     window.setWindowTitle(f"Mutant Profile Matrix: {profile_type} ({profile})")
@@ -951,7 +952,7 @@ View Highlight Nbr: {view_highlight_nbr}
     )
 
     # Add a scroll area to the window
-    scroll_area = QtWidgets.QScrollArea()  # type: ignore
+    scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidget(button_matrix)
     scroll_area.setWidgetResizable(True)
     scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -961,23 +962,23 @@ View Highlight Nbr: {view_highlight_nbr}
     button_matrix.setContentsMargins(0, 0, 0, 0)
 
     # Adjust button size policy for a compact layout
-    for button in button_matrix.findChildren(QtWidgets.QPushButton):  # type: ignore
-        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)  # type: ignore
+    for button in button_matrix.findChildren(QtWidgets.QPushButton):
+        button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         button.setFixedSize(pix_per_block, pix_per_block)
 
     # Create a layout with a persistent column label row
-    main_layout = QtWidgets.QVBoxLayout()  # type: ignore
+    main_layout = QtWidgets.QVBoxLayout()
 
     # Add a label row for column headers
-    header_widget = QtWidgets.QWidget()  # type: ignore
-    header_layout = QtWidgets.QHBoxLayout()  # type: ignore
+    header_widget = QtWidgets.QWidget()
+    header_layout = QtWidgets.QHBoxLayout()
     header_widget.setLayout(header_layout)
 
-    banner_label = QtWidgets.QLabel(  # type: ignore
+    banner_label = QtWidgets.QLabel(
         f"Design with Profiles: {shorter_range(custom_indices)}"
     )
     banner_label.setWordWrap(True)
-    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  # type: ignore
     banner_label.setStyleSheet(
         """
         font-size: 14px;

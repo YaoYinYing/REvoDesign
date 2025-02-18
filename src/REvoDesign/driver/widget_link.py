@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from typing import Tuple
 
 from immutabledict import immutabledict
-from pymol.Qt import QtWidgets  # type: ignore
+
+from REvoDesign.Qt import QtWidgets
 
 
 @dataclass(frozen=True)
@@ -81,7 +82,7 @@ class Config2WidgetIds:
         get_widget_typing(widget_id: str): Returns the Qt widget class corresponding to the given widget ID.
     """
 
-    wi_types: immutabledict = immutabledict(
+    wi_types: immutabledict[str, QtWidgets.QWidget] = immutabledict(
         {
             "pushButton": QtWidgets.QPushButton,
             "lineEdit": QtWidgets.QLineEdit,

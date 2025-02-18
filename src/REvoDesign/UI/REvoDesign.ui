@@ -4634,6 +4634,7 @@
       <string>Rosetta Tools</string>
      </property>
      <addaction name="actionRosettaLigand"/>
+     <addaction name="actionFastRelax"/>
      <addaction name="separator"/>
      <addaction name="actionRosetta_Score_Analyser"/>
     </widget>
@@ -5028,6 +5029,11 @@
   <action name="actionColor_by_Mutations">
    <property name="text">
     <string>Color by Mutations</string>
+   </property>
+  </action>
+  <action name="actionFastRelax">
+   <property name="text">
+    <string>FastRelax</string>
    </property>
   </action>
  </widget>

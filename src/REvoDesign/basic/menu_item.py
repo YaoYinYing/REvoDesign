@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Mapping, Optional, Tuple
 
-from pymol.Qt import QtWidgets
+from REvoDesign.Qt import QtWidgets
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class MenuItem:
         args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
-    action: QtWidgets.QAction  # type: ignore
+    action: QtWidgets.QAction
     func: Callable
     args: Optional[Tuple] = None
     kwargs: Optional[Mapping] = None

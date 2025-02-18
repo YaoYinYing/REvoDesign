@@ -15,7 +15,6 @@ from typing import Any, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
-from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
 # from pymol.Qt.utils import loadUi
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
@@ -43,11 +42,12 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_color_by_mutation, menu_color_by_plddt, menu_dump_fasta_from_struct,
-    menu_dump_sidechains, menu_profile_pick_design, menu_pross, menu_pssm2csv,
-    menu_real_sc, menu_resi_renumber, menu_rosettaligand,
-    menu_sdf2rosetta_params, menu_smiles_conformer_batch,
+    menu_dump_sidechains, menu_fast_relax, menu_profile_pick_design,
+    menu_pross, menu_pssm2csv, menu_real_sc, menu_resi_renumber,
+    menu_rosettaligand, menu_sdf2rosetta_params, menu_smiles_conformer_batch,
     menu_smiles_conformer_single)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
@@ -332,6 +332,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionRosettaLigand,
                     menu_rosettaligand
+                ),
+                MenuItem(
+                    self.bus.ui.actionFastRelax,
+                    menu_fast_relax
                 ),
                 MenuItem(
                     self.bus.ui.actionPROSS,

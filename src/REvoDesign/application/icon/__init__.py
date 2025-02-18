@@ -4,7 +4,7 @@ This module contains the icon setter class.
 import os
 import platform
 
-from pymol.Qt import QtGui  # type: ignore
+from REvoDesign.Qt import QtGui
 
 
 class IconSetter:

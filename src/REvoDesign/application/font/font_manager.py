@@ -6,7 +6,8 @@ import platform
 from dataclasses import dataclass
 
 from immutabledict import immutabledict
-from pymol.Qt import QtGui  # type: ignore
+
+from REvoDesign.Qt import QtGui
 
 
 @dataclass(frozen=True)

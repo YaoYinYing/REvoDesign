@@ -1,7 +1,7 @@
 import threading
 from typing import Optional, Protocol, Type
 
-from pymol.Qt import QtCore, QtWidgets  # type: ignore
+from REvoDesign.Qt import QtCore, QtWidgets
 
 
 class ServerProtocol(Protocol):
@@ -24,7 +24,7 @@ class ServerProtocol(Protocol):
         ...
 
 
-class MenuActionServerMonitor(QtCore.QObject):  # type: ignore
+class MenuActionServerMonitor(QtCore.QObject):
     def __init__(self, controller: Type[ServerProtocol], action_on, action_off):
         super().__init__()  # Initialize QObject
         self.controller = controller()

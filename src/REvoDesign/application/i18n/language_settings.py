@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, Tuple
 
-from pymol.Qt import QtWidgets
+from REvoDesign.Qt import QtWidgets
 
 from ...driver.ui_driver import ConfigBus
 

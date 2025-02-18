@@ -19,8 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - tests: 
-  - `color_by_mutation`
-  - `pick_design_from_profile`
+  - cases:
+    - `color_by_mutation`
+    - `pick_design_from_profile`
+  - worker:
+    - method `inject_rosetta_node_config`: to inject rosetta node config into configurations of config bus. will fallback to native if None is provided.
+- Menu: 
+  - `shortcut_fast_relax`
+- Qt:
+  - a Qt wrapper to wrap Qt modules form `pymol.Qt` and use typing hints from `PyQt5`
+- Utils:
+  - `tools.dl_weights`:
+    - `ModelFetchSetting` a basic dataclass to store the settings of downloading weights and do setting up works
+  - `tools.rosetta_utils`:
+    - `setup_minimal_rosetta_db`: a wrapper function to setup minimal rosetta db if not found
+    - `list_fastrelax_scripts`: list all fastrelax scripts in rosetta db
 
 ### Changed
 - tests:
@@ -28,12 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - use `pytest-xdist` to run short tests in parallel
   - mark gremlin tests with `very_slow` label and run at the most end of the test run.
 - `Makefile`: refactor `make all-test` to run re-organized tests. If any of the tests failed, the whole test run will complete but fail to CI. This helps to avoid CI fake passing due to test failures hidden by semicolons in testing command.
+- Qt imports:
+  - `from pymol.Qt import ...` --> `from REvoDesign.Qt import ...` to avoid developing time typing check errors
 
 ### Fixed
 - `Makefile`: remove pdb file cleanups statement in `make clean`
 - typo in `shortcuts/wrappers/rosetta_tasks.py`
 
 ### Removed
+- `param_toggle`: 
+  - removed `QtEventSignal` Protocol bcs it's no longer used
 
 ## [1.7.16] - 2025-02-17
 ### Added
