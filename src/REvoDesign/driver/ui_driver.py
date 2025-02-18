@@ -196,7 +196,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 raise issues.UnknownWidgetError(f'Expect link of {widget_id} with {widget.__name__} is broken.') from e
 
     @require_non_headless
-    def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:  # type: ignore
+    def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
         # Retrieves a UI widget based on its ID.
         if widget_id not in self.w2c.widget_id2widget_map:
             raise KeyError(f"{widget_id} is not in the widget map")
@@ -204,7 +204,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         return self.w2c.widget_id2widget_map.get(widget_id)
 
     @require_non_headless
-    def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:  # type: ignore
+    def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:
         # Retrieves a UI widget based on its corresponding configuration item.
         return self.w2c.config2widget_map.get(cfg_item)
 
@@ -241,7 +241,10 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
     def get_cfg_item(self, widget_id: str) -> str:
         # Retrieves the configuration item corresponding to a UI widget ID.
-        return self.w2c.widget_id2config_dict.get(widget_id)  # type: ignore
+        cfg_item=self.w2c.widget_id2config_dict.get(widget_id)
+        if cfg_item is None:
+            raise ValueError(f"{widget_id} is not a valid widget ID.")
+        return cfg_item
 
     @overload
     def get_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT],
@@ -369,7 +372,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=True)
 
     @require_non_headless
-    def button(self, button_id: str) -> QtWidgets.QPushButton:  # type: ignore
+    def button(self, button_id: str) -> QtWidgets.QPushButton:
         """Retrieves a button widget based on its ID.
 
         Args:
@@ -382,7 +385,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         return self.w2c.push_buttons.get(button_id)
 
     @require_non_headless
-    def buttons(self, button_ids: tuple[str, ...]) -> tuple[QtWidgets.QPushButton, ...]:  # type: ignore
+    def buttons(self, button_ids: tuple[str, ...]) -> tuple[QtWidgets.QPushButton, ...]: 
         """Retrieves all button widgets based on its ID.
 
         Args:
@@ -434,23 +437,23 @@ class Widget2ConfigMapper:
         self.ui = ui
 
         self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
-        self.push_buttons: immutabledict = immutabledict(
+        self.push_buttons: immutabledict[str, QtWidgets.QPushButton]  = immutabledict(
             {
                 button_id: self.get_button_from_id(button_id=button_id)
                 for button_id in self.run_button_ids
             }
         )
         self.c2wi = Config2WidgetIds()
-        self.config_widget_id_map: immutabledict = immutabledict(
+        self.config_widget_id_map: immutabledict[str, str]  = immutabledict(
             self.c2wi.c2wi
         )
-        self.config2widget_map: immutabledict = immutabledict(
+        self.config2widget_map: immutabledict[str, QtWidgets.QWidget] = immutabledict(
             {
                 c: self.get_widget_from_id(wi)
                 for c, wi in self.config_widget_id_map.items()
             }
         )
-        self.widget_id2widget_map: immutabledict = immutabledict(
+        self.widget_id2widget_map: immutabledict[str, QtWidgets.QWidget] = immutabledict(
             {
                 self._find_widget_id(c): w
                 for c, w in self.config2widget_map.items()
@@ -522,7 +525,7 @@ class Widget2ConfigMapper:
         return tuple(self.config_widget_id_map.keys())
 
     @property
-    def widget_id2config_dict(self) -> immutabledict:
+    def widget_id2config_dict(self) -> immutabledict[str, str] :
         return immutabledict(
             {v: k for k, v in self.config_widget_id_map.items()}
         )
@@ -531,13 +534,14 @@ class Widget2ConfigMapper:
         config_item = self.widget_id2config_dict.get(widget_id)
         return config_item
 
-    def _find_widget_id(self, config_item: str):
+    def _find_widget_id(self, config_item: str) ->str:
         widget_id = self.config_widget_id_map.get(config_item)
+        if widget_id is None:
+            raise issues.InternalError(f"{config_item} is not a valid config item.")
         return widget_id
 
-    def get_widget_from_id(self, widget_id) -> QtWidgets.QWidget:  # type: ignore
+    def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
         widget = self.find_child(
             self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
         )
-        assert isinstance(widget, QtWidgets.QWidget)
         return widget

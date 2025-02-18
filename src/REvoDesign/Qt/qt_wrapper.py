@@ -19,7 +19,7 @@ else:
 
     # ** Try importing pymol.Qt first (Preferred)**
     try:
-        from pymol.Qt import QtCore as _QtCore  # type: ignore
+        from pymol.Qt import QtCore as _QtCore
         from pymol.Qt import QtGui as _QtGui
         from pymol.Qt import QtWidgets as _QtWidgets
         QtSource = "pymol.Qt"

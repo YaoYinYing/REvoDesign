@@ -184,7 +184,7 @@ def run_command(
 # Additional widget for extra selection
 
 
-class CheckableListView(QtWidgets.QWidget):
+class CheckableListView(QtWidgets.QWidget): # type: ignore
     """
     Checkable list view widget, allowing users to check items in the list.
 
@@ -836,7 +836,7 @@ class REvoDesignPackageManager:
                 return notify_box('Diagnostic information collection cancelled.')
 
         # Clear the clipboard to ensure no old data is mixed in
-        cb = QtWidgets.QApplication.clipboard()
+        cb = QtWidgets.QApplication.clipboard() # type: ignore
         cb.clear(mode=cb.Clipboard)
 
         # Collect diagnostic data using a worker thread
@@ -867,12 +867,12 @@ class REvoDesignPackageManager:
         Each item in the list is converted into a QAction, which is then added to the menu.
         """
         # Create the right-click menu
-        self.menu = QtWidgets.QMenu(self.installer_ui)
+        self.menu = QtWidgets.QMenu(self.installer_ui) # type: ignore
 
         for item in items:
             if item.func is not None:  # active item
                 # Add the item as active
-                upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
+                upgrade_action = QtWidgets.QAction(item.name, self.installer_ui) # type: ignore
                 upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
                 upgrade_action.setEnabled(True)
                 self.menu.addAction(upgrade_action)
@@ -905,7 +905,7 @@ class REvoDesignPackageManager:
             QtWidgets.QDialog: The configured dialog window.
         """
         # Create a new dialog window
-        dialog = QtWidgets.QDialog()
+        dialog = QtWidgets.QDialog() # type: ignore
 
         ui_file = run_worker_thread_with_progress(
             worker_function=self.ensure_ui_file
@@ -1057,11 +1057,11 @@ class REvoDesignPackageManager:
         Returns:
         - str: The path of the selected directory.
         """
-        return QtWidgets.QFileDialog.getExistingDirectory(
+        return QtWidgets.QFileDialog.getExistingDirectory( # type: ignore
             None,
             "Open Directory",
             os.path.expanduser("~"),
-            QtWidgets.QFileDialog.DontResolveSymlinks,
+            QtWidgets.QFileDialog.DontResolveSymlinks, # type: ignore
         )
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
@@ -1071,7 +1071,7 @@ class REvoDesignPackageManager:
         Return a file name, append extension from filter if no extension provided.
         """
 
-        fname, ext_filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
+        fname, ext_filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs) # type: ignore
 
         if not fname:
             return ""
@@ -1624,7 +1624,7 @@ def set_widget_value(widget, value):
         value = list(value)  # Convert iterable (excluding strings, lists, tuples, dicts) to list
 
     # Setting values
-    if isinstance(widget, QtWidgets.QComboBox):
+    if isinstance(widget, QtWidgets.QComboBox): # type: ignore
         if isinstance(value, (list, tuple)):
             widget.clear()
             widget.addItems(map(str, value))
@@ -1637,10 +1637,10 @@ def set_widget_value(widget, value):
 
         widget.setCurrentText(str(value))
         return
-    if isinstance(widget, QtWidgets.QLineEdit):
+    if isinstance(widget, QtWidgets.QLineEdit): # type: ignore
         widget.setText(str(value))
         return
-    if isinstance(widget, QtWidgets.QProgressBar):
+    if isinstance(widget, QtWidgets.QProgressBar): # type: ignore
         if isinstance(value, int):
             widget.setValue(value)
             return
@@ -1650,7 +1650,7 @@ def set_widget_value(widget, value):
         raise ValueError(
             f"Invalid value {value} for QProgressBar. Value must be an integer or a list/tuple of two integers."
         )
-    if isinstance(widget, QtWidgets.QCheckBox):
+    if isinstance(widget, QtWidgets.QCheckBox): # type: ignore
         widget.setChecked(bool(value))
         return
 
@@ -1669,7 +1669,7 @@ def refresh_window():
     Returns:
         None
     """
-    QtWidgets.QApplication.processEvents()
+    QtWidgets.QApplication.processEvents() # type: ignore
 
 # Overload #1: None or Warning => returns bool
 
@@ -1711,20 +1711,20 @@ def notify_box(
     """
     refresh_window()
     # Create an information message box
-    msg = QtWidgets.QMessageBox()
+    msg = QtWidgets.QMessageBox() # type: ignore
 
     if error_type is None:
-        msg.setIcon(QtWidgets.QMessageBox.Information)
+        msg.setIcon(QtWidgets.QMessageBox.Information) # type: ignore
     elif issubclass(error_type, Warning):
-        msg.setIcon(QtWidgets.QMessageBox.Warning)
+        msg.setIcon(QtWidgets.QMessageBox.Warning) # type: ignore
     elif issubclass(error_type, Exception):
-        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg.setIcon(QtWidgets.QMessageBox.Critical) # type: ignore
 
     msg.setText(message)
     if details is not None:
         msg.setDetailedText(details)
 
-    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+    msg.setStandardButtons(QtWidgets.QMessageBox.Ok) # type: ignore
     # Display the message box
     msg.exec_()
     # If error_type is None, end the function execution
@@ -1769,18 +1769,18 @@ def decide(title="", description="", rich: bool = False, details: Optional[str] 
     """
     refresh_window()
     # A confirmation message.
-    msg = QtWidgets.QMessageBox()
-    msg.setIcon(QtWidgets.QMessageBox.Question)
+    msg = QtWidgets.QMessageBox() # type: ignore
+    msg.setIcon(QtWidgets.QMessageBox.Question) # type: ignore
     msg.setWindowTitle(title)
     msg.setText(description)
     if details is not None:
         msg.setDetailedText(details)
     if rich:
         msg.setTextFormat(QtCore.Qt.RichText)
-    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No) # type: ignore
     result = msg.exec_()
 
-    return result == QtWidgets.QMessageBox.Yes
+    return result == QtWidgets.QMessageBox.Yes # type: ignore
 
 
 def is_package_installed(package):
