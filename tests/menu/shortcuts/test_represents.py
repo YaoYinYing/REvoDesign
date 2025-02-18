@@ -3,7 +3,7 @@ import os
 import pytest
 from pymol import cmd
 
-from REvoDesign.shortcuts.shortcuts import shortcut_color_by_mutation
+from REvoDesign.shortcuts.tools.represents import shortcut_color_by_mutation
 from tests.conftest import TestWorker
 
 

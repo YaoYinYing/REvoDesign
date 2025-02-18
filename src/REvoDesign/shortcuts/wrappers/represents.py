@@ -6,9 +6,9 @@ from pymol import cmd
 
 from REvoDesign import issues
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.shortcuts import (shortcut_color_by_mutation,
-                                            shortcut_color_by_plddt,
-                                            shortcut_real_sc)
+from REvoDesign.shortcuts.tools.represents import (shortcut_color_by_mutation,
+                                                   shortcut_color_by_plddt,
+                                                   shortcut_real_sc)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import (notify_box,
                                               run_worker_thread_with_progress)

@@ -46,9 +46,9 @@ from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_color_by_mutation, menu_color_by_plddt, menu_dump_fasta_from_struct,
     menu_dump_sidechains, menu_fast_relax, menu_profile_pick_design,
-    menu_pross, menu_pssm2csv, menu_real_sc, menu_resi_renumber,
-    menu_rosettaligand, menu_sdf2rosetta_params, menu_smiles_conformer_batch,
-    menu_smiles_conformer_single)
+    menu_pross, menu_pssm2csv, menu_real_sc, menu_relax_w_ca_constraints,
+    menu_resi_renumber, menu_rosettaligand, menu_sdf2rosetta_params,
+    menu_smiles_conformer_batch, menu_smiles_conformer_single)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,
@@ -336,6 +336,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionFastRelax,
                     menu_fast_relax
+                ),
+                MenuItem(
+                    self.bus.ui.actionRelax_w_Ca_Constraints,
+                    menu_relax_w_ca_constraints
                 ),
                 MenuItem(
                     self.bus.ui.actionPROSS,

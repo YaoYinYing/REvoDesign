@@ -3,9 +3,9 @@ import os
 import pytest
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 
-from REvoDesign.shortcuts.shortcuts import (shortcut_fast_relax,
-                                            shortcut_pross,
-                                            shortcut_rosettaligand)
+from REvoDesign.shortcuts.tools.rosetta_tasks import (
+    shortcut_fast_relax, shortcut_pross, shortcut_relax_w_ca_constraints,
+    shortcut_rosettaligand)
 from tests.conftest import TestWorker
 
 
@@ -139,3 +139,45 @@ def test_fast_relax(job_id, pdb, dualspace, ligand, test_worker: TestWorker, tes
 
     analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
     assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
+
+
+@pytest.mark.serial
+# a variant test from RosettaPy's short app tests
+@pytest.mark.parametrize(
+    "job_id,pdb,ligand",
+    [
+        ['mono', '../tests/data/3fap_hf3_A_short.pdb', ''],
+        ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', ''],
+        ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', '../tests/data/lig/lig.fa.params'],
+    ],
+)
+def test_shortcut_relax_w_ca_constraints(job_id, pdb, ligand, test_worker: TestWorker, test_node_hint):
+
+    test_worker.inject_rosetta_node_config(test_node_hint)
+
+    save_dir = 'rosetta_tests/outputs/relax_w_ca_constraints'
+
+    relax_opts = []
+    if ligand:
+        relax_opts.extend(['--extra_res_fa', os.path.abspath(ligand)])
+
+    shortcut_relax_w_ca_constraints(
+        pdb=os.path.abspath(pdb),
+        job_id=job_id,
+        save_dir=save_dir,
+        nstructs_per_round=4,
+        ncycles=3,
+        relax_opts=relax_opts,
+    )
+    pdb_bn = os.path.basename(pdb)[:-4]
+    for i in range(3):
+        run_dir = os.path.join(save_dir, f'{job_id}/{job_id}_round_{i}')
+        assert os.path.isdir(os.path.join(run_dir, 'all')), f"{run_dir}/all does not exist"
+        all_pdbs = [x for x in os.listdir(os.path.join(run_dir, 'all')) if x.endswith('.pdb')]
+        assert all_pdbs, f'{run_dir}/all should contain pdb files'
+        assert len(all_pdbs) == 4, f'{run_dir}/all should contain exact 4 pdb files'
+        for j in range(4):
+            assert f'{pdb_bn}_R{i}_0000{j+1}.pdb' in all_pdbs, f'{run_dir}/all should contain {pdb_bn}_R{i}_0000{j}.pdb'
+        analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
+        # bn move to the next round
+        pdb_bn = analyser.best_decoy['decoy']

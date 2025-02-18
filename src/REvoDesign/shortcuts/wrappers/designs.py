@@ -4,7 +4,7 @@ Shortcut wrappers of sequence designs
 
 from REvoDesign.driver.group_register import CallableGroupValues
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.shortcuts import shortcut_pssm2csv
+from REvoDesign.shortcuts.tools.designs import shortcut_pssm2csv
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.mutant_tools import pick_design_from_profile
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress

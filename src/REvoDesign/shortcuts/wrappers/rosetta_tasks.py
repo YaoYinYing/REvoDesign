@@ -4,7 +4,9 @@ Shortcut wrappers of Rosetta-related tasks
 
 from pymol import cmd
 
+from REvoDesign import ConfigBus
 from REvoDesign.common import file_extensions as FExt
+from REvoDesign.shortcuts.utils import read_rosetta_node_config
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
@@ -12,8 +14,9 @@ from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
 from REvoDesign.tools.utils import timing
 
 from ...logger import ROOT_LOGGER
-from ..shortcuts import (shortcut_fast_relax, shortcut_pross,
-                         shortcut_rosettaligand)
+from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross,
+                                   shortcut_relax_w_ca_constraints,
+                                   shortcut_rosettaligand)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -305,5 +308,100 @@ def wrapped_fast_relax(**kwargs):
 
         run_worker_thread_with_progress(
             shortcut_fast_relax,
+            **kwargs,
+        )
+
+
+@dialog_wrapper(
+    title="RelaxWithCaConstraints",
+    banner="Perform Rosetta Relax With Ca Constraints",
+    options=(
+        AskedValue(
+            "pdb",
+            "",
+            typing=str,
+            reason="Path to the PDB file",
+            source='File',  # Mark this as a file input
+            required=True,
+            ext=FExt.PDB_STRICT,
+        ),
+        AskedValue(
+            "nstructs_per_round",
+            1,
+            typing=int,
+            reason="Number of structures to generate per round. Default is 1.",
+            choices=range(1, 100),
+            required=True,
+        ),
+        AskedValue(
+            "ncycles",
+            3,
+            typing=int,
+            reason="Number of cycles to run. Default is 3.",
+            choices=range(3, 100),
+            required=True,
+        ),
+
+        AskedValue(
+            "save_dir",
+            "relaxed",
+            typing=str,
+            reason="Path to the directory to save the results.",
+            source='Directory',  # Mark this as a folder input
+            required=True,
+        ),
+        AskedValue(
+            "job_id",
+            "relax_w_ca_constraints",
+            typing=str,
+            reason="Job ID for the FastRelax design.",
+            required=True,
+        ),
+        AskedValue(
+            "ligand_params",
+            "",
+            typing=str,
+            reason="Path to the ligands (*.params) to be docked.",
+            source='Files',  # Mark this as a multi-file input
+            ext=FExt.RosettaParams
+        ),
+        AskedValue(
+            "opts",
+            "",
+            typing=str,
+            reason="Other options for the FastRelax.",
+
+        ),
+        AskedValue(
+            "load_to_preview",
+            False,
+            typing=bool,
+            reason="Whether to load the results to preview. Default is False.",
+
+        ),
+    )
+)
+def wrapped_relax_w_ca_constraints(**kwargs):
+    """
+    Runs the FastRelax.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    logging.info(kwargs)
+
+    ligand_params: str = kwargs.pop('ligand_params')
+    opts: str = kwargs.pop('opts')
+
+    relax_opts = [x.strip() for x in opts.split(' ')]
+    if ligand_params:
+        relax_opts.extend(extra_res_to_opts(ligand_params))
+
+    kwargs['relax_opts'] = [op for op in relax_opts if op]
+
+    with timing('running Rosetta FastRelax'):
+
+        run_worker_thread_with_progress(
+            shortcut_relax_w_ca_constraints,
             **kwargs,
         )
