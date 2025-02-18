@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple
 
 import matplotlib
 from Bio.Align import substitution_matrices
-from pymol.Qt import QtGui  # type: ignore
+from REvoDesign.Qt import QtGui
 from RosettaPy.node import NodeHintT
 
 from ..basic import GroupRegistryItem as GR

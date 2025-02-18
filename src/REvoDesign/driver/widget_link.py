@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 from immutabledict import immutabledict
-from pymol.Qt import QtWidgets  # type: ignore
+from REvoDesign.Qt import QtWidgets
 
 
 @dataclass(frozen=True)

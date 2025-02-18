@@ -15,7 +15,7 @@ from typing import Any, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
-from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 # from pymol.Qt.utils import loadUi
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence

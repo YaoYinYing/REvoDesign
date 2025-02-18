@@ -14,7 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
@@ -1005,7 +1005,7 @@ def create_cmap_icon(cmap: str):
 
     Example Usage:
     ```python
-    from pymol.Qt import QtWidgets
+    from REvoDesign.Qt import QtWidgets
     import matplotlib.pyplot as plt
 
     # Assuming 'my_colormap' is a valid colormap name

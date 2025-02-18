@@ -9,7 +9,7 @@ from typing import Any, Callable, Optional, Protocol, Type, TypeVar, overload
 import omegaconf.errors
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
-from pymol.Qt import QtWidgets
+from REvoDesign.Qt import QtWidgets
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModuleAbstract

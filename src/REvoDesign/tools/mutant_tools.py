@@ -717,7 +717,7 @@ def pick_design_from_profile(
         view_highlight: str = 'orient',
         view_highlight_nbr: int = 6
 ):
-    from pymol.Qt import QtCore, QtWidgets  # type: ignore
+    from REvoDesign.Qt import QtCore, QtWidgets
     from RosettaPy.common.mutation import Mutation
 
     from ..bootstrap.set_config import ConfigConverter
