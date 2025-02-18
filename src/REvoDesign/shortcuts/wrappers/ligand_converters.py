@@ -3,7 +3,7 @@ Shortcut wrappers of ligand file converting
 '''
 
 from REvoDesign.common import file_extensions as FExt
-from REvoDesign.shortcuts.shortcuts import (shortcut_sdf2rosetta_params,
+from REvoDesign.shortcuts.tools.ligand_converters import (shortcut_sdf2rosetta_params,
                                             shortcut_smiles_conformer_batch,
                                             shortcut_smiles_conformer_single)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper

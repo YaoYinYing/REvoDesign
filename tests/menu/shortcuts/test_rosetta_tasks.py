@@ -3,7 +3,7 @@ import os
 import pytest
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 
-from REvoDesign.shortcuts.shortcuts import (shortcut_fast_relax,
+from REvoDesign.shortcuts.tools.rosetta_tasks import (shortcut_fast_relax,
                                             shortcut_pross,
                                             shortcut_rosettaligand)
 from tests.conftest import TestWorker

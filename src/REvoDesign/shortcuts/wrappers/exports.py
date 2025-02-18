@@ -5,7 +5,7 @@ Shortcut wrappers of results exporting
 from Bio import SeqIO
 
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.shortcuts import (shortcut_dump_fasta_from_struct,
+from REvoDesign.shortcuts.tools.exports import (shortcut_dump_fasta_from_struct,
                                             shortcut_dump_sidechains)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress

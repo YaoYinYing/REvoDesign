@@ -12,7 +12,7 @@ from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
 from REvoDesign.tools.utils import timing
 
 from ...logger import ROOT_LOGGER
-from ..shortcuts import (shortcut_fast_relax, shortcut_pross,
+from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross,
                          shortcut_rosettaligand)
 
 logging = ROOT_LOGGER.getChild(__name__)
