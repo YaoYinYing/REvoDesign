@@ -372,6 +372,13 @@ def wrapped_fast_relax(**kwargs):
             reason="Other options for the FastRelax.",
 
         ),
+        AskedValue(
+            "load_to_preview",
+            False,
+            typing=bool,
+            reason="Whether to load the results to preview. Default is False.",
+
+        ),
     )
 )
 def wrapped_relax_w_ca_constraints(**kwargs):

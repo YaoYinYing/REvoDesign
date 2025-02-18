@@ -12,7 +12,7 @@ from RosettaPy.app.fastrelax import FastRelax
 from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
 from RosettaPy.node import NodeClassType, NodeHintT, node_picker, Native
-
+from pymol import cmd
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.utils import read_rosetta_node_config
@@ -274,11 +274,15 @@ class RelaxWithCaConstraints:
         print(f'Best Hit on this Relax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
         return pdb_path
 
-    def run(self):
-        new_pdb_path = None
+    def run(self, load_to_preview: bool=False):
+        
+        new_pdb_path = self.pdb
+        if load_to_preview:
+            # state starts from 1
+            cmd.load(new_pdb_path, self.job_id, 1)
         for round_id in range(self.ncycles):
-            new_pdb_path = self.run_a_round(round_id, new_pdb_path or self.pdb)
-
+            new_pdb_path = self.run_a_round(round_id, new_pdb_path)
+            cmd.load(new_pdb_path, self.job_id, round_id + 2)
         return new_pdb_path
 
 
@@ -289,6 +293,7 @@ def shortcut_relax_w_ca_constraints(
         save_dir: str = "tests/outputs",
         job_id: str = "relax_w_ca_constraints",
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
+        load_to_preview=False,
 ):
     bus = ConfigBus()
 
@@ -309,6 +314,6 @@ def shortcut_relax_w_ca_constraints(
         relax_opts=relax_opts,
     )
 
-    final_pdb = app.run()
+    final_pdb = app.run(load_to_preview)
 
     logging.info(f"RelaxWithCaConstraints finished. Final pdb: {final_pdb}")
