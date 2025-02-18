@@ -22,10 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - cases:
     - `color_by_mutation`
     - `pick_design_from_profile`
+    - `shortcut_fast_relax`
+    - `shortcut_relax_w_ca_constraints`
   - worker:
     - method `inject_rosetta_node_config`: to inject rosetta node config into configurations of config bus. will fallback to native if None is provided.
 - Menu: 
   - `shortcut_fast_relax`
+  - `shortcut_relax_w_ca_constraints`
 - Qt:
   - a Qt wrapper to wrap Qt modules form `pymol.Qt` and use typing hints from `PyQt5`
 - Utils:
@@ -43,7 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Makefile`: refactor `make all-test` to run re-organized tests. If any of the tests failed, the whole test run will complete but fail to CI. This helps to avoid CI fake passing due to test failures hidden by semicolons in testing command.
 - Qt imports:
   - `from pymol.Qt import ...` --> `from REvoDesign.Qt import ...` to avoid developing time typing check errors
-
+- shortcuts:
+  - sorted tools by their functionality
+  
 ### Fixed
 - `Makefile`: remove pdb file cleanups statement in `make clean`
 - typo in `shortcuts/wrappers/rosetta_tasks.py`
