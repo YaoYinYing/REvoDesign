@@ -15,7 +15,6 @@ from typing import Any, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 # from pymol.Qt.utils import loadUi
 from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
@@ -43,6 +42,7 @@ from REvoDesign.evaluate import Evalutator
 from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_color_by_mutation, menu_color_by_plddt, menu_dump_fasta_from_struct,
     menu_dump_sidechains, menu_profile_pick_design, menu_pross, menu_pssm2csv,

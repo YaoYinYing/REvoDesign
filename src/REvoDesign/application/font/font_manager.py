@@ -6,6 +6,7 @@ import platform
 from dataclasses import dataclass
 
 from immutabledict import immutabledict
+
 from REvoDesign.Qt import QtGui
 
 

@@ -14,12 +14,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import file_extensions
 from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
                               notify_box, refresh_window)

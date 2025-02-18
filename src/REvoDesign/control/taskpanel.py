@@ -1,8 +1,7 @@
-
 from typing import Dict
-from REvoDesign.Qt import QtWidgets
 
 from REvoDesign.basic import SingletonAbstract
+from REvoDesign.Qt import QtWidgets
 
 
 class TaskBoard(SingletonAbstract):
@@ -11,6 +10,5 @@ class TaskBoard(SingletonAbstract):
         ...
 
 
-class TaskPanel(QtWidgets.QWidget): # type: ignore
+class TaskPanel(QtWidgets.QWidget):  # type: ignore
     def __init__(self, *args, **kwargs):
-        

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any, Callable, Dict, Tuple
 
-from REvoDesign.Qt import QtWidgets,QtCore
+from REvoDesign.Qt import QtCore, QtWidgets
 
 from .. import issues
 
@@ -69,7 +69,7 @@ class ParamChangeRegistryItem:
                 self.source_cfg_item,
                 self.target_cfg_item,
                 self.param_mapping
-            ) 
+            )
         )
 
 

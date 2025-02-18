@@ -9,11 +9,11 @@ from typing import Any, Callable, Optional, Protocol, Type, TypeVar, overload
 import omegaconf.errors
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
-from REvoDesign.Qt import QtWidgets
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.Qt import QtWidgets
 from REvoDesign.tools.customized_widgets import (get_widget_value, notify_box,
                                                  set_widget_value,
                                                  widget_signal_tape)

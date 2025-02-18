@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Tuple
 
 from immutabledict import immutabledict
+
 from REvoDesign.Qt import QtWidgets
 
 

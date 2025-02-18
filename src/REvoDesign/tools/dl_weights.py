@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import pooch
 from platformdirs import user_cache_dir, user_data_dir
 
+
 @dataclass(frozen=True)
 class ModelFetchSetting:
     """
