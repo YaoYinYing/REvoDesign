@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 # ** Type checking: Declare static types (fixes type checkers)**
 if TYPE_CHECKING:
     # Type checker branch
-    from PyQt5 import QtCore as _QtCore  # noqa
+    from PyQt5 import QtCore as _QtCore
     from PyQt5 import QtGui as _QtGui
     from PyQt5 import QtWidgets as _QtWidgets
     QtSource: str = "PyQt5"
@@ -23,8 +23,8 @@ else:
         from pymol.Qt import QtGui as _QtGui
         from pymol.Qt import QtWidgets as _QtWidgets
         QtSource = "pymol.Qt"
-    except ImportError:
-        raise ImportError("PyMOL is not installed or does not have Qt support.")
+    except ImportError as e:
+        raise ImportError("PyMOL is not installed or does not have Qt support.") from e
 
 # ** Explicit Type Aliases for Static Analysis (Fixes Type Checkers)**
 QtCore = _QtCore
