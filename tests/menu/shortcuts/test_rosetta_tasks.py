@@ -171,14 +171,13 @@ def test_shortcut_relax_w_ca_constraints(job_id, pdb, ligand, test_worker: TestW
     )
     pdb_bn = os.path.basename(pdb)[:-4]
     for i in range(3):
-        run_dir=os.path.join(save_dir, f'{job_id}/{job_id}_round_{i}')
+        run_dir = os.path.join(save_dir, f'{job_id}/{job_id}_round_{i}')
         assert os.path.isdir(os.path.join(run_dir, 'all')), f"{run_dir}/all does not exist"
-        all_pdbs=[x for x in os.listdir(os.path.join(run_dir, 'all')) if x.endswith('.pdb')]
+        all_pdbs = [x for x in os.listdir(os.path.join(run_dir, 'all')) if x.endswith('.pdb')]
         assert all_pdbs, f'{run_dir}/all should contain pdb files'
-        assert len(all_pdbs)==4, f'{run_dir}/all should contain exact 4 pdb files'
+        assert len(all_pdbs) == 4, f'{run_dir}/all should contain exact 4 pdb files'
         for j in range(4):
             assert f'{pdb_bn}_R{i}_0000{j+1}.pdb' in all_pdbs, f'{run_dir}/all should contain {pdb_bn}_R{i}_0000{j}.pdb'
-        analyser=RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
+        analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
         # bn move to the next round
-        pdb_bn=analyser.best_decoy['decoy']
-    
+        pdb_bn = analyser.best_decoy['decoy']
