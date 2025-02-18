@@ -10,7 +10,7 @@ from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
 from RosettaPy.app.fastrelax import FastRelax
 from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
-from RosettaPy.node import node_picker, NodeClassType, NodeHintT
+from RosettaPy.node import NodeClassType, NodeHintT, node_picker
 
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.driver.ui_driver import ConfigBus
@@ -219,6 +219,7 @@ def shortcut_fast_relax(
 
     logging.info(f"FastRelax finished. Best decoy: {best_relaxed_decoy}")
 
+
 class RelaxWithCaConstraints:
     def __init__(self,
                  pdb: str,
@@ -237,15 +238,15 @@ class RelaxWithCaConstraints:
         self.job_id = job_id
         self.node_hint = node_hint
         self.node_config = node_config or read_rosetta_node_config()
-        self.relax_opts=relax_opts or []
-        self.node=node_picker(
+        self.relax_opts = relax_opts or []
+        self.node = node_picker(
             node_type=node_hint,
             nproc=1,
             **self.node_config
         )
 
-    def run_a_round(self, round_id: int, newpdb:str) -> str:
-        rosetta=Rosetta(
+    def run_a_round(self, round_id: int, newpdb: str) -> str:
+        rosetta = Rosetta(
             'relax',
             opts=[
                 '-relax:constrain_relax_to_start_coords',
@@ -255,21 +256,21 @@ class RelaxWithCaConstraints:
                 '-ex1',
                 '-ex2',
                 '-use_input_sc',
-                '-no_nstruct_label','true',
-                '-suffix',f'_R{round_id}',
+                '-no_nstruct_label', 'true',
+                '-suffix', f'_R{round_id}',
                 '-flip_HNQ',
                 '-no_optH', 'false',
                 '-in:file:s', os.path.abspath(newpdb)
             ] + self.relax_opts,
-            save_all_together=True,output_dir=os.path.join(self.save_dir, self.job_id),
-                job_id=f'{self.job_id}_round_{round_id}',
-                run_node=self.node,
-                verbose=True
-            )
+            save_all_together=True, output_dir=os.path.join(self.save_dir, self.job_id),
+            job_id=f'{self.job_id}_round_{round_id}',
+            run_node=self.node,
+            verbose=True
+        )
         with timing(f'relaxing with Ca Constrains (round #{round_id})'):
             rosetta.run(nstruct=self.nstruct_per_round)
 
-        analyser=RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
+        analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
 
         best_hit = analyser.best_decoy
         pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
@@ -282,14 +283,14 @@ class RelaxWithCaConstraints:
 
         print(f'Best Hit on this Relax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
         return pdb_path
-    
 
     def run(self):
-        new_pdb_path=None
+        new_pdb_path = None
         for round_id in range(self.ncycles):
-            new_pdb_path=self.run_a_round(round_id, new_pdb_path or self.pdb)
+            new_pdb_path = self.run_a_round(round_id, new_pdb_path or self.pdb)
 
         return new_pdb_path
+
 
 def shortcut_relax_w_ca_constraints(
         pdb: str,
@@ -302,8 +303,7 @@ def shortcut_relax_w_ca_constraints(
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
 ):
 
-    
-    app=RelaxWithCaConstraints(
+    app = RelaxWithCaConstraints(
         pdb=pdb,
         nstruct_per_round=nstruct_per_round,
         ncycles=ncycles,
@@ -313,7 +313,7 @@ def shortcut_relax_w_ca_constraints(
         node_config=node_config,
         relax_opts=relax_opts,
     )
-    
-    final_pdb=app.run()
+
+    final_pdb = app.run()
 
     logging.info(f"RelaxWithCaConstraints finished. Final pdb: {final_pdb}")

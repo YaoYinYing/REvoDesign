@@ -3,9 +3,9 @@ import os
 import pytest
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 
-from REvoDesign.shortcuts.tools.rosetta_tasks import (shortcut_fast_relax,
-                                                      shortcut_pross, shortcut_relax_w_ca_constraints,
-                                                      shortcut_rosettaligand)
+from REvoDesign.shortcuts.tools.rosetta_tasks import (
+    shortcut_fast_relax, shortcut_pross, shortcut_relax_w_ca_constraints,
+    shortcut_rosettaligand)
 from tests.conftest import TestWorker
 
 
@@ -170,4 +170,3 @@ def test_shortcut_relax_w_ca_constraints(job_id, pdb, ligand, test_worker: TestW
         relax_opts=relax_opts,
     )
     pdb_bn = os.path.basename(pdb)[:-4]
-    

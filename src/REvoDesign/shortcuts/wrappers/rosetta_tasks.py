@@ -2,9 +2,9 @@
 Shortcut wrappers of Rosetta-related tasks
 '''
 
-from REvoDesign import ConfigBus
 from pymol import cmd
 
+from REvoDesign import ConfigBus
 from REvoDesign.common import file_extensions as FExt
 from REvoDesign.shortcuts.utils import read_rosetta_node_config
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
@@ -14,7 +14,8 @@ from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
 from REvoDesign.tools.utils import timing
 
 from ...logger import ROOT_LOGGER
-from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross, shortcut_relax_w_ca_constraints,
+from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross,
+                                   shortcut_relax_w_ca_constraints,
                                    shortcut_rosettaligand)
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -311,7 +312,6 @@ def wrapped_fast_relax(**kwargs):
         )
 
 
-
 @dialog_wrapper(
     title="RelaxWithCaConstraints",
     banner="Perform Rosetta Relax With Ca Constraints",
@@ -340,7 +340,7 @@ def wrapped_fast_relax(**kwargs):
             reason="Number of cycles to run. Default is 3.",
             choices=range(3, 100)
         ),
-        
+
         AskedValue(
             "save_dir",
             "relaxed",
@@ -375,12 +375,12 @@ def wrapped_relax_w_ca_constraints(**kwargs):
     logging.info(kwargs)
     bus = ConfigBus()
 
-    node_hint=bus.get_value('rosetta.node_hint')
+    node_hint = bus.get_value('rosetta.node_hint')
     node_config = read_rosetta_node_config()
 
-    kwargs['node_hint']=node_hint
-    kwargs['node_config']=node_config
-    
+    kwargs['node_hint'] = node_hint
+    kwargs['node_config'] = node_config
+
     ligand_params: str = kwargs.pop('ligand_params')
     opts: str = kwargs.pop('opts')
 
