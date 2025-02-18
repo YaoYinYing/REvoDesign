@@ -78,3 +78,4 @@ tests/data/6zcy_lig.pdb
 /debug
 /tests/pross
 /relaxed/fastrelax/relaxed
+ROSETTA_CRASH.log

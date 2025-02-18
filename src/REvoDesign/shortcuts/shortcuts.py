@@ -818,7 +818,6 @@ def shortcut_fast_relax(
     node_config = read_rosetta_node_config()
 
     class FastRelaxOpts(FastRelax):
-        # type: ignore
         def run(self, nstruct: int = 8, default_repeats: int = 15, relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]]=None) -> RosettaEnergyUnitAnalyser:
             """
             Runs the fast relaxation process using the specified parameters.
@@ -861,7 +860,18 @@ def shortcut_fast_relax(
             with timing("FastRelax"):
                 rosetta.run(nstruct=nstruct)
 
-            return RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
+            analyser= RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
+            best_hit = analyser.best_decoy
+            pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
+
+            print("Analysis of the best decoy:")
+            print("-" * 79)
+            print(analyser.df.sort_values(by=analyser.score_term))
+
+            print("-" * 79)
+
+            print(f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
+            return analyser
 
     fast_relax = FastRelaxOpts(
         pdb=pdb,
@@ -881,6 +891,6 @@ def shortcut_fast_relax(
         relax_opts=relax_opts,
     )
 
-    best_relaxed_pdb = analyser.best_decoy
+    best_relaxed_decoy = analyser.best_decoy
 
-    logging.info(f"FastRelax finished. Best pdb: {best_relaxed_pdb}")
+    logging.info(f"FastRelax finished. Best decoy: {best_relaxed_decoy}")

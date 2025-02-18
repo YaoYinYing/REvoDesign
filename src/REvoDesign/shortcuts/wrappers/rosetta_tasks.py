@@ -233,6 +233,12 @@ def wrapped_pross(**kwargs):
             required=True,
         ),
         AskedValue(
+            "dualspace",
+            False,
+            typing=bool,
+            reason="Whether to use dual space. Default is False.",
+        ),
+        AskedValue(
             "default_repeats",
             3,
             typing=int,
@@ -289,13 +295,11 @@ def wrapped_fast_relax(**kwargs):
     ligand_params: str = kwargs.pop('ligand_params')
     opts: str = kwargs.pop('opts')
 
-    kwargs['dualspace'] = kwargs["relax_script"].endswith('.dualspace')
-
-    relax_opts = opts.split(' ')
+    relax_opts = [x.strip() for x in opts.split(' ')]
     if ligand_params:
         relax_opts.extend(extra_res_to_opts(ligand_params))
 
-    kwargs['relax_opts'] = relax_opts
+    kwargs['relax_opts'] = [op for op in relax_opts if op]
 
     with timing('running Rosetta FastRelax'):
 

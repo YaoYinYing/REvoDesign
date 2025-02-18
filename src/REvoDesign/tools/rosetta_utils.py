@@ -58,7 +58,7 @@ def list_fastrelax_scripts() -> List[str]:
         f.rstrip('.txt') for f in os.listdir(
             os.path.join(
                 rosetta3_db_path,
-                subdirectory)) if f.endswith('.txt') and not f.startswith('README')]
+                subdirectory)) if f.endswith('.txt') and not f.startswith('README') and not '.dualspace' in f]
     return all_relax_scripts
 
 
@@ -72,6 +72,8 @@ def extra_res_to_opts(ligands_params: Union[List[str], str]) -> List[str]:
     Returns:
         List[str]: List of command-line options for ligand parameters.
     """
+    if not ligands_params:
+        return []
     if isinstance(ligands_params, str):
         ligands_params = ligands_params.split('|')
 

@@ -483,20 +483,18 @@ class TestWorker:
             mc.write("\n".join([self.print_mem(p) for p in procs]))
 
     def inject_rosetta_node_config(self, node_hint: NodeHintT):
-        self.plugin.bus.set_value('rosetta.node_hint', node_hint)
+        self.plugin.bus.set_value('rosetta.node_hint', node_hint or 'native')
 
         if node_hint == "docker_mpi":
             node_config = {"mpi_available": True, 'prohibit_mpi': False, "image": "rosettacommons/rosetta:mpi"}
 
         elif node_hint == "docker":
             node_config = {"mpi_available": False, 'prohibit_mpi': True, "image": "rosettacommons/rosetta:latest"}
-        elif node_hint == "native":
-            node_config = {"mpi_available": False, 'prohibit_mpi': True}
+            
         elif node_hint == 'mpi':
             node_config = {"mpi_available": True, 'prohibit_mpi': False}
-
         else:
-            raise NotImplementedError(f"Unsupported node hint: {node_hint}")
+            node_config = {"mpi_available": False, 'prohibit_mpi': True}
 
         self.plugin.bus.set_value('rosetta.node_config', node_config)
 
