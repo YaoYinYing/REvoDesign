@@ -6,54 +6,55 @@ Shortcut functions of third-party mutant effect predictors
 import os
 from typing import List, Literal, Optional
 
-from platformdirs import user_cache_dir
-from RosettaPy.common.mutation import RosettaPyProteinSequence
-from pymol import cmd
 import pandas as pd
-from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.citations import CitableModuleAbstract
+from RosettaPy.common.mutation import RosettaPyProteinSequence
+
+from REvoDesign import ROOT_LOGGER
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
-from REvoDesign.common.mutant_visualise import MutantVisualizer
-from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.sidechain.sidechain_solver import SidechainSolver
-from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id, quick_mutagenesis
-from REvoDesign.tools.utils import cmap_reverser
+from REvoDesign.tools.mutant_tools import (extract_mutants_from_mutant_id,
+                                           quick_mutagenesis)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-RUN_MODE_T=Literal["single", "additive", "epistatic"]
+RUN_MODE_T = Literal["single", "additive", "epistatic"]
+
 
 class ThermoMpnnPredictor(CitableModuleAbstract):
-    installed: bool= is_package_installed('thermompnn')
+    installed: bool = is_package_installed('thermompnn')
 
-    def __init__(self, pdb: str, save_dir: Optional[str]=None, prefix: str='thermompnn_ssm', chains: Optional[List[str]] = None,
-            mode: RUN_MODE_T  = 'single',
-            batch_size: int = 256,
-            threshold: float = -0.5,
-            distance: float = 5.0,
-            ss_penalty: bool = False,
-            device: str = 'cpu') :
-        
-        self.prefix=prefix
-        
+    def __init__(self,
+                 pdb: str,
+                 save_dir: Optional[str] = None,
+                 prefix: str = 'thermompnn_ssm',
+                 chains: Optional[List[str]] = None,
+                 mode: RUN_MODE_T = 'single',
+                 batch_size: int = 256,
+                 threshold: float = -0.5,
+                 distance: float = 5.0,
+                 ss_penalty: bool = False,
+                 device: str = 'cpu'):
+
+        self.prefix = prefix
+
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
-            self.save_prefix=os.path.join(save_dir, prefix)
+            self.save_prefix = os.path.join(save_dir, prefix)
             os.makedirs(os.path.dirname(self.save_prefix), exist_ok=True)
         else:
-            self.save_prefix=''
+            self.save_prefix = ''
 
-        self.sequence=RosettaPyProteinSequence.from_pdb(pdb)
+        self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
         self.app = ThermoMPNN(pdb, self.save_prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
 
     def run(self) -> pd.DataFrame:
-        df=self.app.process(save_csv=bool(self.save_prefix))
+        df = self.app.process(save_csv=bool(self.save_prefix))
         # only when the application is passed successfully can the citation be prompted.
         self.cite()
         return df
-    
+
     @staticmethod
     def mutant_name2mutant(mutant_id: str, sequences: RosettaPyProteinSequence) -> Mutant:
         return extract_mutants_from_mutant_id(
@@ -61,23 +62,20 @@ class ThermoMpnnPredictor(CitableModuleAbstract):
             sequences=sequences,
             wt_before_chain=True
         )
-    
-
 
     def df2mutant_tree(self, df: pd.DataFrame) -> MutantTree:
-        mutant_tree=MutantTree()
+        mutant_tree = MutantTree()
         for i, row in df.iterrows():
-            score: float=row['ddG (kcal/mol)']
-            mutation: str=row['Mutation']
-            mutant=self.mutant_name2mutant(mutant_id=f'{mutation.replace(":", "_")}_{score}', sequences=self.sequence)
-            mutant.mutant_score=score
-            mutant.wt_score=0
+            score: float = row['ddG (kcal/mol)']
+            mutation: str = row['Mutation']
+            mutant = self.mutant_name2mutant(mutant_id=f'{mutation.replace(":", "_")}_{score}', sequences=self.sequence)
+            mutant.mutant_score = score
+            mutant.wt_score = 0
 
             mutant_tree.add_mutant_to_branch(self.prefix, mutant.full_mutant_id, mutant)
 
-
         return mutant_tree
-        
+
     __bibtex__ = {
         'ThermoMPNN': """@article{
 doi:10.1073/pnas.2314853121,
@@ -104,16 +102,14 @@ url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/pro.70003},
 eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/pro.70003},
 year = {2025}
 }"""}
-        
-
 
 
 def shortcut_thermompnn(
-    pdb: str, 
-    save_dir: Optional[str]='./thermompnn/predicts', 
-    prefix: str='ssm', 
+    pdb: str,
+    save_dir: Optional[str] = './thermompnn/predicts',
+    prefix: str = 'ssm',
     chains: Optional[List[str]] = None,
-    mode: RUN_MODE_T  = 'single',
+    mode: RUN_MODE_T = 'single',
     batch_size: int = 256,
     threshold: float = -0.5,
     distance: float = 5.0,
@@ -121,11 +117,11 @@ def shortcut_thermompnn(
     device: str = 'cpu',
     load_to_preview: bool = False
 ):
-    app=ThermoMpnnPredictor(pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
+    app = ThermoMpnnPredictor(pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
 
-    df=app.run()
+    df = app.run()
 
-    mutant_tree=app.df2mutant_tree(df)
+    mutant_tree = app.df2mutant_tree(df)
 
     logging.info(f'ThermoMPNN produced {len(mutant_tree.all_mutant_objects)} Mutants.')
     logging.debug(f"{mutant_tree=}")
@@ -133,6 +129,3 @@ def shortcut_thermompnn(
     if load_to_preview:
         logging.info('Perform visualising...')
         quick_mutagenesis(mutant_tree)
-
-
-        

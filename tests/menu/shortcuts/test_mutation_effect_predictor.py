@@ -1,8 +1,8 @@
-import os
 
 import pytest
 
-from REvoDesign.shortcuts.tools.mutation_effect_predictors import shortcut_thermompnn
+from REvoDesign.shortcuts.tools.mutation_effect_predictors import \
+    shortcut_thermompnn
 from tests.conftest import TestWorker
 
 
@@ -11,7 +11,7 @@ from tests.conftest import TestWorker
 @pytest.mark.parametrize(
     "job_id,mode,threshold,long_dist,ss_penalty",
     [
-        ['ssm_single', 'single', None, None,False],
+        ['ssm_single', 'single', None, None, False],
         # ['ssm_single_ss_penalty', 'single', None, None,True],
         # ['ssm_single_higher_threshold', 'single', 10, None,False],
         # ['ssm_additive', 'additive', None, None,False],
@@ -19,8 +19,8 @@ from tests.conftest import TestWorker
         # ['ssm_epistatic_longdist', 'epistatic', None, None,False]
     ],
 )
-def test_shortcut_thermompnn(job_id,mode,threshold,long_dist,ss_penalty, test_worker: TestWorker):
-    pdb='../tests/data/6zcy_lig.pdb'
+def test_shortcut_thermompnn(job_id, mode, threshold, long_dist, ss_penalty, test_worker: TestWorker):
+    pdb = '../tests/data/6zcy_lig.pdb'
     test_worker.test_id = test_worker.method_name()
     test_worker.load_session_and_check(customized_session=pdb)
 
@@ -38,11 +38,7 @@ def test_shortcut_thermompnn(job_id,mode,threshold,long_dist,ss_penalty, test_wo
         load_to_preview=True
     )
 
-    
     test_worker.save_new_experiment(experiment_name=f'{test_worker.test_id}_{job_id}')
 
     test_worker.check_existed_mutant_tree()
     test_worker.save_pymol_png(basename=f'{test_worker.test_id}_{job_id}', focus=False)
-
-
-    

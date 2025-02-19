@@ -17,8 +17,8 @@ import numpy as np
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
 
-from .package_manager import run_command, run_worker_thread_with_progress
 from ..bootstrap.set_config import is_package_installed
+from .package_manager import run_command, run_worker_thread_with_progress
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -350,12 +350,13 @@ def timing(msg: str):
     toc = time.perf_counter()
     logging.info(f"Finished {msg} in {toc - tic:.3f} seconds")
 
+
 def device_picker() -> List[str]:
     """
     Detects and returns a list of available devices for deep learning frameworks.
 
-    This function checks for the availability of GPU or specialized hardware 
-    (like MPS on macOS) using PyTorch or TensorFlow. If no compatible devices are found, 
+    This function checks for the availability of GPU or specialized hardware
+    (like MPS on macOS) using PyTorch or TensorFlow. If no compatible devices are found,
     it defaults to 'cpu'.
 
     Returns:
@@ -380,7 +381,7 @@ def device_picker() -> List[str]:
                 device_list.append('mps')
         except Exception as e:
             print(f"Error checking PyTorch devices: {e}")
-    
+
     # Check if TensorFlow is installed and configure devices accordingly
     elif is_package_installed('tensorflow'):
         import tensorflow as tf
@@ -397,7 +398,6 @@ def device_picker() -> List[str]:
         device_list.append('cpu')
 
     return device_list
-
 
 
 __all__ = [

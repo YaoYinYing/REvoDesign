@@ -4,7 +4,8 @@ Shortcut wrappers of third-party mutant effect predictors
 
 from REvoDesign.common import file_extensions as FExt
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.tools.mutation_effect_predictors import shortcut_thermompnn
+from REvoDesign.shortcuts.tools.mutation_effect_predictors import \
+    shortcut_thermompnn
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import device_picker, timing
