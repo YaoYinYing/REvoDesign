@@ -4671,10 +4671,23 @@
      </widget>
      <addaction name="menuRender_Sidechains"/>
     </widget>
+    <widget class="QMenu" name="menuPredictor_Tools">
+     <property name="title">
+      <string>Predictor Tools</string>
+     </property>
+     <widget class="QMenu" name="menuMutant_Effects">
+      <property name="title">
+       <string>Mutant Effects</string>
+      </property>
+      <addaction name="actionThermoMPNN"/>
+     </widget>
+     <addaction name="menuMutant_Effects"/>
+    </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
     <addaction name="menuRosetta_Tools"/>
+    <addaction name="menuPredictor_Tools"/>
     <addaction name="menuExport_Tools"/>
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
@@ -5040,6 +5053,11 @@
   <action name="actionRelax_w_Ca_Constraints">
    <property name="text">
     <string>Relax w/ Ca Constraints</string>
+   </property>
+  </action>
+  <action name="actionThermoMPNN">
+   <property name="text">
+    <string>ThermoMPNN</string>
    </property>
   </action>
  </widget>

@@ -8,11 +8,11 @@ from typing import Any, List, Union
 from joblib import Parallel, delayed
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign.citations import CitableModuleAbstract
+from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.common.mutant import Mutant
 
 
-class ExternalDesignerAbstract(CitableModuleAbstract):
+class ExternalDesignerAbstract(ThirdPartyModuleAbstract):
     """
     Abstract class for external design, providing a framework for designing molecules.
     This class is abstract and must be inherited and implemented by concrete design classes.

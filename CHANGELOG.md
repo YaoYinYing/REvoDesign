@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 ## [Unreleased]
+### Added
+- `basic`: 
+  - `ThirdPartyModuleAbstract` to describe the abstract class of third party modules, which inherits from `CitableModuleAbstract`
+- menu: 
+  - ThermoMPNN
+- `pyproject.toml`: added `thermompnn`
+- installation JSONs: added `thermompnn`
+- makefile: added `thermompnn`
+
+### Changed
+- `basic`: 
+  - `ExternalDesignerAbstract` and `MutateRunnerAbstract` now inherit from `ThirdPartyModuleAbstract`
+- utils: 
+  - `mutant_tools`: `extract_mutants_from_mutant_id` now support mutant string expression pattern like `<wt_res><chain_id><resi><mut_res>`
+  - `device_picker`: listing of device names that are accessible to DL frameworks like PyTorch.
+  
+### Fixed
+- `RelaxWithCaConstraints`: fixed unexpected pymol loadings that should be controlled by `load_to_preview`.
+- `quick_mutagenesis`: fixed with latest code
+
+### Removed
 
 ## [1.7.17] - 2025-02-18
 ### Added

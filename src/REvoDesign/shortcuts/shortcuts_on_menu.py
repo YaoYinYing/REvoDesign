@@ -10,6 +10,8 @@ from REvoDesign.shortcuts.wrappers.exports import (
 from REvoDesign.shortcuts.wrappers.ligand_converters import (
     wrapped_smiles_conformer_batch, wrapped_smiles_conformer_single,
     wrapper_sdf2rosetta_params)
+from REvoDesign.shortcuts.wrappers.mutation_effect_predictors import \
+    wrapped_thermompnn
 from REvoDesign.shortcuts.wrappers.represents import (
     wrapped_color_by_mutation, wrapped_color_by_plddt, wrapped_real_sc)
 from REvoDesign.shortcuts.wrappers.rosetta_tasks import (
@@ -140,3 +142,10 @@ def menu_relax_w_ca_constraints():
     Launches the dialog for relax with CA constraints dialog
     """
     wrapped_relax_w_ca_constraints()
+
+
+def menu_thermompnn():
+    """
+    Launches the dialog for ThermoMPNN dialog
+    """
+    wrapped_thermompnn()

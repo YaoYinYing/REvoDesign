@@ -9,7 +9,7 @@ import tarfile
 import time
 import zipfile
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import matplotlib
 import numpy as np
@@ -17,6 +17,7 @@ import numpy as np
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
 
+from ..bootstrap.set_config import is_package_installed
 from .package_manager import run_command, run_worker_thread_with_progress
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -350,6 +351,55 @@ def timing(msg: str):
     logging.info(f"Finished {msg} in {toc - tic:.3f} seconds")
 
 
+def device_picker() -> List[str]:
+    """
+    Detects and returns a list of available devices for deep learning frameworks.
+
+    This function checks for the availability of GPU or specialized hardware
+    (like MPS on macOS) using PyTorch or TensorFlow. If no compatible devices are found,
+    it defaults to 'cpu'.
+
+    Returns:
+        List[str]: A list of available device strings (e.g., ['cuda:0', 'mps', 'gpu', 'cpu']).
+    """
+
+    device_list = ['cpu']
+
+    # Check if PyTorch is installed and configure devices accordingly
+    if is_package_installed('torch'):
+        import torch
+
+        try:
+            # Add CUDA devices if available
+            if torch.cuda.is_available():
+                cuda_device_count = torch.cuda.device_count()
+                if cuda_device_count >= 1:
+                    device_list.extend([f'cuda:{i}' for i in range(cuda_device_count)])
+
+            # Add MPS device if available and built into PyTorch
+            if torch.backends.mps.is_available() and torch.backends.mps.is_built():
+                device_list.append('mps')
+        except Exception as e:
+            print(f"Error checking PyTorch devices: {e}")
+
+    # Check if TensorFlow is installed and configure devices accordingly
+    elif is_package_installed('tensorflow'):
+        import tensorflow as tf
+
+        try:
+            # Add GPU device if available
+            if tf.config.list_physical_devices('GPU'):
+                device_list.append('gpu')
+        except Exception as e:
+            print(f"Error checking TensorFlow devices: {e}")
+
+    # Default to CPU if no other devices are available
+    if not device_list:
+        device_list.append('cpu')
+
+    return device_list
+
+
 __all__ = [
     "run_command",
     'run_worker_thread_with_progress',
@@ -362,5 +412,6 @@ __all__ = [
     'get_color',
     'cmap_reverser',
     'rescale_number',
-    'count_and_sort_characters'
+    'count_and_sort_characters',
+    'device_picker'
 ]

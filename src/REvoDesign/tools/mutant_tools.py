@@ -23,7 +23,7 @@ from REvoDesign.sidechain import SidechainSolver
 from REvoDesign.tools.customized_widgets import QButtonMatrix
 from REvoDesign.tools.pymol_utils import is_hidden_object
 
-from .utils import get_color, timing
+from .utils import cmap_reverser, get_color, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -46,6 +46,7 @@ NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
 def extract_mutants_from_mutant_id(
     mutant_string: str,
     sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
+    wt_before_chain: bool = False
 ) -> Mutant:
     """
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
@@ -54,6 +55,7 @@ def extract_mutants_from_mutant_id(
     mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
                         <chain_id><wt_res><resi><mut_res>_...._<score>
     sequences (dict): Wild-type chain: sequence of design molecule
+    wt_before_chain (bool): Some people write WT residue before chain_id. This helps to correct recognizing of this pattern
 
     Returns:
     tuple:
@@ -72,10 +74,15 @@ def extract_mutants_from_mutant_id(
         if re.match(r"[A-Z]{2}\d+[A-Z]{1}", mut):
             logging.debug(f"full description: {mut}")
             _mut = re.match(r"([A-Z]{1})([A-Z]{1})(\d+)([A-Z]{1})", mut)
-            _chain_id = _mut.group(1)
+            if not wt_before_chain:
+                _chain_id = _mut.group(1)
+                _wt_res = _mut.group(2)
+            else:
+                _wt_res = _mut.group(1)
+                _chain_id = _mut.group(2)
 
             _position = _mut.group(3)
-            _wt_res = _mut.group(2)
+
             _mut_res = _mut.group(4)
 
         # reduced description of mutation, <wt_res><pos><mut>, missing <chain_id>
@@ -545,12 +552,9 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
         warnings.warn(issues.NoResultsWarning("Mutant tree is empty!"))
         return
 
-    score_list = [
-        mut_obj.mutant_score
-        for group_id in mutant_tree.all_mutant_branch_ids
-        for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items()
-    ]
-    with timing("Quick mutagenesis"):
+    score_list = mutant_tree.all_mutant_scores
+
+    with timing("Quick Mutageneses"):
         input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
         visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
         cfg = bus.cfg
@@ -559,10 +563,13 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         visualizer.nproc = nproc
         visualizer.input_session = input_pdb
-        visualizer.sequence = sequence
+        # visualizer.sequence = sequence
 
         visualizer.full = cfg.ui.visualize.full_pdb
-        visualizer.cmap = cfg.ui.header_panel.cmap
+        visualizer.cmap = cmap_reverser(
+            bus.get_value('ui.header_panel.cmap.default'),
+            bus.get_value('ui.header_panel.cmap.reverse_score')
+        )
         visualizer.mutate_runner = sidechain_solver.mutate_runner
 
         visualizer.min_score = min(score_list)
@@ -572,7 +579,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         mutant_tree.run_mutate_parallel(
             mutate_runner=sidechain_solver.mutate_runner,
-            n_jobs=visualizer.nproc,
+            nproc=visualizer.nproc,
         )
 
         for group_id in mutant_tree.all_mutant_branch_ids:
