@@ -9,6 +9,9 @@
     "Predictors": "",
     "ThermoMPNN": "thermompnn",
 
+    "Protein Models": "",
+    "ESM1/2": "esm2",
+
     "Developer Tool": "",
     "Test": "test"
     

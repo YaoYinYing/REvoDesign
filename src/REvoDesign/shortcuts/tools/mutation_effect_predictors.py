@@ -10,8 +10,8 @@ import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.basic import ThirdPartyModuleAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.tools.mutant_tools import (extract_mutants_from_mutant_id,
@@ -24,7 +24,7 @@ RUN_MODE_T = Literal["single", "additive", "epistatic"]
 
 
 class ThermoMpnnPredictor(ThirdPartyModuleAbstract):
-    name: str= 'ThermoMPNN'
+    name: str = 'ThermoMPNN'
     installed: bool = is_package_installed('thermompnn')
 
     def __init__(self,

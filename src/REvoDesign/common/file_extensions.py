@@ -53,10 +53,20 @@ PSSM = ExtColl(
         Ext("pssm", "Raw PSSM file"),
     )
 )
+CSV = ExtColl(
+    (
+        Ext("csv", "CSV file"),
+    )
+)
 MSA = ExtColl(
     (
         Ext("fas", "MSA in FASTA"),
         Ext("fasta", "MSA in FASTA"),
+        Ext("a3m", "MSA in A3M from HH-suite"),
+    )
+)
+A3M = ExtColl(
+    (
         Ext("a3m", "MSA in A3M from HH-suite"),
     )
 )

@@ -5,6 +5,7 @@ This module contains the menu shortcuts for REvoDesign.
 # decorated by `dialog_wrapper` and import it here
 from REvoDesign.shortcuts.wrappers.designs import (wrapped_profile_pick_design,
                                                    wrapped_pssm2csv)
+from REvoDesign.shortcuts.wrappers.esm2 import wrapped_esm1v
 from REvoDesign.shortcuts.wrappers.exports import (
     wrapped_dump_fasta_from_struct, wrapped_menu_dump_sidechains)
 from REvoDesign.shortcuts.wrappers.ligand_converters import (
@@ -149,3 +150,10 @@ def menu_thermompnn():
     Launches the dialog for ThermoMPNN dialog
     """
     wrapped_thermompnn()
+
+
+def menu_esm1v():
+    """
+    Launches the dialog for ESM1v dialog
+    """
+    wrapped_esm1v()
