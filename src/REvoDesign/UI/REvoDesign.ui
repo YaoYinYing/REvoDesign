@@ -4680,6 +4680,7 @@
        <string>Mutant Effects</string>
       </property>
       <addaction name="actionThermoMPNN"/>
+      <addaction name="actionESM_1v"/>
      </widget>
      <addaction name="menuMutant_Effects"/>
     </widget>
@@ -5058,6 +5059,11 @@
   <action name="actionThermoMPNN">
    <property name="text">
     <string>ThermoMPNN</string>
+   </property>
+  </action>
+  <action name="actionESM_1v">
+   <property name="text">
+    <string>ESM-1v</string>
    </property>
   </action>
  </widget>
