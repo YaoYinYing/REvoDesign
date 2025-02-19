@@ -6,16 +6,22 @@ Shortcut functions of third-party mutant effect predictors
 import os
 from typing import List, Literal, Optional
 
+from platformdirs import user_cache_dir
 from RosettaPy.common.mutation import RosettaPyProteinSequence
-
+from pymol import cmd
 import pandas as pd
+from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
+from REvoDesign.common.mutant_visualise import MutantVisualizer
+from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.sidechain.sidechain_solver import SidechainSolver
-from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
+from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id, quick_mutagenesis
+from REvoDesign.tools.utils import cmap_reverser
 
+logging = ROOT_LOGGER.getChild(__name__)
 
 RUN_MODE_T=Literal["single", "additive", "epistatic"]
 
@@ -35,7 +41,7 @@ class ThermoMpnnPredictor(CitableModuleAbstract):
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
             self.save_prefix=os.path.join(save_dir, prefix)
-            os.makedirs(os.path.dirname(save_dir), exist_ok=True)
+            os.makedirs(os.path.dirname(self.save_prefix), exist_ok=True)
         else:
             self.save_prefix=''
 
@@ -121,7 +127,12 @@ def shortcut_thermompnn(
 
     mutant_tree=app.df2mutant_tree(df)
 
+    logging.info(f'ThermoMPNN produced {len(mutant_tree.all_mutant_objects)} Mutants.')
+    logging.debug(f"{mutant_tree=}")
+
     if load_to_preview:
-        sidechain_solver=SidechainSolver()
-        mutant_tree.run_mutate_parallel(sidechain_solver.mutate_runner)
+        logging.info('Perform visualising...')
+        quick_mutagenesis(mutant_tree)
+
+
         

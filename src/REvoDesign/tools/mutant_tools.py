@@ -23,7 +23,7 @@ from REvoDesign.sidechain import SidechainSolver
 from REvoDesign.tools.customized_widgets import QButtonMatrix
 from REvoDesign.tools.pymol_utils import is_hidden_object
 
-from .utils import get_color, timing
+from .utils import cmap_reverser, get_color, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -552,12 +552,9 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
         warnings.warn(issues.NoResultsWarning("Mutant tree is empty!"))
         return
 
-    score_list = [
-        mut_obj.mutant_score
-        for group_id in mutant_tree.all_mutant_branch_ids
-        for _, mut_obj in mutant_tree.get_a_branch(branch_id=group_id).items()
-    ]
-    with timing("Quick mutagenesis"):
+    score_list = mutant_tree.all_mutant_scores
+
+    with timing("Quick Mutageneses"):
         input_pdb = make_temperal_input_pdb(molecule=molecule, reload=False)
         visualizer = MutantVisualizer(molecule=molecule, chain_id=chain_id)
         cfg = bus.cfg
@@ -566,10 +563,13 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         visualizer.nproc = nproc
         visualizer.input_session = input_pdb
-        visualizer.sequence = sequence
+        # visualizer.sequence = sequence
 
         visualizer.full = cfg.ui.visualize.full_pdb
-        visualizer.cmap = cfg.ui.header_panel.cmap
+        visualizer.cmap = cmap_reverser(
+            bus.get_value('ui.header_panel.cmap.default'),
+            bus.get_value('ui.header_panel.cmap.reverse_score')
+        )
         visualizer.mutate_runner = sidechain_solver.mutate_runner
 
         visualizer.min_score = min(score_list)
@@ -579,7 +579,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         mutant_tree.run_mutate_parallel(
             mutate_runner=sidechain_solver.mutate_runner,
-            n_jobs=visualizer.nproc,
+            nproc=visualizer.nproc,
         )
 
         for group_id in mutant_tree.all_mutant_branch_ids:
