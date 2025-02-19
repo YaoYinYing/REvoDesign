@@ -12,10 +12,10 @@ from tests.conftest import TestWorker
     "job_id,mode,threshold,long_dist,ss_penalty",
     [
         ['ssm_single', 'single', None, None, False],
-        # ['ssm_single_ss_penalty', 'single', None, None,True],
-        # ['ssm_single_higher_threshold', 'single', 10, None,False],
-        # ['ssm_additive', 'additive', None, None,False],
-        # ['ssm_epistatic', 'epistatic', None, None,False],
+        ['ssm_single_ss_penalty', 'single', None, None,True],
+        ['ssm_single_higher_threshold', 'single', 10, None,False],
+        ['ssm_additive', 'additive', None, None,False],
+        ['ssm_epistatic', 'epistatic', None, None,False],
         # ['ssm_epistatic_longdist', 'epistatic', None, None,False]
     ],
 )
@@ -35,7 +35,8 @@ def test_shortcut_thermompnn(job_id, mode, threshold, long_dist, ss_penalty, tes
         distance=long_dist or 5.0,
         ss_penalty=ss_penalty,
         device='cpu',
-        load_to_preview=True
+        load_to_preview=True,
+        top_ranked=100
     )
 
     test_worker.save_new_experiment(experiment_name=f'{test_worker.test_id}_{job_id}')

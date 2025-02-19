@@ -33,15 +33,13 @@ logging = ROOT_LOGGER.getChild(__name__)
             '',
             typing=str,
             reason="Path to the output directory. If not provided, the output will not be saved.",
-            source='Files',  # Mark this as a multi-file input
-            ext=FExt.RosettaParams
+            source='Directory',
         ),
         AskedValue(
             "chains",
-            "",
             typing=list,
             reason="Chain ID for the docking. Default is None for all chains.",
-            choices=lambda: [''] + list(ConfigBus().get_value("designable_sequences", dict, reject_none=True).keys()),
+            choices=lambda: list(ConfigBus().get_value("designable_sequences", dict, reject_none=True).keys()),
         ),
         AskedValue(
             "mode",
@@ -78,8 +76,8 @@ logging = ROOT_LOGGER.getChild(__name__)
             False,
             typing=bool,
             reason="Enable SS penalty. Default is False.",
-            required=True,
         ),
+        
         AskedValue(
             "device",
             'cpu',
@@ -92,6 +90,12 @@ logging = ROOT_LOGGER.getChild(__name__)
             False,
             typing=bool,
             reason="Whether to load the result to preview. Default is False."
+        ),
+        AskedValue(
+            "top_ranked",
+            -1,
+            typing=int,
+            reason="Number of top ranked predictions should be loaded. Default is -1 for all predictions."
         )
     )
 )

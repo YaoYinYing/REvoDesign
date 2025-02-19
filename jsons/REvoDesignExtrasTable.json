@@ -6,6 +6,9 @@
     "Designers": "",
     "ColabDesign": "colabdesign",
 
+    "Predictors": "",
+    "ThermoMPNN": "thermompnn",
+
     "Developer Tool": "",
     "Test": "test"
     

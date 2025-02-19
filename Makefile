@@ -144,7 +144,7 @@ kw-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)  -k $(PYTEST_KW) -vv
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)  -k $(PYTEST_KW) -vv -x
 	cp $(TESTDIR)/.coverage* .
 
 macos-rosetta-test:

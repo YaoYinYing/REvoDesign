@@ -91,3 +91,6 @@ class FobbidenDataTypeError(SocketError):
 
 class NetworkError(ConnectionAbortedError):
     """Exception raised when a network error occurs"""
+
+class UninstalledPackageError(Exception):
+    """Exception raised when a package is not installed"""

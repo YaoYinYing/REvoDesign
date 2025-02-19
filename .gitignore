@@ -80,3 +80,4 @@ tests/data/6zcy_lig.pdb
 /relaxed/fastrelax/relaxed
 ROSETTA_CRASH.log
 /relaxed
+/mutant_pdbs

@@ -363,7 +363,7 @@ def device_picker() -> List[str]:
         List[str]: A list of available device strings (e.g., ['cuda:0', 'mps', 'gpu', 'cpu']).
     """
 
-    device_list = []
+    device_list = ['cpu']
 
     # Check if PyTorch is installed and configure devices accordingly
     if is_package_installed('torch'):
