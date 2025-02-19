@@ -10,7 +10,7 @@
     "thermompnn": "thermompnn",
 
     "Protein Models": "",
-    "esm2": "faie-esm2",
+    "esm2": "fair-esm2",
 
     "Developer Tool": "",
     "test": "bandit;black;check-manifest;flake8-bugbear;flake8-docstrings;flake8-formatter_junit_xml;flake8;flake8-pyproject;pylint;pylint_junit;pytest;pytest-qt;pytest-cov;pytest-mock;pytest-runner;pytest;pytest-order;pytest-emoji;pytest-github-actions-annotate-failures;shellcheck-py;pre-commit;virtualenv;pooch;coverage"
