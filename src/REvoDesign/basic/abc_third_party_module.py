@@ -15,6 +15,5 @@ class ThirdPartyModuleAbstract(CitableModuleAbstract):
         __bibtex__ (dict): A dictionary containing the BibTeX entries for the module.
     """
 
-
     name: str = ""
     installed: bool = False

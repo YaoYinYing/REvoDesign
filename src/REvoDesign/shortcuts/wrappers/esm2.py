@@ -3,11 +3,14 @@ Shortcut wrappers of esm2
 '''
 
 from Bio import SeqIO
-
 from RosettaPy.common.mutation import RosettaPyProteinSequence
+
 from REvoDesign.common import file_extensions as FExt
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.tools.esm2 import shortcut_esm1v,list_all_esm_variant_predict_model_names, ESM1V_MODEL_DICT as EMD, ESM1V_SCORING_STRATEGY_T
+from REvoDesign.shortcuts.tools.esm2 import ESM1V_MODEL_DICT as EMD
+from REvoDesign.shortcuts.tools.esm2 import (
+    ESM1V_SCORING_STRATEGY_T, list_all_esm_variant_predict_model_names,
+    shortcut_esm1v)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import device_picker, timing
@@ -15,7 +18,6 @@ from REvoDesign.tools.utils import device_picker, timing
 from ...logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
-
 
 
 @dialog_wrapper(
@@ -51,29 +53,29 @@ logging = ROOT_LOGGER.getChild(__name__)
             typing=bool,
             reason="Skip the wildtype mutation.",
         ),
-        
+
         AskedValue(
             "mutation_col",
             "mutation",
             typing=str,
             reason="Mutation column name. Default is 'mutation'.",
         ),
-        
+
         AskedValue(
             "offset_idx",
             1,
             typing=int,
             reason="Offset index of the sequence. Default is 1.",
-            choices=range(-10,10)
+            choices=range(-10, 10)
         ),
-        
+
         AskedValue(
             "scoring_strategy",
             typing=str,
             reason="Scoring strategy. Default is 'wt-marginals'.",
             choices=["wt-marginals", "pseudo-ppl", "masked-marginals"]
         ),
-        
+
         AskedValue(
             "msa_path",
             "",
@@ -94,26 +96,25 @@ logging = ROOT_LOGGER.getChild(__name__)
             typing=str,
             reason="Device for the run. Default is 'cpu'. MPS may not work with better performance.",
             choices=device_picker,
-            
+
         ),
     )
 )
 def wrapped_esm1v(**kwargs):
-    
+
     logging.info(kwargs)
 
-    model_alias=kwargs.pop("model_alias")
+    model_alias = kwargs.pop("model_alias")
     kwargs['model_names'] = [EMD[x] for x in model_alias if x in EMD]
 
-    bus=ConfigBus()
+    bus = ConfigBus()
 
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
     designable_sequences: RosettaPyProteinSequence = bus.get_value(
         "designable_sequences", RosettaPyProteinSequence.from_dict)
     sequence: str = designable_sequences.get_sequence_by_chain(chain_id)
 
-    kwargs['sequence']=sequence
-
+    kwargs['sequence'] = sequence
 
     with timing(f"running ESM: {', '.join(model_alias)}"):
         logging.info(kwargs)

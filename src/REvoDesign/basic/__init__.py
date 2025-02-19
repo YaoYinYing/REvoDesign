@@ -1,5 +1,5 @@
 from .abc_singleton import SingletonAbstract
-from .abc_third_party_module  import ThirdPartyModuleAbstract
+from .abc_third_party_module import ThirdPartyModuleAbstract
 from .data_structure import IterableLoop
 from .designer import ExternalDesignerAbstract
 from .extensions import FileExtension, FileExtensionCollection

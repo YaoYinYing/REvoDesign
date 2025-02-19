@@ -1125,7 +1125,7 @@ class AskedValue:
     reason: Optional[str] = None
     required: bool = False
     choices: Optional[Union[Iterable, Callable[[], Iterable]]] = None
-    source: Literal["None", "File","FileO", "Files", "Directory", "JsonInput"] = "None"
+    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
 
 
@@ -1495,7 +1495,11 @@ class ValueDialog(QtWidgets.QDialog):
         if asked_value.source == "File" or asked_value.source == 'FileO':
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a file")
-            action_button.clicked.connect(lambda: self._browse_file(widget, asked_value.ext, mode='r' if asked_value.source == "File" else 'w'))
+            action_button.clicked.connect(
+                lambda: self._browse_file(
+                    widget,
+                    asked_value.ext,
+                    mode='r' if asked_value.source == "File" else 'w'))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "Files":
             action_button = QtWidgets.QPushButton("Browse")
@@ -1559,7 +1563,8 @@ class ValueDialog(QtWidgets.QDialog):
 
             self.table.setCellWidget(row, 3, container_widget)
 
-    def _browse_file(self, widget, exts: Optional[FExCol] = None, multiple: bool = False, mode: Literal['r', 'w']='r'):
+    def _browse_file(self, widget, exts: Optional[FExCol] = None,
+                     multiple: bool = False, mode: Literal['r', 'w'] = 'r'):
         """
         Opens a file dialog to select a file and updates the input field.
 

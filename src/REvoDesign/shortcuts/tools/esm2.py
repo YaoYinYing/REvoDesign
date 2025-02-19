@@ -4,40 +4,39 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import itertools
 import os
-import re
 import string
-
-import torch
-from immutabledict import immutabledict
-from esm2 import Alphabet, FastaBatchedDataset, ProteinBertModel, pretrained, MSATransformer
-import pandas as pd
-from tqdm import tqdm
-from Bio import SeqIO
-import itertools
 from typing import List, Literal, Optional, Tuple
+
 import numpy as np
-import itertools
+import pandas as pd
+import torch
+from Bio import SeqIO
+from esm2 import (Alphabet, FastaBatchedDataset, MSATransformer,
+                  ProteinBertModel, pretrained)
+from immutabledict import immutabledict
+from tqdm import tqdm
 
-ESM1V_SCORING_STRATEGY_T=Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
+ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
-ESM1V_MODEL_DICT:immutabledict[str, str]=immutabledict(
+ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     {
-        "esm-1v_1":"esm1v_t33_650M_UR90S_1",
-        "esm-1v_2":"esm1v_t33_650M_UR90S_2",
-        "esm-1v_3":"esm1v_t33_650M_UR90S_3",
+        "esm-1v_1": "esm1v_t33_650M_UR90S_1",
+        "esm-1v_2": "esm1v_t33_650M_UR90S_2",
+        "esm-1v_3": "esm1v_t33_650M_UR90S_3",
         "esm-1v_4": "esm1v_t33_650M_UR90S_4",
         "esm-1v_5": "esm1v_t33_650M_UR90S_5",
         "msa-1b": "esm_msa1b_t12_100M_UR50S",
         "esm-2": "esm2_t36_3B_UR50D"
     }
 )
-        
+
 
 def list_all_esm_variant_predict_model_names() -> list[str]:
     '''
     List all ESM-1v variant predict model names.
-    
+
     Returns:
         list[str]: List of ESM-1v variant predict model names
     '''
@@ -57,7 +56,7 @@ def remove_insertions(sequence: str) -> str:
 
 def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
     """ Reads the first nseq sequences from an MSA file, automatically removes insertions.
-    
+
     The input file must be in a3m format (although we use the SeqIO fasta parser)
     for remove_insertions to work properly."""
 
@@ -79,21 +78,20 @@ def label_row(row, sequence, token_probs, alphabet, offset_idx):
     return score.item()
 
 
-
 class Esm1v:
     def __init__(
             self,
-            model_names:List[str],
-            sequence:str,
+            model_names: List[str],
+            sequence: str,
             dms_output: str,
-            checkpoint_dir:Optional[str]=None,
-            skip_wt: bool=True,
-            mutation_col: str='mutation',
-            offset_idx: int=0,
-            scoring_strategy:ESM1V_SCORING_STRATEGY_T="wt-marginals",
-            msa_path: Optional[str]=None,
-            msa_samples:int=400,
-            device:str='cpu',
+            checkpoint_dir: Optional[str] = None,
+            skip_wt: bool = True,
+            mutation_col: str = 'mutation',
+            offset_idx: int = 0,
+            scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
+            msa_path: Optional[str] = None,
+            msa_samples: int = 400,
+            device: str = 'cpu',
     ):
         '''
         Initialize Deep Mutation Scan for ESM-1v
@@ -107,10 +105,10 @@ class Esm1v:
             scoring_strategy: Scoring strategy for the deep mutational scan
             msa_path: path to MSA in a3m format (required for MSA Transformer)
             msa_samples: number of sequences to select from the start of the MSA
-        
+
         '''
         self.model_names = model_names
-        self.checkpoint_dir=checkpoint_dir
+        self.checkpoint_dir = checkpoint_dir
         self.sequence = sequence
         self.dms_output = dms_output
         self.skip_wt = skip_wt
@@ -123,7 +121,6 @@ class Esm1v:
 
         os.makedirs(os.path.dirname(self.dms_output), exist_ok=True)
 
-    
     def generate_dms_list(self) -> pd.DataFrame:
         '''
         Generate Deep Mutation Scan list for ESM-1v.
@@ -131,12 +128,17 @@ class Esm1v:
         Returns:
             pd.DataFrame: Deep Mutation Scan list for ESM-1v
         '''
-        
-        alphabet="ARNDCQEGHILKMFPSTWYV"
+
+        alphabet = "ARNDCQEGHILKMFPSTWYV"
         if self.skip_wt:
-            df_dms=pd.DataFrame([f'{self.sequence[idx]}{idx+1}{mut}' for (idx,mut) in itertools.product(range(0, len(self.sequence)),alphabet ) if self.sequence[idx] != mut ],columns=[self.mutation_col])
+            df_dms = pd.DataFrame([f'{self.sequence[idx]}{idx+1}{mut}' for (idx,
+                                                                            mut) in itertools.product(range(0,
+                                                                                                            len(self.sequence)),
+                                                                                                      alphabet) if self.sequence[idx] != mut],
+                                  columns=[self.mutation_col])
         else:
-            df_dms=pd.DataFrame([f'{self.sequence[idx]}{idx+1}{mut}' for (idx,mut) in itertools.product(range(0, len(self.sequence)),alphabet ) ],columns=[self.mutation_col])
+            df_dms = pd.DataFrame([f'{self.sequence[idx]}{idx+1}{mut}' for (idx, mut)
+                                  in itertools.product(range(0, len(self.sequence)), alphabet)], columns=[self.mutation_col])
         return df_dms
 
     def predict(self):
@@ -146,10 +148,11 @@ class Esm1v:
         # inference for each model
         for model_name in self.model_names:
             if self.checkpoint_dir is not None and os.path.isdir(model_name):
-                model_path=os.path.join(self.checkpoint_dir, f'{model_name}.pt')
+                model_path = os.path.join(self.checkpoint_dir, f'{model_name}.pt')
             else:
-                model_path=model_name
-            model, alphabet = pretrained.load_model_and_alphabet(model_path if os.path.isfile(model_path) else os.path.basename(model_name).rstrip('.pt'))
+                model_path = model_name
+            model, alphabet = pretrained.load_model_and_alphabet(
+                model_path if os.path.isfile(model_path) else os.path.basename(model_name).rstrip('.pt'))
             model.eval()
             if self.device != "cpu":
                 model = model.to(self.device)
@@ -231,17 +234,16 @@ class Esm1v:
                             row[self.mutation_col], self.sequence, model, alphabet, self.offset_idx
                         ),
                         axis=1,
-                    ) # type: ignore
+                    )  # type: ignore
 
         df.to_csv(self.dms_output)
-
 
     def compute_pppl(self, row, sequence, model, alphabet, offset_idx):
         wt, idx, mt = row[0], int(row[1:-1]) - offset_idx, row[-1]
         assert sequence[idx] == wt, "The listed wildtype does not match the provided sequence"
 
         # modify the sequence
-        sequence = sequence[:idx] + mt + sequence[(idx + 1) :]
+        sequence = sequence[:idx] + mt + sequence[(idx + 1):]
 
         # encode the sequence
         data = [
@@ -266,19 +268,19 @@ class Esm1v:
 
 
 def shortcut_esm1v(
-        model_names:List[str],
-        sequence:str,
+        model_names: List[str],
+        sequence: str,
         dms_output: str,
-        checkpoint_dir:Optional[str]=None,
-        skip_wt: bool=True,
-        mutation_col: str='mutation',
-        offset_idx: int=0,
-        scoring_strategy:ESM1V_SCORING_STRATEGY_T="wt-marginals",
-        msa_path: Optional[str]=None,
-        msa_samples:int=400,
-        device:str='cpu',
+        checkpoint_dir: Optional[str] = None,
+        skip_wt: bool = True,
+        mutation_col: str = 'mutation',
+        offset_idx: int = 0,
+        scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
+        msa_path: Optional[str] = None,
+        msa_samples: int = 400,
+        device: str = 'cpu',
 ):
-    predictor=Esm1v(
+    predictor = Esm1v(
         model_names=model_names,
         sequence=sequence,
         dms_output=dms_output,
