@@ -76,7 +76,7 @@ upload-gists:
 
 # only for test on runner or local machine.
 install:
-	python -m pip install ".[dlpacker,pippack,colabdesign,test]" -U --no-cache-dir
+	python -m pip install ".[dlpacker,pippack,colabdesign,thermompnn,test]" -U --no-cache-dir
 
 # only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:

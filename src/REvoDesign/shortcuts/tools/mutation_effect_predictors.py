@@ -11,7 +11,7 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.citations import CitableModuleAbstract
+from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.tools.mutant_tools import (extract_mutants_from_mutant_id,
@@ -23,7 +23,8 @@ logging = ROOT_LOGGER.getChild(__name__)
 RUN_MODE_T = Literal["single", "additive", "epistatic"]
 
 
-class ThermoMpnnPredictor(CitableModuleAbstract):
+class ThermoMpnnPredictor(ThirdPartyModuleAbstract):
+    name: str= 'ThermoMPNN'
     installed: bool = is_package_installed('thermompnn')
 
     def __init__(self,
@@ -128,7 +129,7 @@ def shortcut_thermompnn(
 ):
     if not ThermoMpnnPredictor.installed:
         raise issues.UninstalledPackageError(
-            f'ThermoMPNN requires installing REvoDesign with `ThermoMPNN` extra package.')
+            f'{ThermoMpnnPredictor.__name__} requires installing REvoDesign with `{ThermoMpnnPredictor.name}` extra package.')
 
     app = ThermoMpnnPredictor(pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
 
