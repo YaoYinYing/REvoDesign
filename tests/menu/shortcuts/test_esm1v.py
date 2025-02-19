@@ -21,11 +21,12 @@ def test_esm1v(test_worker: TestWorker):
 
 
     save_dir = 'predictors/esm1v'
+    model_name='esm1v_t33_650M_UR90S_1'
 
     shortcut_esm1v(
-        model_names=['esm1v_t33_650M_UR90S_1'],
+        model_names=[model_name],
         sequence=sequence,
-        dms_output=os.path.join(save_dir, 'esm1v_t33_650M_UR90S_1.csv'),
+        dms_output=os.path.join(save_dir, f'{model_name}.csv'),
         checkpoint_dir='',
         skip_wt=False,
         mutation_col='mutation',
