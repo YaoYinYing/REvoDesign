@@ -9,7 +9,7 @@ from typing import List, Literal, Optional
 import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign import ROOT_LOGGER,issues
+from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.common.mutant import Mutant
@@ -39,7 +39,7 @@ class ThermoMpnnPredictor(CitableModuleAbstract):
                  device: str = 'cpu'):
 
         self.prefix = prefix
-        self.mode=mode
+        self.mode = mode
 
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
@@ -56,9 +56,9 @@ class ThermoMpnnPredictor(CitableModuleAbstract):
         # only when the application is passed successfully can the citation be prompted.
         self.cite()
         if self.mode == 'single':
-            df.columns=['ddG','Mutation']
+            df.columns = ['ddG', 'Mutation']
         else:
-            df.columns=['ddG','Mutation', 'dist']
+            df.columns = ['ddG', 'Mutation', 'dist']
         return df
 
     @staticmethod
@@ -69,7 +69,7 @@ class ThermoMpnnPredictor(CitableModuleAbstract):
             wt_before_chain=True
         )
 
-    def df2mutant_tree(self, df: pd.DataFrame, sorted_by: Literal['prefix', 'positions']='prefix') -> MutantTree:
+    def df2mutant_tree(self, df: pd.DataFrame, sorted_by: Literal['prefix', 'positions'] = 'prefix') -> MutantTree:
         mutant_tree = MutantTree()
         for i, row in df.iterrows():
             score: float = row['ddG']
@@ -79,10 +79,8 @@ class ThermoMpnnPredictor(CitableModuleAbstract):
             mutant.mutant_score = score
             mutant.wt_score = 0
 
-            mutant_tree.add_mutant_to_branch(
-                self.prefix if sorted_by=='prefix' else 'TMPNN_'+'_vs_'.join(str(m.position) for m in mutant.mutations), 
-                mutant.full_mutant_id, 
-                mutant)
+            mutant_tree.add_mutant_to_branch(self.prefix if sorted_by == 'prefix' else 'TMPNN_' +
+                                             '_vs_'.join(str(m.position) for m in mutant.mutations), mutant.full_mutant_id, mutant)
 
         return mutant_tree
 
@@ -129,19 +127,20 @@ def shortcut_thermompnn(
     top_ranked: Optional[int] = 100,
 ):
     if not ThermoMpnnPredictor.installed:
-        raise issues.UninstalledPackageError(f'ThermoMPNN requires installing REvoDesign with `ThermoMPNN` extra package.')
-    
+        raise issues.UninstalledPackageError(
+            f'ThermoMPNN requires installing REvoDesign with `ThermoMPNN` extra package.')
+
     app = ThermoMpnnPredictor(pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
 
     df = app.run()
 
-    if top_ranked and top_ranked>1:
-        df.sort_values(by=['ddG'],inplace=True)
+    if top_ranked and top_ranked > 1:
+        df.sort_values(by=['ddG'], inplace=True)
         logging.info(f'Selecting top {top_ranked} mutants...')
-        df=df.head(top_ranked)
+        df = df.head(top_ranked)
 
     with timing('parsing dataframe from ThermoMPNN'):
-        mutant_tree = app.df2mutant_tree(df,sorted_by='positions')
+        mutant_tree = app.df2mutant_tree(df, sorted_by='positions')
 
     logging.info(f'ThermoMPNN produced {len(mutant_tree.all_mutant_objects)} Mutants.')
     logging.debug(f"{mutant_tree=}")

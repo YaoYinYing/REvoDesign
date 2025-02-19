@@ -77,7 +77,7 @@ logging = ROOT_LOGGER.getChild(__name__)
             typing=bool,
             reason="Enable SS penalty. Default is False.",
         ),
-        
+
         AskedValue(
             "device",
             'cpu',
