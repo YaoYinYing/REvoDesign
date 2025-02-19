@@ -46,6 +46,7 @@ NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
 def extract_mutants_from_mutant_id(
     mutant_string: str,
     sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
+    wt_before_chain:bool=False
 ) -> Mutant:
     """
     Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
@@ -54,6 +55,7 @@ def extract_mutants_from_mutant_id(
     mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
                         <chain_id><wt_res><resi><mut_res>_...._<score>
     sequences (dict): Wild-type chain: sequence of design molecule
+    wt_before_chain (bool): Some people write WT residue before chain_id. This helps to correct recognizing of this pattern
 
     Returns:
     tuple:
@@ -72,10 +74,15 @@ def extract_mutants_from_mutant_id(
         if re.match(r"[A-Z]{2}\d+[A-Z]{1}", mut):
             logging.debug(f"full description: {mut}")
             _mut = re.match(r"([A-Z]{1})([A-Z]{1})(\d+)([A-Z]{1})", mut)
-            _chain_id = _mut.group(1)
-
+            if not wt_before_chain:
+                _chain_id = _mut.group(1)
+                _wt_res = _mut.group(2)
+            else:
+                _wt_res = _mut.group(1)
+                _chain_id = _mut.group(2)
+                
             _position = _mut.group(3)
-            _wt_res = _mut.group(2)
+            
             _mut_res = _mut.group(4)
 
         # reduced description of mutation, <wt_res><pos><mut>, missing <chain_id>

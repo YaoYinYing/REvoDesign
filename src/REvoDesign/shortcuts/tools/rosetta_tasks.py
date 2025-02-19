@@ -283,7 +283,8 @@ class RelaxWithCaConstraints:
             cmd.load(new_pdb_path, self.job_id, 1)
         for round_id in range(self.ncycles):
             new_pdb_path = self.run_a_round(round_id, new_pdb_path)
-            cmd.load(new_pdb_path, self.job_id, round_id + 2)
+            if load_to_preview:
+                cmd.load(new_pdb_path, self.job_id, round_id + 2)
         return new_pdb_path
 
 
