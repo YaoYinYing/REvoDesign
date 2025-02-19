@@ -22,9 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ThirdPartyModuleAbstract` to describe the abstract class of third party modules, which inherits from `CitableModuleAbstract`
 - menu: 
   - ThermoMPNN
-- `pyproject.toml`: added `thermompnn`
-- installation JSONs: added `thermompnn`
-- makefile: added `thermompnn`
+  - ESM-1v(official ESM2, or `fair-esm`, renamed as `fair-esm2` on `https://github.com/YaoYinYing/esm2`)
+- `pyproject.toml`: 
+  - added `thermompnn`
+  - added `esm2`
+- installation JSONs: 
+  - added `thermompnn`
+  - added `esm2`
+- makefile: 
+  - added `thermompnn`
+  - added `esm2`
 
 ### Changed
 - `basic`: 

@@ -9,12 +9,10 @@ import os
 import string
 from typing import List, Literal, Optional, Tuple
 
-import numpy as np
 import pandas as pd
 import torch
 from Bio import SeqIO
-from esm2 import (Alphabet, FastaBatchedDataset, MSATransformer,
-                  ProteinBertModel, pretrained)
+
 from immutabledict import immutabledict
 from tqdm import tqdm
 
@@ -146,6 +144,8 @@ class Esm1v:
         return df_dms
 
     def predict(self):
+        from esm2 import  MSATransformer, pretrained
+        
         # Load the deep mutational scan
         df = self.generate_dms_list()
 
