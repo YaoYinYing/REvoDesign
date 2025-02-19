@@ -121,6 +121,8 @@ class Esm1v:
         self.msa_samples = msa_samples
         self.device = device
 
+        os.makedirs(os.path.dirname(self.dms_output), exist_ok=True)
+
     
     def generate_dms_list(self) -> pd.DataFrame:
         '''
