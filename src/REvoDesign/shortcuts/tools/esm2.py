@@ -131,14 +131,18 @@ class Esm1v:
 
         alphabet = "ARNDCQEGHILKMFPSTWYV"
         if self.skip_wt:
-            df_dms = pd.DataFrame([f'{self.sequence[idx]}{idx+1}{mut}' for (idx,
-                                                                            mut) in itertools.product(range(0,
-                                                                                                            len(self.sequence)),
-                                                                                                      alphabet) if self.sequence[idx] != mut],
-                                  columns=[self.mutation_col])
+            df_dms = pd.DataFrame(
+                [
+                    f'{self.sequence[idx]}{idx+1}{mut}' 
+                    for idx,mut in itertools.product(range(0,len(self.sequence)),alphabet) 
+                    if self.sequence[idx] != mut
+                ], columns=[self.mutation_col])
         else:
-            df_dms = pd.DataFrame([f'{self.sequence[idx]}{idx+1}{mut}' for (idx, mut)
-                                  in itertools.product(range(0, len(self.sequence)), alphabet)], columns=[self.mutation_col])
+            df_dms = pd.DataFrame(
+                [
+                    f'{self.sequence[idx]}{idx+1}{mut}' 
+                    for idx, mut in itertools.product(range(0, len(self.sequence)), alphabet)
+                ], columns=[self.mutation_col])
         return df_dms
 
     def predict(self):
