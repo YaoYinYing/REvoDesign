@@ -22,7 +22,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 @dialog_wrapper(
     title="ESM1v",
-    banner="Run ESM1v/ESM2/MSA1b Variant Predictions",
+    banner="Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)",
     options=(
         AskedValue(
             "model_alias",
