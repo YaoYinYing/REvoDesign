@@ -21,36 +21,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `basic`: 
   - `ThirdPartyModuleAbstract` to describe the abstract class of third party modules, which inherits from `CitableModuleAbstract`
 - menu: 
-  - ThermoMPNN
-  - ESM-1v(official ESM2, or `fair-esm`, renamed as `fair-esm2` on `https://github.com/YaoYinYing/esm2`)
-  - OpenMM-Setup for basic simulations
+  - `ThermoMPNN`
+  - `ESM-1v`(official `ESM2`, or `fair-esm`, renamed as `fair-esm2` on `https://github.com/YaoYinYing/esm2`)
+  - `OpenMM-Setup` for basic simulations
 - `pyproject.toml`: 
   - added `thermompnn`
   - added `esm2`
   - added `esme`: in draft
+  - added `openmm`
 - installation JSONs: 
   - added `thermompnn`
   - added `esm2`
   - added `esme`
-- makefile: 
+  - added `openmm`
+- `makefile`: 
   - added `thermompnn`
   - added `esm2`
-- utils: 
+- `utils`: 
   - `require_installed`: check if `cls.installed` is `True` before instantializing it.
   - `get_cited`: run `self.cite()` after objective method has returned.
-
+- `basic`:
+  - `server_monitor` 
+    - `ServerControlAbstract`: An abstract class for server control.
+- `openmm_utils`:
+  - `OpenmmSetupServerControl`: A class for controlling OpenMM setup backend.
+  
 ### Changed
 - `basic`: 
   - `ExternalDesignerAbstract` and `MutateRunnerAbstract` now inherit from `ThirdPartyModuleAbstract`
 - utils: 
   - `mutant_tools`: `extract_mutants_from_mutant_id` now support mutant string expression pattern like `<wt_res><chain_id><resi><mut_res>`
   - `device_picker`: listing of device names that are accessible to DL frameworks like PyTorch.
+- Monaco backend:
+  - `ServerControl` inherits from `ServerControlAbstract`
   
+
 ### Fixed
 - `RelaxWithCaConstraints`: fixed unexpected pymol loadings that should be controlled by `load_to_preview`.
 - `quick_mutagenesis`: fixed with latest code
 
 ### Removed
+- `basic`: removed `ServerProtocol`
 
 ## [1.7.17] - 2025-02-18
 ### Added

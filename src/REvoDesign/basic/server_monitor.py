@@ -17,7 +17,6 @@ class ServerControlAbstract(SingletonAbstract):
         server_thread (WorkerThread): The worker thread that runs the Uvicorn server.
         is_running (bool): Indicates whether the server is running.
         server (Uvicorn Server): The Uvicorn server instance.
-        config_store (ConfigStore): The configuration store for the server.
 
     Usage:
         Register the server control actions in the application's menu actions:
