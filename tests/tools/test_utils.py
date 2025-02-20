@@ -3,17 +3,20 @@ import string
 import tarfile
 import tempfile
 import zipfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import matplotlib
 import numpy as np
 import pytest
 
+from REvoDesign import issues
+from REvoDesign.citations import CitableModuleAbstract,CitationManager
+from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import (cmap_reverser, count_and_sort_characters,
                                     extract_archive, generate_strong_password,
                                     get_color, minibatches,
                                     minibatches_generator, random_deduplicate,
-                                    rescale_number, timing)
+                                    rescale_number, timing,require_installed,get_cited)
 
 matplotlib.use('Agg')  # Use the Agg backend to avoid GUI requirements for testing
 
@@ -411,3 +414,66 @@ def test_timing(caplog):
         # Check the logs
         assert "Started test message" in caplog.text
         assert "Finished test message in " in caplog.text
+
+@pytest.mark.parametrize(
+        'package_name, expected_raise',
+        [
+            ('REvoDesign', False),
+            ('TARDIS', True),
+        ]
+)
+def test_require_installed(package_name, expected_raise):
+
+    @require_installed
+    class TestClass:
+        installed = is_package_installed(package_name)
+        name = "TestClass"
+
+    if expected_raise:
+        with pytest.raises(issues.UninstalledPackageError):
+            TestClass()
+    else:
+        TestClass()
+    
+
+def test_get_cited():
+
+    class CitableClass(CitableModuleAbstract):
+        def __init__(self):
+            ...
+
+        def config(self):
+            print('Awesome module is under configuration!')
+
+        @get_cited
+        def run(self):
+            print('Awesome module got run and the paper will be cited!')
+        
+        __bibtex__ = {'AwesomePaper': """@article {goodpaper2025.01.01.awesomej1009,
+    author = {You and Me},
+    title = {Good Title is All You Need},
+    elocation-id = {2025.01.01.awesomej1009},
+    year = {2024},
+    doi = {10.1101/2025.01.01.awesomej1009},
+    publisher = {Unlimited Sci-Hub Publishing Hard-Drive},
+    URL = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009},
+    eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
+    journal = {Awesome Journal}
+}"""}
+        
+    expected_citation=CitableClass.__bibtex__
+        
+    cm=CitationManager()
+    cm.clear()
+
+    app=CitableClass()
+
+    assert len(cm.called_citations) == 0, "CitationManager should start with no called citations"
+
+    app.config()
+    assert len(cm.called_citations) == 0, "CitationManager should still have no called citations after config()"
+
+    app.run()
+    assert len(cm.called_citations) == 1, "CitationManager should have one called citation after run()"
+    assert cm.called_citations == expected_citation, "CitationManager should have the expected citation after run()"
+    cm.reset_instance()

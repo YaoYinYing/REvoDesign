@@ -83,9 +83,11 @@ def require_installed(cls):
     orig_init = cls.__init__
 
     def __init__(self, *args, **kwargs):
-        orig_init(self, *args, **kwargs)
-        if not getattr(self, 'installed', False):
+        
+        if not getattr(cls, 'installed', False):
             raise issues.UninstalledPackageError(f"Module '{self.name}' is not installed.")
+        
+        orig_init(self, *args, **kwargs)
 
     cls.__init__ = __init__
     return cls
