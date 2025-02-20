@@ -36,6 +36,7 @@ from REvoDesign.driver.environ_register import (add_new_environment_variables,
                                                 register_environment_variables)
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
+from REvoDesign.driver.ui_driver import StoresWidget
 from REvoDesign.editor import menu_edit_file
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
@@ -380,14 +381,16 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
 
-        self.bus.stores.server_switches.update(
+        stores=StoresWidget()
+
+        stores.server_switches.update(
             {
                 'Editor_Backend': MenuActionServerMonitor(
                     ServerControl,
                     self.bus.ui.actionStartEditor,
                     self.bus.ui.actionStopEditor,
                     self.bus.ui.menuEditor_Backend)})
-        self.bus.stores.server_switches.update(
+        stores.server_switches.update(
             {
                 'OpenMM': MenuActionServerMonitor(
                     OpenmmSetupServerControl,

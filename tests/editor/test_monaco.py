@@ -87,7 +87,7 @@ def test_copy_html_template(test_tmp_dir):
         mock_copy.assert_called_once_with(manager.html_template_path, os.path.join(version_dir, "index.html"))
 
 
-def test_edit_file_with_monaco(mock_server_control, mock_config_store, test_tmp_dir):
+def test_edit_file_with_monaco(mock_server_control, mock_config_store, test_tmp_dir, test_worker):
 
     file_path = os.path.join(test_tmp_dir, "file.txt")
     with open(file_path, "w") as f:

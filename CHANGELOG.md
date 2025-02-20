@@ -46,12 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `openmm_utils`:
   - `OpenmmSetupServerControl`: A class for controlling OpenMM setup backend.
 - `ui_driver`:
-  - `StoresWidget` to store some dynamic ui data
-  - `ConfigBus`:
-    - attr `stores`: StoresWidget`
+  - `StoresWidget` a singleton class to store some dynamic ui data
+
 - `monaco`:
   - `edit_file_with_monaco`:
-    - interplay with `MenuActionServerMonitor` from  `ConfigBus().stores.server_switches['Editor_Backend']` to avoid calling the control without LED status change.
+    - interplay with `MenuActionServerMonitor` from  `StoresWidget().server_switches['Editor_Backend']` to avoid calling the control without LED status change.
 - UI: 
   - menu:
     - server controls now have LED to show the status of the server.
@@ -67,7 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `device_picker`: listing of device names that are accessible to DL frameworks like PyTorch.
 - Monaco backend:
   - `ServerControl` inherits from `ServerControlAbstract`
-  
+- tests: 
+  - change `test_edit_file_with_monaco` to use `test_worker` for non-headless mode
 
 ### Fixed
 - `RelaxWithCaConstraints`: fixed unexpected pymol loadings that should be controlled by `load_to_preview`.

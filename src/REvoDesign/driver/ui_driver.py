@@ -33,9 +33,10 @@ ValueFromConfigT = TypeVar("ValueFromConfigT")
 # Define the decorator to enforce the non-headless requirement
 
 
-@dataclass
-class StoresWidget:
-    server_switches: Dict[str, MenuActionServerMonitor] = field(default_factory=dict)
+
+class StoresWidget(SingletonAbstract):
+    def singleton_init(self):
+        self.server_switches: Dict[str, MenuActionServerMonitor] = {}
 
 
 class HeadlessProtocol(Protocol):
@@ -128,8 +129,6 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             self.ui = ui
             self.w2c = Widget2ConfigMapper(ui=self.ui)
             self.push_buttons = self.w2c.push_buttons
-
-            self.stores: StoresWidget = StoresWidget()
 
         self.cite()
 

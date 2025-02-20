@@ -8,7 +8,7 @@ from platformdirs import user_data_dir
 
 from REvoDesign import issues
 
-from ...driver.ui_driver import ConfigBus
+from ...driver.ui_driver import ConfigBus, StoresWidget
 from ...logger import ROOT_LOGGER
 from ...tools.package_manager import get_github_repo_tags, notify_box
 from ...tools.utils import run_worker_thread_with_progress
@@ -170,9 +170,10 @@ def edit_file_with_monaco(file_path: str):
     from pathlib import Path
 
     config_store = ConfigStore()
+    
 
     # Step 2: Ensure the server is running
-    server_monitor = ConfigBus().stores.server_switches['Editor_Backend']
+    server_monitor = StoresWidget().server_switches['Editor_Backend']
     logging.info(f"Server launch status: {server_monitor.controller.is_running}")
     if not server_monitor.controller.is_running:
         server_monitor._start_server()
