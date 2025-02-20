@@ -45,7 +45,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `ServerControlAbstract`: An abstract class for server control.
 - `openmm_utils`:
   - `OpenmmSetupServerControl`: A class for controlling OpenMM setup backend.
-  
+- `ui_driver`:
+  - `StoresWidget` to store some dynamic ui data
+  - `ConfigBus`:
+    - attr `stores`: StoresWidget`
+- `monaco`:
+  - `edit_file_with_monaco`:
+    - interplay with `MenuActionServerMonitor` from  `ConfigBus().stores.server_switches['Editor_Backend']` to avoid calling the control without LED status change.
+- UI: 
+  - menu:
+    - server controls now have LED to show the status of the server.
+      - LED from [Grid Control](https://github.com/akej74/grid-control)
+    - server controls now stored at `ConfigBus.stores.server_switches`
+    - 
+
 ### Changed
 - `basic`: 
   - `ExternalDesignerAbstract` and `MutateRunnerAbstract` now inherit from `ThirdPartyModuleAbstract`
