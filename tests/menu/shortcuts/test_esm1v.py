@@ -1,4 +1,3 @@
-import os
 
 import pytest
 from RosettaPy.common.mutation import RosettaPyProteinSequence
@@ -6,7 +5,7 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign.shortcuts.tools.esm2 import shortcut_esm1v
 from tests.conftest import TestWorker
 
-## DISABLED FOR MEMEORY ISSUE
+# DISABLED FOR MEMEORY ISSUE
 # @pytest.mark.serial
 # def test_esm1v(test_worker: TestWorker):
 #     pdb = "../tests/data/3fap_hf3_A_short.pdb"

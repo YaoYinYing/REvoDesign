@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.tools.utils import require_installed, get_cited
+from REvoDesign.tools.utils import get_cited, require_installed
 
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
@@ -152,7 +152,7 @@ class Esm1v(ThirdPartyModuleAbstract):
 
     @get_cited
     def predict(self):
-        from esm2 import MSATransformer, pretrained # type: ignore
+        from esm2 import MSATransformer, pretrained  # type: ignore
 
         # Load the deep mutational scan
         df = self.generate_dms_list()

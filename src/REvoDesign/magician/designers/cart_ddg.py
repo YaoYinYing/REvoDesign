@@ -24,6 +24,7 @@ from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import get_cited
 
+
 def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
 
     if node_hint is None or node_hint == "native":
@@ -65,9 +66,8 @@ def is_docker_available() -> bool:
         del client
         return True
     except docker.errors.DockerException as e:
-        warnings.warn(
-            issues.PlatformNotSupportedWarning(f"Docker is not available(uninstalled or unlaunched) on this machine: {e}")
-        )
+        warnings.warn(issues.PlatformNotSupportedWarning(
+            f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"))
         return False
 
 
@@ -84,6 +84,7 @@ def preprocess_ddg_values(ddg_value_df) -> Dict[str, float]:
         row["Baseline"]: row["ddG_cart"] for _, row in ddg_value_df.iterrows()
     }
     return ddg_dict
+
 
 class ddg(ExternalDesignerAbstract):
 

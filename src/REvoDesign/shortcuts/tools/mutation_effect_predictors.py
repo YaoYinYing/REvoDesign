@@ -16,12 +16,12 @@ from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.tools.mutant_tools import (extract_mutants_from_mutant_id,
                                            quick_mutagenesis)
-from REvoDesign.tools.utils import timing, get_cited, require_installed
-
+from REvoDesign.tools.utils import get_cited, require_installed, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
 RUN_MODE_T = Literal["single", "additive", "epistatic"]
+
 
 @require_installed
 class ThermoMpnnPredictor(ThirdPartyModuleAbstract):

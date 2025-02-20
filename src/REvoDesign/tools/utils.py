@@ -74,6 +74,7 @@ def require_not_none(
 
     return decorator
 
+
 def require_installed(cls):
     """
     Decorator to enforce that the `installed` attribute of a class is True.
@@ -89,6 +90,7 @@ def require_installed(cls):
     cls.__init__ = __init__
     return cls
 
+
 def get_cited(method):
     """
     Decorator to call `self.cite()` after executing `self.process()`.
@@ -101,6 +103,7 @@ def get_cited(method):
         return result
 
     return wrapper
+
 
 def minibatches(inputs_data, batch_size):
     """

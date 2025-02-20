@@ -1,17 +1,18 @@
-
 import webbrowser
 
 import uvicorn
-from REvoDesign.basic import ThirdPartyModuleAbstract, ServerControlAbstract
+
+from REvoDesign.basic import ServerControlAbstract, ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.tools.package_manager import WorkerThread, run_worker_thread_with_progress
-from REvoDesign.tools.utils import require_installed, get_cited
+from REvoDesign.tools.package_manager import (WorkerThread,
+                                              run_worker_thread_with_progress)
+from REvoDesign.tools.utils import get_cited, require_installed
 
 
 @require_installed
-class OpenmmSetupServerControl(ThirdPartyModuleAbstract,ServerControlAbstract):
-    name: str='openmmsetup'
+class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
+    name: str = 'openmmsetup'
     installed: bool = is_package_installed(name)
 
     def singleton_init(self):
@@ -19,21 +20,20 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract,ServerControlAbstract):
         self.is_running = False
         self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
 
-    
     def start_server(self):
         super().start_server()
 
         # a modified main function from openmmsetup
-        from openmmsetup.openmmsetup import app
         from asgiref.wsgi import WsgiToAsgi  # Add this line
+        from openmmsetup.openmmsetup import app
 
         asgi_app = WsgiToAsgi(app)  # Wrap the Flask app as ASGI
 
-        bus=ConfigBus()
+        bus = ConfigBus()
 
-        host=bus.get_value('openmmsetup.host', str)
-        port=bus.get_value('openmmsetup.port', int)
-    
+        host = bus.get_value('openmmsetup.host', str)
+        port = bus.get_value('openmmsetup.port', int)
+
         config = uvicorn.Config(
             app=asgi_app,
             host=host,
@@ -41,7 +41,7 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract,ServerControlAbstract):
             log_level="info",
         )
         self.server = uvicorn.Server(config)
-        
+
         # Start server in a WorkerThread
         self.server_thread = WorkerThread(func=self._run_server)
         self.server_thread.result_signal.connect(self._on_server_result)
@@ -56,7 +56,6 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract,ServerControlAbstract):
         )
 
         self.cite()
-        
 
     __bibtex__ = {
         'OpenMM': """@article{doi:10.1021/acs.jpcb.3c06662,

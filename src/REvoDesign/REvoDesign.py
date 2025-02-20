@@ -381,7 +381,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
 
         MenuActionServerMonitor(ServerControl, self.bus.ui.actionStartEditor, self.bus.ui.actionStopEditor)
-        MenuActionServerMonitor(OpenmmSetupServerControl, self.bus.ui.actionStart_SetupOpenMM, self.bus.ui.actionStop_SetupOpenMM)
+        MenuActionServerMonitor(
+            OpenmmSetupServerControl,
+            self.bus.ui.actionStart_SetupOpenMM,
+            self.bus.ui.actionStop_SetupOpenMM)
         if self.teamwork_enabled:
             self.ws_server = REvoDesignWebSocketServer()
             self.ws_client = REvoDesignWebSocketClient()

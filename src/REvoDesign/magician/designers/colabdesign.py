@@ -14,7 +14,7 @@ from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.utils import require_installed, get_cited
+from REvoDesign.tools.utils import get_cited, require_installed
 
 
 # Designer wrapper to ColabDesign MPNN

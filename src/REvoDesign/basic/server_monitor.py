@@ -1,12 +1,12 @@
 from abc import abstractmethod
 from typing import Type
+
 import uvicorn
 
-from REvoDesign.Qt import QtWidgets
-from REvoDesign.tools.package_manager import WorkerThread
-from ..basic import SingletonAbstract
-
 from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.tools.package_manager import WorkerThread
+
+from ..basic import SingletonAbstract
 
 
 class ServerControlAbstract(SingletonAbstract):
@@ -29,11 +29,10 @@ class ServerControlAbstract(SingletonAbstract):
     """
 
     def singleton_init(self):
-        self.server_thread :WorkerThread = None  # type: ignore # WorkerThread instance
+        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
         self.is_running = False
         self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
 
-    
     @abstractmethod
     def start_server(self):
         '''
@@ -81,11 +80,11 @@ class ServerControlAbstract(SingletonAbstract):
 
 class MenuActionServerMonitor(QtCore.QObject):
     def __init__(
-            self, 
-            controller: Type[ServerControlAbstract], 
-            action_on: QtWidgets.QAction, 
-            action_off: QtWidgets.QAction
-        ):
+        self,
+        controller: Type[ServerControlAbstract],
+        action_on: QtWidgets.QAction,
+        action_off: QtWidgets.QAction
+    ):
         super().__init__()  # Initialize QObject
         self.controller = controller()
         self.action_on = action_on
