@@ -81,3 +81,4 @@ tests/data/6zcy_lig.pdb
 ROSETTA_CRASH.log
 /relaxed
 /mutant_pdbs
+tests/saves.csv

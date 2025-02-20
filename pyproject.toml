@@ -73,6 +73,11 @@ esm2=[
     "fair-esm2 @ git+https://github.com/YaoYinYing/esm2.git#egg=fair-esm2",
 ]
 
+esme=[
+    "flash-attn",
+    "esm-efficient",
+]
+
 spark = [
     "pyspark>=3.0.0"
 ]
