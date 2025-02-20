@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 
 from REvoDesign.basic.server_monitor import (MenuActionServerMonitor,
-                                             ServerProtocol)
+                                             ServerControlAbstract)
 
 
 def test_menu_action_server_monitor():
@@ -12,13 +12,13 @@ def test_menu_action_server_monitor():
     mock_action_off = MagicMock()
 
     # Create a mock controller implementing ServerProtocol
-    mock_controller = create_autospec(ServerProtocol, instance=True)
+    mock_controller = create_autospec(ServerControlAbstract, instance=True)
     mock_controller.is_running = False
 
     # Patch the controller to return the mock instance
-    class MockController(ServerProtocol):
+    class MockController(ServerControlAbstract):
         def __init__(self):
-            self.server_thread = None
+            self.server_thread = None # type: ignore
             self.is_running = False
 
         def start_server(self):
