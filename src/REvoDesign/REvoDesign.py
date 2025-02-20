@@ -36,6 +36,7 @@ from REvoDesign.driver.environ_register import (add_new_environment_variables,
                                                 register_environment_variables)
 from REvoDesign.driver.file_dialog import IO_MODE, FileDialog
 from REvoDesign.driver.param_toggle_register import ParamChangeCollections
+from REvoDesign.driver.ui_driver import StoresWidget
 from REvoDesign.editor import menu_edit_file
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.evaluate import Evalutator
@@ -50,6 +51,7 @@ from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_relax_w_ca_constraints, menu_resi_renumber, menu_rosettaligand,
     menu_sdf2rosetta_params, menu_smiles_conformer_batch,
     menu_smiles_conformer_single, menu_thermompnn)
+from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
                                                  getExistingDirectory,
@@ -379,8 +381,23 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
 
-        MenuActionServerMonitor(ServerControl, self.bus.ui.actionStartEditor, self.bus.ui.actionStopEditor)
+        stores=StoresWidget()
 
+        stores.server_switches.update(
+            {
+                'Editor_Backend': MenuActionServerMonitor(
+                    ServerControl,
+                    self.bus.ui.actionStartEditor,
+                    self.bus.ui.actionStopEditor,
+                    self.bus.ui.menuEditor_Backend)})
+        stores.server_switches.update(
+            {
+                'OpenMM': MenuActionServerMonitor(
+                    OpenmmSetupServerControl,
+                    self.bus.ui.actionStart_SetupOpenMM,
+                    self.bus.ui.actionStop_SetupOpenMM,
+                    self.bus.ui.menuOpenMM
+                )})
         if self.teamwork_enabled:
             self.ws_server = REvoDesignWebSocketServer()
             self.ws_client = REvoDesignWebSocketClient()

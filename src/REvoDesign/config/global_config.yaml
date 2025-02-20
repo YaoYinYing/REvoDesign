@@ -169,6 +169,10 @@ rosetta:
       nstruct: 4
     iterations: 3
 
+openmmsetup:
+  host: '127.0.0.1'
+  port: 5050
+
 
 # register all variables here
 environment:

@@ -78,6 +78,13 @@ esme=[
     "esm-efficient",
 ]
 
+openmm=[
+    "openmm>=8.1.1",
+    "asgiref>=3.8.1",
+    "pdbfixer @ git+https://github.com/openmm/pdbfixer.git#egg=pdbfixer",
+    "openmm-setup @ git+https://github.com/openmm/openmm-setup.git#egg=openmm-setup",
+]
+
 spark = [
     "pyspark>=3.0.0"
 ]
@@ -182,7 +189,7 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 --cov-append -m 'not integration' -v --pyargs --durations=0"
+addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 -m 'not integration' -v --pyargs --durations=0"
 pythonpath = [
   "src"
 ]

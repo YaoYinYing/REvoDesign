@@ -1,5 +1,8 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
+
+PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,esm2,openmm,test
+
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
 PYTEST_CASES_PATH=../tests
@@ -76,7 +79,7 @@ upload-gists:
 
 # only for test on runner or local machine.
 install:
-	python -m pip install ".[dlpacker,pippack,colabdesign,thermompnn,esm2,test]" -U --no-cache-dir
+	python -m pip install ".[$(PIP_EXTRAS)]" -U --no-cache-dir
 
 # only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:
@@ -132,6 +135,7 @@ all-test:
 	if [ $$status_1 -eq 0 -a $$status_2 -eq 0 -a $$status_3 -eq 0 ]; then \
 	  echo "All tests passed! Combining coverage."; \
 	  coverage combine; \
+	  cp .coverage* ..; \
 	  exit 0; \
 	else \
 	  echo "One or more tests failed! Not combining coverage."; \

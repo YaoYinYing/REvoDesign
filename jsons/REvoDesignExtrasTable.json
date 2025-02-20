@@ -13,6 +13,9 @@
     "ESM1/2": "esm2",
     "ESM-Efficient(CUDA Required)": "esme",
 
+    "Molecular Dynamics": "",
+    "OpenMM": "openmm",
+
     "Developer Tool": "",
     "Test": "test"
     
