@@ -1,3 +1,6 @@
+'''
+OpenMM Setup Server Control
+'''
 import webbrowser
 
 import uvicorn
@@ -7,7 +10,7 @@ from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.package_manager import (WorkerThread,
                                               run_worker_thread_with_progress)
-from REvoDesign.tools.utils import get_cited, require_installed
+from REvoDesign.tools.utils import require_installed
 
 
 # Decorator to check if the required package is installed

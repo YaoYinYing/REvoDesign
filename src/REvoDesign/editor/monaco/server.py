@@ -15,7 +15,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from REvoDesign import ConfigBus
-from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.basic.server_monitor import ServerControlAbstract
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 
