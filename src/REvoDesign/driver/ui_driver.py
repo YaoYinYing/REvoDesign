@@ -3,14 +3,17 @@ The heart of REvoDesign. A UI-Configuration Bus
 '''
 
 import os
+from dataclasses import dataclass, field
 from functools import partial, wraps
-from typing import Any, Callable, Optional, Protocol, Type, TypeVar, overload
+from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar,
+                    overload)
 
 import omegaconf.errors
 from immutabledict import immutabledict
 from omegaconf import DictConfig, OmegaConf
 
 from REvoDesign import SingletonAbstract, issues, reload_config_file
+from REvoDesign.basic import MenuActionServerMonitor
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtWidgets
@@ -28,6 +31,11 @@ logging = ROOT_LOGGER.getChild(__name__)
 ValueFromConfigT = TypeVar("ValueFromConfigT")
 
 # Define the decorator to enforce the non-headless requirement
+
+
+@dataclass
+class StoresWidget:
+    server_switches: Dict[str, MenuActionServerMonitor] = field(default_factory=dict)
 
 
 class HeadlessProtocol(Protocol):
@@ -120,6 +128,8 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             self.ui = ui
             self.w2c = Widget2ConfigMapper(ui=self.ui)
             self.push_buttons = self.w2c.push_buttons
+
+            self.stores: StoresWidget = StoresWidget()
 
         self.cite()
 

@@ -1,4 +1,3 @@
-
 import pytest
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 

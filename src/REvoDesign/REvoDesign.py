@@ -380,11 +380,21 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
 
-        MenuActionServerMonitor(ServerControl, self.bus.ui.actionStartEditor, self.bus.ui.actionStopEditor)
-        MenuActionServerMonitor(
-            OpenmmSetupServerControl,
-            self.bus.ui.actionStart_SetupOpenMM,
-            self.bus.ui.actionStop_SetupOpenMM)
+        self.bus.stores.server_switches.update(
+            {
+                'Editor_Backend': MenuActionServerMonitor(
+                    ServerControl,
+                    self.bus.ui.actionStartEditor,
+                    self.bus.ui.actionStopEditor,
+                    self.bus.ui.menuEditor_Backend)})
+        self.bus.stores.server_switches.update(
+            {
+                'OpenMM': MenuActionServerMonitor(
+                    OpenmmSetupServerControl,
+                    self.bus.ui.actionStart_SetupOpenMM,
+                    self.bus.ui.actionStop_SetupOpenMM,
+                    self.bus.ui.menuOpenMM
+                )})
         if self.teamwork_enabled:
             self.ws_server = REvoDesignWebSocketServer()
             self.ws_client = REvoDesignWebSocketClient()

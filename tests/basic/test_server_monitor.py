@@ -18,7 +18,7 @@ def test_menu_action_server_monitor():
     # Patch the controller to return the mock instance
     class MockController(ServerControlAbstract):
         def __init__(self):
-            self.server_thread = None # type: ignore
+            self.server_thread = None  # type: ignore
             self.is_running = False
 
         def start_server(self):

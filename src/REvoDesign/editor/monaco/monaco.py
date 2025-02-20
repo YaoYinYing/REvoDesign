@@ -13,7 +13,6 @@ from ...logger import ROOT_LOGGER
 from ...tools.package_manager import get_github_repo_tags, notify_box
 from ...tools.utils import run_worker_thread_with_progress
 from .config import ConfigStore
-from .server import ServerControl
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -173,12 +172,10 @@ def edit_file_with_monaco(file_path: str):
     config_store = ConfigStore()
 
     # Step 2: Ensure the server is running
-    server_control = ServerControl()
-    if not server_control.is_running:
-        logging.info("Starting the server for Monaco Editor...")
-        server_control.start_server()
-
-    logging.info(f"Server launch status: {server_control.is_running}")
+    server_monitor = ConfigBus().stores.server_switches['Editor_Backend']
+    logging.info(f"Server launch status: {server_monitor.controller.is_running}")
+    if not server_monitor.controller.is_running:
+        server_monitor._start_server()
 
     # Step 3: Validate the file path
     target_file = Path(file_path)

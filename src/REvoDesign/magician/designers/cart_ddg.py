@@ -25,18 +25,31 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 
 def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
+    """
+    Determine if the specified runtime environment indicated by `node_hint` is available.
 
+    Parameters:
+    - node_hint (Optional[NodeHintT]): A hint that specifies the desired runtime environment.
+
+    Returns:
+    - bool: True if the specified runtime environment is available, False otherwise.
+    """
+
+    # Check for "native" or unspecified environment by verifying the ROSETTA_BIN environment variable
     if node_hint is None or node_hint == "native":
         return not os.environ.get("ROSETTA_BIN", "") == ""
 
+    # Check for WSL environment availability on Windows systems
     if node_hint.startswith("wsl"):
         if platform.system() != "Windows":
             return False
         return is_wsl_available()
 
+    # Check for Docker environment availability
     if node_hint.startswith("docker"):
         return is_docker_available()
 
+    # Check for MPI environment availability by checking if mpirun is in PATH
     if node_hint == "mpi":
         return shutil.which("mpirun") is not None
 
@@ -44,27 +57,50 @@ def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
 
 
 def is_wsl_available():
-    """Returns True if WSL is available."""
+    """
+    Check if Windows Subsystem for Linux (WSL) is available on the current machine.
+
+    This function attempts to determine if WSL is available by trying to locate the WSL binary.
+    If the WSL binary is found, it indicates that WSL is available.
+
+    Returns:
+        bool: Returns True if WSL is available, otherwise returns False.
+    """
     try:
+        # Attempt to get the path of the WSL binary
         wsl_bin = which_wsl()
+        # If the WSL binary is found, return True
         return wsl_bin is not None
     except RuntimeError:
+        # If an error occurs, it indicates that WSL may not be available
         warnings.warn(
             issues.PlatformNotSupportedWarning(
                 "WSL is not available on this machine."
             )
         )
+        # Return False, indicating that WSL is not available
         return False
 
 
 def is_docker_available() -> bool:
-    """Returns True if Docker is available."""
+    """
+    Checks if Docker is available on the current machine.
 
+    This function attempts to connect to Docker using the Docker client from the environment.
+    If the connection is successful, it indicates that Docker is available, and the function returns True.
+    If a DockerException is raised during the connection attempt, it indicates that Docker is not available,
+    and a warning is issued before returning False.
+
+    Returns:
+        bool: True if Docker is available, otherwise False.
+    """
     try:
+        # Attempt to create a Docker client and then release the reference to test Docker's availability.
         client = docker.from_env()
         del client
         return True
     except docker.errors.DockerException as e:
+        # If Docker is not available, issue a warning and return False.
         warnings.warn(issues.PlatformNotSupportedWarning(
             f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"))
         return False

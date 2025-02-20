@@ -1,12 +1,19 @@
+import os
 from abc import abstractmethod
-from typing import Type
+from typing import Optional, Type
 
 import uvicorn
 
-from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.tools.package_manager import WorkerThread
 
 from ..basic import SingletonAbstract
+
+this_dir = os.path.dirname(os.path.abspath(__file__))
+
+RED_ICON = QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/red.png"))
+GREEN_ICON = QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/green.png"))
+BLUE_ICON = QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/blue.png"))
 
 
 class ServerControlAbstract(SingletonAbstract):
@@ -83,13 +90,36 @@ class MenuActionServerMonitor(QtCore.QObject):
         self,
         controller: Type[ServerControlAbstract],
         action_on: QtWidgets.QAction,
-        action_off: QtWidgets.QAction
+        action_off: QtWidgets.QAction,
+        menu_item: Optional[QtWidgets.QMenu] = None,
     ):
         super().__init__()  # Initialize QObject
         self.controller = controller()
         self.action_on = action_on
         self.action_off = action_off
+        self.menu_item = menu_item
+
+        # Set initial LED status
+        if self.menu_item is not None:
+            self.menu_item.setIcon(BLUE_ICON)
 
         # Connect actions to controller methods
-        self.action_on.triggered.connect(self.controller.start_server)
-        self.action_off.triggered.connect(self.controller.stop_server)
+        self.action_on.triggered.connect(self._start_server)
+        self.action_off.triggered.connect(self._stop_server)
+
+    def _start_server(self):
+        self.controller.start_server()
+        self._update_led_status()
+
+    def _stop_server(self):
+        self.controller.stop_server()
+        self._update_led_status()
+
+    def _update_led_status(self):
+        """
+        Update the LED status based on self.controller.is_running.
+        """
+        if self.menu_item is not None:
+            if self.controller.is_running:
+                return self.menu_item.setIcon(GREEN_ICON)
+            return self.menu_item.setIcon(RED_ICON)
