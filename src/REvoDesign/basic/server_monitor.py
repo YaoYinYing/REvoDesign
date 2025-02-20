@@ -93,7 +93,16 @@ class MenuActionServerMonitor(QtCore.QObject):
         menu_item: Optional[QtWidgets.QMenu] = None,
     ):
         super().__init__()  # Initialize QObject
-        self.controller = controller()
+        try:
+            self.controller = controller()
+        except Exception as e:
+            print(f"Error initializing controller: {e}")
+            self.controller = None
+            if self.menu_item is not None:
+                self.menu_item.setEnabled(False)
+            self.action_off.setEnabled(False)
+            self.action_on.setEnabled(False)
+            return
         self.action_on = action_on
         self.action_off = action_off
         self.menu_item = menu_item
