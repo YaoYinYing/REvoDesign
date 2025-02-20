@@ -8,8 +8,8 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 from REvoDesign.common import file_extensions as FExt
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.tools.esm2 import ESM1V_MODEL_DICT as EMD
-from REvoDesign.shortcuts.tools.esm2 import ( list_all_esm_variant_predict_model_names,
-    shortcut_esm1v)
+from REvoDesign.shortcuts.tools.esm2 import (
+    list_all_esm_variant_predict_model_names, shortcut_esm1v)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import device_picker, timing
