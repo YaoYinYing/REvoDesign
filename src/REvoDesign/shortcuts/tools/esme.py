@@ -47,4 +47,4 @@ class ESM1vEfficient(ThirdPartyModuleAbstract):
 }"""
     }
 
-    __bibtex__ = {**Esm1v.__bibtex__, ** __bibtex_esme__}
+    __bibtex__ = {**Esm1v.__bibtex__, **__bibtex_esme__}
