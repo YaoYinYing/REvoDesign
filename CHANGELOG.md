@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 ## [Unreleased]
+
+## [1.7.18] - 2025-02-21
 ### Added
 - `basic`: 
   - `ThirdPartyModuleAbstract` to describe the abstract class of third party modules, which inherits from `CitableModuleAbstract`
