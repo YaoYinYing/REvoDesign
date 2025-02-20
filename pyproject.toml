@@ -79,7 +79,7 @@ esme=[
 ]
 
 openmm=[
-    "openmm>=8.2.0",
+    "openmm>=8.1.1",
     "asgiref>=3.8.1",
     "pdbfixer @ git+https://github.com/openmm/pdbfixer.git#egg=pdbfixer",
     "openmm-setup @ git+https://github.com/openmm/openmm-setup.git#egg=openmm-setup",
