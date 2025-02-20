@@ -97,11 +97,8 @@ class MenuActionServerMonitor(QtCore.QObject):
             self.controller = controller()
         except Exception as e:
             print(f"Error initializing controller: {e}")
-            self.controller = None
-            if self.menu_item is not None:
-                self.menu_item.setEnabled(False)
-            self.action_off.setEnabled(False)
-            self.action_on.setEnabled(False)
+            action_off.setEnabled(False)
+            action_on.setEnabled(False)
             return
         self.action_on = action_on
         self.action_off = action_off
