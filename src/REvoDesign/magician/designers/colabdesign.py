@@ -14,11 +14,9 @@ from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.utils import get_cited, require_installed
 
 
 # Designer wrapper to ColabDesign MPNN
-@require_installed
 class ColabDesigner_MPNN(ExternalDesignerAbstract):
     name: str = "ProteinMPNN"
     installed: bool = is_package_installed("colabdesign")
@@ -39,7 +37,6 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         self.reload = False
 
     # initializing takes time so it should be sent to run_worker_thread_with_progress so UI will not be frozen.
-    @get_cited
     def initialize(self, *args, **kwargs):
         """
         Initialize the ColabDesigner_MPNN class.
@@ -64,6 +61,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
             **kwargs,
         )
         self.initialized = True
+        self.cite()
 
     def preffer_substitutions(self, aa=""):
         """

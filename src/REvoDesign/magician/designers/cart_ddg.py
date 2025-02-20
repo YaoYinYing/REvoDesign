@@ -22,7 +22,6 @@ from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.utils import get_cited
 
 
 def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
@@ -159,7 +158,6 @@ class ddg(ExternalDesignerAbstract):
 
         self.initialized = True
 
-    @get_cited
     def parallel_scorer(
         self, mutants: List[Mutant], nproc=2, **kwargs
     ) -> List[Mutant]:
