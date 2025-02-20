@@ -1,0 +1,75 @@
+
+import webbrowser
+
+import uvicorn
+from REvoDesign.basic import ThirdPartyModuleAbstract, ServerControlAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.tools.package_manager import WorkerThread, run_worker_thread_with_progress
+from REvoDesign.tools.utils import require_installed, get_cited
+
+
+@require_installed
+class OpenmmSetupServerControl(ThirdPartyModuleAbstract,ServerControlAbstract):
+    name: str='openmmsetup'
+    installed: bool = is_package_installed(name)
+
+    def singleton_init(self):
+        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
+        self.is_running = False
+        self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
+
+    
+    def start_server(self):
+        super().start_server()
+
+        # a modified main function from openmmsetup
+        from openmmsetup.openmmsetup import app
+        from asgiref.wsgi import WsgiToAsgi  # Add this line
+
+        asgi_app = WsgiToAsgi(app)  # Wrap the Flask app as ASGI
+
+        bus=ConfigBus()
+
+        host=bus.get_value('openmmsetup.host', str)
+        port=bus.get_value('openmmsetup.port', int)
+    
+        config = uvicorn.Config(
+            app=asgi_app,
+            host=host,
+            port=port,
+            log_level="info",
+        )
+        self.server = uvicorn.Server(config)
+        
+        # Start server in a WorkerThread
+        self.server_thread = WorkerThread(func=self._run_server)
+        self.server_thread.result_signal.connect(self._on_server_result)
+        self.server_thread.finished_signal.connect(self._on_server_finished)
+        self.server_thread.start()
+        self.is_running = True
+        url = f'http://{host}:{port}'
+        print(f"Server started in {url}")
+
+        run_worker_thread_with_progress(
+            webbrowser.open, url
+        )
+
+        self.cite()
+        
+
+    __bibtex__ = {
+        'OpenMM': """@article{doi:10.1021/acs.jpcb.3c06662,
+author = {Eastman, Peter and Galvelis, Raimondas and Peláez, Raúl P. and Abreu, Charlles R. A. and Farr, Stephen E. and Gallicchio, Emilio and Gorenko, Anton and Henry, Michael M. and Hu, Frank and Huang, Jing and Krämer, Andreas and Michel, Julien and Mitchell, Joshua A. and Pande, Vijay S. and Rodrigues, João PGLM and Rodriguez-Guerra, Jaime and Simmonett, Andrew C. and Singh, Sukrit and Swails, Jason and Turner, Philip and Wang, Yuanqing and Zhang, Ivy and Chodera, John D. and De Fabritiis, Gianni and Markland, Thomas E.},
+title = {OpenMM 8: Molecular Dynamics Simulation with Machine Learning Potentials},
+journal = {The Journal of Physical Chemistry B},
+volume = {128},
+number = {1},
+pages = {109-116},
+year = {2024},
+doi = {10.1021/acs.jpcb.3c06662},
+    note ={PMID: 38154096},
+URL = { https://doi.org/10.1021/acs.jpcb.3c06662 },
+eprint = { https://doi.org/10.1021/acs.jpcb.3c06662 }
+}"""
+    }

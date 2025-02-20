@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from REvoDesign import ConfigBus
 from REvoDesign.basic.abc_singleton import SingletonAbstract
+from REvoDesign.basic.server_monitor import ServerControlAbstract
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 
 from ...logger import ROOT_LOGGER
@@ -276,7 +277,7 @@ async def save_file(
         return JSONResponse(content={"error": f"Failed to save file: {str(e)}"}, status_code=500)
 
 
-class ServerControl(SingletonAbstract):
+class ServerControl(ServerControlAbstract):
     """
     A singleton class that manages the Monaco backend server lifecycle.
 
@@ -297,9 +298,9 @@ class ServerControl(SingletonAbstract):
     """
 
     def singleton_init(self):
-        self.server_thread = None  # WorkerThread instance
+        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
         self.is_running = False
-        self.server = None  # Uvicorn Server instance
+        self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
         self.config_store = ConfigStore()
 
     def start_server(self):
@@ -360,36 +361,3 @@ class ServerControl(SingletonAbstract):
         print(
             f"Server started with {'SSL' if use_ssl else 'no SSL'} and {'no token' if no_token else 'token-based'} authentication.")
         print(f'ServerControl::Config:{self.config_store.cfg}')
-
-    def stop_server(self):
-        if not self.is_running:
-            print("Server is not running.")
-            return
-
-        print("Stopping server...")
-        if self.server:
-            self.server.should_exit = True
-        if self.server_thread:
-            self.server_thread.interrupt()
-        self.is_running = False
-        distruct_token()
-
-    def _run_server(self):
-        """
-        The function executed in the worker thread.
-        """
-        if self.server:
-            self.server.run()
-
-    def _on_server_result(self, result):
-        """
-        Handle results from the WorkerThread.
-        """
-        print(f"Server result: {result}")
-
-    def _on_server_finished(self):
-        """
-        Handle the completion of the WorkerThread.
-        """
-        self.is_running = False
-        print("Server thread finished.")

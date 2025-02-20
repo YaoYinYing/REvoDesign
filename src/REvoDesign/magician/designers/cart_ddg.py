@@ -22,7 +22,7 @@ from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.utils import require_installed, get_cited
+from REvoDesign.tools.utils import get_cited
 
 def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
 
@@ -66,7 +66,7 @@ def is_docker_available() -> bool:
         return True
     except docker.errors.DockerException as e:
         warnings.warn(
-            issues.PlatformNotSupportedWarning(f"Docker is not available on this machine: {e}")
+            issues.PlatformNotSupportedWarning(f"Docker is not available(uninstalled or unlaunched) on this machine: {e}")
         )
         return False
 

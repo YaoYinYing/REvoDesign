@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - menu: 
   - ThermoMPNN
   - ESM-1v(official ESM2, or `fair-esm`, renamed as `fair-esm2` on `https://github.com/YaoYinYing/esm2`)
+  - OpenMM-Setup for basic simulations
 - `pyproject.toml`: 
   - added `thermompnn`
   - added `esm2`

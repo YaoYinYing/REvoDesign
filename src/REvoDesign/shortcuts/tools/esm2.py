@@ -152,7 +152,7 @@ class Esm1v(ThirdPartyModuleAbstract):
 
     @get_cited
     def predict(self):
-        from esm2 import MSATransformer, pretrained
+        from esm2 import MSATransformer, pretrained # type: ignore
 
         # Load the deep mutational scan
         df = self.generate_dms_list()

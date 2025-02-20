@@ -4684,11 +4684,25 @@
      </widget>
      <addaction name="menuMutant_Effects"/>
     </widget>
+    <widget class="QMenu" name="menuMolecular_Dynamics">
+     <property name="title">
+      <string>Molecular Dynamics</string>
+     </property>
+     <widget class="QMenu" name="menuOpenMM">
+      <property name="title">
+       <string>OpenMM</string>
+      </property>
+      <addaction name="actionStart_SetupOpenMM"/>
+      <addaction name="actionStop_SetupOpenMM"/>
+     </widget>
+     <addaction name="menuOpenMM"/>
+    </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
     <addaction name="menuRosetta_Tools"/>
     <addaction name="menuPredictor_Tools"/>
+    <addaction name="menuMolecular_Dynamics"/>
     <addaction name="menuExport_Tools"/>
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
@@ -5064,6 +5078,16 @@
   <action name="actionESM_1v">
    <property name="text">
     <string>ESM-1v</string>
+   </property>
+  </action>
+  <action name="actionStart_SetupOpenMM">
+   <property name="text">
+    <string>Start Setup</string>
+   </property>
+  </action>
+  <action name="actionStop_SetupOpenMM">
+   <property name="text">
+    <string>Stop Setup</string>
    </property>
   </action>
  </widget>
