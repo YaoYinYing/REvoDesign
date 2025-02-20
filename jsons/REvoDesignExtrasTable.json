@@ -11,6 +11,7 @@
 
     "Protein Models": "",
     "ESM1/2": "esm2",
+    "ESM-Efficient(CUDA Required)": "esme",
 
     "Developer Tool": "",
     "Test": "test"

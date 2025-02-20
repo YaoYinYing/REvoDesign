@@ -12,9 +12,12 @@ from typing import List, Literal, Optional, Tuple
 import pandas as pd
 import torch
 from Bio import SeqIO
-
 from immutabledict import immutabledict
 from tqdm import tqdm
+
+from REvoDesign.basic import ThirdPartyModuleAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.tools.utils import require_installed, get_cited
 
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
@@ -76,7 +79,11 @@ def label_row(row, sequence, token_probs, alphabet, offset_idx):
     return score.item()
 
 
-class Esm1v:
+@require_installed
+class Esm1v(ThirdPartyModuleAbstract):
+    name: str = "esm1v"
+    installed: bool = is_package_installed('esm2')
+
     def __init__(
             self,
             model_names: List[str],
@@ -143,9 +150,10 @@ class Esm1v:
                 ], columns=[self.mutation_col])
         return df_dms
 
+    @get_cited
     def predict(self):
-        from esm2 import  MSATransformer, pretrained
-        
+        from esm2 import MSATransformer, pretrained
+
         # Load the deep mutational scan
         df = self.generate_dms_list()
 
@@ -269,6 +277,41 @@ class Esm1v:
                 token_probs = torch.log_softmax(model(batch_tokens_masked.to(self.device))["logits"], dim=-1)
             log_probs.append(token_probs[0, i, alphabet.get_idx(sequence[i])].item())  # vocab size
         return sum(log_probs)
+
+    __bibtex__ = {
+        'ESM': """@article{rives2019biological,
+  author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal, Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
+  title={Biological Structure and Function Emerge from Scaling Unsupervised Learning to 250 Million Protein Sequences},
+  year={2019},
+  doi={10.1101/622803},
+  url={https://www.biorxiv.org/content/10.1101/622803v4},
+  journal={PNAS}
+}""",
+        'ESM-1v': """@article{meier2021language,
+  author = {Meier, Joshua and Rao, Roshan and Verkuil, Robert and Liu, Jason and Sercu, Tom and Rives, Alexander},
+  title = {Language models enable zero-shot prediction of the effects of mutations on protein function},
+  year={2021},
+  doi={10.1101/2021.07.09.450648},
+  url={https://www.biorxiv.org/content/10.1101/2021.07.09.450648v1},
+  journal={bioRxiv}
+}""",
+        'MSA Transformer': """@article{rao2021msa,
+  author = {Rao, Roshan and Liu, Jason and Verkuil, Robert and Meier, Joshua and Canny, John F. and Abbeel, Pieter and Sercu, Tom and Rives, Alexander},
+  title={MSA Transformer},
+  year={2021},
+  doi={10.1101/2021.02.12.430858},
+  url={https://www.biorxiv.org/content/10.1101/2021.02.12.430858v1},
+  journal={bioRxiv}
+}""",
+        'ESM-2': """@article{lin2022language,
+  title={Language models of protein sequences at the scale of evolution enable accurate structure prediction},
+  author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu, Zhongkai and Lu, Wenting and Smetanin, Nikita and dos Santos Costa, Allan and Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Sal and others},
+  journal={bioRxiv},
+  year={2022},
+  publisher={Cold Spring Harbor Laboratory}
+}"""
+
+    }
 
 
 def shortcut_esm1v(

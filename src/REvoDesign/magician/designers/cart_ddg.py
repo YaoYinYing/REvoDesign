@@ -22,7 +22,7 @@ from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-
+from REvoDesign.tools.utils import require_installed, get_cited
 
 def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
 
@@ -84,7 +84,6 @@ def preprocess_ddg_values(ddg_value_df) -> Dict[str, float]:
         row["Baseline"]: row["ddG_cart"] for _, row in ddg_value_df.iterrows()
     }
     return ddg_dict
-
 
 class ddg(ExternalDesignerAbstract):
 
@@ -159,6 +158,7 @@ class ddg(ExternalDesignerAbstract):
 
         self.initialized = True
 
+    @get_cited
     def parallel_scorer(
         self, mutants: List[Mutant], nproc=2, **kwargs
     ) -> List[Mutant]:
