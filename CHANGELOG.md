@@ -26,12 +26,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pyproject.toml`: 
   - added `thermompnn`
   - added `esm2`
+  - added `esme`: in draft
 - installation JSONs: 
   - added `thermompnn`
   - added `esm2`
+  - added `esme`
 - makefile: 
   - added `thermompnn`
   - added `esm2`
+- utils: 
+  - `require_installed`: check if `cls.installed` is `True` before instantializing it.
+  - `get_cited`: run `self.cite()` after objective method has returned.
 
 ### Changed
 - `basic`: 

@@ -16,13 +16,14 @@ from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.tools.mutant_tools import (extract_mutants_from_mutant_id,
                                            quick_mutagenesis)
-from REvoDesign.tools.utils import timing
+from REvoDesign.tools.utils import timing, get_cited, require_installed
+
 
 logging = ROOT_LOGGER.getChild(__name__)
 
 RUN_MODE_T = Literal["single", "additive", "epistatic"]
 
-
+@require_installed
 class ThermoMpnnPredictor(ThirdPartyModuleAbstract):
     name: str = 'ThermoMPNN'
     installed: bool = is_package_installed('thermompnn')
@@ -52,10 +53,9 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract):
         self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
         self.app = ThermoMPNN(pdb, self.save_prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
 
+    @get_cited
     def run(self) -> pd.DataFrame:
         df = self.app.process(save_csv=bool(self.save_prefix))
-        # only when the application is passed successfully can the citation be prompted.
-        self.cite()
         if self.mode == 'single':
             df.columns = ['ddG', 'Mutation']
         else:
@@ -127,10 +127,6 @@ def shortcut_thermompnn(
     load_to_preview: bool = False,
     top_ranked: Optional[int] = 100,
 ):
-    if not ThermoMpnnPredictor.installed:
-        raise issues.UninstalledPackageError(
-            f'{ThermoMpnnPredictor.__name__} requires installing REvoDesign with `{ThermoMpnnPredictor.name}` extra package.')
-
     app = ThermoMpnnPredictor(pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
 
     df = app.run()

@@ -74,6 +74,33 @@ def require_not_none(
 
     return decorator
 
+def require_installed(cls):
+    """
+    Decorator to enforce that the `installed` attribute of a class is True.
+    Raises an error if an instance is created with `installed` set to False.
+    """
+    orig_init = cls.__init__
+
+    def __init__(self, *args, **kwargs):
+        orig_init(self, *args, **kwargs)
+        if not getattr(self, 'installed', False):
+            raise issues.UninstalledPackageError(f"Module '{self.name}' is not installed.")
+
+    cls.__init__ = __init__
+    return cls
+
+def get_cited(method):
+    """
+    Decorator to call `self.cite()` after executing `self.process()`.
+    """
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        result = method(self, *args, **kwargs)
+        if hasattr(self, 'cite') and callable(getattr(self, 'cite')):
+            self.cite()
+        return result
+
+    return wrapper
 
 def minibatches(inputs_data, batch_size):
     """

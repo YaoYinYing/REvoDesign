@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.tools.utils import require_installed, get_cited
 
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
@@ -78,6 +79,7 @@ def label_row(row, sequence, token_probs, alphabet, offset_idx):
     return score.item()
 
 
+@require_installed
 class Esm1v(ThirdPartyModuleAbstract):
     name: str = "esm1v"
     installed: bool = is_package_installed('esm2')
@@ -148,6 +150,7 @@ class Esm1v(ThirdPartyModuleAbstract):
                 ], columns=[self.mutation_col])
         return df_dms
 
+    @get_cited
     def predict(self):
         from esm2 import MSATransformer, pretrained
 
@@ -338,4 +341,3 @@ def shortcut_esm1v(
         device=device,
     )
     predictor.predict()
-    predictor.cite()

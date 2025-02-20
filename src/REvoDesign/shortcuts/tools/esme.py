@@ -5,12 +5,13 @@ from esme import variant
 
 from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.tools.utils import require_installed, get_cited
 
 from .esm2 import Esm1v
 
 ESME_MODELS = Literal['esmc', 'esm1b', 'esm1v', 'esm2', 'esm2_8m']
 
-
+@require_installed
 class ESM1vEfficient(ThirdPartyModuleAbstract):
     installed: bool = is_package_installed('esme')
     name: str = "esm1v-efficient"
@@ -26,7 +27,7 @@ class ESM1vEfficient(ThirdPartyModuleAbstract):
         self.sequence = sequence
 
         self.dms_output = dms_output
-
+    @get_cited
     def predict(self) -> pd.DataFrame:
         from esme import ESM2
 
