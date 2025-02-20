@@ -361,3 +361,16 @@ class ServerControl(ServerControlAbstract):
         print(
             f"Server started with {'SSL' if use_ssl else 'no SSL'} and {'no token' if no_token else 'token-based'} authentication.")
         print(f'ServerControl::Config:{self.config_store.cfg}')
+
+    def stop_server(self):
+        if not self.is_running:
+            print("Server is not running.")
+            return
+
+        print("Stopping server...")
+        if self.server:
+            self.server.should_exit = True
+        if self.server_thread:
+            self.server_thread.interrupt()
+        self.is_running = False
+        distruct_token()
