@@ -189,7 +189,7 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 --cov-append -m 'not integration' -v --pyargs --durations=0"
+addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 -m 'not integration' -v --pyargs --durations=0"
 pythonpath = [
   "src"
 ]
