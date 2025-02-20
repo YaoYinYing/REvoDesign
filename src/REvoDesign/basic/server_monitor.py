@@ -11,9 +11,8 @@ from ..basic import SingletonAbstract
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
-RED_ICON = QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/red.png"))
-GREEN_ICON = QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/green.png"))
-BLUE_ICON = QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/blue.png"))
+
+
 
 
 class ServerControlAbstract(SingletonAbstract):
@@ -101,7 +100,7 @@ class MenuActionServerMonitor(QtCore.QObject):
 
         # Set initial LED status
         if self.menu_item is not None:
-            self.menu_item.setIcon(BLUE_ICON)
+            self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/blue.png")))
 
         # Connect actions to controller methods
         self.action_on.triggered.connect(self._start_server)
@@ -121,5 +120,5 @@ class MenuActionServerMonitor(QtCore.QObject):
         """
         if self.menu_item is not None:
             if self.controller.is_running:
-                return self.menu_item.setIcon(GREEN_ICON)
-            return self.menu_item.setIcon(RED_ICON)
+                return self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/green.png")))
+            return self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/red.png")))
