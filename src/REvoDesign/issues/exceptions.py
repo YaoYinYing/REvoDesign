@@ -95,3 +95,6 @@ class NetworkError(ConnectionAbortedError):
 
 class UninstalledPackageError(Exception):
     """Exception raised when a package is not installed"""
+
+class MissingExternalToolError(Exception):
+    """Exception raised when a required external tool is not installed"""
