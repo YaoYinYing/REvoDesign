@@ -34,14 +34,38 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         # Initialize the server as None
         self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
 
+    def open_url(self, url):
+
+        # Run the browser opening operation in a separate thread with progress dialog
+        run_worker_thread_with_progress(
+            webbrowser.open, url
+        )
+
+        # Call the citation method
+        self.cite()
+
     def start_server(self):
         """
         Start the OpenMMSetup server.
 
         This method extends the start_server method of the parent class, configures and starts the Uvicorn server in a separate thread, and attempts to open the server URL in the default browser.
         """
-        # Call the start_server method of the parent class
-        super().start_server()
+        '''
+        Behavior of the server start action.
+        '''
+        # Create a ConfigBus instance to read configuration information
+        bus = ConfigBus()
+
+        # Get server host and port configuration
+        host = bus.get_value('openmmsetup.host', str)
+        port = bus.get_value('openmmsetup.port', int)
+
+        # Construct the server access URL
+        url = f'http://{host}:{port}'
+
+        if self.is_running:
+            print("Server is already running.")
+            return self.open_url(url=url)
 
         # a modified main function from openmmsetup
         # Import WsgiToAsgi to convert the Flask app to ASGI
@@ -52,13 +76,7 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         # Wrap the Flask app as ASGI
         asgi_app = WsgiToAsgi(app)
 
-        # Create a ConfigBus instance to read configuration information
-        bus = ConfigBus()
-
-        # Get server host and port configuration
-        host = bus.get_value('openmmsetup.host', str)
-        port = bus.get_value('openmmsetup.port', int)
-
+    
         # Configure the Uvicorn server
         config = uvicorn.Config(
             app=asgi_app,
@@ -79,18 +97,12 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         self.server_thread.start()
         # Set the running status to True
         self.is_running = True
-        # Construct the server access URL
-        url = f'http://{host}:{port}'
+        
         # Print the server start information
         print(f"Server started in {url}")
+        return self.open_url(url=url)
 
-        # Run the browser opening operation in a separate thread with progress dialog
-        run_worker_thread_with_progress(
-            webbrowser.open, url
-        )
-
-        # Call the citation method
-        self.cite()
+        
 
     __bibtex__ = {
         'OpenMM': """@article{doi:10.1021/acs.jpcb.3c06662,
