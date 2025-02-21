@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '/Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/UI/REvoDesign.ui'
+# Form implementation generated from reading ui file 'src/REvoDesign/UI/REvoDesign.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -2163,8 +2163,6 @@ class Ui_REvoDesignPyMOL_UI:
         self.actionStart_SetupOpenMM.setObjectName("actionStart_SetupOpenMM")
         self.actionStop_SetupOpenMM = QtWidgets.QAction(REvoDesignPyMOL_UI)
         self.actionStop_SetupOpenMM.setObjectName("actionStop_SetupOpenMM")
-        self.actionPyMOL_PUB = QtWidgets.QAction(REvoDesignPyMOL_UI)
-        self.actionPyMOL_PUB.setObjectName("actionPyMOL_PUB")
         self.menuExperiment.addAction(self.action_LoadExperiment)
         self.menuExperiment.addAction(self.action_Save_to_Experiment)
         self.menuLog_File.addAction(self.actionOpenLogFile)
@@ -2228,7 +2226,6 @@ class Ui_REvoDesignPyMOL_UI:
         self.menuRender_Sidechains.addAction(self.actionRenderPickedSidechainGroup)
         self.menuRender_Sidechains.addAction(self.actionRenderPickedSidechainObject)
         self.menuExport_Tools.addAction(self.menuRender_Sidechains.menuAction())
-        self.menuExport_Tools.addAction(self.actionPyMOL_PUB)
         self.menuMutant_Effects.addAction(self.actionThermoMPNN)
         self.menuMutant_Effects.addAction(self.actionESM_1v)
         self.menuPredictor_Tools.addAction(self.menuMutant_Effects.menuAction())
@@ -2826,4 +2823,3 @@ class Ui_REvoDesignPyMOL_UI:
         self.actionESM_1v.setText(_translate("REvoDesignPyMOL_UI", "ESM-1v"))
         self.actionStart_SetupOpenMM.setText(_translate("REvoDesignPyMOL_UI", "Start Setup"))
         self.actionStop_SetupOpenMM.setText(_translate("REvoDesignPyMOL_UI", "Stop Setup"))
-        self.actionPyMOL_PUB.setText(_translate("REvoDesignPyMOL_UI", "PyMOL-PUB"))

@@ -3,7 +3,6 @@ This module contains the menu shortcuts for REvoDesign.
 '''
 # To create a dialog form, one must implement a wrapper function that
 # decorated by `dialog_wrapper` and import it here
-from REvoDesign.shortcuts.tools.exports import shortcut_molpub
 from REvoDesign.shortcuts.wrappers.designs import (wrapped_profile_pick_design,
                                                    wrapped_pssm2csv)
 from REvoDesign.shortcuts.wrappers.esm2 import wrapped_esm1v
@@ -158,10 +157,3 @@ def menu_esm1v():
     Launches the dialog for ESM1v dialog
     """
     wrapped_esm1v()
-
-
-def menu_molpub():
-    """
-    Launches the dialog for MolPub dialog
-    """
-    shortcut_molpub()

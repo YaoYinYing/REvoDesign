@@ -46,7 +46,7 @@ from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_color_by_mutation, menu_color_by_plddt, menu_dump_fasta_from_struct,
-    menu_dump_sidechains, menu_esm1v, menu_fast_relax, menu_molpub,
+    menu_dump_sidechains, menu_esm1v, menu_fast_relax,
     menu_profile_pick_design, menu_pross, menu_pssm2csv, menu_real_sc,
     menu_relax_w_ca_constraints, menu_resi_renumber, menu_rosettaligand,
     menu_sdf2rosetta_params, menu_smiles_conformer_batch,
@@ -303,10 +303,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.bus.ui.actionRenderAllSidechains,
                     menu_dump_sidechains,
                     kwargs={'dump_all': True},
-                ),
-                MenuItem(
-                    self.bus.ui.actionPyMOL_PUB,
-                    menu_molpub,
                 ),
                 MenuItem(
                     self.bus.ui.actionColor_by_pLDDT,
