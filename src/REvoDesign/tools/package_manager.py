@@ -412,7 +412,10 @@ class PIPInstaller:
         # run installation via pip
         ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose, env=self.env)
         if ensurepip.returncode:
-            notify_box(f"ensurepip failed: \nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}.", RuntimeError)
+            notify_box(
+                f"ensurepip failed.",
+                RuntimeError,
+                details=f'\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}')
 
     def __post_init__(self):
         """
@@ -541,9 +544,11 @@ class PIPInstaller:
         result = self.install(package_string, upgrade=True, env=env, mirror=mirror)
         # If the pip downgrade command fails, notify the user to manually execute the command
         if result.returncode:
-            print(
+            notify_box(
                 f"Failed to ensure {package_string}. Please upgrade/downgrade manually.\n"
-                f'Run this command in your shell - `{" ".join(result.args)}`'
+                f'Run this command in your shell - `{" ".join(result.args)}`',
+                details=f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
+
             )
 
 
@@ -1170,7 +1175,7 @@ class REvoDesignPackageManager:
 
             if ret is None or ret.returncode:
                 # If the uninstallation fails, notify the user of the failure and raise an error
-                return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError)
+                return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError, details=ret.stdout)
 
             remove_deps = decide(
                 'Clean up warning', 'Do you want to remove all the dependencies?')
@@ -1352,6 +1357,7 @@ class REvoDesignPackageManager:
             notify_box(
                 message=f"Installation failed from: {install_source} \n",
                 error_type=RuntimeError,
+                details=f'STDOUT: \n{installed.stderr}\n\nSTDERR: \n{installed.stderr}' if installed else None,
             )
 
     def setup_cache_dir(self):

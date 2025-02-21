@@ -85,6 +85,10 @@ openmm=[
     "openmm-setup @ git+https://github.com/openmm/openmm-setup.git#egg=openmm-setup",
 ]
 
+molpub=[
+    "pymol-pub @ git+https://github.com/YaoYinYing/PyMOL-PUB.git#egg=pymol-pub"
+]
+
 spark = [
     "pyspark>=3.0.0"
 ]

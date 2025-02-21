@@ -4670,6 +4670,7 @@
       <addaction name="actionRenderPickedSidechainObject"/>
      </widget>
      <addaction name="menuRender_Sidechains"/>
+     <addaction name="actionPyMOL_PUB"/>
     </widget>
     <widget class="QMenu" name="menuPredictor_Tools">
      <property name="title">
@@ -5088,6 +5089,11 @@
   <action name="actionStop_SetupOpenMM">
    <property name="text">
     <string>Stop Setup</string>
+   </property>
+  </action>
+  <action name="actionPyMOL_PUB">
+   <property name="text">
+    <string>PyMOL-PUB</string>
    </property>
   </action>
  </widget>

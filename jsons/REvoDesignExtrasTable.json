@@ -16,6 +16,9 @@
     "Molecular Dynamics": "",
     "OpenMM": "openmm",
 
+    "Exports": "",
+    "PyMOL-PUB": "molpub",
+
     "Developer Tool": "",
     "Test": "test"
     

@@ -3,20 +3,20 @@ import string
 import tarfile
 import tempfile
 import zipfile
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import matplotlib
 import numpy as np
 import pytest
 
 from REvoDesign import issues
-from REvoDesign.citations import CitableModuleAbstract,CitationManager
 from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.citations import CitableModuleAbstract, CitationManager
 from REvoDesign.tools.utils import (cmap_reverser, count_and_sort_characters,
                                     extract_archive, generate_strong_password,
-                                    get_color, minibatches,
+                                    get_cited, get_color, minibatches,
                                     minibatches_generator, random_deduplicate,
-                                    rescale_number, timing,require_installed,get_cited)
+                                    require_installed, rescale_number, timing)
 
 matplotlib.use('Agg')  # Use the Agg backend to avoid GUI requirements for testing
 
@@ -415,12 +415,13 @@ def test_timing(caplog):
         assert "Started test message" in caplog.text
         assert "Finished test message in " in caplog.text
 
+
 @pytest.mark.parametrize(
-        'package_name, expected_raise',
-        [
-            ('REvoDesign', False),
-            ('TARDIS', True),
-        ]
+    'package_name, expected_raise',
+    [
+        ('REvoDesign', False),
+        ('TARDIS', True),
+    ]
 )
 def test_require_installed(package_name, expected_raise):
 
@@ -434,7 +435,7 @@ def test_require_installed(package_name, expected_raise):
             TestClass()
     else:
         TestClass()
-    
+
 
 def test_get_cited():
 
@@ -448,7 +449,7 @@ def test_get_cited():
         @get_cited
         def run(self):
             print('Awesome module got run and the paper will be cited!')
-        
+
         __bibtex__ = {'AwesomePaper': """@article {goodpaper2025.01.01.awesomej1009,
     author = {You and Me},
     title = {Good Title is All You Need},
@@ -460,13 +461,13 @@ def test_get_cited():
     eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
     journal = {Awesome Journal}
 }"""}
-        
-    expected_citation=CitableClass.__bibtex__
-        
-    cm=CitationManager()
+
+    expected_citation = CitableClass.__bibtex__
+
+    cm = CitationManager()
     cm.clear()
 
-    app=CitableClass()
+    app = CitableClass()
 
     assert len(cm.called_citations) == 0, "CitationManager should start with no called citations"
 

@@ -1,19 +1,17 @@
-import os
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
+import pytest
 # PyQt or PySide (adapt this import to whichever you use):
 from PyQt5 import QtWidgets
 
+from REvoDesign.basic import MenuActionServerMonitor, ServerControlAbstract
 from REvoDesign.Qt import QtCore
 from REvoDesign.tools.package_manager import WorkerThread
-
-
-from REvoDesign.basic import ServerControlAbstract, MenuActionServerMonitor
 
 # -----------------------------------------------------------------------------
 # 1. Mock / Derived Test Class
 # -----------------------------------------------------------------------------
+
 
 class MockServerControl(ServerControlAbstract):
     """
@@ -105,20 +103,18 @@ def test_menu_action_server_monitor(test_worker):
     Test that triggering the on/off actions calls MockServerControl
     methods and updates icon states.
     """
-    
-    from REvoDesign.driver.ui_driver import StoresWidget
 
+    from REvoDesign.driver.ui_driver import StoresWidget
 
     menu_monitor = StoresWidget().server_switches['Editor_Backend']
 
     # Create QActions that simulate start/stop menu items
     action_start = menu_monitor.action_on
-    
+
     action_stop = menu_monitor.action_off
     menu_item = menu_monitor.menu_item
 
     assert menu_item is not None
-
 
     # Initially, is_running should be False
     assert not menu_monitor.controller.is_running
@@ -130,8 +126,6 @@ def test_menu_action_server_monitor(test_worker):
     action_start.trigger()
     assert menu_monitor.controller.is_running
 
-
     # Trigger the stop action
     action_stop.trigger()
     assert not menu_monitor.controller.is_running
-

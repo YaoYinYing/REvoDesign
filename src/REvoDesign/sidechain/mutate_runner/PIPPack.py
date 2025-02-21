@@ -10,7 +10,6 @@ from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
 
-
 logging = ROOT_LOGGER.getChild(__name__)
 
 

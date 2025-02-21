@@ -1,7 +1,7 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 
-PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,esm2,openmm,test
+PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,esm2,openmm,molpub,test
 
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
@@ -166,8 +166,6 @@ memray:
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/tabs/;  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
 
-fake:
-	cat 
 
 memray-live:
 	# Run a tmp folder to make sure the tests are run on the installed version

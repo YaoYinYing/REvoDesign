@@ -170,7 +170,6 @@ def edit_file_with_monaco(file_path: str):
     from pathlib import Path
 
     config_store = ConfigStore()
-    
 
     # Step 2: Ensure the server is running
     server_monitor = StoresWidget().server_switches['Editor_Backend']

@@ -3,7 +3,6 @@ The heart of REvoDesign. A UI-Configuration Bus
 '''
 
 import os
-from dataclasses import dataclass, field
 from functools import partial, wraps
 from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar,
                     overload)
@@ -31,7 +30,6 @@ logging = ROOT_LOGGER.getChild(__name__)
 ValueFromConfigT = TypeVar("ValueFromConfigT")
 
 # Define the decorator to enforce the non-headless requirement
-
 
 
 class StoresWidget(SingletonAbstract):
@@ -132,7 +130,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
 
         self.cite()
 
-    # TODO: need refactor
+    # TODO: refactors needed
     @require_non_headless
     def initialize_widget_with_group(self):
         # Initializes UI widgets with their corresponding configuration settings.
