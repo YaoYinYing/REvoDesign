@@ -16,7 +16,6 @@ from REvoDesign.tools.utils import timing
 logging = ROOT_LOGGER.getChild(__name__)
 
 
-
 class DLPacker_worker(MutateRunnerAbstract):
     """
     Class for managing protein reconstruction and mutation using DLPacker.

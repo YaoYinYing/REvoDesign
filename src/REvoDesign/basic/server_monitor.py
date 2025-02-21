@@ -12,9 +12,6 @@ from ..basic import SingletonAbstract
 this_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-
-
-
 class ServerControlAbstract(SingletonAbstract):
     """
     A singleton class that manages the Monaco backend server lifecycle.
