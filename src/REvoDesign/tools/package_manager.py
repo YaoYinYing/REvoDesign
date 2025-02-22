@@ -20,35 +20,36 @@ To make any of them importable in certain modules, import them from here
 and add to the `__all__` attributes so that they can be discoverable.
 '''
 
-from pymol.Qt.utils import loadUi
-
-from pymol.plugins import addmenuitemqt
-from pymol import cmd, get_version_message
-from urllib.error import HTTPError, URLError
-from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn,
-                    Optional, Tuple, Type, TypeVar, Union, overload, TYPE_CHECKING)
-from functools import partial
-from dataclasses import dataclass
-from contextlib import contextmanager
-import warnings
-import urllib.request
-import time
-import sys
-import subprocess
-import socket
-import shutil
-import re
-import platform
-import os
-import math
-import json
-import importlib.util
-import difflib
 import importlib
+import difflib
+import importlib.util
+import json
+import math
+import os
+import platform
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import time
+import urllib.request
+import warnings
+from contextlib import contextmanager
+from dataclasses import dataclass
+from functools import partial
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
+                    Mapping, NoReturn, Optional, Tuple, Type, TypeVar, Union,
+                    overload)
+from urllib.error import HTTPError, URLError
+from pymol import cmd, get_version_message
+from pymol.Qt.utils import loadUi
+from pymol.plugins import addmenuitemqt
+
 
 if TYPE_CHECKING:
     # type checking branch
-    from PyQt5 import QtCore, QtWidgets, QtGui
+    from PyQt5 import QtCore, QtGui, QtWidgets
     from PyQt5.QtCore import Qt
 else:
     # runtime branch
@@ -239,7 +240,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
                 separator_item.setEnabled(False)  # Non-interactive
                 separator_item.setSelectable(False)  # Non-selectable
                 separator_item.setCheckable(False)  # Non-checkable
-                separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow)) # type: ignore
+                separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))  # type: ignore
                 separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))  # type: ignore # Different background
                 separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
                 self.model.appendRow(separator_item)
@@ -263,8 +264,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         items = []
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable() and item.checkState() == check_state: # type: ignore
-                items.append(self.items.get(item.text(), None)) 
+            if item.isCheckable() and item.checkState() == check_state:  # type: ignore
+                items.append(self.items.get(item.text(), None))
         return items
 
     def get_checked_items(self):
@@ -274,7 +275,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         Returns:
             A list of strings representing the texts of all checked items.
         """
-        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked) # type: ignore
+        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)  # type: ignore
         print(f'[DEBUG]: Checked: {checked_items}')
         return checked_items
 
@@ -285,7 +286,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         Returns:
             A list of strings representing the texts of all unchecked items.
         """
-        return self._get_items_by_check_state(QtCore.Qt.Unchecked) # type: ignore
+        return self._get_items_by_check_state(QtCore.Qt.Unchecked)  # type: ignore
 
     def check_all(self):
         """
@@ -293,8 +294,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable() and item.text() != 'Test': # type: ignore
-                item.setCheckState(QtCore.Qt.Checked) # type: ignore
+            if item.isCheckable() and item.text() != 'Test':  # type: ignore
+                item.setCheckState(QtCore.Qt.Checked)  # type: ignore
 
     def uncheck_all(self):
         """
@@ -302,8 +303,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable(): # type: ignore
-                item.setCheckState(QtCore.Qt.Unchecked) # type: ignore
+            if item.isCheckable():  # type: ignore
+                item.setCheckState(QtCore.Qt.Unchecked)  # type: ignore
 
 
 @dataclass
@@ -421,7 +422,7 @@ class PIPInstaller:
         If ensurepip fails, raise a RuntimeError with the command output.
         """
         # run installation via pip
-        ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose_level>-1, env=self.env)
+        ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose_level > -1, env=self.env)
         if ensurepip.returncode:
             notify_box(
                 f"ensurepip failed.",
@@ -441,7 +442,7 @@ class PIPInstaller:
                 upgrade: bool = False,
                 extras: Optional[str] = None,
                 mirror: Optional[str] = "",
-                verbose_level: int=0,
+                verbose_level: int = 0,
                 env: Optional[Mapping[str, str]] = None,
                 ):
         """
@@ -508,16 +509,15 @@ class PIPInstaller:
         if mirror:
             print(f"using mirror from {mirror}")
             pip_cmd.extend(["-i", mirror])
-        if verbose_level<0:
+        if verbose_level < 0:
             pip_cmd.append(f"-{'q'*-verbose_level}")
-        elif verbose_level>0:
+        elif verbose_level > 0:
             pip_cmd.append(f"-{'v'*verbose_level}")
-        
+
         print(f'Using verbose level {verbose_level}')
 
-
         result: subprocess.CompletedProcess = run_command(
-            pip_cmd, verbose=self.verbose_level>-1, env=env or self.env)
+            pip_cmd, verbose=self.verbose_level > -1, env=env or self.env)
         return result
 
     def uninstall(self, package_name: str = 'REvoDesign'):
@@ -538,7 +538,7 @@ class PIPInstaller:
             "-y",
             package_name,
         ]
-        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose_level>-1, env=self.env)
+        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose_level > -1, env=self.env)
         return result
 
     def ensure_package(self, package_string: str,
@@ -854,7 +854,7 @@ class REvoDesignPackageManager:
 
         # Clear the clipboard to ensure no old data is mixed in
         cb = QtWidgets.QApplication.clipboard()  # type: ignore
-        cb.clear(mode=cb.Clipboard) # type: ignore
+        cb.clear(mode=cb.Clipboard)  # type: ignore
 
         # Collect diagnostic data using a worker thread
         diagnostic_data = run_worker_thread_with_progress(
@@ -865,7 +865,7 @@ class REvoDesignPackageManager:
         )
 
         # Copy the collected diagnostic data to the clipboard in JSON format
-        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard) # type: ignore
+        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard)  # type: ignore
 
         # Notify the user that the diagnostic data has been copied and instruct them on what to do next
         notify_box(
@@ -897,7 +897,7 @@ class REvoDesignPackageManager:
                 self.menu.addSection(item.name)
 
         # Set the context menu policy to show the menu on right-click
-        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu) # type: ignore
+        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # type: ignore
         self.installer_ui.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, pos):
@@ -931,7 +931,7 @@ class REvoDesignPackageManager:
         try:
             self.installer_ui = loadUi(ui_file, dialog)
         except Exception as e:
-            decided=decide(
+            decided = decide(
                 'UI Error',
                 f'Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?',
                 details=str(e),)
@@ -1371,7 +1371,7 @@ class REvoDesignPackageManager:
             if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
                 notify_box(
                     message="Installation succeeded. \nIf this is an upgrade, "
-                    "please restart PyMOL for it to take effect.", 
+                    "please restart PyMOL for it to take effect.",
                     details=f'STDOUT:\n{installed.stdout}\n\nSTDERR:\n{installed.stderr}' if installed else None)
                 return
 

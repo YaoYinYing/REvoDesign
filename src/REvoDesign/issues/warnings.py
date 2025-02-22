@@ -102,5 +102,6 @@ class SocketMessageOverflow(SocketWarning):
 class SocketMeetingRoomIsEmpty(SocketWarning):
     """Warning raised when a socket has no client"""
 
+
 class MissingExternalTool(REvoDesignWarning):
     """Warning raised when a external tool is missing"""

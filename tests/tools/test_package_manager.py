@@ -268,7 +268,7 @@ def test_ensurepip_success(pip_installer, mocker):
 
     mock_run_command.assert_called_once_with(
         [pip_installer.python_exe, "-m", "ensurepip"],
-        verbose=pip_installer.verbose_level>-1,
+        verbose=pip_installer.verbose_level > -1,
         env=pip_installer.env
     )
 
@@ -276,11 +276,10 @@ def test_ensurepip_success(pip_installer, mocker):
 def test_ensurepip_failure(pip_installer, mocker):
     """Test ensurepip raises an error on failure."""
     mock_run_command = mocker.patch('REvoDesign.tools.package_manager.run_command')
-    mock_notify_box = mocker.patch('REvoDesign.tools.package_manager.notify_box')
+    mocker.patch('REvoDesign.tools.package_manager.notify_box')
     mock_run_command.return_value = MagicMock(returncode=1, stdout='stdout', stderr='stderr')
 
     pip_installer.ensurepip()
-
 
 
 def test_install_revo_design_success(pip_installer, mocker):
@@ -308,7 +307,7 @@ def test_install_revo_design_success(pip_installer, mocker):
             "install",
             "mocked_package_string"
         ],
-        verbose=pip_installer.verbose_level>-1,
+        verbose=pip_installer.verbose_level > -1,
         env=pip_installer.env
     )
 
@@ -331,7 +330,7 @@ def test_uninstall(pip_installer, mocker):
             "-y",
             "some_package"
         ],
-        verbose=pip_installer.verbose_level>-1,
+        verbose=pip_installer.verbose_level > -1,
         env=pip_installer.env
     )
 

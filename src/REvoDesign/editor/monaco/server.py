@@ -1,12 +1,11 @@
 import os
 import secrets
 import time
+import warnings
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from html import escape
 from pathlib import Path
-import warnings
-
 
 import uvicorn
 import uvicorn.server
@@ -16,8 +15,7 @@ from fastapi.security import HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from REvoDesign import ConfigBus
-from REvoDesign import issues
+from REvoDesign import ConfigBus, issues
 from REvoDesign.basic.server_monitor import ServerControlAbstract
 from REvoDesign.editor.monaco.monaco import ensure_monaco
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
@@ -153,16 +151,15 @@ def verify_token(token: str, request: Request):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config_store = ConfigStore()
-    html_dir=config_store.get("editor.backend.html_dir")
+    html_dir = config_store.get("editor.backend.html_dir")
     if not html_dir:
         warnings.warn(issues.MissingExternalTool("Monaco Editor is not ready."))
         # ensure monaco editor is ready
         ensure_monaco()
         # re-fetch the updated value from config store
-        html_dir=config_store.get("editor.backend.html_dir")
-    
+        html_dir = config_store.get("editor.backend.html_dir")
+
     app.mount("/static", StaticFiles(directory=html_dir), name="static")
-    
 
     # Load and store whitelists at application startup
     editable_files, readonly_files = get_file_whitelist()
