@@ -21,12 +21,12 @@ and add to the `__all__` attributes so that they can be discoverable.
 '''
 
 from pymol.Qt.utils import loadUi
-from pymol.Qt import QtCore, QtGui, QtWidgets  # type: ignore
+
 from pymol.plugins import addmenuitemqt
 from pymol import cmd, get_version_message
 from urllib.error import HTTPError, URLError
 from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn,
-                    Optional, Tuple, Type, TypeVar, Union, overload)
+                    Optional, Tuple, Type, TypeVar, Union, overload, TYPE_CHECKING)
 from functools import partial
 from dataclasses import dataclass
 from contextlib import contextmanager
@@ -45,6 +45,14 @@ import json
 import importlib.util
 import difflib
 import importlib
+
+if TYPE_CHECKING:
+    # type checking branch
+    from PyQt5 import QtCore, QtWidgets, QtGui
+    from PyQt5.QtCore import Qt
+else:
+    # runtime branch
+    from pymol.Qt import QtCore, QtGui, QtWidgets
 
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
@@ -193,7 +201,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         model: The data model instance used by the list view.
     """
 
-    def __init__(self, list_view, items: Optional[Dict[str, str]] = None, parent=None):
+    def __init__(self, list_view, items: Dict[str, str] = {}, parent=None):
         """
         Initializes the CheckableListView instance.
 
@@ -231,15 +239,15 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
                 separator_item.setEnabled(False)  # Non-interactive
                 separator_item.setSelectable(False)  # Non-selectable
                 separator_item.setCheckable(False)  # Non-checkable
-                separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))
-                separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))  # Different background
+                separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow)) # type: ignore
+                separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))  # type: ignore # Different background
                 separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
                 self.model.appendRow(separator_item)
             else:
                 # Add as a regular checkable item
                 item = QtGui.QStandardItem(k)
                 item.setCheckable(True)
-                item.setCheckState(QtCore.Qt.Unchecked)  # Default unchecked
+                item.setCheckState(QtCore.Qt.Unchecked)  # type: ignore # Default unchecked
                 self.model.appendRow(item)
 
     def _get_items_by_check_state(self, check_state):
@@ -255,8 +263,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         items = []
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable() and item.checkState() == check_state:
-                items.append(self.items.get(item.text(), None))
+            if item.isCheckable() and item.checkState() == check_state: # type: ignore
+                items.append(self.items.get(item.text(), None)) 
         return items
 
     def get_checked_items(self):
@@ -266,7 +274,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         Returns:
             A list of strings representing the texts of all checked items.
         """
-        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)
+        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked) # type: ignore
         print(f'[DEBUG]: Checked: {checked_items}')
         return checked_items
 
@@ -277,7 +285,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         Returns:
             A list of strings representing the texts of all unchecked items.
         """
-        return self._get_items_by_check_state(QtCore.Qt.Unchecked)
+        return self._get_items_by_check_state(QtCore.Qt.Unchecked) # type: ignore
 
     def check_all(self):
         """
@@ -285,8 +293,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable() and item.text() != 'Test':
-                item.setCheckState(QtCore.Qt.Checked)
+            if item.isCheckable() and item.text() != 'Test': # type: ignore
+                item.setCheckState(QtCore.Qt.Checked) # type: ignore
 
     def uncheck_all(self):
         """
@@ -294,8 +302,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable():
-                item.setCheckState(QtCore.Qt.Unchecked)
+            if item.isCheckable(): # type: ignore
+                item.setCheckState(QtCore.Qt.Unchecked) # type: ignore
 
 
 @dataclass
@@ -396,13 +404,16 @@ class PIPInstaller:
     Attributes:
         python_exe (str): The path to the Python executable.
         env (Optional[Mapping[str, str]]): Optional environment variables for running commands.
-        verbose (bool): If True, print detailed information when running commands.
+        verbose_level (int): The verbosity level for running commands.
+            -3~-1: Maximum - Minimum silent
+            0:  Default
+            1~3:  Minimum - Maximum noisy
     """
 
     python_exe: str = ''
     # run_command args
     env: Optional[Mapping[str, str]] = None
-    verbose: bool = True
+    verbose_level: int = 0
 
     def ensurepip(self):
         """
@@ -410,7 +421,7 @@ class PIPInstaller:
         If ensurepip fails, raise a RuntimeError with the command output.
         """
         # run installation via pip
-        ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose, env=self.env)
+        ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose_level>-1, env=self.env)
         if ensurepip.returncode:
             notify_box(
                 f"ensurepip failed.",
@@ -430,8 +441,7 @@ class PIPInstaller:
                 upgrade: bool = False,
                 extras: Optional[str] = None,
                 mirror: Optional[str] = "",
-                quiet: bool = False,
-                force_reinstall: bool = False,
+                verbose_level: int=0,
                 env: Optional[Mapping[str, str]] = None,
                 ):
         """
@@ -443,7 +453,7 @@ class PIPInstaller:
             upgrade (bool): If True, upgrade the package if it is already installed. Defaults to False.
             extras (Optional[str]): Additional requirements to install. Defaults to None.
             mirror (Optional[str]): The URL of the package mirror to use. Defaults to None.
-            quiet (bool): If True, run pip in quiet mode. Defaults to False.
+            verbose_level (int): The verbosity level for the installation. Defaults to 1.
             env (Optional[Mapping[str, str]]): Optional environment variables for running the pip command.
 
         Returns:
@@ -498,14 +508,16 @@ class PIPInstaller:
         if mirror:
             print(f"using mirror from {mirror}")
             pip_cmd.extend(["-i", mirror])
-        if quiet:
-            pip_cmd.append("-q")
+        if verbose_level<0:
+            pip_cmd.append(f"-{'q'*-verbose_level}")
+        elif verbose_level>0:
+            pip_cmd.append(f"-{'v'*verbose_level}")
+        
+        print(f'Using verbose level {verbose_level}')
 
-        if force_reinstall:
-            pip_cmd.append("--force-reinstall")
 
         result: subprocess.CompletedProcess = run_command(
-            pip_cmd, verbose=self.verbose, env=env or self.env)
+            pip_cmd, verbose=self.verbose_level>-1, env=env or self.env)
         return result
 
     def uninstall(self, package_name: str = 'REvoDesign'):
@@ -526,7 +538,7 @@ class PIPInstaller:
             "-y",
             package_name,
         ]
-        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose, env=self.env)
+        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose_level>-1, env=self.env)
         return result
 
     def ensure_package(self, package_string: str,
@@ -842,7 +854,7 @@ class REvoDesignPackageManager:
 
         # Clear the clipboard to ensure no old data is mixed in
         cb = QtWidgets.QApplication.clipboard()  # type: ignore
-        cb.clear(mode=cb.Clipboard)
+        cb.clear(mode=cb.Clipboard) # type: ignore
 
         # Collect diagnostic data using a worker thread
         diagnostic_data = run_worker_thread_with_progress(
@@ -853,7 +865,7 @@ class REvoDesignPackageManager:
         )
 
         # Copy the collected diagnostic data to the clipboard in JSON format
-        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard)
+        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard) # type: ignore
 
         # Notify the user that the diagnostic data has been copied and instruct them on what to do next
         notify_box(
@@ -885,7 +897,7 @@ class REvoDesignPackageManager:
                 self.menu.addSection(item.name)
 
         # Set the context menu policy to show the menu on right-click
-        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu) # type: ignore
         self.installer_ui.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, pos):
@@ -916,7 +928,18 @@ class REvoDesignPackageManager:
             worker_function=self.ensure_ui_file
         )
         # Set up the UI for the dialog
-        self.installer_ui = loadUi(ui_file, dialog)
+        try:
+            self.installer_ui = loadUi(ui_file, dialog)
+        except Exception as e:
+            decided=decide(
+                'UI Error',
+                f'Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?',
+                details=str(e),)
+            if decided:
+                os.remove(ui_file)
+                return self.make_window()
+            else:
+                raise RuntimeError(f"Error occurs while loading UI file: {e}.")
 
         # add right-click menu on `self.installer_ui.label_header`,
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
@@ -1237,7 +1260,7 @@ class REvoDesignPackageManager:
         # Determine additional components to install
         extras = ",".join(self.extra_checkbox.get_checked_items())
         upgrade = self.installer_ui.checkBox_upgrade.isChecked()
-        verbose = self.installer_ui.checkBox_verbose.isChecked()
+        verbose_level = self.installer_ui.horizontalSlider_Verbose.value()
 
         # version tags
         use_version = self.installer_ui.checkBox_specified_version.isChecked()
@@ -1246,8 +1269,6 @@ class REvoDesignPackageManager:
         # git commits
         use_commit = self.installer_ui.checkBox_specified_commit.isChecked()
         target_commit = self.installer_ui.lineEdit_commit.text()
-
-        force_reinstall = self.installer_ui.checkBox_force_reinstall.isChecked()
 
         # networking
         use_proxy = self.installer_ui.checkBox_use_proxy.isChecked()
@@ -1342,16 +1363,16 @@ class REvoDesignPackageManager:
                 source=install_source,
                 upgrade=upgrade,
                 extras=extras,
-                quiet=not verbose,
+                verbose_level=verbose_level,
                 mirror=mirror_url if (use_mirror and mirror_url) else '',
-                force_reinstall=force_reinstall,
                 progress_bar=self.installer_ui.progressBar,
             )
             # Provide feedback on the installation result
             if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
                 notify_box(
                     message="Installation succeeded. \nIf this is an upgrade, "
-                    "please restart PyMOL for it to take effect.", )
+                    "please restart PyMOL for it to take effect.", 
+                    details=f'STDOUT:\n{installed.stdout}\n\nSTDERR:\n{installed.stderr}' if installed else None)
                 return
 
             notify_box(
