@@ -90,6 +90,8 @@ def plugin(qtbot: qtbot.QtBot, app):
     REvoDesignWebSocketClient.reset_instance()
     REvoDesignWebSocketServer.reset_instance()
     SidechainSolver.reset_instance()
+    for k,w in StoresWidget().server_switches.items():
+        w.controller.__class__.reset_instance()
     StoresWidget.reset_instance()
     ConfigBus.reset_instance()
     gc.collect()
@@ -512,6 +514,9 @@ class TestWorker:
         REvoDesignWebSocketClient.reset_instance()
         REvoDesignWebSocketServer.reset_instance()
         SidechainSolver.reset_instance()
+        for k,w in StoresWidget().server_switches.items():
+            w.controller.__class__.reset_instance()
+        StoresWidget.reset_instance()
         ConfigBus.reset_instance()
         Magician.reset_instance()
         FileDialog.reset_instance()
