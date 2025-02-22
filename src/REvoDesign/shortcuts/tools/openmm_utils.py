@@ -76,7 +76,6 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         # Wrap the Flask app as ASGI
         asgi_app = WsgiToAsgi(app)
 
-    
         # Configure the Uvicorn server
         config = uvicorn.Config(
             app=asgi_app,
@@ -97,12 +96,10 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         self.server_thread.start()
         # Set the running status to True
         self.is_running = True
-        
+
         # Print the server start information
         print(f"Server started in {url}")
         return self.open_url(url=url)
-
-        
 
     __bibtex__ = {
         'OpenMM': """@article{doi:10.1021/acs.jpcb.3c06662,
