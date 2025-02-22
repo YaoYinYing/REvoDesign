@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 
+### Added
+
+### Changed
+- `package_manager`: verbose level slide to control verbose level of package manager in pip installs.
+
+### Fixed
+- `monaco.server`: if lifespan fails on fetching HTML path `editor.backend.html_dir`, call `ensure_monaco` to setup monaco.
+- some tests
+
+### Removed
+
 ## [Unreleased]
 
 ## [1.7.18] - 2025-02-21
