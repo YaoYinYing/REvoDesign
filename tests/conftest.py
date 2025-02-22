@@ -32,7 +32,6 @@ from REvoDesign.common import MutantTree
 from REvoDesign.driver.file_dialog import FileDialog
 from REvoDesign.driver.ui_driver import StoresWidget
 from REvoDesign.editor.monaco.config import ConfigStore
-from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.magician import Magician
 from REvoDesign.sidechain import SidechainSolver
 from REvoDesign.tools.customized_widgets import (get_widget_value,
@@ -44,7 +43,7 @@ from .data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
-TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "client", "socket", "config"]
+TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "socket", "config"]
 
 
 def pytest_collection_modifyitems(items: list[Item]):
@@ -521,7 +520,6 @@ class TestWorker:
         Magician.reset_instance()
         FileDialog.reset_instance()
         ConfigStore.reset_instance()
-        ServerControl.reset_instance()
         SystemInfoReduced.reset_instance()
 
         gc.collect()
