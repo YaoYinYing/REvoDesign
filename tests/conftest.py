@@ -18,7 +18,7 @@ import pytest
 from _pytest.nodes import Item
 from immutabledict import immutabledict
 from pymol import CmdException, cmd
-from pymol.Qt import QtCore, QtWidgets  # type: ignore
+from REvoDesign.Qt import QtCore, QtWidgets
 from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
@@ -30,6 +30,7 @@ from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
                                                   REvoDesignWebSocketServer)
 from REvoDesign.common import MutantTree
 from REvoDesign.driver.file_dialog import FileDialog
+from REvoDesign.driver.ui_driver import StoresWidget
 from REvoDesign.editor.monaco.config import ConfigStore
 from REvoDesign.editor.monaco.server import ServerControl
 from REvoDesign.magician import Magician
@@ -84,11 +85,12 @@ def plugin(qtbot: qtbot.QtBot, app):
 
     cmd.reinitialize()
 
-    # reset singleton classes
+    # reset all singleton classes
     CitationManager.reset_instance()
     REvoDesignWebSocketClient.reset_instance()
     REvoDesignWebSocketServer.reset_instance()
     SidechainSolver.reset_instance()
+    StoresWidget.reset_instance()
     ConfigBus.reset_instance()
     gc.collect()
 
