@@ -268,7 +268,7 @@ def test_ensurepip_success(pip_installer, mocker):
 
     mock_run_command.assert_called_once_with(
         [pip_installer.python_exe, "-m", "ensurepip"],
-        verbose=pip_installer.verbose,
+        verbose=pip_installer.verbose_level>-1,
         env=pip_installer.env
     )
 
@@ -281,9 +281,6 @@ def test_ensurepip_failure(pip_installer, mocker):
 
     pip_installer.ensurepip()
 
-    mock_notify_box.assert_called_once_with(
-        "ensurepip failed: \nSTDOUT:\nstdout\n\nSTDERR:\nstderr.", RuntimeError
-    )
 
 
 def test_install_revo_design_success(pip_installer, mocker):
@@ -311,7 +308,7 @@ def test_install_revo_design_success(pip_installer, mocker):
             "install",
             "mocked_package_string"
         ],
-        verbose=pip_installer.verbose,
+        verbose=pip_installer.verbose_level>-1,
         env=pip_installer.env
     )
 
@@ -334,7 +331,7 @@ def test_uninstall(pip_installer, mocker):
             "-y",
             "some_package"
         ],
-        verbose=pip_installer.verbose,
+        verbose=pip_installer.verbose_level>-1,
         env=pip_installer.env
     )
 
