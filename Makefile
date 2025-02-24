@@ -1,7 +1,7 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 
-PIP_EXTRAS=dlpacker,pippack,colabdesign,test
+PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,test
 
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
@@ -43,6 +43,8 @@ help:
 	@echo "  prepare-test           Run pip to install pytest-related packages"
 	@echo "  test                   Run the UnitTest suite"
 	@echo "  all-test               Run all tests"
+	@echo "  kw-test                Run the Keyword Test suite"
+	@echo "  kw-test-pdb            Run the Keyword Test suite with pdb"
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
 	@echo "  memray                 Memoray profile for leakage, saved as html file"
 	@echo "  memray-live            Memoray profile for leakage in live mode"
@@ -151,6 +153,14 @@ kw-test:
 	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)  -k $(PYTEST_KW) -vv -x
 	cp $(TESTDIR)/.coverage* .
 
+# all test with keyword, under pdb
+kw-test-pdb:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
+	cd $(TESTDIR); python -m pytest -s -v --pdb $(PYTEST_CASES_PATH) -k $(PYTEST_KW)
+	cp $(TESTDIR)/.coverage* .
+
 macos-rosetta-test:
 	$(MACOS_PYMOL_BIN_PATH)/python -m pip install ".[test]" -U --no-cache-dir
 	# Run a tmp folder to make sure the tests are run on the installed version
@@ -210,4 +220,4 @@ clean:
 	rm -rvf $(TESTDIR) dask-worker-space
 	rm -rvf logs surface_residue_records mutations_design_profile pockets temperal_pdb analysis screenshots
 	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ gremlin_co_evolved_pairs/ seg_chain_resn_sel/ seg_chainA_resn_sel/ mutant_pdbs/
-	git clean -ffdx
+	# git clean -ffdx

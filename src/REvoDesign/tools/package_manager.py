@@ -56,6 +56,34 @@ else:
     from pymol.Qt import QtCore, QtGui, QtWidgets
 
 
+if not __file__.endswith('package_manager.py') :
+    # use a mocked logger to handle logging from pymol's concole
+    #  instead if it runs as packagemanager from PyMOL
+    class MockLogger:
+        def info(self, msg):
+            print(f'[INFO]: {msg}')
+        def warning(self, msg):
+            print(f'[WARNING]: {msg}')
+        def debug(self, msg):
+            print(f'[DEBUG]: {msg}')
+        def critical(self, msg):
+            print(f'[CRITICAL]: {msg}')
+
+
+    logging=MockLogger()
+    logging.info(f'Package manager is running via PyMOL: {__file__}.')
+    
+    
+else:
+    # enable logger from REvoDesign if it is a submodule not a script
+    from REvoDesign.logger import ROOT_LOGGER
+
+    logging = ROOT_LOGGER.getChild(__name__)
+    logging.info('Package manager is running via REvoDesign.')
+
+
+
+
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
 GIST_BASE_URL: str = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
@@ -117,7 +145,7 @@ def fetch_gist_json(url: str) -> Dict[str, str]:
         with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
             data = response.read().decode('utf-8')
             json_data = json.loads(data)
-            print(f'[DEBUG]: Extras table is fetched and parsed: \n'
+            logging.debug('Extras table is fetched and parsed: \n'
                   f'{json_data}')
 
             # Validate the structure of the fetched data
@@ -276,7 +304,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
             A list of strings representing the texts of all checked items.
         """
         checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)  # type: ignore
-        print(f'[DEBUG]: Checked: {checked_items}')
+        logging.debug(f'Checked: {checked_items}')
         return checked_items
 
     def get_unchecked_items(self):
@@ -622,7 +650,7 @@ class REvoDesignPackageManager:
 
         # otherwise, if the user not requires an upgrade, return
         if not upgrade:
-            print(f'[DEBUG]: pre-downloaded UI file found: {ui_file}')
+            logging.debug(f'pre-downloaded UI file found: {ui_file}')
             return ui_file
 
         # otherwise, preform the upgrade
@@ -1236,7 +1264,7 @@ class REvoDesignPackageManager:
         # Iterate over the dependency table
         for pkg_name, pkg_id in deps_table.items():
             if pkg_name not in checked_depts_to_uninstall:
-                print(f'[DEBUG]: Skip unchecked item: {pkg_name}')
+                logging.debug(f'Skip unchecked item: {pkg_name}')
                 continue
             # Uninstall each package associated with the checked dependency
             for _p in pkg_id.split(';'):
@@ -2053,7 +2081,7 @@ def issue_collection(
 
 @contextmanager
 def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],  # type: ignore
+    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton], 
     animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
 ):
     """
@@ -2111,6 +2139,7 @@ def hold_trigger_button(
             b.setProperty("held", True)  # Mark the button as held
             b.setProperty("original_style", b.styleSheet() if b.styleSheet() else "")
             start_breathing_animation(b)
+            logging.debug(f"Held button: {b.text()}: ({b.objectName()})")
         yield
     finally:
         for b in buttons:
@@ -2118,6 +2147,7 @@ def hold_trigger_button(
             stop_breathing_animation(b)
             b.setStyleSheet(b.property("original_style") if b.property("original_style") else "")
             b.setEnabled(True)  # Re-enable the button
+            logging.debug(f"Released button: {b.text()}: ({b.objectName()})")
 
 
 def solve_installation_config(

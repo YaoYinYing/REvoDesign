@@ -5,7 +5,7 @@ import pytest
 from REvoDesign.shortcuts.tools.exports import shortcut_dump_fasta_from_struct
 from tests.conftest import TestWorker
 
-
+@pytest.mark.serial
 @pytest.mark.parametrize(
     "format,chain_id,drop_missing_residue,suffix, expected_seq_num",
     [

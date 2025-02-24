@@ -17,15 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 ### Added
+- `basic`:
+  - `abc_singleton`:  `reset_singletons` to reset all subclasses of `SingletonAbstract` gracefully
+- `tools`:
+  - `package_manager`: `MockLogger` to print logging messages to PyMOL console
+- Makefile:
+  - `kw-test` and `kw-test-pdb` at help msg
+  - `kw-test-pdb`: debug with `pdb` 
 
 ### Changed
 - `package_manager`: verbose level slide to control verbose level of package manager in pip installs.
+- tests:
+  - `conftest`:
+    - replace all `reset_instance()` statements with `reset_singletons()`
+  - mark:
+    - `test_shortcut_dump_fasta_from_struct` : serial
+    - `color_by_mutation`: serial
+  
 
 ### Fixed
 - `monaco.server`: if lifespan fails on fetching HTML path `editor.backend.html_dir`, call `ensure_monaco` to setup monaco.
 - some tests
 
 ### Removed
+- tests:
+  - multidesigns: needs a removal or refactor
+  - repetative tests on:
+    - `rosettaligand`
+    - `thermompnn`
 
 ## [Unreleased]
 

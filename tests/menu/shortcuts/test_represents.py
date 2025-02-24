@@ -6,7 +6,7 @@ from pymol import cmd
 from REvoDesign.shortcuts.tools.represents import shortcut_color_by_mutation
 from tests.conftest import TestWorker
 
-
+@pytest.mark.serial
 def test_shortcut_color_by_mutation(test_worker: TestWorker):
     pdb_1 = '../tests/data/pdb/3fap_hf3_A_short_00001.pdb'
     pdb_2 = '../tests/data/pdb/3fap_hf3_A_short_00001_0.5.pdb'
