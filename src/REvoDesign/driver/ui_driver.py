@@ -4,7 +4,7 @@ The heart of REvoDesign. A UI-Configuration Bus
 
 import os
 from functools import partial, wraps
-from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar,
+from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar, Union,
                     overload)
 
 import omegaconf.errors
@@ -35,6 +35,36 @@ ValueFromConfigT = TypeVar("ValueFromConfigT")
 class StoresWidget(SingletonAbstract):
     def singleton_init(self):
         self.server_switches: Dict[str, MenuActionServerMonitor] = {}
+
+    @classmethod
+    def reset_instance(cls):
+        '''
+        Reset the instance of the class and clear all server switches dictionaries.
+        '''
+        myinstance=cls()
+
+        for attr in myinstance.__dict__:
+            if attr.startswith('_'):
+                continue
+
+            attr_dict: Union[Dict, Any]=getattr(myinstance, attr)
+            if not isinstance(attr_dict, dict):
+                continue
+
+            for k, s in attr_dict.items():
+                if hasattr(s, 'controller'):
+                    controller=getattr(s,'controller')
+                    try:
+                        if issubclass(s.controller.__class__, SingletonAbstract):
+                            print(f'Resetting {k}: {controller.__class__.__name__}', end=' ')
+                            s.controller.__class__.reset_instance()
+                        print('done.')
+                    except Exception as e:
+                        print(f'failed: ({e}).')
+
+            del attr_dict
+
+        super().reset_instance()
 
 
 class HeadlessProtocol(Protocol):
