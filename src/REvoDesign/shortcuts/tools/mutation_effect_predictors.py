@@ -10,7 +10,7 @@ import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.basic import ThirdPartyModuleAbstract, SingletonAbstract
+from REvoDesign.basic import SingletonAbstract, ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
@@ -203,7 +203,6 @@ def shortcut_thermompnn(
         quick_mutagenesis(mutant_tree)
 
     del df, mutant_tree
-    del app 
+    del app
     import gc
     gc.collect()
-

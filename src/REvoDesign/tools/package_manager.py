@@ -56,32 +56,32 @@ else:
     from pymol.Qt import QtCore, QtGui, QtWidgets
 
 
-if not __file__.endswith('package_manager.py') :
+if not __file__.endswith('package_manager.py'):
     # use a mocked logger to handle logging from pymol's concole
     #  instead if it runs as packagemanager from PyMOL
     class MockLogger:
         def info(self, msg):
             print(f'[INFO]: {msg}')
+
         def warning(self, msg):
             print(f'[WARNING]: {msg}')
+
         def debug(self, msg):
             print(f'[DEBUG]: {msg}')
+
         def critical(self, msg):
             print(f'[CRITICAL]: {msg}')
 
-
-    logging=MockLogger()
+    logging = MockLogger()
     logging.info(f'Package manager is running via PyMOL: {__file__}.')
-    
-    
+
+
 else:
     # enable logger from REvoDesign if it is a submodule not a script
     from REvoDesign.logger import ROOT_LOGGER
 
     logging = ROOT_LOGGER.getChild(__name__)
     logging.info('Package manager is running via REvoDesign.')
-
-
 
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
@@ -146,7 +146,7 @@ def fetch_gist_json(url: str) -> Dict[str, str]:
             data = response.read().decode('utf-8')
             json_data = json.loads(data)
             logging.debug('Extras table is fetched and parsed: \n'
-                  f'{json_data}')
+                          f'{json_data}')
 
             # Validate the structure of the fetched data
             if not isinstance(json_data, dict):
@@ -2081,7 +2081,7 @@ def issue_collection(
 
 @contextmanager
 def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton], 
+    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],
     animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
 ):
     """

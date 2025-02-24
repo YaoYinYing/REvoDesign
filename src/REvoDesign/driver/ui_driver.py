@@ -4,8 +4,8 @@ The heart of REvoDesign. A UI-Configuration Bus
 
 import os
 from functools import partial, wraps
-from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar, Union,
-                    overload)
+from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar,
+                    Union, overload)
 
 import omegaconf.errors
 from immutabledict import immutabledict
@@ -41,19 +41,19 @@ class StoresWidget(SingletonAbstract):
         '''
         Reset the instance of the class and clear all server switches dictionaries.
         '''
-        myinstance=cls()
+        myinstance = cls()
 
         for attr in myinstance.__dict__:
             if attr.startswith('_'):
                 continue
 
-            attr_dict: Union[Dict, Any]=getattr(myinstance, attr)
+            attr_dict: Union[Dict, Any] = getattr(myinstance, attr)
             if not isinstance(attr_dict, dict):
                 continue
 
             for k, s in attr_dict.items():
                 if hasattr(s, 'controller'):
-                    controller=getattr(s,'controller')
+                    controller = getattr(s, 'controller')
                     try:
                         if issubclass(s.controller.__class__, SingletonAbstract):
                             print(f'Resetting {k}: {controller.__class__.__name__}', end=' ')

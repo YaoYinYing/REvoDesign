@@ -18,7 +18,6 @@ import pytest
 from _pytest.nodes import Item
 from immutabledict import immutabledict
 from pymol import CmdException, cmd
-from REvoDesign.Qt import QtCore, QtWidgets
 from pytestqt import qtbot
 from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
@@ -26,9 +25,8 @@ from RosettaPy.utils import tmpdir_manager
 from REvoDesign import REvoDesignPlugin
 from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
-
 from REvoDesign.common import MutantTree
-
+from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 
@@ -81,7 +79,7 @@ def plugin(qtbot: qtbot.QtBot, app):
     reset_singletons()
 
     # reset all singleton classes
-    
+
     gc.collect()
 
     plugin = REvoDesignPlugin()

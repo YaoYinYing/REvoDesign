@@ -117,7 +117,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
             ).replace("X", "")
         # scorer must return a float score value given a mutant sequence.
         return self.mpnn_model.score(seq=sequence)["score"]
-    
+
     def parallel_scorer(self, mutants: List[Mutant], nproc: int = 2, **kwargs) -> List[Mutant]:
         scores = []
         for mutant in mutants:
