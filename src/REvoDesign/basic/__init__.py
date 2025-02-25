@@ -1,5 +1,5 @@
 from .abc_singleton import SingletonAbstract, reset_singletons
-from .abc_third_party_module import ThirdPartyModuleAbstract
+from .abc_third_party_module import ThirdPartyModuleAbstract,TorchModuleAbstract
 from .data_structure import IterableLoop
 from .designer import ExternalDesignerAbstract
 from .extensions import FileExtension, FileExtensionCollection
@@ -13,6 +13,7 @@ __all__ = [
     "SingletonAbstract",
     "reset_singletons",
     "ThirdPartyModuleAbstract",
+    "TorchModuleAbstract",
     "IterableLoop",
     "MutateRunnerAbstract",
     "ExternalDesignerAbstract",
