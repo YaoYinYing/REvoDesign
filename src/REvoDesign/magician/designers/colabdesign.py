@@ -5,7 +5,7 @@ ProteinMPNN, driven by ColabDesign
 # pylint: disable=import-outside-toplevel
 import os
 import warnings
-from typing import Union
+from typing import List, Union
 
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
@@ -117,6 +117,12 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
             ).replace("X", "")
         # scorer must return a float score value given a mutant sequence.
         return self.mpnn_model.score(seq=sequence)["score"]
+
+    def parallel_scorer(self, mutants: List[Mutant], nproc: int = 2, **kwargs) -> List[Mutant]:
+        scores = []
+        for mutant in mutants:
+            scores.append(self.scorer(mutant))
+        return self.score_mutant_mapping(mutants, scores)
 
     def designer(self, *args, **kwargs):
         """

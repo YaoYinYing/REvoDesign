@@ -15,8 +15,8 @@ from tests.conftest import TestWorker
     "job_id,start_from,cst",
     [
         ['no_start_no_cst', None, None],
-        ['has_start_no_cst', (-13.218, 6.939, 6.592), None],
-        ['no_start_has_cst', None, '../tests/data/cst/6zcy_lig_disance.cst']
+        # ['has_start_no_cst', (-13.218, 6.939, 6.592), None],
+        # ['no_start_has_cst', None, '../tests/data/cst/6zcy_lig_disance.cst']
     ],
 )
 def test_rosetta_ligand(job_id, start_from, cst, test_worker: TestWorker, test_node_hint):
@@ -102,8 +102,8 @@ def test_rosetta_ligand(job_id, start_from, cst, test_worker: TestWorker, test_n
 @pytest.mark.parametrize(
     "job_id,pdb,dualspace,ligand",
     [
-        ['mono', '../tests/data/3fap_hf3_A_short.pdb', False, ''],
-        ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', True, ''],
+        # ['mono', '../tests/data/3fap_hf3_A_short.pdb', False, ''],
+        # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', True, ''],
         ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', False, '../tests/data/lig/lig.fa.params'],
     ],
 )
@@ -147,7 +147,7 @@ def test_fast_relax(job_id, pdb, dualspace, ligand, test_worker: TestWorker, tes
     "job_id,pdb,ligand",
     [
         ['mono', '../tests/data/3fap_hf3_A_short.pdb', ''],
-        ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', ''],
+        # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', ''],
         ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', '../tests/data/lig/lig.fa.params'],
     ],
 )

@@ -1254,6 +1254,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         cmd.save(filename=session)
 
+    # TODO: drop(mostly liked)/refact(hated) this part
     def multi_mutagenesis_design_initialize(self):
         """
         The function initializes a MultiMutantDesigner object.

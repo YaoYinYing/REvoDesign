@@ -247,3 +247,20 @@ class SingletonAbstract(ABC):
         After calling this method, the next instantiation will create a new singleton instance.
         """
         cls._instance = None
+
+
+def reset_singletons():
+    """
+    Reset singleton classes.
+
+    This function is used to gracefully reset all singleton classes. It iterates through all subclasses of SingletonAbstract,
+    and if the subclass has an '_instance' attribute and it is not None, it calls the reset_instance method of that class.
+
+    Note: This function does not accept parameters and does not return any value.
+    """
+    # gracefully reset all singleton classes
+    for cls in SingletonAbstract.__subclasses__():
+        # check if the singleton class instance exists
+        if hasattr(cls, '_instance') and cls._instance is not None:
+            # reset the instance of the singleton class
+            cls.reset_instance()

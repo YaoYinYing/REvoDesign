@@ -83,3 +83,5 @@ ROSETTA_CRASH.log
 /mutant_pdbs
 tests/saves.csv
 /seg_chain_resn_sel
+normal.txt
+sick.txt

@@ -73,11 +73,6 @@ esm2=[
     "fair-esm2 @ git+https://github.com/YaoYinYing/esm2.git#egg=fair-esm2",
 ]
 
-esme=[
-    "flash-attn",
-    "esm-efficient",
-]
-
 openmm=[
     "openmm>=8.1.1",
     "asgiref>=3.8.1",
@@ -189,7 +184,6 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov-report xml:coverage.xml --cov src --cov-fail-under 0 -m 'not integration' -v --pyargs --durations=0"
 pythonpath = [
   "src"
 ]

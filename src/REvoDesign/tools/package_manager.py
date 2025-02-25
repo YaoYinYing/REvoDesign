@@ -46,6 +46,7 @@ from pymol import cmd, get_version_message
 from pymol.Qt.utils import loadUi
 from pymol.plugins import addmenuitemqt
 
+LOGGER_LEVEL=15
 
 if TYPE_CHECKING:
     # type checking branch
@@ -54,6 +55,38 @@ if TYPE_CHECKING:
 else:
     # runtime branch
     from pymol.Qt import QtCore, QtGui, QtWidgets
+
+
+if not __file__.endswith('package_manager.py'):
+    # use a mocked logger to handle logging from pymol's concole
+    #  instead if it runs as packagemanager from PyMOL
+    class MockLogger:
+
+        def debug(self, msg: str, *args,**kwargs):
+            print(f'[DEBUG]: {msg}') if LOGGER_LEVEL<10 else None
+
+        def info(self, msg: str, *args,**kwargs):
+            print(f'[INFO]: {msg}') if LOGGER_LEVEL<20 else None
+
+        def warning(self, msg: str, *args,**kwargs):
+            print(f'[WARNING]: {msg}') if LOGGER_LEVEL<30 else None
+
+        def error(self, msg: str, *args,**kwargs):
+            print(f'[ERROR]: {msg}') if LOGGER_LEVEL<40 else None
+
+        def critical(self, msg: str, *args,**kwargs):
+            print(f'[CRITICAL]: {msg}') if LOGGER_LEVEL<50 else None
+
+    logging = MockLogger()
+    logging.info(f'Package manager is running via PyMOL: {__file__}.')
+
+
+else:
+    # enable logger from REvoDesign if it is a submodule not a script
+    from REvoDesign.logger import ROOT_LOGGER
+
+    logging = ROOT_LOGGER.getChild(__name__)
+    logging.info('Package manager is running via REvoDesign.')
 
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
@@ -117,8 +150,8 @@ def fetch_gist_json(url: str) -> Dict[str, str]:
         with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
             data = response.read().decode('utf-8')
             json_data = json.loads(data)
-            print(f'[DEBUG]: Extras table is fetched and parsed: \n'
-                  f'{json_data}')
+            logging.debug('Extras table is fetched and parsed: \n'
+                          f'{json_data}')
 
             # Validate the structure of the fetched data
             if not isinstance(json_data, dict):
@@ -128,7 +161,7 @@ def fetch_gist_json(url: str) -> Dict[str, str]:
                     raise ValueError("Invalid key-value format in JSON data.")
             return json_data
     except Exception as e:
-        print(f"Error fetching or validating the JSON data: {e}: ")
+        logging.error(f"Error fetching or validating the JSON data: {e}: ")
         return {}
 
 
@@ -167,7 +200,7 @@ def run_command(
     """
     # Optionally print the command for debugging
     if verbose:
-        print(f'launching command: {" ".join(cmd)}')
+        logging.info(f'launching command: {" ".join(cmd)}')
 
     # Execute the command using subprocess.run()
     result = subprocess.run(
@@ -181,7 +214,7 @@ def run_command(
 
     # Optionally print the command output for debugging
     if verbose and (res_text := result.stdout):
-        print(res_text)
+        logging.info(res_text)
 
     # If the command execution fails and verbose is True, raise an exception
     if result.returncode != 0 and verbose:
@@ -276,7 +309,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
             A list of strings representing the texts of all checked items.
         """
         checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)  # type: ignore
-        print(f'[DEBUG]: Checked: {checked_items}')
+        logging.debug(f'Checked: {checked_items}')
         return checked_items
 
     def get_unchecked_items(self):
@@ -333,6 +366,7 @@ class GitSolver:
         # shutil.which will return the real path of conda script
         for cmd_tool in ["git", "conda", "mamba", "winget", "brew", 'choco']:
             setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
+            logging.debug(f"Command tool check: {cmd_tool}: {getattr(self, f'has_{cmd_tool}')}")
 
     @property
     def where_to_install(self) -> Optional[List[str]]:
@@ -428,6 +462,8 @@ class PIPInstaller:
                 f"ensurepip failed.",
                 RuntimeError,
                 details=f'\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}')
+            
+        self.install('pip', upgrade=True, verbose_level=0, env=self.env)
 
     def __post_init__(self):
         """
@@ -435,6 +471,7 @@ class PIPInstaller:
         """
         self.python_exe = os.path.realpath(sys.executable)
         self.ensurepip()
+        
 
     def install(self,
                 package_name: str = 'REvoDesign',
@@ -460,7 +497,7 @@ class PIPInstaller:
         Returns:
             The result of running the pip install command.
         """
-        print("Installation is started. This may take a while and the window will freeze until it is done.")
+        logging.info("Installation is started. This may take a while and the window will freeze until it is done.")
 
         def get_source_and_tag(source: str):
             """
@@ -507,14 +544,14 @@ class PIPInstaller:
             pip_cmd.append("-U")
 
         if mirror:
-            print(f"using mirror from {mirror}")
+            logging.info(f"using mirror from {mirror}")
             pip_cmd.extend(["-i", mirror])
         if verbose_level < 0:
             pip_cmd.append(f"-{'q'*-verbose_level}")
         elif verbose_level > 0:
             pip_cmd.append(f"-{'v'*verbose_level}")
 
-        print(f'Using verbose level {verbose_level}')
+        logging.debug(f'Using verbose level {verbose_level}')
 
         result: subprocess.CompletedProcess = run_command(
             pip_cmd, verbose=self.verbose_level > -1, env=env or self.env)
@@ -617,12 +654,12 @@ class REvoDesignPackageManager:
         # if not exists,  preform the first fetch
         if not os.path.isfile(ui_file):
             fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
-            print(f"Fetched UI file for manager: {ui_file}")
+            logging.info(f"Fetched UI file for manager: {ui_file}")
             return ui_file
 
         # otherwise, if the user not requires an upgrade, return
         if not upgrade:
-            print(f'[DEBUG]: pre-downloaded UI file found: {ui_file}')
+            logging.debug(f'pre-downloaded UI file found: {ui_file}')
             return ui_file
 
         # otherwise, preform the upgrade
@@ -744,22 +781,18 @@ class REvoDesignPackageManager:
 
         self.refresh_extras_table()
 
-        self.pip_installer = PIPInstaller()
+        self.pip_installer = run_worker_thread_with_progress(PIPInstaller)
 
         self.extra_checkbox.setGeometry(QtCore.QRect(540, 90, 141, 431))
 
         # Connect the 'None' radio button to uncheck all items
         self.installer_ui.radioButton_extra_none.toggled["bool"].connect(
-            partial(
                 self.extra_checkbox.uncheck_all,
-            )
         )
 
         # Connect the 'Everything' radio button to check all items
         self.installer_ui.radioButton_extra_everything.toggled["bool"].connect(
-            partial(
                 self.extra_checkbox.check_all,
-            )
         )
 
         self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_extras_table)
@@ -787,7 +820,7 @@ class REvoDesignPackageManager:
                        + "\n".join(f"{p}://..." for p in ALLOWED_PROXY_PROTOCOLS), ValueError)
 
         if proxy.startswith('socks5'):
-            print('Ensuring pysocks is installed...')
+            logging.info('Ensuring pysocks is installed...')
             run_worker_thread_with_progress(
                 worker_function=self.pip_installer.ensure_package,
                 package_string='pysocks',
@@ -795,7 +828,7 @@ class REvoDesignPackageManager:
                 env={},
                 progress_bar=self.installer_ui.progressBar)
 
-        print(f"using proxy: {proxy}")
+        logging.info(f"using proxy: {proxy}")
         proxy_env = {
             "http_proxy": proxy,
             "https_proxy": proxy,
@@ -870,7 +903,8 @@ class REvoDesignPackageManager:
         # Notify the user that the diagnostic data has been copied and instruct them on what to do next
         notify_box(
             "Issue collection copied to clipboard. "
-            "Please paste it in a new issue in the REvoDesign repository on GitHub."
+            "Please paste it in a new issue in the REvoDesign repository on GitHub.",
+            details=str(diagnostic_data),
         )
 
     def add_right_click_menu(self, items: List[MenuItem]):
@@ -1236,11 +1270,11 @@ class REvoDesignPackageManager:
         # Iterate over the dependency table
         for pkg_name, pkg_id in deps_table.items():
             if pkg_name not in checked_depts_to_uninstall:
-                print(f'[DEBUG]: Skip unchecked item: {pkg_name}')
+                logging.debug(f'Skip unchecked item: {pkg_name}')
                 continue
             # Uninstall each package associated with the checked dependency
             for _p in pkg_id.split(';'):
-                print(f"Removing {_p}...")
+                logging.info(f"Removing {_p}...")
                 self.pip_installer.uninstall(_p)
 
     def install(self):
@@ -1313,7 +1347,7 @@ class REvoDesignPackageManager:
                     ValueError,
                 )
             if use_version or use_commit or target_version or target_commit:
-                print("WARNING: installation from zip/tar file cannot use specified version/commit.")
+                logging.warning("installation from zip/tar file cannot use specified version/commit.")
             install_source = local_source
 
         else:
@@ -1616,11 +1650,11 @@ def get_github_repo_tags(repo_url) -> list[str]:
             return tag_names
     except HTTPError as e:
         # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
-        print(f"Error: GitHub API returned status code {e.code}")
+        logging.warning(f"GitHub API returned status code {e.code}")
         return []
     except URLError as e:
         # Handle URL errors (e.g., network issues)
-        print(f"Error: Failed to reach the server. Reason: {e.reason}")
+        logging.error(f"Failed to reach the server. Reason: {e.reason}")
         return []
 
 
@@ -2026,10 +2060,10 @@ def issue_collection(
     if collect_dummy:
         if drop_sensitives:
             env_dict = filter_sensitive_data(os.environ)
-            print('Sensitive data are removed.')
+            logging.info('Sensitive data are removed.')
         else:
             env_dict = dict(os.environ)
-            print('Sensitive data may be kept.')
+            logging.warning('Sensitive data may be kept.')
 
         issue_dict.update({'Dummy::Environ': env_dict})
 
@@ -2053,7 +2087,7 @@ def issue_collection(
 
 @contextmanager
 def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],  # type: ignore
+    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],
     animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
 ):
     """
@@ -2111,6 +2145,7 @@ def hold_trigger_button(
             b.setProperty("held", True)  # Mark the button as held
             b.setProperty("original_style", b.styleSheet() if b.styleSheet() else "")
             start_breathing_animation(b)
+            logging.debug(f"Held button: {b.text()}: ({b.objectName()})")
         yield
     finally:
         for b in buttons:
@@ -2118,6 +2153,7 @@ def hold_trigger_button(
             stop_breathing_animation(b)
             b.setStyleSheet(b.property("original_style") if b.property("original_style") else "")
             b.setEnabled(True)  # Re-enable the button
+            logging.debug(f"Released button: {b.text()}: ({b.objectName()})")
 
 
 def solve_installation_config(
@@ -2141,7 +2177,7 @@ def solve_installation_config(
     """
     extra_string = f'[{extras}]' if extras else ''
     package_string = f"{package_name}{extra_string}"
-    print(f"Installing as {package_string}...")
+    logging.info(f"Installing as {package_string}...")
 
     # Handle installation from a GitHub URL with a tag
     if source and source.startswith("https://"):
@@ -2190,7 +2226,7 @@ def __init_plugin__(app=None):
     """
     Add an entry to the PyMOL "Plugin" menu
     """
-    print(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
+    logging.info(f"REvoDesign entrypoint is located at {os.path.dirname(__file__)}")
 
     plugin = REvoDesignPackageManager()
     addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
@@ -2201,4 +2237,4 @@ def __init_plugin__(app=None):
         plugin = REvoDesignPlugin()
         addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
     else:
-        print("REvoDesign is not available.")
+        logging.critical("REvoDesign is not available.")
