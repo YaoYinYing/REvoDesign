@@ -1,8 +1,6 @@
 [run]
-parallel = True
 omit =
     */tests/*
-    */REvoDesign/retired/*
     */REvoDesign/UI/*
     */server/*
     */prompt/*
