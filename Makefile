@@ -135,8 +135,8 @@ all-test:
 	cd $(TESTDIR); \
 	status_1=0; status_2=0; status_3=0; \
 	python -m pytest $(PYTEST_RUN_FIRST_ARGS) || status_1=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
-	# python -m pytest $(PYTEST_RUN_SECOND_ARGS) || status_2=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
-	# python -m pytest $(PYTEST_RUN_THIRD_ARGS) || status_3=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
+	python -m pytest $(PYTEST_RUN_SECOND_ARGS) || status_2=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
+	python -m pytest $(PYTEST_RUN_THIRD_ARGS) || status_3=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
 	if [ $$status_1 -eq 0 -a $$status_2 -eq 0 -a $$status_3 -eq 0 ]; then \
 	  echo "All tests passed! Combining coverage."; \
 	  cd ../$(COVERAGE_DIR);\
