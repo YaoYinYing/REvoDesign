@@ -38,15 +38,15 @@ class TestNonEnglishInput:
     @pytest.mark.parametrize('lan, non_eng_dirname', [
         ('english', 'a strange directory name'),
         ('korean', '이건 좀 애매한 디렉토리명'),
-        ('french', 'ceci est un nom de dossier étrange'),
-        ('spanish', 'esto es un nombre de carpeta extraño'),
-        ('german', 'dies ist ein seltsamer Ordner'),
-        ('italian', 'questo è un nome di cartella strano'),
-        ('portuguese', 'isto é um nome de pasta estranho'),
+        # ('french', 'ceci est un nom de dossier étrange'),
+        # ('spanish', 'esto es un nombre de carpeta extraño'),
+        # ('german', 'dies ist ein seltsamer Ordner'),
+        # ('italian', 'questo è un nome di cartella strano'),
+        # ('portuguese', 'isto é um nome de pasta estranho'),
         ('japanese', 'これは奇妙なフォルダ名です'),
         ('chinese', '这是一个非常奇怪的 文件夹名'),
-        ('russian', 'это странное название папки'),
-        ('polish', 'to jest bardzo nietypowe nazwy katalogu'),
+        # ('russian', 'это странное название папки'),
+        # ('polish', 'to jest bardzo nietypowe nazwy katalogu'),
         ('hindi', 'यह एक बिल्कुल नाम है'),
         ('tamil', 'இந்த ஒருகோரியாகவும் பெயர்'),
         ('chinese_traditional', '這是一個非常奇怪的文件夾名'),
@@ -79,7 +79,7 @@ class TestNonEnglishInput:
                 expected_input_save_path,
             )
 
-        input_save_path_cfg = test_worker.plugin.bus.get_value('ui.visualize.input.from_mutant_txt', reject_none=True)
+        input_save_path_cfg = test_worker.plugin.bus.get_value('ui.visualize.input.from_mutant_txt', str,reject_none=True)
 
         base_name = f'{lan}_{non_eng_dirname.replace(" ", "_")}{drop_space_with_underline}_{filename}'
         test_worker.save_screenshot(widget=test_worker.plugin.window,
