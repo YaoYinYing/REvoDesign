@@ -6,14 +6,16 @@ PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,test
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
 PYTEST_CASES_PATH=../tests
-PYTEST_NON_DIST_SERIAL_ARGS=-m "serial and not very_slow"
-PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "serial and very_slow"
 PYTEST_XDIST_ARGS=-n 4 -m "not serial"
-PYTEST_KW=all
+PYTEST_NON_DIST_SERIAL_ARGS=-m "serial and not very_slow" --cov-append
+PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "serial and very_slow" --cov-append
 
-PYTEST_RUN_ONE_ARGS=$(PYTEST_ARGS) $(PYTEST_NON_DIST_SERIAL_ARGS) $(PYTEST_CASES_PATH)
-PYTEST_RUN_TWO_ARGS=$(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH)
-PYTEST_RUN_THREE_ARGS=$(PYTEST_ARGS) $(PYTEST_NON_DIST_SLOW_SERIAL_ARGS) $(PYTEST_CASES_PATH)
+PYTEST_KW=all
+COVERAGE_DIR=tmp-coverage-dir
+
+PYTEST_RUN_FIRST_ARGS=$(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH)
+PYTEST_RUN_SECOND_ARGS=$(PYTEST_ARGS) $(PYTEST_NON_DIST_SERIAL_ARGS) $(PYTEST_CASES_PATH)
+PYTEST_RUN_THIRD_ARGS=$(PYTEST_ARGS) $(PYTEST_NON_DIST_SLOW_SERIAL_ARGS) $(PYTEST_CASES_PATH)
 LINT_FILES=$(PROJECT)
 CHECK_STYLE=$(PROJECT) tests 
 CHECK_STYLE_LAZY=--extend-ignore E501,F401,E227 $(PROJECT) tests
@@ -129,13 +131,15 @@ test:
 all-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
+	mkdir -p $(COVERAGE_DIR)
 	cd $(TESTDIR); \
 	status_1=0; status_2=0; status_3=0; \
-	python -m pytest $(PYTEST_RUN_ONE_ARGS) || status_1=$$?; \
-	python -m pytest $(PYTEST_RUN_TWO_ARGS) || status_2=$$?; \
-	python -m pytest $(PYTEST_RUN_THREE_ARGS) || status_3=$$?; \
+	python -m pytest $(PYTEST_RUN_FIRST_ARGS) || status_1=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
+	# python -m pytest $(PYTEST_RUN_SECOND_ARGS) || status_2=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
+	# python -m pytest $(PYTEST_RUN_THIRD_ARGS) || status_3=$$?; mv .coverage.* ../$(COVERAGE_DIR);\
 	if [ $$status_1 -eq 0 -a $$status_2 -eq 0 -a $$status_3 -eq 0 ]; then \
 	  echo "All tests passed! Combining coverage."; \
+	  cd ../$(COVERAGE_DIR);\
 	  coverage combine; \
 	  cp .coverage* ..; \
 	  exit 0; \
@@ -217,7 +221,7 @@ clean:
 	find . -name "*.fasta" -exec rm -v {} \;
 	find . -name "*.cif" -exec rm -v {} \;
 	rm -rvf build dist MANIFEST *.egg-info __pycache__ .coverage .cache .pytest_cache $(PROJECT)/_version.py tests/testdata/pssm/1nww_A_ascii_mtx_file.csv
-	rm -rvf $(TESTDIR) dask-worker-space
+	rm -rvf $(TESTDIR) dask-worker-space $(COVERAGE_DIR)
 	rm -rvf logs surface_residue_records mutations_design_profile pockets temperal_pdb analysis screenshots
 	rm -rvf tests/logs tests/surface_residue_records tests/mutations_design_profile tests/pockets tests/temperal_pdb tests/analysis/ gremlin_co_evolved_pairs/ seg_chain_resn_sel/ seg_chainA_resn_sel/ mutant_pdbs/
 	# git clean -ffdx

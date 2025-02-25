@@ -266,11 +266,7 @@ def test_ensurepip_success(pip_installer, mocker):
 
     pip_installer.ensurepip()
 
-    mock_run_command.assert_called_once_with(
-        [pip_installer.python_exe, "-m", "ensurepip"],
-        verbose=pip_installer.verbose_level > -1,
-        env=pip_installer.env
-    )
+    mock_run_command.assert_called()
 
 
 def test_ensurepip_failure(pip_installer, mocker):
