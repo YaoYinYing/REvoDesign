@@ -1,5 +1,6 @@
 import os
 import shutil
+from unittest.mock import patch
 
 import pytest
 from RosettaPy.utils.tools import tmpdir_manager
@@ -11,28 +12,29 @@ from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
 
 
 def test_setup_minimal_rosetta_db():
-    if 'ROSETTA3_DB' in os.environ:
-        os.environ.pop('ROSETTA3_DB')
+    with patch.dict("os.environ", {"ROSETTA3_DB": ""}):
 
-    db_dir = "database/sampling/relax_scripts"
 
-    setup_minimal_rosetta_db(db_dir)
-    assert 'ROSETTA3_DB' in os.environ, "ROSETTA3_DB should be set after minimum clone"
+        db_dir = "database/sampling/relax_scripts"
 
-    db_dir_env = os.environ['ROSETTA3_DB']
-    assert os.path.isdir(db_dir_env), f"db directory should exist after minimum clone: {db_dir_env}"
+        setup_minimal_rosetta_db(db_dir)
+        assert 'ROSETTA3_DB' in os.environ, "ROSETTA3_DB should be set after minimum clone"
 
-    assert os.listdir(db_dir_env), f"db directory should not be empty after minimum clone: {db_dir_env}"
+        db_dir_env = os.environ['ROSETTA3_DB']
+        assert db_dir_env.endswith('database'), f"ROSETTA3_DB should end with 'database': {db_dir_env}"
+        assert os.path.isdir(db_dir_env), f"db directory should exist after minimum clone: {db_dir_env}"
 
-    # clean ups
-    shutil.rmtree(db_dir_env)
-    os.environ.pop('ROSETTA3_DB')
+        assert os.listdir(db_dir_env), f"db directory should not be empty after minimum clone: {db_dir_env}"
+
+        # clean ups
+        shutil.rmtree(db_dir_env)
 
 
 def test_list_fastrelax_scripts():
-    scripts = list_fastrelax_scripts()
-    assert scripts, "There should be at least one fastrelax script"
-    assert not any('dualspace' in s for s in scripts)
+    with patch.dict("os.environ", {"ROSETTA3_DB": ""}):
+        scripts = list_fastrelax_scripts()
+        assert scripts, "There should be at least one fastrelax script"
+        assert not any('dualspace' in s for s in scripts)
 
 
 @pytest.mark.parametrize(

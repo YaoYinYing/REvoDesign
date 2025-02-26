@@ -43,6 +43,7 @@ def test_shortcut_dump_fasta_from_struct(
         '>')]) == expected_seq_num, f'Expected {expected_seq_num} sequences in {expected_fasta_file}, but got: \n {fasta_file_contents}'
 
 
+@pytest.mark.serial
 def test_shortcut_dump_sidechains(test_worker: TestWorker, KeyDataDuringTests: KeyData):
     test_worker.load_session_and_check(customized_session=KeyDataDuringTests.evaluate_pse_path)
 
