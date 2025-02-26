@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `setup_minimal_rosetta_db`, `list_fastrelax_scripts`, `extra_res_to_opts`
   - coverage config: 
     - omit `shortcuts/wrappers` 
+- dev environment:
+  - partially support typing hints against PyQt5 modules
 
 ### Changed
 - `package_manager`: verbose level slide to control verbose level of package manager in pip installs.
@@ -40,11 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - mark:
     - `test_shortcut_dump_fasta_from_struct` : serial
     - `color_by_mutation`: serial
-  
+- ci: 
+  - use the latest PyMOL open-source version
+  - only test with py3.12
 
 ### Fixed
 - `monaco.server`: if lifespan fails on fetching HTML path `editor.backend.html_dir`, call `ensure_monaco` to setup monaco.
 - some tests
+- `pyproject.toml`: fixed missing `tqdm`
+- `pre-commit` Hook: sent `isort` to the final step.
+- `Esm1v`: fixed local checkpoint path
 
 ### Removed
 - tests:
