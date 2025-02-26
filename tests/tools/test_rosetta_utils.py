@@ -12,8 +12,8 @@ from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
 
 
 def test_setup_minimal_rosetta_db():
-    with patch.dict("os.environ", {"ROSETTA3_DB": ""}):
-
+    with tmpdir_manager() as tmpdir, patch.dict("os.environ", {"ROSETTA3_DB": ""}), patch('platformdirs.user_cache_dir')as mocked_user_cache_dir:
+        mocked_user_cache_dir.return_value = tmpdir
 
         db_dir = "database/sampling/relax_scripts"
 
@@ -27,14 +27,23 @@ def test_setup_minimal_rosetta_db():
         assert os.listdir(db_dir_env), f"db directory should not be empty after minimum clone: {db_dir_env}"
 
         # clean ups
-        shutil.rmtree(db_dir_env)
+        shutil.rmtree(tmpdir)
 
 
 def test_list_fastrelax_scripts():
-    with patch.dict("os.environ", {"ROSETTA3_DB": ""}):
+    with tmpdir_manager() as tmpdir, patch.dict("os.environ", {"ROSETTA3_DB": ""}), patch('platformdirs.user_cache_dir')as mocked_user_cache_dir:
+        mocked_user_cache_dir.return_value = tmpdir
+        import platformdirs
+
+        # mock test
+        assert platformdirs.user_cache_dir('foo') == tmpdir, f"{platformdirs.user_cache_dir('foo')} should be the same as {tmpdir}"
+
         scripts = list_fastrelax_scripts()
         assert scripts, "There should be at least one fastrelax script"
         assert not any('dualspace' in s for s in scripts)
+
+        # clean ups
+        shutil.rmtree(tmpdir)
 
 
 @pytest.mark.parametrize(
