@@ -26,7 +26,7 @@ def test_setup_minimal_rosetta_db():
 
         assert os.listdir(db_dir_env), f"db directory should not be empty after minimum clone: {db_dir_env}"
 
-        # clean ups
+        # clean ups of the git repo dir
         shutil.rmtree(tmpdir)
 
 
@@ -42,7 +42,7 @@ def test_list_fastrelax_scripts():
         assert scripts, "There should be at least one fastrelax script"
         assert not any('dualspace' in s for s in scripts)
 
-        # clean ups
+        # clean ups of the git repo dir
         shutil.rmtree(tmpdir)
 
 
