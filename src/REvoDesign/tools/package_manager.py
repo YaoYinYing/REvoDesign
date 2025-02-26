@@ -20,8 +20,8 @@ To make any of them importable in certain modules, import them from here
 and add to the `__all__` attributes so that they can be discoverable.
 '''
 
-import importlib
 import difflib
+import importlib
 import importlib.util
 import json
 import math
@@ -42,16 +42,16 @@ from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
                     Mapping, NoReturn, Optional, Tuple, Type, TypeVar, Union,
                     overload)
 from urllib.error import HTTPError, URLError
-from pymol import cmd, get_version_message
-from pymol.Qt.utils import loadUi
-from pymol.plugins import addmenuitemqt
 
-LOGGER_LEVEL=15
+from pymol import cmd, get_version_message
+from pymol.plugins import addmenuitemqt
+from pymol.Qt.utils import loadUi
+
+LOGGER_LEVEL = 15
 
 if TYPE_CHECKING:
     # type checking branch
     from PyQt5 import QtCore, QtGui, QtWidgets
-    from PyQt5.QtCore import Qt
 else:
     # runtime branch
     from pymol.Qt import QtCore, QtGui, QtWidgets
@@ -62,20 +62,20 @@ if not __file__.endswith('package_manager.py'):
     #  instead if it runs as packagemanager from PyMOL
     class MockLogger:
 
-        def debug(self, msg: str, *args,**kwargs):
-            print(f'[DEBUG]: {msg}') if LOGGER_LEVEL<10 else None
+        def debug(self, msg: str, *args, **kwargs):
+            print(f'[DEBUG]: {msg}') if LOGGER_LEVEL < 10 else None
 
-        def info(self, msg: str, *args,**kwargs):
-            print(f'[INFO]: {msg}') if LOGGER_LEVEL<20 else None
+        def info(self, msg: str, *args, **kwargs):
+            print(f'[INFO]: {msg}') if LOGGER_LEVEL < 20 else None
 
-        def warning(self, msg: str, *args,**kwargs):
-            print(f'[WARNING]: {msg}') if LOGGER_LEVEL<30 else None
+        def warning(self, msg: str, *args, **kwargs):
+            print(f'[WARNING]: {msg}') if LOGGER_LEVEL < 30 else None
 
-        def error(self, msg: str, *args,**kwargs):
-            print(f'[ERROR]: {msg}') if LOGGER_LEVEL<40 else None
+        def error(self, msg: str, *args, **kwargs):
+            print(f'[ERROR]: {msg}') if LOGGER_LEVEL < 40 else None
 
-        def critical(self, msg: str, *args,**kwargs):
-            print(f'[CRITICAL]: {msg}') if LOGGER_LEVEL<50 else None
+        def critical(self, msg: str, *args, **kwargs):
+            print(f'[CRITICAL]: {msg}') if LOGGER_LEVEL < 50 else None
 
     logging = MockLogger()
     logging.info(f'Package manager is running via PyMOL: {__file__}.')
@@ -226,7 +226,7 @@ def run_command(
 # Additional widget for extra selection
 
 
-class CheckableListView(QtWidgets.QWidget):  # type: ignore
+class CheckableListView(QtWidgets.QWidget):
     """
     Checkable list view widget, allowing users to check items in the list.
 
@@ -273,15 +273,15 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
                 separator_item.setEnabled(False)  # Non-interactive
                 separator_item.setSelectable(False)  # Non-selectable
                 separator_item.setCheckable(False)  # Non-checkable
-                separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))  # type: ignore
-                separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))  # type: ignore # Different background
+                separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))
+                separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))   # Different background
                 separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
                 self.model.appendRow(separator_item)
             else:
                 # Add as a regular checkable item
                 item = QtGui.QStandardItem(k)
                 item.setCheckable(True)
-                item.setCheckState(QtCore.Qt.Unchecked)  # type: ignore # Default unchecked
+                item.setCheckState(QtCore.Qt.Unchecked)   # Default unchecked
                 self.model.appendRow(item)
 
     def _get_items_by_check_state(self, check_state):
@@ -297,7 +297,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         items = []
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable() and item.checkState() == check_state:  # type: ignore
+            if item.isCheckable() and item.checkState() == check_state:
                 items.append(self.items.get(item.text(), None))
         return items
 
@@ -308,7 +308,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         Returns:
             A list of strings representing the texts of all checked items.
         """
-        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)  # type: ignore
+        checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)
         logging.debug(f'Checked: {checked_items}')
         return checked_items
 
@@ -319,7 +319,7 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         Returns:
             A list of strings representing the texts of all unchecked items.
         """
-        return self._get_items_by_check_state(QtCore.Qt.Unchecked)  # type: ignore
+        return self._get_items_by_check_state(QtCore.Qt.Unchecked)
 
     def check_all(self):
         """
@@ -327,8 +327,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable() and item.text() != 'Test':  # type: ignore
-                item.setCheckState(QtCore.Qt.Checked)  # type: ignore
+            if item.isCheckable() and item.text() != 'Test':
+                item.setCheckState(QtCore.Qt.Checked)
 
     def uncheck_all(self):
         """
@@ -336,8 +336,8 @@ class CheckableListView(QtWidgets.QWidget):  # type: ignore
         """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable():  # type: ignore
-                item.setCheckState(QtCore.Qt.Unchecked)  # type: ignore
+            if item.isCheckable():
+                item.setCheckState(QtCore.Qt.Unchecked)
 
 
 @dataclass
@@ -462,7 +462,7 @@ class PIPInstaller:
                 f"ensurepip failed.",
                 RuntimeError,
                 details=f'\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}')
-            
+
         self.install('pip', upgrade=True, verbose_level=0, env=self.env)
 
     def __post_init__(self):
@@ -471,7 +471,6 @@ class PIPInstaller:
         """
         self.python_exe = os.path.realpath(sys.executable)
         self.ensurepip()
-        
 
     def install(self,
                 package_name: str = 'REvoDesign',
@@ -639,8 +638,8 @@ class REvoDesignPackageManager:
 
     dialog: Any = None
     installer_ui: Any = None
-    extra_checkbox: CheckableListView = None  # type: ignore
-    pip_installer: PIPInstaller = None  # type: ignore
+    extra_checkbox: CheckableListView = None
+    pip_installer: PIPInstaller = None
 
     def ensure_ui_file(self, upgrade: bool = False):
         ui_file = os.path.abspath(
@@ -787,12 +786,12 @@ class REvoDesignPackageManager:
 
         # Connect the 'None' radio button to uncheck all items
         self.installer_ui.radioButton_extra_none.toggled["bool"].connect(
-                self.extra_checkbox.uncheck_all,
+            self.extra_checkbox.uncheck_all,
         )
 
         # Connect the 'Everything' radio button to check all items
         self.installer_ui.radioButton_extra_everything.toggled["bool"].connect(
-                self.extra_checkbox.check_all,
+            self.extra_checkbox.check_all,
         )
 
         self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_extras_table)
@@ -886,8 +885,8 @@ class REvoDesignPackageManager:
                 return notify_box('Diagnostic information collection cancelled.')
 
         # Clear the clipboard to ensure no old data is mixed in
-        cb = QtWidgets.QApplication.clipboard()  # type: ignore
-        cb.clear(mode=cb.Clipboard)  # type: ignore
+        cb = QtWidgets.QApplication.clipboard()
+        cb.clear(mode=cb.Clipboard)
 
         # Collect diagnostic data using a worker thread
         diagnostic_data = run_worker_thread_with_progress(
@@ -898,7 +897,7 @@ class REvoDesignPackageManager:
         )
 
         # Copy the collected diagnostic data to the clipboard in JSON format
-        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard)  # type: ignore
+        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard)
 
         # Notify the user that the diagnostic data has been copied and instruct them on what to do next
         notify_box(
@@ -918,12 +917,12 @@ class REvoDesignPackageManager:
         Each item in the list is converted into a QAction, which is then added to the menu.
         """
         # Create the right-click menu
-        self.menu = QtWidgets.QMenu(self.installer_ui)  # type: ignore
+        self.menu = QtWidgets.QMenu(self.installer_ui)
 
         for item in items:
             if item.func is not None:  # active item
                 # Add the item as active
-                upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)  # type: ignore
+                upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
                 upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
                 upgrade_action.setEnabled(True)
                 self.menu.addAction(upgrade_action)
@@ -931,7 +930,7 @@ class REvoDesignPackageManager:
                 self.menu.addSection(item.name)
 
         # Set the context menu policy to show the menu on right-click
-        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)  # type: ignore
+        self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.installer_ui.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, pos):
@@ -945,7 +944,7 @@ class REvoDesignPackageManager:
         global_pos = self.installer_ui.mapToGlobal(pos)
         self.menu.exec_(global_pos)
 
-    def make_window(self) -> QtWidgets.QDialog:  # type: ignore
+    def make_window(self) -> QtWidgets.QDialog:
         """
         Creates and configures the application window.
 
@@ -956,7 +955,7 @@ class REvoDesignPackageManager:
             QtWidgets.QDialog: The configured dialog window.
         """
         # Create a new dialog window
-        dialog = QtWidgets.QDialog()  # type: ignore
+        dialog = QtWidgets.QDialog()
 
         ui_file = run_worker_thread_with_progress(
             worker_function=self.ensure_ui_file
@@ -1119,11 +1118,11 @@ class REvoDesignPackageManager:
         Returns:
         - str: The path of the selected directory.
         """
-        return QtWidgets.QFileDialog.getExistingDirectory(  # type: ignore
+        return QtWidgets.QFileDialog.getExistingDirectory(
             None,
             "Open Directory",
             os.path.expanduser("~"),
-            QtWidgets.QFileDialog.DontResolveSymlinks,  # type: ignore
+            QtWidgets.QFileDialog.DontResolveSymlinks,
         )
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
@@ -1133,7 +1132,7 @@ class REvoDesignPackageManager:
         Return a file name, append extension from filter if no extension provided.
         """
 
-        fname, ext_filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)  # type: ignore
+        fname, ext_filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)
 
         if not fname:
             return ""
@@ -1606,8 +1605,8 @@ def run_worker_thread_with_progress(
     # If a progress bar was used, restore its state after the task is completed
     if progress_bar:
         # restore the progressbar state
-        progress_bar.setRange(_min, _max)  # type: ignore
-        progress_bar.setValue(_val)  # type: ignore
+        progress_bar.setRange(_min, _max)
+        progress_bar.setValue(_val)
 
     # Obtain and return the result of the worker function
     result = work_thread.handle_result()
@@ -1685,7 +1684,7 @@ def set_widget_value(widget, value):
         value = list(value)  # Convert iterable (excluding strings, lists, tuples, dicts) to list
 
     # Setting values
-    if isinstance(widget, QtWidgets.QComboBox):  # type: ignore
+    if isinstance(widget, QtWidgets.QComboBox):
         if isinstance(value, (list, tuple)):
             widget.clear()
             widget.addItems(map(str, value))
@@ -1698,10 +1697,10 @@ def set_widget_value(widget, value):
 
         widget.setCurrentText(str(value))
         return
-    if isinstance(widget, QtWidgets.QLineEdit):  # type: ignore
+    if isinstance(widget, QtWidgets.QLineEdit):
         widget.setText(str(value))
         return
-    if isinstance(widget, QtWidgets.QProgressBar):  # type: ignore
+    if isinstance(widget, QtWidgets.QProgressBar):
         if isinstance(value, int):
             widget.setValue(value)
             return
@@ -1711,7 +1710,7 @@ def set_widget_value(widget, value):
         raise ValueError(
             f"Invalid value {value} for QProgressBar. Value must be an integer or a list/tuple of two integers."
         )
-    if isinstance(widget, QtWidgets.QCheckBox):  # type: ignore
+    if isinstance(widget, QtWidgets.QCheckBox):
         widget.setChecked(bool(value))
         return
 
@@ -1730,7 +1729,7 @@ def refresh_window():
     Returns:
         None
     """
-    QtWidgets.QApplication.processEvents()  # type: ignore
+    QtWidgets.QApplication.processEvents()
 
 # Overload #1: None or Warning => returns bool
 
@@ -1772,20 +1771,20 @@ def notify_box(
     """
     refresh_window()
     # Create an information message box
-    msg = QtWidgets.QMessageBox()  # type: ignore
+    msg = QtWidgets.QMessageBox()
 
     if error_type is None:
-        msg.setIcon(QtWidgets.QMessageBox.Information)  # type: ignore
+        msg.setIcon(QtWidgets.QMessageBox.Information)
     elif issubclass(error_type, Warning):
-        msg.setIcon(QtWidgets.QMessageBox.Warning)  # type: ignore
+        msg.setIcon(QtWidgets.QMessageBox.Warning)
     elif issubclass(error_type, Exception):
-        msg.setIcon(QtWidgets.QMessageBox.Critical)  # type: ignore
+        msg.setIcon(QtWidgets.QMessageBox.Critical)
 
     msg.setText(message)
     if details is not None:
         msg.setDetailedText(details)
 
-    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)  # type: ignore
+    msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
     # Display the message box
     msg.exec_()
     # If error_type is None, end the function execution
@@ -1794,7 +1793,7 @@ def notify_box(
 
     # error_type is a Warning => also bool
     if issubclass(error_type, Warning):
-        warnings.warn(error_type(message))  # type: ignore
+        warnings.warn(error_type(message))
         return
 
     # Otherwise, raise => NoReturn
@@ -1830,18 +1829,18 @@ def decide(title="", description="", rich: bool = False, details: Optional[str] 
     """
     refresh_window()
     # A confirmation message.
-    msg = QtWidgets.QMessageBox()  # type: ignore
-    msg.setIcon(QtWidgets.QMessageBox.Question)  # type: ignore
+    msg = QtWidgets.QMessageBox()
+    msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
     msg.setText(description)
     if details is not None:
         msg.setDetailedText(details)
     if rich:
         msg.setTextFormat(QtCore.Qt.RichText)
-    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)  # type: ignore
+    msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
     result = msg.exec_()
 
-    return result == QtWidgets.QMessageBox.Yes  # type: ignore
+    return result == QtWidgets.QMessageBox.Yes
 
 
 def is_package_installed(package):
@@ -1920,7 +1919,7 @@ def issue_collection(
         issue_dict.update({'Platform::Windows::Edition': platform.win32_edition()})
         issue_dict.update({'Platform::Windows::IsIotDevice': platform.win32_is_iot()})
     elif platform_info.system == 'Linux':
-        issue_dict.update({'Platform::Linux::Version': platform.freedesktop_os_release()  # type: ignore
+        issue_dict.update({'Platform::Linux::Version': platform.freedesktop_os_release()
                           if hasattr(platform, 'freedesktop_os_release') else None})
     issue_dict.update({'Platform::Release': platform_info.release})
     issue_dict.update({'Platform::Version': platform_info.version})
@@ -2107,7 +2106,7 @@ def hold_trigger_button(
         color = QtGui.QColor(76, 217, 100)
         return color
 
-    def start_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
+    def start_breathing_animation(button: QtWidgets.QPushButton):
         accent_color = get_accent_color()
         base_color = accent_color.lighter(150)  # Start with a lighter shade
         darker_color = accent_color.darker(150)  # Use a darker shade for the trough
@@ -2131,7 +2130,7 @@ def hold_trigger_button(
         timer.start()
         timers.append(timer)
 
-    def stop_breathing_animation(button: QtWidgets.QPushButton):  # type: ignore
+    def stop_breathing_animation(button: QtWidgets.QPushButton):
         # Stop all timers associated with this button
         for timer in timers:
             if timer.parent() == button:

@@ -85,3 +85,5 @@ tests/saves.csv
 /seg_chain_resn_sel
 normal.txt
 sick.txt
+dev/after.txt
+dev/before.txt

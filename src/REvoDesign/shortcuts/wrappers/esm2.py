@@ -2,7 +2,6 @@
 Shortcut wrappers of esm2
 '''
 
-from Bio import SeqIO
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.common import file_extensions as FExt

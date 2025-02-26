@@ -50,6 +50,7 @@ dependencies = [
     "uvicorn",
     "requests",
     "openpyxl",
+    "tqdm",
 ]
 
 [project.optional-dependencies]

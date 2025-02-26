@@ -4,4 +4,5 @@ omit =
     */REvoDesign/UI/*
     */server/*
     */prompt/*
-    */REvoDesign.PyMOL.py
+    */REvoDesign/shortcuts/wrappers/*
+    */REvoDesign/clients/*

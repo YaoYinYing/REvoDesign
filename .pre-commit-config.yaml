@@ -15,11 +15,6 @@ repos:
       # - id: mixed-line-ending
       # - id: requirements-txt-fixer
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.0
     hooks:
@@ -81,4 +76,8 @@ repos:
     hooks:
       - id: autoflake
 
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
 

@@ -19,11 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `basic`:
   - `abc_singleton`:  `reset_singletons` to reset all subclasses of `SingletonAbstract` gracefully
+  - `abc_third_party_module`: `TorchModuleAbstract` to add torch-driven abstract class with a cleanup function.
 - `tools`:
   - `package_manager`: `MockLogger` to print logging messages to PyMOL console
 - Makefile:
   - `kw-test` and `kw-test-pdb` at help msg
   - `kw-test-pdb`: debug with `pdb` 
+- tests:
+  - cases:
+    - `test_shortcut_dump_sidechains`
+    - `setup_minimal_rosetta_db`, `list_fastrelax_scripts`, `extra_res_to_opts`
+  - coverage config: 
+    - omit `shortcuts/wrappers` 
+- dev environment:
+  - partially support typing hints against PyQt5 modules
 
 ### Changed
 - `package_manager`: verbose level slide to control verbose level of package manager in pip installs.
@@ -33,11 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - mark:
     - `test_shortcut_dump_fasta_from_struct` : serial
     - `color_by_mutation`: serial
-  
+- ci: 
+  - use the latest PyMOL open-source version
+  - only test with py3.12
 
 ### Fixed
 - `monaco.server`: if lifespan fails on fetching HTML path `editor.backend.html_dir`, call `ensure_monaco` to setup monaco.
 - some tests
+- `pyproject.toml`: fixed missing `tqdm`
+- `pre-commit` Hook: sent `isort` to the final step.
+- `Esm1v`: fixed local checkpoint path
 
 ### Removed
 - tests:

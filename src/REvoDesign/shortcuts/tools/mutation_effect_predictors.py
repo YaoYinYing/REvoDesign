@@ -10,7 +10,7 @@ import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.basic import SingletonAbstract, ThirdPartyModuleAbstract
+from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
@@ -24,7 +24,7 @@ RUN_MODE_T = Literal["single", "additive", "epistatic"]
 
 
 @require_installed
-class ThermoMpnnPredictor(ThirdPartyModuleAbstract):
+class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
     """
     ThermoMpnnPredictor class for predicting the thermodynamic stability effects of protein mutations.
     It utilizes the ThermoMPNN model to analyze protein structure and sequence to predict stability changes due to mutations.
@@ -64,6 +64,7 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract):
         """
         self.prefix = prefix
         self.mode = mode
+        self.device = device
 
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
@@ -76,7 +77,16 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract):
         # Load the protein sequence from the PDB file
         self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
         # Initialize the ThermoMPNN application with the provided parameters
-        self.app = ThermoMPNN(pdb, self.save_prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
+        self.app = ThermoMPNN(
+            pdb,
+            self.save_prefix,
+            chains,
+            mode,
+            batch_size,
+            threshold,
+            distance,
+            ss_penalty,
+            self.device)
 
     @get_cited
     def run(self) -> pd.DataFrame:
@@ -201,6 +211,8 @@ def shortcut_thermompnn(
     if load_to_preview:
         logging.info('Perform visualising...')
         quick_mutagenesis(mutant_tree)
+
+    app.cleanup()
 
     del df, mutant_tree
     del app
