@@ -23,7 +23,7 @@ jobs:
         conda-channel:
           - -c conda-forge
         pymol-version:
-          - "pymol-open-source"
+          - "pymol-open-source<3.1"
         pymol-tag:
           - 'latest pymol open source'
         python-version: 
