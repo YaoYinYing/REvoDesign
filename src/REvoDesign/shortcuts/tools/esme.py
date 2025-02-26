@@ -2,7 +2,6 @@ from typing import Literal
 
 import pandas as pd
 
-
 from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import get_cited, require_installed
@@ -16,7 +15,7 @@ ESME_MODELS = Literal['esmc', 'esm1b', 'esm1v', 'esm2', 'esm2_8m']
 class ESM1vEfficient(ThirdPartyModuleAbstract):
     name: str = "esm1v/esm-efficient"
     installed: bool = is_package_installed('esme')
-    
+
     def __init__(
         self,
         model_name: ESME_MODELS,
@@ -31,8 +30,7 @@ class ESM1vEfficient(ThirdPartyModuleAbstract):
 
     @get_cited
     def predict(self) -> pd.DataFrame:
-        from esme import ESM2
-        from esme import variant
+        from esme import ESM2, variant
 
         model = ESM2.from_pretrained(self.model_name)
         return variant.predict_mask_margin(model=model, seq=self.sequence)

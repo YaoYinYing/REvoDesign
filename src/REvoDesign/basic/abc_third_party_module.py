@@ -18,6 +18,7 @@ class ThirdPartyModuleAbstract(CitableModuleAbstract):
     name: str = ""
     installed: bool = False
 
+
 class TorchModuleAbstract:
     """
     An abstract class for managing PyTorch modules on different devices.

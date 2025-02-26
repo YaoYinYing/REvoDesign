@@ -2,8 +2,9 @@ import os
 
 import pytest
 
-from REvoDesign.shortcuts.tools.exports import shortcut_dump_fasta_from_struct,shortcut_dump_sidechains
-from tests.conftest import TestWorker, KeyData
+from REvoDesign.shortcuts.tools.exports import (
+    shortcut_dump_fasta_from_struct, shortcut_dump_sidechains)
+from tests.conftest import KeyData, TestWorker
 
 
 @pytest.mark.serial
@@ -45,9 +46,8 @@ def test_shortcut_dump_fasta_from_struct(
 def test_shortcut_dump_sidechains(test_worker: TestWorker, KeyDataDuringTests: KeyData):
     test_worker.load_session_and_check(customized_session=KeyDataDuringTests.evaluate_pse_path)
 
-
-    sele='mt_Q239_3.0'
-    save_dir=f'png/sidechain_dump_{sele}/'
+    sele = 'mt_Q239_3.0'
+    save_dir = f'png/sidechain_dump_{sele}/'
     shortcut_dump_sidechains(
         sele=[sele],
         enabled_only=False,
@@ -61,5 +61,5 @@ def test_shortcut_dump_sidechains(test_worker: TestWorker, KeyDataDuringTests: K
         reorient=True,
         recenter=False,
     )
-    pngs=[f for f in os.listdir(save_dir) if f.endswith('.png')]
-    assert len(pngs)==3, f'Expected 3 pngs in {save_dir}, but got: {pngs}'
+    pngs = [f for f in os.listdir(save_dir) if f.endswith('.png')]
+    assert len(pngs) == 3, f'Expected 3 pngs in {save_dir}, but got: {pngs}'

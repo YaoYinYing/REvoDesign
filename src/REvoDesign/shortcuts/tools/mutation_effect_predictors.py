@@ -10,7 +10,7 @@ import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.basic import TorchModuleAbstract, ThirdPartyModuleAbstract
+from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.common.mutant_tree import MutantTree
@@ -24,7 +24,7 @@ RUN_MODE_T = Literal["single", "additive", "epistatic"]
 
 
 @require_installed
-class ThermoMpnnPredictor(ThirdPartyModuleAbstract,TorchModuleAbstract):
+class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
     """
     ThermoMpnnPredictor class for predicting the thermodynamic stability effects of protein mutations.
     It utilizes the ThermoMPNN model to analyze protein structure and sequence to predict stability changes due to mutations.

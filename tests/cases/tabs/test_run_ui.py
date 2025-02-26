@@ -79,7 +79,8 @@ class TestNonEnglishInput:
                 expected_input_save_path,
             )
 
-        input_save_path_cfg = test_worker.plugin.bus.get_value('ui.visualize.input.from_mutant_txt', str,reject_none=True)
+        input_save_path_cfg = test_worker.plugin.bus.get_value(
+            'ui.visualize.input.from_mutant_txt', str, reject_none=True)
 
         base_name = f'{lan}_{non_eng_dirname.replace(" ", "_")}{drop_space_with_underline}_{filename}'
         test_worker.save_screenshot(widget=test_worker.plugin.window,

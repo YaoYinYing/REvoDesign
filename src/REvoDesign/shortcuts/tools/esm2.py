@@ -10,12 +10,11 @@ import string
 from typing import List, Literal, Optional, Tuple
 
 import pandas as pd
-
 from Bio import SeqIO
 from immutabledict import immutabledict
 from tqdm import tqdm
 
-from REvoDesign.basic import ThirdPartyModuleAbstract,TorchModuleAbstract
+from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import get_cited, require_installed
 
@@ -80,7 +79,7 @@ def label_row(row, sequence, token_probs, alphabet, offset_idx):
 
 
 @require_installed
-class Esm1v(ThirdPartyModuleAbstract,TorchModuleAbstract):
+class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
     name: str = "esm1v"
     installed: bool = is_package_installed('esm2')
 
@@ -149,9 +148,6 @@ class Esm1v(ThirdPartyModuleAbstract,TorchModuleAbstract):
                     for idx, mut in itertools.product(range(0, len(self.sequence)), alphabet)
                 ], columns=[self.mutation_col])
         return df_dms
-    
-            
-    
 
     @get_cited
     def predict(self):
@@ -163,7 +159,12 @@ class Esm1v(ThirdPartyModuleAbstract,TorchModuleAbstract):
 
         # inference for each model
         for model_name in self.model_names:
-            if self.checkpoint_dir is not None and os.path.isdir(self.checkpoint_dir) and  os.path.isfile(model_path := (os.path.join(self.checkpoint_dir, f'{model_name}.pt'))):
+            if self.checkpoint_dir is not None and os.path.isdir(
+                self.checkpoint_dir) and os.path.isfile(
+                model_path := (
+                    os.path.join(
+                    self.checkpoint_dir,
+                    f'{model_name}.pt'))):
                 print(f"Loading model from {model_path}")
             else:
                 print(f'Fetching model {model_name}')
@@ -285,9 +286,6 @@ class Esm1v(ThirdPartyModuleAbstract,TorchModuleAbstract):
             log_probs.append(token_probs[0, i, alphabet.get_idx(sequence[i])].item())  # vocab size
         return sum(log_probs)
 
-
- 
-        
     __bibtex__ = {
         'ESM': """@article{rives2019biological,
   author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal, Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
