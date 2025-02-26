@@ -17,7 +17,7 @@ def test_setup_minimal_rosetta_db():
     db_dir = "database/sampling/relax_scripts"
 
     setup_minimal_rosetta_db(db_dir)
-    assert 'ROSETTA3_DB' in os.environ, f"ROSETTA3_DB should be set after minimum clone"
+    assert 'ROSETTA3_DB' in os.environ, "ROSETTA3_DB should be set after minimum clone"
 
     db_dir_env = os.environ['ROSETTA3_DB']
     assert os.path.isdir(db_dir_env), f"db directory should exist after minimum clone: {db_dir_env}"
@@ -31,7 +31,7 @@ def test_setup_minimal_rosetta_db():
 
 def test_list_fastrelax_scripts():
     scripts = list_fastrelax_scripts()
-    assert scripts, f"There should be at least one fastrelax script"
+    assert scripts, "There should be at least one fastrelax script"
     assert not any('dualspace' in s for s in scripts)
 
 
