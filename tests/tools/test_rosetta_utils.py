@@ -36,7 +36,8 @@ def test_list_fastrelax_scripts():
         import platformdirs
 
         # mock test
-        assert platformdirs.user_cache_dir('foo') == tmpdir, f"{platformdirs.user_cache_dir('foo')} should be the same as {tmpdir}"
+        assert platformdirs.user_cache_dir(
+            'foo') == tmpdir, f"{platformdirs.user_cache_dir('foo')} should be the same as {tmpdir}"
 
         scripts = list_fastrelax_scripts()
         assert scripts, "There should be at least one fastrelax script"

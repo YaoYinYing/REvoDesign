@@ -64,7 +64,7 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         """
         self.prefix = prefix
         self.mode = mode
-        self.device=device
+        self.device = device
 
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
@@ -77,7 +77,16 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         # Load the protein sequence from the PDB file
         self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
         # Initialize the ThermoMPNN application with the provided parameters
-        self.app = ThermoMPNN(pdb, self.save_prefix, chains, mode, batch_size, threshold, distance, ss_penalty, self.device)
+        self.app = ThermoMPNN(
+            pdb,
+            self.save_prefix,
+            chains,
+            mode,
+            batch_size,
+            threshold,
+            distance,
+            ss_penalty,
+            self.device)
 
     @get_cited
     def run(self) -> pd.DataFrame:
