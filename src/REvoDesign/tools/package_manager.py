@@ -50,7 +50,7 @@ Program : REvoDesign
 Date    : Sept 2023
 
 REvoDesign -- Makes enzyme redesign tasks easier to all."""
-    # use a mocked logger to handle logging from pymol's concole instead, 
+    # use a mocked logger to handle logging from pymol's concole instead,
     # only if it runs as the role ofpackagemanager as a plugin from PyMOL
 
     class MockLogger:
@@ -465,7 +465,6 @@ class PIPInstaller:
                 RuntimeError,
                 details=f'\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}')
 
-
     def __post_init__(self):
         """
         Post-initialization method to set the real path of the Python executable and run ensurepip.
@@ -502,8 +501,6 @@ class PIPInstaller:
         if package_name != 'pip':
             logging.info('Upgrading pip to the latest version...')
             self.install('pip', upgrade=True, verbose_level=verbose_level, env=self.env)
-
-        
 
         def get_source_and_tag(source: str):
             """
@@ -902,7 +899,7 @@ class REvoDesignPackageManager:
             drop_sensitives=drop_sensitives,
             progress_bar=self.installer_ui.progressBar
         )
-        diagnostic_data_json=json.dumps(diagnostic_data, indent=2)
+        diagnostic_data_json = json.dumps(diagnostic_data, indent=2)
         # Copy the collected diagnostic data to the clipboard in JSON format
         cb.setText(diagnostic_data_json, mode=cb.Clipboard)
 
