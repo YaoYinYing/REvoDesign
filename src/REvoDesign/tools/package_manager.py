@@ -52,6 +52,7 @@ Date    : Sept 2023
 REvoDesign -- Makes enzyme redesign tasks easier to all."""
     # use a mocked logger to handle logging from pymol's concole
     #  instead if it runs as packagemanager from PyMOL
+
     class MockLogger:
 
         def debug(self, msg: str, *args, **kwargs):
@@ -75,7 +76,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all."""
 
 else:
     # REvoDesign runtime branch, set docstring to describe the module
-    __doc__='''
+    __doc__ = '''
 Module that contains key functions of constructing the REvoDesign Package Manager
 
 This module also serves as standalone REvoDesign Package Manager,
