@@ -30,7 +30,7 @@ from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
 
-LOGGER_LEVEL = 15
+LOGGER_LEVEL = 0
 
 if TYPE_CHECKING:
     # type checking branch
@@ -50,8 +50,8 @@ Program : REvoDesign
 Date    : Sept 2023
 
 REvoDesign -- Makes enzyme redesign tasks easier to all."""
-    # use a mocked logger to handle logging from pymol's concole
-    #  instead if it runs as packagemanager from PyMOL
+    # use a mocked logger to handle logging from pymol's concole instead, 
+    # only if it runs as the role ofpackagemanager as a plugin from PyMOL
 
     class MockLogger:
 
@@ -465,7 +465,6 @@ class PIPInstaller:
                 RuntimeError,
                 details=f'\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}')
 
-        self.install('pip', upgrade=True, verbose_level=0, env=self.env)
 
     def __post_init__(self):
         """
@@ -498,7 +497,13 @@ class PIPInstaller:
         Returns:
             The result of running the pip install command.
         """
-        logging.info("Installation is started. This may take a while and the window will freeze until it is done.")
+        logging.info("Installation is started. This may take a while.")
+
+        if package_name != 'pip':
+            logging.info('Upgrading pip to the latest version...')
+            self.install('pip', upgrade=True, verbose_level=verbose_level, env=self.env)
+
+        
 
         def get_source_and_tag(source: str):
             """
@@ -897,15 +902,15 @@ class REvoDesignPackageManager:
             drop_sensitives=drop_sensitives,
             progress_bar=self.installer_ui.progressBar
         )
-
+        diagnostic_data_json=json.dumps(diagnostic_data, indent=2)
         # Copy the collected diagnostic data to the clipboard in JSON format
-        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard)
+        cb.setText(diagnostic_data_json, mode=cb.Clipboard)
 
         # Notify the user that the diagnostic data has been copied and instruct them on what to do next
         notify_box(
             "Issue collection copied to clipboard. "
             "Please paste it in a new issue in the REvoDesign repository on GitHub.",
-            details=str(diagnostic_data),
+            details=diagnostic_data_json,
         )
 
     def add_right_click_menu(self, items: List[MenuItem]):
