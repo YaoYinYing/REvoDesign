@@ -1,24 +1,7 @@
-"""
-Described at GitHub:
-https://github.com/YaoYinYing/REvoDesign
-
-Authors : Yinying Yao
-Program : REvoDesign
-Date    : Sept 2023
-
-REvoDesign -- Makes enzyme redesign tasks easier to all.
-"""
-
 # pylint: disable=too-many-lines
 # pylint: disable=import-outside-toplevel
 # pylint: disable=unused-argument
 
-'''
-This module also serves as standalone REvoDesign Package Manager,
-meaning that any tools existed here is part of the manager.
-To make any of them importable in certain modules, import them from here
-and add to the `__all__` attributes so that they can be discoverable.
-'''
 
 import difflib
 import importlib
@@ -58,6 +41,15 @@ else:
 
 
 if not __file__.endswith('package_manager.py'):
+    # PyMOL plugin branch, set docstring to describe the plugin
+    __doc__ = """Described at GitHub:
+https://github.com/YaoYinYing/REvoDesign
+
+Authors : Yinying Yao
+Program : REvoDesign
+Date    : Sept 2023
+
+REvoDesign -- Makes enzyme redesign tasks easier to all."""
     # use a mocked logger to handle logging from pymol's concole
     #  instead if it runs as packagemanager from PyMOL
     class MockLogger:
@@ -82,6 +74,15 @@ if not __file__.endswith('package_manager.py'):
 
 
 else:
+    # REvoDesign runtime branch, set docstring to describe the module
+    __doc__='''
+Module that contains key functions of constructing the REvoDesign Package Manager
+
+This module also serves as standalone REvoDesign Package Manager,
+meaning that any tools existed here is part of the manager.
+To make any of them importable in certain modules, import them from here
+and add to the `__all__` attributes so that they can be discoverable.
+'''
     # enable logger from REvoDesign if it is a submodule not a script
     from REvoDesign.logger import ROOT_LOGGER
 
