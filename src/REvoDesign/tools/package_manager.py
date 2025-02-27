@@ -1,24 +1,7 @@
-"""
-Described at GitHub:
-https://github.com/YaoYinYing/REvoDesign
-
-Authors : Yinying Yao
-Program : REvoDesign
-Date    : Sept 2023
-
-REvoDesign -- Makes enzyme redesign tasks easier to all.
-"""
-
 # pylint: disable=too-many-lines
 # pylint: disable=import-outside-toplevel
 # pylint: disable=unused-argument
 
-'''
-This module also serves as standalone REvoDesign Package Manager,
-meaning that any tools existed here is part of the manager.
-To make any of them importable in certain modules, import them from here
-and add to the `__all__` attributes so that they can be discoverable.
-'''
 
 import difflib
 import importlib
@@ -47,7 +30,7 @@ from pymol import cmd, get_version_message
 from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
 
-LOGGER_LEVEL = 15
+LOGGER_LEVEL = 0
 
 if TYPE_CHECKING:
     # type checking branch
@@ -58,8 +41,18 @@ else:
 
 
 if not __file__.endswith('package_manager.py'):
-    # use a mocked logger to handle logging from pymol's concole
-    #  instead if it runs as packagemanager from PyMOL
+    # PyMOL plugin branch, set docstring to describe the plugin
+    __doc__ = """Described at GitHub:
+https://github.com/YaoYinYing/REvoDesign
+
+Authors : Yinying Yao
+Program : REvoDesign
+Date    : Sept 2023
+
+REvoDesign -- Makes enzyme redesign tasks easier to all."""
+    # use a mocked logger to handle logging from pymol's concole instead,
+    # only if it runs as the role ofpackagemanager as a plugin from PyMOL
+
     class MockLogger:
 
         def debug(self, msg: str, *args, **kwargs):
@@ -82,6 +75,15 @@ if not __file__.endswith('package_manager.py'):
 
 
 else:
+    # REvoDesign runtime branch, set docstring to describe the module
+    __doc__ = '''
+Module that contains key functions of constructing the REvoDesign Package Manager
+
+This module also serves as standalone REvoDesign Package Manager,
+meaning that any tools existed here is part of the manager.
+To make any of them importable in certain modules, import them from here
+and add to the `__all__` attributes so that they can be discoverable.
+'''
     # enable logger from REvoDesign if it is a submodule not a script
     from REvoDesign.logger import ROOT_LOGGER
 
@@ -463,8 +465,6 @@ class PIPInstaller:
                 RuntimeError,
                 details=f'\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}')
 
-        self.install('pip', upgrade=True, verbose_level=0, env=self.env)
-
     def __post_init__(self):
         """
         Post-initialization method to set the real path of the Python executable and run ensurepip.
@@ -496,7 +496,11 @@ class PIPInstaller:
         Returns:
             The result of running the pip install command.
         """
-        logging.info("Installation is started. This may take a while and the window will freeze until it is done.")
+        logging.info("Installation is started. This may take a while.")
+
+        if package_name != 'pip':
+            logging.info('Upgrading pip to the latest version...')
+            self.install('pip', upgrade=True, verbose_level=verbose_level, env=self.env)
 
         def get_source_and_tag(source: str):
             """
@@ -895,15 +899,15 @@ class REvoDesignPackageManager:
             drop_sensitives=drop_sensitives,
             progress_bar=self.installer_ui.progressBar
         )
-
+        diagnostic_data_json = json.dumps(diagnostic_data, indent=2)
         # Copy the collected diagnostic data to the clipboard in JSON format
-        cb.setText(json.dumps(diagnostic_data, indent=2), mode=cb.Clipboard)
+        cb.setText(diagnostic_data_json, mode=cb.Clipboard)
 
         # Notify the user that the diagnostic data has been copied and instruct them on what to do next
         notify_box(
             "Issue collection copied to clipboard. "
             "Please paste it in a new issue in the REvoDesign repository on GitHub.",
-            details=str(diagnostic_data),
+            details=diagnostic_data_json,
         )
 
     def add_right_click_menu(self, items: List[MenuItem]):
