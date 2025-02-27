@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 ```
+## [Unreleased]
+
+## [1.7.19] - 2025-02-27
 
 ### Added
 - `basic`:
@@ -60,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `rosettaligand`
     - `thermompnn`
 
-## [Unreleased]
+
 
 ## [1.7.18] - 2025-02-21
 ### Added
