@@ -116,11 +116,8 @@ jobs:
         run: |
           make install
 
-      - name: Full Unit Test on Ubuntu
-        env:
-          REVODESIGN_USERS: ${{ secrets.REVODESIGN_USERS }}
-          REVODESIGN_SERVER_PASS: ${{ secrets.REVODESIGN_SERVER_PASS }}
 
+      - name: Full Unit Test on Ubuntu
         run: |
           make prepare-test
           make all-test
@@ -137,6 +134,20 @@ jobs:
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: PyLint Scanning
+        if: ${{matrix.python-version == '3.12'}}
+        id: pylint-scanning
+        uses: YaoYinYing/pylint-github-action@v3.5
+        with:
+          lint-path: src  # lint src package
+          python-version: ${{ matrix.python-version }}  # python version which will lint the package
+          badge-text: pylint score
+          badge-file-name: pylint_scan
+          badge-artifact-name: upload-my-awesome-badge-${{ github.run_id }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_badge_path: badge_dir_with_uniq_name/REvoDesign/pylint
 
       - name: Clean up
         run: |
