@@ -4647,6 +4647,8 @@
      <addaction name="actionSMILES_Conformers_Batch"/>
      <addaction name="separator"/>
      <addaction name="actionSDF_to_Rosetta_Parameters"/>
+     <addaction name="actionVina_3"/>
+     <addaction name="separator"/>
     </widget>
     <widget class="QMenu" name="menuDesign_Tools">
      <property name="title">
@@ -4697,12 +4699,30 @@
      </widget>
      <addaction name="menuOpenMM"/>
     </widget>
+    <widget class="QMenu" name="menuModeling_Tools">
+     <property name="title">
+      <string>Modeling Tools</string>
+     </property>
+     <widget class="QMenu" name="menuVina_Tools">
+      <property name="title">
+       <string>Vina Tools</string>
+      </property>
+      <addaction name="actionVina_Prepare_Ligand"/>
+      <addaction name="actionVina_Prepare_Receptor"/>
+      <addaction name="separator"/>
+      <addaction name="actionVina_Export_Results"/>
+     </widget>
+     <addaction name="actionVina"/>
+     <addaction name="menuVina_Tools"/>
+     <addaction name="separator"/>
+    </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
     <addaction name="menuRosetta_Tools"/>
     <addaction name="menuPredictor_Tools"/>
     <addaction name="menuMolecular_Dynamics"/>
+    <addaction name="menuModeling_Tools"/>
     <addaction name="menuExport_Tools"/>
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
@@ -5088,6 +5108,31 @@
   <action name="actionStop_SetupOpenMM">
    <property name="text">
     <string>Stop Setup</string>
+   </property>
+  </action>
+  <action name="actionVina_3">
+   <property name="text">
+    <string>Vina</string>
+   </property>
+  </action>
+  <action name="actionVina">
+   <property name="text">
+    <string>Vina</string>
+   </property>
+  </action>
+  <action name="actionVina_Prepare_Ligand">
+   <property name="text">
+    <string>Prepare Ligand</string>
+   </property>
+  </action>
+  <action name="actionVina_Prepare_Receptor">
+   <property name="text">
+    <string>Prepare Receptor</string>
+   </property>
+  </action>
+  <action name="actionVina_Export_Results">
+   <property name="text">
+    <string>Export Results</string>
    </property>
   </action>
  </widget>

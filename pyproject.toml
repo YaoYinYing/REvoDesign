@@ -81,6 +81,10 @@ openmm=[
     "openmm-setup @ git+https://github.com/openmm/openmm-setup.git#egg=openmm-setup",
 ]
 
+vina = [
+    "meeko",
+]
+
 spark = [
     "pyspark>=3.0.0"
 ]
