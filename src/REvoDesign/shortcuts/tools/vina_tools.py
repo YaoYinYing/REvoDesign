@@ -6,19 +6,10 @@ get latest plugin and tutorials at https://github.com/MengwuXiao/Getbox-PyMOL-Pl
 Usages:
 this plugin is a simple tool to get box information for LeDock and Autodock Vina or other molecular docking soft. Using the following functions to get box is recommended.
 
-* autobox [extending] (NOTES: solvent & some anions will be removed)
-    this function autodetects box in chain A with one click of mouse, but sometimes it fails for too many ligands or no ligand
-    e.g. autobox
-
 * getbox [selection = (sele), [extending = 5.0]]
     this function creates a box that around the selected objects (residues or ligands or HOH or others). Selecting ligands or residues in the active cavity reported in papers is recommended
     e.g. getbox
     e.g. getbox (sele), 6.0
-
-* resibox [Residues String, [extending = 5.0]]
-    this function creates a box that arroud the input residues in chain A. Selecting residues in the active cavity reported in papers is recommended\n\
-    e.g. resibox resi 214+226+245, 8.0
-    e.g. resibox resi 234 + resn HEM, 6.0
 
 * showbox [minX, maxX, minY, maxY, minZ, maxZ]
     this function creates a box based on the input axis, used to visualize box or amend box coordinate
@@ -657,14 +648,6 @@ def removeions():
     return
 
 
-def autobox(extending=5.0):
-    cmd.remove('solvent')
-    removeions()
-    cmd.select("ChainAHet", "hetatm & chain A")  # found error in pymol 1.8 change "chain a" to "chain A"
-    getbox("ChainAHet", extending=extending)
-    return
-
-# remove hetatm
 
 
 def rmhet(extending=5.0):
@@ -674,8 +657,3 @@ def rmhet(extending=5.0):
 
 # getbox from cavity residues that reported in papers
 
-
-def resibox(ResiduesStr="", extending=5.0):
-    cmd.select("Residues", ResiduesStr + " &  chain A")
-    getbox("Residues", extending=extending)
-    return
