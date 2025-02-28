@@ -188,7 +188,7 @@ class CgoBox:
     
     minZ: float
     maxZ: float
-    linewidth: float = 2.0
+    linewidth: float = 5.0
 
     colorX:Tuple[float,float,float]=(1.0, 0.0, 0.0,)
     colorY:Tuple[float,float,float]=(0.0, 1.0, 0.0,)
@@ -280,6 +280,7 @@ class CgoBox:
     
     @cached_property
     def as_cgo_obj(self):
+        # who on earth makes this shit???
         return [
             cgo.LINEWIDTH, float(self.linewidth),
             cgo.BEGIN, cgo.LINES,
@@ -313,7 +314,7 @@ gridcenter {self.CenterX:.3f} {self.CenterY:.3f} {self.CenterZ:.3f} # xyz-coordi
 
 
     def __repr__(self) -> str:
-        return f"""CgoBox{self.name}: 
+        return f"""CgoBox `{self.name}`: 
 Coordinates: {self.minX:.3f} - {self.maxX:.3f}; {self.minY:.3f} - {self.maxY:.3f}, {self.minZ:.3f} - {self.maxZ:.3f}
 Size: {self.SizeX:.3f} * {self.SizeY:.3f} * {self.SizeZ:.3f} = {self.SizeX * self.SizeY * self.SizeZ:.3f}
 Center: {self.CenterX:.3f}, {self.CenterY:.3f}, {self.CenterZ:.3f}"""
@@ -388,6 +389,8 @@ def showbox(
     showaxes()
 
     if isinstance(box, str):
+        if any(x is None for x in [minX, maxX, minY, maxY, minZ, maxZ]):
+            raise ValueError("To make a box, you must specify minX, maxX, minY, maxY, minZ, maxZ as valid floats.")
         box=CgoBox(
         name=box,
         minX=minX,
