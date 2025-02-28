@@ -123,6 +123,9 @@ class CgoAxes:
     h:float = 0.25 # cone hight
 
     always_left_corner:bool = True
+    show_labels:bool = True
+    label_weight: float = 0.05
+    label_size: float = 0.5
 
     def __post_init__(self):
         if self.name in cmd.get_names("objects"):
@@ -140,19 +143,31 @@ class CgoAxes:
     @cached_property
     def as_cgo_obj(self):
         return [
-            cgo.CYLINDER, 0.0, 0.0, 0.0,   self.l, 0.0, 0.0, self.w, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-            cgo.CYLINDER, 0.0, 0.0, 0.0, 0.0,   self.l, 0.0, self.w, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-            cgo.CYLINDER, 0.0, 0.0, 0.0, 0.0, 0.0,   self.l, self.w, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+            cgo.CYLINDER, 0.0, 0.0, 0.0,   self.l, 0.0, 0.0, self.w,            1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+            cgo.CYLINDER, 0.0, 0.0, 0.0, 0.0,   self.l, 0.0, self.w,            0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+            cgo.CYLINDER, 0.0, 0.0, 0.0, 0.0, 0.0,   self.l, self.w,            0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
             cgo.CONE,   self.l, 0.0, 0.0, self.h+self.l, 0.0, 0.0, self.d, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0,
             cgo.CONE, 0.0,   self.l, 0.0, 0.0, self.h+self.l, 0.0, self.d, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0,
             cgo.CONE, 0.0, 0.0,   self.l, 0.0, 0.0, self.h+self.l, self.d, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0
         ]
+    
+    def set_label(self):
+        obj=self.as_cgo_obj
+        label_axis=[[self.label_size,0,0],[0,self.label_size,0],[0,0,self.label_size]]
+        cgo.cyl_text(obj,plain,[self.l+self.h, 0, - self.w],'X',self.label_weight,axes=label_axis)
+        cgo.cyl_text(obj,plain,[-self.w, self.l+self.h, 0],'Y',self.label_weight,axes=label_axis)
+        cgo.cyl_text(obj,plain,[-self.w, 0, self.l+self.h],'Z',self.label_weight,axes=label_axis)
         
     def show(self):
         cmd.set('auto_zoom', 0)
         if self.always_left_corner:
             PutCenterCallback(self.name, 1).load()
+
+        if self.show_labels:
+            self.set_label()
         cmd.load_cgo(self.as_cgo_obj, self.name)
+
+        
         
 
 
@@ -324,7 +339,7 @@ Center: {self.CenterX:.3f}, {self.CenterY:.3f}, {self.CenterZ:.3f}"""
         minX = minX - extending+offset[0]
         minY = minY - extending+offset[1]
         minZ = minZ - extending+offset[2]
-        
+
         maxX = maxX + extending+offset[0]
         maxY = maxY + extending+offset[1]
         maxZ = maxZ + extending+offset[2]
@@ -402,8 +417,33 @@ def movebox(box_name:str, x: float=0, y: float=0, z: float=0):
         box_name=box_name, 
         extending=0,
         offset=(float(x), float(y), float(z)))
-    showbox(new_box)
+    new_box.load_to_pymol()
 
+    
+def enlargebox(box_name:str, x: float=0, y: float=0, z: float=0):
+    if all(i == 0 for i in [x, y, z]):
+        print("No enlargement/truncation specified")
+        return
+    new_box=CgoBox.from_selecion(
+        selection=box_name, 
+        box_name=box_name, 
+        extending=0)
+    
+    if x:
+        x=float(x)
+        new_box.minX = new_box.minX - x/2
+        new_box.maxX = new_box.maxX + x/2
+    if y:
+        y=float(y)
+        new_box.minY = new_box.minY - y/2
+        new_box.maxY = new_box.maxY + y/2
+    if z:
+        z=float(z)
+        new_box.minZ = new_box.minZ - z/2
+        new_box.maxZ = new_box.maxZ + z/2
+
+
+    new_box.load_to_pymol()
     
 
 

@@ -4,7 +4,7 @@ Collect all the shortcuts and extend them to pymol
 
 from pymol import cmd
 
-from .tools.vina_tools import GetBoxHelp, autobox, getbox, movebox, resibox, rmhet, showbox
+from .tools.vina_tools import GetBoxHelp, autobox, enlargebox, getbox, movebox, resibox, rmhet, showaxes, showbox
 
 from .tools.designs import shortcut_pssm2csv
 from .tools.exports import shortcut_dump_sidechains
@@ -28,6 +28,8 @@ cmd.extend("resibox", resibox)
 cmd.extend("GetBoxHelp", GetBoxHelp)
 cmd.extend("rmhet", rmhet)
 cmd.extend('movebox', movebox)
+cmd.extend("showaxes", showaxes)
+cmd.extend("enlargebox", enlargebox)
 
 
 __all__ = [
