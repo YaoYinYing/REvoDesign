@@ -32,11 +32,9 @@ Notes:
 
 https://github.com/MengwuXiao/GetBox-PyMOL-Plugin/blob/master/GetBox%20Plugin.py
 '''
-from pymol.cgo import * 
-from pymol import cmd 
+from pymol import cmd, cgo
 from random import randint
 from pymol.vfont import plain
-import sys
 
 
 ##############################################################################
@@ -65,28 +63,26 @@ import sys
 
     
 def GetBoxHelp():
-    Usages = 
+    print( __doc__)
 
-    print (Usages)
-    return
 	
 def showaxes(minX, minY, minZ):
 	cmd.delete('axes')
-	w = 0.5 # cylinder width 
-	l = 5.0 # cylinder length
+	w = 0.5 # cgo.CYLINDER width 
+	l = 5.0 # cgo.CYLINDER length
 	obj = [
-	CYLINDER, minX, minY, minZ, minX + l, minY, minZ, w, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-	CYLINDER, minX, minY, minZ, minX, minY + l, minZ, w, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-	CYLINDER, minX, minY, minZ, minX, minY, minZ + l, w, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+	cgo.CYLINDER, minX, minY, minZ, minX + l, minY, minZ, w, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+	cgo.CYLINDER, minX, minY, minZ, minX, minY + l, minZ, w, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+	cgo.CYLINDER, minX, minY, minZ, minX, minY, minZ + l, w, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
 	]
-	cyl_text(obj,plain,[minX + l, minY, minZ - w],'X',0.20,axes=[[3,0,0],[0,3,0],[0,0,3]])
-	cyl_text(obj,plain,[minX - w, minY + l , minZ],'Y',0.20,axes=[[3,0,0],[0,3,0],[0,0,3]])
-	cyl_text(obj,plain,[minX-w, minY, minZ + l],'Z',0.20,axes=[[3,0,0],[0,3,0],[0,0,3]])
+	cgo.cyl_text(obj,plain,[minX + l, minY, minZ - w],'X',0.20,axes=[[3,0,0],[0,3,0],[0,0,3]])
+	cgo.cyl_text(obj,plain,[minX - w, minY + l , minZ],'Y',0.20,axes=[[3,0,0],[0,3,0],[0,0,3]])
+	cgo.cyl_text(obj,plain,[minX-w, minY, minZ + l],'Z',0.20,axes=[[3,0,0],[0,3,0],[0,0,3]])
 	cmd.load_cgo(obj,'axes')
 	return
    
 def showbox(minX, maxX, minY, maxY, minZ, maxZ):
-    linewidth = 3.0
+    cgo.LINEWIDTH = 3.0
     minX = float(minX)
     minY = float(minY)
     minZ = float(minZ)
@@ -95,49 +91,49 @@ def showbox(minX, maxX, minY, maxY, minZ, maxZ):
     maxZ = float(maxZ)
     showaxes(minX, minY, minZ)
     boundingBox = [
-                   LINEWIDTH, float(linewidth),
-        BEGIN, LINES,
-        # x lines	 
-        COLOR, 1.0, 0.0, 0.0, 	#red
-        VERTEX, minX, minY, minZ,       #1
-        VERTEX, maxX, minY, minZ,       #5
+                   cgo.LINEWIDTH, float(cgo.LINEWIDTH),
+        cgo.BEGIN, cgo.LINES,
+        # x cgo.LINES	 
+        cgo.COLOR, 1.0, 0.0, 0.0, 	#red
+        cgo.VERTEX, minX, minY, minZ,       #1
+        cgo.VERTEX, maxX, minY, minZ,       #5
  
-        VERTEX, minX, maxY, minZ,       #3
-        VERTEX, maxX, maxY, minZ,       #7
+        cgo.VERTEX, minX, maxY, minZ,       #3
+        cgo.VERTEX, maxX, maxY, minZ,       #7
  
-        VERTEX, minX, maxY, maxZ,       #4
-        VERTEX, maxX, maxY, maxZ,       #8
+        cgo.VERTEX, minX, maxY, maxZ,       #4
+        cgo.VERTEX, maxX, maxY, maxZ,       #8
  
-        VERTEX, minX, minY, maxZ,       #2
-        VERTEX, maxX, minY, maxZ,       #6
-        # y lines
-		COLOR, 0.0, 1.0, 0.0, 	#green
-		VERTEX, minX, minY, minZ,       #1
-		VERTEX, minX, maxY, minZ,       #3
+        cgo.VERTEX, minX, minY, maxZ,       #2
+        cgo.VERTEX, maxX, minY, maxZ,       #6
+        # y cgo.LINES
+		cgo.COLOR, 0.0, 1.0, 0.0, 	#green
+		cgo.VERTEX, minX, minY, minZ,       #1
+		cgo.VERTEX, minX, maxY, minZ,       #3
  
-		VERTEX, maxX, minY, minZ,       #5
-		VERTEX, maxX, maxY, minZ,       #7
+		cgo.VERTEX, maxX, minY, minZ,       #5
+		cgo.VERTEX, maxX, maxY, minZ,       #7
  
-		VERTEX, minX, minY, maxZ,       #2
-		VERTEX, minX, maxY, maxZ,       #4
+		cgo.VERTEX, minX, minY, maxZ,       #2
+		cgo.VERTEX, minX, maxY, maxZ,       #4
  
-		VERTEX, maxX, minY, maxZ,       #6
-		VERTEX, maxX, maxY, maxZ,       #8		
-		# z lines
-		COLOR, 0.0, 0.0, 1.0,		#blue
-		VERTEX, minX, minY, minZ,       #1
-		VERTEX, minX, minY, maxZ,       #2
+		cgo.VERTEX, maxX, minY, maxZ,       #6
+		cgo.VERTEX, maxX, maxY, maxZ,       #8		
+		# z cgo.LINES
+		cgo.COLOR, 0.0, 0.0, 1.0,		#blue
+		cgo.VERTEX, minX, minY, minZ,       #1
+		cgo.VERTEX, minX, minY, maxZ,       #2
  
-		VERTEX, minX, maxY, minZ,       #3
-		VERTEX, minX, maxY, maxZ,       #4
+		cgo.VERTEX, minX, maxY, minZ,       #3
+		cgo.VERTEX, minX, maxY, maxZ,       #4
  
-		VERTEX, maxX, minY, minZ,       #5
-		VERTEX, maxX, minY, maxZ,       #6
+		cgo.VERTEX, maxX, minY, minZ,       #5
+		cgo.VERTEX, maxX, minY, maxZ,       #6
  
-		VERTEX, maxX, maxY, minZ,       #7
-		VERTEX, maxX, maxY, maxZ,       #8
+		cgo.VERTEX, maxX, maxY, minZ,       #7
+		cgo.VERTEX, maxX, maxY, maxZ,       #8
  
-        END
+        cgo.END
     ]
     boxName = "box_" + str(randint(0, 10000))
     while boxName in cmd.get_names():
