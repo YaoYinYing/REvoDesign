@@ -55,11 +55,9 @@ from pymol.vfont import plain
 # the GNU General Public License for more details.
 ##############################################################################
 
-
-def GetBoxHelp():
-    print(__doc__)
-
 # ref: https://pymolwiki.org/index.php/Axes
+
+
 class PutCenterCallback:
     """
     A class to dynamically adjust the position of an object in PyMOL to keep it centered in the view.
@@ -92,7 +90,7 @@ class PutCenterCallback:
         """
         Executes the callback logic when called.
 
-        This method ensures that the specified object remains centered in the view. If the object is deleted, 
+        This method ensures that the specified object remains centered in the view. If the object is deleted,
         it removes the callback. It also applies an offset based on the specified corner.
         """
         if self.name not in cmd.get_names('objects'):
@@ -123,6 +121,9 @@ class PutCenterCallback:
         z = -v[11] / 30.0
         m = [z, 0, 0, 0, 0, z, 0, 0, 0, 0, z, 0, t[0] / z, t[1] / z, t[2] / z, 1]
         cmd.set_object_ttt(self.name, m)
+
+# ref: https://pymolwiki.org/index.php/Axes
+
 
 @dataclass
 class CgoAxes:
@@ -171,7 +172,7 @@ class CgoAxes:
     def d(self):
         """
         Calculates and returns the diameter of the cone base.
-        
+
         Returns:
             float: The diameter of the cone base.
         """
@@ -181,7 +182,7 @@ class CgoAxes:
     def as_cgo_obj(self):
         """
         Generates and returns a CGO object representing the axes.
-        
+
         Returns:
             list: A list of CGO commands to draw the axes.
         """
@@ -220,11 +221,14 @@ class CgoAxes:
             self.set_label()
         # Load the CGO object into the visualization environment
         cmd.load_cgo(self.as_cgo_obj, self.name)
+
+
 def showaxes():
     axes = CgoAxes()
     axes.show()
 
 # ref: https://github.com/MengwuXiao/GetBox-PyMOL-Plugin/blob/master/GetBox%20Plugin.py
+
 
 @dataclass
 class CgoBox:
@@ -246,7 +250,7 @@ class CgoBox:
         colorY( Tuple[float, float, float]): The color of the box in RGB format on Y axis.
         colorZ (Tuple[float, float, float]): The color of the box in RGB format on Z axis.
 
-        
+
     """
     name: str
 
@@ -475,6 +479,8 @@ Center: {self.CenterX:.3f}, {self.CenterY:.3f}, {self.CenterZ:.3f}"""
         )
         print(repr(box))
         return box
+
+
 @overload
 def showbox(
     box: str,
@@ -496,6 +502,7 @@ def showbox(box: CgoBox,
             maxY: Optional[float] = None,
             minZ: Optional[float] = None,
             maxZ: Optional[float] = None): ...
+
 
 def showbox(
         box: Union[str, CgoBox],
@@ -571,7 +578,7 @@ def movebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         box_name=box_name,
         extending=0,
         offset=(float(x), float(y), float(z)))
-    
+
     # Load the new box into PyMOL
     new_box.load_to_pymol()
 
@@ -648,12 +655,9 @@ def removeions():
     return
 
 
-
-
 def rmhet(extending=5.0):
     cmd.select("rmhet", "hetatm")
     cmd.remove("rmhet")
     return
 
 # getbox from cavity residues that reported in papers
-
