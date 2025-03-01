@@ -1,26 +1,6 @@
 '''
 
 GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
-get latest plugin and tutorials at https://github.com/MengwuXiao/Getbox-PyMOL-Plugin
-
-Usages:
-this plugin is a simple tool to get box information for LeDock and Autodock Vina or other molecular docking soft. Using the following functions to get box is recommended.
-
-* getbox [selection = (sele), [extending = 5.0]]
-    this function creates a box that around the selected objects (residues or ligands or HOH or others). Selecting ligands or residues in the active cavity reported in papers is recommended
-    e.g. getbox
-    e.g. getbox (sele), 6.0
-
-* showbox [minX, maxX, minY, maxY, minZ, maxZ]
-    this function creates a box based on the input axis, used to visualize box or amend box coordinate
-    e.g. showbox 2,3,4,5,6,7
-
- * rmhet
- 	remove HETATM, remove all HETATM in the screen
-
-Notes:
-* If you have any questions or advice, please do not hesitate to contact me (mwxiao AT hnu DOT edu DOT cn), thank you!
-
 
 '''
 from dataclasses import dataclass
@@ -262,7 +242,7 @@ class CgoBox:
 
     minZ: float
     maxZ: float
-    linewidth: float = 5.0
+    linewidth: float = 2.0 # not working?
 
     colorX: Tuple[float, float, float] = (1.0, 0.0, 0.0,)
     colorY: Tuple[float, float, float] = (0.0, 1.0, 0.0,)
@@ -389,7 +369,7 @@ class CgoBox:
         """
         Combines all CGO line commands into a single list to represent the entire box object.
         """
-        # who on earth makes this shit???
+        # who on earth made this shit???
         return [
             cgo.LINEWIDTH, float(self.linewidth),
             cgo.BEGIN, cgo.LINES,
@@ -450,6 +430,41 @@ Center: {self.CenterX:.3f}, {self.CenterY:.3f}, {self.CenterZ:.3f}"""
             offset: Tuple[float, float, float] = (0, 0, 0)):
         """
         Creates a box object from a PyMOL selection, with optional name, extension, and offset.
+
+        Arguments:
+        selection (str): PyMOL selection string.
+        box_name (str, optional): Name of the box. Defaults to None.
+        extending (float, optional): Padding distance out of the selection. Defaults to 5.0.
+        offset (Tuple[float, float, float], optional): Offset of the box. Defaults to (0, 0, 0).
+
+        Returns:
+        Box: Box object.
+
+        Example:
+            1. to create a box from a PyMOL selection with 5.0 extension/padding:
+                ```python
+                box = CgoBox.from_selection("(sele)", "box", 5.0)
+                box.load_to_pymol()
+                ```
+            2. to regenerate a moved for an existing box:
+                ```python
+                new_box = CgoBox.from_selection("box", "box", 0, (1, 0, 0)) # move the box on the x axis by 1 Angstrom
+                new_box.load_to_pymol()
+                ```
+            3. to increase or decrease the box size:
+                ```python
+                newbox = CgoBox.from_selection("box", "box", 0)
+                # increase the box size by 10 Angstrom on the x axis without changing the center of the box
+                newbox.minX -= 5.0
+                newbox.maxX += 5.0
+                # decrease the box size by 10 Angstrom on the x axis without changing the center of the box
+                newbox.minX += 5.0
+                newbox.maxX -= 5.0
+                
+                # regenerate the box
+                new_box.load_to_pymol()
+                
+
         """
         if not box_name:
             boxName = "box_" + str(randint(0, 10000))
@@ -491,27 +506,27 @@ def showbox(
     minZ: float,
     maxZ: float
 
-): ...
+)->CgoBox: ...
 
 
 @overload
 def showbox(box: CgoBox,
-            minX: Optional[float] = None,
-            maxX: Optional[float] = None,
-            minY: Optional[float] = None,
-            maxY: Optional[float] = None,
-            minZ: Optional[float] = None,
-            maxZ: Optional[float] = None): ...
+            minX: Optional[Union[float, str]] = None,
+            maxX: Optional[Union[float, str]] = None,
+            minY: Optional[Union[float, str]] = None,
+            maxY: Optional[Union[float, str]] = None,
+            minZ: Optional[Union[float, str]] = None,
+            maxZ: Optional[Union[float, str]] = None)->CgoBox: ...
 
 
 def showbox(
         box: Union[str, CgoBox],
-        minX: Optional[float] = None,
-        maxX: Optional[float] = None,
-        minY: Optional[float] = None,
-        maxY: Optional[float] = None,
-        minZ: Optional[float] = None,
-        maxZ: Optional[float] = None):
+        minX: Optional[Union[float, str]] = None,
+        maxX: Optional[Union[float, str]] = None,
+        minY: Optional[Union[float, str]] = None,
+        maxY: Optional[Union[float, str]] = None,
+        minZ: Optional[Union[float, str]] = None,
+        maxZ: Optional[Union[float, str]] = None) ->CgoBox:
     """
     Displays box information and loads it into PyMOL.
 
@@ -536,16 +551,18 @@ def showbox(
     if isinstance(box, str):
         # Validate that all required coordinates are provided when box is a string
         if any(x is None for x in [minX, maxX, minY, maxY, minZ, maxZ]):
-            raise ValueError("To make a box, you must specify minX, maxX, minY, maxY, minZ, maxZ as valid floats.")
+            raise ValueError(
+                "To make a box, you must specify minX, maxX, minY, maxY, minZ, maxZ as valid floats or float-like strings."
+                )
         # Create a new CgoBox object from provided parameters
         box = CgoBox(
             name=box,
-            minX=minX,
-            minY=minY,
-            minZ=minZ,
-            maxX=maxX,
-            maxY=maxY,
-            maxZ=maxZ,
+            minX=float(minX),
+            minY=float(minY),
+            minZ=float(minZ),
+            maxX=float(maxX),
+            maxY=float(maxY),
+            maxZ=float(maxZ),
         )
 
     # Print box details in different formats
