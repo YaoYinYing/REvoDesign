@@ -51,6 +51,7 @@ dependencies = [
     "requests",
     "openpyxl",
     "tqdm",
+    "webcolors",
 ]
 
 [project.optional-dependencies]

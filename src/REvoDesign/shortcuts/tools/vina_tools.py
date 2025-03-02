@@ -12,6 +12,9 @@ from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
+
+
+
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
 # This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
@@ -224,7 +227,7 @@ class CgoBox:
         minZ (float): The minimum Z coordinate of the box.
         maxZ (float): The maximum Z coordinate of the box.
 
-        linewidth (float): The width of the box.
+        linewidth (float): The width of the box. Note that the linewidth takes effect only when the ray tracing is called.
 
         colorX (Tuple[float, float, float]): The color of the box in RGB format on X axis.
         colorY( Tuple[float, float, float]): The color of the box in RGB format on Y axis.
@@ -242,7 +245,7 @@ class CgoBox:
 
     minZ: float
     maxZ: float
-    linewidth: float = 2.0 # not working?
+    linewidth: float = 5.0
 
     colorX: Tuple[float, float, float] = (1.0, 0.0, 0.0,)
     colorY: Tuple[float, float, float] = (0.0, 1.0, 0.0,)
