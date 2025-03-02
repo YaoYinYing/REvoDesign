@@ -50,8 +50,9 @@ CONE,      x1, y1, z1,
 
 from dataclasses import dataclass,field
 import math
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 from functools import cached_property
+import itertools
 from pymol import cgo
 import webcolors
 import numpy as np
@@ -59,12 +60,10 @@ from pymol import cmd
 from chempy import cpv
 
 
-import matplotlib.colors as mcolors
 from matplotlib import _color_data as _cdata
 
 from immutabledict import immutabledict
 
-cmd.color
 # name: hsv imutable dicts
 BASE_COLORS: immutabledict[str, str]=immutabledict({name: webcolors.rgb_to_hex(tuple(map(lambda x: int(255*x), value))) for name,value in _cdata.BASE_COLORS.items()}) # type: ignore
 TABLEAU_COLORS: immutabledict[str, str]=immutabledict({name.lstrip('tab:'): value for name,value in _cdata.TABLEAU_COLORS.items()})
@@ -73,6 +72,15 @@ XKCD_COLORS: immutabledict[str, str]=immutabledict({name.lstrip('xkcd:').replace
 
 # color tables
 COLOR_TABLES=(BASE_COLORS,TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
+
+def not_none_float(float_in_1: Optional[float],float_in_2: Optional[float]):
+    if float_in_1 is not None:
+        return float(float_in_1)
+    if float_in_2 is not None:
+        return float(float_in_2)
+    return 0.0
+    
+
 
 @dataclass(frozen=True)
 class Point:
@@ -86,16 +94,18 @@ class Point:
         
     @cached_property
     def as_vertex(self):
-        return np.insert(cgo.VERTEX, 0, self.array)
+        return np.insert(cgo.VERTEX, 1, self.array)
     
     
     @cached_property
     def as_normal(self):
-        return np.insert(cgo.NORMAL, 0, self.array)
+        return np.insert(cgo.NORMAL, 1, self.array)
     
-    @cached_property
-    def move(self, x: float = 0, y: float = 0, z: float = 0) -> 'Point':
-        return Point(self.x + x, self.y + y, self.z + z)
+    def move(self, x: Optional[float]=None, y: Optional[float]=None, z: Optional[float]=None) -> 'Point':
+        return Point(
+            not_none_float(x, self.x), 
+            not_none_float(y, self.y), 
+            not_none_float(z, self.z))
 
 
     @staticmethod
@@ -121,10 +131,11 @@ class Color:
         for cdict in COLOR_TABLES:
             if name not in cdict:
                 continue
-            return np.array(cdict[name])
+            print(f'[DEBUG] {name}: {cdict[name]}')
+            return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float)/255
         
         try:
-            return np.array(webcolors.name_to_rgb(self.name))
+            return np.array(webcolors.name_to_rgb(self.name), dtype=float)/255
         except ValueError as e:
             raise ValueError(f"{self.name} is not a valid color name from matplotlib or webcolors") from e
 
@@ -144,8 +155,6 @@ class Color:
     @cached_property
     def as_cgo(self):
         return np.insert(self.array, 0, cgo.COLOR)
-
-
 
 
 @dataclass
@@ -179,6 +188,7 @@ class GraphicObject:
         if name in cmd.get_names():
             cmd.delete(name)
         
+        print(f'[DEBUG]: {self.__class__}: \n{self.data}')
         cmd.load_cgo(self.data, name)
     
     
@@ -190,7 +200,6 @@ class Sphere(GraphicObject):
 
     def rebuild(self):
         
-
         self._data=[
             *self.color.as_cgo,
             cgo.SPHERE,
@@ -203,8 +212,8 @@ class Cylinder(GraphicObject):
     point1: Point = Point(0, 0, 0)
     point2: Point = Point(1, 1, 1)
     radius: float = 1.0
-    color1: Color = Color('w')
-    color2: Color = Color('b')
+    color1: Color = Color('violet')
+    color2: Color = Color('cyan')
 
     def rebuild(self):
         self._data=[
@@ -212,8 +221,8 @@ class Cylinder(GraphicObject):
             *self.point1.array,
             *self.point2.array,
             self.radius,
-            *self.color1.as_cgo,
-            *self.color2.as_cgo,
+            *self.color1.array,
+            *self.color2.array,
         ]
 
         
@@ -234,8 +243,8 @@ class Doughnut(GraphicObject): # Torus
         """
         obj = []
 
-        axis = cpv.cross_product(self.normal.array(), (0., 0., 1.))
-        angle = -cpv.get_angle(self.normal.array(), (0., 0., 1.))
+        axis = cpv.cross_product(self.normal.array, (0., 0., 1.))
+        angle = -cpv.get_angle(self.normal.array, (0., 0., 1.))
         matrix = cpv.rotation_matrix(angle, cpv.normalize(axis))
 
         def obj_vertex(x, y, z):
@@ -331,9 +340,7 @@ class Bezier(GraphicObject):
         """
         Rebuilds bezier spline
         """
-        super().rebuild()
-        self._data.extend(
-            [
+        self._data=[
                 cgo.BEZIER,
                 *Point.as_arrays(
                     (self.control_pt_A,
@@ -342,7 +349,6 @@ class Bezier(GraphicObject):
                     self.control_pt_B,)
                 )
             ]
-        )
 
 
 
@@ -368,7 +374,7 @@ class Triangle(GraphicObject):
             ]
 
 
-
+@dataclass
 class TriangleSimple(GraphicObject):
     vertex_a: Point = Point(1, 0, 0)
     vertex_b: Point = Point(0, 1, 0)
@@ -382,7 +388,7 @@ class TriangleSimple(GraphicObject):
     def rebuild(self):
 
         self._data=[
-                cgo.BEGIN, cgo.TRIANGLE,
+                cgo.BEGIN, cgo.TRIANGLES,
 
                 *self.color_a.as_cgo,
                 *self.vertex_a.as_vertex,
@@ -424,3 +430,192 @@ class Lines(GraphicObject):
         ]
         for line in self.lines:
             self._data.extend(line.data)
+
+
+@dataclass
+class Cube(GraphicObject):
+    color_w: Color=Color('red')
+
+    color_x: Color=Color('red')
+    color_y: Color=Color('green')
+    color_z: Color=Color('blue')
+
+    p1: Point= Point(0,0,0)
+    p2: Point=Point(1,1,1)
+
+    transparent: bool=True
+    linewidth: float=2
+
+    def _rebuild_wireframe(self):
+        
+        self._data=[
+            cgo.LINEWIDTH, float(self.linewidth),
+            cgo.BEGIN, cgo.LINES,
+            
+        ]
+        # x fixed
+        for y,z in itertools.product((self.p1.y,self.p2.y), (self.p1.z, self.p2.z)):
+            self._data.extend([
+                *self.color_x.as_cgo,
+                *self.p1.move(y=y,z=z).as_vertex,
+                *self.p2.move(y=y,z=z).as_vertex,
+            ])
+
+        # y fixed
+        for x,z in itertools.product((self.p1.x,self.p2.x), (self.p1.z, self.p2.z)):
+            self._data.extend([
+                *self.color_y.as_cgo,
+                *self.p1.move(x=x,z=z).as_vertex,
+                *self.p2.move(x=x,z=z).as_vertex,
+            ])
+
+        # z fixed
+        for x,y in itertools.product((self.p1.x,self.p2.x), (self.p1.y, self.p2.y)):
+            self._data.extend([
+                *self.color_z.as_cgo,
+                *self.p1.move(x=x,y=y).as_vertex,
+                *self.p2.move(x=x,y=y).as_vertex,
+            ])
+
+        self._data.append(cgo.END)
+        
+    def _rebuild_solid(self):
+        """
+        用 6 个 Square，合并出一个立方体(或长方体)外表。
+        """
+        # 简易函数：构造一个纯色的 Square（四个角都用 self.color）
+        def make_face(a: Point, b: Point, c: Point, d: Point) -> List[float]:
+            face = Square(
+                corner_a=a, corner_b=b, corner_c=c, corner_d=d,
+                # 给四个角都指定同一个颜色 => 整个面都是 uniform color
+                color_a=self.color_w,
+                color_b=self.color_x,
+                color_c=self.color_y,
+                color_d=self.color_z
+            )
+            face.rebuild()
+            return face.data
+
+        # 获取 8 个顶点的 (x,y,z) 各种组合
+        x1, y1, z1 = self.p1.x, self.p1.y, self.p1.z
+        x2, y2, z2 = self.p2.x, self.p2.y, self.p2.z
+
+        # 面 1: x = x1
+        #   A=(x1,y1,z1), B=(x1,y1,z2), C=(x1,y2,z2), D=(x1,y2,z1)
+        face1_data = make_face(
+            Point(x1, y1, z1), Point(x1, y1, z2), Point(x1, y2, z2), Point(x1, y2, z1)
+        )
+        # 面 2: x = x2
+        #   A=(x2,y1,z1), B=(x2,y2,z1), C=(x2,y2,z2), D=(x2,y1,z2)
+        face2_data = make_face(
+            Point(x2, y1, z1), Point(x2, y2, z1), Point(x2, y2, z2), Point(x2, y1, z2)
+        )
+        # 面 3: y = y1
+        #   A=(x1,y1,z1), B=(x2,y1,z1), C=(x2,y1,z2), D=(x1,y1,z2)
+        face3_data = make_face(
+            Point(x1, y1, z1), Point(x2, y1, z1), Point(x2, y1, z2), Point(x1, y1, z2)
+        )
+        # 面 4: y = y2
+        #   A=(x1,y2,z1), B=(x1,y2,z2), C=(x2,y2,z2), D=(x2,y2,z1)
+        face4_data = make_face(
+            Point(x1, y2, z1), Point(x1, y2, z2), Point(x2, y2, z2), Point(x2, y2, z1)
+        )
+        # 面 5: z = z1
+        #   A=(x1,y1,z1), B=(x1,y2,z1), C=(x2,y2,z1), D=(x2,y1,z1)
+        face5_data = make_face(
+            Point(x1, y1, z1), Point(x1, y2, z1), Point(x2, y2, z1), Point(x2, y1, z1)
+        )
+        # 面 6: z = z2
+        #   A=(x1,y1,z2), B=(x2,y1,z2), C=(x2,y2,z2), D=(x1,y2,z2)
+        face6_data = make_face(
+            Point(x1, y1, z2), Point(x2, y1, z2), Point(x2, y2, z2), Point(x1, y2, z2)
+        )
+
+        # 将 6 个面的 CGO 数据合并
+        self._data = face1_data + face2_data + face3_data + \
+                    face4_data + face5_data + face6_data
+
+    def rebuild(self):
+        if self.transparent:
+            self._rebuild_wireframe()
+        else:
+            self._rebuild_solid()
+
+
+
+@dataclass
+class Square(GraphicObject):
+
+    corner_a: Point = Point(0, 0, 0)
+    corner_b: Point = Point(1, 0, 0)
+    corner_c: Point = Point(1, 1, 0)
+    corner_d: Point = Point(0, 1, 0)
+
+    color_a: Color = Color('r')
+    color_b: Color = Color('g')
+    color_c: Color = Color('b')
+    color_d: Color = Color('y')
+
+    def rebuild(self):
+
+        self._data = [
+            cgo.BEGIN, cgo.TRIANGLES,
+
+            *self.color_a.as_cgo,
+            *self.corner_a.as_vertex,
+            *self.color_b.as_cgo,
+            *self.corner_b.as_vertex,
+            *self.color_c.as_cgo,
+            *self.corner_c.as_vertex,
+
+            *self.color_a.as_cgo,
+            *self.corner_a.as_vertex,
+            *self.color_c.as_cgo,
+            *self.corner_c.as_vertex,
+            *self.color_d.as_cgo,
+            *self.corner_d.as_vertex,
+
+            cgo.END
+        ]
+
+
+# sphere=Sphere(center=Point(0,0,0),radius=10, color=Color('cyan'))
+# sphere.load_as('mysphere')
+
+# cyl=Cylinder()
+# cyl.load_as('my_cyl')
+
+
+# Doughnut(samples=100).load_as('my_treasure')
+
+# Cone(color_base=Color('golden'), color_tip=Color('sand_brown')).load_as('dyamond')
+
+# Bezier().load_as('bez') #??
+
+# Triangle(
+#         vertex_a=Point(3, 0, 0),      # 顶点A
+#         vertex_b=Point(0, 3, 0),      # 顶点B
+#         vertex_c=Point(0, 0, 3),      # 顶点C
+
+#         normal_a=Point(0, 0, 1),      # A顶点的法向量
+#         normal_b=Point(0, 1, 0),      # B顶点的法向量
+#         normal_c=Point(1, 0, 0),      # C顶点的法向量
+
+#         color_a=Color('red'),         # A的颜色：红色
+#         color_b=Color('green'),       # B的颜色：绿色
+#         color_c=Color('blue'),        # C的颜色：蓝色
+#     ).load_as('my_triangle')
+
+# TriangleSimple(
+#     vertex_a=Point(1, 0, 0),
+#     vertex_b=Point(0, 1, 0),
+#     vertex_c=Point(0, 0, 1),
+
+#     color_a=Color('cyan'),
+#     color_b=Color('yellow'),
+#     color_c=Color('magenta'),
+#     ).load_as('my_triangle_simple')
+
+
+# Cube(transparent=True).load_as('a_cube')
+
