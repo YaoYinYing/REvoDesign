@@ -159,14 +159,13 @@ class Color:
 
 @dataclass
 class GraphicObject:
-    _data: List[float] =field(default_factory=list)
 
 
     def rebuild(self):
         """
         Rebuild the CGO data.
         """
-        self._data.clear()
+        self._data: List[float] =[]
 
     def __post_init__(self):
         """
@@ -196,12 +195,12 @@ class GraphicObject:
 class Sphere(GraphicObject):
     center: Point=Point(0,0,0) 
     radius: float=0.0
-    color: Color=Color('w')
+    color: str='w'
 
     def rebuild(self):
         
         self._data=[
-            *self.color.as_cgo,
+            *Color(self.color).as_cgo,
             cgo.SPHERE,
             *self.center.array,
             self.radius,
@@ -212,8 +211,8 @@ class Cylinder(GraphicObject):
     point1: Point = Point(0, 0, 0)
     point2: Point = Point(1, 1, 1)
     radius: float = 1.0
-    color1: Color = Color('violet')
-    color2: Color = Color('cyan')
+    color1: str = 'violet'
+    color2: str = 'cyan'
 
     def rebuild(self):
         self._data=[
@@ -221,8 +220,8 @@ class Cylinder(GraphicObject):
             *self.point1.array,
             *self.point2.array,
             self.radius,
-            *self.color1.array,
-            *self.color2.array,
+            *Color(self.color1).array,
+            *Color(self.color2).array,
         ]
 
         
@@ -231,7 +230,7 @@ class Doughnut(GraphicObject): # Torus
     center: Point = Point(0.0, 0.0, 0.0)
     normal: Point = Point(0.0, 0.0, 1.0)
     radius: float = 1.0
-    color: Color = Color('w')
+    color: str = 'w'
     cradius: float = 0.25
     samples: int = 20
     csamples: int = 20
@@ -273,7 +272,7 @@ class Doughnut(GraphicObject): # Torus
             obj.append(cgo.TRIANGLE_STRIP)
 
             obj.append(cgo.COLOR)
-            obj.extend(self.color.array)
+            obj.extend(Color(self.color).array)
 
             while v < 2 * math.pi + dv:
                 c_v = math.cos(v)
@@ -308,8 +307,8 @@ class Cone(GraphicObject):
     base_center: Point = Point(0.0, 0.0, 0.0)
     radius_tip: float = 1.0
     radius_base: float=0.0
-    color_tip: Color = Color('w')
-    color_base:Color=Color('g')
+    color_tip: str = 'w'
+    color_base:str='g'
 
     caps: tuple[float,float]= (1, 0)
 
@@ -322,8 +321,8 @@ class Cone(GraphicObject):
                 *self.tip.array,
                 *self.base_center.array,
                 self.radius_tip, self.radius_base,
-                *self.color_tip.array,
-                *self.color_base.array,
+                *Color(self.color_tip).array,
+                *Color(self.color_base).array,
                 *self.caps
             ]
 
@@ -362,15 +361,15 @@ class Triangle(GraphicObject):
     normal_b: Point = Point(0, 1, 0)
     normal_c: Point = Point(0, 0, 1)
 
-    color_a: Color = Color('r')
-    color_b: Color = Color('g')
-    color_c: Color = Color('b')
+    color_a: str = 'r'
+    color_b: str = 'g'
+    color_c: str = 'b'
 
     def rebuild(self):
         self._data=[
                 *Point.as_arrays((self.vertex_a, self.vertex_b, self.vertex_c)),
                 *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
-                *Color.as_arrays((self.color_a, self.color_b, self.color_c))
+                *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
             ]
 
 
@@ -380,9 +379,9 @@ class TriangleSimple(GraphicObject):
     vertex_b: Point = Point(0, 1, 0)
     vertex_c: Point = Point(0, 0, 1)
 
-    color_a: Color = Color('r')
-    color_b: Color = Color('g')
-    color_c: Color = Color('b')
+    color_a: str = 'r'
+    color_b: str = 'g'
+    color_c: str = 'b'
 
 
     def rebuild(self):
@@ -390,13 +389,13 @@ class TriangleSimple(GraphicObject):
         self._data=[
                 cgo.BEGIN, cgo.TRIANGLES,
 
-                *self.color_a.as_cgo,
+                *Color(self.color_a).as_cgo,
                 *self.vertex_a.as_vertex,
                 
-                *self.color_b.as_cgo,
+                *Color(self.color_b).as_cgo,
                 *self.vertex_b.as_vertex,
 
-                *self.color_c.as_cgo,
+                *Color(self.color_c).as_cgo,
                 *self.vertex_c.as_vertex,
                 
                 cgo.END
@@ -419,14 +418,14 @@ class Line(GraphicObject):
 
 @dataclass
 class Lines(GraphicObject):
-    color: Color=Color('w')
+    color: str='w'
 
     lines: tuple[Line]=field(default_factory=tuple)
 
 
     def rebuild(self):
         self._data=[
-            *self.color.as_cgo, 
+            *Color(self.color).as_cgo, 
         ]
         for line in self.lines:
             self._data.extend(line.data)
@@ -434,11 +433,11 @@ class Lines(GraphicObject):
 
 @dataclass
 class Cube(GraphicObject):
-    color_w: Color=Color('red')
+    color_w: str='red'
 
-    color_x: Color=Color('red')
-    color_y: Color=Color('green')
-    color_z: Color=Color('blue')
+    color_x: str='red'
+    color_y: str='green'
+    color_z: str='blue'
 
     p1: Point= Point(0,0,0)
     p2: Point=Point(1,1,1)
@@ -456,7 +455,7 @@ class Cube(GraphicObject):
         # x fixed
         for y,z in itertools.product((self.p1.y,self.p2.y), (self.p1.z, self.p2.z)):
             self._data.extend([
-                *self.color_x.as_cgo,
+                *Color(self.color_x).as_cgo,
                 *self.p1.move(y=y,z=z).as_vertex,
                 *self.p2.move(y=y,z=z).as_vertex,
             ])
@@ -464,7 +463,7 @@ class Cube(GraphicObject):
         # y fixed
         for x,z in itertools.product((self.p1.x,self.p2.x), (self.p1.z, self.p2.z)):
             self._data.extend([
-                *self.color_y.as_cgo,
+                *Color(self.color_y).as_cgo,
                 *self.p1.move(x=x,z=z).as_vertex,
                 *self.p2.move(x=x,z=z).as_vertex,
             ])
@@ -472,7 +471,7 @@ class Cube(GraphicObject):
         # z fixed
         for x,y in itertools.product((self.p1.x,self.p2.x), (self.p1.y, self.p2.y)):
             self._data.extend([
-                *self.color_z.as_cgo,
+                *Color(self.color_z).as_cgo,
                 *self.p1.move(x=x,y=y).as_vertex,
                 *self.p2.move(x=x,y=y).as_vertex,
             ])
@@ -551,35 +550,38 @@ class Square(GraphicObject):
     corner_c: Point = Point(1, 1, 0)
     corner_d: Point = Point(0, 1, 0)
 
-    color_a: Color = Color('r')
-    color_b: Color = Color('g')
-    color_c: Color = Color('b')
-    color_d: Color = Color('y')
+    color_a: str = 'r'
+    color_b: str = 'g'
+    color_c: str = 'b'
+    color_d: str = 'y'
 
     def rebuild(self):
 
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
 
-            *self.color_a.as_cgo,
+            *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
-            *self.color_b.as_cgo,
+            *Color(self.color_b).as_cgo,
             *self.corner_b.as_vertex,
-            *self.color_c.as_cgo,
+            *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
 
-            *self.color_a.as_cgo,
+            *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
-            *self.color_c.as_cgo,
+            *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
-            *self.color_d.as_cgo,
+            *Color(self.color_d).as_cgo,
             *self.corner_d.as_vertex,
 
             cgo.END
         ]
 
 
-# sphere=Sphere(center=Point(0,0,0),radius=10, color=Color('cyan'))
+# TEST CASES that can be run from pymol
+# `run src/REvoDesign/tools/cgo_utils.py`
+
+# sphere=Sphere(center=Point(0,0,0),radius=10, color='cyan')
 # sphere.load_as('mysphere')
 
 # cyl=Cylinder()
@@ -588,7 +590,7 @@ class Square(GraphicObject):
 
 # Doughnut(samples=100).load_as('my_treasure')
 
-# Cone(color_base=Color('golden'), color_tip=Color('sand_brown')).load_as('dyamond')
+# Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
 
 # Bezier().load_as('bez') #??
 
@@ -601,9 +603,9 @@ class Square(GraphicObject):
 #         normal_b=Point(0, 1, 0),      # B顶点的法向量
 #         normal_c=Point(1, 0, 0),      # C顶点的法向量
 
-#         color_a=Color('red'),         # A的颜色：红色
-#         color_b=Color('green'),       # B的颜色：绿色
-#         color_c=Color('blue'),        # C的颜色：蓝色
+#         color_a='red',         # A的颜色：红色
+#         color_b='green',       # B的颜色：绿色
+#         color_c='blue',        # C的颜色：蓝色
 #     ).load_as('my_triangle')
 
 # TriangleSimple(
@@ -611,11 +613,34 @@ class Square(GraphicObject):
 #     vertex_b=Point(0, 1, 0),
 #     vertex_c=Point(0, 0, 1),
 
-#     color_a=Color('cyan'),
-#     color_b=Color('yellow'),
-#     color_c=Color('magenta'),
+#     color_a='cyan',
+#     color_b='yellow',
+#     color_c='magenta',
 #     ).load_as('my_triangle_simple')
 
 
-# Cube(transparent=True).load_as('a_cube')
+# Cube(transparent=True).load_as('a_colorful_cube')
+# Cube(
+#     transparent=True, 
+#     color_w='white', 
+#     color_x='white', 
+#     color_y='white', 
+#     color_z='white'
+#     ).load_as('a_white_box')
 
+# Cube(transparent=False,
+#     color_w='white', 
+#     color_x='white', 
+#     color_y='white', 
+#     color_z='white'
+# ).load_as('solid_box')
+
+# Cube(
+#     transparent=True, 
+#     color_w='black', 
+#     color_x='black', 
+#     color_y='black', 
+#     color_z='black'
+#     ).load_as('a_black_box')
+
+Square().load_as('a_square')
