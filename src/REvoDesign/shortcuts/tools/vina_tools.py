@@ -12,9 +12,6 @@ from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
-
-
-
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
 # This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
@@ -463,10 +460,10 @@ Center: {self.CenterX:.3f}, {self.CenterY:.3f}, {self.CenterZ:.3f}"""
                 # decrease the box size by 10 Angstrom on the x axis without changing the center of the box
                 newbox.minX += 5.0
                 newbox.maxX -= 5.0
-                
+
                 # regenerate the box
                 new_box.load_to_pymol()
-                
+
 
         """
         if not box_name:
@@ -509,7 +506,7 @@ def showbox(
     minZ: float,
     maxZ: float
 
-)->CgoBox: ...
+) -> CgoBox: ...
 
 
 @overload
@@ -519,7 +516,7 @@ def showbox(box: CgoBox,
             minY: Optional[Union[float, str]] = None,
             maxY: Optional[Union[float, str]] = None,
             minZ: Optional[Union[float, str]] = None,
-            maxZ: Optional[Union[float, str]] = None)->CgoBox: ...
+            maxZ: Optional[Union[float, str]] = None) -> CgoBox: ...
 
 
 def showbox(
@@ -529,7 +526,7 @@ def showbox(
         minY: Optional[Union[float, str]] = None,
         maxY: Optional[Union[float, str]] = None,
         minZ: Optional[Union[float, str]] = None,
-        maxZ: Optional[Union[float, str]] = None) ->CgoBox:
+        maxZ: Optional[Union[float, str]] = None) -> CgoBox:
     """
     Displays box information and loads it into PyMOL.
 
@@ -556,7 +553,7 @@ def showbox(
         if any(x is None for x in [minX, maxX, minY, maxY, minZ, maxZ]):
             raise ValueError(
                 "To make a box, you must specify minX, maxX, minY, maxY, minZ, maxZ as valid floats or float-like strings."
-                )
+            )
         # Create a new CgoBox object from provided parameters
         box = CgoBox(
             name=box,

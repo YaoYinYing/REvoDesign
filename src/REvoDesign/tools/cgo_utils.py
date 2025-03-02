@@ -9,13 +9,13 @@ BEGIN, { POINTS | LINES | LINE_LOOP | LINE_STRIP | TRIANGLES | TRIANGLE_STRIP | 
 
 VERTEX, x,  y,  z,
 
-COLOR,  red, green, blue, 
+COLOR,  red, green, blue,
 
-NORMAL, normal-x, normal-y,  normal-z, 
+NORMAL, normal-x, normal-y,  normal-z,
 
 END,
 
-LINEWIDTH, line-width, 
+LINEWIDTH, line-width,
 
 WIDTHSCALE, width-scale,   # for ray-tracing
 
@@ -27,59 +27,59 @@ SPHERE, x, y, z,  radius    # uses the current color
 CYLINDER, x1, y1, z1, x2, y2, z2, radius,
           red1, green1, blue1, red2, green2, blue2,
 
-TRIANGLE,  x1, y1, z1, 
+TRIANGLE,  x1, y1, z1,
            x2, y2, z2,
            x3, y3, z3,
            normal-x1, normal-y1, normal-z1,
            normal-x2, normal-y2, normal-z2,
            normal-x3, normal-y3, normal-z3,
-           red1, green1, blue1,          
-           red2, green2, blue2,          
-           red3, green3, blue3,          
+           red1, green1, blue1,
+           red2, green2, blue2,
+           red3, green3, blue3,
 
 CONE,      x1, y1, z1,
            x2, y2, z2,
            r1, r2,
-           red1, green1, blue1,          
-           red2, green2, blue2,          
-           cap1, cap2   # should the ends be solid (1) or open (0)?   
+           red1, green1, blue1,
+           red2, green2, blue2,
+           cap1, cap2   # should the ends be solid (1) or open (0)?
 
 
 
 '''
 
-from dataclasses import dataclass,field
-import math
-from typing import Iterable, List, Optional
-from functools import cached_property
 import itertools
-from pymol import cgo
-import webcolors
+import math
+from dataclasses import dataclass, field
+from functools import cached_property
+from typing import Iterable, List, Optional
+
 import numpy as np
-from pymol import cmd
+import webcolors
 from chempy import cpv
-
-
-from matplotlib import _color_data as _cdata
-
 from immutabledict import immutabledict
+from matplotlib import _color_data as _cdata
+from pymol import cgo, cmd
 
 # name: hsv imutable dicts
-BASE_COLORS: immutabledict[str, str]=immutabledict({name: webcolors.rgb_to_hex(tuple(map(lambda x: int(255*x), value))) for name,value in _cdata.BASE_COLORS.items()}) # type: ignore
-TABLEAU_COLORS: immutabledict[str, str]=immutabledict({name.lstrip('tab:'): value for name,value in _cdata.TABLEAU_COLORS.items()})
-CSS4_COLORS: immutabledict[str, str]=immutabledict(_cdata.CSS4_COLORS)
-XKCD_COLORS: immutabledict[str, str]=immutabledict({name.lstrip('xkcd:').replace(' ', '_'): value for name,value in _cdata.XKCD_COLORS.items()})
+BASE_COLORS: immutabledict[str, str] = immutabledict({name: webcolors.rgb_to_hex(
+    tuple(map(lambda x: int(255 * x), value))) for name, value in _cdata.BASE_COLORS.items()})  # type: ignore
+TABLEAU_COLORS: immutabledict[str, str] = immutabledict(
+    {name.lstrip('tab:'): value for name, value in _cdata.TABLEAU_COLORS.items()})
+CSS4_COLORS: immutabledict[str, str] = immutabledict(_cdata.CSS4_COLORS)
+XKCD_COLORS: immutabledict[str, str] = immutabledict(
+    {name.lstrip('xkcd:').replace(' ', '_'): value for name, value in _cdata.XKCD_COLORS.items()})
 
 # color tables
-COLOR_TABLES=(BASE_COLORS,TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
+COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
 
-def not_none_float(float_in_1: Optional[float],float_in_2: Optional[float]):
+
+def not_none_float(float_in_1: Optional[float], float_in_2: Optional[float]):
     if float_in_1 is not None:
         return float(float_in_1)
     if float_in_2 is not None:
         return float(float_in_2)
     return 0.0
-    
 
 
 @dataclass(frozen=True)
@@ -91,66 +91,64 @@ class Point:
     @cached_property
     def array(self):
         return np.array([self.x, self.y, self.z])
-        
+
     @cached_property
     def as_vertex(self):
         return np.insert(cgo.VERTEX, 1, self.array)
-    
-    
+
     @cached_property
     def as_normal(self):
         return np.insert(cgo.NORMAL, 1, self.array)
-    
-    def move(self, x: Optional[float]=None, y: Optional[float]=None, z: Optional[float]=None) -> 'Point':
-        return Point(
-            not_none_float(x, self.x), 
-            not_none_float(y, self.y), 
-            not_none_float(z, self.z))
 
+    def move(self, x: Optional[float] = None, y: Optional[float] = None, z: Optional[float] = None) -> 'Point':
+        return Point(
+            not_none_float(x, self.x),
+            not_none_float(y, self.y),
+            not_none_float(z, self.z))
 
     @staticmethod
     def as_arrays(points: Iterable['Point']):
         return np.concatenate(tuple(point.array for point in points))
-    
+
     @staticmethod
     def as_vertexes(points: Iterable['Point']):
         return np.concatenate(tuple(point.as_vertex for point in points))
-    
 
     @classmethod
     def from_xyz(cls, x: float, y: float, z: float):
-        return Point(x,y,z)
+        return Point(x, y, z)
+
+
 @dataclass(frozen=True)
 class Color:
     name: str
     alpha: float = 1.0
 
     @cached_property
-    def array(self)-> np.ndarray:
-        name = self.name.lower().replace(" ","_")
+    def array(self) -> np.ndarray:
+        name = self.name.lower().replace(" ", "_")
         for cdict in COLOR_TABLES:
             if name not in cdict:
                 continue
             print(f'[DEBUG] {name}: {cdict[name]}')
-            return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float)/255
-        
+            return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  # type: ignore
+
         try:
-            return np.array(webcolors.name_to_rgb(self.name), dtype=float)/255
+            return np.array(webcolors.name_to_rgb(self.name), dtype=float) / 255
         except ValueError as e:
             raise ValueError(f"{self.name} is not a valid color name from matplotlib or webcolors") from e
 
     @cached_property
-    def array_alpha(self)-> np.ndarray:
+    def array_alpha(self) -> np.ndarray:
         return np.append(self.array, self.alpha)
-    
+
     @staticmethod
     def as_arrays(colors: Iterable['Color']):
         return np.concatenate(tuple(color.array for color in colors))
-    
+
     @staticmethod
     def as_cgos(colors: Iterable['Color']):
         return np.concatenate(tuple(color.as_cgo for color in colors))
-    
 
     @cached_property
     def as_cgo(self):
@@ -160,12 +158,11 @@ class Color:
 @dataclass
 class GraphicObject:
 
-
     def rebuild(self):
         """
         Rebuild the CGO data.
         """
-        self._data: List[float] =[]
+        self._data: List[float] = []
 
     def __post_init__(self):
         """
@@ -182,29 +179,30 @@ class GraphicObject:
         Get the CGO data.
         """
         return self._data
-    
+
     def load_as(self, name: str):
         if name in cmd.get_names():
             cmd.delete(name)
-        
+
         print(f'[DEBUG]: {self.__class__}: \n{self.data}')
         cmd.load_cgo(self.data, name)
-    
-    
+
+
 @dataclass
 class Sphere(GraphicObject):
-    center: Point=Point(0,0,0) 
-    radius: float=0.0
-    color: str='w'
+    center: Point = Point(0, 0, 0)
+    radius: float = 0.0
+    color: str = 'w'
 
     def rebuild(self):
-        
-        self._data=[
+
+        self._data = [
             *Color(self.color).as_cgo,
             cgo.SPHERE,
             *self.center.array,
             self.radius,
         ]
+
 
 @dataclass
 class Cylinder(GraphicObject):
@@ -215,7 +213,7 @@ class Cylinder(GraphicObject):
     color2: str = 'cyan'
 
     def rebuild(self):
-        self._data=[
+        self._data = [
             cgo.CYLINDER,
             *self.point1.array,
             *self.point2.array,
@@ -224,9 +222,9 @@ class Cylinder(GraphicObject):
             *Color(self.color2).array,
         ]
 
-        
+
 @dataclass
-class Doughnut(GraphicObject): # Torus
+class Doughnut(GraphicObject):  # Torus
     center: Point = Point(0.0, 0.0, 0.0)
     normal: Point = Point(0.0, 0.0, 1.0)
     radius: float = 1.0
@@ -301,32 +299,32 @@ class Doughnut(GraphicObject): # Torus
 
         self._data = obj
 
+
 @dataclass
 class Cone(GraphicObject):
     tip: Point = Point(1.0, 0.0, 0.0)
     base_center: Point = Point(0.0, 0.0, 0.0)
     radius_tip: float = 1.0
-    radius_base: float=0.0
+    radius_base: float = 0.0
     color_tip: str = 'w'
-    color_base:str='g'
+    color_base: str = 'g'
 
-    caps: tuple[float,float]= (1, 0)
+    caps: tuple[float, float] = (1, 0)
 
     def rebuild(self) -> None:
         """
         Rebuilds cone
         """
-        self._data=[
-                cgo.CONE,
-                *self.tip.array,
-                *self.base_center.array,
-                self.radius_tip, self.radius_base,
-                *Color(self.color_tip).array,
-                *Color(self.color_base).array,
-                *self.caps
-            ]
+        self._data = [
+            cgo.CONE,
+            *self.tip.array,
+            *self.base_center.array,
+            self.radius_tip, self.radius_base,
+            *Color(self.color_tip).array,
+            *Color(self.color_base).array,
+            *self.caps
+        ]
 
-    
 
 @dataclass
 class Bezier(GraphicObject):
@@ -339,16 +337,15 @@ class Bezier(GraphicObject):
         """
         Rebuilds bezier spline
         """
-        self._data=[
-                cgo.BEZIER,
-                *Point.as_arrays(
-                    (self.control_pt_A,
-                    self.A_right_handle,
-                    self.B_left_handle,
-                    self.control_pt_B,)
-                )
-            ]
-
+        self._data = [
+            cgo.BEZIER,
+            *Point.as_arrays(
+                (self.control_pt_A,
+                 self.A_right_handle,
+                 self.B_left_handle,
+                 self.control_pt_B,)
+            )
+        ]
 
 
 @dataclass
@@ -366,11 +363,11 @@ class Triangle(GraphicObject):
     color_c: str = 'b'
 
     def rebuild(self):
-        self._data=[
-                *Point.as_arrays((self.vertex_a, self.vertex_b, self.vertex_c)),
-                *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
-                *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
-            ]
+        self._data = [
+            *Point.as_arrays((self.vertex_a, self.vertex_b, self.vertex_c)),
+            *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
+            *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
+        ]
 
 
 @dataclass
@@ -383,49 +380,48 @@ class TriangleSimple(GraphicObject):
     color_b: str = 'g'
     color_c: str = 'b'
 
-
     def rebuild(self):
 
-        self._data=[
-                cgo.BEGIN, cgo.TRIANGLES,
+        self._data = [
+            cgo.BEGIN, cgo.TRIANGLES,
 
-                *Color(self.color_a).as_cgo,
-                *self.vertex_a.as_vertex,
-                
-                *Color(self.color_b).as_cgo,
-                *self.vertex_b.as_vertex,
+            *Color(self.color_a).as_cgo,
+            *self.vertex_a.as_vertex,
 
-                *Color(self.color_c).as_cgo,
-                *self.vertex_c.as_vertex,
-                
-                cgo.END
-            ]
+            *Color(self.color_b).as_cgo,
+            *self.vertex_b.as_vertex,
+
+            *Color(self.color_c).as_cgo,
+            *self.vertex_c.as_vertex,
+
+            cgo.END
+        ]
 
 
 @dataclass
 class Line(GraphicObject):
-    start: Point=Point(0, 0, 0)
-    end: Point= Point(0, 0, 1)
+    start: Point = Point(0, 0, 0)
+    end: Point = Point(0, 0, 1)
 
     @property
     def points(self):
         return (self.start, self.end)
 
     def rebuild(self):
-        self._data= [
-                *Point.as_vertexes((self.start, self.end))
-            ]
+        self._data = [
+            *Point.as_vertexes((self.start, self.end))
+        ]
+
 
 @dataclass
 class Lines(GraphicObject):
-    color: str='w'
+    color: str = 'w'
 
-    lines: tuple[Line]=field(default_factory=tuple)
-
+    lines: tuple[Line] = field(default_factory=tuple)
 
     def rebuild(self):
-        self._data=[
-            *Color(self.color).as_cgo, 
+        self._data = [
+            *Color(self.color).as_cgo,
         ]
         for line in self.lines:
             self._data.extend(line.data)
@@ -433,51 +429,51 @@ class Lines(GraphicObject):
 
 @dataclass
 class Cube(GraphicObject):
-    color_w: str='red'
+    color_w: str = 'red'
 
-    color_x: str='red'
-    color_y: str='green'
-    color_z: str='blue'
+    color_x: str = 'red'
+    color_y: str = 'green'
+    color_z: str = 'blue'
 
-    p1: Point= Point(0,0,0)
-    p2: Point=Point(1,1,1)
+    p1: Point = Point(0, 0, 0)
+    p2: Point = Point(1, 1, 1)
 
-    transparent: bool=True
-    linewidth: float=2
+    transparent: bool = True
+    linewidth: float = 2
 
     def _rebuild_wireframe(self):
-        
-        self._data=[
+
+        self._data = [
             cgo.LINEWIDTH, float(self.linewidth),
             cgo.BEGIN, cgo.LINES,
-            
+
         ]
         # x fixed
-        for y,z in itertools.product((self.p1.y,self.p2.y), (self.p1.z, self.p2.z)):
+        for y, z in itertools.product((self.p1.y, self.p2.y), (self.p1.z, self.p2.z)):
             self._data.extend([
                 *Color(self.color_x).as_cgo,
-                *self.p1.move(y=y,z=z).as_vertex,
-                *self.p2.move(y=y,z=z).as_vertex,
+                *self.p1.move(y=y, z=z).as_vertex,
+                *self.p2.move(y=y, z=z).as_vertex,
             ])
 
         # y fixed
-        for x,z in itertools.product((self.p1.x,self.p2.x), (self.p1.z, self.p2.z)):
+        for x, z in itertools.product((self.p1.x, self.p2.x), (self.p1.z, self.p2.z)):
             self._data.extend([
                 *Color(self.color_y).as_cgo,
-                *self.p1.move(x=x,z=z).as_vertex,
-                *self.p2.move(x=x,z=z).as_vertex,
+                *self.p1.move(x=x, z=z).as_vertex,
+                *self.p2.move(x=x, z=z).as_vertex,
             ])
 
         # z fixed
-        for x,y in itertools.product((self.p1.x,self.p2.x), (self.p1.y, self.p2.y)):
+        for x, y in itertools.product((self.p1.x, self.p2.x), (self.p1.y, self.p2.y)):
             self._data.extend([
                 *Color(self.color_z).as_cgo,
-                *self.p1.move(x=x,y=y).as_vertex,
-                *self.p2.move(x=x,y=y).as_vertex,
+                *self.p1.move(x=x, y=y).as_vertex,
+                *self.p2.move(x=x, y=y).as_vertex,
             ])
 
         self._data.append(cgo.END)
-        
+
     def _rebuild_solid(self):
         """
         用 6 个 Square，合并出一个立方体(或长方体)外表。
@@ -532,14 +528,13 @@ class Cube(GraphicObject):
 
         # 将 6 个面的 CGO 数据合并
         self._data = face1_data + face2_data + face3_data + \
-                    face4_data + face5_data + face6_data
+            face4_data + face5_data + face6_data
 
     def rebuild(self):
         if self.transparent:
             self._rebuild_wireframe()
         else:
             self._rebuild_solid()
-
 
 
 @dataclass
@@ -590,7 +585,7 @@ class Square(GraphicObject):
 
 # Doughnut(samples=100).load_as('my_treasure')
 
-# Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
+Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
 
 # Bezier().load_as('bez') #??
 
@@ -621,26 +616,26 @@ class Square(GraphicObject):
 
 # Cube(transparent=True).load_as('a_colorful_cube')
 # Cube(
-#     transparent=True, 
-#     color_w='white', 
-#     color_x='white', 
-#     color_y='white', 
+#     transparent=True,
+#     color_w='white',
+#     color_x='white',
+#     color_y='white',
 #     color_z='white'
 #     ).load_as('a_white_box')
 
 # Cube(transparent=False,
-#     color_w='white', 
-#     color_x='white', 
-#     color_y='white', 
+#     color_w='white',
+#     color_x='white',
+#     color_y='white',
 #     color_z='white'
 # ).load_as('solid_box')
 
 # Cube(
-#     transparent=True, 
-#     color_w='black', 
-#     color_x='black', 
-#     color_y='black', 
+#     transparent=True,
+#     color_w='black',
+#     color_x='black',
+#     color_y='black',
 #     color_z='black'
 #     ).load_as('a_black_box')
 
-Square().load_as('a_square')
+# Square().load_as('a_square')
