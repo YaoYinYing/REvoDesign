@@ -536,9 +536,19 @@ class Sphere(GraphicObject):
             self.radius,                # Add the radius to the data list
         ]
 
-
 @dataclass
 class Cylinder(GraphicObject):
+    """
+    Represents a cylindrical graphic object.
+
+    Attributes:
+    - point1 (Point): The first endpoint of the cylinder, defaulting to Point(0, 0, 0).
+    - point2 (Point): The second endpoint of the cylinder, defaulting to Point(1, 1, 1).
+    - radius (float): The radius of the cylinder, defaulting to 1.0.
+    - color1 (str): The color of the first end of the cylinder, defaulting to 'violet'.
+    - color2 (str): The color of the second end of the cylinder, defaulting to 'cyan'.
+    """
+
     point1: Point = Point(0, 0, 0)
     point2: Point = Point(1, 1, 1)
     radius: float = 1.0
@@ -546,6 +556,11 @@ class Cylinder(GraphicObject):
     color2: str = 'cyan'
 
     def rebuild(self):
+        """
+        Rebuilds the cylinder's data representation.
+
+        This method constructs the data array for the cylinder using the specified attributes.
+        """
         self._data = [
             cgo.CYLINDER,
             *self.point1.array,
@@ -555,10 +570,19 @@ class Cylinder(GraphicObject):
             *Color(self.color2).array,
         ]
 
-
 @dataclass
 class Sausage(GraphicObject):
-    # [SAUSAGE, start_x, start_y, start_z, end_x, end_y, end_z, radius, r1, g1, b1, r2, g2, b2]
+    """
+    Represents a sausage-shaped graphic object with two endpoints, a radius, and two colors.
+
+    Attributes:
+        p1 (Point): The starting point of the sausage.
+        p2 (Point): The ending point of the sausage.
+        radius (float): The radius of the sausage.
+        color_1 (str): The color at the start of the sausage.
+        color_2 (str): The color at the end of the sausage.
+    """
+
     p1: Point
     p2: Point
     radius: float
@@ -566,6 +590,11 @@ class Sausage(GraphicObject):
     color_2: str
 
     def rebuild(self):
+        """
+        Rebuilds the internal data representation of the sausage object.
+        This method constructs a list that includes the sausage identifier and the coordinates,
+        radius, and colors of the sausage.
+        """
         self._data = [
             cgo.SAUSAGE,
             *self.p1.array,
@@ -652,9 +681,20 @@ class Doughnut(GraphicObject):  # Torus
 
         self._data = obj
 
-
 @dataclass
 class Cone(GraphicObject):
+    """
+    Represents a cone graphic object.
+
+    Attributes:
+        tip: The position of the cone's tip.
+        base_center: The position of the cone's base center.
+        radius_tip: The radius of the cone at the tip.
+        radius_base: The radius of the cone at the base.
+        color_tip: The color of the cone's tip. Default is 'w' for white.
+        color_base: The color of the cone's base. Default is 'g' for green.
+        caps: A tuple indicating whether to add caps to the tip and/or base. 1 for True, 0 for False. Default is (1, 0), meaning the tip has a cap and the base does not.
+    """
     tip: Point
     base_center: Point
 
@@ -670,6 +710,8 @@ class Cone(GraphicObject):
     def rebuild(self) -> None:
         """
         Rebuilds cone
+
+        This method rebuilds the cone based on its attributes, including position, size, color, and whether to add caps.
         """
         self._data = [
             cgo.CONE,
@@ -680,10 +722,24 @@ class Cone(GraphicObject):
             *Color(self.color_base).array,
             *self.caps
         ]
-
-
 @dataclass
 class Triangle(GraphicObject):
+    """
+    Represents a triangle in 3D space, inheriting from GraphicObject.
+    It defines the vertices, normals, and colors of the triangle.
+
+    Attributes:
+        vertex_a (Point): The first vertex of the triangle, default is Point(1, 0, 0).
+        vertex_b (Point): The second vertex of the triangle, default is Point(0, 1, 0).
+        vertex_c (Point): The third vertex of the triangle, default is Point(0, 0, 1).
+        normal_a (Point): The normal vector at the first vertex, default is Point(1, 0, 0).
+        normal_b (Point): The normal vector at the second vertex, default is Point(0, 1, 0).
+        normal_c (Point): The normal vector at the third vertex, default is Point(0, 0, 1).
+        color_a (str): The color of the first vertex, default is 'r' (red).
+        color_b (str): The color of the second vertex, default is 'g' (green).
+        color_c (str): The color of the third vertex, default is 'b' (blue).
+    """
+
     vertex_a: Point = Point(1, 0, 0)
     vertex_b: Point = Point(0, 1, 0)
     vertex_c: Point = Point(0, 0, 1)
@@ -697,15 +753,29 @@ class Triangle(GraphicObject):
     color_c: str = 'b'
 
     def rebuild(self):
+        """
+        Rebuilds the internal data representation of the triangle by combining
+        the arrays of vertices, normals, and colors.
+        """
         self._data = [
             *Point.as_arrays((self.vertex_a, self.vertex_b, self.vertex_c)),
             *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
             *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
         ]
-
-
 @dataclass
 class TriangleSimple(GraphicObject):
+    """
+    Represents a simple triangle graphic object with three vertices and corresponding colors.
+
+    Attributes:
+    - vertex_a (Point): The first vertex of the triangle, defaulting to Point(1, 0, 0).
+    - vertex_b (Point): The second vertex of the triangle, defaulting to Point(0, 1, 0).
+    - vertex_c (Point): The third vertex of the triangle, defaulting to Point(0, 0, 1).
+    - color_a (str): The color of the first vertex, defaulting to 'r' (red).
+    - color_b (str): The color of the second vertex, defaulting to 'g' (green).
+    - color_c (str): The color of the third vertex, defaulting to 'b' (blue).
+    """
+
     vertex_a: Point = Point(1, 0, 0)
     vertex_b: Point = Point(0, 1, 0)
     vertex_c: Point = Point(0, 0, 1)
@@ -715,33 +785,55 @@ class TriangleSimple(GraphicObject):
     color_c: str = 'b'
 
     def rebuild(self):
-
+        """
+        Rebuilds the triangle's data representation using the specified vertices and colors.
+        """
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
 
+            # Add the color and vertex data for the first point
             *Color(self.color_a).as_cgo,
             *self.vertex_a.as_vertex,
 
+            # Add the color and vertex data for the second point
             *Color(self.color_b).as_cgo,
             *self.vertex_b.as_vertex,
 
+            # Add the color and vertex data for the third point
             *Color(self.color_c).as_cgo,
             *self.vertex_c.as_vertex,
 
             cgo.END
         ]
-
-
 @dataclass
 class Line(GraphicObject):
+    """
+    Represents a line, inheriting from GraphicObject.
+    
+    Attributes:
+        start: The starting point of the line, default is at the origin (0, 0, 0).
+        end: The ending point of the line, default is at (0, 0, 1).
+    """
+    
     start: Point = Point(0, 0, 0)
     end: Point = Point(0, 0, 1)
 
     @property
     def points(self):
+        """
+        Returns the starting and ending points of the line.
+        
+        Returns:
+            A tuple containing the starting and ending points.
+        """
         return (self.start, self.end)
 
     def rebuild(self):
+        """
+        Rebuilds the line's vertex data.
+        
+        This method converts the starting and ending points into vertex data format and assigns it to self._data.
+        """
         self._data = [
             *Point.as_vertexes((self.start, self.end))
         ]
@@ -749,17 +841,28 @@ class Line(GraphicObject):
 
 @dataclass
 class Lines(GraphicObject):
+    """
+    Represents a collection of lines, inheriting from GraphicObject.
+    
+    Attributes:
+        color: The color of the lines, default is 'w' (white).
+        lines: A tuple containing the Line objects, default is an empty tuple.
+    """
+    
     color: str = 'w'
-
     lines: tuple[Line] = field(default_factory=tuple)
 
     def rebuild(self):
+        """
+        Rebuilds the collection of lines' data.
+        
+        This method first sets self._data to the color data, then extends it with the data of each line.
+        """
         self._data = [
             *Color(self.color).as_cgo,
         ]
         for line in self.lines:
             self._data.extend(line.data)
-
 
 @dataclass
 class Cube(GraphicObject):
@@ -865,9 +968,15 @@ class Cube(GraphicObject):
         else:
             self._rebuild_solid()
 
-
 @dataclass
 class Square(GraphicObject):
+    """
+    Represents a square graphic object, inheriting from GraphicObject.
+    
+    Attributes:
+        corner_a, corner_b, corner_c, corner_d: Define the four corners of the square using Point objects.
+        color_a, color_b, color_c, color_d: Define the colors for each corner of the square.
+    """
 
     corner_a: Point = Point(0, 0, 0)
     corner_b: Point = Point(1, 0, 0)
@@ -880,10 +989,17 @@ class Square(GraphicObject):
     color_d: str = 'y'
 
     def rebuild(self):
-
+        """
+        Rebuilds the square object's drawing data.
+        
+        This method initializes a graphic object drawing data (_data) by defining the vertices and colors of the triangles that make up the square.
+        It uses the Color utility class to handle color conversion and the Point class for vertex coordinates.
+        """
+        # Start drawing, defining the drawing mode as triangles
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
 
+            # Define the first triangle, including the color and vertex of each corner
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
             *Color(self.color_b).as_cgo,
@@ -891,6 +1007,7 @@ class Square(GraphicObject):
             *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
 
+            # Define the second triangle, including the color and vertex of each corner
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
             *Color(self.color_c).as_cgo,
@@ -898,12 +1015,22 @@ class Square(GraphicObject):
             *Color(self.color_d).as_cgo,
             *self.corner_d.as_vertex,
 
+            # End drawing
             cgo.END
         ]
-
-
 @dataclass
 class PolyLines(GraphicObject):
+    """
+    Represents a collection of polylines, inheriting from GraphicObject.
+    
+    This class is used to define a series of lines connected in a specific way, with common attributes such as width and color.
+    
+    Attributes:
+        width (float): The line width.
+        color (str): The line color, represented as a string.
+        points (Iterable[LineVertex]): A collection of line vertices.
+        line_type (Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']): The drawing mode of the line, defaulting to 'LINE_STRIP'.
+    """
     # global
     width: float
     color: str
@@ -912,11 +1039,18 @@ class PolyLines(GraphicObject):
     line_type: Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN'] = 'LINE_STRIP'
 
     def rebuild(self):
+        """
+        Rebuilds the line data.
+        
+        This method initializes the line drawing data, including setting the line width, color, and type, and updates the data for each vertex.
+        """
+        # Initialize the line drawing data, including line width and color
         self._data = [
             cgo.LINEWIDTH, self.width,
             *Color(self.color).as_cgo,
             cgo.BEGIN, getattr(cgo, self.line_type),
         ]
+        # Update the data for each vertex
         for pv in self.points:
             self._data.extend([*pv.data])
 
@@ -925,16 +1059,34 @@ class PolyLines(GraphicObject):
 
 @dataclass
 class GraphicObjectCollection(GraphicObject):
+    """
+    A collection class for GraphicObject, which contains multiple graphic objects.
+    
+    Attributes:
+        objects (List[GraphicObject]): A list of GraphicObject instances.
+        force_to_rebuild (bool): A flag indicating whether to force rebuild the graphic objects in the collection.
+    """
     objects: List[GraphicObject]
-
     force_to_rebuild: bool = False
 
     def rebuild(self):
+        """
+        Rebuilds the data for all graphic objects in the collection.
+        
+        This method empties the existing graphic object data, then iterates through each graphic object in the collection.
+        If the force_to_rebuild flag is set to True, it calls the rebuild method on each graphic object.
+        Finally, it adds the data of each graphic object to the collection's _data list.
+        """
+        # Reset the collection's data
         self._data = []
+        # Iterate through each graphic object in the collection
         for go_idx, go in enumerate(self.objects):
+            # If forced to rebuild, call the rebuild method on the graphic object
             if self.force_to_rebuild:
                 go.rebuild()
+            # Add the graphic object's data to the collection's data list
             self._data.extend(go.data)
+            # Print the addition information of the graphic object
             print(f"Added: #{go_idx} ({go.__class__.__name__})")
 
 
@@ -1136,7 +1288,12 @@ class GraphicObjectCollection(GraphicObject):
 # ).load_as('pyramid_curve')
 
 
-def east_egg():
+def __east_egg():
+    '''
+    There is only one truth!
+
+    真しん実じつはいつもひとつ!
+    '''
     global DEBUG
     _DEBUG = DEBUG
 
@@ -1212,4 +1369,4 @@ def east_egg():
     cmd.mplay()
 
 
-cmd.extend('hello_revodesign', east_egg)
+cmd.extend('hello_revodesign', __east_egg)
