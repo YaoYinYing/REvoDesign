@@ -1366,6 +1366,7 @@ def __east_egg():
     cmd.movie.add_roll(4.0, axis='y', start=1)
 
     DEBUG = _DEBUG
+    print(__east_egg.__doc__)
     cmd.mplay()
 
 
