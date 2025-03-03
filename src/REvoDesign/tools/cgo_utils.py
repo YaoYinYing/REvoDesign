@@ -485,6 +485,24 @@ class Cylinder(GraphicObject):
             *Color(self.color2).array,
         ]
 
+@dataclass
+class Sausage(GraphicObject):
+    # [SAUSAGE, start_x, start_y, start_z, end_x, end_y, end_z, radius, r1, g1, b1, r2, g2, b2]
+    p1: Point
+    p2: Point
+    radius: float
+    color_1: str
+    color_2: str
+
+    def rebuild(self):
+        self._data= [
+            cgo.SAUSAGE,
+            *self.p1.array,
+            *self.p2.array,
+            self.radius,
+            *Color(self.color_1).array,
+            *Color(self.color_2).array
+        ]
 
 @dataclass
 class Doughnut(GraphicObject):  # Torus
@@ -574,7 +592,7 @@ class Cone(GraphicObject):
     color_tip: str = 'w'
     color_base: str = 'g'
 
-    # where to add caps to tip and/or base. 1 for True, 0 for False
+    # whether to add caps to tip and/or base. 1 for True, 0 for False
     caps: tuple[float, float] = (1, 0)
 
     def rebuild(self) -> None:
@@ -896,14 +914,14 @@ class GraphicObjectCollection(GraphicObject):
 # Cube(wire_frame=True).load_as('a_colorful_cube')
 # Cube(wire_frame=False).load_as('a_colorful_solid_cube')
 # Cube(
-#     transparent=False,
+#     wire_frame=True,
 #     color_w='yellow',
 #     color_x='yellow',
 #     color_y='yellow',
 #     color_z='yellow'
 # ).load_as('a_yellow_box')
 
-# Cube(transparent=False,
+# Cube(wire_frame=True,
 #     color_w='white',
 #     color_x='white',
 #     color_y='white',
@@ -911,7 +929,7 @@ class GraphicObjectCollection(GraphicObject):
 # ).load_as('solid_box')
 
 # Cube(
-#     transparent=True,
+#     wire_frame=True,
 #     color_w='black',
 #     color_x='black',
 #     color_y='black',
@@ -972,19 +990,75 @@ class GraphicObjectCollection(GraphicObject):
 #     ],
 #      line_type='TRIANGLE_STRIP'
 # ).load_as('pink_3_tri_shape')
-PolyLines(
-    2.0, 'white',
-    LineVertex.from_points(
-        (
-            Point(0, 1, 0),
-            Point(1, 1, 0),
-            Point(1, 0, 0),
-            Point(0, 0, 0)
-        )
 
+
+# PolyLines(
+#     2.0, 'white',
+#     LineVertex.from_points(
+#         (
+#             Point(0, 1, 0),
+#             Point(1, 2, 0),
+#             Point(2, 3, 0),
+#             Point(0, 0.5, 0),
+#             Point(-0.3, 0.5, 0),
+#             Point(0, 0, 0)
+            
+#         )
+
+#     ),
+#     line_type='TRIANGLE_FAN'
+# ).load_as('white_square_fan')
+
+
+# Sausage(
+#     p1=Point(0, 0, 1),
+#     p2=Point(0, 0, 2),
+#     radius=0.5,
+#     color_1='red',
+#     color_2='white'
+# ).load_as('tasty_sausage')
+
+GraphicObjectCollection([
+    Sphere(
+        center=Point(-2,0, 0),
+        radius=1,
+        color='white'
     ),
-    line_type='LINE_LOOP'
-).load_as('white_square')
+    Cylinder(
+        Point(-2,0, 0),
+        Point(0,0, 0),
+        radius=1,
+        color1='white',
+        color2='white'
+    ),
+    Cylinder(
+        Point(0,0, 0),
+        Point(2,0, 0),
+        radius=1,
+        color1='red',
+        color2='red'
+    ),
+    Sphere(
+        center=Point(2,0, 0),
+        radius=1,
+        color='red'
+    )
+    ]
+).load_as('APTX-4869')
+
+# PolyLines(
+#     2.0, 'white',
+#     LineVertex.from_points(
+#         (
+#             Point(0, 1, 0),
+#             Point(1, 1, 0),
+#             Point(1, 0, 0),
+#             Point(0, 0, 0)
+#         )
+
+#     ),
+#     line_type='LINE_LOOP'
+# ).load_as('white_square')
 
 
 # PolyLines(
