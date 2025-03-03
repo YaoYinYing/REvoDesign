@@ -64,6 +64,7 @@ from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 from pymol.vfont import plain
+
 DEBUG = True
 
 
@@ -345,7 +346,7 @@ class GraphicObject:
         """
         return self._data
 
-    def load_as(self, name: str):
+    def load_as(self, name: str, *args, **kwargs):
         """
         Load the graphic object as a specified name. If the name is occupied, delete it to regenerate.
 
@@ -360,7 +361,7 @@ class GraphicObject:
 
         if DEBUG:
             print(f'[DEBUG]: {self.__class__}: \n{self.data}')
-        cmd.load_cgo(self.data, name)
+        cmd.load_cgo(self.data, name, *args, **kwargs)
 
 
 @dataclass
@@ -391,14 +392,15 @@ class Bezier(GraphicObject):
             )
         ]
 
+
 @dataclass
 class PseudoBezier(GraphicObject):
     """
     A class representing a pseudo-Bezier curve, inheriting from GraphicObject.
-    
-    This class defines a Bezier curve with two control points and their respective handles, 
+
+    This class defines a Bezier curve with two control points and their respective handles,
     and provides functionality to rebuild the curve based on these points.
-    
+
     Attributes:
         control_pt_A (Point): The coordinates of the starting control point.
         A_right_handle (Point): The coordinates of the handle on the right side of the starting control point.
@@ -407,30 +409,30 @@ class PseudoBezier(GraphicObject):
         color (Optional[str]): The color of the curve, optional.
         steps (int): The number of segments the curve is divided into for drawing, default is 50.
     """
-    control_pt_A: Point         
-    A_right_handle: Point       
-    B_left_handle: Point        
-    control_pt_B: Point        
-    color: Optional[str] =None
-    steps: int = 50            
+    control_pt_A: Point
+    A_right_handle: Point
+    B_left_handle: Point
+    control_pt_B: Point
+    color: Optional[str] = None
+    steps: int = 50
 
     def rebuild(self) -> None:
         """
         Rebuilds the pseudo-Bezier curve.
-        
-        This method calculates all vertices of the Bezier curve using the Bezier curve formula, 
+
+        This method calculates all vertices of the Bezier curve using the Bezier curve formula,
         and updates the internal data representation of the curve for rendering.
         """
         # Load the coordinates of the control points and handles as arrays
-        cpA      = self.control_pt_A.array
+        cpA = self.control_pt_A.array
         cpA_right = self.A_right_handle.array
         cpB_left = self.B_left_handle.array
-        cpB      = self.control_pt_B.array
-        
+        cpB = self.control_pt_B.array
+
         # Organize the control points and handles into a list
         control_points = [cpA, cpA_right, cpB_left, cpB]
-        n = len(control_points) - 1 
-        
+        n = len(control_points) - 1
+
         # Initialize the list of vertices
         vertices_points = []
         # Calculate the vertices of the Bezier curve
@@ -449,13 +451,14 @@ class PseudoBezier(GraphicObject):
         if self.color is not None:
             cgo_obj = [*Color(self.color).as_cgo]
         else:
-            cgo_obj=[]
+            cgo_obj = []
 
         # Add the vertices data to the CGO object
         cgo_obj.extend(Point.as_vertexes(vertices_points))
-        
+
         # Update the internal data representation of the curve
         self._data = cgo_obj
+
 
 @dataclass
 class LineVertex(GraphicObject):
@@ -552,6 +555,7 @@ class Cylinder(GraphicObject):
             *Color(self.color2).array,
         ]
 
+
 @dataclass
 class Sausage(GraphicObject):
     # [SAUSAGE, start_x, start_y, start_z, end_x, end_y, end_z, radius, r1, g1, b1, r2, g2, b2]
@@ -562,7 +566,7 @@ class Sausage(GraphicObject):
     color_2: str
 
     def rebuild(self):
-        self._data= [
+        self._data = [
             cgo.SAUSAGE,
             *self.p1.array,
             *self.p2.array,
@@ -570,6 +574,7 @@ class Sausage(GraphicObject):
             *Color(self.color_1).array,
             *Color(self.color_2).array
         ]
+
 
 @dataclass
 class Doughnut(GraphicObject):  # Torus
@@ -1069,7 +1074,7 @@ class GraphicObjectCollection(GraphicObject):
 #             Point(0, 0.5, 0),
 #             Point(-0.3, 0.5, 0),
 #             Point(0, 0, 0)
-            
+
 #         )
 
 #     ),
@@ -1084,67 +1089,6 @@ class GraphicObjectCollection(GraphicObject):
 #     color_1='red',
 #     color_2='white'
 # ).load_as('tasty_sausage')
-
-aptx_4869=GraphicObjectCollection([
-    Sphere(
-        center=Point(-2,0, 0),
-        radius=1,
-        color='white'
-    ),
-    Cylinder(
-        Point(-2,0, 0),
-        Point(0,0, 0),
-        radius=1,
-        color1='white',
-        color2='white'
-    ),
-    Cylinder(
-        Point(0,0, 0),
-        Point(2,0, 0),
-        radius=1,
-        color1='red',
-        color2='red'
-    ),
-    Sphere(
-        center=Point(2,0, 0),
-        radius=1,
-        color='red'
-    ),
-    PolyLines(
-        5, 'black',
-        [
-            LineVertex(Point(-1.6,0.5, 0.9)),
-            LineVertex(Point(1.6,0.5, 0.9)),
-            LineVertex(PseudoBezier(
-                Point(1.6,0.5, 0.9),
-                Point(2.2,0.5, 1.05),
-                Point(2.2,-0.5, 1.05),
-                Point(1.6,-0.5, 0.9)
-            )),
-            LineVertex(Point(1.6,-0.5, 0.9)),
-            LineVertex(Point(-1.6,-0.5, 0.9)),
-            LineVertex(PseudoBezier(
-                Point(-1.6,-0.5, 0.9),
-                Point(-2.2,-0.5, 1.05),
-                Point(-2.2,0.5, 1.05),
-                Point(-1.6,0.5, 0.9)
-            )),
-        ],line_type='LINE_LOOP'
-    )
-    ]
-)
-
-cgo.cyl_text(
-    aptx_4869.data, 
-    plain, 
-    Point(-1.5,-0.3, 1.01).array, 
-    'APTX-4869', 
-    0.03, 
-    axes=[Point(0.5,0, 0).array,Point(0, 0.5, 0).array,Point(0, 0,0.5).array],
-    color=Color('black').array)
-
-aptx_4869.load_as('APTX-4869')
-
 
 
 # PolyLines(
@@ -1190,3 +1134,82 @@ aptx_4869.load_as('APTX-4869')
 #     ],
 #      line_type='LINE_LOOP'
 # ).load_as('pyramid_curve')
+
+
+def east_egg():
+    global DEBUG
+    _DEBUG= DEBUG
+
+    DEBUG=False
+    aptx_4869 = GraphicObjectCollection([
+        Sphere(
+            center=Point(-2, 0, 0),
+            radius=1,
+            color='white'
+        ),
+        Cylinder(
+            Point(-2, 0, 0),
+            Point(0, 0, 0),
+            radius=1,
+            color1='white',
+            color2='white'
+        ),
+        Cylinder(
+            Point(0, 0, 0),
+            Point(2, 0, 0),
+            radius=1,
+            color1='red',
+            color2='red'
+        ),
+        Sphere(
+            center=Point(2, 0, 0),
+            radius=1,
+            color='red'
+        ),
+        PolyLines(
+            5, 'black',
+            [
+                LineVertex(Point(-1.6, 0.5, 0.9)),
+                LineVertex(Point(1.6, 0.5, 0.9)),
+                LineVertex(PseudoBezier(
+                    Point(1.6, 0.5, 0.9),
+                    Point(2.2, 0.5, 1.05),
+                    Point(2.2, -0.5, 1.05),
+                    Point(1.6, -0.5, 0.9)
+                )),
+                LineVertex(Point(1.6, -0.5, 0.9)),
+                LineVertex(Point(-1.6, -0.5, 0.9)),
+                LineVertex(PseudoBezier(
+                    Point(-1.6, -0.5, 0.9),
+                    Point(-2.2, -0.5, 1.05),
+                    Point(-2.2, 0.5, 1.05),
+                    Point(-1.6, 0.5, 0.9)
+                )),
+            ], line_type='LINE_LOOP'
+        )
+    ]
+    )
+
+    cgo.cyl_text(
+        aptx_4869.data,
+        plain,
+        Point(-1.5, -0.3, 1.01).array,
+        'APTX-4869',
+        0.03,
+        axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
+        color=Color('black').array)
+
+    from ..shortcuts.tools.vina_tools import showaxes
+
+    showaxes()
+    aptx_4869.load_as('APTX-4869')
+
+    cmd.zoom()
+    cmd.turn('z', 16)
+    cmd.movie.add_roll(4.0,axis='y',start=1)
+
+    DEBUG=_DEBUG
+    cmd.mplay()
+
+
+cmd.extend('hello_revodesign', east_egg)
