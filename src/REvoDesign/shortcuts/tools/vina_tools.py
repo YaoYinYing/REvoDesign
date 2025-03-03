@@ -12,7 +12,7 @@ from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
-from ...tools.cgo_utils import Cube, Point
+from ...tools.cgo_utils import Cube, Point, GraphicObject, Cylinder, Cone
 
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
@@ -108,7 +108,7 @@ class PutCenterCallback:
 
 
 @dataclass
-class CgoAxes:
+class CgoAxes(GraphicObject):
     """
     A class for creating and displaying a set of axes in a 3D visualization environment.
 
@@ -134,15 +134,12 @@ class CgoAxes:
     label_weight: float = 0.05
     label_size: float = 0.5
 
-    def __post_init__(self):
+    def rebuild(self):
         """
         Post-initialization processing.
         If an object with the same name already exists, it is deleted.
         Ensures the data types of attributes are as expected.
         """
-        # Delete existing object with the same name to avoid conflicts
-        if self.name in cmd.get_names("objects"):
-            cmd.delete(self.name)
 
         # Ensure attributes are of the correct type
         self.w = float(self.w)
@@ -150,7 +147,27 @@ class CgoAxes:
         self.h = float(self.h)
         self.always_left_corner = bool(self.always_left_corner)
 
-    @cached_property
+        self._data=[]
+        for (idxa, axis),(idxc, colorname) in zip(enumerate('xyz'),enumerate('rgb')):
+            p2_kwargs={i:0.0 for i in 'xyz' if i != axis}
+            self._data.extend(
+                Cylinder(
+                Point(0.0, 0.0, 0.0), # p1
+                Point(**p2_kwargs, **{axis: self.l}),  #p2
+                self.w,
+                colorname, colorname
+            ).data,
+            )
+            self._data.extend(
+                Cone(
+                base_center=Point(**p2_kwargs, **{axis: self.l}),
+                tip=Point(**p2_kwargs, **{axis: self.l+self.h}),
+                radius_tip=0, radius_base=self.d,
+                caps=(1, 1),color_base=colorname,color_tip=colorname
+            ).data,
+            )
+
+    @property
     def d(self):
         """
         Calculates and returns the diameter of the cone base.
@@ -160,28 +177,12 @@ class CgoAxes:
         """
         return self.w * 1.618  # cone base diameter
 
-    @cached_property
-    def as_cgo_obj(self):
-        """
-        Generates and returns a CGO object representing the axes.
-
-        Returns:
-            list: A list of CGO commands to draw the axes.
-        """
-        return [
-            cgo.CYLINDER, 0.0, 0.0, 0.0, self.l, 0.0, 0.0, self.w, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-            cgo.CYLINDER, 0.0, 0.0, 0.0, 0.0, self.l, 0.0, self.w, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-            cgo.CYLINDER, 0.0, 0.0, 0.0, 0.0, 0.0, self.l, self.w, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-            cgo.CONE, self.l, 0.0, 0.0, self.h + self.l, 0.0, 0.0, self.d, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0,
-            cgo.CONE, 0.0, self.l, 0.0, 0.0, self.h + self.l, 0.0, self.d, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0,
-            cgo.CONE, 0.0, 0.0, self.l, 0.0, 0.0, self.h + self.l, self.d, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0
-        ]
 
     def set_label(self):
         """
         Sets labels on the axes if show_labels is True.
         """
-        obj = self.as_cgo_obj
+        obj = self.data
         label_axis = [[self.label_size, 0, 0], [0, self.label_size, 0], [0, 0, self.label_size]]
         # Add labels to the axes
         cgo.cyl_text(obj, plain, [self.l + self.h, 0, - self.w], 'X', self.label_weight, axes=label_axis)
@@ -202,7 +203,7 @@ class CgoAxes:
         if self.show_labels:
             self.set_label()
         # Load the CGO object into the visualization environment
-        cmd.load_cgo(self.as_cgo_obj, self.name)
+        cmd.load_cgo(self.data, self.name)
 
 
 def showaxes():
@@ -213,25 +214,9 @@ def showaxes():
 
 
 @dataclass
-class CgoBox:
+class CgoBox(GraphicObject):
     """
     Represents a box object for visualization in PyMOL, with properties for size, center, and colored lines.
-
-    Attributes:
-        name (str): The name of the box object.
-        minX (float): The minimum X coordinate of the box.
-        maxX (float): The maximum X coordinate of the box.
-        minY (float): The minimum Y coordinate of the box.
-        maxY (float): The maximum Y coordinate of the box.
-        minZ (float): The minimum Z coordinate of the box.
-        maxZ (float): The maximum Z coordinate of the box.
-
-        linewidth (float): The width of the box. Note that the linewidth takes effect only when the ray tracing is called.
-
-        colorX (Tuple[float, float, float]): The color of the box in RGB format on X axis.
-        colorY( Tuple[float, float, float]): The color of the box in RGB format on Y axis.
-        colorZ (Tuple[float, float, float]): The color of the box in RGB format on Z axis.
-
 
     """
     name: str
@@ -244,7 +229,7 @@ class CgoBox:
     color_y: str = 'green'
     color_z: str = 'blue'
 
-    def __post_init__(self):
+    def rebuild(self):
         """
         Post-initialization processing. Deletes existing objects with the same name and ensures all coordinates are floats.
         """
@@ -261,7 +246,7 @@ class CgoBox:
                 wire_frame=True,
                 linewidth=self.linewidth
             )
-
+        self._data=self.cube.data
 
 
     @property
@@ -523,6 +508,8 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         new_box.p2.z + float(z) / 2 if z is not None else None,
         )
     
+    # a rebuild calling is necessary for changes taking effects.
+    new_box.rebuild()
     # Load the modified box into PyMOL
     new_box.load_to_pymol()
 

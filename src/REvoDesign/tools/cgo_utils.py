@@ -63,6 +63,7 @@ from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 
+DEBUG=False
 
 
 # name: hsv imutable dicts
@@ -251,7 +252,8 @@ class Color:
         for cdict in COLOR_TABLES:
             if name not in cdict:
                 continue
-            print(f'[DEBUG] {name}: {cdict[name]}')
+            if DEBUG:
+                print(f'[DEBUG] {name}: {cdict[name]}')
             # Convert the found hexadecimal color value to an RGB array
             return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  # type: ignore
 
@@ -352,7 +354,8 @@ class GraphicObject:
         if name in cmd.get_names():
             cmd.delete(name)
 
-        print(f'[DEBUG]: {self.__class__}: \n{self.data}')
+        if DEBUG:
+            print(f'[DEBUG]: {self.__class__}: \n{self.data}')
         cmd.load_cgo(self.data, name)
 
 @dataclass
@@ -861,8 +864,8 @@ class PolyLines(GraphicObject):
 #     ).load_as('my_triangle_simple')
 
 
-Cube(wire_frame=True).load_as('a_colorful_cube')
-Cube(wire_frame=False).load_as('a_colorful_solid_cube')
+# Cube(wire_frame=True).load_as('a_colorful_cube')
+# Cube(wire_frame=False).load_as('a_colorful_solid_cube')
 # Cube(
 #     transparent=False,
 #     color_w='yellow',
