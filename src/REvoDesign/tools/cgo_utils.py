@@ -55,7 +55,8 @@ import itertools
 import math
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any, Iterable, List, Optional, Literal, Tuple, Union
+from typing import Iterable, List, Literal, Optional, Tuple, Union
+
 import numpy as np
 import webcolors
 from chempy import cpv
@@ -63,7 +64,7 @@ from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 
-DEBUG=True
+DEBUG = True
 
 
 # name: hsv imutable dicts
@@ -78,17 +79,18 @@ XKCD_COLORS: immutabledict[str, str] = immutabledict(
 # color tables
 COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
 
+
 def not_none_float(*args: Optional[float]):
     """
     Returns the first non-None float value from the given arguments.
-    
+
     If all arguments are None or cannot be converted to float, it returns 0.0.
     This function is designed to simplify the extraction and conversion of float values,
     especially when dealing with input data that may contain None values.
-    
+
     Parameters:
     *args: Optional[float] - One or more optional float type arguments.
-    
+
     Returns:
     float - The first non-None float value, or 0.0 if none can be found.
     """
@@ -105,6 +107,8 @@ def not_none_float(*args: Optional[float]):
             print(f'Skip {idx} ({float_in}): {e}')
     # Return the default value 0.0 if no valid float can be found
     return 0.0
+
+
 @dataclass(frozen=True)
 class Point:
     '''
@@ -144,12 +148,12 @@ class Point:
         '''
         Move the point
         This method allows the point to be moved along the x, y, and z axes. If a coordinate is not provided, the original value is used.
-        
+
         Parameters:
         - x: Optional[float] = None, the new x-coordinate, if not provided, the original x-coordinate is used
         - y: Optional[float] = None, the new y-coordinate, if not provided, the original y-coordinate is used
         - z: Optional[float] = None, the new z-coordinate, if not provided, the original z-coordinate is used
-        
+
         Returns:
         - Point: The new point after moving
         '''
@@ -163,10 +167,10 @@ class Point:
         '''
         Convert a collection of points to a numpy array
         This static method converts a collection of Point objects into a single numpy array, facilitating batch processing.
-        
+
         Parameters:
         - points: Iterable['Point'], a collection of Point objects
-        
+
         Returns:
         - np.ndarray: A numpy array containing the coordinates of all points
         '''
@@ -177,10 +181,10 @@ class Point:
         '''
         Convert a collection of points to CGO vertex commands
         This static method converts a collection of Point objects into CGO vertex commands, used for batch rendering in PyMOL.
-        
+
         Parameters:
         - points: Iterable['Point'], a collection of Point objects
-        
+
         Returns:
         - np.ndarray: A numpy array containing the CGO vertex commands for all points
         '''
@@ -191,25 +195,24 @@ class Point:
         '''
         Create a Point object from x, y, and z coordinates
         This class method creates a new Point object using the provided x, y, and z coordinates.
-        
+
         Parameters:
         - x: float, the x-coordinate
         - y: float, the y-coordinate
         - z: float, the z-coordinate
-        
+
         Returns:
         - Point: The newly created Point object
         '''
         return Point(x, y, z)
-    
-    def delta_xyz(self, point: 'Point') -> Tuple[float, float, float]:
-        return point.array-self.array
-    
-    def center_xyz(self, point: 'Point') -> Tuple[float, float, float]:
-        return (point.array-self.array)/2
 
-    
-    def distance_to(self,point: 'Point') -> float:
+    def delta_xyz(self, point: 'Point') -> Tuple[float, float, float]:
+        return point.array - self.array
+
+    def center_xyz(self, point: 'Point') -> Tuple[float, float, float]:
+        return (point.array - self.array) / 2
+
+    def distance_to(self, point: 'Point') -> float:
         '''
         Euclidean distance from a point to this Point.
 
@@ -220,13 +223,13 @@ class Point:
         - float: The Euclidean distance
         '''
         return np.linalg.norm(point.array - self.array).astype(float)
-        
+
 
 @dataclass(frozen=True)
 class Color:
     """
     Represents a color, including its name and alpha value.
-    
+
     Attributes:
         name (str): The name of the color.
         alpha (float): The alpha value of the color, default is 1.0.
@@ -238,10 +241,10 @@ class Color:
     def array(self) -> np.ndarray:
         """
         Converts the color to an RGB array.
-        
+
         Returns:
             np.ndarray: An RGB array representing the color.
-            
+
         Raises:
             ValueError: If the color name is not valid.
         """
@@ -267,7 +270,7 @@ class Color:
     def array_alpha(self) -> np.ndarray:
         """
         Adds the alpha value to the RGB array to create an RGBA array.
-        
+
         Returns:
             np.ndarray: An RGBA array representing the color.
         """
@@ -278,10 +281,10 @@ class Color:
     def as_arrays(colors: Iterable['Color']):
         """
         Converts a series of colors to an array of RGB arrays.
-        
+
         Args:
             colors (Iterable['Color']): A series of Color objects.
-            
+
         Returns:
             np.ndarray: An array consisting of the RGB arrays of all colors.
         """
@@ -292,10 +295,10 @@ class Color:
     def as_cgos(colors: Iterable['Color']):
         """
         Converts a series of colors to an array suitable for CGO (Color Graphics Operations).
-        
+
         Args:
             colors (Iterable['Color']): A series of Color objects.
-            
+
         Returns:
             np.ndarray: An array consisting of the CGO representations of all colors.
         """
@@ -306,12 +309,14 @@ class Color:
     def as_cgo(self):
         """
         Converts the color to a CGO (Color Graphics Operations) representation.
-        
+
         Returns:
             np.ndarray: The CGO representation of the color.
         """
         # Insert the color code into the RGB array
         return np.insert(self.array, 0, cgo.COLOR)
+
+
 @dataclass
 class GraphicObject:
     """
@@ -357,6 +362,7 @@ class GraphicObject:
             print(f'[DEBUG]: {self.__class__}: \n{self.data}')
         cmd.load_cgo(self.data, name)
 
+
 @dataclass
 class Bezier(GraphicObject):
     """
@@ -390,35 +396,35 @@ class Bezier(GraphicObject):
 class LineVertex(GraphicObject):
     """
     Represents a line vertex, inheriting from GraphicObject.
-    
+
     This class is used to define a line drawing element, which can be a point or a Bezier curve, and can include line width and color attributes.
-    
+
     Attributes:
     - point: A Point or Bezier instance, representing the starting point or control point of the line.
     - width: An optional float, representing the line width. If not provided, the default is None.
     - color: An optional string, representing the line color. If not provided, the default is None.
     """
     point: Union[Point, Bezier]
-    width: Optional[float]=None
-    color: Optional[str]=None
+    width: Optional[float] = None
+    color: Optional[str] = None
 
     def rebuild(self):
         """
         Rebuilds the line vertex data.
-        
+
         This method initializes the internal data list, and rebuilds the line vertex data based on the width, color, and point type.
         """
         # Initialize the data list
         self._data = []
-        
+
         # If the width is provided, add the LINEWIDTH command and width value to the data list
         if self.width:
             self._data.extend([cgo.LINEWIDTH, self.width])
-        
+
         # If the color is provided, convert the color to a format compatible with CGO and add it to the data list
         if self.color:
             self._data.extend(Color(self.color).as_cgo)
-        
+
         # If the point type is Point, add the point's vertex data to the data list
         if isinstance(self.point, Point):
             self._data.extend(self.point.as_vertex)
@@ -427,9 +433,10 @@ class LineVertex(GraphicObject):
             raise NotImplementedError('Bezier is not currently supported')
 
     @classmethod
-    def from_points(cls, points: Iterable[Union[Point, Iterable[float]]], width: Optional[float]=None,color: Optional[str]=None) -> tuple['LineVertex',...]:
+    def from_points(cls, points: Iterable[Union[Point, Iterable[float]]], width: Optional[float]
+                    = None, color: Optional[str] = None) -> tuple['LineVertex', ...]:
         return tuple(cls(p if isinstance(p, Point) else Point(*p), width=width, color=color) for p in points)
-        
+
 
 @dataclass
 class Sphere(GraphicObject):
@@ -585,8 +592,6 @@ class Cone(GraphicObject):
         ]
 
 
-
-
 @dataclass
 class Triangle(GraphicObject):
     vertex_a: Point = Point(1, 0, 0)
@@ -607,7 +612,6 @@ class Triangle(GraphicObject):
             *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
             *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
         ]
-
 
 
 @dataclass
@@ -695,12 +699,12 @@ class Cube(GraphicObject):
 
         ]
 
-        for i,j in itertools.combinations('xyz', r=2):
+        for i, j in itertools.combinations('xyz', r=2):
             for _i, _j in itertools.product(
-                    (getattr(self.p1, i), getattr(self.p2, i)), 
-                    (getattr(self.p1, j), getattr(self.p2, j))
-                ):
-                move_dict={i: _i, j:_j}
+                (getattr(self.p1, i), getattr(self.p2, i)),
+                (getattr(self.p1, j), getattr(self.p2, j))
+            ):
+                move_dict = {i: _i, j: _j}
                 self._data.extend([
                     *Color(getattr(self, f'color_{"xyz".replace(i, "").replace(j, "")}')).as_cgo,
                     *self.p1.move(**move_dict).as_vertex,
@@ -815,15 +819,14 @@ class PolyLines(GraphicObject):
     color: str
 
     points: Iterable[LineVertex]
-    line_type: Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']= 'LINE_STRIP'
-
+    line_type: Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN'] = 'LINE_STRIP'
 
     def rebuild(self):
-        self._data=[
+        self._data = [
             cgo.LINEWIDTH, self.width,
             *Color(self.color).as_cgo,
             cgo.BEGIN, getattr(cgo, self.line_type),
-            ]
+        ]
         for pv in self.points:
             self._data.extend([*pv.data])
 
@@ -834,17 +837,15 @@ class PolyLines(GraphicObject):
 class GraphicObjectCollection(GraphicObject):
     objects: List[GraphicObject]
 
-    force_to_rebuild:bool=False
+    force_to_rebuild: bool = False
 
     def rebuild(self):
-        self._data=[]
+        self._data = []
         for go_idx, go in enumerate(self.objects):
             if self.force_to_rebuild:
                 go.rebuild()
             self._data.extend(go.data)
             print(f"Added: #{go_idx} ({go.__class__.__name__})")
-
-
 
 
 # TEST CASES that can be run from pymol
@@ -960,7 +961,6 @@ class GraphicObjectCollection(GraphicObject):
 #     ],
 #      line_type='TRIANGLE_STRIP'
 # ).load_as('violet_square_shape')
-
 # PolyLines(
 #     2.0, 'pink',
 #     [                             # continous triangles
@@ -968,11 +968,10 @@ class GraphicObjectCollection(GraphicObject):
 #      LineVertex(Point(0, 1, 0) ), #   |-'  -\  triangle # 2
 #      LineVertex(Point(1, 1, 0) ), # -/       |-'  -\  triangle # 3
 #      LineVertex(Point(1, 0, 0) ), #        -/       |-'
-#      LineVertex(Point(1, 1, 1) ), #               -/ 
+#      LineVertex(Point(1, 1, 1) ), #               -/
 #     ],
 #      line_type='TRIANGLE_STRIP'
 # ).load_as('pink_3_tri_shape')
-
 PolyLines(
     2.0, 'white',
     LineVertex.from_points(
@@ -982,7 +981,7 @@ PolyLines(
             Point(1, 0, 0),
             Point(0, 0, 0)
         )
-        
+
     ),
     line_type='LINE_LOOP'
 ).load_as('white_square')
@@ -991,7 +990,7 @@ PolyLines(
 # PolyLines(
 #     2.0, 'golden',
 #     [
-#      LineVertex(Point(-1,1, 0) ), # left top 
+#      LineVertex(Point(-1,1, 0) ), # left top
 #      LineVertex(Point(0, 0, 1.4) ), # tip
 #      LineVertex(Point(1, 1, 0) ), # right top
 #      LineVertex(Point(1, -1, 0) ), # right bottom
@@ -1016,6 +1015,3 @@ PolyLines(
 #     ],
 #      line_type='LINE_LOOP'
 # ).load_as('pyramid_curve')
-
-
-

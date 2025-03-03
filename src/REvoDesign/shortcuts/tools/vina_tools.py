@@ -7,12 +7,14 @@ from dataclasses import dataclass
 from random import randint
 from typing import Optional, Tuple, Union, overload
 
-from chempy import cpv
 import numpy as np
+from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
-from ...tools.cgo_utils import Cube, LineVertex, Point, GraphicObject, Cylinder, Cone, PolyLines, Sphere, GraphicObjectCollection as GOC
+from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
+from ...tools.cgo_utils import GraphicObjectCollection as GOC
+from ...tools.cgo_utils import LineVertex, Point, PolyLines, Sphere
 
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
@@ -147,24 +149,24 @@ class CgoAxes(GraphicObject):
         self.h = float(self.h)
         self.always_left_corner = bool(self.always_left_corner)
 
-        self._data=[]
-        for (idxa, axis),(idxc, colorname) in zip(enumerate('xyz'),enumerate('rgb')):
-            p2_kwargs={i:0.0 for i in 'xyz' if i != axis}
+        self._data = []
+        for (idxa, axis), (idxc, colorname) in zip(enumerate('xyz'), enumerate('rgb')):
+            p2_kwargs = {i: 0.0 for i in 'xyz' if i != axis}
             self._data.extend(
                 Cylinder(
-                Point(0.0, 0.0, 0.0), # p1
-                Point(**p2_kwargs, **{axis: self.l}),  #p2
-                self.w,
-                colorname, colorname
-            ).data,
+                    Point(0.0, 0.0, 0.0),  # p1
+                    Point(**p2_kwargs, **{axis: self.l}),  # p2
+                    self.w,
+                    colorname, colorname
+                ).data,
             )
             self._data.extend(
                 Cone(
-                base_center=Point(**p2_kwargs, **{axis: self.l}),
-                tip=Point(**p2_kwargs, **{axis: self.l+self.h}),
-                radius_tip=0, radius_base=self.d,
-                caps=(1, 1),color_base=colorname,color_tip=colorname
-            ).data,
+                    base_center=Point(**p2_kwargs, **{axis: self.l}),
+                    tip=Point(**p2_kwargs, **{axis: self.l + self.h}),
+                    radius_tip=0, radius_base=self.d,
+                    caps=(1, 1), color_base=colorname, color_tip=colorname
+                ).data,
             )
 
     @property
@@ -176,7 +178,6 @@ class CgoAxes(GraphicObject):
             float: The diameter of the cone base.
         """
         return self.w * 1.618  # cone base diameter
-
 
     def set_label(self):
         """
@@ -235,20 +236,19 @@ class CgoBox(GraphicObject):
         Post-initialization processing. Deletes existing objects with the same name and ensures all coordinates are floats.
         """
 
-        self.delta_xyz=tuple(abs(x) for x in self.p1.delta_xyz(self.p2))
-        self.center_xyz=self.p1.center_xyz(self.p2)
+        self.delta_xyz = tuple(abs(x) for x in self.p1.delta_xyz(self.p2))
+        self.center_xyz = self.p1.center_xyz(self.p2)
 
-        self.cube=Cube(
-                p1=self.p1,
-                p2=self.p2,
-                color_x=self.color_x, 
-                color_y=self.color_y,
-                color_z=self.color_z,
-                wire_frame=True,
-                linewidth=self.linewidth
-            )
-        self._data=self.cube.data
-
+        self.cube = Cube(
+            p1=self.p1,
+            p2=self.p2,
+            color_x=self.color_x,
+            color_y=self.color_y,
+            color_z=self.color_z,
+            wire_frame=True,
+            linewidth=self.linewidth
+        )
+        self._data = self.cube.data
 
     @property
     def to_vina(self):
@@ -343,13 +343,13 @@ Center: {self.center_xyz[0]:.3f}, {self.center_xyz[1]:.3f}, {self.center_xyz[2]:
             boxName = box_name
 
         ([minX, minY, minZ], [maxX, maxY, maxZ]) = cmd.get_extent(selection)
-        p1=Point(
+        p1 = Point(
             minX - extending + offset[0],
             minY - extending + offset[1],
             minZ - extending + offset[2]
 
         )
-        p2=Point(
+        p2 = Point(
             maxX + extending + offset[0],
             maxY + extending + offset[1],
             maxZ + extending + offset[2]
@@ -494,18 +494,18 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
 
     # Modify the box dimensions based on the specified amounts
 
-    new_box.p1=new_box.p1.move(
+    new_box.p1 = new_box.p1.move(
         new_box.p1.x - float(x) / 2 if x is not None else None,
         new_box.p1.y - float(y) / 2 if y is not None else None,
         new_box.p1.z - float(z) / 2 if z is not None else None,
-        )
-    
-    new_box.p2=new_box.p2.move(
+    )
+
+    new_box.p2 = new_box.p2.move(
         new_box.p2.x + float(x) / 2 if x is not None else None,
         new_box.p2.y + float(y) / 2 if y is not None else None,
         new_box.p2.z + float(z) / 2 if z is not None else None,
-        )
-    
+    )
+
     # a rebuild calling is necessary for changes taking effects.
     new_box.rebuild()
     # Load the modified box into PyMOL
@@ -554,7 +554,6 @@ def rmhet(extending=5.0):
 # getbox from cavity residues that reported in papers
 
 
-
 def get_oriented_bounding_box(selection, padding=5.0):
     """
     Computes the oriented bounding box for all atoms in 'selection'
@@ -567,7 +566,7 @@ def get_oriented_bounding_box(selection, padding=5.0):
     # 1. Collect coordinates from the selection using get_model.
     model = cmd.get_model(selection)
     coords = np.array([atom.coord for atom in model.atom])
-    
+
     # 2. Compute the centroid and center the coordinates.
     centroid = np.mean(coords, axis=0)
     centered = coords - centroid
@@ -576,18 +575,18 @@ def get_oriented_bounding_box(selection, padding=5.0):
     cov = np.cov(centered, rowvar=False)
     eigvals, eigvecs = np.linalg.eigh(cov)
     # The columns of eigvecs are the principal axes.
-    
+
     # 4. Transform coordinates into the PCA (rotated) space.
     transformed = centered.dot(eigvecs)
-    
+
     # 5. Find the minimum and maximum along each principal axis.
     min_vals = np.min(transformed, axis=0)
     max_vals = np.max(transformed, axis=0)
-    
+
     # 6. Apply padding in the PCA space.
     min_vals -= padding
     max_vals += padding
-    
+
     # 7. Generate all 8 corners of the box in PCA space.
     vertices = []
     for i in [0, 1]:
@@ -600,11 +599,9 @@ def get_oriented_bounding_box(selection, padding=5.0):
                 ])
                 vertices.append(vertex)
     vertices = np.array(vertices)
-    
+
     # 8. Transform the vertices back to the original coordinate system.
     orig_vertices = vertices.dot(eigvecs.T) + centroid
-
-    
 
     # PolyLines(
     #     2.0, 'white',
@@ -615,9 +612,7 @@ def get_oriented_bounding_box(selection, padding=5.0):
     return orig_vertices
 
 
-
-def plot_pca_box(orig_vertices, new_box_name: str ='pca_box'):
-    
+def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
 
     # Define each face of the box using vertex indices
     faces = [
@@ -634,20 +629,20 @@ def plot_pca_box(orig_vertices, new_box_name: str ='pca_box'):
         # Right face (PCA2 max)
         [2, 6, 7, 3]
     ]
-    goc=GOC([])
+    goc = GOC([])
 
     # Create a PolyLines object for each face
     for i, face_indices in enumerate(faces):
         face_vertices = [orig_vertices[idx] for idx in face_indices]
         goc.objects.append(PolyLines(
             width=2.0,
-        color='cyan',
-        points=LineVertex.from_points(face_vertices),
-        line_type='LINE_LOOP'
-    ))
+            color='cyan',
+            points=LineVertex.from_points(face_vertices),
+            line_type='LINE_LOOP'
+        ))
 
     # Optional: Create edges along PCA axes
-    for _idx,axis_edges in enumerate([[0,4], [1,5], [2,6], [3,7]]):  # PCA1 axis connections
+    for _idx, axis_edges in enumerate([[0, 4], [1, 5], [2, 6], [3, 7]]):  # PCA1 axis connections
         edge_vertices = [orig_vertices[idx] for idx in axis_edges]
 
         PolyLines(
@@ -663,6 +658,7 @@ def plot_pca_box(orig_vertices, new_box_name: str ='pca_box'):
     goc.rebuild()
     goc.load_as(new_box_name)
 
+
 def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
     if not new_box_name:
         boxName = "pca_box_" + str(randint(0, 10000))
@@ -671,7 +667,7 @@ def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extendin
     else:
         boxName = new_box_name
 
-    orig_vertices=get_oriented_bounding_box(
+    orig_vertices = get_oriented_bounding_box(
         selection=selection,
         padding=extending,
     )
@@ -679,4 +675,3 @@ def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extendin
         orig_vertices=orig_vertices,
         new_box_name=boxName
     )
-

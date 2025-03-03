@@ -10,8 +10,8 @@ from .tools.ligand_converters import visualize_conformer_sdf
 from .tools.represents import (shortcut_color_by_mutation,
                                shortcut_color_by_plddt, shortcut_real_sc)
 from .tools.structure import shortcut_find_interface
-from .tools.vina_tools import (enlargebox, get_pca_box, getbox, movebox, rmhet, showaxes,
-                               showbox)
+from .tools.vina_tools import (enlargebox, get_pca_box, getbox, movebox, rmhet,
+                               showaxes, showbox)
 
 cmd.extend("pssm2csv", shortcut_pssm2csv)
 cmd.extend("real_sc", shortcut_real_sc)
