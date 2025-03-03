@@ -10,7 +10,7 @@ from .tools.ligand_converters import visualize_conformer_sdf
 from .tools.represents import (shortcut_color_by_mutation,
                                shortcut_color_by_plddt, shortcut_real_sc)
 from .tools.structure import shortcut_find_interface
-from .tools.vina_tools import (enlargebox, getbox, movebox, rmhet, showaxes,
+from .tools.vina_tools import (enlargebox, get_pca_box, getbox, movebox, rmhet, showaxes,
                                showbox)
 
 cmd.extend("pssm2csv", shortcut_pssm2csv)
@@ -22,6 +22,7 @@ cmd.extend("dump_sidechains", shortcut_dump_sidechains)
 cmd.extend("visualize_conformer_sdf", visualize_conformer_sdf)
 
 cmd.extend("getbox", getbox)
+cmd.extend("get_pca_box", get_pca_box)
 cmd.extend("showbox", showbox)
 
 cmd.extend("rmhet", rmhet)

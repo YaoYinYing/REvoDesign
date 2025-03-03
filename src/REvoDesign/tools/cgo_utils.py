@@ -55,7 +55,7 @@ import itertools
 import math
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Iterable, List, Optional, Literal, Tuple, Union
+from typing import Any, Iterable, List, Optional, Literal, Tuple, Union
 import numpy as np
 import webcolors
 from chempy import cpv
@@ -63,7 +63,7 @@ from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 
-DEBUG=False
+DEBUG=True
 
 
 # name: hsv imutable dicts
@@ -117,7 +117,7 @@ class Point:
     z: float
 
     @cached_property
-    def array(self):
+    def array(self) -> np.ndarray:
         '''
         Convert the point to a numpy array
         This method converts the point's coordinates into a numpy array, facilitating subsequent vector operations.
@@ -203,10 +203,10 @@ class Point:
         return Point(x, y, z)
     
     def delta_xyz(self, point: 'Point') -> Tuple[float, float, float]:
-        return point.x-self.x, point.y-self.y, point.z-self.z
+        return point.array-self.array
     
     def center_xyz(self, point: 'Point') -> Tuple[float, float, float]:
-        return (point.x+self.x)/2, (point.y+self.y)/2, (point.z+self.z)/2
+        return (point.array-self.array)/2
 
     
     def distance_to(self,point: 'Point') -> float:
@@ -219,9 +219,8 @@ class Point:
         Returns:
         - float: The Euclidean distance
         '''
-        delta_xyz=self.delta_xyz(point=point)
-        return math.sqrt((delta_xyz[0])**2+(delta_xyz[1])**2+(delta_xyz[2])**2)
-
+        return np.linalg.norm(point.array - self.array).astype(float)
+        
 
 @dataclass(frozen=True)
 class Color:
@@ -385,6 +384,8 @@ class Bezier(GraphicObject):
                  self.control_pt_B,)
             )
         ]
+
+
 @dataclass
 class LineVertex(GraphicObject):
     """
@@ -424,6 +425,11 @@ class LineVertex(GraphicObject):
         else:
             # Currently, only Point type is supported. If another type is encountered, raise an exception
             raise NotImplementedError('Bezier is not currently supported')
+
+    @classmethod
+    def from_points(cls, points: Iterable[Union[Point, Iterable[float]]], width: Optional[float]=None,color: Optional[str]=None) -> tuple['LineVertex',...]:
+        return tuple(cls(p if isinstance(p, Point) else Point(*p), width=width, color=color) for p in points)
+        
 
 @dataclass
 class Sphere(GraphicObject):
@@ -663,6 +669,11 @@ class Lines(GraphicObject):
 
 @dataclass
 class Cube(GraphicObject):
+    '''
+    Cubic box with edges aligned with axes
+
+
+    '''
 
     p1: Point = Point(0, 0, 0)
     p2: Point = Point(1, 1, 1)
@@ -819,6 +830,23 @@ class PolyLines(GraphicObject):
         self._data.append(cgo.END)
 
 
+@dataclass
+class GraphicObjectCollection(GraphicObject):
+    objects: List[GraphicObject]
+
+    force_to_rebuild:bool=False
+
+    def rebuild(self):
+        self._data=[]
+        for go_idx, go in enumerate(self.objects):
+            if self.force_to_rebuild:
+                go.rebuild()
+            self._data.extend(go.data)
+            print(f"Added: #{go_idx} ({go.__class__.__name__})")
+
+
+
+
 # TEST CASES that can be run from pymol
 # `run src/REvoDesign/tools/cgo_utils.py`
 
@@ -945,17 +973,19 @@ class PolyLines(GraphicObject):
 #      line_type='TRIANGLE_STRIP'
 # ).load_as('pink_3_tri_shape')
 
-# PolyLines(
-#     2.0, 'white',
-#     [
-#      LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-     
-#     ],
-#      line_type='TRIANGLE_FAN'
-# ).load_as('white_square')
+PolyLines(
+    2.0, 'white',
+    LineVertex.from_points(
+        (
+            Point(0, 1, 0),
+            Point(1, 1, 0),
+            Point(1, 0, 0),
+            Point(0, 0, 0)
+        )
+        
+    ),
+    line_type='LINE_LOOP'
+).load_as('white_square')
 
 
 # PolyLines(

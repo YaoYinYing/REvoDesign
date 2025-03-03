@@ -4,15 +4,15 @@ GetBox Plugin.py --  Draws a box surrounding a selection and gets box informatio
 
 '''
 from dataclasses import dataclass
-from functools import cached_property
 from random import randint
 from typing import Optional, Tuple, Union, overload
 
 from chempy import cpv
+import numpy as np
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
-from ...tools.cgo_utils import Cube, Point, GraphicObject, Cylinder, Cone
+from ...tools.cgo_utils import Cube, LineVertex, Point, GraphicObject, Cylinder, Cone, PolyLines, Sphere, GraphicObjectCollection as GOC
 
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
@@ -213,6 +213,7 @@ def showaxes():
 # ref: https://github.com/MengwuXiao/GetBox-PyMOL-Plugin/blob/master/GetBox%20Plugin.py
 
 
+# Problem: the class draw the box with edges align to axes
 @dataclass
 class CgoBox(GraphicObject):
     """
@@ -326,13 +327,10 @@ Center: {self.center_xyz[0]:.3f}, {self.center_xyz[1]:.3f}, {self.center_xyz[2]:
                 ```python
                 newbox = CgoBox.from_selection("box", "box", 0)
                 # increase the box size by 10 Angstrom on the x axis without changing the center of the box
-                newbox.minX -= 5.0
-                newbox.maxX += 5.0
-                # decrease the box size by 10 Angstrom on the x axis without changing the center of the box
-                newbox.minX += 5.0
-                newbox.maxX -= 5.0
+                newbox.p1=newbox.p1.move(x=newbox.p1.x+x_offset)
 
                 # regenerate the box
+                new_box.rebuild()
                 new_box.load_to_pymol()
 
 
@@ -554,3 +552,131 @@ def rmhet(extending=5.0):
     return
 
 # getbox from cavity residues that reported in papers
+
+
+
+def get_oriented_bounding_box(selection, padding=5.0):
+    """
+    Computes the oriented bounding box for all atoms in 'selection'
+    using PCA to align the coordinate system with the data's spread.
+    A padding is added (in Å) to each face of the box.
+
+    Returns:
+        A numpy array (8x3) of vertex coordinates of the bounding box.
+    """
+    # 1. Collect coordinates from the selection using get_model.
+    model = cmd.get_model(selection)
+    coords = np.array([atom.coord for atom in model.atom])
+    
+    # 2. Compute the centroid and center the coordinates.
+    centroid = np.mean(coords, axis=0)
+    centered = coords - centroid
+
+    # 3. Perform PCA: compute the covariance matrix and its eigenvectors.
+    cov = np.cov(centered, rowvar=False)
+    eigvals, eigvecs = np.linalg.eigh(cov)
+    # The columns of eigvecs are the principal axes.
+    
+    # 4. Transform coordinates into the PCA (rotated) space.
+    transformed = centered.dot(eigvecs)
+    
+    # 5. Find the minimum and maximum along each principal axis.
+    min_vals = np.min(transformed, axis=0)
+    max_vals = np.max(transformed, axis=0)
+    
+    # 6. Apply padding in the PCA space.
+    min_vals -= padding
+    max_vals += padding
+    
+    # 7. Generate all 8 corners of the box in PCA space.
+    vertices = []
+    for i in [0, 1]:
+        for j in [0, 1]:
+            for k in [0, 1]:
+                vertex = np.array([
+                    min_vals[0] if i == 0 else max_vals[0],
+                    min_vals[1] if j == 0 else max_vals[1],
+                    min_vals[2] if k == 0 else max_vals[2]
+                ])
+                vertices.append(vertex)
+    vertices = np.array(vertices)
+    
+    # 8. Transform the vertices back to the original coordinate system.
+    orig_vertices = vertices.dot(eigvecs.T) + centroid
+
+    
+
+    # PolyLines(
+    #     2.0, 'white',
+    #     [*LineVertex.from_points(orig_vertices)],
+    #     line_type='TRIANGLE_FAN'
+    # ).load_as('white_square')
+
+    return orig_vertices
+
+
+
+def plot_pca_box(orig_vertices, new_box_name: str ='pca_box'):
+    
+
+    # Define each face of the box using vertex indices
+    faces = [
+        # Front face (PCA1 min)
+        [0, 1, 3, 2],
+        # Back face (PCA1 max)
+        [4, 5, 7, 6],
+        # Top face (PCA3 max)
+        [1, 3, 7, 5],
+        # Bottom face (PCA3 min)
+        [0, 2, 6, 4],
+        # Left face (PCA2 min)
+        [0, 4, 5, 1],
+        # Right face (PCA2 max)
+        [2, 6, 7, 3]
+    ]
+    goc=GOC([])
+
+    # Create a PolyLines object for each face
+    for i, face_indices in enumerate(faces):
+        face_vertices = [orig_vertices[idx] for idx in face_indices]
+        goc.objects.append(PolyLines(
+            width=2.0,
+        color='cyan',
+        points=LineVertex.from_points(face_vertices),
+        line_type='LINE_LOOP'
+    ))
+
+    # Optional: Create edges along PCA axes
+    for _idx,axis_edges in enumerate([[0,4], [1,5], [2,6], [3,7]]):  # PCA1 axis connections
+        edge_vertices = [orig_vertices[idx] for idx in axis_edges]
+
+        PolyLines(
+            width=1.5,
+            color='yellow',
+            points=LineVertex.from_points(edge_vertices),
+            line_type='LINE_STRIP'
+        ).load_as(f'pca_axes_{_idx}')
+
+    for i, v in enumerate(orig_vertices):
+        goc.objects.append(Sphere(Point(*v), radius=1))
+
+    goc.rebuild()
+    goc.load_as(new_box_name)
+
+def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
+    if not new_box_name:
+        boxName = "pca_box_" + str(randint(0, 10000))
+        while boxName in cmd.get_names():
+            boxName = "pca_box_" + str(randint(0, 10000))
+    else:
+        boxName = new_box_name
+
+    orig_vertices=get_oriented_bounding_box(
+        selection=selection,
+        padding=extending,
+    )
+    plot_pca_box(
+        orig_vertices=orig_vertices,
+        new_box_name=boxName
+    )
+
