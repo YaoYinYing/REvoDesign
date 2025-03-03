@@ -1290,7 +1290,7 @@ class GraphicObjectCollection(GraphicObject):
 
 def __east_egg():
     '''
-    There is only one truth!
+    There is always only one truth!
 
     真しん実じつはいつもひとつ!
     '''
