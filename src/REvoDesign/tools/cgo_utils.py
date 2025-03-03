@@ -52,14 +52,17 @@ import itertools
 import math
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Iterable, List, Optional
-
+from typing import Iterable, List, Optional, Literal
 import numpy as np
 import webcolors
 from chempy import cpv
 from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
+from PIL import Image, ImageDraw, ImageFont
+
+import matplotlib.font_manager as fm
+
 
 # name: hsv imutable dicts
 BASE_COLORS: immutabledict[str, str] = immutabledict({name: webcolors.rgb_to_hex(
@@ -117,6 +120,8 @@ class Point:
     @classmethod
     def from_xyz(cls, x: float, y: float, z: float):
         return Point(x, y, z)
+
+
 
 
 @dataclass(frozen=True)
@@ -572,6 +577,43 @@ class Square(GraphicObject):
             cgo.END
         ]
 
+@dataclass
+class LineVertex(GraphicObject):
+    point: Point
+    width: Optional[float]=None
+    color: Optional[str]=None
+
+    def rebuild(self):
+        self._data = []
+        if self.width:
+            self._data.extend([cgo.LINEWIDTH, self.width])
+        if self.color:
+            self._data.extend(Color(self.color).as_cgo)
+        self._data.extend(self.point.as_vertex)
+
+
+
+@dataclass
+class PolyLines(GraphicObject):
+    # global
+    width: float
+    color: str
+
+    points: Iterable[LineVertex]
+    line_type: Literal['LINE_STRIP', 'LINE_LOOP']= 'LINE_STRIP'
+    
+
+    def rebuild(self):
+        self._data=[
+            cgo.LINEWIDTH, self.width,
+            *Color(self.color).as_cgo,
+            cgo.BEGIN, cgo.LINE_LOOP if self.line_type=='LINE_LOOP' else cgo.LINE_STRIP,
+            ]
+        for pv in self.points:
+            self._data.extend([*pv.data])
+
+        self._data.append(cgo.END)
+
 
 # TEST CASES that can be run from pymol
 # `run src/REvoDesign/tools/cgo_utils.py`
@@ -585,7 +627,7 @@ class Square(GraphicObject):
 
 # Doughnut(samples=100).load_as('my_treasure')
 
-Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
+# Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
 
 # Bezier().load_as('bez') #??
 
@@ -616,12 +658,12 @@ Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
 
 # Cube(transparent=True).load_as('a_colorful_cube')
 # Cube(
-#     transparent=True,
-#     color_w='white',
-#     color_x='white',
-#     color_y='white',
-#     color_z='white'
-#     ).load_as('a_white_box')
+#     transparent=False,
+#     color_w='yellow',
+#     color_x='yellow',
+#     color_y='yellow',
+#     color_z='yellow'
+# ).load_as('a_yellow_box')
 
 # Cube(transparent=False,
 #     color_w='white',
@@ -639,3 +681,24 @@ Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
 #     ).load_as('a_black_box')
 
 # Square().load_as('a_square')
+
+
+PolyLines(
+    2.0, 'yellow',
+    [LineVertex(Point(0, 0, 0) ),
+     LineVertex(Point(0, 0, 1) ),
+     LineVertex(Point(0, 1, 0) ),
+     LineVertex(Point(1, 0, 0) ),
+     LineVertex(Point(1, 1, 2) )]
+).load_as('yellow_line_strip')
+
+
+PolyLines(
+    2.0, 'red',
+    [LineVertex(Point(0, 0, 0) ),
+     LineVertex(Point(0, 0, 1) ),
+     LineVertex(Point(0, 1, 0) ),
+     LineVertex(Point(1, 0, 0) ),
+     LineVertex(Point(1, 1, 2) )],
+     line_type='LINE_LOOP'
+).load_as('red_line_loop')
