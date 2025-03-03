@@ -1138,9 +1138,9 @@ class GraphicObjectCollection(GraphicObject):
 
 def east_egg():
     global DEBUG
-    _DEBUG= DEBUG
+    _DEBUG = DEBUG
 
-    DEBUG=False
+    DEBUG = False
     aptx_4869 = GraphicObjectCollection([
         Sphere(
             center=Point(-2, 0, 0),
@@ -1206,9 +1206,9 @@ def east_egg():
 
     cmd.zoom()
     cmd.turn('z', 16)
-    cmd.movie.add_roll(4.0,axis='y',start=1)
+    cmd.movie.add_roll(4.0, axis='y', start=1)
 
-    DEBUG=_DEBUG
+    DEBUG = _DEBUG
     cmd.mplay()
 
 
