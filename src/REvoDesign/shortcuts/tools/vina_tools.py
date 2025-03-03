@@ -12,6 +12,8 @@ from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
+from ...tools.cgo_utils import Cube, Point
+
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
 # This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
@@ -234,166 +236,49 @@ class CgoBox:
     """
     name: str
 
-    minX: float
-    maxX: float
-
-    minY: float
-    maxY: float
-
-    minZ: float
-    maxZ: float
+    p1: Point
+    p2: Point
     linewidth: float = 5.0
 
-    colorX: Tuple[float, float, float] = (1.0, 0.0, 0.0,)
-    colorY: Tuple[float, float, float] = (0.0, 1.0, 0.0,)
-    colorZ: Tuple[float, float, float] = (0.0, 0.0, 1.0,)
+    color_x: str = 'red'
+    color_y: str = 'green'
+    color_z: str = 'blue'
 
     def __post_init__(self):
         """
         Post-initialization processing. Deletes existing objects with the same name and ensures all coordinates are floats.
         """
-        if self.name in cmd.get_names():
-            cmd.delete(self.name)
-        self.minX = float(self.minX)
-        self.maxX = float(self.maxX)
-        self.minY = float(self.minY)
-        self.maxY = float(self.maxY)
-        self.minZ = float(self.minZ)
-        self.maxZ = float(self.maxZ)
-        self.linewidth = float(self.linewidth)
 
-    @cached_property
-    def SizeX(self):
-        """
-        Calculates the size of the box along the X-axis.
-        """
-        return self.maxX - self.minX
+        self.delta_xyz=tuple(abs(x) for x in self.p1.delta_xyz(self.p2))
+        self.center_xyz=self.p1.center_xyz(self.p2)
 
-    @cached_property
-    def SizeY(self):
-        """
-        Calculates the size of the box along the Y-axis.
-        """
-        return self.maxY - self.minY
+        self.cube=Cube(
+                p1=self.p1,
+                p2=self.p2,
+                color_x=self.color_x, 
+                color_y=self.color_y,
+                color_z=self.color_z,
+                wire_frame=True,
+                linewidth=self.linewidth
+            )
 
-    @cached_property
-    def SizeZ(self):
-        """
-        Calculates the size of the box along the Z-axis.
-        """
-        return self.maxZ - self.minZ
 
-    @cached_property
-    def CenterX(self):
-        """
-        Calculates the center point of the box along the X-axis.
-        """
-        return (self.maxX + self.minX) / 2
-
-    @cached_property
-    def CenterY(self):
-        """
-        Calculates the center point of the box along the Y-axis.
-        """
-        return (self.maxY + self.minY) / 2
-
-    @cached_property
-    def CenterZ(self):
-        """
-        Calculates the center point of the box along the Z-axis.
-        """
-        return (self.maxZ + self.minZ) / 2
-
-    @cached_property
-    def x_cgo_lines(self):
-        """
-        Generates the CGO line commands for the X-axis lines of the box.
-        """
-        return [
-            cgo.COLOR, *self.colorX,
-            cgo.VERTEX, self.minX, self.minY, self.minZ,  # 1
-            cgo.VERTEX, self.maxX, self.minY, self.minZ,  # 5
-
-            cgo.VERTEX, self.minX, self.maxY, self.minZ,  # 3
-            cgo.VERTEX, self.maxX, self.maxY, self.minZ,  # 7
-
-            cgo.VERTEX, self.minX, self.maxY, self.maxZ,  # 4
-            cgo.VERTEX, self.maxX, self.maxY, self.maxZ,  # 8
-
-            cgo.VERTEX, self.minX, self.minY, self.maxZ,  # 2
-            cgo.VERTEX, self.maxX, self.minY, self.maxZ,  # 6
-        ]
-
-    @cached_property
-    def y_cgo_lines(self):
-        """
-        Generates the CGO line commands for the Y-axis lines of the box.
-        """
-        return [
-            cgo.COLOR, *self.colorY,  # green
-            cgo.VERTEX, self.minX, self.minY, self.minZ,  # 1
-            cgo.VERTEX, self.minX, self.maxY, self.minZ,  # 3
-
-            cgo.VERTEX, self.maxX, self.minY, self.minZ,  # 5
-            cgo.VERTEX, self.maxX, self.maxY, self.minZ,  # 7
-
-            cgo.VERTEX, self.minX, self.minY, self.maxZ,  # 2
-            cgo.VERTEX, self.minX, self.maxY, self.maxZ,  # 4
-
-            cgo.VERTEX, self.maxX, self.minY, self.maxZ,  # 6
-            cgo.VERTEX, self.maxX, self.maxY, self.maxZ,  # 8
-        ]
-
-    @cached_property
-    def z_cgo_lines(self):
-        """
-        Generates the CGO line commands for the Z-axis lines of the box.
-        """
-        return [
-            cgo.COLOR, *self.colorZ,  # blue
-            cgo.VERTEX, self.minX, self.minY, self.minZ,  # 1
-            cgo.VERTEX, self.minX, self.minY, self.maxZ,  # 2
-
-            cgo.VERTEX, self.minX, self.maxY, self.minZ,  # 3
-            cgo.VERTEX, self.minX, self.maxY, self.maxZ,  # 4
-
-            cgo.VERTEX, self.maxX, self.minY, self.minZ,  # 5
-            cgo.VERTEX, self.maxX, self.minY, self.maxZ,  # 6
-
-            cgo.VERTEX, self.maxX, self.maxY, self.minZ,  # 7
-            cgo.VERTEX, self.maxX, self.maxY, self.maxZ,  # 8
-        ]
-
-    @cached_property
-    def as_cgo_obj(self):
-        """
-        Combines all CGO line commands into a single list to represent the entire box object.
-        """
-        # who on earth made this shit???
-        return [
-            cgo.LINEWIDTH, float(self.linewidth),
-            cgo.BEGIN, cgo.LINES,
-            *self.x_cgo_lines,
-            *self.y_cgo_lines,
-            *self.z_cgo_lines,
-            cgo.END,
-        ]
 
     @property
     def to_vina(self):
         """
         Generates a string of parameters for configuring a binding site in AutoDock Vina.
         """
-        return f"""--center_x {self.CenterX:.1f} --center_y {self.CenterY:.1f} --center_z {self.CenterZ:.1f} --size_x {self.SizeX:.1f} --size_y {self.SizeY:.1f} --size_z {self.CenterZ:.1f}"""
+        return f"""--center_x {self.center_xyz[0]:.1f} --center_y {self.center_xyz[1]:.1f} --center_z {self.center_xyz[2]:.1f} --size_x {self.delta_xyz[0]:.1f} --size_y {self.delta_xyz[1]:.1f} --size_z {self.delta_xyz[2]:.1f}"""
 
     @property
     def to_autogrid(self):
         """
         Generates a string of parameters for configuring a grid in AutoGrid.
         """
-        return f""""npts {self.SizeX / 0.375} {self. SizeY / 0.375} {self.SizeZ / 0.375} # num. grid points in xyz
+        return f""""npts {self.delta_xyz[0] / 0.375} {self.delta_xyz[1] / 0.375} {self.delta_xyz[2] / 0.375} # num. grid points in xyz
 spacing 0.375 # spacing (A)
-gridcenter {self.CenterX:.3f} {self.CenterY:.3f} {self.CenterZ:.3f} # xyz-coordinates or auto"""
+gridcenter {self.center_xyz[0]:.3f} {self.center_xyz[1]:.3f} {self.center_xyz[2]:.3f} # xyz-coordinates or auto"""
 
     @property
     def to_ledock(self):
@@ -401,25 +286,26 @@ gridcenter {self.CenterX:.3f} {self.CenterY:.3f} {self.CenterZ:.3f} # xyz-coordi
         Generates a string of parameters for specifying a binding pocket in LeDock.
         """
         return f"""Binding pocket
-{self.minX:.1f} {self.maxX:.1f}
-{self.minY:.1f} {self.maxY:.1f}
-{self.minZ:.1f} {self.maxZ:.1f}
+{self.p1.x:.1f} {self.p2.x:.1f}
+{self.p1.y:.1f} {self.p2.y:.1f}
+{self.p1.z:.1f} {self.p2.z:.1f}
 """
 
     def load_to_pymol(self):
         """
         Loads the CGO object into PyMOL for visualization.
         """
-        cmd.load_cgo(self.as_cgo_obj, self.name, quiet=0)
+
+        self.cube.load_as(self.name)
 
     def __repr__(self) -> str:
         """
         Provides a string representation of the box, including its coordinates, size, and center.
         """
         return f"""CgoBox `{self.name}`:
-Coordinates: {self.minX:.3f} - {self.maxX:.3f}; {self.minY:.3f} - {self.maxY:.3f}, {self.minZ:.3f} - {self.maxZ:.3f}
-Size: {self.SizeX:.3f} * {self.SizeY:.3f} * {self.SizeZ:.3f} = {self.SizeX * self.SizeY * self.SizeZ:.3f}
-Center: {self.CenterX:.3f}, {self.CenterY:.3f}, {self.CenterZ:.3f}"""
+Coordinates: {self.p1.x:.3f} - {self.p2.x:.3f}; {self.p1.y:.3f} - {self.p2.y:.3f}, {self.p1.z:.3f} - {self.p2.z:.3f}
+Size: {self.delta_xyz[0]:.3f} * {self.delta_xyz[1]:.3f} * {self.delta_xyz[2]:.3f} = {self.delta_xyz[0] * self.delta_xyz[1] * self.delta_xyz[2]:.3f}
+Center: {self.center_xyz[0]:.3f}, {self.center_xyz[1]:.3f}, {self.center_xyz[2]:.3f}"""
 
     @classmethod
     def from_selecion(
@@ -474,23 +360,23 @@ Center: {self.CenterX:.3f}, {self.CenterY:.3f}, {self.CenterZ:.3f}"""
             boxName = box_name
 
         ([minX, minY, minZ], [maxX, maxY, maxZ]) = cmd.get_extent(selection)
+        p1=Point(
+            minX - extending + offset[0],
+            minY - extending + offset[1],
+            minZ - extending + offset[2]
 
-        minX = minX - extending + offset[0]
-        minY = minY - extending + offset[1]
-        minZ = minZ - extending + offset[2]
+        )
+        p2=Point(
+            maxX + extending + offset[0],
+            maxY + extending + offset[1],
+            maxZ + extending + offset[2]
 
-        maxX = maxX + extending + offset[0]
-        maxY = maxY + extending + offset[1]
-        maxZ = maxZ + extending + offset[2]
+        )
 
         box = cls(
             name=boxName,
-            minX=minX,
-            minY=minY,
-            minZ=minZ,
-            maxX=maxX,
-            maxY=maxY,
-            maxZ=maxZ,
+            p1=p1,
+            p2=p2,
         )
         print(repr(box))
         return box
@@ -557,12 +443,15 @@ def showbox(
         # Create a new CgoBox object from provided parameters
         box = CgoBox(
             name=box,
-            minX=float(minX),
-            minY=float(minY),
-            minZ=float(minZ),
-            maxX=float(maxX),
-            maxY=float(maxY),
-            maxZ=float(maxZ),
+            p1=Point(
+                float(minX),
+                float(minY),
+                float(minZ)),
+            p2=Point(
+                float(maxX),
+                float(maxY),
+                float(maxZ)
+            )
         )
 
     # Print box details in different formats
@@ -621,19 +510,19 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         extending=0)
 
     # Modify the box dimensions based on the specified amounts
-    if x:
-        x = float(x)
-        new_box.minX = new_box.minX - x / 2
-        new_box.maxX = new_box.maxX + x / 2
-    if y:
-        y = float(y)
-        new_box.minY = new_box.minY - y / 2
-        new_box.maxY = new_box.maxY + y / 2
-    if z:
-        z = float(z)
-        new_box.minZ = new_box.minZ - z / 2
-        new_box.maxZ = new_box.maxZ + z / 2
 
+    new_box.p1=new_box.p1.move(
+        new_box.p1.x - float(x) / 2 if x is not None else None,
+        new_box.p1.y - float(y) / 2 if y is not None else None,
+        new_box.p1.z - float(z) / 2 if z is not None else None,
+        )
+    
+    new_box.p2=new_box.p2.move(
+        new_box.p2.x + float(x) / 2 if x is not None else None,
+        new_box.p2.y + float(y) / 2 if y is not None else None,
+        new_box.p2.z + float(z) / 2 if z is not None else None,
+        )
+    
     # Load the modified box into PyMOL
     new_box.load_to_pymol()
 

@@ -55,7 +55,7 @@ import itertools
 import math
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Iterable, List, Optional, Literal
+from typing import Iterable, List, Optional, Literal, Tuple, Union
 import numpy as np
 import webcolors
 from chempy import cpv
@@ -104,26 +104,54 @@ def not_none_float(*args: Optional[float]):
             print(f'Skip {idx} ({float_in}): {e}')
     # Return the default value 0.0 if no valid float can be found
     return 0.0
-
 @dataclass(frozen=True)
 class Point:
+    '''
+    A Point vector object in PyMOL's coordinate system
+    This class represents a point in 3D space with coordinates (x, y, z).
+    It provides methods to convert the point to a numpy array, and to generate CGO commands for vertices and normals.
+    '''
     x: float
     y: float
     z: float
 
     @cached_property
     def array(self):
+        '''
+        Convert the point to a numpy array
+        This method converts the point's coordinates into a numpy array, facilitating subsequent vector operations.
+        '''
         return np.array([self.x, self.y, self.z])
 
     @cached_property
     def as_vertex(self):
+        '''
+        Generate a CGO vertex command for the point
+        This method inserts the point's coordinates into a CGO vertex command, used for rendering in PyMOL.
+        '''
         return np.insert(cgo.VERTEX, 1, self.array)
 
     @cached_property
     def as_normal(self):
+        '''
+        Generate a CGO normal command for the point
+        This method inserts the point's coordinates into a CGO normal command, used for specifying normals in PyMOL.
+        '''
         return np.insert(cgo.NORMAL, 1, self.array)
 
     def move(self, x: Optional[float] = None, y: Optional[float] = None, z: Optional[float] = None) -> 'Point':
+        '''
+        Move the point
+        This method allows the point to be moved along the x, y, and z axes. If a coordinate is not provided, the original value is used.
+        
+        Parameters:
+        - x: Optional[float] = None, the new x-coordinate, if not provided, the original x-coordinate is used
+        - y: Optional[float] = None, the new y-coordinate, if not provided, the original y-coordinate is used
+        - z: Optional[float] = None, the new z-coordinate, if not provided, the original z-coordinate is used
+        
+        Returns:
+        - Point: The new point after moving
+        '''
         return Point(
             not_none_float(x, self.x),
             not_none_float(y, self.y),
@@ -131,57 +159,163 @@ class Point:
 
     @staticmethod
     def as_arrays(points: Iterable['Point']):
+        '''
+        Convert a collection of points to a numpy array
+        This static method converts a collection of Point objects into a single numpy array, facilitating batch processing.
+        
+        Parameters:
+        - points: Iterable['Point'], a collection of Point objects
+        
+        Returns:
+        - np.ndarray: A numpy array containing the coordinates of all points
+        '''
         return np.concatenate(tuple(point.array for point in points))
 
     @staticmethod
     def as_vertexes(points: Iterable['Point']):
+        '''
+        Convert a collection of points to CGO vertex commands
+        This static method converts a collection of Point objects into CGO vertex commands, used for batch rendering in PyMOL.
+        
+        Parameters:
+        - points: Iterable['Point'], a collection of Point objects
+        
+        Returns:
+        - np.ndarray: A numpy array containing the CGO vertex commands for all points
+        '''
         return np.concatenate(tuple(point.as_vertex for point in points))
 
     @classmethod
     def from_xyz(cls, x: float, y: float, z: float):
+        '''
+        Create a Point object from x, y, and z coordinates
+        This class method creates a new Point object using the provided x, y, and z coordinates.
+        
+        Parameters:
+        - x: float, the x-coordinate
+        - y: float, the y-coordinate
+        - z: float, the z-coordinate
+        
+        Returns:
+        - Point: The newly created Point object
+        '''
         return Point(x, y, z)
+    
+    def delta_xyz(self, point: 'Point') -> Tuple[float, float, float]:
+        return point.x-self.x, point.y-self.y, point.z-self.z
+    
+    def center_xyz(self, point: 'Point') -> Tuple[float, float, float]:
+        return (point.x+self.x)/2, (point.y+self.y)/2, (point.z+self.z)/2
 
+    
+    def distance_to(self,point: 'Point') -> float:
+        '''
+        Euclidean distance from a point to this Point.
 
+        Parameters:
+        - point: Point, a target point object.
+
+        Returns:
+        - float: The Euclidean distance
+        '''
+        delta_xyz=self.delta_xyz(point=point)
+        return math.sqrt((delta_xyz[0])**2+(delta_xyz[1])**2+(delta_xyz[2])**2)
 
 
 @dataclass(frozen=True)
 class Color:
+    """
+    Represents a color, including its name and alpha value.
+    
+    Attributes:
+        name (str): The name of the color.
+        alpha (float): The alpha value of the color, default is 1.0.
+    """
     name: str
     alpha: float = 1.0
 
     @cached_property
     def array(self) -> np.ndarray:
+        """
+        Converts the color to an RGB array.
+        
+        Returns:
+            np.ndarray: An RGB array representing the color.
+            
+        Raises:
+            ValueError: If the color name is not valid.
+        """
+        # Standardize the color name for lookup
         name = self.name.lower().replace(" ", "_")
+        # Iterate through the color tables to find a match
         for cdict in COLOR_TABLES:
             if name not in cdict:
                 continue
             print(f'[DEBUG] {name}: {cdict[name]}')
+            # Convert the found hexadecimal color value to an RGB array
             return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  # type: ignore
 
         try:
+            # Try to convert the color name to an RGB array using webcolors
             return np.array(webcolors.name_to_rgb(self.name), dtype=float) / 255
         except ValueError as e:
+            # Raise a ValueError if the color name is not valid
             raise ValueError(f"{self.name} is not a valid color name from matplotlib or webcolors") from e
 
     @cached_property
     def array_alpha(self) -> np.ndarray:
+        """
+        Adds the alpha value to the RGB array to create an RGBA array.
+        
+        Returns:
+            np.ndarray: An RGBA array representing the color.
+        """
+        # Append the alpha value to the RGB array
         return np.append(self.array, self.alpha)
 
     @staticmethod
     def as_arrays(colors: Iterable['Color']):
+        """
+        Converts a series of colors to an array of RGB arrays.
+        
+        Args:
+            colors (Iterable['Color']): A series of Color objects.
+            
+        Returns:
+            np.ndarray: An array consisting of the RGB arrays of all colors.
+        """
+        # Concatenate the RGB arrays of all colors
         return np.concatenate(tuple(color.array for color in colors))
 
     @staticmethod
     def as_cgos(colors: Iterable['Color']):
+        """
+        Converts a series of colors to an array suitable for CGO (Color Graphics Operations).
+        
+        Args:
+            colors (Iterable['Color']): A series of Color objects.
+            
+        Returns:
+            np.ndarray: An array consisting of the CGO representations of all colors.
+        """
+        # Concatenate the CGO representations of all colors
         return np.concatenate(tuple(color.as_cgo for color in colors))
 
     @cached_property
     def as_cgo(self):
+        """
+        Converts the color to a CGO (Color Graphics Operations) representation.
+        
+        Returns:
+            np.ndarray: The CGO representation of the color.
+        """
+        # Insert the color code into the RGB array
         return np.insert(self.array, 0, cgo.COLOR)
-
-
 @dataclass
 class GraphicObject:
+    """
+    A base class representing a graphic object, providing methods to rebuild and load graphic data.
+    """
 
     def rebuild(self):
         """
@@ -206,43 +340,114 @@ class GraphicObject:
         return self._data
 
     def load_as(self, name: str):
+        """
+        Load the graphic object as a specified name. If the name is occupied, delete it to regenerate.
+
+        Parameters:
+        name (str): The name of the object, used for loading the object data into the software.
+
+        If an object with the same name already exists, it is deleted before loading the new object.
+        This prevents loading errors due to duplicate names.
+        """
         if name in cmd.get_names():
             cmd.delete(name)
 
         print(f'[DEBUG]: {self.__class__}: \n{self.data}')
         cmd.load_cgo(self.data, name)
 
+@dataclass
+class Bezier(GraphicObject):
+    """
+    Defines a Bezier curve graphic object.
+    This class inherits from GraphicObject and uses the dataclass decorator for automatic generation of special methods.
+    """
+    # The following four points define a Bezier curve:
+    control_pt_A: Point  # Starting control point A
+    A_right_handle: Point  # Right handle point of starting control point A
+    B_left_handle: Point  # Left handle point of ending control point B
+    control_pt_B: Point  # Ending control point B
 
-
+    def rebuild(self) -> None:
+        """
+        Rebuilds bezier spline
+        This method reconstructs the Bezier curve data, preparing it for rendering or other uses.
+        """
+        # Reconstructs the Bezier curve data, including the type of graphic object and all control points
+        self._data = [
+            cgo.BEZIER,
+            *Point.as_arrays(
+                (self.control_pt_A,
+                 self.A_right_handle,
+                 self.B_left_handle,
+                 self.control_pt_B,)
+            )
+        ]
 @dataclass
 class LineVertex(GraphicObject):
-    point: Point
+    """
+    Represents a line vertex, inheriting from GraphicObject.
+    
+    This class is used to define a line drawing element, which can be a point or a Bezier curve, and can include line width and color attributes.
+    
+    Attributes:
+    - point: A Point or Bezier instance, representing the starting point or control point of the line.
+    - width: An optional float, representing the line width. If not provided, the default is None.
+    - color: An optional string, representing the line color. If not provided, the default is None.
+    """
+    point: Union[Point, Bezier]
     width: Optional[float]=None
     color: Optional[str]=None
 
     def rebuild(self):
+        """
+        Rebuilds the line vertex data.
+        
+        This method initializes the internal data list, and rebuilds the line vertex data based on the width, color, and point type.
+        """
+        # Initialize the data list
         self._data = []
+        
+        # If the width is provided, add the LINEWIDTH command and width value to the data list
         if self.width:
             self._data.extend([cgo.LINEWIDTH, self.width])
+        
+        # If the color is provided, convert the color to a format compatible with CGO and add it to the data list
         if self.color:
             self._data.extend(Color(self.color).as_cgo)
-        self._data.extend(self.point.as_vertex)
-
-
+        
+        # If the point type is Point, add the point's vertex data to the data list
+        if isinstance(self.point, Point):
+            self._data.extend(self.point.as_vertex)
+        else:
+            # Currently, only Point type is supported. If another type is encountered, raise an exception
+            raise NotImplementedError('Bezier is not currently supported')
 
 @dataclass
 class Sphere(GraphicObject):
+    """
+    Represents a sphere in 3D space, inheriting from GraphicObject.
+
+    Attributes:
+        center (Point): The center point of the sphere, default is the origin (0, 0, 0).
+        radius (float): The radius of the sphere, default is 0.0.
+        color (str): The color of the sphere, default is 'w' (white).
+    """
+
     center: Point = Point(0, 0, 0)
     radius: float = 0.0
     color: str = 'w'
 
     def rebuild(self):
+        """
+        Rebuilds the sphere's data representation using CGO (Chimera Graphics Object) format.
 
+        This method constructs the sphere's data by combining the color information and the sphere's geometric properties.
+        """
         self._data = [
-            *Color(self.color).as_cgo,
-            cgo.SPHERE,
-            *self.center.array,
-            self.radius,
+            *Color(self.color).as_cgo,  # Convert color to CGO format and unpack it into the data list
+            cgo.SPHERE,                 # Specify the CGO object type as SPHERE
+            *self.center.array,         # Unpack the center coordinates into the data list
+            self.radius,                # Add the radius to the data list
         ]
 
 
@@ -344,13 +549,16 @@ class Doughnut(GraphicObject):  # Torus
 
 @dataclass
 class Cone(GraphicObject):
-    tip: Point = Point(1.0, 0.0, 0.0)
-    base_center: Point = Point(0.0, 0.0, 0.0)
-    radius_tip: float = 1.0
-    radius_base: float = 0.0
+    tip: Point
+    base_center: Point
+
+    radius_tip: float
+    radius_base: float
+
     color_tip: str = 'w'
     color_base: str = 'g'
 
+    # where to add caps to tip and/or base. 1 for True, 0 for False
     caps: tuple[float, float] = (1, 0)
 
     def rebuild(self) -> None:
@@ -368,26 +576,6 @@ class Cone(GraphicObject):
         ]
 
 
-@dataclass
-class Bezier(GraphicObject):
-    control_pt_A = Point(-5.0, 0.0, 0.0)
-    A_right_handle = Point(0.0, 10.0, 0.0)
-    B_left_handle = Point(1.0, -10.0, 0.0)
-    control_pt_B = Point(5.0, 0.0, 0.0)
-
-    def rebuild(self) -> None:
-        """
-        Rebuilds bezier spline
-        """
-        self._data = [
-            cgo.BEZIER,
-            *Point.as_arrays(
-                (self.control_pt_A,
-                 self.A_right_handle,
-                 self.B_left_handle,
-                 self.control_pt_B,)
-            )
-        ]
 
 
 @dataclass
@@ -472,16 +660,17 @@ class Lines(GraphicObject):
 
 @dataclass
 class Cube(GraphicObject):
-    color_w: str = 'red'
+
+    p1: Point = Point(0, 0, 0)
+    p2: Point = Point(1, 1, 1)
+
+    color_w: str = 'yellow'
 
     color_x: str = 'red'
     color_y: str = 'green'
     color_z: str = 'blue'
 
-    p1: Point = Point(0, 0, 0)
-    p2: Point = Point(1, 1, 1)
-
-    transparent: bool = True
+    wire_frame: bool = True
     linewidth: float = 2
 
     def _rebuild_wireframe(self):
@@ -491,29 +680,18 @@ class Cube(GraphicObject):
             cgo.BEGIN, cgo.LINES,
 
         ]
-        # x fixed
-        for y, z in itertools.product((self.p1.y, self.p2.y), (self.p1.z, self.p2.z)):
-            self._data.extend([
-                *Color(self.color_x).as_cgo,
-                *self.p1.move(y=y, z=z).as_vertex,
-                *self.p2.move(y=y, z=z).as_vertex,
-            ])
 
-        # y fixed
-        for x, z in itertools.product((self.p1.x, self.p2.x), (self.p1.z, self.p2.z)):
-            self._data.extend([
-                *Color(self.color_y).as_cgo,
-                *self.p1.move(x=x, z=z).as_vertex,
-                *self.p2.move(x=x, z=z).as_vertex,
-            ])
-
-        # z fixed
-        for x, y in itertools.product((self.p1.x, self.p2.x), (self.p1.y, self.p2.y)):
-            self._data.extend([
-                *Color(self.color_z).as_cgo,
-                *self.p1.move(x=x, y=y).as_vertex,
-                *self.p2.move(x=x, y=y).as_vertex,
-            ])
+        for i,j in itertools.combinations('xyz', r=2):
+            for _i, _j in itertools.product(
+                    (getattr(self.p1, i), getattr(self.p2, i)), 
+                    (getattr(self.p1, j), getattr(self.p2, j))
+                ):
+                move_dict={i: _i, j:_j}
+                self._data.extend([
+                    *Color(getattr(self, f'color_{"xyz".replace(i, "").replace(j, "")}')).as_cgo,
+                    *self.p1.move(**move_dict).as_vertex,
+                    *self.p2.move(**move_dict).as_vertex,
+                ])
 
         self._data.append(cgo.END)
 
@@ -574,7 +752,7 @@ class Cube(GraphicObject):
             face4_data + face5_data + face6_data
 
     def rebuild(self):
-        if self.transparent:
+        if self.wire_frame:
             self._rebuild_wireframe()
         else:
             self._rebuild_solid()
@@ -650,9 +828,13 @@ class PolyLines(GraphicObject):
 
 # Doughnut(samples=100).load_as('my_treasure')
 
-# Cone(color_base='golden', color_tip='sand_brown').load_as('dyamond')
+# for i, j in itertools.product(range(2), repeat=2):
+#     Cone(tip=Point(0, 0, 1.4),
+#          base_center=Point(0,0, 0),
+#          radius_tip=0.5,
+#          radius_base=1.5,
+#         color_base='golden', color_tip='sand_brown', caps=(i,j,)).load_as(f'dyamond_{i},{j}')
 
-# Bezier().load_as('bez') #??
 
 # Triangle(
 #         vertex_a=Point(3, 0, 0),      # 顶点A
@@ -679,7 +861,8 @@ class PolyLines(GraphicObject):
 #     ).load_as('my_triangle_simple')
 
 
-# Cube(transparent=True).load_as('a_colorful_cube')
+Cube(wire_frame=True).load_as('a_colorful_cube')
+Cube(wire_frame=False).load_as('a_colorful_solid_cube')
 # Cube(
 #     transparent=False,
 #     color_w='yellow',
@@ -772,31 +955,34 @@ class PolyLines(GraphicObject):
 # ).load_as('white_square')
 
 
-PolyLines(
-    2.0, 'golden',
-    [
-     LineVertex(Point(-1,1, 0) ),
-     LineVertex(Point(0, 0, 1.4) ),
-     LineVertex(Point(1, 1, 0) ),
-     LineVertex(Point(1, -1, 0) ),
-     LineVertex(Point(0, 0, 1.4) ),
-     LineVertex(Point(-1, -1, 0) ),
-     LineVertex(Point(-1,1, 0) ),
-    ],
-     line_type='TRIANGLE_STRIP'
-).load_as('pyramid')
+# PolyLines(
+#     2.0, 'golden',
+#     [
+#      LineVertex(Point(-1,1, 0) ), # left top 
+#      LineVertex(Point(0, 0, 1.4) ), # tip
+#      LineVertex(Point(1, 1, 0) ), # right top
+#      LineVertex(Point(1, -1, 0) ), # right bottom
+#      LineVertex(Point(0, 0, 1.4) ), # tip again
+#      LineVertex(Point(-1, -1, 0) ), # left bottom
+#      LineVertex(Point(-1,1, 0) ), # left top back
+#     ],
+#      line_type='TRIANGLE_STRIP'
+# ).load_as('pyramid')
 
 
-PolyLines(
-    4.0, 'white',
-    [
-     LineVertex(Point(-1,1, 0) ),
-     LineVertex(Point(0, 0, 1.4) ),
-     LineVertex(Point(1, 1, 0) ),
-     LineVertex(Point(1, -1, 0) ),
-     LineVertex(Point(0, 0, 1.4) ),
-     LineVertex(Point(-1, -1, 0) ),
-     LineVertex(Point(-1,1, 0) ),
-    ],
-     line_type='LINE_LOOP'
-).load_as('pyramid_curve')
+# PolyLines(
+#     4.0, 'white',
+#     [
+#      LineVertex(Point(-1,1, 0) ),
+#      LineVertex(Point(0, 0, 1.4) ),
+#      LineVertex(Point(1, 1, 0) ),
+#      LineVertex(Point(1, -1, 0) ),
+#      LineVertex(Point(0, 0, 1.4) ),
+#      LineVertex(Point(-1, -1, 0) ),
+#      LineVertex(Point(-1,1, 0) ),
+#     ],
+#      line_type='LINE_LOOP'
+# ).load_as('pyramid_curve')
+
+
+
