@@ -536,6 +536,7 @@ class Sphere(GraphicObject):
             self.radius,                # Add the radius to the data list
         ]
 
+
 @dataclass
 class Cylinder(GraphicObject):
     """
@@ -569,6 +570,7 @@ class Cylinder(GraphicObject):
             *Color(self.color1).array,
             *Color(self.color2).array,
         ]
+
 
 @dataclass
 class Sausage(GraphicObject):
@@ -681,6 +683,7 @@ class Doughnut(GraphicObject):  # Torus
 
         self._data = obj
 
+
 @dataclass
 class Cone(GraphicObject):
     """
@@ -722,6 +725,8 @@ class Cone(GraphicObject):
             *Color(self.color_base).array,
             *self.caps
         ]
+
+
 @dataclass
 class Triangle(GraphicObject):
     """
@@ -762,6 +767,8 @@ class Triangle(GraphicObject):
             *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
             *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
         ]
+
+
 @dataclass
 class TriangleSimple(GraphicObject):
     """
@@ -805,16 +812,18 @@ class TriangleSimple(GraphicObject):
 
             cgo.END
         ]
+
+
 @dataclass
 class Line(GraphicObject):
     """
     Represents a line, inheriting from GraphicObject.
-    
+
     Attributes:
         start: The starting point of the line, default is at the origin (0, 0, 0).
         end: The ending point of the line, default is at (0, 0, 1).
     """
-    
+
     start: Point = Point(0, 0, 0)
     end: Point = Point(0, 0, 1)
 
@@ -822,7 +831,7 @@ class Line(GraphicObject):
     def points(self):
         """
         Returns the starting and ending points of the line.
-        
+
         Returns:
             A tuple containing the starting and ending points.
         """
@@ -831,7 +840,7 @@ class Line(GraphicObject):
     def rebuild(self):
         """
         Rebuilds the line's vertex data.
-        
+
         This method converts the starting and ending points into vertex data format and assigns it to self._data.
         """
         self._data = [
@@ -843,19 +852,19 @@ class Line(GraphicObject):
 class Lines(GraphicObject):
     """
     Represents a collection of lines, inheriting from GraphicObject.
-    
+
     Attributes:
         color: The color of the lines, default is 'w' (white).
         lines: A tuple containing the Line objects, default is an empty tuple.
     """
-    
+
     color: str = 'w'
     lines: tuple[Line] = field(default_factory=tuple)
 
     def rebuild(self):
         """
         Rebuilds the collection of lines' data.
-        
+
         This method first sets self._data to the color data, then extends it with the data of each line.
         """
         self._data = [
@@ -863,6 +872,7 @@ class Lines(GraphicObject):
         ]
         for line in self.lines:
             self._data.extend(line.data)
+
 
 @dataclass
 class Cube(GraphicObject):
@@ -968,11 +978,12 @@ class Cube(GraphicObject):
         else:
             self._rebuild_solid()
 
+
 @dataclass
 class Square(GraphicObject):
     """
     Represents a square graphic object, inheriting from GraphicObject.
-    
+
     Attributes:
         corner_a, corner_b, corner_c, corner_d: Define the four corners of the square using Point objects.
         color_a, color_b, color_c, color_d: Define the colors for each corner of the square.
@@ -991,7 +1002,7 @@ class Square(GraphicObject):
     def rebuild(self):
         """
         Rebuilds the square object's drawing data.
-        
+
         This method initializes a graphic object drawing data (_data) by defining the vertices and colors of the triangles that make up the square.
         It uses the Color utility class to handle color conversion and the Point class for vertex coordinates.
         """
@@ -1018,13 +1029,15 @@ class Square(GraphicObject):
             # End drawing
             cgo.END
         ]
+
+
 @dataclass
 class PolyLines(GraphicObject):
     """
     Represents a collection of polylines, inheriting from GraphicObject.
-    
+
     This class is used to define a series of lines connected in a specific way, with common attributes such as width and color.
-    
+
     Attributes:
         width (float): The line width.
         color (str): The line color, represented as a string.
@@ -1041,7 +1054,7 @@ class PolyLines(GraphicObject):
     def rebuild(self):
         """
         Rebuilds the line data.
-        
+
         This method initializes the line drawing data, including setting the line width, color, and type, and updates the data for each vertex.
         """
         # Initialize the line drawing data, including line width and color
@@ -1061,10 +1074,10 @@ class PolyLines(GraphicObject):
 class GraphicObjectCollection(GraphicObject):
     """
     A collection class for GraphicObject, which contains multiple graphic objects.
-    
+
     Attributes:
         objects (List[GraphicObject]): A list of GraphicObject instances.
-        force_to_rebuild (bool): A flag indicating whether to force rebuild the graphic objects in the collection.
+        force_to_rebuild (bool): Whether to rebuild everything before merging data.
     """
     objects: List[GraphicObject]
     force_to_rebuild: bool = False
@@ -1072,7 +1085,7 @@ class GraphicObjectCollection(GraphicObject):
     def rebuild(self):
         """
         Rebuilds the data for all graphic objects in the collection.
-        
+
         This method empties the existing graphic object data, then iterates through each graphic object in the collection.
         If the force_to_rebuild flag is set to True, it calls the rebuild method on each graphic object.
         Finally, it adds the data of each graphic object to the collection's _data list.
@@ -1287,8 +1300,8 @@ class GraphicObjectCollection(GraphicObject):
 #      line_type='LINE_LOOP'
 # ).load_as('pyramid_curve')
 
-
-def __east_egg():
+# also a quick demo to construct complicated cgo object
+def __easter_egg():
     '''
     There is always only one truth!
 
@@ -1298,7 +1311,7 @@ def __east_egg():
     _DEBUG = DEBUG
 
     DEBUG = False
-    aptx_4869 = GraphicObjectCollection([
+    poision = GraphicObjectCollection([
         Sphere(
             center=Point(-2, 0, 0),
             radius=1,
@@ -1314,13 +1327,13 @@ def __east_egg():
         Cylinder(
             Point(0, 0, 0),
             Point(2, 0, 0),
-            radius=1,
+            radius=1.015,
             color1='red',
             color2='red'
         ),
         Sphere(
             center=Point(2, 0, 0),
-            radius=1,
+            radius=1.015,
             color='red'
         ),
         PolyLines(
@@ -1330,8 +1343,8 @@ def __east_egg():
                 LineVertex(Point(1.6, 0.5, 0.9)),
                 LineVertex(PseudoBezier(
                     Point(1.6, 0.5, 0.9),
-                    Point(2.2, 0.5, 1.05),
-                    Point(2.2, -0.5, 1.05),
+                    Point(2.2, 0.5, 1.08),
+                    Point(2.2, -0.5, 1.08),
                     Point(1.6, -0.5, 0.9)
                 )),
                 LineVertex(Point(1.6, -0.5, 0.9)),
@@ -1348,9 +1361,9 @@ def __east_egg():
     )
 
     cgo.cyl_text(
-        aptx_4869.data,
+        poision.data,
         plain,
-        Point(-1.5, -0.3, 1.01).array,
+        Point(-1.5, -0.25, 1.01).array,
         'APTX-4869',
         0.03,
         axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
@@ -1359,15 +1372,18 @@ def __east_egg():
     from ..shortcuts.tools.vina_tools import showaxes
 
     showaxes()
-    aptx_4869.load_as('APTX-4869')
+    poision.load_as('APTX-4869')
 
-    cmd.zoom()
     cmd.turn('z', 16)
-    cmd.movie.add_roll(4.0, axis='y', start=1)
+
+    cmd.zoom('APTX-4869', 0)
+    cmd.movie.add_roll(8, loop=0, axis='y', start=1)
+
+    cmd.set('movie_fps', 90)
 
     DEBUG = _DEBUG
-    print(__east_egg.__doc__)
+    print(__easter_egg.__doc__)
     cmd.mplay()
 
 
-cmd.extend('hello_revodesign', __east_egg)
+cmd.extend('hello_revodesign', __easter_egg)
