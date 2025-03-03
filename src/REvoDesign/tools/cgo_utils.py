@@ -63,7 +63,7 @@ from chempy import cpv
 from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
-
+from pymol.vfont import plain
 DEBUG = True
 
 
@@ -391,6 +391,71 @@ class Bezier(GraphicObject):
             )
         ]
 
+@dataclass
+class PseudoBezier(GraphicObject):
+    """
+    A class representing a pseudo-Bezier curve, inheriting from GraphicObject.
+    
+    This class defines a Bezier curve with two control points and their respective handles, 
+    and provides functionality to rebuild the curve based on these points.
+    
+    Attributes:
+        control_pt_A (Point): The coordinates of the starting control point.
+        A_right_handle (Point): The coordinates of the handle on the right side of the starting control point.
+        B_left_handle (Point): The coordinates of the handle on the left side of the ending control point.
+        control_pt_B (Point): The coordinates of the ending control point.
+        color (Optional[str]): The color of the curve, optional.
+        steps (int): The number of segments the curve is divided into for drawing, default is 50.
+    """
+    control_pt_A: Point         
+    A_right_handle: Point       
+    B_left_handle: Point        
+    control_pt_B: Point        
+    color: Optional[str] =None
+    steps: int = 50            
+
+    def rebuild(self) -> None:
+        """
+        Rebuilds the pseudo-Bezier curve.
+        
+        This method calculates all vertices of the Bezier curve using the Bezier curve formula, 
+        and updates the internal data representation of the curve for rendering.
+        """
+        # Load the coordinates of the control points and handles as arrays
+        cpA      = self.control_pt_A.array
+        cpA_right = self.A_right_handle.array
+        cpB_left = self.B_left_handle.array
+        cpB      = self.control_pt_B.array
+        
+        # Organize the control points and handles into a list
+        control_points = [cpA, cpA_right, cpB_left, cpB]
+        n = len(control_points) - 1 
+        
+        # Initialize the list of vertices
+        vertices_points = []
+        # Calculate the vertices of the Bezier curve
+        for i in range(self.steps + 1):
+            t = i / self.steps
+            x = y = z = 0.0
+            # Calculate the coordinates of each point on the curve using the Bezier formula
+            for j, cp in enumerate(control_points):
+                bernstein = math.comb(n, j) * (t ** j) * ((1 - t) ** (n - j))
+                x += cp[0] * bernstein
+                y += cp[1] * bernstein
+                z += cp[2] * bernstein
+            vertices_points.append(Point(x, y, z))
+
+        # Set the curve color if specified
+        if self.color is not None:
+            cgo_obj = [*Color(self.color).as_cgo]
+        else:
+            cgo_obj=[]
+
+        # Add the vertices data to the CGO object
+        cgo_obj.extend(Point.as_vertexes(vertices_points))
+        
+        # Update the internal data representation of the curve
+        self._data = cgo_obj
 
 @dataclass
 class LineVertex(GraphicObject):
@@ -404,7 +469,7 @@ class LineVertex(GraphicObject):
     - width: An optional float, representing the line width. If not provided, the default is None.
     - color: An optional string, representing the line color. If not provided, the default is None.
     """
-    point: Union[Point, Bezier]
+    point: Union[Point, PseudoBezier]
     width: Optional[float] = None
     color: Optional[str] = None
 
@@ -428,6 +493,8 @@ class LineVertex(GraphicObject):
         # If the point type is Point, add the point's vertex data to the data list
         if isinstance(self.point, Point):
             self._data.extend(self.point.as_vertex)
+        elif isinstance(self.point, PseudoBezier):
+            self._data.extend(self.point.data)
         else:
             # Currently, only Point type is supported. If another type is encountered, raise an exception
             raise NotImplementedError('Bezier is not currently supported')
@@ -1018,7 +1085,7 @@ class GraphicObjectCollection(GraphicObject):
 #     color_2='white'
 # ).load_as('tasty_sausage')
 
-GraphicObjectCollection([
+aptx_4869=GraphicObjectCollection([
     Sphere(
         center=Point(-2,0, 0),
         radius=1,
@@ -1042,9 +1109,43 @@ GraphicObjectCollection([
         center=Point(2,0, 0),
         radius=1,
         color='red'
+    ),
+    PolyLines(
+        5, 'black',
+        [
+            LineVertex(Point(-1.6,0.5, 0.9)),
+            LineVertex(Point(1.6,0.5, 0.9)),
+            LineVertex(PseudoBezier(
+                Point(1.6,0.5, 0.9),
+                Point(2.2,0.5, 1.05),
+                Point(2.2,-0.5, 1.05),
+                Point(1.6,-0.5, 0.9)
+            )),
+            LineVertex(Point(1.6,-0.5, 0.9)),
+            LineVertex(Point(-1.6,-0.5, 0.9)),
+            LineVertex(PseudoBezier(
+                Point(-1.6,-0.5, 0.9),
+                Point(-2.2,-0.5, 1.05),
+                Point(-2.2,0.5, 1.05),
+                Point(-1.6,0.5, 0.9)
+            )),
+        ],line_type='LINE_LOOP'
     )
     ]
-).load_as('APTX-4869')
+)
+
+cgo.cyl_text(
+    aptx_4869.data, 
+    plain, 
+    Point(-1.5,-0.3, 1.01).array, 
+    'APTX-4869', 
+    0.03, 
+    axes=[Point(0.5,0, 0).array,Point(0, 0.5, 0).array,Point(0, 0,0.5).array],
+    color=Color('black').array)
+
+aptx_4869.load_as('APTX-4869')
+
+
 
 # PolyLines(
 #     2.0, 'white',
