@@ -1,7 +1,10 @@
 '''
-Utilities for pymol.cgo, modified from `pymol.cgobuilder`
+Utilities for pymol.cgo, partially modified from `pymol.cgobuilder`
 
-docs of cgo:
+This module is aimed at building programable application protocol for CGO creating via pymol.cgo module
+
+
+# docs of cgo:
 
 Lowercase names below should be replaced with floating-point numbers. Generally, the TRIANGLE primitive should only be used only as a last restore since it is much less effective to render than using a series of vertices with a BEGIN/END group.
 
@@ -59,9 +62,7 @@ from chempy import cpv
 from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
-from PIL import Image, ImageDraw, ImageFont
 
-import matplotlib.font_manager as fm
 
 
 # name: hsv imutable dicts
@@ -76,14 +77,33 @@ XKCD_COLORS: immutabledict[str, str] = immutabledict(
 # color tables
 COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
 
-
-def not_none_float(float_in_1: Optional[float], float_in_2: Optional[float]):
-    if float_in_1 is not None:
-        return float(float_in_1)
-    if float_in_2 is not None:
-        return float(float_in_2)
+def not_none_float(*args: Optional[float]):
+    """
+    Returns the first non-None float value from the given arguments.
+    
+    If all arguments are None or cannot be converted to float, it returns 0.0.
+    This function is designed to simplify the extraction and conversion of float values,
+    especially when dealing with input data that may contain None values.
+    
+    Parameters:
+    *args: Optional[float] - One or more optional float type arguments.
+    
+    Returns:
+    float - The first non-None float value, or 0.0 if none can be found.
+    """
+    # Iterate over all input arguments
+    for idx, float_in in enumerate(args):
+        # Skip the current argument if it is None
+        if float_in is None:
+            continue
+        try:
+            # Attempt to convert the current argument to float and return it
+            return float(float_in)
+        except Exception as e:
+            # Print an error message if conversion fails and continue to the next argument
+            print(f'Skip {idx} ({float_in}): {e}')
+    # Return the default value 0.0 if no valid float can be found
     return 0.0
-
 
 @dataclass(frozen=True)
 class Point:
@@ -191,6 +211,23 @@ class GraphicObject:
 
         print(f'[DEBUG]: {self.__class__}: \n{self.data}')
         cmd.load_cgo(self.data, name)
+
+
+
+@dataclass
+class LineVertex(GraphicObject):
+    point: Point
+    width: Optional[float]=None
+    color: Optional[str]=None
+
+    def rebuild(self):
+        self._data = []
+        if self.width:
+            self._data.extend([cgo.LINEWIDTH, self.width])
+        if self.color:
+            self._data.extend(Color(self.color).as_cgo)
+        self._data.extend(self.point.as_vertex)
+
 
 
 @dataclass
@@ -373,6 +410,7 @@ class Triangle(GraphicObject):
             *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
             *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
         ]
+
 
 
 @dataclass
@@ -577,21 +615,6 @@ class Square(GraphicObject):
             cgo.END
         ]
 
-@dataclass
-class LineVertex(GraphicObject):
-    point: Point
-    width: Optional[float]=None
-    color: Optional[str]=None
-
-    def rebuild(self):
-        self._data = []
-        if self.width:
-            self._data.extend([cgo.LINEWIDTH, self.width])
-        if self.color:
-            self._data.extend(Color(self.color).as_cgo)
-        self._data.extend(self.point.as_vertex)
-
-
 
 @dataclass
 class PolyLines(GraphicObject):
@@ -600,14 +623,14 @@ class PolyLines(GraphicObject):
     color: str
 
     points: Iterable[LineVertex]
-    line_type: Literal['LINE_STRIP', 'LINE_LOOP']= 'LINE_STRIP'
-    
+    line_type: Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']= 'LINE_STRIP'
+
 
     def rebuild(self):
         self._data=[
             cgo.LINEWIDTH, self.width,
             *Color(self.color).as_cgo,
-            cgo.BEGIN, cgo.LINE_LOOP if self.line_type=='LINE_LOOP' else cgo.LINE_STRIP,
+            cgo.BEGIN, getattr(cgo, self.line_type),
             ]
         for pv in self.points:
             self._data.extend([*pv.data])
@@ -683,22 +706,97 @@ class PolyLines(GraphicObject):
 # Square().load_as('a_square')
 
 
-PolyLines(
-    2.0, 'yellow',
-    [LineVertex(Point(0, 0, 0) ),
-     LineVertex(Point(0, 0, 1) ),
-     LineVertex(Point(0, 1, 0) ),
-     LineVertex(Point(1, 0, 0) ),
-     LineVertex(Point(1, 1, 2) )]
-).load_as('yellow_line_strip')
+# PolyLines(
+#     2.0, 'yellow',
+#     [LineVertex(Point(0, 0, 0) ),
+#      LineVertex(Point(0, 0, 1) ),
+#      LineVertex(Point(0, 1, 0) ),
+#      LineVertex(Point(1, 0, 0) ),
+#      LineVertex(Point(1, 1, 2) )]
+# ).load_as('yellow_line_strip')
+
+
+# PolyLines(
+#     2.0, 'red',
+#     [LineVertex(Point(0, 0, 0) ),
+#      LineVertex(Point(0, 0, 1) ),
+#      LineVertex(Point(0, 1, 0) ),
+#      LineVertex(Point(1, 0, 0) ),
+#      LineVertex(Point(1, 1, 2) )],
+#      line_type='LINE_LOOP'
+# ).load_as('red_line_loop')
+
+
+# PolyLines(
+#     2.0, 'cyan',
+#     [LineVertex(Point(0, 0, 0) ),
+#      LineVertex(Point(0, 0, 1) ),
+#      LineVertex(Point(0, 1, 0) ),
+#     ],
+#      line_type='TRIANGLE_STRIP'
+# ).load_as('cyan_trangle_shape')
+
+# PolyLines(
+#     2.0, 'violet',
+#     [
+#      LineVertex(Point(0, 0, 0) ),
+#      LineVertex(Point(0, 1, 0) ),
+#      LineVertex(Point(1, 0, 0) ),
+#      LineVertex(Point(1, 1, 0) ),
+#     ],
+#      line_type='TRIANGLE_STRIP'
+# ).load_as('violet_square_shape')
+
+# PolyLines(
+#     2.0, 'pink',
+#     [                             # continous triangles
+#      LineVertex(Point(0, 0, 0) ), # -\  triangle # 1
+#      LineVertex(Point(0, 1, 0) ), #   |-'  -\  triangle # 2
+#      LineVertex(Point(1, 1, 0) ), # -/       |-'  -\  triangle # 3
+#      LineVertex(Point(1, 0, 0) ), #        -/       |-'
+#      LineVertex(Point(1, 1, 1) ), #               -/ 
+#     ],
+#      line_type='TRIANGLE_STRIP'
+# ).load_as('pink_3_tri_shape')
+
+# PolyLines(
+#     2.0, 'white',
+#     [
+#      LineVertex(Point(0, 0, 0) ),
+#      LineVertex(Point(0, 1, 0) ),
+#      LineVertex(Point(1, 1, 0) ),
+#      LineVertex(Point(1, 0, 0) ),
+     
+#     ],
+#      line_type='TRIANGLE_FAN'
+# ).load_as('white_square')
 
 
 PolyLines(
-    2.0, 'red',
-    [LineVertex(Point(0, 0, 0) ),
-     LineVertex(Point(0, 0, 1) ),
-     LineVertex(Point(0, 1, 0) ),
-     LineVertex(Point(1, 0, 0) ),
-     LineVertex(Point(1, 1, 2) )],
+    2.0, 'golden',
+    [
+     LineVertex(Point(-1,1, 0) ),
+     LineVertex(Point(0, 0, 1.4) ),
+     LineVertex(Point(1, 1, 0) ),
+     LineVertex(Point(1, -1, 0) ),
+     LineVertex(Point(0, 0, 1.4) ),
+     LineVertex(Point(-1, -1, 0) ),
+     LineVertex(Point(-1,1, 0) ),
+    ],
+     line_type='TRIANGLE_STRIP'
+).load_as('pyramid')
+
+
+PolyLines(
+    4.0, 'white',
+    [
+     LineVertex(Point(-1,1, 0) ),
+     LineVertex(Point(0, 0, 1.4) ),
+     LineVertex(Point(1, 1, 0) ),
+     LineVertex(Point(1, -1, 0) ),
+     LineVertex(Point(0, 0, 1.4) ),
+     LineVertex(Point(-1, -1, 0) ),
+     LineVertex(Point(-1,1, 0) ),
+    ],
      line_type='LINE_LOOP'
-).load_as('red_line_loop')
+).load_as('pyramid_curve')
