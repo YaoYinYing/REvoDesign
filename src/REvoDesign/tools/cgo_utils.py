@@ -1036,66 +1036,6 @@ class TriangleSimple(GraphicObject):
 
 
 @dataclass
-class Line(GraphicObject):
-    """
-    Represents a line, inheriting from GraphicObject.
-
-    Attributes:
-        start: The starting point of the line, default is at the origin (0, 0, 0).
-        end: The ending point of the line, default is at (0, 0, 1).
-    """
-
-    start: Point = Point(0, 0, 0)
-    end: Point = Point(0, 0, 1)
-
-    @property
-    def points(self):
-        """
-        Returns the starting and ending points of the line.
-
-        Returns:
-            A tuple containing the starting and ending points.
-        """
-        return (self.start, self.end)
-
-    def rebuild(self):
-        """
-        Rebuilds the line's vertex data.
-
-        This method converts the starting and ending points into vertex data format and assigns it to self._data.
-        """
-        self._data = [
-            *Point.as_vertexes((self.start, self.end))
-        ]
-
-
-@dataclass
-class Lines(GraphicObject):
-    """
-    Represents a collection of lines, inheriting from GraphicObject.
-
-    Attributes:
-        color: The color of the lines, default is 'w' (white).
-        lines: A tuple containing the Line objects, default is an empty tuple.
-    """
-
-    color: str = 'w'
-    lines: tuple[Line] = field(default_factory=tuple)
-
-    def rebuild(self):
-        """
-        Rebuilds the collection of lines' data.
-
-        This method first sets self._data to the color data, then extends it with the data of each line.
-        """
-        self._data = [
-            *Color(self.color).as_cgo,
-        ]
-        for line in self.lines:
-            self._data.extend(line.data)
-
-
-@dataclass
 class Cube(GraphicObject):
     '''
     Cubic box with edges aligned with axes
