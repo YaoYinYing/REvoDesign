@@ -51,9 +51,10 @@ CONE,      x1, y1, z1,
 
 '''
 
+from abc import ABC, abstractmethod
 import itertools
 import math
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from functools import cached_property
 from typing import Iterable, List, Literal, Optional, Tuple, Union
 
@@ -233,7 +234,7 @@ class Color:
 
     Attributes:
         name (str): The name of the color.
-        alpha (float): The alpha value of the color, default is 1.0.
+        alpha (float): The alpha value of the color, default is 1.0 for full opacity.
     """
     name: str
     alpha: float = 1.0
@@ -314,8 +315,7 @@ class Color:
         Returns:
             np.ndarray: The CGO representation of the color.
         """
-        # Insert the color code into the RGB array
-        return np.insert(self.array, 0, cgo.COLOR)
+        return np.concatenate((np.array([cgo.ALPHA, self.alpha, cgo.COLOR]), self.array))
 
 
 @dataclass
@@ -364,101 +364,294 @@ class GraphicObject:
         cmd.load_cgo(self.data, name, *args, **kwargs)
 
 
-@dataclass
-class Bezier(GraphicObject):
-    """
-    Defines a Bezier curve graphic object.
-    This class inherits from GraphicObject and uses the dataclass decorator for automatic generation of special methods.
-    """
-    # The following four points define a Bezier curve:
-    control_pt_A: Point  # Starting control point A
-    A_right_handle: Point  # Right handle point of starting control point A
-    B_left_handle: Point  # Left handle point of ending control point B
-    control_pt_B: Point  # Ending control point B
-
-    def rebuild(self) -> None:
-        """
-        Rebuilds bezier spline
-        This method reconstructs the Bezier curve data, preparing it for rendering or other uses.
-        """
-        # Reconstructs the Bezier curve data, including the type of graphic object and all control points
-        self._data = [
-            cgo.BEZIER,
-            *Point.as_arrays(
-                (self.control_pt_A,
-                 self.A_right_handle,
-                 self.B_left_handle,
-                 self.control_pt_B,)
-            )
-        ]
-
+# ------------------------------------------------------------------
+# Pseudocurve Base Class
+# ------------------------------------------------------------------
 
 @dataclass
-class PseudoBezier(GraphicObject):
-    """
-    A class representing a pseudo-Bezier curve, inheriting from GraphicObject.
-
-    This class defines a Bezier curve with two control points and their respective handles,
-    and provides functionality to rebuild the curve based on these points.
-
+class PseudoCurve(GraphicObject):
+    '''
+    Pseudocurve base class, from which all pseudocurves (Bezier, Catmull-Rom, 
+    B-Spline, Hermite, Arc, NURBS) inherit. Implements the sample method to 
+    calculate discrete sampling points of the curve.
+    
     Attributes:
-        control_pt_A (Point): The coordinates of the starting control point.
-        A_right_handle (Point): The coordinates of the handle on the right side of the starting control point.
-        B_left_handle (Point): The coordinates of the handle on the left side of the ending control point.
-        control_pt_B (Point): The coordinates of the ending control point.
-        color (Optional[str]): The color of the curve, optional.
-        steps (int): The number of segments the curve is divided into for drawing, default is 50.
-    """
-    control_pt_A: Point
-    A_right_handle: Point
-    B_left_handle: Point
-    control_pt_B: Point
+        control_points (List[Point]): A list of control points used to define the curve.
+        color (Optional[str]): The color of the curve (optional).
+        steps (int): The number of segments the curve is divided into for drawing (default is 50).
+    '''
+    control_points: List[Point]
     color: Optional[str] = None
     steps: int = 50
 
+    def check_control_points(self, num_min: Optional[int] = None, num_max: Optional[int] = None):
+        len_cp = len(self.control_points)
+        if num_min and len_cp < num_min:
+            raise ValueError(f'Number of Control Points mismatch. Required {num_min} as minimum but got {len_cp}')
+        if num_max and len_cp > num_max:
+            raise ValueError(f'Number of Control Points mismatch. Required {num_max} as maximum but got {len_cp}')
+
+    @abstractmethod
+    def sample(self) -> List["Point"]:
+        '''
+        Abstract method sample, used to calculate the discrete sampling points of the curve.
+
+        Returns:
+            List["Point"]: A list of sampling points, containing a series of points that make up the curve.
+        '''
+        pass
+
     def rebuild(self) -> None:
-        """
-        Rebuilds the pseudo-Bezier curve.
-
-        This method calculates all vertices of the Bezier curve using the Bezier curve formula,
-        and updates the internal data representation of the curve for rendering.
-        """
-        # Load the coordinates of the control points and handles as arrays
-        cpA = self.control_pt_A.array
-        cpA_right = self.A_right_handle.array
-        cpB_left = self.B_left_handle.array
-        cpB = self.control_pt_B.array
-
-        # Organize the control points and handles into a list
-        control_points = [cpA, cpA_right, cpB_left, cpB]
-        n = len(control_points) - 1
-
-        # Initialize the list of vertices
-        vertices_points = []
-        # Calculate the vertices of the Bezier curve
-        for i in range(self.steps + 1):
-            t = i / self.steps
-            x = y = z = 0.0
-            # Calculate the coordinates of each point on the curve using the Bezier formula
-            for j, cp in enumerate(control_points):
-                bernstein = math.comb(n, j) * (t ** j) * ((1 - t) ** (n - j))
-                x += cp[0] * bernstein
-                y += cp[1] * bernstein
-                z += cp[2] * bernstein
-            vertices_points.append(Point(x, y, z))
-
-        # Set the curve color if specified
+        '''
+        Rebuild method, used to rebuild the curve object based on sampling points.
+        
+        This method first calls the sample method to get a list of sampling points, then builds 
+        a CGO (Crystallographic Object) list based on these points.
+        If the color attribute exists, the color information is added to the CGO object.
+        Finally, the CGO object is assigned to the _data attribute of the instance, for subsequent 
+        processing or rendering.
+        '''
+        vertices_points = self.sample()  # Call the sample method to get a list of sampling points
+        cgo_obj = []
         if self.color is not None:
-            cgo_obj = [*Color(self.color).as_cgo]
-        else:
-            cgo_obj = []
-
-        # Add the vertices data to the CGO object
-        cgo_obj.extend(Point.as_vertexes(vertices_points))
-
-        # Update the internal data representation of the curve
+            cgo_obj.extend(Color(self.color).as_cgo)  # Add color information if available
+        cgo_obj.extend(Point.as_vertexes(vertices_points))  # Convert sampling points to CGO vertex format
         self._data = cgo_obj
 
+# ------------------------------------------------------------------
+# PseudoBezier Implementation
+# ------------------------------------------------------------------
+
+@dataclass
+class PseudoBezier(PseudoCurve):
+    '''
+    PseudoBezier pseudocurve implementation using the Bezier curve formula with four control points.
+    '''
+    def sample(self) -> List[Point]:
+        self.check_control_points(4, 4)
+        control_points = self.control_points
+        n = len(control_points) - 1
+        points = []
+        # Use numpy linspace for t values in [0, 1]
+        t_values = np.linspace(0, 1, self.steps + 1)
+        for t in t_values:
+            x = y = z = 0.0
+            for j, cp in enumerate(control_points):
+                bernstein = math.comb(n, j) * (t ** j) * ((1 - t) ** (n - j))
+                x += cp.x * bernstein
+                y += cp.y * bernstein
+                z += cp.z * bernstein
+            points.append(Point(x, y, z))
+        return points
+
+# ------------------------------------------------------------------
+# PseudoCatmullRom Implementation
+# ------------------------------------------------------------------
+
+@dataclass
+class PseudoCatmullRom(PseudoCurve):
+    '''
+    PseudoCatmullRom pseudocurve implementation using the Catmull-Rom spline formula.
+    This curve passes through all the control points and requires at least 4 control points.
+    '''
+    def sample(self) -> List[Point]:
+        if len(self.control_points) < 4:
+            raise ValueError("Catmull-Rom curve requires at least 4 control points")
+        points = []
+        # Iterate through segments defined by 4 consecutive control points
+        for i in range(1, len(self.control_points) - 2):
+            P0 = self.control_points[i - 1]
+            P1 = self.control_points[i]
+            P2 = self.control_points[i + 1]
+            P3 = self.control_points[i + 2]
+            t_values = np.linspace(0, 1, self.steps)
+            for t in t_values:
+                t2 = t * t
+                t3 = t2 * t
+                x = 0.5 * ((2 * P1.x) +
+                           (-P0.x + P2.x) * t +
+                           (2 * P0.x - 5 * P1.x + 4 * P2.x - P3.x) * t2 +
+                           (-P0.x + 3 * P1.x - 3 * P2.x + P3.x) * t3)
+                y = 0.5 * ((2 * P1.y) +
+                           (-P0.y + P2.y) * t +
+                           (2 * P0.y - 5 * P1.y + 4 * P2.y - P3.y) * t2 +
+                           (-P0.y + 3 * P1.y - 3 * P2.y + P3.y) * t3)
+                z = 0.5 * ((2 * P1.z) +
+                           (-P0.z + P2.z) * t +
+                           (2 * P0.z - 5 * P1.z + 4 * P2.z - P3.z) * t2 +
+                           (-P0.z + 3 * P1.z - 3 * P2.z + P3.z) * t3)
+                points.append(Point(x, y, z))
+        # Append the second-to-last control point to ensure correct termination.
+        points.append(self.control_points[-2])
+        return points
+
+# ------------------------------------------------------------------
+# PseudoBSpline Implementation
+# ------------------------------------------------------------------
+
+@dataclass
+class PseudoBSpline(PseudoCurve):
+    '''
+    PseudoBSpline pseudocurve implementation using a B-Spline algorithm.
+    
+    Attributes:
+        degree (int): Degree of the B-Spline curve (default is 3).
+        knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
+    '''
+    degree: int = 3
+    knots: Optional[List[float]] = None
+
+    def sample(self) -> List[Point]:
+        from scipy.interpolate import BSpline
+        n = len(self.control_points) - 1
+        p = self.degree
+        # Generate a uniform clamped knot vector if not provided.
+        if self.knots is None:
+            self.knots = [0.0] * (p + 1) + list(range(1, n - p + 1)) + [n - p + 1] * (p + 1)
+        # Convert control points to a NumPy array of shape (n+1, 3)
+        ctrl_pts = np.array([[pt.x, pt.y, pt.z] for pt in self.control_points])
+        u_start = self.knots[p]
+        u_end = self.knots[n + 1]
+        u_vals = np.linspace(u_start, u_end, self.steps + 1)
+        bspline = BSpline(self.knots, ctrl_pts, p)
+        spline_pts = bspline(u_vals)
+        return [Point(x, y, z) for x, y, z in spline_pts]
+
+# ------------------------------------------------------------------
+# PseudoHermite Implementation
+# ------------------------------------------------------------------
+
+@dataclass
+class PseudoHermite(PseudoCurve):
+    '''
+    PseudoHermite pseudocurve implementation using Hermite interpolation.
+    
+    Attributes:
+        control_points (List[Point]): Exactly 2 control points (start and end).
+        tangents (List[Point]): Two tangent vectors corresponding to the control points.
+    '''
+    tangents: List[Point]=field(default_factory=list)
+
+    def sample(self) -> List[Point]:
+        self.check_control_points(2, 2)
+        if len(self.tangents) != 2:
+            raise ValueError("Hermite curve requires exactly 2 tangent vectors")
+        A = self.control_points[0]
+        B = self.control_points[1]
+        T0 = self.tangents[0]
+        T1 = self.tangents[1]
+        points = []
+        t_values = np.linspace(0, 1, self.steps + 1)
+        for t in t_values:
+            t2 = t * t
+            t3 = t2 * t
+            h00 = 2 * t3 - 3 * t2 + 1
+            h10 = t3 - 2 * t2 + t
+            h01 = -2 * t3 + 3 * t2
+            h11 = t3 - t2
+            x = h00 * A.x + h10 * T0.x + h01 * B.x + h11 * T1.x
+            y = h00 * A.y + h10 * T0.y + h01 * B.y + h11 * T1.y
+            z = h00 * A.z + h10 * T0.z + h01 * B.z + h11 * T1.z
+            points.append(Point(x, y, z))
+        return points
+
+# ------------------------------------------------------------------
+# PseudoArc Implementation
+# ------------------------------------------------------------------
+
+@dataclass
+class PseudoArc(PseudoCurve):
+    '''
+    PseudoArc pseudocurve implementation for drawing an arc.
+    
+    Attributes:
+        control_points (List[Point]): Expects a single control point representing the center.
+        radius (float): The radius of the arc.
+        angles (List[float]): A list with two elements [start_angle, end_angle] in radians.
+    '''
+    radius: float=0.0
+    angles: List[float]=field(default_factory=lambda: [0.0, 0.0])
+
+    def sample(self) -> List[Point]:
+        if len(self.control_points) != 1:
+            raise ValueError("Arc requires exactly one control point for the center")
+        if len(self.angles) != 2:
+            raise ValueError("Arc requires exactly two angles: [start_angle, end_angle]")
+        center = self.control_points[0]
+        start_angle, end_angle = self.angles
+        angles = np.linspace(start_angle, end_angle, self.steps + 1)
+        points = []
+        for angle in angles:
+            x = center.x + self.radius * np.cos(angle)
+            y = center.y + self.radius * np.sin(angle)
+            z = center.z
+            points.append(Point(x, y, z))
+        return points
+
+# ------------------------------------------------------------------
+# PseudoNURBS Implementation
+# ------------------------------------------------------------------
+
+@dataclass
+class PseudoNURBS(PseudoCurve):
+    '''
+    PseudoNURBS pseudocurve implementation using Non-Uniform Rational B-Splines.
+    
+    Attributes:
+        weights (List[float]): Weights corresponding to each control point.
+        degree (int): Degree of the NURBS curve (default is 3).
+        knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
+    '''
+    weights: List[float] =field(default_factory=list)
+    degree: int = 3
+    knots: Optional[List[float]] = None
+
+    def sample(self) -> List[Point]:
+        n = len(self.control_points) - 1
+        p = self.degree
+        if len(self.weights) != n + 1:
+            raise ValueError("The number of weights must equal the number of control points")
+        if self.knots is None:
+            self.knots = [0.0] * (p + 1) + list(range(1, n - p + 1)) + [n - p + 1] * (p + 1)
+        u_start = self.knots[p]
+        u_end = self.knots[n + 1]
+        u_vals = np.linspace(u_start, u_end, self.steps + 1)
+        points = []
+        for u in u_vals:
+            numerator = np.zeros(3)
+            denominator = 0.0
+            for i in range(n + 1):
+                N = self.basis(i, p, u, self.knots)
+                w = self.weights[i]
+                numerator += N * w * np.array(self.control_points[i].array)
+                denominator += N * w
+            if denominator != 0:
+                pt = numerator / denominator
+            else:
+                pt = np.zeros(3)
+            points.append(Point(pt[0], pt[1], pt[2]))
+        return points
+
+    def basis(self, i: int, p: int, u: float, knots: List[float]) -> float:
+        '''
+        Recursive Cox-de Boor basis function.
+        '''
+        if p == 0:
+            if knots[i] <= u < knots[i + 1]:
+                return 1.0
+            # Handle special case when u equals the last knot
+            if u == knots[-1] and knots[i + 1] == knots[-1]:
+                return 1.0
+            return 0.0
+        denom1 = knots[i + p] - knots[i]
+        denom2 = knots[i + p + 1] - knots[i + 1]
+        term1 = 0.0
+        term2 = 0.0
+        if denom1 != 0:
+            term1 = ((u - knots[i]) / denom1) * self.basis(i, p - 1, u, knots)
+        if denom2 != 0:
+            term2 = ((knots[i + p + 1] - u) / denom2) * self.basis(i + 1, p - 1, u, knots)
+        return term1 + term2
 
 @dataclass
 class LineVertex(GraphicObject):
@@ -472,7 +665,7 @@ class LineVertex(GraphicObject):
     - width: An optional float, representing the line width. If not provided, the default is None.
     - color: An optional string, representing the line color. If not provided, the default is None.
     """
-    point: Union[Point, PseudoBezier]
+    point: Union[Point, PseudoCurve]
     width: Optional[float] = None
     color: Optional[str] = None
 
@@ -1342,18 +1535,18 @@ def __easter_egg():
                 LineVertex(Point(-1.6, 0.5, 0.9)),
                 LineVertex(Point(1.6, 0.5, 0.9)),
                 LineVertex(PseudoBezier(
-                    Point(1.6, 0.5, 0.9),
+                    [Point(1.6, 0.5, 0.9),
                     Point(2.2, 0.5, 1.08),
                     Point(2.2, -0.5, 1.08),
-                    Point(1.6, -0.5, 0.9)
+                    Point(1.6, -0.5, 0.9)]
                 )),
                 LineVertex(Point(1.6, -0.5, 0.9)),
                 LineVertex(Point(-1.6, -0.5, 0.9)),
                 LineVertex(PseudoBezier(
-                    Point(-1.6, -0.5, 0.9),
+                    [Point(-1.6, -0.5, 0.9),
                     Point(-2.2, -0.5, 1.05),
                     Point(-2.2, 0.5, 1.05),
-                    Point(-1.6, 0.5, 0.9)
+                    Point(-1.6, 0.5, 0.9)]
                 )),
             ], line_type='LINE_LOOP'
         )
