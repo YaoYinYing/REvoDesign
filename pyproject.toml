@@ -51,6 +51,7 @@ dependencies = [
     "requests",
     "openpyxl",
     "tqdm",
+    "webcolors",
 ]
 
 [project.optional-dependencies]
@@ -79,6 +80,10 @@ openmm=[
     "asgiref>=3.8.1",
     "pdbfixer @ git+https://github.com/openmm/pdbfixer.git#egg=pdbfixer",
     "openmm-setup @ git+https://github.com/openmm/openmm-setup.git#egg=openmm-setup",
+]
+
+vina = [
+    "meeko",
 ]
 
 spark = [
@@ -247,7 +252,7 @@ extension-pkg-whitelist= [
     "scipy"
 ]
 ignore="CVS"
-ignore-patterns="test.*?py,conftest.py,test_*?py,TestData.py,*?Test.py"
+ignore-patterns="test.*?py,conftest.py,test_*?py,TestData.py"
 limit-inference-results=100
 
 [tool.pylint.'MESSAGES CONTROL']

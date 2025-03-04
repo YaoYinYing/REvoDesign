@@ -87,3 +87,4 @@ normal.txt
 sick.txt
 dev/after.txt
 dev/before.txt
+pylint_score.txt
