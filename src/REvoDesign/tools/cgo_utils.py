@@ -122,6 +122,35 @@ class Point:
     y: float
     z: float
 
+    def __add__(self, other: 'Point') -> 'Point':
+        '''
+        Add two points together.
+        '''
+        return Point.from_array(self.array+other.array)
+    
+    def __sub__(self, other: 'Point'):
+        return Point.from_array(self.array-other.array)
+    
+    def __truediv__(self, other: float) -> 'Point':
+        '''
+        Divide a point by a scalar.
+        '''
+        return Point.from_array(self.array/other)
+
+    def __mul__(self, other: float) -> 'Point':
+        '''
+        Multiply a point by a scalar.
+        '''
+        return Point(self.x * other, self.y * other, self.z * other)
+    
+    @classmethod
+    def dot(cls, point1: 'Point', point2: 'Point'):
+        return cls.from_array(np.dot(point1.array, point2.array))
+    
+    @classmethod
+    def cross(cls, point1: 'Point', point2: 'Point'):
+        return cls.from_array(np.cross(point1.array, point2.array))
+    
     @cached_property
     def array(self) -> np.ndarray:
         '''
@@ -192,21 +221,6 @@ class Point:
         '''
         return np.concatenate(tuple(point.as_vertex for point in points))
 
-    @classmethod
-    def from_xyz(cls, x: float, y: float, z: float):
-        '''
-        Create a Point object from x, y, and z coordinates
-        This class method creates a new Point object using the provided x, y, and z coordinates.
-
-        Parameters:
-        - x: float, the x-coordinate
-        - y: float, the y-coordinate
-        - z: float, the z-coordinate
-
-        Returns:
-        - Point: The newly created Point object
-        '''
-        return Point(x, y, z)
 
     def delta_xyz(self, point: 'Point') -> Tuple[float, float, float]:
         return point.array - self.array
@@ -225,7 +239,13 @@ class Point:
         - float: The Euclidean distance
         '''
         return np.linalg.norm(point.array - self.array).astype(float)
-
+    
+    @classmethod
+    def from_array(cls, array: np.ndarray) -> 'Point':
+        '''
+        Create a Point object from a NumPy array.
+        '''
+        return cls(*array)
 
 @dataclass(frozen=True)
 class Color:
@@ -1265,7 +1285,195 @@ class PolyLines(GraphicObject):
             self._data.extend([*pv.data])
 
         self._data.append(cgo.END)
+@dataclass
+class Arrow(GraphicObject):
+    """
+    Represents an arrow object for visualization in PyMOL, with properties for start and end points, line width, and color.
+    """
+    start: Point
+    point_to: Point
+    radius: float = 0.1 # cylinder width
+    head_height: float = 0.25
 
+
+    # colors
+    color_header: str = 'red'
+    color_tail: str = 'white'
+
+    # text 
+    label_text: Optional[str] = None
+    label_weight: float = 0.05
+    label_size: float = 0.5
+
+    @cached_property
+    def joint_point(self):
+        """
+        Calculates and returns the point at the joint of the cylinder.
+        """
+        return Point(
+
+        )
+    @property
+    def cone_base_r(self):
+        """
+        Calculates and returns the diameter of the cone base.
+
+        Returns:
+            float: The diameter of the cone base.
+        """
+        return self.radius * 1.618  # cone base diameter
+
+    @cached_property
+    def cyl_length(self) -> float:
+        """
+        Calculates the length of the arrow's cylinder.
+        """
+        return self.point_to.distance_to(self.start)-self.head_height
+    
+
+    def rebuild(self):
+        go=GraphicObjectCollection(
+            [
+                Cylinder(
+                    self.start, 
+                    self.point_to, 
+                    self.radius,
+                    self.color_tail, self.color_tail),
+            Cone(self.point_to, self.radius, self.head_height),]
+        )
+
+# --- RoundedRectangle3D Implementation ---
+@dataclass
+class RoundedRectangle3D(GraphicObject):
+    """
+    Represents a rounded rectangle in 3D space using a combination of straight edges 
+    and cubic Bezier curves for the rounded corners.
+    
+    The rectangle is defined in a plane specified by a center point and two orthonormal axes.
+    
+    Attributes:
+        center (Point): The center of the rectangle.
+        axis1 (Point): A unit vector representing the rectangle's local X-axis.
+        axis2 (Point): A unit vector representing the rectangle's local Y-axis.
+        width (float): The full width of the rectangle.
+        height (float): The full height of the rectangle.
+        radius (float): The radius of the rounded corners.
+        color (str): The outline color.
+        line_width (float): The width of the outline.
+        steps (int): Number of segments used to approximate each corner.
+    """
+    center: Point
+    axis1: Point
+    axis2: Point
+    width: float
+    height: float
+    radius: float
+    color: str
+    line_width: float
+    steps: int = 50
+
+    def local_to_global(self, u: float, v: float) -> Point:
+        """
+        Convert local (u, v) coordinates to global 3D coordinates.
+        """
+        global_coord = self.center.array + u * self.axis1.array + v * self.axis2.array
+        return Point(global_coord[0], global_coord[1], global_coord[2])
+
+    def rebuild(self) -> None:
+        # Half dimensions
+        half_w = self.width / 2
+        half_h = self.height / 2
+        r = self.radius
+        k = 0.5522847498  # constant for approximating a quarter circle with a cubic Bezier
+
+        # Define local 2D coordinates (in the rectangle's plane) for the four edges (after corner inset)
+        edge_bottom_start = (-half_w + r, -half_h)
+        edge_bottom_end   = ( half_w - r, -half_h)
+        edge_right_start  = ( half_w, -half_h + r)
+        edge_right_end    = ( half_w,  half_h - r)
+        edge_top_start    = ( half_w - r,  half_h)
+        edge_top_end      = (-half_w + r,  half_h)
+        edge_left_start   = (-half_w,  half_h - r)
+        edge_left_end     = (-half_w, -half_h + r)
+
+        # Define control points for rounded corners (using cubic Bezier approximation)
+        # Bottom-right corner (from edge_bottom_end to edge_right_start)
+        cp1_br = (edge_bottom_end[0] + k * r, edge_bottom_end[1])
+        cp2_br = (edge_right_start[0], edge_right_start[1] - k * r)
+        # Top-right corner (from edge_right_end to edge_top_start)
+        cp1_tr = (edge_right_end[0], edge_right_end[1] + k * r)
+        cp2_tr = (edge_top_start[0] + k * r, edge_top_start[1])
+        # Top-left corner (from edge_top_end to edge_left_start)
+        cp1_tl = (edge_top_end[0] - k * r, edge_top_end[1])
+        cp2_tl = (edge_left_start[0], edge_left_start[1] + k * r)
+        # Bottom-left corner (from edge_left_end to edge_bottom_start)
+        cp1_bl = (edge_left_end[0], edge_left_end[1] - k * r)
+        cp2_bl = (edge_bottom_start[0] - k * r, edge_bottom_start[1])
+
+        # Create PseudoBezier objects for each corner (convert local coords to global)
+        bottom_right_corner = PseudoBezier(
+            control_points=[
+                self.local_to_global(*edge_bottom_end),
+                self.local_to_global(*cp1_br),
+                self.local_to_global(*cp2_br),
+                self.local_to_global(*edge_right_start)
+            ],
+            color=self.color,
+            steps=self.steps
+        )
+        top_right_corner = PseudoBezier(
+            control_points=[
+                self.local_to_global(*edge_right_end),
+                self.local_to_global(*cp1_tr),
+                self.local_to_global(*cp2_tr),
+                self.local_to_global(*edge_top_start)
+            ],
+            color=self.color,
+            steps=self.steps
+        )
+        top_left_corner = PseudoBezier(
+            control_points=[
+                self.local_to_global(*edge_top_end),
+                self.local_to_global(*cp1_tl),
+                self.local_to_global(*cp2_tl),
+                self.local_to_global(*edge_left_start)
+            ],
+            color=self.color,
+            steps=self.steps
+        )
+        bottom_left_corner = PseudoBezier(
+            control_points=[
+                self.local_to_global(*edge_left_end),
+                self.local_to_global(*cp1_bl),
+                self.local_to_global(*cp2_bl),
+                self.local_to_global(*edge_bottom_start)
+            ],
+            color=self.color,
+            steps=self.steps
+        )
+
+        # Assemble the vertices in order (using LineVertex to wrap both Points and PseudoBezier objects)
+        vertices = [
+            LineVertex(self.local_to_global(*edge_bottom_start)),   # start of bottom edge
+            LineVertex(self.local_to_global(*edge_bottom_end)),     # end of bottom edge
+            LineVertex(bottom_right_corner),                        # bottom-right corner arc
+            LineVertex(self.local_to_global(*edge_right_end)),      # end of right edge
+            LineVertex(top_right_corner),                           # top-right corner arc
+            LineVertex(self.local_to_global(*edge_top_end)),        # end of top edge
+            LineVertex(top_left_corner),                            # top-left corner arc
+            LineVertex(self.local_to_global(*edge_left_end)),       # end of left edge
+            LineVertex(bottom_left_corner)                          # bottom-left corner arc
+        ]
+
+        # Build a closed polyline (LINE_LOOP) from these vertices.
+        poly = PolyLines(
+            width=self.line_width,
+            color=self.color,
+            points=vertices,
+            line_type='LINE_LOOP'
+        )
+        poly.rebuild()
+        self._data = poly._data
 
 @dataclass
 class GraphicObjectCollection(GraphicObject):
@@ -1373,14 +1581,14 @@ class GraphicObjectCollection(GraphicObject):
 # Square().load_as('a_square')
 
 
-PolyLines(
-    2.0, 'yellow',
-    [LineVertex(Point(0, 0, 0) ),
-     LineVertex(Point(0, 0, 1) ),
-     LineVertex(Point(0, 1, 0) ),
-     LineVertex(Point(1, 0, 0) ),
-     LineVertex(Point(1, 1, 2) )]
-).load_as('yellow_line_strip')
+# PolyLines(
+#     2.0, 'yellow',
+#     [LineVertex(Point(0, 0, 0) ),
+#      LineVertex(Point(0, 0, 1) ),
+#      LineVertex(Point(0, 1, 0) ),
+#      LineVertex(Point(1, 0, 0) ),
+#      LineVertex(Point(1, 1, 2) )]
+# ).load_as('yellow_line_strip')
 
 
 # PolyLines(
@@ -1496,6 +1704,30 @@ PolyLines(
 #     ],
 #      line_type='LINE_LOOP'
 # ).load_as('pyramid_curve')
+
+
+# Define the center and the local axes (unit vectors in the rectangle's plane)
+
+
+# Create a 3D rounded rectangle with specified parameters
+rounded_rect = RoundedRectangle3D(
+    center=Point(0, 0, 0),
+    axis1=Point(1, 0, 0),  # Local X-axis,
+    axis2=Point(0, 1, 0),  # Local Y-axis,
+    width=10,
+    height=5,
+    radius=3,
+    color='green',
+    line_width=2,
+    steps=20  # Increase for smoother rounded corners
+)
+
+# Rebuild the object to compute its CGO data
+rounded_rect.rebuild()
+rounded_rect.load_as('rounded_rect_rounder')
+
+# For demonstration, print the resulting CGO data
+print("RoundedRectangle3D CGO Data:", rounded_rect._data)
 
 # also a quick demo to construct complicated cgo object
 def __easter_egg():
