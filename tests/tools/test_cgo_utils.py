@@ -452,6 +452,7 @@ def test_triangle_simple_rebuild(vertex_a, vertex_b, vertex_c, color_a, color_b,
     triangle.rebuild()
     assert triangle._data == expected_data
 
+
 @pytest.mark.parametrize("corner_a, corner_b, corner_c, corner_d, color_a, color_b, color_c, color_d, expected_data", [
     (Point(0.0, 0.0, 0.0), Point(1.0, 0.0, 0.0), Point(1.0, 1.0, 0.0), Point(0.0, 1.0, 0.0), "red", "green", "blue", "yellow",
      [cgo.BEGIN, cgo.TRIANGLES,
@@ -488,38 +489,37 @@ def test_square_rebuild(corner_a, corner_b, corner_c, corner_d, color_a, color_b
     assert square._data == expected_data
 
 
-
 @pytest.mark.parametrize("width, color, points, line_type, expected_data", [
     (2.0, "red", [
         LineVertex(Point(0.0, 0.0, 0.0)),
         LineVertex(Point(1.0, 1.0, 1.0)),
         LineVertex(Point(2.0, 2.0, 2.0))
     ], 'LINE_STRIP',
-     [cgo.LINEWIDTH, 2.0,  *Color("red").as_cgo, cgo.BEGIN, cgo.LINE_STRIP] +
-     [ *Point(0.0, 0.0, 0.0).as_vertex] +
-     [ *Point(1.0, 1.0, 1.0).as_vertex] +
-     [ *Point(2.0, 2.0, 2.0).as_vertex] +
-     [cgo.END]),
+        [cgo.LINEWIDTH, 2.0, *Color("red").as_cgo, cgo.BEGIN, cgo.LINE_STRIP] +
+        [*Point(0.0, 0.0, 0.0).as_vertex] +
+        [*Point(1.0, 1.0, 1.0).as_vertex] +
+        [*Point(2.0, 2.0, 2.0).as_vertex] +
+        [cgo.END]),
     (1.5, "blue", [
         LineVertex(Point(0.0, 0.0, 0.0), color="green"),
         LineVertex(Point(1.0, 1.0, 1.0), color="yellow"),
         LineVertex(Point(2.0, 2.0, 2.0), color="golden")
     ], 'LINE_LOOP',
-     [cgo.LINEWIDTH, 1.5, *Color("blue").as_cgo, cgo.BEGIN, cgo.LINE_LOOP] +
-     [*Color("green").as_cgo,*Point(0.0, 0.0, 0.0).as_vertex] +
-     [*Color("yellow").as_cgo,*Point(1.0, 1.0, 1.0).as_vertex] +
-     [*Color("golden").as_cgo,*Point(2.0, 2.0, 2.0).as_vertex] +
-     [cgo.END]),
+        [cgo.LINEWIDTH, 1.5, *Color("blue").as_cgo, cgo.BEGIN, cgo.LINE_LOOP] +
+        [*Color("green").as_cgo, *Point(0.0, 0.0, 0.0).as_vertex] +
+        [*Color("yellow").as_cgo, *Point(1.0, 1.0, 1.0).as_vertex] +
+        [*Color("golden").as_cgo, *Point(2.0, 2.0, 2.0).as_vertex] +
+        [cgo.END]),
     (3.0, "green", [
         LineVertex(Point(0.0, 0.0, 0.0), color="yellow"),
-        LineVertex(Point(1.0, 1.0, 1.0),width=4.0),
+        LineVertex(Point(1.0, 1.0, 1.0), width=4.0),
         LineVertex(Point(2.0, 2.0, 2.0))
     ], 'TRIANGLE_STRIP',
-     [cgo.LINEWIDTH, 3.0, *Color("green").as_cgo, cgo.BEGIN, cgo.TRIANGLE_STRIP] +
-     [ *Color("yellow").as_cgo, *Point(0.0, 0.0, 0.0).as_vertex] +
-     [cgo.LINEWIDTH, 4.0,*Point(1.0, 1.0, 1.0).as_vertex] +
-     [*Point(2.0, 2.0, 2.0).as_vertex] +
-     [cgo.END])
+        [cgo.LINEWIDTH, 3.0, *Color("green").as_cgo, cgo.BEGIN, cgo.TRIANGLE_STRIP] +
+        [*Color("yellow").as_cgo, *Point(0.0, 0.0, 0.0).as_vertex] +
+        [cgo.LINEWIDTH, 4.0, *Point(1.0, 1.0, 1.0).as_vertex] +
+        [*Point(2.0, 2.0, 2.0).as_vertex] +
+        [cgo.END])
 ])
 def test_poly_lines_rebuild(width, color, points, line_type, expected_data):
     poly_lines = PolyLines(width=width, color=color, points=points, line_type=line_type)
@@ -554,10 +554,17 @@ def test_poly_lines_rebuild(width, color, points, line_type, expected_data):
      ]).data)
 ])
 def test_arrow_rebuild(start, point_to, radius, header_height, header_ratio, color_header, color_tail, expected_data):
-    arrow = Arrow(start=start, point_to=point_to, radius=radius, header_height=header_height, header_ratio=header_ratio, color_header=color_header, color_tail=color_tail)
+    arrow = Arrow(
+        start=start,
+        point_to=point_to,
+        radius=radius,
+        header_height=header_height,
+        header_ratio=header_ratio,
+        color_header=color_header,
+        color_tail=color_tail)
     arrow.rebuild()
     expected = expected_data(start, point_to, radius, header_height, header_ratio, color_header, color_tail)
-    
+
     assert np.allclose(arrow._data, expected, rtol=1e-05)
 
 
@@ -575,11 +582,31 @@ def test_arrow_rebuild(start, point_to, radius, header_height, header_ratio, col
      lambda center, axis1, axis2, width, height, radius, color, line_width, steps:
      _build_rounded_rectangle_data(center, axis1, axis2, width, height, radius, color, line_width, steps))
 ])
-def test_rounded_rectangle_rebuild(center, axis1, axis2, width, height, radius, color, line_width, steps, expected_data):
-    rounded_rectangle = RoundedRectangle(center=center, axis1=axis1, axis2=axis2, width=width, height=height, radius=radius, color=color, line_width=line_width, steps=steps)
+def test_rounded_rectangle_rebuild(
+        center,
+        axis1,
+        axis2,
+        width,
+        height,
+        radius,
+        color,
+        line_width,
+        steps,
+        expected_data):
+    rounded_rectangle = RoundedRectangle(
+        center=center,
+        axis1=axis1,
+        axis2=axis2,
+        width=width,
+        height=height,
+        radius=radius,
+        color=color,
+        line_width=line_width,
+        steps=steps)
     rounded_rectangle.rebuild()
     expected = expected_data(center, axis1, axis2, width, height, radius, color, line_width, steps)
     assert rounded_rectangle._data == expected
+
 
 def _build_rounded_rectangle_data(center, axis1, axis2, width, height, radius, color, line_width, steps):
     radius = min(width / 2, radius)
@@ -688,10 +715,19 @@ def _build_rounded_rectangle_data(center, axis1, axis2, width, height, radius, c
      _build_ellipse_data(center, axis1, axis2, major_radius, minor_radius, color, line_width, steps))
 ])
 def test_ellipse_rebuild(center, axis1, axis2, major_radius, minor_radius, color, line_width, steps, expected_data):
-    ellipse = Ellipse(center=center, axis1=axis1, axis2=axis2, major_radius=major_radius, minor_radius=minor_radius, color=color, line_width=line_width, steps=steps)
+    ellipse = Ellipse(
+        center=center,
+        axis1=axis1,
+        axis2=axis2,
+        major_radius=major_radius,
+        minor_radius=minor_radius,
+        color=color,
+        line_width=line_width,
+        steps=steps)
     ellipse.rebuild()
     expected = expected_data(center, axis1, axis2, major_radius, minor_radius, color, line_width, steps)
     assert ellipse._data == expected
+
 
 def _build_ellipse_data(center, axis1, axis2, major_radius, minor_radius, color, line_width, steps):
     t_values = np.linspace(0, 2 * math.pi, steps + 1)
@@ -721,21 +757,21 @@ def _build_ellipse_data(center, axis1, axis2, major_radius, minor_radius, color,
     # Test case 1: Single Sphere object, no force rebuild
     ([Sphere(center=Point(0.0, 0.0, 0.0), radius=1.0, color="red")], False,
      [*Color("red").as_cgo, cgo.SPHERE, 0.0, 0.0, 0.0, 1.0, ]),
-    
+
     # Test case 2: Multiple objects, force rebuild
     ([Sphere(center=Point(0.0, 0.0, 0.0), radius=1.0, color="red"),
       Sphere(center=Point(1.0, 1.0, 1.0), radius=2.0, color="blue")], True,
-     [*Color("red").as_cgo,cgo.SPHERE, 0.0, 0.0, 0.0, 1.0,
-      *Color("blue").as_cgo,cgo.SPHERE, 1.0, 1.0, 1.0, 2.0]),
-    
+     [*Color("red").as_cgo, cgo.SPHERE, 0.0, 0.0, 0.0, 1.0,
+      *Color("blue").as_cgo, cgo.SPHERE, 1.0, 1.0, 1.0, 2.0]),
+
     # Test case 3: Empty collection
     ([], False, []),
-    
+
     # Test case 4: Collection with one rebuilt object and one not rebuilt
     ([Sphere(center=Point(0.0, 0.0, 0.0), radius=1.0, color="green"),
       Sphere(center=Point(2.0, 2.0, 2.0), radius=3.0, color="yellow")], False,
-     [*Color("green").as_cgo,cgo.SPHERE, 0.0, 0.0, 0.0, 1.0, 
-      *Color("yellow").as_cgo,cgo.SPHERE, 2.0, 2.0, 2.0, 3.0, ])
+     [*Color("green").as_cgo, cgo.SPHERE, 0.0, 0.0, 0.0, 1.0,
+      *Color("yellow").as_cgo, cgo.SPHERE, 2.0, 2.0, 2.0, 3.0, ])
 ])
 def test_graphic_object_collection_rebuild(objects, force_to_rebuild, expected_data):
     collection = GraphicObjectCollection(objects=objects, force_to_rebuild=force_to_rebuild)
@@ -743,13 +779,12 @@ def test_graphic_object_collection_rebuild(objects, force_to_rebuild, expected_d
     assert collection._data == expected_data
 
 
-
 def test_easter_egg_rein():
     cmd.reinitialize()
     __easter_egg()
     cmd.refresh()
 
-    objs=cmd.get_names()
+    objs = cmd.get_names()
     assert objs == ['APTX-4869']
 
     cmd.reinitialize()
@@ -763,7 +798,7 @@ def test_easter_egg_busy():
     __easter_egg()
     cmd.refresh()
 
-    objs=cmd.get_names()
+    objs = cmd.get_names()
     assert objs == ['1SUO']
     assert 'APTX-4869' not in objs
 
