@@ -1,3 +1,4 @@
+import itertools
 import math
 from unittest.mock import patch
 
@@ -785,7 +786,7 @@ def test_easter_egg_rein():
     cmd.refresh()
 
     objs = cmd.get_names()
-    assert objs == ['APTX-4869']
+    assert objs == ['APTX-4869'], 'Easter egg should be added in blank session'
 
     cmd.reinitialize()
 
@@ -800,6 +801,248 @@ def test_easter_egg_busy():
 
     objs = cmd.get_names()
     assert objs == ['1SUO']
-    assert 'APTX-4869' not in objs
+    assert 'APTX-4869' not in objs, 'Easter egg should not be loaded when the session is busy'
 
+    cmd.reinitialize()
+
+
+def test_sphere_load():
+    cmd.reinitialize()
+    sphere = Sphere(center=Point(0, 0, 0), radius=10, color='cyan')
+    sphere.load_as('mysphere')
+
+    cyl = Cylinder()
+    cyl.load_as('my_cyl')
+
+
+def test_doughnut_load():
+    cmd.reinitialize()
+    Doughnut(samples=100).load_as('my_treasure')
+
+
+def test_cone_load():
+    cmd.reinitialize()
+    for i, j in itertools.product(range(2), repeat=2):
+        Cone(tip=Point(0, 0, 1.4),
+             base_center=Point(0, 0, 0),
+             radius_tip=0.5,
+             radius_base=1.5,
+             color_base='golden', color_tip='sand_brown', caps=(i, j,)
+             ).load_as(f'dyamond_{i},{j}')
+
+
+def test_cube_load():
+    cmd.reinitialize()
+
+    Cube(wire_frame=True).load_as('a_colorful_cube')
+    Cube(wire_frame=False).load_as('a_colorful_solid_cube')
+    Cube(
+        wire_frame=True,
+        color_w='yellow',
+        color_x='yellow',
+        color_y='yellow',
+        color_z='yellow'
+    ).load_as('a_yellow_box')
+
+    Cube(wire_frame=True,
+         color_w='white',
+         color_x='white',
+         color_y='white',
+         color_z='white'
+         ).load_as('solid_box')
+
+    Cube(
+        wire_frame=True,
+        color_w='black',
+        color_x='black',
+        color_y='black',
+        color_z='black'
+    ).load_as('a_black_box')
+
+
+def test_square_load():
+    cmd.reinitialize()
+    Square().load_as('a_square')
+
+
+def test_polylines_load():
+    cmd.reinitialize()
+
+    PolyLines(
+        2.0, 'yellow',
+        [LineVertex(Point(0, 0, 0)),
+         LineVertex(Point(0, 0, 1)),
+         LineVertex(Point(0, 1, 0)),
+         LineVertex(Point(1, 0, 0)),
+         LineVertex(Point(1, 1, 2))]
+    ).load_as('yellow_line_strip')
+
+    PolyLines(
+        2.0, 'red',
+        [LineVertex(Point(0, 0, 0)),
+         LineVertex(Point(0, 0, 1)),
+         LineVertex(Point(0, 1, 0)),
+         LineVertex(Point(1, 0, 0)),
+         LineVertex(Point(1, 1, 2))],
+        line_type='LINE_LOOP'
+    ).load_as('red_line_loop')
+
+    PolyLines(
+        2.0, 'cyan',
+        [LineVertex(Point(0, 0, 0)),
+         LineVertex(Point(0, 0, 1)),
+         LineVertex(Point(0, 1, 0)),
+         ],
+        line_type='TRIANGLE_STRIP'
+    ).load_as('cyan_trangle_shape')
+
+    PolyLines(
+        2.0, 'violet',
+        [
+            LineVertex(Point(0, 0, 0)),
+            LineVertex(Point(0, 1, 0)),
+            LineVertex(Point(1, 0, 0)),
+            LineVertex(Point(1, 1, 0)),
+        ],
+        line_type='TRIANGLE_STRIP'
+    ).load_as('violet_square_shape')
+    PolyLines(
+        2.0, 'pink',
+        [                             # continous triangles
+            LineVertex(Point(0, 0, 0)),  # -\  triangle # 1
+            LineVertex(Point(0, 1, 0)),  # |-'  -\  triangle # 2
+            LineVertex(Point(1, 1, 0)),  # -/       |-'  -\  triangle # 3
+            LineVertex(Point(1, 0, 0)),  # -/       |-'
+            LineVertex(Point(1, 1, 1)),  # -/
+        ],
+        line_type='TRIANGLE_STRIP'
+    ).load_as('pink_3_tri_shape')
+
+    PolyLines(
+        2.0, 'white',
+        LineVertex.from_points(
+            (
+                Point(0, 1, 0),
+                Point(1, 2, 0),
+                Point(2, 3, 0),
+                Point(0, 0.5, 0),
+                Point(-0.3, 0.5, 0),
+                Point(0, 0, 0)
+
+            )
+
+        ),
+        line_type='TRIANGLE_FAN'
+    ).load_as('white_square_fan')
+
+    PolyLines(
+        2.0, 'white',
+        LineVertex.from_points(
+            (
+                Point(0, 1, 0),
+                Point(1, 1, 0),
+                Point(1, 0, 0),
+                Point(0, 0, 0)
+            )
+
+        ),
+        line_type='LINE_LOOP'
+    ).load_as('white_square')
+
+    PolyLines(
+        2.0, 'golden',
+        [
+            LineVertex(Point(-1, 1, 0)),  # left top
+            LineVertex(Point(0, 0, 1.4)),  # tip
+            LineVertex(Point(1, 1, 0)),  # right top
+            LineVertex(Point(1, -1, 0)),  # right bottom
+            LineVertex(Point(0, 0, 1.4)),  # tip again
+            LineVertex(Point(-1, -1, 0)),  # left bottom
+            LineVertex(Point(-1, 1, 0)),  # left top back
+        ],
+        line_type='TRIANGLE_STRIP'
+    ).load_as('pyramid')
+
+    PolyLines(
+        4.0, 'white',
+        [
+            LineVertex(Point(-1, 1, 0)),
+            LineVertex(Point(0, 0, 1.4)),
+            LineVertex(Point(1, 1, 0)),
+            LineVertex(Point(1, -1, 0)),
+            LineVertex(Point(0, 0, 1.4)),
+            LineVertex(Point(-1, -1, 0)),
+            LineVertex(Point(-1, 1, 0)),
+        ],
+        line_type='LINE_LOOP'
+    ).load_as('pyramid_curve')
+
+
+def test_sausage_load():
+    cmd.reinitialize()
+    Sausage(
+        p1=Point(0, 0, 1),
+        p2=Point(0, 0, 2),
+        radius=0.5,
+        color_1='red',
+        color_2='white'
+    ).load_as('tasty_sausage')
+
+
+def test_arrow_load():
+    cmd.reinitialize()
+
+    Arrow(
+        Point(1, 2, 3),
+        Point(4, 5, 7),
+        .5, 2
+    ).load_as('my_arrow')
+
+    Arrow(
+        Point(0, 0, 0),
+        Point(4, 5, 7),
+        .5, 2
+    ).load_as('my_zero_arrow')
+
+    Arrow(
+        Point(4, 5, 7),
+        Point(10, 2, 3),
+        .5, 4, 2
+    ).load_as('my_spike')
+
+
+def test_rect_load():
+    cmd.reinitialize()
+
+    # Create a 3D rounded rectangle with specified parameters
+    rounded_rect = RoundedRectangle(
+        center=Point(0, 0, 0),
+        axis1=Point(1, 0, 0),  # Local X-axis,
+        axis2=Point(0, 1, 0),  # Local Y-axis,
+        width=5,
+        height=5,
+        radius=3,
+        color='green',
+        line_width=3,
+        steps=20  # Increase for smoother rounded corners
+    )
+
+    # Rebuild the object to compute its CGO data
+    rounded_rect.rebuild()
+    rounded_rect.load_as('rounded_rect_rounder')
+
+
+def test_ellipse_load():
+    cmd.reinitialize()
+    ellipse = Ellipse(
+        center=Point(0, 0, 0),
+        axis1=Point(1, 2, 3),  # Local X-axis (major axis direction)
+        axis2=Point(3, 1, -1),  # Local Y-axis,
+        major_radius=5,
+        minor_radius=2,
+        color='blue',
+        line_width=2,
+        steps=50  # More steps for smoother ellipse
+    )
+    ellipse.load_as('my_ellipse')
     cmd.reinitialize()
