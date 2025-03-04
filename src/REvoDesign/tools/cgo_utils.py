@@ -144,8 +144,8 @@ class Point:
         return Point.from_array(self.array * other)
 
     @classmethod
-    def dot(cls, point1: 'Point', point2: 'Point'):
-        return cls.from_array(np.dot(point1.array, point2.array))
+    def dot(cls, point1: 'Point', point2: 'Point') -> float:
+        return np.dot(point1.array, point2.array)
 
     @classmethod
     def cross(cls, point1: 'Point', point2: 'Point'):
@@ -221,10 +221,10 @@ class Point:
         '''
         return np.concatenate(tuple(point.as_vertex for point in points))
 
-    def delta_xyz(self, point: 'Point') -> Tuple[float, float, float]:
+    def delta_xyz(self, point: 'Point') -> np.ndarray:
         return point.array - self.array
 
-    def center_xyz(self, point: 'Point') -> Tuple[float, float, float]:
+    def center_xyz(self, point: 'Point') -> np.ndarray:
         return (point.array - self.array) / 2
 
     def distance_to(self, point: 'Point') -> float:
