@@ -57,7 +57,6 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Iterable, List, Literal, Optional, Tuple, Union
-
 import numpy as np
 import webcolors
 from chempy import cpv
@@ -141,7 +140,7 @@ class Point:
         '''
         Multiply a point by a scalar.
         '''
-        return Point(self.x * other, self.y * other, self.z * other)
+        return Point.from_array(self.array*other)
     
     @classmethod
     def dot(cls, point1: 'Point', point2: 'Point'):
@@ -343,7 +342,6 @@ class GraphicObject:
     """
     A base class representing a graphic object, providing methods to rebuild and load graphic data.
     """
-
     def rebuild(self):
         """
         Rebuild the CGO data.
@@ -366,7 +364,7 @@ class GraphicObject:
         """
         return self._data
 
-    def load_as(self, name: str, *args, **kwargs):
+    def load_as(self, name: str, debug_points: bool=False, *args, **kwargs):
         """
         Load the graphic object as a specified name. If the name is occupied, delete it to regenerate.
 
@@ -1285,34 +1283,24 @@ class PolyLines(GraphicObject):
             self._data.extend([*pv.data])
 
         self._data.append(cgo.END)
+
+
 @dataclass
 class Arrow(GraphicObject):
     """
     Represents an arrow object for visualization in PyMOL, with properties for start and end points, line width, and color.
     """
-    start: Point
-    point_to: Point
+    start: Point# the start point of the arrow
+    point_to: Point #the tip of the arrow
     radius: float = 0.1 # cylinder width
-    head_height: float = 0.25
+    header_height: float = 0.25
+    header_ratio: float = 1.618
 
 
     # colors
     color_header: str = 'red'
     color_tail: str = 'white'
 
-    # text 
-    label_text: Optional[str] = None
-    label_weight: float = 0.05
-    label_size: float = 0.5
-
-    @cached_property
-    def joint_point(self):
-        """
-        Calculates and returns the point at the joint of the cylinder.
-        """
-        return Point(
-
-        )
     @property
     def cone_base_r(self):
         """
@@ -1321,30 +1309,44 @@ class Arrow(GraphicObject):
         Returns:
             float: The diameter of the cone base.
         """
-        return self.radius * 1.618  # cone base diameter
+        return self.radius * self.header_ratio  # cone base diameter
 
-    @cached_property
+    @property
     def cyl_length(self) -> float:
         """
         Calculates the length of the arrow's cylinder.
         """
-        return self.point_to.distance_to(self.start)-self.head_height
+        return max(self.point_to.distance_to(self.start)-self.header_height,0)
     
-
+    @cached_property
+    def joint(self):
+        return self.start+(self.point_to-self.start)*self.cyl_length/self.point_to.distance_to(self.start)
     def rebuild(self):
         go=GraphicObjectCollection(
             [
                 Cylinder(
                     self.start, 
-                    self.point_to, 
+                    self.joint, 
                     self.radius,
-                    self.color_tail, self.color_tail),
-            Cone(self.point_to, self.radius, self.head_height),]
+                    self.color_tail, self.color_tail
+                    ),
+                    Cone(
+                    self.point_to, 
+                    self.joint,
+                    0.0,
+                    self.cone_base_r,
+                    self.color_header, self.color_header,
+                    (1,1)
+                    ),
+            ]
         )
+        go.rebuild()
+        self._data=go.data
+
 
 # --- RoundedRectangle3D Implementation ---
 @dataclass
-class RoundedRectangle3D(GraphicObject):
+class RoundedRectangle(GraphicObject):
     """
     Represents a rounded rectangle in 3D space using a combination of straight edges 
     and cubic Bezier curves for the rounded corners.
@@ -1380,6 +1382,7 @@ class RoundedRectangle3D(GraphicObject):
         return Point(global_coord[0], global_coord[1], global_coord[2])
 
     def rebuild(self) -> None:
+        self.radius=min(self.width/2, self.radius)
         # Half dimensions
         half_w = self.width / 2
         half_h = self.height / 2
@@ -1466,6 +1469,61 @@ class RoundedRectangle3D(GraphicObject):
         ]
 
         # Build a closed polyline (LINE_LOOP) from these vertices.
+        poly = PolyLines(
+            width=self.line_width,
+            color=self.color,
+            points=vertices,
+            line_type='LINE_LOOP'
+        )
+        poly.rebuild()
+        self._data = poly._data
+@dataclass
+class Ellipse(GraphicObject):
+    """
+    Represents an ellipse in 3D space.
+    
+    Attributes:
+        center (Point): The center of the ellipse.
+        axis1 (Point): A unit vector representing the ellipse's local X-axis (direction of the major axis).
+        axis2 (Point): A unit vector representing the ellipse's local Y-axis.
+        major_radius (float): The radius along the major axis.
+        minor_radius (float): The radius along the minor axis.
+        color (str): The outline color.
+        line_width (float): The width of the outline.
+        steps (int): The number of segments used to approximate the ellipse (default is 50).
+    """
+    center: Point
+    axis1: Point
+    axis2: Point
+    major_radius: float
+    minor_radius: float
+    color: str
+    line_width: float
+    steps: int = 50
+
+    def local_to_global(self, u: float, v: float) -> Point:
+        """
+        Convert local (u, v) coordinates (in the ellipse's plane) to global 3D coordinates.
+        """
+        global_coord = self.center.array + u * self.axis1.array + v * self.axis2.array
+        return Point(global_coord[0], global_coord[1], global_coord[2])
+
+    def rebuild(self) -> None:
+        """
+        Rebuilds the ellipse object by sampling points along the ellipse's circumference and
+        assembling them into a closed polyline.
+        """
+        # Sample angles from 0 to 2π
+        t_values = np.linspace(0, 2 * math.pi, self.steps + 1)
+        points = []
+        # Parametric equation of an ellipse: (major_radius * cos(t), minor_radius * sin(t))
+        for t in t_values:
+            u = self.major_radius * math.cos(t)
+            v = self.minor_radius * math.sin(t)
+            points.append(self.local_to_global(u, v))
+        # Wrap the points in LineVertex objects
+        vertices = [LineVertex(pt) for pt in points]
+        # Build a closed polyline (LINE_LOOP) for the ellipse
         poly = PolyLines(
             width=self.line_width,
             color=self.color,
@@ -1705,29 +1763,58 @@ class GraphicObjectCollection(GraphicObject):
 #      line_type='LINE_LOOP'
 # ).load_as('pyramid_curve')
 
+# Arrow(
+#     Point(1, 2, 3),
+#     Point(4,5, 7),
+#     .5,2
+# ).load_as('my_arrow')
+
+# Arrow(
+#     Point(0, 0, 0),
+#     Point(4,5, 7),
+#     .5,2
+# ).load_as('my_zero_arrow')
+
+
+# Arrow(
+#     Point(4,5,7),
+#     Point(10,2, 3),
+#     .5,4,2
+# ).load_as('my_spike')
 
 # Define the center and the local axes (unit vectors in the rectangle's plane)
 
 
-# Create a 3D rounded rectangle with specified parameters
-rounded_rect = RoundedRectangle3D(
-    center=Point(0, 0, 0),
-    axis1=Point(1, 0, 0),  # Local X-axis,
-    axis2=Point(0, 1, 0),  # Local Y-axis,
-    width=10,
-    height=5,
-    radius=3,
-    color='green',
-    line_width=2,
-    steps=20  # Increase for smoother rounded corners
-)
+# # Create a 3D rounded rectangle with specified parameters
+# rounded_rect = RoundedRectangle(
+#     center=Point(0, 0, 0),
+#     axis1=Point(1, 0, 0),  # Local X-axis,
+#     axis2=Point(0, 1, 0),  # Local Y-axis,
+#     width=5,
+#     height=5,
+#     radius=3,
+#     color='green',
+#     line_width=3,
+#     steps=20  # Increase for smoother rounded corners
+# )
 
-# Rebuild the object to compute its CGO data
-rounded_rect.rebuild()
-rounded_rect.load_as('rounded_rect_rounder')
+# # Rebuild the object to compute its CGO data
+# rounded_rect.rebuild()
+# rounded_rect.load_as('rounded_rect_rounder')
 
-# For demonstration, print the resulting CGO data
-print("RoundedRectangle3D CGO Data:", rounded_rect._data)
+# # Create an Ellipse3D: major_radius = 5, minor_radius = 3, with blue outline and line width of 2.
+# ellipse = Ellipse(
+#     center=Point(0, 0, 0), 
+#     axis1=Point(1, 2, 3), # Local X-axis (major axis direction)
+#     axis2=Point(3, 1, -1),  # Local Y-axis,
+#     major_radius=5,
+#     minor_radius=2,
+#     color='blue',
+#     line_width=2,
+#     steps=50  # More steps for smoother ellipse
+# )
+
+# ellipse.load_as('my_ellipse')
 
 # also a quick demo to construct complicated cgo object
 def __easter_egg():
@@ -1736,8 +1823,13 @@ def __easter_egg():
 
     真しん実じつはいつもひとつ!
     '''
+    if any(not n.startswith('_') for n in cmd.get_names()):
+        # silently do nothing if the session is currently in use
+        return
 
     poision = GraphicObjectCollection([
+        # the APTX-4869 capsule
+        # white part
         Sphere(
             center=Point(-2, 0, 0),
             radius=1,
@@ -1745,15 +1837,16 @@ def __easter_egg():
         ),
         Cylinder(
             Point(-2, 0, 0),
-            Point(0, 0, 0),
+            Point(0.5, 0, 0),
             radius=1,
             color1='white',
             color2='white'
         ),
+        # red part that covers the white part
         Cylinder(
             Point(0, 0, 0),
             Point(2, 0, 0),
-            radius=1.015,
+            radius=1.015, 
             color1='red',
             color2='red'
         ),
@@ -1762,30 +1855,32 @@ def __easter_egg():
             radius=1.015,
             color='red'
         ),
+        # printed curves (text container) on the surface
         PolyLines(
             5, 'black',
             [
-                LineVertex(Point(-1.6, 0.5, 0.9)),
-                LineVertex(Point(1.6, 0.5, 0.9)),
-                LineVertex(PseudoBezier(
-                    [Point(1.6, 0.5, 0.9),
-                     Point(2.2, 0.5, 1.08),
-                     Point(2.2, -0.5, 1.08),
-                     Point(1.6, -0.5, 0.9)]
+                LineVertex(Point(-1.6, 0.5, 0.9)), # left top 
+                LineVertex(Point(1.6, 0.5, 0.9)), #  right top
+                LineVertex(PseudoBezier( 
+                    [Point(1.6, 0.5, 0.9), # right top
+                     Point(2.2, 0.5, 1.08), # control point to make Bezier curve
+                     Point(2.2, -0.5, 1.08), # control point to make Bezier curve
+                     Point(1.6, -0.5, 0.9)]  # right bottom
                 )),
-                LineVertex(Point(1.6, -0.5, 0.9)),
-                LineVertex(Point(-1.6, -0.5, 0.9)),
+                LineVertex(Point(1.6, -0.5, 0.9)), # right bottom
+                LineVertex(Point(-1.6, -0.5, 0.9)), # left bottom
                 LineVertex(PseudoBezier(
-                    [Point(-1.6, -0.5, 0.9),
-                     Point(-2.2, -0.5, 1.05),
-                     Point(-2.2, 0.5, 1.05),
-                     Point(-1.6, 0.5, 0.9)]
+                    [Point(-1.6, -0.5, 0.9), # left bottom
+                     Point(-2.2, -0.5, 1.05), # control point to make Bezier curve
+                     Point(-2.2, 0.5, 1.05), # control point to make Bezier curve
+                     Point(-1.6, 0.5, 0.9)] # left top 
                 )),
             ], line_type='LINE_LOOP'
         )
     ]
     )
 
+    # Printed text on the capsule
     cgo.cyl_text(
         poision.data,
         plain,
@@ -1795,9 +1890,9 @@ def __easter_egg():
         axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
         color=Color('black').array)
 
-    from ..shortcuts.tools.vina_tools import showaxes
+    # from ..shortcuts.tools.vina_tools import showaxes
 
-    showaxes()
+    # showaxes()
     poision.load_as('APTX-4869')
 
     cmd.turn('z', 16)
