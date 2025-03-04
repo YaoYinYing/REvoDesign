@@ -384,8 +384,8 @@ class PseudoCurve(GraphicObject):
     color: Optional[str] = None
     steps: int = 50
 
-    def check_control_points(self, num_min: Optional[int] = None, num_max: Optional[int] = None):
-        len_cp = len(self.control_points)
+    def check_control_points(self, num_min: Optional[int] = None, num_max: Optional[int] = None, attr_name:str='control_points'):
+        len_cp = len(getattr(self, attr_name))
         if num_min and len_cp < num_min:
             raise ValueError(f'Number of Control Points mismatch. Required {num_min} as minimum but got {len_cp}')
         if num_max and len_cp > num_max:
@@ -458,8 +458,7 @@ class PseudoCatmullRom(PseudoCurve):
     '''
 
     def sample(self) -> List[Point]:
-        if len(self.control_points) < 4:
-            raise ValueError("Catmull-Rom curve requires at least 4 control points")
+        self.check_control_points(num_min=4)
         points = []
         # Iterate through segments defined by 4 consecutive control points
         for i in range(1, len(self.control_points) - 2):
@@ -539,8 +538,7 @@ class PseudoHermite(PseudoCurve):
 
     def sample(self) -> List[Point]:
         self.check_control_points(2, 2)
-        if len(self.tangents) != 2:
-            raise ValueError("Hermite curve requires exactly 2 tangent vectors")
+        self.check_control_points(2,2, 'tangents')
         A = self.control_points[0]
         B = self.control_points[1]
         T0 = self.tangents[0]
@@ -579,10 +577,8 @@ class PseudoArc(PseudoCurve):
     angles: List[float] = field(default_factory=lambda: [0.0, 0.0])
 
     def sample(self) -> List[Point]:
-        if len(self.control_points) != 1:
-            raise ValueError("Arc requires exactly one control point for the center")
-        if len(self.angles) != 2:
-            raise ValueError("Arc requires exactly two angles: [start_angle, end_angle]")
+        self.check_control_points(1, 1)
+        self.check_control_points(2,2,'angles')
         center = self.control_points[0]
         start_angle, end_angle = self.angles
         angles = np.linspace(start_angle, end_angle, self.steps + 1)
@@ -697,11 +693,11 @@ class LineVertex(GraphicObject):
         # If the point type is Point, add the point's vertex data to the data list
         if isinstance(self.point, Point):
             self._data.extend(self.point.as_vertex)
-        elif isinstance(self.point, PseudoBezier):
+        elif isinstance(self.point, PseudoCurve):
             self._data.extend(self.point.data)
         else:
             # Currently, only Point type is supported. If another type is encountered, raise an exception
-            raise NotImplementedError('Bezier is not currently supported')
+            raise NotImplementedError('this curve is not currently supported')
 
     @classmethod
     def from_points(cls, points: Iterable[Union[Point, Iterable[float]]], width: Optional[float]
@@ -1377,14 +1373,14 @@ class GraphicObjectCollection(GraphicObject):
 # Square().load_as('a_square')
 
 
-# PolyLines(
-#     2.0, 'yellow',
-#     [LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 0, 1) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-#      LineVertex(Point(1, 1, 2) )]
-# ).load_as('yellow_line_strip')
+PolyLines(
+    2.0, 'yellow',
+    [LineVertex(Point(0, 0, 0) ),
+     LineVertex(Point(0, 0, 1) ),
+     LineVertex(Point(0, 1, 0) ),
+     LineVertex(Point(1, 0, 0) ),
+     LineVertex(Point(1, 1, 2) )]
+).load_as('yellow_line_strip')
 
 
 # PolyLines(
@@ -1508,10 +1504,7 @@ def __easter_egg():
 
     真しん実じつはいつもひとつ!
     '''
-    global DEBUG
-    _DEBUG = DEBUG
 
-    DEBUG = False
     poision = GraphicObjectCollection([
         Sphere(
             center=Point(-2, 0, 0),
@@ -1582,7 +1575,7 @@ def __easter_egg():
 
     cmd.set('movie_fps', 90)
 
-    DEBUG = _DEBUG
+
     print(__easter_egg.__doc__)
     cmd.mplay()
 
