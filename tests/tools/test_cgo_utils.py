@@ -1,9 +1,17 @@
-import numpy as np
-from REvoDesign.tools.cgo_utils import Point, Color, not_none_float, __easter_egg, GraphicObject, PseudoCurve, PseudoBezier, LineVertex, Sphere, Cylinder, Sausage, Square, TriangleSimple, Doughnut,Cone, Triangle, Line, Lines, PolyLines, Cube,Arrow,  RoundedRectangle, Ellipse, GraphicObjectCollection,COLOR_TABLES
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
+import numpy as np
+import pytest
 from pymol import cgo
+
+from REvoDesign.tools.cgo_utils import (COLOR_TABLES, Arrow, Color, Cone, Cube,
+                                        Cylinder, Doughnut, Ellipse,
+                                        GraphicObject, GraphicObjectCollection,
+                                        Line, Lines, LineVertex, Point,
+                                        PolyLines, PseudoBezier, PseudoCurve,
+                                        RoundedRectangle, Sausage, Sphere,
+                                        Square, Triangle, TriangleSimple,
+                                        __easter_egg, not_none_float)
 
 
 @pytest.mark.parametrize(
@@ -32,11 +40,13 @@ points = [
     (Point(0, 0, 0), Point(1, 1, 1)),
 ]
 
+
 @pytest.mark.parametrize("point1, point2", points)
 def test_add(point1, point2):
     result = point1 + point2
     expected = Point(point1.x + point2.x, point1.y + point2.y, point1.z + point2.z)
     assert result == expected
+
 
 @pytest.mark.parametrize("point1, point2", points)
 def test_sub(point1, point2):
@@ -44,11 +54,13 @@ def test_sub(point1, point2):
     expected = Point(point1.x - point2.x, point1.y - point2.y, point1.z - point2.z)
     assert result == expected
 
+
 @pytest.mark.parametrize("point, scalar", [(Point(1, 2, 3), 2), (Point(-1, -2, -3), 3)])
 def test_truediv(point, scalar):
     result = point / scalar
     expected = Point(point.x / scalar, point.y / scalar, point.z / scalar)
     assert result == expected
+
 
 @pytest.mark.parametrize("point, scalar", [(Point(1, 2, 3), 2), (Point(-1, -2, -3), 3)])
 def test_mul(point, scalar):
@@ -56,17 +68,20 @@ def test_mul(point, scalar):
     expected = Point(point.x * scalar, point.y * scalar, point.z * scalar)
     assert result == expected
 
+
 @pytest.mark.parametrize("point1, point2", points)
 def test_dot(point1, point2):
     result = Point.dot(point1, point2)
     expected = np.dot(point1.array, point2.array)
     assert result == expected
 
+
 @pytest.mark.parametrize("point1, point2", points)
 def test_cross(point1, point2):
     result = Point.cross(point1, point2)
     expected = Point.from_array(np.cross(point1.array, point2.array))
     assert result == expected
+
 
 @pytest.mark.parametrize("point, x, y, z", [
     (Point(1, 2, 3), 4, 5, 6),
@@ -82,6 +97,7 @@ def test_move(point, x, y, z):
     expected = Point(expected_x, expected_y, expected_z)
     assert result == expected
 
+
 @pytest.mark.parametrize("points", [
     [Point(1, 2, 3), Point(4, 5, 6)],
     [Point(-1, -2, -3), Point(1, 2, 3)],
@@ -91,6 +107,7 @@ def test_as_arrays(points):
     result = Point.as_arrays(points)
     expected = np.concatenate([point.array for point in points])
     assert np.array_equal(result, expected)
+
 
 @pytest.mark.parametrize("points", [
     [Point(1, 2, 3), Point(4, 5, 6)],
@@ -102,17 +119,20 @@ def test_as_vertexes(points):
     expected = np.concatenate([point.as_vertex for point in points])
     assert np.array_equal(result, expected)
 
+
 @pytest.mark.parametrize("point1, point2", points)
 def test_delta_xyz(point1, point2):
     result = point1.delta_xyz(point2)
     expected = point2.array - point1.array
     assert np.array_equal(result, expected)
 
+
 @pytest.mark.parametrize("point1, point2", points)
 def test_center_xyz(point1, point2):
     result = point1.center_xyz(point2)
     expected = (point2.array - point1.array) / 2
     assert np.array_equal(result, expected)
+
 
 @pytest.mark.parametrize("point1, point2", points)
 def test_distance_to(point1, point2):
@@ -135,6 +155,7 @@ def test_color_array(color_name, alpha, expected_rgb):
     color = Color(name=color_name, alpha=alpha)
     assert np.allclose(color.array, expected_rgb, rtol=1e-2)
 
+
 @pytest.mark.parametrize(
     "color_name, alpha, expected_rgba",
     [
@@ -149,20 +170,21 @@ def test_color_array_alpha(color_name, alpha, expected_rgba):
     color = Color(name=color_name, alpha=alpha)
     assert np.allclose(color.array_alpha, expected_rgba, rtol=1e-2)
 
+
 @pytest.mark.parametrize(
     "colors, expected_cgos",
     [
         (
             [Color("r", 1.0), Color("b", 0.5)],
             np.concatenate([
-                np.array([cgo.ALPHA,1.0, cgo.COLOR, 1.0, 0.0, 0.0]),
-                np.array([cgo.ALPHA,0.5, cgo.COLOR, 0.0, 0.0, 1.0])
+                np.array([cgo.ALPHA, 1.0, cgo.COLOR, 1.0, 0.0, 0.0]),
+                np.array([cgo.ALPHA, 0.5, cgo.COLOR, 0.0, 0.0, 1.0])
             ])
         ),
         (
             [Color("g", 0.75), Color("white", 1.0)],
             np.concatenate([
-                np.array([cgo.ALPHA,0.75, cgo.COLOR, 0.0, 0.5, 0.0]),
+                np.array([cgo.ALPHA, 0.75, cgo.COLOR, 0.0, 0.5, 0.0]),
                 np.array([cgo.ALPHA, 1.0, cgo.COLOR, 1.0, 1.0, 1.0])
             ])
         )
@@ -171,7 +193,6 @@ def test_color_array_alpha(color_name, alpha, expected_rgba):
 def test_color_as_cgos(colors, expected_cgos):
     result = Color.as_cgos(colors)
     assert np.allclose(result, expected_cgos, rtol=1e-2)
-
 
 
 @pytest.mark.parametrize(
@@ -191,6 +212,7 @@ def test_load_as(name, debug_points, expected_call_args):
 
         mock_cmd.delete.assert_called_once_with(name)
         mock_cmd.load_cgo.assert_called_once_with(graphic_object.data, *expected_call_args)
+
 
 @pytest.mark.parametrize(
     "name, debug_points, existing_names, expected_delete_calls",
@@ -212,7 +234,6 @@ def test_load_as_delete_calls(name, debug_points, existing_names, expected_delet
         mock_cmd.load_cgo.assert_called_once_with(graphic_object.data, name)
 
 
-
 @pytest.mark.parametrize(
     "control_points, color, steps, expected_vertices",
     [
@@ -232,6 +253,7 @@ def test_rebuild(control_points, color, steps, expected_vertices):
 
         assert np.allclose(pseudo_curve.data, expected_cgo)
 
+
 @pytest.mark.parametrize(
     "control_points, num_min, num_max, expected_exception",
     [
@@ -248,7 +270,6 @@ def test_check_control_points(control_points, num_min, num_max, expected_excepti
                 pseudo_curve.check_control_points(num_min=num_min, num_max=num_max)
         else:
             pseudo_curve.check_control_points(num_min=num_min, num_max=num_max)
-
 
 
 @pytest.mark.parametrize(

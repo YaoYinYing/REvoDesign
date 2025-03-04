@@ -56,7 +56,7 @@ import math
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Iterable, List, Literal, Optional, Tuple, Union
+from typing import Iterable, List, Literal, Optional, Union
 
 import numpy as np
 import webcolors
