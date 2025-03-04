@@ -57,6 +57,7 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Iterable, List, Literal, Optional, Tuple, Union
+
 import numpy as np
 import webcolors
 from chempy import cpv
@@ -125,31 +126,31 @@ class Point:
         '''
         Add two points together.
         '''
-        return Point.from_array(self.array+other.array)
-    
+        return Point.from_array(self.array + other.array)
+
     def __sub__(self, other: 'Point'):
-        return Point.from_array(self.array-other.array)
-    
+        return Point.from_array(self.array - other.array)
+
     def __truediv__(self, other: float) -> 'Point':
         '''
         Divide a point by a scalar.
         '''
-        return Point.from_array(self.array/other)
+        return Point.from_array(self.array / other)
 
     def __mul__(self, other: float) -> 'Point':
         '''
         Multiply a point by a scalar.
         '''
-        return Point.from_array(self.array*other)
-    
+        return Point.from_array(self.array * other)
+
     @classmethod
     def dot(cls, point1: 'Point', point2: 'Point'):
         return cls.from_array(np.dot(point1.array, point2.array))
-    
+
     @classmethod
     def cross(cls, point1: 'Point', point2: 'Point'):
         return cls.from_array(np.cross(point1.array, point2.array))
-    
+
     @cached_property
     def array(self) -> np.ndarray:
         '''
@@ -220,7 +221,6 @@ class Point:
         '''
         return np.concatenate(tuple(point.as_vertex for point in points))
 
-
     def delta_xyz(self, point: 'Point') -> Tuple[float, float, float]:
         return point.array - self.array
 
@@ -238,13 +238,14 @@ class Point:
         - float: The Euclidean distance
         '''
         return np.linalg.norm(point.array - self.array).astype(float)
-    
+
     @classmethod
     def from_array(cls, array: np.ndarray) -> 'Point':
         '''
         Create a Point object from a NumPy array.
         '''
         return cls(*array)
+
 
 @dataclass(frozen=True)
 class Color:
@@ -342,6 +343,7 @@ class GraphicObject:
     """
     A base class representing a graphic object, providing methods to rebuild and load graphic data.
     """
+
     def rebuild(self):
         """
         Rebuild the CGO data.
@@ -364,7 +366,7 @@ class GraphicObject:
         """
         return self._data
 
-    def load_as(self, name: str, debug_points: bool=False, *args, **kwargs):
+    def load_as(self, name: str, debug_points: bool = False, *args, **kwargs):
         """
         Load the graphic object as a specified name. If the name is occupied, delete it to regenerate.
 
@@ -402,7 +404,11 @@ class PseudoCurve(GraphicObject):
     color: Optional[str] = None
     steps: int = 50
 
-    def check_control_points(self, num_min: Optional[int] = None, num_max: Optional[int] = None, attr_name:str='control_points'):
+    def check_control_points(
+            self,
+            num_min: Optional[int] = None,
+            num_max: Optional[int] = None,
+            attr_name: str = 'control_points'):
         len_cp = len(getattr(self, attr_name))
         if num_min and len_cp < num_min:
             raise ValueError(f'Number of Control Points mismatch. Required {num_min} as minimum but got {len_cp}')
@@ -556,7 +562,7 @@ class PseudoHermite(PseudoCurve):
 
     def sample(self) -> List[Point]:
         self.check_control_points(2, 2)
-        self.check_control_points(2,2, 'tangents')
+        self.check_control_points(2, 2, 'tangents')
         A = self.control_points[0]
         B = self.control_points[1]
         T0 = self.tangents[0]
@@ -596,7 +602,7 @@ class PseudoArc(PseudoCurve):
 
     def sample(self) -> List[Point]:
         self.check_control_points(1, 1)
-        self.check_control_points(2,2,'angles')
+        self.check_control_points(2, 2, 'angles')
         center = self.control_points[0]
         start_angle, end_angle = self.angles
         angles = np.linspace(start_angle, end_angle, self.steps + 1)
@@ -1290,12 +1296,11 @@ class Arrow(GraphicObject):
     """
     Represents an arrow object for visualization in PyMOL, with properties for start and end points, line width, and color.
     """
-    start: Point# the start point of the arrow
-    point_to: Point #the tip of the arrow
-    radius: float = 0.1 # cylinder width
+    start: Point  # the start point of the arrow
+    point_to: Point  # the tip of the arrow
+    radius: float = 0.1  # cylinder width
     header_height: float = 0.25
     header_ratio: float = 1.618
-
 
     # colors
     color_header: str = 'red'
@@ -1316,43 +1321,44 @@ class Arrow(GraphicObject):
         """
         Calculates the length of the arrow's cylinder.
         """
-        return max(self.point_to.distance_to(self.start)-self.header_height,0)
-    
+        return max(self.point_to.distance_to(self.start) - self.header_height, 0)
+
     @cached_property
     def joint(self):
-        return self.start+(self.point_to-self.start)*self.cyl_length/self.point_to.distance_to(self.start)
+        return self.start + (self.point_to - self.start) * self.cyl_length / self.point_to.distance_to(self.start)
+
     def rebuild(self):
-        go=GraphicObjectCollection(
+        go = GraphicObjectCollection(
             [
                 Cylinder(
-                    self.start, 
-                    self.joint, 
+                    self.start,
+                    self.joint,
                     self.radius,
                     self.color_tail, self.color_tail
-                    ),
-                    Cone(
-                    self.point_to, 
+                ),
+                Cone(
+                    self.point_to,
                     self.joint,
                     0.0,
                     self.cone_base_r,
                     self.color_header, self.color_header,
-                    (1,1)
-                    ),
+                    (1, 1)
+                ),
             ]
         )
         go.rebuild()
-        self._data=go.data
+        self._data = go.data
 
 
 # --- RoundedRectangle3D Implementation ---
 @dataclass
 class RoundedRectangle(GraphicObject):
     """
-    Represents a rounded rectangle in 3D space using a combination of straight edges 
+    Represents a rounded rectangle in 3D space using a combination of straight edges
     and cubic Bezier curves for the rounded corners.
-    
+
     The rectangle is defined in a plane specified by a center point and two orthonormal axes.
-    
+
     Attributes:
         center (Point): The center of the rectangle.
         axis1 (Point): A unit vector representing the rectangle's local X-axis.
@@ -1382,7 +1388,7 @@ class RoundedRectangle(GraphicObject):
         return Point(global_coord[0], global_coord[1], global_coord[2])
 
     def rebuild(self) -> None:
-        self.radius=min(self.width/2, self.radius)
+        self.radius = min(self.width / 2, self.radius)
         # Half dimensions
         half_w = self.width / 2
         half_h = self.height / 2
@@ -1391,13 +1397,13 @@ class RoundedRectangle(GraphicObject):
 
         # Define local 2D coordinates (in the rectangle's plane) for the four edges (after corner inset)
         edge_bottom_start = (-half_w + r, -half_h)
-        edge_bottom_end   = ( half_w - r, -half_h)
-        edge_right_start  = ( half_w, -half_h + r)
-        edge_right_end    = ( half_w,  half_h - r)
-        edge_top_start    = ( half_w - r,  half_h)
-        edge_top_end      = (-half_w + r,  half_h)
-        edge_left_start   = (-half_w,  half_h - r)
-        edge_left_end     = (-half_w, -half_h + r)
+        edge_bottom_end = (half_w - r, -half_h)
+        edge_right_start = (half_w, -half_h + r)
+        edge_right_end = (half_w, half_h - r)
+        edge_top_start = (half_w - r, half_h)
+        edge_top_end = (-half_w + r, half_h)
+        edge_left_start = (-half_w, half_h - r)
+        edge_left_end = (-half_w, -half_h + r)
 
         # Define control points for rounded corners (using cubic Bezier approximation)
         # Bottom-right corner (from edge_bottom_end to edge_right_start)
@@ -1477,11 +1483,13 @@ class RoundedRectangle(GraphicObject):
         )
         poly.rebuild()
         self._data = poly._data
+
+
 @dataclass
 class Ellipse(GraphicObject):
     """
     Represents an ellipse in 3D space.
-    
+
     Attributes:
         center (Point): The center of the ellipse.
         axis1 (Point): A unit vector representing the ellipse's local X-axis (direction of the major axis).
@@ -1532,6 +1540,7 @@ class Ellipse(GraphicObject):
         )
         poly.rebuild()
         self._data = poly._data
+
 
 @dataclass
 class GraphicObjectCollection(GraphicObject):
@@ -1804,7 +1813,7 @@ class GraphicObjectCollection(GraphicObject):
 
 # # Create an Ellipse3D: major_radius = 5, minor_radius = 3, with blue outline and line width of 2.
 # ellipse = Ellipse(
-#     center=Point(0, 0, 0), 
+#     center=Point(0, 0, 0),
 #     axis1=Point(1, 2, 3), # Local X-axis (major axis direction)
 #     axis2=Point(3, 1, -1),  # Local Y-axis,
 #     major_radius=5,
@@ -1846,7 +1855,7 @@ def __easter_egg():
         Cylinder(
             Point(0, 0, 0),
             Point(2, 0, 0),
-            radius=1.015, 
+            radius=1.015,
             color1='red',
             color2='red'
         ),
@@ -1859,21 +1868,21 @@ def __easter_egg():
         PolyLines(
             5, 'black',
             [
-                LineVertex(Point(-1.6, 0.5, 0.9)), # left top 
-                LineVertex(Point(1.6, 0.5, 0.9)), #  right top
-                LineVertex(PseudoBezier( 
-                    [Point(1.6, 0.5, 0.9), # right top
-                     Point(2.2, 0.5, 1.08), # control point to make Bezier curve
-                     Point(2.2, -0.5, 1.08), # control point to make Bezier curve
+                LineVertex(Point(-1.6, 0.5, 0.9)),  # left top
+                LineVertex(Point(1.6, 0.5, 0.9)),  # right top
+                LineVertex(PseudoBezier(
+                    [Point(1.6, 0.5, 0.9),  # right top
+                     Point(2.2, 0.5, 1.08),  # control point to make Bezier curve
+                     Point(2.2, -0.5, 1.08),  # control point to make Bezier curve
                      Point(1.6, -0.5, 0.9)]  # right bottom
                 )),
-                LineVertex(Point(1.6, -0.5, 0.9)), # right bottom
-                LineVertex(Point(-1.6, -0.5, 0.9)), # left bottom
+                LineVertex(Point(1.6, -0.5, 0.9)),  # right bottom
+                LineVertex(Point(-1.6, -0.5, 0.9)),  # left bottom
                 LineVertex(PseudoBezier(
-                    [Point(-1.6, -0.5, 0.9), # left bottom
-                     Point(-2.2, -0.5, 1.05), # control point to make Bezier curve
-                     Point(-2.2, 0.5, 1.05), # control point to make Bezier curve
-                     Point(-1.6, 0.5, 0.9)] # left top 
+                    [Point(-1.6, -0.5, 0.9),  # left bottom
+                     Point(-2.2, -0.5, 1.05),  # control point to make Bezier curve
+                     Point(-2.2, 0.5, 1.05),  # control point to make Bezier curve
+                     Point(-1.6, 0.5, 0.9)]  # left top
                 )),
             ], line_type='LINE_LOOP'
         )
@@ -1901,7 +1910,6 @@ def __easter_egg():
     cmd.movie.add_roll(8, loop=0, axis='y', start=1)
 
     cmd.set('movie_fps', 90)
-
 
     print(__easter_egg.__doc__)
     cmd.mplay()
