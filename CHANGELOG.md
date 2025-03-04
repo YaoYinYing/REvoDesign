@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+### Added
+- tools:
+  - vina tools for box getting/moving/modifying, as well as axes generation
+  - CGO programing interface, for `pymol.cgo` binding
+- doc: 
+  - dev env setup for pyqt typing hints
+  - a thread about some cgo details
+- ci: lint score after tests
+- an easter egg
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## [1.7.19] - 2025-02-27
 
 ### Added
