@@ -51,10 +51,10 @@ CONE,      x1, y1, z1,
 
 '''
 
-from abc import ABC, abstractmethod
 import itertools
 import math
-from dataclasses import InitVar, dataclass, field
+from abc import abstractmethod
+from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Iterable, List, Literal, Optional, Tuple, Union
 
@@ -371,10 +371,10 @@ class GraphicObject:
 @dataclass
 class PseudoCurve(GraphicObject):
     '''
-    Pseudocurve base class, from which all pseudocurves (Bezier, Catmull-Rom, 
-    B-Spline, Hermite, Arc, NURBS) inherit. Implements the sample method to 
+    Pseudocurve base class, from which all pseudocurves (Bezier, Catmull-Rom,
+    B-Spline, Hermite, Arc, NURBS) inherit. Implements the sample method to
     calculate discrete sampling points of the curve.
-    
+
     Attributes:
         control_points (List[Point]): A list of control points used to define the curve.
         color (Optional[str]): The color of the curve (optional).
@@ -399,16 +399,15 @@ class PseudoCurve(GraphicObject):
         Returns:
             List["Point"]: A list of sampling points, containing a series of points that make up the curve.
         '''
-        pass
 
     def rebuild(self) -> None:
         '''
         Rebuild method, used to rebuild the curve object based on sampling points.
-        
-        This method first calls the sample method to get a list of sampling points, then builds 
+
+        This method first calls the sample method to get a list of sampling points, then builds
         a CGO (Crystallographic Object) list based on these points.
         If the color attribute exists, the color information is added to the CGO object.
-        Finally, the CGO object is assigned to the _data attribute of the instance, for subsequent 
+        Finally, the CGO object is assigned to the _data attribute of the instance, for subsequent
         processing or rendering.
         '''
         vertices_points = self.sample()  # Call the sample method to get a list of sampling points
@@ -422,11 +421,13 @@ class PseudoCurve(GraphicObject):
 # PseudoBezier Implementation
 # ------------------------------------------------------------------
 
+
 @dataclass
 class PseudoBezier(PseudoCurve):
     '''
     PseudoBezier pseudocurve implementation using the Bezier curve formula with four control points.
     '''
+
     def sample(self) -> List[Point]:
         self.check_control_points(4, 4)
         control_points = self.control_points
@@ -448,12 +449,14 @@ class PseudoBezier(PseudoCurve):
 # PseudoCatmullRom Implementation
 # ------------------------------------------------------------------
 
+
 @dataclass
 class PseudoCatmullRom(PseudoCurve):
     '''
     PseudoCatmullRom pseudocurve implementation using the Catmull-Rom spline formula.
     This curve passes through all the control points and requires at least 4 control points.
     '''
+
     def sample(self) -> List[Point]:
         if len(self.control_points) < 4:
             raise ValueError("Catmull-Rom curve requires at least 4 control points")
@@ -489,11 +492,12 @@ class PseudoCatmullRom(PseudoCurve):
 # PseudoBSpline Implementation
 # ------------------------------------------------------------------
 
+
 @dataclass
 class PseudoBSpline(PseudoCurve):
     '''
     PseudoBSpline pseudocurve implementation using a B-Spline algorithm.
-    
+
     Attributes:
         degree (int): Degree of the B-Spline curve (default is 3).
         knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
@@ -521,16 +525,17 @@ class PseudoBSpline(PseudoCurve):
 # PseudoHermite Implementation
 # ------------------------------------------------------------------
 
+
 @dataclass
 class PseudoHermite(PseudoCurve):
     '''
     PseudoHermite pseudocurve implementation using Hermite interpolation.
-    
+
     Attributes:
         control_points (List[Point]): Exactly 2 control points (start and end).
         tangents (List[Point]): Two tangent vectors corresponding to the control points.
     '''
-    tangents: List[Point]=field(default_factory=list)
+    tangents: List[Point] = field(default_factory=list)
 
     def sample(self) -> List[Point]:
         self.check_control_points(2, 2)
@@ -559,18 +564,19 @@ class PseudoHermite(PseudoCurve):
 # PseudoArc Implementation
 # ------------------------------------------------------------------
 
+
 @dataclass
 class PseudoArc(PseudoCurve):
     '''
     PseudoArc pseudocurve implementation for drawing an arc.
-    
+
     Attributes:
         control_points (List[Point]): Expects a single control point representing the center.
         radius (float): The radius of the arc.
         angles (List[float]): A list with two elements [start_angle, end_angle] in radians.
     '''
-    radius: float=0.0
-    angles: List[float]=field(default_factory=lambda: [0.0, 0.0])
+    radius: float = 0.0
+    angles: List[float] = field(default_factory=lambda: [0.0, 0.0])
 
     def sample(self) -> List[Point]:
         if len(self.control_points) != 1:
@@ -592,17 +598,18 @@ class PseudoArc(PseudoCurve):
 # PseudoNURBS Implementation
 # ------------------------------------------------------------------
 
+
 @dataclass
 class PseudoNURBS(PseudoCurve):
     '''
     PseudoNURBS pseudocurve implementation using Non-Uniform Rational B-Splines.
-    
+
     Attributes:
         weights (List[float]): Weights corresponding to each control point.
         degree (int): Degree of the NURBS curve (default is 3).
         knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
     '''
-    weights: List[float] =field(default_factory=list)
+    weights: List[float] = field(default_factory=list)
     degree: int = 3
     knots: Optional[List[float]] = None
 
@@ -652,6 +659,7 @@ class PseudoNURBS(PseudoCurve):
         if denom2 != 0:
             term2 = ((knots[i + p + 1] - u) / denom2) * self.basis(i + 1, p - 1, u, knots)
         return term1 + term2
+
 
 @dataclass
 class LineVertex(GraphicObject):
@@ -1536,17 +1544,17 @@ def __easter_egg():
                 LineVertex(Point(1.6, 0.5, 0.9)),
                 LineVertex(PseudoBezier(
                     [Point(1.6, 0.5, 0.9),
-                    Point(2.2, 0.5, 1.08),
-                    Point(2.2, -0.5, 1.08),
-                    Point(1.6, -0.5, 0.9)]
+                     Point(2.2, 0.5, 1.08),
+                     Point(2.2, -0.5, 1.08),
+                     Point(1.6, -0.5, 0.9)]
                 )),
                 LineVertex(Point(1.6, -0.5, 0.9)),
                 LineVertex(Point(-1.6, -0.5, 0.9)),
                 LineVertex(PseudoBezier(
                     [Point(-1.6, -0.5, 0.9),
-                    Point(-2.2, -0.5, 1.05),
-                    Point(-2.2, 0.5, 1.05),
-                    Point(-1.6, 0.5, 0.9)]
+                     Point(-2.2, -0.5, 1.05),
+                     Point(-2.2, 0.5, 1.05),
+                     Point(-1.6, 0.5, 0.9)]
                 )),
             ], line_type='LINE_LOOP'
         )
