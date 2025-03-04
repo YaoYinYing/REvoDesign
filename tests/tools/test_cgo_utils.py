@@ -250,3 +250,23 @@ def test_check_control_points(control_points, num_min, num_max, expected_excepti
             pseudo_curve.check_control_points(num_min=num_min, num_max=num_max)
 
 
+
+@pytest.mark.parametrize(
+    "control_points, steps, expected_points",
+    [
+        (
+            [Point(0, 0, 0), Point(1, 0, 0), Point(1, 1, 0), Point(0, 1, 0)],
+            1,
+            [Point(0.0, 0.0, 0.0), Point(0.0, 1.0, 0.0)]
+        ),
+        (
+            [Point(0, 0, 0), Point(0, 1, 0), Point(1, 1, 0), Point(1, 0, 0)],
+            2,
+            [Point(0.0, 0.0, 0.0), Point(0.5, 0.75, 0.0), Point(1.0, 0.0, 0.0)]
+        ),
+    ]
+)
+def test_pseudo_bezier_sample(control_points, steps, expected_points):
+    bezier = PseudoBezier(control_points, steps=steps)
+    sampled_points = bezier.sample()
+    assert sampled_points == expected_points
