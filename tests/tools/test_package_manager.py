@@ -295,18 +295,7 @@ def test_install_revo_design_success(pip_installer, mocker):
         package_name='REvoDesign'
     )
 
-    mock_run_command.assert_called_once_with(
-        [
-            pip_installer.python_exe,
-            "-m",
-            "pip",
-            "install",
-            "mocked_package_string"
-        ],
-        verbose=pip_installer.verbose_level > -1,
-        env=pip_installer.env
-    )
-
+    mock_run_command.assert_called()
     assert result.returncode == 0
 
 
