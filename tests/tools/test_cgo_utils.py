@@ -6,15 +6,15 @@ import numpy as np
 import pytest
 from pymol import cgo, cmd
 
-from REvoDesign.tools.cgo_utils import ( Arrow, Color, Cone, Cube,
-                                        Cylinder, Doughnut, Ellipse,
+from REvoDesign.tools.cgo_utils import (Arrow, Color, Cone, Cube, Cylinder,
+                                        Doughnut, Ellipse, Ellipsoid,
                                         GraphicObject, GraphicObjectCollection,
-                                        LineVertex, Point, PolyLines,
-                                        PseudoBezier, PseudoCurve,
+                                        LineVertex, Point, Polygon, Polyhedron,
+                                        PolyLines, PseudoBezier, PseudoCurve,
                                         RoundedRectangle, Sausage, Sphere,
-                                        Square, Triangle, TriangleSimple,Ellipsoid,
-                                        Polygon,Polyhedron,TextCharPolygon,TextBoard,
-                                        __easter_egg, not_none_float)
+                                        Square, TextBoard, TextCharPolygon,
+                                        Triangle, TriangleSimple, __easter_egg,
+                                        not_none_float)
 
 
 @pytest.mark.parametrize(
@@ -1064,6 +1064,7 @@ def test_ellispsoid():
     ellipsoid.load_as('my_ellispsoid')
     cmd.reinitialize()
 
+
 def test_polygon():
     cmd.reinitialize()
     vertices = [
@@ -1078,18 +1079,19 @@ def test_polygon():
     poly.load_as('my_polygon')
     cmd.reinitialize()
 
+
 def test_polyhedron():
     cmd.reinitialize()
     # Define the vertices of a cube.
     vertices = [
         Point(-1, -1, -1),  # 0
-        Point( 1, -1, -1),  # 1
-        Point( 1,  1, -1),  # 2
-        Point(-1,  1, -1),  # 3
-        Point(-1, -1,  1),  # 4
-        Point( 1, -1,  1),  # 5
-        Point( 1,  1,  1),  # 6
-        Point(-1,  1,  1)   # 7
+        Point(1, -1, -1),  # 1
+        Point(1, 1, -1),  # 2
+        Point(-1, 1, -1),  # 3
+        Point(-1, -1, 1),  # 4
+        Point(1, -1, 1),  # 5
+        Point(1, 1, 1),  # 6
+        Point(-1, 1, 1)   # 7
     ]
     # Define the faces of the cube (each face as a list of vertex indices).
     faces = [
@@ -1106,6 +1108,7 @@ def test_polyhedron():
     cube.load_as('my_polyhedron')
     cmd.reinitialize()
 
+
 @pytest.fixture
 def ensure_font_file():
     import pooch
@@ -1117,10 +1120,11 @@ def ensure_font_file():
         path='../tests/data/',
     )
 
+
 def test_text_cgo(ensure_font_file):
     cmd.reinitialize()
-    text='Detective Conan\n\nSilver Bullet\n\nCool Kid'
-    
+    text = 'Detective Conan\n\nSilver Bullet\n\nCool Kid'
+
     TextBoard(
         text=text,
         font_path=ensure_font_file,

@@ -2424,7 +2424,7 @@ class GraphicObjectCollection(GraphicObject):
 #     test_text()
 
 font_path = "/Users/yyy/Downloads/simhei.ttf"
-text='Silver Bullet\n\nCool Kid'
+text = 'Silver Bullet\n\nCool Kid'
 
 
 TextBoard(

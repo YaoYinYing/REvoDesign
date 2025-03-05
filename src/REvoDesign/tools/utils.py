@@ -21,7 +21,6 @@ from REvoDesign.logger import ROOT_LOGGER
 from ..bootstrap.set_config import is_package_installed
 from .package_manager import run_command, run_worker_thread_with_progress
 
-
 try:
     from itertools import pairwise as _pairwise  # type: ignore
 except ImportError:

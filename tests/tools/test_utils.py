@@ -12,11 +12,13 @@ import pytest
 from REvoDesign import issues
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.citations import CitableModuleAbstract, CitationManager
-from REvoDesign.tools.utils import (cmap_reverser, count_and_sort_characters,
-                                    extract_archive, generate_strong_password,
-                                    get_cited, get_color, minibatches,
-                                    minibatches_generator, random_deduplicate,
-                                    require_installed, rescale_number, timing,pairwise_loop,_pairwise)
+from REvoDesign.tools.utils import (_pairwise, cmap_reverser,
+                                    count_and_sort_characters, extract_archive,
+                                    generate_strong_password, get_cited,
+                                    get_color, minibatches,
+                                    minibatches_generator, pairwise_loop,
+                                    random_deduplicate, require_installed,
+                                    rescale_number, timing)
 
 matplotlib.use('Agg')  # Use the Agg backend to avoid GUI requirements for testing
 
@@ -478,7 +480,6 @@ def test_get_cited():
     assert len(cm.called_citations) == 1, "CitationManager should have one called citation after run()"
     assert cm.called_citations == expected_citation, "CitationManager should have the expected citation after run()"
     cm.reset_instance()
-
 
 
 @pytest.mark.parametrize("input_data, expected_output", [
