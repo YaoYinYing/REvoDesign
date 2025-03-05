@@ -56,9 +56,11 @@ import math
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
+import string
 from typing import Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
+import tree
 import webcolors
 from chempy import cpv
 from immutabledict import immutabledict
@@ -66,6 +68,8 @@ from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 from pymol.vfont import plain
 from fontTools.ttLib import TTFont
+
+from REvoDesign.tools.utils import pairwise, pairwise_loop, timing
 
 DEBUG = True
 
@@ -143,6 +147,13 @@ class Point:
         Multiply a point by a scalar.
         '''
         return Point.from_array(self.array * other)
+    
+    @property
+    def copy(self):
+        '''
+        Return a copy of the point.
+        '''
+        return Point.from_array(self.array)
 
     @classmethod
     def dot(cls, point1: 'Point', point2: 'Point') -> float:
@@ -1670,9 +1681,10 @@ class PolygonPen:
     A custom pen that collects glyph outlines as contours (lists of Points).
     Implements the FontTools pen interface.
     """
-    def __init__(self):
+    def __init__(self, sample_num:int=10):
         self.contours: List[List[Point]] = []
         self.current_contour: List[Point] = []
+        self.sample_num=sample_num
 
     def moveTo(self, pt):
         # pt is a tuple (x, y) or (x, y, z)
@@ -1694,7 +1706,7 @@ class PolygonPen:
         for i in range(0, len(pts)-1, 2):
             control = pts[i]
             end = pts[i+1]
-            sampled = sample_quadratic_bezier(start.array, control, end, num=10)
+            sampled = sample_quadratic_bezier(start.array, control, end, num=self.sample_num)
             # Append sampled points (skip the first to avoid duplication)
             for coord in sampled[1:]:
                 self.current_contour.append(Point(coord[0], coord[1], coord[2]))
@@ -1711,59 +1723,6 @@ class PolygonPen:
         self.closePath()
 
 
-# --- FilledPolygon Implementation ---
-@dataclass
-class FilledPolygon(GraphicObject):
-    """
-    Represents a filled (color-filled) polygon in 3D space.
-    
-    This class fills the polygon by computing a center point from the vertices,
-    then forming a triangle fan covering the entire area. Note: This method works
-    well for convex (or nearly convex) polygons.
-    
-    Attributes:
-        vertices (List[Point]): A list of points that define the polygon's perimeter (in order).
-        color (str): The fill color.
-    """
-    vertices: List[Point]
-    color: str
-
-    def rebuild(self) -> None:
-        """
-        Rebuilds the polygon as a filled shape by triangulating it and assembling
-        a CGO triangle mesh.
-        """
-        if len(self.vertices) < 3:
-            raise ValueError("A polygon must have at least 3 vertices")
-        
-        # Compute the center as the average of vertices.
-        cx = sum(p.x for p in self.vertices) / len(self.vertices)
-        cy = sum(p.y for p in self.vertices) / len(self.vertices)
-        cz = sum(p.z for p in self.vertices) / len(self.vertices)
-        center = Point(cx, cy, cz)
-        
-        # Triangulate the polygon: create triangles (center, vertex[i], vertex[i+1])
-        triangles = []
-        num_vertices = len(self.vertices)
-        for i in range(num_vertices):
-            p1 = self.vertices[i]
-            p2 = self.vertices[(i + 1) % num_vertices]  # Wrap around
-            triangles.append([center, p1, p2])
-        
-        # Build CGO object
-        cgo_obj = []
-        # Add color information.
-        cgo_obj.extend(Color(self.color).as_cgo)
-        # Begin triangle drawing mode.
-        cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLES])
-        # Add vertices for each triangle.
-        for tri in triangles:
-            for vertex in tri:
-                cgo_obj.extend(vertex.as_vertex)
-        # End the drawing.
-        cgo_obj.append(cgo.END)
-        self._data = cgo_obj
-
 # --- TextCharPolygon: Convert a Character to Polygonal Outlines ---
 @dataclass
 class TextCharPolygon(GraphicObject):
@@ -1776,6 +1735,13 @@ class TextCharPolygon(GraphicObject):
         color (str): The outline color.
         scale (float): Scaling factor for the glyph.
         offset (Optional[Point]): An optional offset to apply.
+
+        width (float): The width of the character.
+        format (str): the implementation format of the polygon data.
+            - 'LINE_LOOP': use line loop to draw the wireframe
+            - 'SAUSAGE': use sausage to draw the wireframe
+
+        sample_num: The number of samples to use for the polygon approximation in Bezeir sampling
     """
     char: str
     font_path: str
@@ -1783,25 +1749,29 @@ class TextCharPolygon(GraphicObject):
     scale: float = 1.0
     offset: Optional[Point] = None
 
+    width: float=1.0
+    format: Literal['LINE_LOOP', 'SAUSAGE','TRIANGLE_FAN']= 'LINE_LOOP'
+    sample_num: int=10
+
     def rebuild(self) -> None:
         # Open the font and get the glyph for the character.
         font = TTFont(self.font_path)
-        cmap = font['cmap'].getBestCmap()  # Map from Unicode codepoints to glyph names
+        cmap = font['cmap'].getBestCmap()  # type: ignore # Map from Unicode codepoints to glyph names
         glyph_name = cmap.get(ord(self.char))
         if glyph_name is None:
             raise ValueError(f"Glyph for character '{self.char}' not found in {self.font_path}")
         glyph_set = font.getGlyphSet()
         glyph = glyph_set[glyph_name]
         # Use our custom pen to collect the outline.
-        pen = PolygonPen()
+        pen = PolygonPen(sample_num=self.sample_num)
         glyph.draw(pen)
         # Get the raw contours (each a list of Points)
         polygons = pen.contours
         
         # Apply scale and offset
-        scaled_polygons = []
+        scaled_polygons: List[List[Point]] = []
         for contour in polygons:
-            scaled_contour = []
+            scaled_contour: List[Point] = []
             for pt in contour:
                 x = pt.x * self.scale
                 y = pt.y * self.scale
@@ -1816,19 +1786,97 @@ class TextCharPolygon(GraphicObject):
         # Build a CGO object: for simplicity, we'll output each contour as a closed polyline.
         cgo_obj = []
         cgo_obj.extend(Color(self.color).as_cgo)
-        for contour in scaled_polygons:
-            # Ensure the contour is closed.
-            if contour[0].array.tolist() != contour[-1].array.tolist():
-                contour.append(contour[0])
-            poly = PolyLines(
-                width=1.0,
-                color=self.color,
-                points=[LineVertex(pt) for pt in contour],
-                line_type='LINE_LOOP'
-            )
-            poly.rebuild()
-            cgo_obj.extend(poly.data)
+        if self.format == 'LINE_LOOP':
+            for contour in scaled_polygons:
+                # Ensure the contour is closed.
+                if contour[0].array.tolist() != contour[-1].array.tolist():
+                    contour.append(contour[0])
+                poly = PolyLines(
+                    width=self.width,
+                    color=self.color,
+                    points=[LineVertex(pt) for pt in contour],
+                    line_type=self.format,
+                )
+                poly.rebuild()
+                cgo_obj.extend(poly.data)
+        elif self.format == 'SAUSAGE':
+            for contour in scaled_polygons:
+                cgo_obj.extend(
+                    tree.flatten(
+                            [
+                                Sausage(p1, p2, radius=self.width, color_1=self.color, color_2=self.color).data
+                                for p1, p2 in pairwise_loop(contour)
+                            ]
+                        )
+                )
+                
+        else:
+            raise NotImplementedError(f'{self.format} is not support.')
+
+
+
         self._data = cgo_obj
+
+
+@dataclass
+class TextBoard(GraphicObject):
+    text: str
+    font_path: str
+
+    start_point: Point = Point(0, 0, 0)
+
+    color: str = 'random'
+
+    scale:float=0.1
+    offset=Point(0, 0, 0)
+    width:float=5
+    space: float = 100
+    format: Literal['LINE_LOOP', 'SAUSAGE','TRIANGLE_FAN']='SAUSAGE'
+    sample_num:int=5
+
+
+    def rebuild(self):
+        import random
+
+        if self.color=='random':
+            color=random.sample(list(CSS4_COLORS.keys()), len(self.text))
+        else:
+            color=[self.color for _ in self.text]
+
+        goc=GraphicObjectCollection([])
+
+        curser_point=self.start_point.copy
+
+        origin_point=curser_point.copy
+
+        
+        for (_, char), (_, c) in zip(enumerate(self.text), enumerate(color)):
+            if char in string.printable:
+                space=self.space
+            else:
+                space=self.space*2
+
+            if char != '\n':
+                curser_point=curser_point.move(x=curser_point.x+space)
+            else:
+                curser_point=curser_point.move(x=origin_point.x,y=curser_point.y-self.space*2)
+                continue
+            
+            goc.objects.append(TextCharPolygon(
+            char=char,
+            font_path=self.font_path,
+            color=c,
+            scale=self.scale,
+            offset=curser_point,
+            width=self.width,
+            format='SAUSAGE',
+            sample_num=self.sample_num
+        ))
+        
+        goc.rebuild()
+            
+        self._data=goc.data
+
 
 
 # # --- Helper functions to build specific Platonic solids ---
@@ -2032,16 +2080,15 @@ class GraphicObjectCollection(GraphicObject):
         """
         # Reset the collection's data
         self._data = []
-        # Iterate through each graphic object in the collection
         for go_idx, go in enumerate(self.objects):
+            # Print the addition information of the graphic object
+            print(f"Adding: #{go_idx} ({go.__class__.__name__})")
             # If forced to rebuild, call the rebuild method on the graphic object
             if self.force_to_rebuild:
                 go.rebuild()
-            # Add the graphic object's data to the collection's data list
-            self._data.extend(go.data)
-            # Print the addition information of the graphic object
-            print(f"Added: #{go_idx} ({go.__class__.__name__})")
-
+        # Iterate through each graphic object in the collection
+        self._data.extend(tree.flatten([go.data for go in self.objects]))
+        
 
 
 
@@ -2351,18 +2398,40 @@ class GraphicObjectCollection(GraphicObject):
 #     cube.load_as(f'my_{n}_{c}_polyhedron')
 
 
+# def test_text():
+#     import random
+#     # Specify a TTF font file path (update this path to one available on your system)
+#     font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"  # e.g., "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
-# Specify a TTF font file path (update this path to one available on your system)
-font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"  # e.g., "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-text_char = TextCharPolygon(
-    char="中",
-    font_path=font_path,
-    color="blue",
-    scale=0.1,
-    offset=Point(0, 0, 0)
-)
-text_char.rebuild()
-text_char.load_as("my_text_char")
+#     for (idx, c ), (_, color)in zip(enumerate('APTX-4869'), enumerate(random.sample(list(CSS4_COLORS.keys()),100))):
+#         text_char = TextCharPolygon(
+#             char=c,
+#             font_path=font_path,
+#             color=color,
+#             scale=0.1,
+#             offset=Point(0+idx*150, 0, 0),
+#             width=5,
+#             format='SAUSAGE',
+#             sample_num=5
+#         )
+#         text_char.rebuild()
+#         text_char.load_as(f"my_text_char_{idx}")
+
+#     cmd.zoom()
+
+# with timing('writing'):
+#     test_text()
+
+# font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"
+# text='APTX-4869\n\nsilver bullet\n\nCool Kid'
+
+
+
+# TextBoard(
+#     text=text,
+#     font_path=font_path,
+#     width=10
+# ).load_as('silver_bullet')
 
 
 # also a quick demo to construct complicated cgo object

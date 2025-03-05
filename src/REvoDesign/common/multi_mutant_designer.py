@@ -2,20 +2,11 @@
 Running Randomized Multi-Design
 
 '''
-import itertools
 import os
 import random
 import warnings
 
-try:
-    from itertools import pairwise  # type: ignore
-except ImportError:
 
-    def pairwise(iterable):
-        """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
-        a, b = itertools.tee(iterable)
-        next(b, None)
-        return zip(a, b)
 
 
 from pymol import cmd, util
@@ -26,7 +17,7 @@ from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.magician import Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
-from REvoDesign.tools.utils import cmap_reverser, get_color
+from REvoDesign.tools.utils import cmap_reverser, get_color, pairwise
 
 logging = ROOT_LOGGER.getChild(__name__)
 
