@@ -89,3 +89,4 @@ dev/after.txt
 dev/before.txt
 pylint_score.txt
 render.mp4
+tests/data/simhei.ttf
