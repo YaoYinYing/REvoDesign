@@ -52,6 +52,7 @@ dependencies = [
     "openpyxl",
     "tqdm",
     "webcolors",
+    "fonttools",
 ]
 
 [project.optional-dependencies]
