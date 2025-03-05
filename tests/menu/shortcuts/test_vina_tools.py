@@ -122,6 +122,8 @@ def test_showaxes():
     box_name=axes_names[0]
     assert box_name == "axes", 'Axes name should be exactly "axes"'
 
+    cmd.reinitialize()
+
 
 
 
