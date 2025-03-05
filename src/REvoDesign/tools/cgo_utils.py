@@ -53,21 +53,21 @@ CONE,      x1, y1, z1,
 
 import itertools
 import math
+import string
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
-import string
-from typing import Iterable, List, Literal, Optional, Tuple, Union
+from typing import Iterable, List, Literal, Optional, Union
 
 import numpy as np
 import tree
 import webcolors
 from chempy import cpv
+from fontTools.ttLib import TTFont
 from immutabledict import immutabledict
 from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 from pymol.vfont import plain
-from fontTools.ttLib import TTFont
 
 from REvoDesign.tools.utils import pairwise, pairwise_loop, timing
 
@@ -147,7 +147,7 @@ class Point:
         Multiply a point by a scalar.
         '''
         return Point.from_array(self.array * other)
-    
+
     @property
     def copy(self):
         '''
@@ -1535,12 +1535,12 @@ class Ellipsoid(GraphicObject):
         phi = np.linspace(0, 2 * math.pi, self.steps_phi + 1)    # azimuthal angle
         # Create meshgrid (theta: rows, phi: columns)
         theta_grid, phi_grid = np.meshgrid(theta, phi, indexing='ij')
-        
+
         # Compute x, y, z coordinates using vectorized operations
         x = self.center.x + self.radius_x * np.sin(theta_grid) * np.cos(phi_grid)
         y = self.center.y + self.radius_y * np.sin(theta_grid) * np.sin(phi_grid)
         z = self.center.z + self.radius_z * np.cos(theta_grid)
-        
+
         # Stack to form an array of points with shape (steps_theta+1, steps_phi+1, 3)
         vertices_grid = np.stack((x, y, z), axis=-1)
 
@@ -1556,7 +1556,7 @@ class Ellipsoid(GraphicObject):
                 # Split the quad into two triangles:
                 triangles.append([p0, p1, p2])
                 triangles.append([p0, p2, p3])
-        
+
         # Assemble CGO object
         cgo_obj = []
         # Add color information if specified
@@ -1601,6 +1601,8 @@ class Polygon(GraphicObject):
         self._data = cgo_obj
 
 # --- Polyhedron Implementation ---
+
+
 @dataclass
 class Polyhedron(GraphicObject):
     """
@@ -1635,6 +1637,7 @@ class Polyhedron(GraphicObject):
             cgo_obj.append(cgo.END)
         self._data = cgo_obj
 
+
 def to3d(pt):
     """
     Ensures that the given point (tuple or list) has three components.
@@ -1645,17 +1648,18 @@ def to3d(pt):
         return pt + (0.0,)
     return pt
 
+
 def sample_quadratic_bezier(p0, p1, p2, num=10):
     """
     Samples a quadratic Bézier curve defined by p0, p1, and p2.
     Ensures that each point is represented as a 3D coordinate (z=0 if not provided).
-    
+
     Args:
         p0: Starting point (iterable of 2 or 3 floats).
         p1: Control point (iterable of 2 or 3 floats).
         p2: Ending point (iterable of 2 or 3 floats).
         num (int): Number of samples.
-    
+
     Returns:
         List of (x, y, z) tuples representing sampled points along the curve.
     """
@@ -1671,20 +1675,23 @@ def sample_quadratic_bezier(p0, p1, p2, num=10):
 
     pts = []
     for t in np.linspace(0, 1, num):
-        pt = (1-t)**2 * p0 + 2*(1-t)*t * p1 + t**2 * p2
+        pt = (1 - t)**2 * p0 + 2 * (1 - t) * t * p1 + t**2 * p2
         pts.append(tuple(pt))
     return pts
 
 # --- Custom Pen for Collecting Glyph Outlines ---
+
+
 class PolygonPen:
     """
     A custom pen that collects glyph outlines as contours (lists of Points).
     Implements the FontTools pen interface.
     """
-    def __init__(self, sample_num:int=10):
+
+    def __init__(self, sample_num: int = 10):
         self.contours: List[List[Point]] = []
         self.current_contour: List[Point] = []
-        self.sample_num=sample_num
+        self.sample_num = sample_num
 
     def moveTo(self, pt):
         # pt is a tuple (x, y) or (x, y, z)
@@ -1703,9 +1710,9 @@ class PolygonPen:
         start = self.current_contour[-1]
         # For each quadratic segment, sample points along the curve.
         # For simplicity, assume pairs of (control, end). If multiple controls, chain them.
-        for i in range(0, len(pts)-1, 2):
+        for i in range(0, len(pts) - 1, 2):
             control = pts[i]
-            end = pts[i+1]
+            end = pts[i + 1]
             sampled = sample_quadratic_bezier(start.array, control, end, num=self.sample_num)
             # Append sampled points (skip the first to avoid duplication)
             for coord in sampled[1:]:
@@ -1728,7 +1735,7 @@ class PolygonPen:
 class TextCharPolygon(GraphicObject):
     """
     Represents a character as polygon outlines extracted from a font file.
-    
+
     Attributes:
         char (str): The character to render.
         font_path (str): Path to a TrueType (or similar) font file.
@@ -1749,9 +1756,9 @@ class TextCharPolygon(GraphicObject):
     scale: float = 1.0
     offset: Optional[Point] = None
 
-    width: float=1.0
-    format: Literal['LINE_LOOP', 'SAUSAGE','TRIANGLE_FAN']= 'LINE_LOOP'
-    sample_num: int=10
+    width: float = 1.0
+    format: Literal['LINE_LOOP', 'SAUSAGE', 'TRIANGLE_FAN'] = 'LINE_LOOP'
+    sample_num: int = 10
 
     def rebuild(self) -> None:
         # Open the font and get the glyph for the character.
@@ -1767,7 +1774,7 @@ class TextCharPolygon(GraphicObject):
         glyph.draw(pen)
         # Get the raw contours (each a list of Points)
         polygons = pen.contours
-        
+
         # Apply scale and offset
         scaled_polygons: List[List[Point]] = []
         for contour in polygons:
@@ -1782,7 +1789,7 @@ class TextCharPolygon(GraphicObject):
                     z += self.offset.z
                 scaled_contour.append(Point(x, y, z))
             scaled_polygons.append(scaled_contour)
-        
+
         # Build a CGO object: for simplicity, we'll output each contour as a closed polyline.
         cgo_obj = []
         cgo_obj.extend(Color(self.color).as_cgo)
@@ -1803,17 +1810,15 @@ class TextCharPolygon(GraphicObject):
             for contour in scaled_polygons:
                 cgo_obj.extend(
                     tree.flatten(
-                            [
-                                Sausage(p1, p2, radius=self.width, color_1=self.color, color_2=self.color).data
-                                for p1, p2 in pairwise_loop(contour)
-                            ]
-                        )
+                        [
+                            Sausage(p1, p2, radius=self.width, color_1=self.color, color_2=self.color).data
+                            for p1, p2 in pairwise_loop(contour)
+                        ]
+                    )
                 )
-                
+
         else:
             raise NotImplementedError(f'{self.format} is not support.')
-
-
 
         self._data = cgo_obj
 
@@ -1827,56 +1832,53 @@ class TextBoard(GraphicObject):
 
     color: str = 'random'
 
-    scale:float=0.1
-    offset=Point(0, 0, 0)
-    width:float=5
+    scale: float = 0.1
+    offset = Point(0, 0, 0)
+    width: float = 5
     space: float = 100
-    format: Literal['LINE_LOOP', 'SAUSAGE','TRIANGLE_FAN']='SAUSAGE'
-    sample_num:int=5
-
+    format: Literal['LINE_LOOP', 'SAUSAGE', 'TRIANGLE_FAN'] = 'SAUSAGE'
+    sample_num: int = 5
 
     def rebuild(self):
         import random
 
-        if self.color=='random':
-            color=random.sample(list(CSS4_COLORS.keys()), len(self.text))
+        if self.color == 'random':
+            color = random.sample(list(CSS4_COLORS.keys()), len(self.text))
         else:
-            color=[self.color for _ in self.text]
+            color = [self.color for _ in self.text]
 
-        goc=GraphicObjectCollection([])
+        goc = GraphicObjectCollection([])
 
-        curser_point=self.start_point.copy
+        curser_point = self.start_point.copy
 
-        origin_point=curser_point.copy
+        origin_point = curser_point.copy
 
-        
         for (_, char), (_, c) in zip(enumerate(self.text), enumerate(color)):
             if char in string.printable:
-                space=self.space
+                space = self.space
             else:
-                space=self.space*2
+                space = self.space * 2
 
             if char != '\n':
-                curser_point=curser_point.move(x=curser_point.x+space)
+                curser_point = curser_point.move(x=curser_point.x + space)
             else:
-                curser_point=curser_point.move(x=origin_point.x,y=curser_point.y-self.space*2)
+                curser_point = curser_point.move(x=origin_point.x, y=curser_point.y - self.space * 2)
                 continue
-            
-            goc.objects.append(TextCharPolygon(
-            char=char,
-            font_path=self.font_path,
-            color=c,
-            scale=self.scale,
-            offset=curser_point,
-            width=self.width,
-            format='SAUSAGE',
-            sample_num=self.sample_num
-        ))
-        
-        goc.rebuild()
-            
-        self._data=goc.data
 
+            goc.objects.append(TextCharPolygon(
+                char=char,
+                font_path=self.font_path,
+                color=c,
+                scale=self.scale,
+                offset=curser_point,
+                width=self.width,
+                format='SAUSAGE',
+                sample_num=self.sample_num
+            ))
+
+        goc.rebuild()
+
+        self._data = goc.data
 
 
 # # --- Helper functions to build specific Platonic solids ---
@@ -2005,7 +2007,7 @@ class TextBoard(GraphicObject):
 # def build_dodecahedron(center: Point, size: float):
 #     """
 #     Builds a dodecahedron (12 faces, each a regular pentagon).
-#     Its construction is more involved. Here, we provide a placeholder indicating that 
+#     Its construction is more involved. Here, we provide a placeholder indicating that
 #     a robust dodecahedron implementation is not provided.
 #     """
 #     raise NotImplementedError("Dodecahedron construction is not implemented in this example.")
@@ -2016,7 +2018,7 @@ class TextBoard(GraphicObject):
 # class RegularPolyhedron(GraphicObject):
 #     """
 #     Represents a regular polyhedron with parametric input.
-    
+
 #     Parameters:
 #         n (int): Number of faces (allowed: 4, 6, 8, 12, or 20).
 #         center (Point): The center of the polyhedron.
@@ -2027,7 +2029,7 @@ class TextBoard(GraphicObject):
 #     center: Point
 #     size: float
 #     color: str = "white"
-    
+
 #     _vertices: List[Point] = None
 #     _faces: List[List[int]] = None
 
@@ -2044,7 +2046,7 @@ class TextBoard(GraphicObject):
 #             self._vertices, self._faces = build_dodecahedron(self.center, self.size)
 #         else:
 #             raise ValueError("Regular polyhedron with n faces not supported. Allowed values: 4, 6, 8, 12, 20.")
-        
+
 #         # Build CGO object by triangulating each face (using a triangle fan)
 #         cgo_obj = []
 #         cgo_obj.extend(Color(self.color).as_cgo)
@@ -2088,8 +2090,6 @@ class GraphicObjectCollection(GraphicObject):
                 go.rebuild()
         # Iterate through each graphic object in the collection
         self._data.extend(tree.flatten([go.data for go in self.objects]))
-        
-
 
 
 # TEST CASES that can be run from pymol
@@ -2401,7 +2401,8 @@ class GraphicObjectCollection(GraphicObject):
 # def test_text():
 #     import random
 #     # Specify a TTF font file path (update this path to one available on your system)
-#     font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"  # e.g., "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+# font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"  # e.g.,
+# "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 #     for (idx, c ), (_, color)in zip(enumerate('APTX-4869'), enumerate(random.sample(list(CSS4_COLORS.keys()),100))):
 #         text_char = TextCharPolygon(
@@ -2424,7 +2425,6 @@ class GraphicObjectCollection(GraphicObject):
 
 # font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"
 # text='APTX-4869\n\nsilver bullet\n\nCool Kid'
-
 
 
 # TextBoard(

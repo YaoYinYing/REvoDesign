@@ -6,9 +6,6 @@ import os
 import random
 import warnings
 
-
-
-
 from pymol import cmd, util
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
