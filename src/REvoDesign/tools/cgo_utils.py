@@ -2423,15 +2423,15 @@ class GraphicObjectCollection(GraphicObject):
 # with timing('writing'):
 #     test_text()
 
-font_path = "/Users/yyy/Downloads/simhei.ttf"
-text = 'Silver Bullet\n\nCool Kid'
+# font_path = "/Users/yyy/Downloads/simhei.ttf"
+# text='Silver Bullet\n\nCool Kid'
 
 
-TextBoard(
-    text=text,
-    font_path=font_path,
-    width=1.5, space=10
-).load_as('silver_bullet')
+# TextBoard(
+#     text=text,
+#     font_path=font_path,
+#     width=1.5, space=10
+# ).load_as('silver_bullet')
 
 
 # also a quick demo to construct complicated cgo object
