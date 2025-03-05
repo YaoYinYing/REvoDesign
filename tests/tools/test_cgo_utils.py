@@ -6,14 +6,15 @@ import numpy as np
 import pytest
 from pymol import cgo, cmd
 
-from REvoDesign.tools.cgo_utils import (COLOR_TABLES, Arrow, Color, Cone, Cube,
-                                        Cylinder, Doughnut, Ellipse,
+from REvoDesign.tools.cgo_utils import (Arrow, Color, Cone, Cube, Cylinder,
+                                        Doughnut, Ellipse, Ellipsoid,
                                         GraphicObject, GraphicObjectCollection,
-                                        LineVertex, Point, PolyLines,
-                                        PseudoBezier, PseudoCurve,
+                                        LineVertex, Point, Polygon, Polyhedron,
+                                        PolyLines, PseudoBezier, PseudoCurve,
                                         RoundedRectangle, Sausage, Sphere,
-                                        Square, Triangle, TriangleSimple,
-                                        __easter_egg, not_none_float)
+                                        Square, TextBoard, TextCharPolygon,
+                                        Triangle, TriangleSimple, __easter_egg,
+                                        not_none_float)
 
 
 @pytest.mark.parametrize(
@@ -198,39 +199,39 @@ def test_color_as_cgos(colors, expected_cgos):
 
 
 @pytest.mark.parametrize(
-    "name, debug_points, expected_call_args",
+    "name, expected_call_args",
     [
-        ("object1", False, ("object1",)),
-        ("object2", True, ("object2",)),
+        ("object1", ("object1",)),
+        ("object2", ("object2",)),
     ]
 )
-def test_load_as(name, debug_points, expected_call_args):
+def test_load_as(name, expected_call_args):
     with patch('REvoDesign.tools.cgo_utils.cmd') as mock_cmd:
         mock_cmd.get_names.return_value = [name]
         graphic_object = GraphicObject()
         graphic_object._data = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]
 
-        graphic_object.load_as(name, debug_points)
+        graphic_object.load_as(name)
 
         mock_cmd.delete.assert_called_once_with(name)
         mock_cmd.load_cgo.assert_called_once_with(graphic_object.data, *expected_call_args)
 
 
 @pytest.mark.parametrize(
-    "name, debug_points, existing_names, expected_delete_calls",
+    "name, existing_names, expected_delete_calls",
     [
-        ("object1", False, ["object1"], 1),
-        ("object2", True, ["object2"], 1),
-        ("object3", False, [], 0),
+        ("object1", ["object1"], 1),
+        ("object2", ["object2"], 1),
+        ("object3", [], 0),
     ]
 )
-def test_load_as_delete_calls(name, debug_points, existing_names, expected_delete_calls):
+def test_load_as_delete_calls(name, existing_names, expected_delete_calls):
     with patch('REvoDesign.tools.cgo_utils.cmd') as mock_cmd:
         mock_cmd.get_names.return_value = existing_names
         graphic_object = GraphicObject()
         graphic_object._data = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0]
 
-        graphic_object.load_as(name, debug_points)
+        graphic_object.load_as(name)
 
         assert mock_cmd.delete.call_count == expected_delete_calls
         mock_cmd.load_cgo.assert_called_once_with(graphic_object.data, name)
@@ -1045,4 +1046,89 @@ def test_ellipse_load():
         steps=50  # More steps for smoother ellipse
     )
     ellipse.load_as('my_ellipse')
+    cmd.reinitialize()
+
+
+def test_ellispsoid():
+    cmd.reinitialize()
+
+    ellipsoid = Ellipsoid(
+        center=Point(0, 0, 0),
+        radius_x=1,
+        radius_y=1,
+        radius_z=1,
+        color='green',
+        steps_theta=20,
+        steps_phi=30
+    )
+    ellipsoid.load_as('my_ellispsoid')
+    cmd.reinitialize()
+
+
+def test_polygon():
+    cmd.reinitialize()
+    vertices = [
+        Point(0, 0, 0),
+        Point(1, 0, 0),
+        Point(1.5, 1, 0),
+        Point(0.5, 1.5, 0),
+        Point(-0.5, 1, 0)
+    ]
+    poly = Polygon(vertices=vertices, color='red')
+    poly.rebuild()
+    poly.load_as('my_polygon')
+    cmd.reinitialize()
+
+
+def test_polyhedron():
+    cmd.reinitialize()
+    # Define the vertices of a cube.
+    vertices = [
+        Point(-1, -1, -1),  # 0
+        Point(1, -1, -1),  # 1
+        Point(1, 1, -1),  # 2
+        Point(-1, 1, -1),  # 3
+        Point(-1, -1, 1),  # 4
+        Point(1, -1, 1),  # 5
+        Point(1, 1, 1),  # 6
+        Point(-1, 1, 1)   # 7
+    ]
+    # Define the faces of the cube (each face as a list of vertex indices).
+    faces = [
+        [0, 1, 2, 3],  # bottom face
+        [4, 5, 6, 7],  # top face
+        [0, 1, 5, 4],  # front face
+        [1, 2, 6, 5],  # right face
+        [2, 3, 7, 6],  # back face
+        [3, 0, 4, 7]   # left face
+    ]
+    # Create the polyhedron with a cyan color.
+    cube = Polyhedron(vertices=vertices, faces=faces, color='cyan')
+    cube.rebuild()
+    cube.load_as('my_polyhedron')
+    cmd.reinitialize()
+
+
+@pytest.fixture
+def ensure_font_file():
+    import pooch
+
+    return pooch.retrieve(
+        url='https://nutshell-api.yaoyy.moe/simhei.ttf',
+        known_hash="md5:1054d571c8a003c497366a95c11b5760",
+        fname="simhei.ttf",
+        path='../tests/data/',
+    )
+
+
+def test_text_cgo(ensure_font_file):
+    cmd.reinitialize()
+    text = 'Detective Conan\n\nSilver Bullet\n\nCool Kid'
+
+    TextBoard(
+        text=text,
+        font_path=ensure_font_file,
+        width=1.5, space=10
+    ).load_as('silver_bullet')
+
     cmd.reinitialize()

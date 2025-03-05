@@ -3,13 +3,14 @@ Orphaneous functions for REvoDesign
 '''
 
 import contextlib
+import itertools
 import random
 import string
 import tarfile
 import time
 import zipfile
 from functools import wraps
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
 import matplotlib
 import numpy as np
@@ -20,7 +21,44 @@ from REvoDesign.logger import ROOT_LOGGER
 from ..bootstrap.set_config import is_package_installed
 from .package_manager import run_command, run_worker_thread_with_progress
 
+try:
+    from itertools import pairwise as _pairwise  # type: ignore
+except ImportError:
+
+    def _pairwise(iterable: Iterable):
+        """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
+        a, b = itertools.tee(iterable)
+        next(b, None)
+        return zip(a, b)
+
+
+pairwise: Callable[[Iterable], Iterable[Tuple]] = _pairwise
+
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+def pairwise_loop(iterable: Iterable):
+    """
+    Generate a looped pairwise iterable from the input iterable.
+
+    This function takes an iterable as input and returns a list of tuples,
+    where each tuple contains a pair of consecutive elements from the iterable.
+    The last element is paired with the first element to form a loop structure.
+
+    Parameters:
+    iterable: Iterable - The input iterable used to generate the looped pairwise iterable.
+
+    Returns:
+    list - A list of tuples, each containing a pair of consecutive elements.
+            The last element is paired with the first element.
+    """
+    # Convert iterable to a list to support indexing and concatenation
+    seq = list(iterable)
+    # Handle empty iterable case
+    if not seq:
+        return []
+    # Add the first element to the end of the list to form a loop structure and generate pairwise combinations
+    return pairwise(seq + [seq[0]])
 
 
 CLASS_ARGSLICE = slice(1, None)
@@ -445,5 +483,6 @@ __all__ = [
     'cmap_reverser',
     'rescale_number',
     'count_and_sort_characters',
-    'device_picker'
+    'device_picker',
+    'pairwise'
 ]
