@@ -37,7 +37,7 @@ def wrapped_rmhet():
         AskedValue(
             "extending",
             5.0,
-            typing=int,
+            typing=float,
             reason="Box padding distance. Default is 5.",
         ),
     )
@@ -64,14 +64,15 @@ def wrapped_getbox(**kwargs):
             typing=str,
             reason="Box name to operated on.",
             required=True,
-            choices=lambda: list(b for b in  cmd.get_object_list() if b.startswith('box_'))
+            choices= cmd.get_names
         ),
         AskedValue(
             "action",
-            '',
+            'move_coords',
             typing=str,
             reason="Action to take on the box. move_coords or change_size",
-            choices=['move_coords', 'change_size']
+            choices=['move_coords', 'change_size'],
+            required=True,
         )
     )
 )
@@ -107,7 +108,7 @@ def wrapped_alterbox(**kwargs):
         AskedValue(
             "extending",
             5.0,
-            typing=int,
+            typing=float,
             reason="Box padding distance. Default is 5.",
         ),
     )

@@ -14,11 +14,12 @@ from pymol import cgo, cmd
 from pymol.vfont import plain
 
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
-
+from REvoDesign.logger import ROOT_LOGGER
 from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
 from ...tools.cgo_utils import GraphicObjectCollection as GOC
 from ...tools.cgo_utils import LineVertex, Point, PolyLines, Sphere
 
+logging = ROOT_LOGGER.getChild(__name__)
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
 # This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
@@ -736,10 +737,24 @@ def box_helper(
 
     # 默认方向为x轴，初始位移为0.0
     direction: Literal['x', 'y', 'z'] = 'x'
-    delta_distance: float = 0.0
+    delta_distance: float = 1.0
+
+
+    class MyDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+        def keyPressEvent(self, event):
+            if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
+                            QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
+                # 不在子控件这里处理，而是让它继续往上冒泡
+                event.ignore()
+            else:
+                # 其他按键正常处理
+                super().keyPressEvent(event)
+
+    
 
     def set_distance_delta(distance: float):
         nonlocal delta_distance
+        logging.debug(f'Set distance delta to {distance}')
         delta_distance = float(distance)
 
     def set_direction(direction_str: str):
@@ -747,6 +762,7 @@ def box_helper(
         _direction = direction_str.lower()
         if _direction not in ['x', 'y', 'z']:
             raise ValueError(f'Invalid direction: {direction_str}')
+        logging.debug(f'Set direction to {direction_str}')
         direction = _direction
 
     # 根据动作选择对应的处理函数与窗口标题和说明文本
@@ -766,8 +782,19 @@ def box_helper(
         )
 
     def action_wrapper(params: Dict[str, float]):
+        logging.info(f'{params=}')
         # 传入动态构造的字典，确保选中的方向作为关键字
         return action_method(box_name=box_name, **params)
+    
+    # 键盘事件处理函数
+    # 左箭头或 A 键 / 下箭头或 S 键：传入负的位移；右箭头或 D 键 / 上箭头或 W 键：正的位移
+    def keyboard_event_handler(event):
+        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, QtCore.Qt.Key_Down, QtCore.Qt.Key_S):
+            action_wrapper({direction: -delta_distance})
+        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D, QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
+            action_wrapper({direction: delta_distance})
+        else:
+            print('Ignored')
 
     # 创建新的窗口（独立窗口）
     window = QtWidgets.QWidget()
@@ -793,6 +820,20 @@ def box_helper(
     )
     main_layout.addWidget(banner_label)
 
+    # 添加水平布局：距离标签和数值微调框
+    distance_layout = QtWidgets.QHBoxLayout()
+    distance_label = QtWidgets.QLabel("Distance: ")
+    distance_layout.addWidget(distance_label)
+    distance_spinbox = MyDoubleSpinBox()
+    distance_spinbox.setRange(0, 10)
+    distance_spinbox.setValue(1.0)
+    distance_spinbox.setSingleStep(0.1)
+
+    
+    distance_spinbox.valueChanged.connect(set_distance_delta)
+    distance_layout.addWidget(distance_spinbox)
+    main_layout.addLayout(distance_layout)
+
     # 添加一个组框用于放置X, Y, Z三个单选按钮
     group_box = QtWidgets.QGroupBox("Select the direction of the box")
     group_layout = QtWidgets.QVBoxLayout()
@@ -807,31 +848,10 @@ def box_helper(
     group_layout.addWidget(z_radio_button)
     group_box.setLayout(group_layout)
     main_layout.addWidget(group_box)
-
-    # 添加水平布局：距离标签和数值微调框
-    distance_layout = QtWidgets.QHBoxLayout()
-    distance_label = QtWidgets.QLabel("Distance: ")
-    distance_layout.addWidget(distance_label)
-    distance_spinbox = QtWidgets.QDoubleSpinBox()
-    distance_spinbox.setRange(0, 10)
-    distance_spinbox.setValue(1.0)
-    distance_spinbox.setSingleStep(0.1)
-    distance_spinbox.valueChanged.connect(set_distance_delta)
-    distance_layout.addWidget(distance_spinbox)
-    main_layout.addLayout(distance_layout)
-
-    # 键盘事件处理函数
-    # 左箭头或 A 键 / 下箭头或 S 键：传入负的位移；右箭头或 D 键 / 上箭头或 W 键：正的位移
-    def keyboard_event_handler(event):
-        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, QtCore.Qt.Key_Down, QtCore.Qt.Key_S):
-            action_wrapper({direction: -delta_distance})
-        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D, QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
-            action_wrapper({direction: delta_distance})
-        else:
-            print('Ignored')
-
+    
     # 将自定义的键盘事件处理函数绑定到窗口
-    window.keyPressEvent = keyboard_event_handler # type: ignore
+    window.keyPressEvent = keyboard_event_handler
+
 
     # 如果 ui 中没有 open_windows 列表，则初始化一个
     if not hasattr(ui, 'open_windows'):
