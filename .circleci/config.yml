@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  codecov: codecov/codecov@4.0.1
+  codecov: codecov/codecov@5.2.1
 
 jobs:
   build-and-test:
@@ -32,7 +32,7 @@ jobs:
           command: |
             conda create --name REvoDesign python=<< parameters.python-version >> -y
             source activate REvoDesign
-            conda install -c conda-forge "pymol-open-source<3.1" -y
+            conda install -c conda-forge pyqt==5.15.9 qt-main==5.15.8 sip==6.8.6 pymol-open-source -y
 
       - run:
           name: Install REvoDesign
@@ -54,8 +54,7 @@ jobs:
             source activate REvoDesign
             coverage xml
 
-      - codecov/upload:
-          file: coverage.xml
+      - codecov/upload
 
 workflows:
   version: 2
@@ -64,4 +63,4 @@ workflows:
       - build-and-test:
           matrix:
             parameters:
-              python-version: ["3.9", "3.10", "3.11"]
+              python-version: ["3.9", "3.10", "3.11", "3.12"]
