@@ -32,7 +32,7 @@ jobs:
           command: |
             conda create --name REvoDesign python=<< parameters.python-version >> -y
             source activate REvoDesign
-            conda install -c conda-forge pyqt==5.15.9 qt-main==5.15.8 sip==6.8.6 pymol-open-source -y
+            conda install -c conda-forge "pyqt=5.15" "qt-main==5" "pymol-open-source<3.1" -y
 
       - run:
           name: Install REvoDesign
