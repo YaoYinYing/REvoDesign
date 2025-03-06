@@ -26,6 +26,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - a thread about some cgo details
 - ci: lint score after tests
 - an easter egg
+- ci: 
+  - Circle CI fixed with:
+    - conda image (debian bookworm)
+    - fixed display
+    - fixed codecov upload
+    - fixed testing matrix including:
+      - legacy python with pymol 3.0 (py3.9)
+      - latest pymol open source (py3.12)
+      - latest pymol bundle ^3.1 (py3.10)
+      - legacy (v2) pymol open source (py3.11)
+      - legacy (v2) pymol bundle (py3.11)
+    - caught bug: 
+      - Python 3.11/3.12: `undefined symbol: sqlite3_deserialize` caused by conda downgraded sqlite (3.45 -> 3.32)
 
 ### Changed
 

@@ -1,14 +1,27 @@
 version: 2.1
 
 orbs:
-  codecov: codecov/codecov@4.0.1
+  codecov: codecov/codecov@5.2.1
 
 jobs:
   build-and-test:
     parameters:
       python-version:
         type: string
-        default: "3.9"
+      pymol-tag:
+        type: string
+      pymol-version:
+        type: string
+      conda-channel:
+        type: string
+
+      set-conda-strict:
+        type: string
+        default: 'echo Nope'
+
+      pip-commands-to-run:
+        type: string
+        default: 'echo No pip command required, skipped.'
     docker:
       - image: continuumio/miniconda3
     environment:
@@ -20,21 +33,21 @@ jobs:
           name: Apt installs
           command: |
             apt-get update
-            apt-get install -y build-essential make sudo xvfb fluxbox curl
+            apt-get install -y build-essential make sudo xvfb fluxbox curl cmake
 
       - run:
           name: Start Display
           command: |
-            Xvfb :99 -screen 0 1280x1024x24 &
-            fluxbox &
-            sleep 3
+            make setup-ubuntu
 
       - run:
           name: Setup Environment for << parameters.python-version >>
           command: |
             conda create --name REvoDesign python=<< parameters.python-version >> -y
             source activate REvoDesign
-            conda install -c conda-forge "pymol-open-source<3.1" -y
+            << parameters.set-conda-strict >>
+            conda install << parameters.conda-channel >> << parameters.pymol-version >> -y
+            << parameters.pip-commands-to-run >>
 
       - run:
           name: Install REvoDesign
@@ -44,7 +57,7 @@ jobs:
 
 
       - run:
-          name: Run Unit Tests
+          name: Run Tests against << parameters.pymol-tag >>
           command: |
             source activate REvoDesign
             make prepare-test
@@ -56,14 +69,46 @@ jobs:
             source activate REvoDesign
             coverage xml
 
-      - codecov/upload:
-          file: coverage.xml
+      - codecov/upload
 
 workflows:
   version: 2
   test:
     jobs:
       - build-and-test:
-          matrix:
-            parameters:
-              python-version: ["3.9", "3.10", "3.11"]
+          python-version: "3.9" # https://pymol.org/
+          pymol-tag: 'legacy python with pymol 3.0'
+          pymol-version: "'pymol-open-source<3.1' 'pyqt=5.15' 'qt-main=5'" 
+          conda-channel: -c conda-forge
+
+      - build-and-test:
+          python-version: "3.12" # https://pymol.org/
+          pymol-tag: 'latest pymol open source'
+          pymol-version: "pymol-open-source 'sqlite>=3.45'"
+          conda-channel: -c conda-forge
+
+      # - build-and-test:
+      #     python-version: "3.11" # https://pymol.org/
+      #     pymol-tag: 'github/pymol-open-source'
+      #     pymol-version: "numpy glm pmw=2 libcxx=19 libcurl=8 libclang-cpp15=15 libclang13=19 libgfortran5=13  libllvm15=15 libllvm19=19 llvm-openmp=19 openssl pyqt=5 qt-main=5 sip=6 xz freetype=2 glew=2 glib=2 glib-tools=2 libglib=2 libjpeg-turbo=3 libpng=1 libnetcdf=4 libxml2=2 pip 'sqlite>=3.45'"
+      #     conda-channel: -c conda-forge
+      #     pip-commands-to-run: "pip install git+https://github.com/schrodinger/pymol-open-source.git"
+
+      - build-and-test:
+          python-version: "3.10" # https://pymol.org/
+          pymol-tag: 'latest pymol bundle'
+          pymol-version: "pymol-bundle"
+          conda-channel: -c schrodinger -c conda-forge
+
+      - build-and-test:
+          python-version: "3.11"
+          pymol-tag: 'legacy (v2) pymol open source'
+          pymol-version: "'pymol-open-source<3' 'pyqt=5.15' 'qt-main=5' 'sqlite>=3.45'"
+          conda-channel: -c conda-forge
+
+      - build-and-test:
+          python-version: "3.11" # https://storage.googleapis.com/pymol-storage/installers/index.html https://anaconda.org/schrodinger/pymol-bundle/files
+          pymol-tag: 'legacy (v2) pymol bundle'
+          pymol-version: "'pymol-bundle<3' 'sqlite>=3.45'"
+          conda-channel: -c schrodinger -c conda-forge
+          
