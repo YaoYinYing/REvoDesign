@@ -33,7 +33,7 @@ jobs:
           name: Apt installs
           command: |
             apt-get update
-            apt-get install -y build-essential make sudo xvfb fluxbox curl
+            apt-get install -y build-essential make sudo xvfb fluxbox curl cmake
 
       - run:
           name: Start Display
@@ -103,7 +103,7 @@ workflows:
       - build-and-test:
           python-version: "3.11"
           pymol-tag: 'legacy (v2) pymol open source'
-          pymol-version: "'pymol-open-source<3' 'pyqt=5.15' 'qt-main=5'"
+          pymol-version: "'pymol-open-source<3' 'pyqt=5.15' 'qt-main=5' 'sqlite>=3.45'"
           conda-channel: -c conda-forge
 
       - build-and-test:

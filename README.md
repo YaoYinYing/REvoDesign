@@ -22,7 +22,7 @@
 
 [![Unit Test on tagging](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml)
 [![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/YaoYinYing/REvoDesign/tree/main.svg?style=svg&circle-token=CCIPRJ_HUET1GZsh4QvG9zsGJmd4n_37fb6a6c718247b0e7b4cf65e007a815279af3bd)](https://dl.circleci.com/status-badge/redirect/gh/YaoYinYing/REvoDesign/tree/main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/5R2YJrFV1L31sGti9Prtr2/Rzn5wDdkWvsvNweRbMD9Fa/tree/main.svg?style=svg&circle-token=CCIPRJ_L85MsaTT4udg9SpnKdXZsq_473d46b1be75d792f1d691b22b219cebfd4a4726)](https://dl.circleci.com/status-badge/redirect/circleci/5R2YJrFV1L31sGti9Prtr2/Rzn5wDdkWvsvNweRbMD9Fa/tree/main)
 
 ## Docker images
 
