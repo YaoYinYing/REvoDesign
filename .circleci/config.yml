@@ -84,15 +84,13 @@ workflows:
       - build-and-test:
           python-version: "3.12" # https://pymol.org/
           pymol-tag: 'latest pymol open source'
-          pymol-version: "pymol-open-source"
+          pymol-version: "pymol-open-source 'sqlite>=3.45'"
           conda-channel: -c conda-forge
-
-          set-conda-strict: "conda config --set channel_priority strict"
 
       - build-and-test:
           python-version: "3.11" # https://pymol.org/
           pymol-tag: 'github/pymol-open-source'
-          pymol-version: "numpy=1 pmw=2 libcxx=19 libcurl=8 libclang-cpp15=15 libclang13=19 libgfortran=5 libgfortran5=13  libllvm15=15 libllvm19=19 llvm-openmp=19 openssl pyqt=5 qt-main=5 sip=6 xz freetype=2 glew=2 glib=2 glib-tools=2 libglib=2 libjpeg-turbo=3 libpng=1 libnetcdf=4 libxml2=2 pip"
+          pymol-version: "numpy pmw=2 libcxx=19 libcurl=8 libclang-cpp15=15 libclang13=19 libgfortran5=13  libllvm15=15 libllvm19=19 llvm-openmp=19 openssl pyqt=5 qt-main=5 sip=6 xz freetype=2 glew=2 glib=2 glib-tools=2 libglib=2 libjpeg-turbo=3 libpng=1 libnetcdf=4 libxml2=2 pip 'sqlite>=3.45'"
           conda-channel: -c conda-forge
           pip-commands-to-run: "pip install git+https://github.com/schrodinger/pymol-open-source.git"
 
@@ -105,12 +103,12 @@ workflows:
       - build-and-test:
           python-version: "3.11"
           pymol-tag: 'legacy (v2) pymol open source'
-          pymol-version: "'pymol-open-source<3'"
+          pymol-version: "'pymol-open-source<3' 'pyqt=5.15' 'qt-main=5'"
           conda-channel: -c conda-forge
 
       - build-and-test:
           python-version: "3.11" # https://storage.googleapis.com/pymol-storage/installers/index.html https://anaconda.org/schrodinger/pymol-bundle/files
           pymol-tag: 'legacy (v2) pymol bundle'
-          pymol-version: "'pymol-bundle<3'"
+          pymol-version: "'pymol-bundle<3' 'sqlite>=3.45'"
           conda-channel: -c schrodinger -c conda-forge
           
