@@ -59,7 +59,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - pinned pipeline trigger as tag release only
     - caught bug: 
       - Python 3.11/3.12: `undefined symbol: sqlite3_deserialize` caused by conda downgraded sqlite (3.45 -> 3.32)
-
+- menu: 
+  - vina tools: 
+  - `rmhet` 
+  - `getbox` 
+  - `alterbox`: `movebox` + `enlargebox`
+  - `get_pca_box`
 ### Changed
 
 ### Fixed
