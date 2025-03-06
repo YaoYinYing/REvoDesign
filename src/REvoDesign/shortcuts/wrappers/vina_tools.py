@@ -66,14 +66,6 @@ def wrapped_getbox(**kwargs):
             required=True,
             choices= cmd.get_names
         ),
-        AskedValue(
-            "action",
-            'move_coords',
-            typing=str,
-            reason="Action to take on the box. move_coords or change_size",
-            choices=['move_coords', 'change_size'],
-            required=True,
-        )
     )
 )
 def wrapped_alterbox(**kwargs):

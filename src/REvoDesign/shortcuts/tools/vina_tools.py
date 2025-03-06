@@ -298,7 +298,7 @@ Size: {self.delta_xyz[0]:.3f} * {self.delta_xyz[1]:.3f} * {self.delta_xyz[2]:.3f
 Center: {self.center_xyz[0]:.3f}, {self.center_xyz[1]:.3f}, {self.center_xyz[2]:.3f}"""
 
     @classmethod
-    def from_selecion(
+    def from_selection(
             cls,
             selection: str = "(sele)",
             box_name: Optional[str] = None,
@@ -466,7 +466,7 @@ def movebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         return
 
     # Create a new box with the specified offsets
-    new_box = CgoBox.from_selecion(
+    new_box = CgoBox.from_selection(
         selection=box_name,
         box_name=box_name,
         extending=0,
@@ -491,7 +491,7 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         return
 
     # Create a new box without extending
-    new_box = CgoBox.from_selecion(
+    new_box = CgoBox.from_selection(
         selection=box_name,
         box_name=box_name,
         extending=0)
@@ -530,7 +530,7 @@ def getbox(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0
     showaxes()
 
     # Create a new box from the selection
-    box = CgoBox.from_selecion(selection=selection, box_name=new_box_name, extending=extending)
+    box = CgoBox.from_selection(selection=selection, box_name=new_box_name, extending=extending)
 
     # Display the box
     showbox(box)
@@ -728,7 +728,6 @@ def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extendin
 
 def box_helper(
         box_name: str, 
-        action: Literal['move_coords', 'change_size'] = 'move_coords',
     ):
     # 从REvoDesign导入必要的组件和动作函数
     from REvoDesign import ConfigBus
@@ -738,6 +737,8 @@ def box_helper(
     # 默认方向为x轴，初始位移为0.0
     direction: Literal['x', 'y', 'z'] = 'x'
     delta_distance: float = 1.0
+    action: Literal['move_coords', 'change_size'] = 'move_coords'
+    action_method = movebox
 
 
     class MyDoubleSpinBox(QtWidgets.QDoubleSpinBox):
@@ -750,7 +751,31 @@ def box_helper(
                 # 其他按键正常处理
                 super().keyPressEvent(event)
 
-    
+    def set_action(new_action):
+        nonlocal action
+        nonlocal window
+        nonlocal banner_label
+        nonlocal action_method
+        action = new_action
+        # 根据动作选择对应的处理函数与窗口标题和说明文本
+        if action == 'move_coords':
+            action_method = movebox
+            window_title = f'Move Box Coordinates: {box_name}'
+            banner_text = (
+                f'''Moving box {box_name} coordinates by picking X, Y, or Z direction and setting 
+the distance to move in Angstroms for each time. 
+Press Up/Left or Down/Right to change the values.'''
+            )
+        else:
+            action_method = enlargebox
+            window_title = f'Change Box Size: {box_name}'
+            banner_text = (
+                f'''Change box {box_name} size by picking X, Y, or Z direction and setting 
+the delta distance to change in Angstroms for each time. Center of the box stays the same.
+Press Up/Left or Down/Right to change the values.'''
+            )
+        window.setWindowTitle(window_title)
+        banner_label.setText(banner_text)
 
     def set_distance_delta(distance: float):
         nonlocal delta_distance
@@ -765,27 +790,18 @@ def box_helper(
         logging.debug(f'Set direction to {direction_str}')
         direction = _direction
 
-    # 根据动作选择对应的处理函数与窗口标题和说明文本
-    if action == 'move_coords':
-        action_method = movebox
-        window_title = f'Move Box Coordinates: {box_name}'
-        banner_text = (
-            f'Moving box {box_name} coordinates by picking X, Y, or Z direction '
-            'and setting the distance to move in Angstroms for each time.'
-        )
-    else:
-        action_method = enlargebox
-        window_title = f'Change Box Size: {box_name}'
-        banner_text = (
-            f'Change box {box_name} size by picking X, Y, or Z direction and setting '
-            'the delta distance to change in Angstroms for each time. Center of the box stays the same.'
-        )
-
+    def set_box_info_to_banner():
+        nonlocal banner_info
+        box=CgoBox.from_selection(box_name, '_select_box', 0, (0, 0, 0))
+        banner_info.setText(f"""Box {box_name} info:\n{repr(box)}\n\nAutoDock Vina:\n{box.to_vina}\n\nAutoGrid:\n{box.to_autogrid}""")
+    
     def action_wrapper(params: Dict[str, float]):
         logging.info(f'{params=}')
         # 传入动态构造的字典，确保选中的方向作为关键字
-        return action_method(box_name=box_name, **params)
+        action_method(box_name=box_name, **params)
+        set_box_info_to_banner()
     
+
     # 键盘事件处理函数
     # 左箭头或 A 键 / 下箭头或 S 键：传入负的位移；右箭头或 D 键 / 上箭头或 W 键：正的位移
     def keyboard_event_handler(event):
@@ -799,12 +815,12 @@ def box_helper(
     # 创建新的窗口（独立窗口）
     window = QtWidgets.QWidget()
     window.setObjectName("MoveOrChangeBox")
-    window.setWindowTitle(window_title)
+    
 
     main_layout = QtWidgets.QVBoxLayout(window)
 
     # 添加说明文字
-    banner_label = QtWidgets.QLabel(banner_text)
+    banner_label = QtWidgets.QLabel('Pick action to start')
     banner_label.setWordWrap(True)
     banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
     banner_label.setStyleSheet(
@@ -822,7 +838,7 @@ def box_helper(
 
     # 添加水平布局：距离标签和数值微调框
     distance_layout = QtWidgets.QHBoxLayout()
-    distance_label = QtWidgets.QLabel("Distance: ")
+    distance_label = QtWidgets.QLabel("Distance to alter: ")
     distance_layout.addWidget(distance_label)
     distance_spinbox = MyDoubleSpinBox()
     distance_spinbox.setRange(0, 10)
@@ -834,20 +850,54 @@ def box_helper(
     distance_layout.addWidget(distance_spinbox)
     main_layout.addLayout(distance_layout)
 
+    # action horizontal layout
+
+    action_group_box= QtWidgets.QGroupBox("Actions to take")
+    action_layout = QtWidgets.QHBoxLayout()
+    # 2 radio buttons for actions
+    move_action_radio_button = QtWidgets.QRadioButton("Move Box")
+    move_action_radio_button.toggled.connect(lambda: set_action('move_coords'))
+    move_action_radio_button.setChecked(True)
+    action_layout.addWidget(move_action_radio_button)
+
+    resize_action_radio_button = QtWidgets.QRadioButton("Resize Box")
+    resize_action_radio_button.toggled.connect(lambda: set_action('change_size'))
+    action_layout.addWidget(resize_action_radio_button)
+
+    action_group_box.setLayout(action_layout)
+    main_layout.addWidget(action_group_box)
+    
+
     # 添加一个组框用于放置X, Y, Z三个单选按钮
-    group_box = QtWidgets.QGroupBox("Select the direction of the box")
-    group_layout = QtWidgets.QVBoxLayout()
-    x_radio_button = QtWidgets.QRadioButton("X")
+    group_box = QtWidgets.QGroupBox("Select the direction to alter the box")
+    group_layout = QtWidgets.QHBoxLayout()
+    x_radio_button = QtWidgets.QRadioButton("X axis")
     x_radio_button.pressed.connect(lambda: set_direction("X"))
     group_layout.addWidget(x_radio_button)
-    y_radio_button = QtWidgets.QRadioButton("Y")
+    y_radio_button = QtWidgets.QRadioButton("Y axis")
     y_radio_button.pressed.connect(lambda: set_direction("Y"))
     group_layout.addWidget(y_radio_button)
-    z_radio_button = QtWidgets.QRadioButton("Z")
+    z_radio_button = QtWidgets.QRadioButton("Z axis")
     z_radio_button.pressed.connect(lambda: set_direction("Z"))
     group_layout.addWidget(z_radio_button)
     group_box.setLayout(group_layout)
     main_layout.addWidget(group_box)
+
+
+    # add an info banner to present current box information
+    banner_info = QtWidgets.QTextEdit("")
+    banner_info.setStyleSheet(
+        """
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        """
+    )
+    main_layout.addWidget(banner_info)
     
     # 将自定义的键盘事件处理函数绑定到窗口
     window.keyPressEvent = keyboard_event_handler
