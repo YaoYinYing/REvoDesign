@@ -540,14 +540,31 @@ def getbox(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0
 
 
 def removeions():
+    """
+    Remove specified ions from the molecular model.
+
+    This function selects and removes ions such as PO4, SO4, ZN, CA, MG, and CL from the molecular model in the PyMOL environment.
+    """
     cmd.select("Ions", "((resn PO4) | (resn SO4) | (resn ZN) | (resn CA) | (resn MG) | (resn CL)) & hetatm")
     cmd.remove("Ions")
     cmd.delete("Ions")
     return
 
 
-def rmhet(extending=5.0):
+def rmhet():
+    """
+    Remove all heteroatoms (HETATM) from the molecular structure.
+
+    Parameters:
+    extending (float): This parameter is not used in the current implementation.
+
+    Returns:
+    None
+    """
+    # Select all heteroatoms in the molecular structure
     cmd.select("rmhet", "hetatm")
+    
+    # Remove the selected heteroatoms
     cmd.remove("rmhet")
     return
 
@@ -613,6 +630,17 @@ def get_oriented_bounding_box(selection, padding=5.0):
 
 
 def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
+    """
+    Plot a box based on PCA (Principal Component Analysis) results.
+
+    This function takes the original vertices of a box and plots it using a PolyLines object for each face,
+    with the option to also plot the edges along the PCA axes. The box is then loaded into the GOC object
+    with the specified name.
+
+    Parameters:
+    - orig_vertices: List of original vertices of the box.
+    - new_box_name: The name to load the plotted box as. Defaults to 'pca_box'.
+    """
 
     # Define each face of the box using vertex indices
     faces = [
@@ -652,25 +680,43 @@ def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
             line_type='LINE_STRIP'
         ).load_as(f'pca_axes_{_idx}')
 
+    # Plot each vertex as a sphere
     for i, v in enumerate(orig_vertices):
         goc.objects.append(Sphere(Point(*v), radius=1))
 
+    # Rebuild the GOC object and load the new box
     goc.rebuild()
     goc.load_as(new_box_name)
 
 
 def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
+    """
+    Generates a PCA box for the given selection.
+
+    Parameters:
+    - selection: A string defining the selection range for which the PCA box is generated. Defaults to "(sele)".
+    - new_box_name: An optional string specifying the name of the new box. If not provided, a unique name will be generated.
+    - extending: A float value representing the padding to be added to the oriented bounding box. Defaults to 5.0.
+
+    Returns:
+    - None
+    """
     if not new_box_name:
+        # Generate a unique box name if none is provided
         boxName = "pca_box_" + str(randint(0, 10000))
         while boxName in cmd.get_names():
+            # Ensure the generated box name is unique
             boxName = "pca_box_" + str(randint(0, 10000))
     else:
+        # Use the provided box name
         boxName = new_box_name
 
+    # Get the oriented bounding box with the specified padding
     orig_vertices = get_oriented_bounding_box(
         selection=selection,
         padding=extending,
     )
+    # Plot the PCA box using the calculated vertices and the box name
     plot_pca_box(
         orig_vertices=orig_vertices,
         new_box_name=boxName

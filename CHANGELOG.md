@@ -19,14 +19,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - tools:
-  - vina tools for box getting/moving/modifying, as well as axes generation
-  - CGO programing interface, for `pymol.cgo` binding
+  - vina tools for box getting/moving/modifying, as well as axes generation. These tools were mainly adapted/refactored/derived from [GetBox Plugin.py](https://github.com/MengwuXiao/GetBox-PyMOL-Plugin/blob/master/GetBox%20Plugin.py) and now can be called as PyMOL command shortcuts.
+    - `rmhet`: remove hetatoms
+    - `showaxes`: show xyz axes in left bottom corner
+    - `getbox`: get an axes-aligned box from a given selection
+    - `movebox`: move an existed box
+    - `enlargebox`: change the size of an existed box
+    - `get_oriented_bounding_box`, `get_pca_box`: get binding box from a given selection, non-axes aligned
+  - CGO programing interface, for `pymol.cgo` bindings:
+    - `Color`, `Point`, `LineVertex`, `GraphicObject`: basic component/abstract dataclasses of GO objects.
+    - `Sphere`, `Cone`, `Cylinder`, `Sausage`, `Triangle`, `TriangleSimple`: basic GO from cgo library.
+    - `PseudoCurve`: abstract dataclass for pseduo curve sampling from a series of control points. More sampled points lead to more smooth curves.
+      - `PseudoBezier`, ...: pseudo curve cases. Only `PseudoBezier` tested.
+    - `PolyLines`: lines and triangles.
+    - `Arrow`, `Cube`, `Doughnut`, `Polygon`, `Polyhedron`, `Square`, `RoundedRectangle`: detailed GO classes. `Doughnut` is a  slightly modified version of `pymol.cgo.Torus`
+    - `Ellipse`, `Ellipsoid`: curve classes for ellipse and ellipsoid.
+    - `TextCharPolygon`: draw a text char as wireframe or sausage-frame.
+      - `TextBoard`: draw a piece of text strings as one cgo by callings of `TextCharPolygon`.
+    - `GraphicObjectCollection`: a collection class of GO components, which can be used to (re)build objects into a complete (merged) GO object
+  - utils:
+    - `pairwise`: an implementation of `itertools.pairwise` if run on python 3.9
+    - `pairwise_loop`: a derived version of `pairwise` that pairwise the last and the first item as additional pair
 - doc: 
   - dev env setup for pyqt typing hints
   - a thread about some cgo details
-- ci: lint score after tests
 - an easter egg
 - ci: 
+  - fixed PyLint badge: lint score
   - Circle CI fixed with:
     - conda image (debian bookworm)
     - fixed display
@@ -37,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       - latest pymol bundle ^3.1 (py3.10)
       - legacy (v2) pymol open source (py3.11)
       - legacy (v2) pymol bundle (py3.11)
+    - pinned pipeline trigger as tag release only
     - caught bug: 
       - Python 3.11/3.12: `undefined symbol: sqlite3_deserialize` caused by conda downgraded sqlite (3.45 -> 3.32)
 
@@ -45,6 +65,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- `TestREvoDesign_PyMOL.py` removed bcs it is not used
+- ci:
+  - GHA:
+    - unnecessary environment variables
 
 ## [1.7.19] - 2025-02-27
 

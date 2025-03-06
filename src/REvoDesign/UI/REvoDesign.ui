@@ -4707,6 +4707,13 @@
       <property name="title">
        <string>Vina Tools</string>
       </property>
+      <addaction name="actionRemove_Het_Atoms"/>
+      <addaction name="separator"/>
+      <addaction name="actionGet_Box"/>
+      <addaction name="actionMove_Box"/>
+      <addaction name="actionChange_Box"/>
+      <addaction name="actionGet_PCA_Box"/>
+      <addaction name="separator"/>
       <addaction name="actionVina_Prepare_Ligand"/>
       <addaction name="actionVina_Prepare_Receptor"/>
       <addaction name="separator"/>
@@ -5133,6 +5140,31 @@
   <action name="actionVina_Export_Results">
    <property name="text">
     <string>Export Results</string>
+   </property>
+  </action>
+  <action name="actionGet_Box">
+   <property name="text">
+    <string>Get Box</string>
+   </property>
+  </action>
+  <action name="actionMove_Box">
+   <property name="text">
+    <string>Move Box</string>
+   </property>
+  </action>
+  <action name="actionChange_Box">
+   <property name="text">
+    <string>Change Box</string>
+   </property>
+  </action>
+  <action name="actionGet_PCA_Box">
+   <property name="text">
+    <string>Get PCA Box</string>
+   </property>
+  </action>
+  <action name="actionRemove_Het_Atoms">
+   <property name="text">
+    <string>Remove Het Atoms</string>
    </property>
   </action>
  </widget>
