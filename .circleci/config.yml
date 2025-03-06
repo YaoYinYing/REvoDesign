@@ -32,7 +32,7 @@ jobs:
           command: |
             conda create --name REvoDesign python=<< parameters.python-version >> -y
             source activate REvoDesign
-            conda install -c conda-forge "pyqt=5.15" "qt-main=5" "pymol-open-source<3.1" -y
+            conda install << parameters.conda-channel >> << parameters.pymol-version >> -y
 
       - run:
           name: Install REvoDesign
@@ -42,7 +42,7 @@ jobs:
 
 
       - run:
-          name: Run Unit Tests
+          name: Run Tests against << parameters.pymol-tag >>
           command: |
             source activate REvoDesign
             make prepare-test
@@ -61,6 +61,32 @@ workflows:
   test:
     jobs:
       - build-and-test:
-          matrix:
-            parameters:
-              python-version: ["3.9", "3.10", "3.11", "3.12"]
+          python-version: "3.9" # https://pymol.org/
+          pymol-tag: 'legacy python with pymol 3.0'
+          pymol-version: "pymol-open-source<3.1 pyqt=5.15 qt-main=5" 
+          conda-channel: -c conda-forge
+
+      - build-and-test:
+          python-version: "3.12" # https://pymol.org/
+          pymol-tag: 'latest pymol open source'
+          pymol-version: "pymol-open-source"
+          conda-channel: -c conda-forge
+
+      - build-and-test:
+          python-version: "3.10" # https://pymol.org/
+          pymol-tag: 'latest pymol bundle'
+          pymol-version: "pymol-bundle"
+          conda-channel: -c schrodinger -c conda-forge
+
+      - build-and-test:
+          python-version: "3.11"
+          pymol-tag: 'legacy (v2) pymol open source'
+          pymol-version: "pymol-open-source<3"
+          conda-channel: -c conda-forge
+
+      - build-and-test:
+          python-version: "3.11" # https://storage.googleapis.com/pymol-storage/installers/index.html https://anaconda.org/schrodinger/pymol-bundle/files
+          pymol-tag: 'legacy (v2) pymol bundle'
+          pymol-version: "pymol-bundle<3"
+          conda-channel: -c schrodinger -c conda-forge
+          
