@@ -4710,8 +4710,7 @@
       <addaction name="actionRemove_Het_Atoms"/>
       <addaction name="separator"/>
       <addaction name="actionGet_Box"/>
-      <addaction name="actionMove_Box"/>
-      <addaction name="actionChange_Box"/>
+      <addaction name="actionAlter_Box"/>
       <addaction name="actionGet_PCA_Box"/>
       <addaction name="separator"/>
       <addaction name="actionVina_Prepare_Ligand"/>
@@ -5147,9 +5146,9 @@
     <string>Get Box</string>
    </property>
   </action>
-  <action name="actionMove_Box">
+  <action name="actionAlter_Box">
    <property name="text">
-    <string>Move Box</string>
+    <string>Alter Box</string>
    </property>
   </action>
   <action name="actionChange_Box">

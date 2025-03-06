@@ -5,12 +5,15 @@ GetBox Plugin.py --  Draws a box surrounding a selection and gets box informatio
 '''
 from dataclasses import dataclass
 from random import randint
-from typing import Optional, Tuple, Union, overload
+from typing import Any, Dict, Literal, Optional, Tuple, Union, overload
+
 
 import numpy as np
 from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
+
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
 from ...tools.cgo_utils import GraphicObjectCollection as GOC
@@ -721,3 +724,126 @@ def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extendin
         orig_vertices=orig_vertices,
         new_box_name=boxName
     )
+
+def box_helper(
+        box_name: str, 
+        action: Literal['move_coords', 'change_size'] = 'move_coords',
+    ):
+    # 从REvoDesign导入必要的组件和动作函数
+    from REvoDesign import ConfigBus
+    bus = ConfigBus()
+    ui = bus.ui
+
+    # 默认方向为x轴，初始位移为0.0
+    direction: Literal['x', 'y', 'z'] = 'x'
+    delta_distance: float = 0.0
+
+    def set_distance_delta(distance: float):
+        nonlocal delta_distance
+        delta_distance = float(distance)
+
+    def set_direction(direction_str: str):
+        nonlocal direction
+        _direction = direction_str.lower()
+        if _direction not in ['x', 'y', 'z']:
+            raise ValueError(f'Invalid direction: {direction_str}')
+        direction = _direction
+
+    # 根据动作选择对应的处理函数与窗口标题和说明文本
+    if action == 'move_coords':
+        action_method = movebox
+        window_title = f'Move Box Coordinates: {box_name}'
+        banner_text = (
+            f'Moving box {box_name} coordinates by picking X, Y, or Z direction '
+            'and setting the distance to move in Angstroms for each time.'
+        )
+    else:
+        action_method = enlargebox
+        window_title = f'Change Box Size: {box_name}'
+        banner_text = (
+            f'Change box {box_name} size by picking X, Y, or Z direction and setting '
+            'the delta distance to change in Angstroms for each time. Center of the box stays the same.'
+        )
+
+    def action_wrapper(params: Dict[str, float]):
+        # 传入动态构造的字典，确保选中的方向作为关键字
+        return action_method(box_name=box_name, **params)
+
+    # 创建新的窗口（独立窗口）
+    window = QtWidgets.QWidget()
+    window.setObjectName("MoveOrChangeBox")
+    window.setWindowTitle(window_title)
+
+    main_layout = QtWidgets.QVBoxLayout(window)
+
+    # 添加说明文字
+    banner_label = QtWidgets.QLabel(banner_text)
+    banner_label.setWordWrap(True)
+    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    banner_label.setStyleSheet(
+        """
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        """
+    )
+    main_layout.addWidget(banner_label)
+
+    # 添加一个组框用于放置X, Y, Z三个单选按钮
+    group_box = QtWidgets.QGroupBox("Select the direction of the box")
+    group_layout = QtWidgets.QVBoxLayout()
+    x_radio_button = QtWidgets.QRadioButton("X")
+    x_radio_button.pressed.connect(lambda: set_direction("X"))
+    group_layout.addWidget(x_radio_button)
+    y_radio_button = QtWidgets.QRadioButton("Y")
+    y_radio_button.pressed.connect(lambda: set_direction("Y"))
+    group_layout.addWidget(y_radio_button)
+    z_radio_button = QtWidgets.QRadioButton("Z")
+    z_radio_button.pressed.connect(lambda: set_direction("Z"))
+    group_layout.addWidget(z_radio_button)
+    group_box.setLayout(group_layout)
+    main_layout.addWidget(group_box)
+
+    # 添加水平布局：距离标签和数值微调框
+    distance_layout = QtWidgets.QHBoxLayout()
+    distance_label = QtWidgets.QLabel("Distance: ")
+    distance_layout.addWidget(distance_label)
+    distance_spinbox = QtWidgets.QDoubleSpinBox()
+    distance_spinbox.setRange(0, 10)
+    distance_spinbox.setValue(1.0)
+    distance_spinbox.setSingleStep(0.1)
+    distance_spinbox.valueChanged.connect(set_distance_delta)
+    distance_layout.addWidget(distance_spinbox)
+    main_layout.addLayout(distance_layout)
+
+    # 键盘事件处理函数
+    # 左箭头或 A 键 / 下箭头或 S 键：传入负的位移；右箭头或 D 键 / 上箭头或 W 键：正的位移
+    def keyboard_event_handler(event):
+        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, QtCore.Qt.Key_Down, QtCore.Qt.Key_S):
+            action_wrapper({direction: -delta_distance})
+        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D, QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
+            action_wrapper({direction: delta_distance})
+        else:
+            print('Ignored')
+
+    # 将自定义的键盘事件处理函数绑定到窗口
+    window.keyPressEvent = keyboard_event_handler # type: ignore
+
+    # 如果 ui 中没有 open_windows 列表，则初始化一个
+    if not hasattr(ui, 'open_windows'):
+        ui.open_windows = []
+    ui.open_windows.append(window)
+
+    def cleanup_window():
+        if hasattr(ui, 'open_windows') and window in ui.open_windows:
+            ui.open_windows.remove(window)
+        if isinstance(ui.open_windows, list) and len(ui.open_windows) == 0:
+            delattr(ui, 'open_windows')
+        print("Window destroyed and cleaned up.")
+
+    window.destroyed.connect(cleanup_window)
+    window.show()

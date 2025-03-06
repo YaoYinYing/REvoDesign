@@ -19,6 +19,8 @@ from REvoDesign.shortcuts.wrappers.rosetta_tasks import (
     wrapped_fast_relax, wrapped_pross, wrapped_relax_w_ca_constraints,
     wrapped_rosettaligand)
 from REvoDesign.shortcuts.wrappers.structure import wrapped_resi_renumber
+from REvoDesign.shortcuts.wrappers.vina_tools import (
+    wrapped_alterbox, wrapped_get_pca_box, wrapped_getbox, wrapped_rmhet)
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
 
@@ -157,3 +159,23 @@ def menu_esm1v():
     Launches the dialog for ESM1v dialog
     """
     wrapped_esm1v()
+def menu_alterbox():
+    """
+    Launches the dialog for ESM1v dialog
+    """
+    wrapped_alterbox()
+def menu_get_pca_box():
+    """
+    Launches the dialog for ESM1v dialog
+    """
+    wrapped_get_pca_box()
+def menu_getbox():
+    """
+    Launches the dialog for ESM1v dialog
+    """
+    wrapped_getbox()
+def menu_rmhet():
+    """
+    Launches the dialog for ESM1v dialog
+    """
+    wrapped_rmhet()

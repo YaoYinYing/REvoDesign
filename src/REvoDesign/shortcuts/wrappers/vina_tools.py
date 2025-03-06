@@ -3,7 +3,7 @@ Shortcut wrappers of structure manipulation
 '''
 
 from pymol import cmd
-from REvoDesign.shortcuts.tools.vina_tools import rmhet,getbox, movebox, enlargebox, get_pca_box
+from REvoDesign.shortcuts.tools.vina_tools import box_helper, rmhet,getbox, get_pca_box
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 
 from ...logger import ROOT_LOGGER
@@ -51,6 +51,39 @@ def wrapped_getbox(**kwargs):
     """
     logging.info(kwargs)
     getbox(**kwargs)
+
+
+
+@dialog_wrapper(
+    title="Alter Box",
+    banner="Change Box coordinates or size",
+    options=(
+        AskedValue(
+            "box_name",
+            "",
+            typing=str,
+            reason="Box name to operated on.",
+            required=True,
+            choices=lambda: list(b for b in  cmd.get_object_list() if b.startswith('box_'))
+        ),
+        AskedValue(
+            "action",
+            '',
+            typing=str,
+            reason="Action to take on the box. move_coords or change_size",
+            choices=['move_coords', 'change_size']
+        )
+    )
+)
+def wrapped_alterbox(**kwargs):
+    """
+    Runs the get_box function with parameters collected from the dialog.
+
+    Args:
+        **kwargs: Parameters collected from the dialog.
+    """
+    logging.info(kwargs)
+    box_helper(**kwargs)
 
 
 @dialog_wrapper(
