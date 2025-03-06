@@ -5,17 +5,21 @@ GetBox Plugin.py --  Draws a box surrounding a selection and gets box informatio
 '''
 from dataclasses import dataclass
 from random import randint
-from typing import Optional, Tuple, Union, overload
+from typing import Dict, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
 from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
+from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+
 from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
 from ...tools.cgo_utils import GraphicObjectCollection as GOC
 from ...tools.cgo_utils import LineVertex, Point, PolyLines, Sphere
 
+logging = ROOT_LOGGER.getChild(__name__)
 ##############################################################################
 # GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
 # This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
@@ -294,7 +298,7 @@ Size: {self.delta_xyz[0]:.3f} * {self.delta_xyz[1]:.3f} * {self.delta_xyz[2]:.3f
 Center: {self.center_xyz[0]:.3f}, {self.center_xyz[1]:.3f}, {self.center_xyz[2]:.3f}"""
 
     @classmethod
-    def from_selecion(
+    def from_selection(
             cls,
             selection: str = "(sele)",
             box_name: Optional[str] = None,
@@ -462,7 +466,7 @@ def movebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         return
 
     # Create a new box with the specified offsets
-    new_box = CgoBox.from_selecion(
+    new_box = CgoBox.from_selection(
         selection=box_name,
         box_name=box_name,
         extending=0,
@@ -487,7 +491,7 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         return
 
     # Create a new box without extending
-    new_box = CgoBox.from_selecion(
+    new_box = CgoBox.from_selection(
         selection=box_name,
         box_name=box_name,
         extending=0)
@@ -526,7 +530,7 @@ def getbox(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0
     showaxes()
 
     # Create a new box from the selection
-    box = CgoBox.from_selecion(selection=selection, box_name=new_box_name, extending=extending)
+    box = CgoBox.from_selection(selection=selection, box_name=new_box_name, extending=extending)
 
     # Display the box
     showbox(box)
@@ -540,14 +544,31 @@ def getbox(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0
 
 
 def removeions():
+    """
+    Remove specified ions from the molecular model.
+
+    This function selects and removes ions such as PO4, SO4, ZN, CA, MG, and CL from the molecular model in the PyMOL environment.
+    """
     cmd.select("Ions", "((resn PO4) | (resn SO4) | (resn ZN) | (resn CA) | (resn MG) | (resn CL)) & hetatm")
     cmd.remove("Ions")
     cmd.delete("Ions")
     return
 
 
-def rmhet(extending=5.0):
+def rmhet():
+    """
+    Remove all heteroatoms (HETATM) from the molecular structure.
+
+    Parameters:
+    extending (float): This parameter is not used in the current implementation.
+
+    Returns:
+    None
+    """
+    # Select all heteroatoms in the molecular structure
     cmd.select("rmhet", "hetatm")
+
+    # Remove the selected heteroatoms
     cmd.remove("rmhet")
     return
 
@@ -613,6 +634,17 @@ def get_oriented_bounding_box(selection, padding=5.0):
 
 
 def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
+    """
+    Plot a box based on PCA (Principal Component Analysis) results.
+
+    This function takes the original vertices of a box and plots it using a PolyLines object for each face,
+    with the option to also plot the edges along the PCA axes. The box is then loaded into the GOC object
+    with the specified name.
+
+    Parameters:
+    - orig_vertices: List of original vertices of the box.
+    - new_box_name: The name to load the plotted box as. Defaults to 'pca_box'.
+    """
 
     # Define each face of the box using vertex indices
     faces = [
@@ -652,26 +684,291 @@ def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
             line_type='LINE_STRIP'
         ).load_as(f'pca_axes_{_idx}')
 
+    # Plot each vertex as a sphere
     for i, v in enumerate(orig_vertices):
         goc.objects.append(Sphere(Point(*v), radius=1))
 
+    # Rebuild the GOC object and load the new box
     goc.rebuild()
     goc.load_as(new_box_name)
 
 
 def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
+    """
+    Generates a PCA box for the given selection.
+
+    Parameters:
+    - selection: A string defining the selection range for which the PCA box is generated. Defaults to "(sele)".
+    - new_box_name: An optional string specifying the name of the new box. If not provided, a unique name will be generated.
+    - extending: A float value representing the padding to be added to the oriented bounding box. Defaults to 5.0.
+
+    Returns:
+    - None
+    """
     if not new_box_name:
+        # Generate a unique box name if none is provided
         boxName = "pca_box_" + str(randint(0, 10000))
         while boxName in cmd.get_names():
+            # Ensure the generated box name is unique
             boxName = "pca_box_" + str(randint(0, 10000))
     else:
+        # Use the provided box name
         boxName = new_box_name
 
+    # Get the oriented bounding box with the specified padding
     orig_vertices = get_oriented_bounding_box(
         selection=selection,
         padding=extending,
     )
+    # Plot the PCA box using the calculated vertices and the box name
     plot_pca_box(
         orig_vertices=orig_vertices,
         new_box_name=boxName
     )
+
+
+def box_helper(box_name: str):
+    """
+    Create a PyQt window to either move or resize a 3D box object by specifying
+    a direction (X, Y, or Z) and a distance value. Users can switch between
+    "Move Box" and "Resize Box" actions, adjust distance via a spin box, and
+    apply the transformation via arrow keys (or WASD).
+
+    :param box_name: The name or identifier of the box to move/resize.
+    """
+    from REvoDesign import ConfigBus
+    bus = ConfigBus()
+    ui = bus.ui
+
+    # Default direction is set to 'x', with a default distance of 1.0.
+    direction: Literal['x', 'y', 'z'] = 'x'
+    delta_distance: float = 1.0
+
+    # Default action is 'move_coords' with its corresponding method.
+    action: Literal['move_coords', 'change_size'] = 'move_coords'
+    action_method = movebox
+
+    class MyDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+        """
+        A QDoubleSpinBox subclass that ignores arrow keys, allowing the
+        main window to handle them instead (e.g., for moving/resizing the box).
+        """
+
+        def keyPressEvent(self, event):
+            """
+            If the user presses any arrow key, ignore it here so that the
+            event can bubble up to the main window's keyPressEvent handler.
+            Otherwise, proceed with normal QDoubleSpinBox behavior.
+            """
+            if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A,
+                               QtCore.Qt.Key_Down, QtCore.Qt.Key_S, QtCore.Qt.Key_Right, QtCore.Qt.Key_D,
+                               QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
+                event.ignore()  # Let the parent widget handle the arrow keys.
+            else:
+                super().keyPressEvent(event)
+
+    def set_action(new_action: Literal['move_coords', 'change_size']):
+        """
+        Switch the current action between moving the box and resizing the box.
+        Updates the window title and banner text accordingly.
+
+        :param new_action: Either 'move_coords' or 'change_size'.
+        """
+        nonlocal action
+        nonlocal window
+        nonlocal banner_label
+        nonlocal action_method
+        action = new_action
+
+        if action == 'move_coords':
+            action_method = movebox
+            window_title = f'Move Box Coordinates: {box_name}'
+            banner_text = (
+                f'''Moving box {box_name} coordinates by picking X, Y, or Z direction and setting
+the distance to move in Angstroms for each time.
+PressUp/Right/A/W or Down/Left/S/D  to change the values.'''
+            )
+        else:
+            action_method = enlargebox
+            window_title = f'Change Box Size: {box_name}'
+            banner_text = (
+                f'''Change box {box_name} size by picking X, Y, or Z direction and setting
+the delta distance to change in Angstroms for each time. Center of the box stays the same.
+Press Up/Right/A/W or Down/Left/S/D to change the values.'''
+            )
+        window.setWindowTitle(window_title)
+        banner_label.setText(banner_text)
+
+    def set_distance_delta(distance: float):
+        """
+        Update the global delta_distance value whenever the spin box value changes.
+
+        :param distance: The new distance (float) set in the spin box.
+        """
+        nonlocal delta_distance
+        logging.debug(f'Set distance delta to {distance}')
+        delta_distance = float(distance)
+
+    def set_direction(direction_str: str):
+        """
+        Update the current direction for the transformation (X, Y, or Z).
+
+        :param direction_str: The string representing the direction (X, Y, or Z).
+        :raises ValueError: If the provided direction is invalid.
+        """
+        nonlocal direction
+        _direction = direction_str.lower()
+        if _direction not in ['x', 'y', 'z']:
+            raise ValueError(f'Invalid direction: {direction_str}')
+        logging.debug(f'Set direction to {direction_str}')
+        direction = _direction
+
+    def set_box_info_to_banner():
+        """
+        Query the current box's info (using CgoBox) and display it in the info banner.
+        This provides details such as the box coordinates, size, and AutoDock parameters.
+        """
+        nonlocal banner_info
+        box = CgoBox.from_selection(box_name, '_select_box', 0, (0, 0, 0))
+        banner_info.setText(
+            f"""Box {box_name} info:\n{repr(box)}\n\nAutoDock Vina:\n{box.to_vina}\n\nAutoGrid:\n{box.to_autogrid}"""
+        )
+
+    def action_wrapper(params: Dict[str, float]):
+        """
+        Calls the current action method (movebox or enlargebox) with the specified parameters.
+        After performing the action, refresh the box info in the banner.
+
+        :param params: A dictionary containing the direction key (e.g. 'x') and its float value.
+        """
+        logging.info(f'{params=}')
+        action_method(box_name=box_name, **params)
+        set_box_info_to_banner()
+
+    def keyboard_event_handler(event):
+        """
+        A custom keyboard event handler that checks for arrow keys or WASD keys.
+        Depending on which key is pressed, it applies a positive or negative
+        transformation in the currently selected direction.
+
+        :param event: The QKeyEvent from the window.
+        """
+        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A,
+                           QtCore.Qt.Key_Down, QtCore.Qt.Key_S):
+            action_wrapper({direction: -delta_distance})
+        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D,
+                             QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
+            action_wrapper({direction: delta_distance})
+        else:
+            print('Ignored')
+
+    # Create a new standalone widget as the main window.
+    window = QtWidgets.QWidget()
+    window.setObjectName("MoveOrChangeBox")
+
+    main_layout = QtWidgets.QVBoxLayout(window)
+
+    # A label to display the current instructions or banner text.
+    banner_label = QtWidgets.QLabel('Pick action to start')
+    banner_label.setWordWrap(True)
+    banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+    banner_label.setStyleSheet(
+        """
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        """
+    )
+    main_layout.addWidget(banner_label)
+
+    # Layout for the distance label and spin box.
+    distance_layout = QtWidgets.QHBoxLayout()
+    distance_label = QtWidgets.QLabel("Distance to alter: ")
+    distance_layout.addWidget(distance_label)
+
+    # Use our custom spin box that ignores arrow keys.
+    distance_spinbox = MyDoubleSpinBox()
+    distance_spinbox.setRange(0, 10)
+    distance_spinbox.setValue(1.0)
+    distance_spinbox.setSingleStep(0.1)
+    distance_spinbox.valueChanged.connect(set_distance_delta)
+    distance_layout.addWidget(distance_spinbox)
+
+    main_layout.addLayout(distance_layout)
+
+    # A group box to select the action (move or resize).
+    action_group_box = QtWidgets.QGroupBox("Actions to take")
+    action_layout = QtWidgets.QHBoxLayout()
+
+    move_action_radio_button = QtWidgets.QRadioButton("Move Box")
+    move_action_radio_button.toggled.connect(lambda: set_action('move_coords'))
+    move_action_radio_button.setChecked(True)  # Default action
+    action_layout.addWidget(move_action_radio_button)
+
+    resize_action_radio_button = QtWidgets.QRadioButton("Resize Box")
+    resize_action_radio_button.toggled.connect(lambda: set_action('change_size'))
+    action_layout.addWidget(resize_action_radio_button)
+
+    action_group_box.setLayout(action_layout)
+    main_layout.addWidget(action_group_box)
+
+    # A group box to select direction (X, Y, or Z).
+    group_box = QtWidgets.QGroupBox("Select the direction to alter the box")
+    group_layout = QtWidgets.QHBoxLayout()
+
+    x_radio_button = QtWidgets.QRadioButton("X axis")
+    x_radio_button.pressed.connect(lambda: set_direction("X"))
+    group_layout.addWidget(x_radio_button)
+
+    y_radio_button = QtWidgets.QRadioButton("Y axis")
+    y_radio_button.pressed.connect(lambda: set_direction("Y"))
+    group_layout.addWidget(y_radio_button)
+
+    z_radio_button = QtWidgets.QRadioButton("Z axis")
+    z_radio_button.pressed.connect(lambda: set_direction("Z"))
+    group_layout.addWidget(z_radio_button)
+
+    group_box.setLayout(group_layout)
+    main_layout.addWidget(group_box)
+
+    # A text area to display current box information (coordinates, size, etc.).
+    banner_info = QtWidgets.QTextEdit("")
+    banner_info.setStyleSheet(
+        """
+        font-size: 14px;
+        font-weight: bold;
+        color: #333;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        """
+    )
+    banner_info.setReadOnly(True)
+    main_layout.addWidget(banner_info)
+
+    # Bind our custom keyboard event handler to the window.
+    window.keyPressEvent = keyboard_event_handler
+
+    # Keep track of open windows in ui, so we can properly clean them up.
+    if not hasattr(ui, 'open_windows'):
+        ui.open_windows = []
+    ui.open_windows.append(window)
+
+    def cleanup_window():
+        """
+        Remove the current window from ui.open_windows when destroyed.
+        If no windows remain, delete the open_windows attribute from ui.
+        """
+        if hasattr(ui, 'open_windows') and window in ui.open_windows:
+            ui.open_windows.remove(window)
+        if isinstance(ui.open_windows, list) and len(ui.open_windows) == 0:
+            delattr(ui, 'open_windows')
+        print("Window destroyed and cleaned up.")
+
+    window.destroyed.connect(cleanup_window)
+    window.show()
