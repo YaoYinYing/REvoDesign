@@ -5,16 +5,16 @@ GetBox Plugin.py --  Draws a box surrounding a selection and gets box informatio
 '''
 from dataclasses import dataclass
 from random import randint
-from typing import Any, Dict, Literal, Optional, Tuple, Union, overload
-
+from typing import Dict, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
 from chempy import cpv
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
-from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.logger import ROOT_LOGGER
+from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+
 from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
 from ...tools.cgo_utils import GraphicObjectCollection as GOC
 from ...tools.cgo_utils import LineVertex, Point, PolyLines, Sphere
@@ -567,7 +567,7 @@ def rmhet():
     """
     # Select all heteroatoms in the molecular structure
     cmd.select("rmhet", "hetatm")
-    
+
     # Remove the selected heteroatoms
     cmd.remove("rmhet")
     return
@@ -726,6 +726,7 @@ def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extendin
         new_box_name=boxName
     )
 
+
 def box_helper(box_name: str):
     """
     Create a PyQt window to either move or resize a 3D box object by specifying
@@ -752,15 +753,16 @@ def box_helper(box_name: str):
         A QDoubleSpinBox subclass that ignores arrow keys, allowing the
         main window to handle them instead (e.g., for moving/resizing the box).
         """
+
         def keyPressEvent(self, event):
             """
             If the user presses any arrow key, ignore it here so that the
             event can bubble up to the main window's keyPressEvent handler.
             Otherwise, proceed with normal QDoubleSpinBox behavior.
             """
-            if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, 
-                           QtCore.Qt.Key_Down, QtCore.Qt.Key_S,QtCore.Qt.Key_Right, QtCore.Qt.Key_D, 
-                             QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
+            if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A,
+                               QtCore.Qt.Key_Down, QtCore.Qt.Key_S, QtCore.Qt.Key_Right, QtCore.Qt.Key_D,
+                               QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
                 event.ignore()  # Let the parent widget handle the arrow keys.
             else:
                 super().keyPressEvent(event)
@@ -782,15 +784,15 @@ def box_helper(box_name: str):
             action_method = movebox
             window_title = f'Move Box Coordinates: {box_name}'
             banner_text = (
-                f'''Moving box {box_name} coordinates by picking X, Y, or Z direction and setting 
-the distance to move in Angstroms for each time. 
+                f'''Moving box {box_name} coordinates by picking X, Y, or Z direction and setting
+the distance to move in Angstroms for each time.
 PressUp/Right/A/W or Down/Left/S/D  to change the values.'''
             )
         else:
             action_method = enlargebox
             window_title = f'Change Box Size: {box_name}'
             banner_text = (
-                f'''Change box {box_name} size by picking X, Y, or Z direction and setting 
+                f'''Change box {box_name} size by picking X, Y, or Z direction and setting
 the delta distance to change in Angstroms for each time. Center of the box stays the same.
 Press Up/Right/A/W or Down/Left/S/D to change the values.'''
             )
@@ -846,15 +848,15 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
     def keyboard_event_handler(event):
         """
         A custom keyboard event handler that checks for arrow keys or WASD keys.
-        Depending on which key is pressed, it applies a positive or negative 
+        Depending on which key is pressed, it applies a positive or negative
         transformation in the currently selected direction.
 
         :param event: The QKeyEvent from the window.
         """
-        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, 
+        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A,
                            QtCore.Qt.Key_Down, QtCore.Qt.Key_S):
             action_wrapper({direction: -delta_distance})
-        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D, 
+        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D,
                              QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
             action_wrapper({direction: delta_distance})
         else:
@@ -959,7 +961,7 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
 
     def cleanup_window():
         """
-        Remove the current window from ui.open_windows when destroyed. 
+        Remove the current window from ui.open_windows when destroyed.
         If no windows remain, delete the open_windows attribute from ui.
         """
         if hasattr(ui, 'open_windows') and window in ui.open_windows:

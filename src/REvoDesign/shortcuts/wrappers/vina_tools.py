@@ -3,18 +3,22 @@ Shortcut wrappers of structure manipulation
 '''
 
 from pymol import cmd
-from REvoDesign.shortcuts.tools.vina_tools import box_helper, rmhet,getbox, get_pca_box
+
+from REvoDesign.shortcuts.tools.vina_tools import (box_helper, get_pca_box,
+                                                   getbox, rmhet)
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 
 from ...logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
 
+
 def wrapped_rmhet():
     '''
     Get Auto Dock Box for a selection
     '''
     return rmhet()
+
 
 @dialog_wrapper(
     title="Get Box",
@@ -53,7 +57,6 @@ def wrapped_getbox(**kwargs):
     getbox(**kwargs)
 
 
-
 @dialog_wrapper(
     title="Alter Box",
     banner="Change Box coordinates or size",
@@ -64,7 +67,7 @@ def wrapped_getbox(**kwargs):
             typing=str,
             reason="Box name to operated on.",
             required=True,
-            choices= cmd.get_names
+            choices=cmd.get_names
         ),
     )
 )
