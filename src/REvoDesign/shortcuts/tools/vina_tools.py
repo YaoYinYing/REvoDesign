@@ -726,45 +726,65 @@ def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extendin
         new_box_name=boxName
     )
 
-def box_helper(
-        box_name: str, 
-    ):
-    # 从REvoDesign导入必要的组件和动作函数
+def box_helper(box_name: str):
+    """
+    Create a PyQt window to either move or resize a 3D box object by specifying
+    a direction (X, Y, or Z) and a distance value. Users can switch between
+    "Move Box" and "Resize Box" actions, adjust distance via a spin box, and
+    apply the transformation via arrow keys (or WASD).
+
+    :param box_name: The name or identifier of the box to move/resize.
+    """
     from REvoDesign import ConfigBus
     bus = ConfigBus()
     ui = bus.ui
 
-    # 默认方向为x轴，初始位移为0.0
+    # Default direction is set to 'x', with a default distance of 1.0.
     direction: Literal['x', 'y', 'z'] = 'x'
     delta_distance: float = 1.0
+
+    # Default action is 'move_coords' with its corresponding method.
     action: Literal['move_coords', 'change_size'] = 'move_coords'
     action_method = movebox
 
-
     class MyDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+        """
+        A QDoubleSpinBox subclass that ignores arrow keys, allowing the
+        main window to handle them instead (e.g., for moving/resizing the box).
+        """
         def keyPressEvent(self, event):
-            if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right,
-                            QtCore.Qt.Key_Up, QtCore.Qt.Key_Down):
-                # 不在子控件这里处理，而是让它继续往上冒泡
-                event.ignore()
+            """
+            If the user presses any arrow key, ignore it here so that the
+            event can bubble up to the main window's keyPressEvent handler.
+            Otherwise, proceed with normal QDoubleSpinBox behavior.
+            """
+            if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, 
+                           QtCore.Qt.Key_Down, QtCore.Qt.Key_S,QtCore.Qt.Key_Right, QtCore.Qt.Key_D, 
+                             QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
+                event.ignore()  # Let the parent widget handle the arrow keys.
             else:
-                # 其他按键正常处理
                 super().keyPressEvent(event)
 
-    def set_action(new_action):
+    def set_action(new_action: Literal['move_coords', 'change_size']):
+        """
+        Switch the current action between moving the box and resizing the box.
+        Updates the window title and banner text accordingly.
+
+        :param new_action: Either 'move_coords' or 'change_size'.
+        """
         nonlocal action
         nonlocal window
         nonlocal banner_label
         nonlocal action_method
         action = new_action
-        # 根据动作选择对应的处理函数与窗口标题和说明文本
+
         if action == 'move_coords':
             action_method = movebox
             window_title = f'Move Box Coordinates: {box_name}'
             banner_text = (
                 f'''Moving box {box_name} coordinates by picking X, Y, or Z direction and setting 
 the distance to move in Angstroms for each time. 
-Press Up/Left or Down/Right to change the values.'''
+PressUp/Right/A/W or Down/Left/S/D  to change the values.'''
             )
         else:
             action_method = enlargebox
@@ -772,17 +792,28 @@ Press Up/Left or Down/Right to change the values.'''
             banner_text = (
                 f'''Change box {box_name} size by picking X, Y, or Z direction and setting 
 the delta distance to change in Angstroms for each time. Center of the box stays the same.
-Press Up/Left or Down/Right to change the values.'''
+Press Up/Right/A/W or Down/Left/S/D to change the values.'''
             )
         window.setWindowTitle(window_title)
         banner_label.setText(banner_text)
 
     def set_distance_delta(distance: float):
+        """
+        Update the global delta_distance value whenever the spin box value changes.
+
+        :param distance: The new distance (float) set in the spin box.
+        """
         nonlocal delta_distance
         logging.debug(f'Set distance delta to {distance}')
         delta_distance = float(distance)
 
     def set_direction(direction_str: str):
+        """
+        Update the current direction for the transformation (X, Y, or Z).
+
+        :param direction_str: The string representing the direction (X, Y, or Z).
+        :raises ValueError: If the provided direction is invalid.
+        """
         nonlocal direction
         _direction = direction_str.lower()
         if _direction not in ['x', 'y', 'z']:
@@ -791,35 +822,51 @@ Press Up/Left or Down/Right to change the values.'''
         direction = _direction
 
     def set_box_info_to_banner():
+        """
+        Query the current box's info (using CgoBox) and display it in the info banner.
+        This provides details such as the box coordinates, size, and AutoDock parameters.
+        """
         nonlocal banner_info
-        box=CgoBox.from_selection(box_name, '_select_box', 0, (0, 0, 0))
-        banner_info.setText(f"""Box {box_name} info:\n{repr(box)}\n\nAutoDock Vina:\n{box.to_vina}\n\nAutoGrid:\n{box.to_autogrid}""")
-    
+        box = CgoBox.from_selection(box_name, '_select_box', 0, (0, 0, 0))
+        banner_info.setText(
+            f"""Box {box_name} info:\n{repr(box)}\n\nAutoDock Vina:\n{box.to_vina}\n\nAutoGrid:\n{box.to_autogrid}"""
+        )
+
     def action_wrapper(params: Dict[str, float]):
+        """
+        Calls the current action method (movebox or enlargebox) with the specified parameters.
+        After performing the action, refresh the box info in the banner.
+
+        :param params: A dictionary containing the direction key (e.g. 'x') and its float value.
+        """
         logging.info(f'{params=}')
-        # 传入动态构造的字典，确保选中的方向作为关键字
         action_method(box_name=box_name, **params)
         set_box_info_to_banner()
-    
 
-    # 键盘事件处理函数
-    # 左箭头或 A 键 / 下箭头或 S 键：传入负的位移；右箭头或 D 键 / 上箭头或 W 键：正的位移
     def keyboard_event_handler(event):
-        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, QtCore.Qt.Key_Down, QtCore.Qt.Key_S):
+        """
+        A custom keyboard event handler that checks for arrow keys or WASD keys.
+        Depending on which key is pressed, it applies a positive or negative 
+        transformation in the currently selected direction.
+
+        :param event: The QKeyEvent from the window.
+        """
+        if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A, 
+                           QtCore.Qt.Key_Down, QtCore.Qt.Key_S):
             action_wrapper({direction: -delta_distance})
-        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D, QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
+        elif event.key() in (QtCore.Qt.Key_Right, QtCore.Qt.Key_D, 
+                             QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
             action_wrapper({direction: delta_distance})
         else:
             print('Ignored')
 
-    # 创建新的窗口（独立窗口）
+    # Create a new standalone widget as the main window.
     window = QtWidgets.QWidget()
     window.setObjectName("MoveOrChangeBox")
-    
 
     main_layout = QtWidgets.QVBoxLayout(window)
 
-    # 添加说明文字
+    # A label to display the current instructions or banner text.
     banner_label = QtWidgets.QLabel('Pick action to start')
     banner_label.setWordWrap(True)
     banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -836,28 +883,28 @@ Press Up/Left or Down/Right to change the values.'''
     )
     main_layout.addWidget(banner_label)
 
-    # 添加水平布局：距离标签和数值微调框
+    # Layout for the distance label and spin box.
     distance_layout = QtWidgets.QHBoxLayout()
     distance_label = QtWidgets.QLabel("Distance to alter: ")
     distance_layout.addWidget(distance_label)
+
+    # Use our custom spin box that ignores arrow keys.
     distance_spinbox = MyDoubleSpinBox()
     distance_spinbox.setRange(0, 10)
     distance_spinbox.setValue(1.0)
     distance_spinbox.setSingleStep(0.1)
-
-    
     distance_spinbox.valueChanged.connect(set_distance_delta)
     distance_layout.addWidget(distance_spinbox)
+
     main_layout.addLayout(distance_layout)
 
-    # action horizontal layout
-
-    action_group_box= QtWidgets.QGroupBox("Actions to take")
+    # A group box to select the action (move or resize).
+    action_group_box = QtWidgets.QGroupBox("Actions to take")
     action_layout = QtWidgets.QHBoxLayout()
-    # 2 radio buttons for actions
+
     move_action_radio_button = QtWidgets.QRadioButton("Move Box")
     move_action_radio_button.toggled.connect(lambda: set_action('move_coords'))
-    move_action_radio_button.setChecked(True)
+    move_action_radio_button.setChecked(True)  # Default action
     action_layout.addWidget(move_action_radio_button)
 
     resize_action_radio_button = QtWidgets.QRadioButton("Resize Box")
@@ -866,25 +913,27 @@ Press Up/Left or Down/Right to change the values.'''
 
     action_group_box.setLayout(action_layout)
     main_layout.addWidget(action_group_box)
-    
 
-    # 添加一个组框用于放置X, Y, Z三个单选按钮
+    # A group box to select direction (X, Y, or Z).
     group_box = QtWidgets.QGroupBox("Select the direction to alter the box")
     group_layout = QtWidgets.QHBoxLayout()
+
     x_radio_button = QtWidgets.QRadioButton("X axis")
     x_radio_button.pressed.connect(lambda: set_direction("X"))
     group_layout.addWidget(x_radio_button)
+
     y_radio_button = QtWidgets.QRadioButton("Y axis")
     y_radio_button.pressed.connect(lambda: set_direction("Y"))
     group_layout.addWidget(y_radio_button)
+
     z_radio_button = QtWidgets.QRadioButton("Z axis")
     z_radio_button.pressed.connect(lambda: set_direction("Z"))
     group_layout.addWidget(z_radio_button)
+
     group_box.setLayout(group_layout)
     main_layout.addWidget(group_box)
 
-
-    # add an info banner to present current box information
+    # A text area to display current box information (coordinates, size, etc.).
     banner_info = QtWidgets.QTextEdit("")
     banner_info.setStyleSheet(
         """
@@ -897,18 +946,22 @@ Press Up/Left or Down/Right to change the values.'''
         border-radius: 5px;
         """
     )
+    banner_info.setReadOnly(True)
     main_layout.addWidget(banner_info)
-    
-    # 将自定义的键盘事件处理函数绑定到窗口
+
+    # Bind our custom keyboard event handler to the window.
     window.keyPressEvent = keyboard_event_handler
 
-
-    # 如果 ui 中没有 open_windows 列表，则初始化一个
+    # Keep track of open windows in ui, so we can properly clean them up.
     if not hasattr(ui, 'open_windows'):
         ui.open_windows = []
     ui.open_windows.append(window)
 
     def cleanup_window():
+        """
+        Remove the current window from ui.open_windows when destroyed. 
+        If no windows remain, delete the open_windows attribute from ui.
+        """
         if hasattr(ui, 'open_windows') and window in ui.open_windows:
             ui.open_windows.remove(window)
         if isinstance(ui.open_windows, list) and len(ui.open_windows) == 0:
