@@ -25,9 +25,7 @@ jobs:
       - run:
           name: Start Display
           command: |
-            Xvfb :99 -screen 0 1280x1024x24 &
-            fluxbox &
-            sleep 3
+            make setup-ubuntu
 
       - run:
           name: Setup Environment for << parameters.python-version >>
