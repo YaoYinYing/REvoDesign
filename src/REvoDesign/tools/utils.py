@@ -10,7 +10,7 @@ import tarfile
 import time
 import zipfile
 from functools import wraps
-from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, List, Optional, Protocol, Tuple, Union
 
 import matplotlib
 import numpy as np
@@ -219,7 +219,7 @@ def minibatches_generator(inputs_data_generator, batch_size):
         yield current_batch
 
 
-def extract_archive(archive_file, extract_to):
+def extract_archive(archive_file: str, extract_to: str):
     """
     Extracts the contents of an archive file (zip, tar.gz, tar.bz2, tar.xz, or rar) to a specified directory.
 
@@ -227,26 +227,32 @@ def extract_archive(archive_file, extract_to):
         archive_file (str): Path to the archive file.
         extract_to (str): Directory where the contents will be extracted.
     """
+    
 
     try:
-        if archive_file.endswith(".zip"):
-            with zipfile.ZipFile(archive_file, "r") as zip_ref:
-                zip_ref.extractall(extract_to)
-            logging.info(f"Extracted {archive_file} to {extract_to}")
-        elif archive_file.endswith((".tar.gz", ".tgz")):
-            with tarfile.open(archive_file, "r:*") as tar_ref:
-                tar_ref.extractall(extract_to)
-            logging.info(f"Extracted {archive_file} to {extract_to}")
-        elif archive_file.endswith((".tar.bz2", ".tbz")):
-            with tarfile.open(archive_file, "r:bz2") as tar_ref:
-                tar_ref.extractall(extract_to)
-            logging.info(f"Extracted {archive_file} to {extract_to}")
-        elif archive_file.endswith(".tar.xz"):
-            with tarfile.open(archive_file, "r:xz") as tar_ref:
-                tar_ref.extractall(extract_to)
-            logging.info(f"Extracted {archive_file} to {extract_to}")
-        else:
-            raise ValueError(f"Unsupported archive format: {archive_file}")
+        with timing(f'extracting {archive_file} to {extract_to}'):
+            if archive_file.endswith(".zip"):
+                with zipfile.ZipFile(archive_file, "r") as zip_ref:
+                    zip_ref.extractall(extract_to)
+                
+            elif archive_file.endswith(".tar"):
+                with tarfile.open(archive_file, "r:") as tar_ref:
+                    tar_ref.extractall(extract_to)
+                
+            elif archive_file.endswith((".tar.gz", ".tgz")):
+                with tarfile.open(archive_file, "r:*") as tar_ref:
+                    tar_ref.extractall(extract_to)
+                
+            elif archive_file.endswith((".tar.bz2", ".tbz")):
+                with tarfile.open(archive_file, "r:bz2") as tar_ref:
+                    tar_ref.extractall(extract_to)
+                
+            elif archive_file.endswith(".tar.xz"):
+                with tarfile.open(archive_file, "r:xz") as tar_ref:
+                    tar_ref.extractall(extract_to)
+                
+            else:
+                raise ValueError(f"Unsupported archive format: {archive_file}")
     except Exception as e:
         logging.error(f"Error extracting {archive_file}: {str(e)}")
         raise ValueError(f"Failed to extract {archive_file}: {e}") from e

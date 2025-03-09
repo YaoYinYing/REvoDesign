@@ -1,0 +1,9 @@
+node_config: 
+    # controls whether to use MPI or not in docker or WSL
+    prohibit_mpi: False
+
+    # manually set whether mpi is available or not
+    mpi_available: True
+
+    # for node_hint==docker/docker_mpi
+    image: "rosettacommons/rosetta:mpi" 
