@@ -5,6 +5,7 @@ Utils for fetching pretrained model weights
 from functools import cached_property
 import os
 import tarfile
+from typing import Optional
 import zipfile
 from dataclasses import dataclass
 
@@ -31,6 +32,7 @@ class ModelFetchSetting:
     md5sum: str
 
     disable_unflatten: bool=False
+    unflatten_to_dir: Optional[str] = None
 
     @cached_property
     def downloaded_basename(self):
@@ -66,7 +68,7 @@ class ModelFetchSetting:
         Returns:
             str: Path to the directory containing the model weights.
         """
-        return os.path.join(user_data_dir(self.name, version=self.version, ensure_exists=True), self.basename)
+        return os.path.join(user_data_dir(self.name, version=self.version, ensure_exists=True), self.unflatten_to_dir or self.basename )
 
     @property
     def ready(self):

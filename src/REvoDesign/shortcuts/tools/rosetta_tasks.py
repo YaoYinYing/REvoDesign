@@ -4,19 +4,21 @@ Shortcut functions on Rosetta-related tasks
 
 import os
 from dataclasses import dataclass, field
+
 from typing import List, Optional, Tuple, Union
 
 from pymol import cmd
+
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.app.fastrelax import FastRelax
 from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
-from RosettaPy.node import Native, NodeClassType, NodeHintT, node_picker
+from RosettaPy.node import Native, NodeClassType, node_picker
 
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.utils import read_rosetta_node_config
+from REvoDesign.tools.rosetta_utils import read_rosetta_node_config
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -319,3 +321,6 @@ def shortcut_relax_w_ca_constraints(
     final_pdb = app.run(load_to_preview)
 
     logging.info(f"RelaxWithCaConstraints finished. Final pdb: {final_pdb}")
+
+
+
