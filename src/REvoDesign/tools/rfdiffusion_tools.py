@@ -6,11 +6,92 @@ import biotite.structure as struc
 
 class SubstratePotentialVisualizer:
     '''
-    This Class helps to reproduce the Extended Data Fig. 6E of the paper.
+    This Class helps to reproduce the Extended Data Fig. 6E of the RFdiffusion paper.
 
     '''
-    def __init__(self, pdb_path, lig_key,blur: bool=False,  weight=1, r_0=8, d_0=2, s=1, eps=1e-6, rep_r_0=5, rep_s=2, rep_r_min=1):
-        """Initializes the substrate potential visualizer."""
+    def __init__(self, pdb_path, lig_key,blur: bool=False,  weight: float=1, r_0: float=8, d_0: float=2, s: float=1, eps: float=1e-6, rep_r_0: float=5, rep_s: float=2, rep_r_min: float=1):
+        """
+        Initializes the SubstratePotentialVisualizer.
+
+        This class computes and visualizes a ligand-centered external potential field based on distance-dependent
+        attractive and repulsive interactions. The external potential field is modeled similarly to the implicit 
+        potentials used in protein-ligand interaction modeling, as implemented in the `substrate_contacts` class.
+
+        Args:
+            pdb_path (str): 
+                Path to the input PDB file containing the protein-ligand complex. 
+                The ligand must be properly defined with connectivity.
+
+            lig_key (str): 
+                Residue name of the ligand (e.g., "ATP", "HEM"), used to extract ligand coordinates from the PDB file.
+
+            blur (bool, default=False): 
+                If True, applies a Gaussian blur to the potential map. This can help smooth out the potential 
+                field and make it easier to visualize.
+
+            weight (float, default=1): 
+                Scaling factor for the total potential energy. Higher values increase the influence of the external 
+                potential on the diffusion process.
+
+            r_0 (float, default=8 Å): 
+                Defines the maximum range of attractive interactions. Beyond this distance, the attraction potential 
+                smoothly decays. 
+                
+                - **Biological relevance**: This represents an approximate range where ligand-protein interactions 
+                  are significant in molecular docking.
+                - **Mathematical definition**: Serves as a normalization factor in the distance-dependent 
+                  contact energy function.
+
+            d_0 (float, default=2 Å): 
+                Defines the preferred contact distance for attractive interactions. At distances **d < d_0**, 
+                the attractive potential plateaus.
+                
+                - **Biological relevance**: Represents the optimal distance for stabilizing hydrogen bonds and 
+                  hydrophobic contacts.
+                - **Mathematical role**: Appears in the `contact_energy(d, d_0, r_0)` function as the reference 
+                  contact distance.
+
+            s (float, default=1): 
+                Scaling factor for the attractive contact potential. Larger values make attractive interactions 
+                stronger relative to repulsion.
+                
+                - **Biological relevance**: Controls the relative weight of hydrophobic and van der Waals interactions.
+                - **Mathematical role**: Appears as a multiplicative factor in the attractive energy term.
+
+            eps (float, default=1e-6): 
+                Small constant added to prevent division by zero in energy calculations. 
+                
+                - **Mathematical role**: Regularization term in the denominator of the attraction function.
+
+            rep_r_0 (float, default=5 Å): 
+                Defines the onset of repulsive interactions. If the distance between a ligand atom and a protein atom 
+                is **d < rep_r_0**, a repulsive force is applied.
+                
+                - **Biological relevance**: Prevents steric clashes by modeling atomic repulsion.
+                - **Mathematical role**: Acts as the threshold in the `poly_repulse(d, rep_r_0, rep_s)` function.
+
+            rep_s (float, default=2): 
+                Scaling factor for the repulsive potential. Larger values make steric repulsions stronger.
+                
+                - **Biological relevance**: Controls the penalty for steric clashes in ligand binding.
+                - **Mathematical role**: Appears in the polynomial repulsion function.
+
+            rep_r_min (float, default=1 Å): 
+                Defines the minimum repulsion distance. When **d < rep_r_min**, repulsion is maximized.
+                
+                - **Biological relevance**: Prevents unrealistic ligand placements inside protein cores.
+                - **Mathematical role**: Defines a lower bound for steric clash penalties.
+
+        Summary:
+        ----------
+        This model assumes that **ligand atoms influence the diffusion process** by introducing distance-dependent 
+        energetic constraints. The external potential is a sum of:
+        - **Attractive potential**: Encourages residues to approach ligand atoms up to a certain threshold.
+        - **Repulsive potential**: Prevents steric clashes when residues come too close.
+
+        This potential framework is useful for **enzyme active site design, protein-ligand binding modeling, and 
+        small-molecule docking simulations**.
+        """
         from rfdiffusion.potentials.potentials import substrate_contacts
 
 
