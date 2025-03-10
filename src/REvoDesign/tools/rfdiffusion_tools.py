@@ -1,14 +1,24 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
+
 import biotite.structure.io as bsio
 import biotite.structure as struc
 
+from REvoDesign.basic import ThirdPartyModuleAbstract
+from REvoDesign.bootstrap.set_config import is_package_installed
+from REvoDesign.tools.utils import require_installed
 
-class SubstratePotentialVisualizer:
+@require_installed
+class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
     '''
     This Class helps to reproduce the Extended Data Fig. 6E of the RFdiffusion paper.
 
     '''
+    name: str = 'SubstratePotentialVisualizer'
+    installed: bool = is_package_installed('rfdiffusion')
     def __init__(self, pdb_path, lig_key,blur: bool=False,  weight: float=1, r_0: float=8, d_0: float=2, s: float=1, eps: float=1e-6, rep_r_0: float=5, rep_s: float=2, rep_r_min: float=1):
         """
         Initializes the SubstratePotentialVisualizer.
@@ -169,7 +179,7 @@ class SubstratePotentialVisualizer:
             potential_field = gaussian_filter(potential_field, sigma=5)
         return X, Y, potential_field
 
-    def plot_potential_field(self, grid_size=200, margin=10):
+    def plot_potential_field(self, grid_size=200, margin=10, save_to: str='default.png'):
         """
         Plots the substrate potential field with overlaid ligand atoms and bonds.
         """
@@ -214,10 +224,11 @@ class SubstratePotentialVisualizer:
         cbar.set_label("Potential", fontsize=12)
         cbar.set_ticks([-9, -6, -3, 0, 3])
 
-        plt.show()
+        # plt.show()
+        plt.savefig(save_to, dpi=300, bbox_inches='tight')
 
-# Example usage:
-visualizer = SubstratePotentialVisualizer(
-    pdb_path="/Users/yyy/Documents/protein_design/RFdiffusion/examples/input_pdbs/5an7.pdb", lig_key="LLK"
-)
-visualizer.plot_potential_field()
+# # Example usage:
+# visualizer = SubstratePotentialVisualizer(
+#     pdb_path="/Users/yyy/Documents/protein_design/RFdiffusion/examples/input_pdbs/5an7.pdb", lig_key="LLK"
+# )
+# visualizer.plot_potential_field(save_to='5an7_LLK.png')

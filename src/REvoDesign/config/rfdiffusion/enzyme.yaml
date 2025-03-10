@@ -21,11 +21,14 @@ defaults:
 
 inference:
   output_prefix: example_outputs/design_enzyme
-  input_pdb: input_pdbs/5an7.pdb 
+  model_name: ActiveSite_ckpt
+  input_pdb: tests/data/pdb/5an7.pdb
 contigmap:
-  contigs: [10-100/A1083-1083/10-100/A1051-1051/10-100/A1180-1180/10-100]
+  contigs: 
+    - 10-100/A1083-1083/10-100/A1051-1051/10-100/A1180-1180/10-100
 
 potentials:
   guide_scale: 1 
-  guiding_potentials: '["type:substrate_contacts,s:1,r_0:8,rep_r_0:5.0,rep_s:2,rep_r_min:1"]' 
+  guiding_potentials: 
+    - type:substrate_contacts,s:1,r_0:8,rep_r_0:5.0,rep_s:2,rep_r_min:1
   substrate: LLK

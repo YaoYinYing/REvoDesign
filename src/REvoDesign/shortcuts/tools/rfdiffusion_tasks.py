@@ -6,22 +6,22 @@ import shutil
 import time, pickle
 from typing import Optional
 from omegaconf import OmegaConf,DictConfig
+from hydra.core.hydra_config import HydraConfig
 from hydra import errors as hydra_errors
 
 import numpy as np
 import random
 import glob
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import warnings
 from RosettaPy.utils.task import RosettaCmdTask, execute
-import rfdiffusion.inference
 
 
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.tools.utils import get_cited, require_installed, timing
 from REvoDesign.tools.dl_weights import ModelFetchSetting
-from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file
+from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file, remove_null_keys_copy
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
 from REvoDesign.tools.package_manager import run_command
 from REvoDesign import ROOT_LOGGER,issues
@@ -87,56 +87,56 @@ a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
 '''
 
 RfDiffusionActiveSiteWeights = ModelFetchSetting(
-    name='ActiveSite_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='ActiveSite_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'ActiveSite_ckpt.pt',
     md5sum='0d9f82af03c73011c6fec060bac5b731'
 )
 RfDiffusionBaseWeights = ModelFetchSetting(
-    name='Base_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='Base_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Base_ckpt.pt',
     md5sum='4aa4a27ba280d23541e01860c106c7cc'
 )
 RfDiffusionBaseEpoch8Weights = ModelFetchSetting(
-    name='Base_epoch8_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='Base_epoch8_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Base_epoch8_ckpt.pt',
     md5sum='5c58d7d5c329c1297fab0aa6cebad81b'
 )
 RfDiffusionComplexFoldBaseWeights = ModelFetchSetting(
-    name='Complex_Fold_base_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='Complex_Fold_base_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Complex_Fold_base_ckpt.pt',
     md5sum='9c000b475b293b54bcf5fbd8109f5794'
 )
 RfDiffusionComplexBaseWeights = ModelFetchSetting(
-    name='Complex_base_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='Complex_base_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Complex_base_ckpt.pt',
     md5sum='7a5d99f3c8bede52d9240f79a99bc30b'
 )
 RfDiffusionComplexBetaWeights = ModelFetchSetting(
-    name='Complex_beta_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='Complex_beta_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Complex_beta_ckpt.pt',
     md5sum='5bb77fc129777d742045a444f43bf587'
 )
 RfDiffusionInpaintSeqFoldWeights = ModelFetchSetting(
-    name='InpaintSeq_Fold_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='InpaintSeq_Fold_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'InpaintSeq_Fold_ckpt.pt',
     md5sum='1e9245a486262dff3cb3286f22a3014d'
 )
 RfDiffusionInpaintSeqWeights = ModelFetchSetting(
-    name='InpaintSeq_ckpt',
-    version='weights',
+    name='RFdiffusion',
+    version='InpaintSeq_ckpt',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'InpaintSeq_ckpt.pt',
     md5sum='a6f8652938bb45c332ffa683d8ad3509'
 )
 RfDiffusionRFStructurePredictionWeights = ModelFetchSetting(
-    name='RF_structure_prediction_weights',
-    version='weights',
+    name='RFdiffusion',
+    version='RF_structure_prediction_weights',
     url=RFDIFFUSION_WEIGHTS_BASE_URL + 'RF_structure_prediction_weights.pt',
     md5sum='6f4d00394d34f6a9072d70976f6c8777'
 )
@@ -171,37 +171,40 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
     all_models= [model.name for model in RfDiffusionModelCollection]
 
 
-    def pick_model(self,conf: DictConfig, model_name: Optional[str]=None):
+    def pick_model(self, model_name: Optional[str]=None):
         # have one model on local
-        if conf.inference.ckpt_override_path and os.path.isfile(conf.inference.ckpt_override_path):
-            
-            logging.info(f"Using ckpt_override_path {conf.inference.ckpt_override_path}")
+        if self.config.inference.ckpt_override_path and os.path.isfile(self.config.inference.ckpt_override_path):
+            logging.info(f"Using ckpt_override_path from config: {self.config.inference.ckpt_override_path}")
             return
+        
+        model_name=model_name or self.config.inference.model_name
 
-        if model_name or conf.inference.model_name:
-            model=[m for m in RfDiffusionModelCollection if m.name==model_name]
+        if model_name:
+            model=[m for m in RfDiffusionModelCollection if m.version==model_name]
             if model:
-                ckpt_path = model[0].setup()
-                conf.inference.ckpt_override_path=ckpt_path
-                return
+                with timing(f"Downloading {model[0].name} weights"):
+                    ckpt_path = model[0].setup()
+                    self.config.inference.ckpt_override_path=ckpt_path
+                    logging.info(f"Using ckpt_override_path from model name ({model_name}): {ckpt_path}")
+                    return
             warnings.warn(issues.FallingBackWarning(
                 f"Model {model_name} not found. Falling back to pick one according to the input."))
 
         # automatically pick the model based on the input
         # rfdiffusion/inference/model_runners.py
-        if conf.contigmap.inpaint_seq is not None or conf.contigmap.provide_seq is not None or conf.contigmap.inpaint_str:
+        if self.config.contigmap.inpaint_seq is not None or self.config.contigmap.provide_seq is not None or self.config.contigmap.inpaint_str:
             # use model trained for inpaint_seq
-            if conf.contigmap.provide_seq is not None:
+            if self.config.contigmap.provide_seq is not None:
                 # this is only used for partial diffusion
-                assert conf.diffuser.partial_T is not None, "The provide_seq input is specifically for partial diffusion"
-            if conf.scaffoldguided.scaffoldguided:
+                assert self.config.diffuser.partial_T is not None, "The provide_seq input is specifically for partial diffusion"
+            if self.config.scaffoldguided.scaffoldguided:
                 ckpt_path = RfDiffusionInpaintSeqFoldWeights.setup()
             else:
                 ckpt_path = RfDiffusionInpaintSeqWeights.setup()
-        elif conf.ppi.hotspot_res is not None and conf.scaffoldguided.scaffoldguided is False:
+        elif self.config.ppi.hotspot_res is not None and self.config.scaffoldguided.scaffoldguided is False:
             # use complex trained model
             ckpt_path = RfDiffusionComplexBaseWeights.setup()
-        elif conf.scaffoldguided.scaffoldguided is True:
+        elif self.config.scaffoldguided.scaffoldguided is True:
             # use complex and secondary structure-guided model
             ckpt_path = RfDiffusionComplexFoldBaseWeights.setup()
         else:
@@ -209,36 +212,48 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             ckpt_path = RfDiffusionBaseWeights.setup()
 
         logging.warning(f'Using Model from {ckpt_path}')
-        conf.inference.ckpt_override_path=ckpt_path
+        self.config.inference.ckpt_override_path=ckpt_path
         return 
+    
+    @staticmethod
+    def ensure_dgl():
+        if (dgl_solver:=DglSolver()).installed:
+            return
+        
+        warnings.warn(issues.MissingExternalTool(
+            "DGL is not installed. Now try to install it."))
+        
+        dgl_solver.install()
+        if not DglSolver().installed:
+            raise issues.MissingExternalToolError('DGL may not be installed. Please install it manually or take a restart to take effect.')
+        
 
-    def __init__(self, model_name: Optional[str]=None):
+    def __init__(self,config_preset: str='base', model_name: Optional[str]=None):
+        self.ensure_dgl()
+        
         try:
-            config=reload_config_file("rfdiffusion/base")["rfdiffusion"]
+            config: DictConfig=reload_config_file(f"rfdiffusion/{config_preset}")["rfdiffusion"]
+            self.config=config
+
+            print(self.config)
+            self.pick_model(model_name)
+            
         except hydra_errors.MissingConfigException as e:
             raise issues.ConfigureOutofDateError(
                 'To run RFDiffusion, please reset/the configuration files '
                 f'or copy the entire directory {os.path.join(this_file_dir, "../../config/rfdiffusion")}'
                 f'to {os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE))} and restart REvoDesign.')
         
-        if not (dgl_solver:=DglSolver()).installed:
-            warnings.warn(issues.MissingExternalTool(
-                "DGL is not installed. Now try to install it."))
-            
-            dgl_solver.install()
-            if not DglSolver().installed:
-                raise issues.MissingExternalToolError('DGL may not be installed. Please install it manually or take a restart to take effect.')
         
-    
 
     # a copy from `https://github.com/RosettaCommons/RFdiffusion/blob/main/scripts/run_inference.py`
     @get_cited
-    def main(self, conf: DictConfig) -> None:
+    def main(self) -> None:
         import torch
         from rfdiffusion.util import writepdb_multi, writepdb
         from rfdiffusion.inference import utils as iu
 
-        if conf.inference.deterministic:
+        if self.config.inference.deterministic:
             make_deterministic()
 
         # Check for available GPU and print result of check
@@ -251,7 +266,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.warning("////////////////////////////////////////////////")
 
         # Initialize sampler and target/contig.
-        sampler = iu.sampler_selector(conf)
+        sampler = iu.sampler_selector(self.config)
 
         # Loop over number of designs to sample.
         design_startnum = sampler.inf_conf.design_startnum
@@ -269,7 +284,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             design_startnum = max(indices) + 1
 
         for i_des in range(design_startnum, design_startnum + sampler.inf_conf.num_designs):
-            if conf.inference.deterministic:
+            if self.config.inference.deterministic:
                 make_deterministic(i_des)
 
             start_time = time.time()
@@ -439,3 +454,13 @@ url={https://doi.org/10.1038/s41586-023-06415-8}
 ''',
     }
 
+
+def enzyme_rfdiffusion():
+    app=RfDiffusion('enzyme')
+    app.main()
+
+    del app
+
+
+if __name__ == "__main__":
+    enzyme_rfdiffusion()

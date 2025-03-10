@@ -78,7 +78,9 @@ class ModelFetchSetting:
         Returns:
             bool: True if the model weights exist and are not empty, False otherwise.
         """
-        return os.path.exists(self.weight_path) and os.listdir(self.weight_path)
+        if self.need_flatten:
+            return os.path.exists(self.weight_path) and os.listdir(self.weight_path)
+        return os.path.exists(self.weight_path) and os.path.isfile(self.weight_path)
     
     def flatten_archieve(self,downloaded: str):
         # Check if the destination directory is empty

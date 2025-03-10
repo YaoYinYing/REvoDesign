@@ -17,7 +17,8 @@ from RosettaPy.node import NodeHintT, node_picker
 from REvoDesign import ConfigBus
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
-from REvoDesign.shortcuts.tools.rosetta_tasks import is_run_node_available, read_rosetta_node_config
+from REvoDesign.shortcuts.tools.rosetta_tasks import read_rosetta_node_config
+from REvoDesign.tools.rosetta_utils import is_run_node_available
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 
 

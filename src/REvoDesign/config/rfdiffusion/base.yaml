@@ -3,6 +3,7 @@
 inference:
   input_pdb: null
   num_designs: 10
+  model_name: null
   design_startnum: 0
   ckpt_override_path: null
   symmetry: null

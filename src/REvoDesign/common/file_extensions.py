@@ -121,3 +121,17 @@ RosettaParams = ExtColl(
         Ext("params", "Rosetta Parameter file"),
     )
 )
+
+Pictures = ExtColl(
+    (
+        Ext("png", "PNG image"),
+        Ext("jpg", "JPG image"),
+        Ext("jpeg", "JPEG image"),
+        Ext("gif", "GIF image"),
+        Ext("bmp", "BMP image"),
+        Ext("tiff", "TIFF image"),
+        Ext("tif", "TIFF image"),
+        Ext("svg", "SVG image"),
+        Ext("pdf", "PDF image"),
+    )
+)
