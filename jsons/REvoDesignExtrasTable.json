@@ -16,6 +16,10 @@
     "Molecular Dynamics": "",
     "OpenMM": "openmm",
 
+    "Backbone Sampler": "",
+    "RFdiffusion(CUDA)": "rfdiffusion_cuda",
+    "RFdiffusion(CPU)": "rfdiffusion_cpu",
+
     "Developer Tool": "",
     "Test": "test"
     
