@@ -24,7 +24,7 @@ def test_set_REvoDesign_config_file():
 def test_reload_config_file():
     with patch("REvoDesign.bootstrap.set_config.hydra.compose", return_value=DictConfig({"key": "value"})) as mock_compose:
         config = reload_config_file()
-        mock_compose.assert_called_once_with(config_name="global_config", return_hydra_config=False)
+        mock_compose.assert_called_once_with(config_name="global_config", overrides=None, return_hydra_config=False)
         assert config["key"] == "value"
 
 
