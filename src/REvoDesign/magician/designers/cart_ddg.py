@@ -4,106 +4,19 @@ Cartesian-ddG, driven by RosettaPy Package
 
 import logging
 import os
-import platform
-import shutil
-import warnings
 from typing import Any, Dict, List, Optional, Union
 
-import docker
-import docker.errors
 from Bio.Data import IUPACData
 from RosettaPy.app.cart_ddg import CartesianDDG
 from RosettaPy.common.mutation import (Mutation, RosettaPyProteinSequence,
                                        mutants2mutfile)
 from RosettaPy.node import NodeHintT, node_picker
-from RosettaPy.node.wsl import which_wsl
 
-from REvoDesign import ConfigBus, issues
+from REvoDesign import ConfigBus
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-
-
-def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
-    """
-    Determine if the specified runtime environment indicated by `node_hint` is available.
-
-    Parameters:
-    - node_hint (Optional[NodeHintT]): A hint that specifies the desired runtime environment.
-
-    Returns:
-    - bool: True if the specified runtime environment is available, False otherwise.
-    """
-
-    # Check for "native" or unspecified environment by verifying the ROSETTA_BIN environment variable
-    if node_hint is None or node_hint == "native":
-        return not os.environ.get("ROSETTA_BIN", "") == ""
-
-    # Check for WSL environment availability on Windows systems
-    if node_hint.startswith("wsl"):
-        if platform.system() != "Windows":
-            return False
-        return is_wsl_available()
-
-    # Check for Docker environment availability
-    if node_hint.startswith("docker"):
-        return is_docker_available()
-
-    # Check for MPI environment availability by checking if mpirun is in PATH
-    if node_hint == "mpi":
-        return shutil.which("mpirun") is not None
-
-    return False
-
-
-def is_wsl_available():
-    """
-    Check if Windows Subsystem for Linux (WSL) is available on the current machine.
-
-    This function attempts to determine if WSL is available by trying to locate the WSL binary.
-    If the WSL binary is found, it indicates that WSL is available.
-
-    Returns:
-        bool: Returns True if WSL is available, otherwise returns False.
-    """
-    try:
-        # Attempt to get the path of the WSL binary
-        wsl_bin = which_wsl()
-        # If the WSL binary is found, return True
-        return wsl_bin is not None
-    except RuntimeError:
-        # If an error occurs, it indicates that WSL may not be available
-        warnings.warn(
-            issues.PlatformNotSupportedWarning(
-                "WSL is not available on this machine."
-            )
-        )
-        # Return False, indicating that WSL is not available
-        return False
-
-
-def is_docker_available() -> bool:
-    """
-    Checks if Docker is available on the current machine.
-
-    This function attempts to connect to Docker using the Docker client from the environment.
-    If the connection is successful, it indicates that Docker is available, and the function returns True.
-    If a DockerException is raised during the connection attempt, it indicates that Docker is not available,
-    and a warning is issued before returning False.
-
-    Returns:
-        bool: True if Docker is available, otherwise False.
-    """
-    try:
-        # Attempt to create a Docker client and then release the reference to test Docker's availability.
-        client = docker.from_env()
-        del client
-        return True
-    except docker.errors.DockerException as e:
-        # If Docker is not available, issue a warning and return False.
-        warnings.warn(issues.PlatformNotSupportedWarning(
-            f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"))
-        return False
+from REvoDesign.tools.rosetta_utils import is_run_node_available,read_rosetta_node_config
 
 
 def get_ddg_mut_id(mutations: List[Mutation]) -> str:
@@ -146,16 +59,12 @@ class ddg(ExternalDesignerAbstract):
         self.unrelaxed_pdb: Optional[str] = None
         self.relaxed_pdb: Optional[str] = None
 
-        self.nproc: int = int(bus.get_value("ui.header_panel.nproc"))
-
         self.relax_nstruct: int = bus.get_value("rosetta.cart_ddg.relax.nstruct")  # type: ignore
         self.use_legacy = bus.get_value("rosetta.cart_ddg.use_legacy", bool, default_value=False, reject_none=True)
 
         self.ddg_iterations = bus.get_value("rosetta.cart_ddg.iterations", int, default_value=3, reject_none=True)
 
-        self.node_config: Optional[Dict[str, Any]] = bus.get_value(
-            "rosetta.node_config"
-        )
+        self.node_config: Optional[Dict[str, Any]] = read_rosetta_node_config()
         if self.node_config is None:
             self.node_config = {}
 
@@ -163,8 +72,6 @@ class ddg(ExternalDesignerAbstract):
 
         if self.node_config is None:
             self.node_config = {}
-
-        self.node_config.update({"nproc": self.nproc})
 
         if self.unrelaxed_pdb is None or not os.path.isfile(
             self.unrelaxed_pdb

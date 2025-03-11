@@ -1,0 +1,15 @@
+defaults:
+    - native
+    
+node_config: 
+    # controls whether to use MPI or not in docker or WSL
+    prohibit_mpi: False
+
+    # manually set whether mpi is available or not
+    mpi_available: True
+
+
+    # for node_hint==wsl/wsl_mpi
+    distro: "ubuntu"  # linux distro name of one's wsl installation
+    user: "root"      # user name of one's wsl installation
+    rosetta_bin: ...  # the real path of rosetta binary inside wsl

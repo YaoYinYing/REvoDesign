@@ -12,11 +12,11 @@ from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
 from RosettaPy.app.fastrelax import FastRelax
 from RosettaPy.app.pross import PROSS
 from RosettaPy.app.rosettaligand import RosettaLigand
-from RosettaPy.node import Native, NodeClassType, NodeHintT, node_picker
+from RosettaPy.node import Native, NodeClassType, node_picker
 
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.utils import read_rosetta_node_config
+from REvoDesign.tools.rosetta_utils import read_rosetta_node_config
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -69,7 +69,6 @@ def shortcut_rosettaligand(
         start_from_xyz=start_from_xyz,
         node=node_picker(
             node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
             **node_config
         )
     )
@@ -114,7 +113,6 @@ def shortcut_pross(
         job_id=job_id,
         node=node_picker(
             node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
             **node_config
         )
     )
@@ -207,7 +205,6 @@ def shortcut_fast_relax(
         save_dir=save_dir,
         node=node_picker(
             node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-            nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
             **node_config)
     )
 
@@ -303,7 +300,6 @@ def shortcut_relax_w_ca_constraints(
 
     node = node_picker(
         node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-        nproc=bus.get_value('ui.header_panel.nproc', int, reject_none=True),
         **node_config)
 
     app = RelaxWithCaConstraints(

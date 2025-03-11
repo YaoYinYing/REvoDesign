@@ -65,8 +65,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `getbox` 
   - `alterbox`: `movebox` + `enlargebox`
   - `get_pca_box`
-### Changed
+- RFdiffusion integration, with CUDA, MPS and pure-CPU supported
+- basic: 
+  - `FileExtension`: `basename_stem` to find the stem of a file name if the extension is matched as the longgest one (`.gz` vs `.tar.gz`)
+- tools:
+  - `rfdiffusion_tools`: `SubstratePotentialVisualizer` a visualizer for RFdiffusion guiding potential `substrate_contacts`
+- jsons: added RFdiffusion supports
 
+### Changed
+- bootstrap: `reload_config_file`: `overrides` and `return_hydra_config`
+- config: rosetta node config now stores at `config/rosetta-node/*`, with `native` as the base one
+- moved: 
+  - `magician.designers.cart_ddg` --> `tools.rosetta_utils`:
+    - `is_run_node_available`
+    - `is_wsl_available`
+    - `is_docker_available`
+- tools:
+  - dl_weights: `ModelFetchSetting`: 
+    - now support `disable_unflatten` and `need_flatten` 
+    - `flatten_archieve`: call `extract_archive` to extract the archieve
+  - utils:
+    - `extract_archive`: added `*.tar` support
+- test:
+  - worker: `inject_rosetta_node_config`: now only inject `rosetta.node_hint`
 ### Fixed
 
 ### Removed
@@ -74,6 +95,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ci:
   - GHA:
     - unnecessary environment variables
+- global config:
+  - removed rosetta node config bcs we have isolated it to `config/rosetta-node`
 
 ## [1.7.19] - 2025-02-27
 

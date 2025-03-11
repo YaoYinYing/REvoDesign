@@ -4,9 +4,7 @@ Shortcut wrappers of Rosetta-related tasks
 
 from pymol import cmd
 
-from REvoDesign import ConfigBus
 from REvoDesign.common import file_extensions as FExt
-from REvoDesign.shortcuts.utils import read_rosetta_node_config
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,

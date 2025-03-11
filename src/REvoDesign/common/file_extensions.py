@@ -90,6 +90,13 @@ Compressed = ExtColl(
         Ext("tar.bz2", "Tarball (TAR.BZ2)"),
         Ext("tbz", "Tarball (TBZ)"),
         Ext("tar.xz", "Tarball (TAR.XZ)"),
+        Ext("txz", "Tarball (TXZ)"),
+        Ext("tar", "Tarball (TAR)"),
+        Ext("gz", "Compressed (GZ)"),
+        Ext("bz2", "Compressed (BZ2)"),
+        Ext("xz", "Compressed (XZ)"),
+        Ext("rar", "RAR archive"),
+
     )
 )
 PickledObject = ExtColl(
@@ -112,5 +119,19 @@ JSON = ExtColl(
 RosettaParams = ExtColl(
     (
         Ext("params", "Rosetta Parameter file"),
+    )
+)
+
+Pictures = ExtColl(
+    (
+        Ext("png", "PNG image"),
+        Ext("jpg", "JPG image"),
+        Ext("jpeg", "JPEG image"),
+        Ext("gif", "GIF image"),
+        Ext("bmp", "BMP image"),
+        Ext("tiff", "TIFF image"),
+        Ext("tif", "TIFF image"),
+        Ext("svg", "SVG image"),
+        Ext("pdf", "PDF image"),
     )
 )
