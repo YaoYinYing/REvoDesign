@@ -7,7 +7,6 @@ from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.pymol_utils import find_small_molecules_in_protein
-from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
 from REvoDesign.tools.utils import timing
 
 from ..tools.rfdiffusion_tasks import (RFDIFFUSION_CONFIG_DIR,
@@ -22,7 +21,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 @dialog_wrapper(
     title="Substrate Potential Visualizer",
     banner="Visualize substrate potential energy maps for ligand pocket generation with RFdiffusion. "
-           f"Also, this function helps to reproduce the Extended Data Fig. 6E of the RFdiffusion paper.\n {SubstratePotentialVisualizer.__init__.__doc__}",
+           f"Also, this function helps to reproduce the Extended Data Fig. 6E of the RFdiffusion paper.",
     options=(
         AskedValue(
             "pdb_path",
@@ -124,13 +123,24 @@ def wrapped_visualize_substrate_potentials(**kwargs):
     Args:
         **kwargs: Parameters collected from the dialog.
     """
+    pdb_path=kwargs.pop('pdb_path')
+    kwargs['pdb_path']= os.path.abspath(pdb_path)
+
+    grid_size=kwargs.pop('grid_size')
+    margin=kwargs.pop('margin')
+    save_to=kwargs.pop('save_to')
+
     with timing('ploting substrate potential'):
         print(kwargs)
-        run_worker_thread_with_progress(
+        sp_visualizer=run_worker_thread_with_progress(
             visualize_substrate_potentials,
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
+    
+    sp_visualizer.plot_potential_field(
+        grid_size=grid_size, margin=margin, save_to=save_to
+    )
 
 
 @dialog_wrapper(
@@ -141,30 +151,29 @@ def wrapped_visualize_substrate_potentials(**kwargs):
             "config_preset",
             '',
             typing=str,
-            reason="The config preset to use. Defaults to 'base'.",
+            reason="The config preset to use.",
             choices=lambda: [''] + list_all_config_preset(),
         ),
         AskedValue(
             "config_file",
             '',
             typing=str,
-            reason="The config preset to use. Defaults to 'base'.",
+            reason="The config preset to use. Defaults to empty to use config preset.",
             source='File',
             ext=Fext.YAML
         ),
         AskedValue(
             "model_name",
             '',
-            typing=int,
+            typing=str,
             reason="The model name to use. Defaults to empty string to let config preset and config contents decide.",
-            choices=list_all_rfd_models
+            choices=lambda: ['']+ list_all_rfd_models()
         ),
         AskedValue(
             "overrides",
             "",
             typing=str,
             reason="The override configure term to use.",
-            required=True,
         ),
     )
 )
@@ -176,11 +185,13 @@ def wrapped_general_rfdiffusion_task(**kwargs):
     # override config preset with user defined config file
     if config_file != '' and os.path.isfile(config_file):
         target_config_file = os.path.join(RFDIFFUSION_CONFIG_DIR, os.path.basename(config_file))
+        if os.path.exists(target_config_file):
+            logging.warning(f"The config file {config_file} already exists at {target_config_file}. It will be overwritten.")
         shutil.copy(config_file, target_config_file)
 
         logging.info(f"A copy of the config file {config_file} is created at {target_config_file}")
 
-        config_preset = Fext.YAML.basename_stem(target_config_file)
+        config_preset = Fext.YAML.basename_stem(os.path.basename(target_config_file))
         logging.info(f'Config preset is set to {config_preset}')
 
     else:
