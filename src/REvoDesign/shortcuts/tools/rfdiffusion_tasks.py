@@ -26,6 +26,8 @@ from REvoDesign.tools.package_manager import run_command
 from REvoDesign.tools.utils import (device_picker, get_cited,
                                     require_installed, timing)
 
+from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
+
 logging = ROOT_LOGGER.getChild(__name__)
 
 this_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -160,6 +162,12 @@ RfDiffusionModelCollection = (
 
 )
 
+RFDIFFUSION_CONFIG_DIR=os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), 'rfdiffusion')
+def list_all_rfd_models()-> List[str]:
+    return [model.version for model in RfDiffusionModelCollection]
+
+def list_all_config_preset()->List[str]:
+    return [f.rstrip('.yaml') for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith('.yaml')]
 
 def make_deterministic(seed=0):
     import torch
@@ -183,7 +191,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             1. If ckpt_override_path is set in config, use it.
             2. If model_name is set in input, use it.
             3. If model_name is set in config, use it.
-            4. If modelis not set, try to infer the model name from the config.
+            4. If model is not set, try to infer the model name from the config.
             5. Otherwise, use the default model (base).
 
         Parameters
@@ -496,15 +504,50 @@ url={https://doi.org/10.1038/s41586-023-06415-8}
 ''',
     }
 
-# test function to make sure the app just works
 
+def visualize_substrate_potentials(pdb_path,
+            lig_key,
+            blur: bool = False,
+            weight: float = 1,
+            r_0: float = 8,
+            d_0: float = 2,
+            s: float = 1,
+            eps: float = 1e-6,
+            rep_r_0: float = 5,
+            rep_s: float = 2,
+            rep_r_min: float = 1,
+            grid_size: int=200, 
+            margin: int=10, 
+            save_to: str = 'default.png'):
+    
 
-def enzyme_rfdiffusion():
-    app = RfDiffusion('enzyme')
+    SubstratePotentialVisualizer(
+        pdb_path=pdb_path,
+        lig_key=lig_key,
+        blur=blur,
+        weight=weight,
+        r_0=r_0,
+        d_0=d_0,
+        s=s,
+        eps=eps,
+        rep_r_0=rep_r_0,
+        rep_s=rep_s,
+        rep_r_min=rep_r_min,
+    ).plot_potential_field(
+        grid_size=grid_size, margin=margin, save_to = save_to
+    )
+
+def run_general_rfdiffusion_task(config_preset: str = 'base',
+                 model_name: Optional[str] = None,
+                 overrides: Optional[List[str]] = None):
+    
+    app = RfDiffusion(
+        config_preset=config_preset,
+        model_name=model_name,
+        overrides=overrides,
+    )
+
     app.main()
-
     del app
 
-
-if __name__ == "__main__":
-    enzyme_rfdiffusion()
+    

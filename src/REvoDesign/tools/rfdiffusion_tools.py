@@ -194,6 +194,14 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
     def plot_potential_field(self, grid_size=200, margin=10, save_to: str = 'default.png'):
         """
         Plots the substrate potential field with overlaid ligand atoms and bonds.
+
+        Parameters:
+        grid_size (int, default=200):
+            Number of grid points in each direction.
+        margin (int, default=10):
+            Margin around the ligand atoms.
+        save_to (str, default='default.png'):
+            Path to save the plot. If 'default.png', the plot will be saved in the current working directory.
         """
         X, Y, P = self.compute_potential_field(grid_size=grid_size, margin=margin)
 

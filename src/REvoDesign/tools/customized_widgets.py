@@ -1124,7 +1124,7 @@ class AskedValue:
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[Iterable, Callable[[], Iterable]]] = None
+    choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
     source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
 
@@ -1430,7 +1430,7 @@ class ValueDialog(QtWidgets.QDialog):
                 QtWidgets.QMessageBox.warning(
                     self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
                 )
-                choices = ()
+                choices = None
 
         # a multi-choice
         if asked_value.typing == list:
