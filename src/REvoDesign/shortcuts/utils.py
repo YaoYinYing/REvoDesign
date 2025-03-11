@@ -9,8 +9,8 @@ from pymol import cmd
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 
 from REvoDesign import ROOT_LOGGER
-logging = ROOT_LOGGER.getChild(__name__)
 
+logging = ROOT_LOGGER.getChild(__name__)
 
 
 def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal['New Window', 'Current Window']):

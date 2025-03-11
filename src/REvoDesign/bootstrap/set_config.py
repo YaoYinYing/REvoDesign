@@ -6,10 +6,10 @@ import glob
 import importlib.util
 import os
 import shutil
-from typing import Any, List, Optional, Union,overload
+from typing import Any, List, Optional
 
 import hydra
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from platformdirs import user_cache_dir, user_data_dir
 
 
@@ -43,30 +43,10 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     print(f"Main config: {main_config_file}")
     return main_config_file
 
-def remove_null_keys_copy(cfg: DictConfig) -> DictConfig:
-    # Turn the DictConfig into a plain dict (no struct mode to worry about here).
-    dict_cfg = OmegaConf.to_container(cfg, resolve=False)
 
-    # Recursively strip None values from the dict
-    clean_dict = _recursive_remove_nulls(dict_cfg)
-
-    # Wrap back into a brand new DictConfig. 
-    # If you want struct mode on the new config, set_struct() afterwards.
-    new_cfg = OmegaConf.create(clean_dict)
-    return new_cfg
-
-def _recursive_remove_nulls(d):
-    if isinstance(d, dict):
-        return {
-            k: _recursive_remove_nulls(v)
-            for k, v in d.items()
-            if v is not None
-        }
-    elif isinstance(d, list):
-        return [ _recursive_remove_nulls(x) for x in d if x is not None ]
-    else:
-        return d
-def reload_config_file(config_name: str = "global_config", overrides: Optional[List[str]]=None, return_hydra_config:bool=False) -> DictConfig:
+def reload_config_file(config_name: str = "global_config",
+                       overrides: Optional[List[str]] = None,
+                       return_hydra_config: bool = False) -> DictConfig:
     return hydra.compose(
         config_name=config_name,
         overrides=overrides,

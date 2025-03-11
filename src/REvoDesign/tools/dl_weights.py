@@ -2,17 +2,16 @@
 Utils for fetching pretrained model weights
 '''
 
-from functools import cached_property
 import os
-import tarfile
-from typing import Optional
-import zipfile
 from dataclasses import dataclass
+from functools import cached_property
+from typing import Optional
 
 import pooch
 from platformdirs import user_cache_dir, user_data_dir
-from REvoDesign.tools.utils import extract_archive
+
 from REvoDesign.common import file_extensions as Fext
+from REvoDesign.tools.utils import extract_archive
 
 
 @dataclass(frozen=True)
@@ -31,7 +30,7 @@ class ModelFetchSetting:
     url: str
     md5sum: str
 
-    disable_unflatten: bool=False
+    disable_unflatten: bool = False
     unflatten_to_dir: Optional[str] = None
 
     @cached_property
@@ -46,7 +45,7 @@ class ModelFetchSetting:
         return any(
             self.downloaded_basename.endswith(e) or self.downloaded_basename.endswith(e.upper())
             for e in Fext.Compressed.list_dot_ext
-            ) and not self.disable_unflatten
+        ) and not self.disable_unflatten
 
     @property
     def basename(self):
@@ -68,7 +67,12 @@ class ModelFetchSetting:
         Returns:
             str: Path to the directory containing the model weights.
         """
-        return os.path.join(user_data_dir(self.name, version=self.version, ensure_exists=True), self.unflatten_to_dir or self.basename )
+        return os.path.join(
+            user_data_dir(
+                self.name,
+                version=self.version,
+                ensure_exists=True),
+            self.unflatten_to_dir or self.basename)
 
     @property
     def ready(self):
@@ -81,8 +85,8 @@ class ModelFetchSetting:
         if self.need_flatten:
             return os.path.exists(self.weight_path) and os.listdir(self.weight_path)
         return os.path.exists(self.weight_path) and os.path.isfile(self.weight_path)
-    
-    def flatten_archieve(self,downloaded: str):
+
+    def flatten_archieve(self, downloaded: str):
         # Check if the destination directory is empty
         dist_dir = os.path.dirname(self.weight_path)
         expanded_dirs = os.listdir(dist_dir)
@@ -93,7 +97,7 @@ class ModelFetchSetting:
         extracted_files = os.listdir(dist_dir)
         print(f'Extracted {extracted_files}')
         return self.weight_path
-    
+
     def setup(self):
         """
         Method to set up the model by downloading and extracting it if necessary.
@@ -112,11 +116,9 @@ class ModelFetchSetting:
             path=user_cache_dir(
                 f'downloading_{self.name}_weights',
                 ensure_exists=True) if self.need_flatten else os.path.dirname(self.weight_path),
-                fname=self.basename,
+            fname=self.basename,
             progressbar=True)
-        
+
         if not self.need_flatten:
             return downloaded
         return self.flatten_archieve(downloaded)
-
-        

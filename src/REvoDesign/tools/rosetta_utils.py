@@ -6,15 +6,16 @@ import platform
 import shutil
 import warnings
 from typing import Any, Dict, List, Optional, Union
+
 import docker
 import docker.errors
 from hydra import errors as hydra_errors
-from RosettaPy.node.wsl import which_wsl
 from platformdirs import user_cache_dir
-from RosettaPy.utils.repository import partial_clone
 from RosettaPy.node import NodeHintT
+from RosettaPy.node.wsl import which_wsl
+from RosettaPy.utils.repository import partial_clone
 
-from REvoDesign import issues, ROOT_LOGGER
+from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.bootstrap.set_config import reload_config_file
 from REvoDesign.driver.ui_driver import ConfigBus
 
@@ -182,7 +183,6 @@ def is_docker_available() -> bool:
         return False
 
 
-
 def read_rosetta_node_config() -> Dict[str, Any]:
     '''
     Read the Rosetta node configuration from the configuration bus.
@@ -191,15 +191,16 @@ def read_rosetta_node_config() -> Dict[str, Any]:
         Dict[str, str]: Dictionary containing the Rosetta node configuration.
             If no node config is found, it returns an empty dictionary.
     '''
-    
+
     bus = ConfigBus()
-    rosetta_node_hint=bus.get_value('rosetta.node_hint', str)
+    rosetta_node_hint = bus.get_value('rosetta.node_hint', str)
 
     try:
         node_config: Dict[str, Any] = reload_config_file(f'rosetta-node/{rosetta_node_hint}')['rosetta-node']
     except hydra_errors.MissingConfigException as e:
-        raise issues.ConfigureOutofDateError(f'Rosetta node config not found. Please check your configuration files.') from e
-    
+        raise issues.ConfigureOutofDateError(
+            f'Rosetta node config not found. Please check your configuration files.') from e
+
     logging.info(f"Using node config: {node_config}")
 
     node_config.update({"nproc": bus.get_value("ui.header_panel.nproc", int)})

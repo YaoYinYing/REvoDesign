@@ -71,8 +71,7 @@ class CallableGroupValues:
     @staticmethod
     def list_all_rosetta_node_hints() -> List[str]:
 
-        from REvoDesign.tools.rosetta_utils import \
-            is_run_node_available
+        from REvoDesign.tools.rosetta_utils import is_run_node_available
 
         node_hints: List[NodeHintT] = [
             "native",

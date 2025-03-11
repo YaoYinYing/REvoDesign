@@ -137,7 +137,6 @@ class FileExtensionCollection:
             str: A combined file filter string, with each file extension's filter string separated by ';;'.
         """
         return ";;".join([e.filter_string for e in self.extensions])
-    
 
     def basename_stem(self, fname: str):
         """
@@ -149,13 +148,14 @@ class FileExtensionCollection:
         Returns:
         str: The base name (stem) of the file name without the extension.
         """
-        matched=[ext for ext in self.list_dot_ext if fname.endswith(ext) ]
-        if len(matched) ==1:
+        matched = [ext for ext in self.list_dot_ext if fname.endswith(ext)]
+        if len(matched) == 1:
             return fname.rstrip(matched[0])
-        
+
         if len(matched) > 1:
             # the longest win
             return fname.rstrip(sorted(matched, key=len, reverse=True)[0])
 
         # otherwise, raise no match error
-        raise issues.InternalError(f'Unexpect error in file extension collection: {fname} does not match any extension of {self.list_dot_ext}')
+        raise issues.InternalError(
+            f'Unexpect error in file extension collection: {fname} does not match any extension of {self.list_dot_ext}')

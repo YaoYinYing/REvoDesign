@@ -4,7 +4,6 @@ Cartesian-ddG, driven by RosettaPy Package
 
 import logging
 import os
-
 from typing import Any, Dict, List, Optional, Union
 
 from Bio.Data import IUPACData
@@ -13,13 +12,12 @@ from RosettaPy.common.mutation import (Mutation, RosettaPyProteinSequence,
                                        mutants2mutfile)
 from RosettaPy.node import NodeHintT, node_picker
 
-
 from REvoDesign import ConfigBus
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.shortcuts.tools.rosetta_tasks import read_rosetta_node_config
-from REvoDesign.tools.rosetta_utils import is_run_node_available
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
+from REvoDesign.tools.rosetta_utils import is_run_node_available
 
 
 def get_ddg_mut_id(mutations: List[Mutation]) -> str:
@@ -75,7 +73,6 @@ class ddg(ExternalDesignerAbstract):
 
         if self.node_config is None:
             self.node_config = {}
-
 
         if self.unrelaxed_pdb is None or not os.path.isfile(
             self.unrelaxed_pdb

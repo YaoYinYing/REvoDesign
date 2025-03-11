@@ -20,7 +20,7 @@ def score_clusters(
 ) -> List[RosettaEnergyUnitAnalyser]:
     instance = os.path.basename(pdb).rstrip(".pdb")
     task_bn = os.path.basename(tasks_dir)
-    node_config= read_rosetta_node_config()
+    node_config = read_rosetta_node_config()
     cluster_scorer = ScoreClusters(
         pdb=pdb,
         chain_id=chain_id,

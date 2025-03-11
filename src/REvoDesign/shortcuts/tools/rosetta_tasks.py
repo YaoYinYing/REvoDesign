@@ -4,11 +4,9 @@ Shortcut functions on Rosetta-related tasks
 
 import os
 from dataclasses import dataclass, field
-
 from typing import List, Optional, Tuple, Union
 
 from pymol import cmd
-
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.app.fastrelax import FastRelax
@@ -321,6 +319,3 @@ def shortcut_relax_w_ca_constraints(
     final_pdb = app.run(load_to_preview)
 
     logging.info(f"RelaxWithCaConstraints finished. Final pdb: {final_pdb}")
-
-
-

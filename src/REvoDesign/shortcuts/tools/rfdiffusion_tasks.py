@@ -1,34 +1,34 @@
-import sys
+import glob
 import os
+import pickle
+import random
 import re
 import shutil
-
-import time, pickle
+import sys
+import time
+import warnings
+from dataclasses import dataclass
 from typing import List, Optional
-from omegaconf import OmegaConf,DictConfig
-from hydra.core.hydra_config import HydraConfig
-from hydra import errors as hydra_errors
 
 import numpy as np
-import random
-import glob
-
-from dataclasses import dataclass
-import warnings
+from hydra import errors as hydra_errors
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import DictConfig, OmegaConf
 from RosettaPy.utils.task import RosettaCmdTask, execute
 
-
+from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
-from REvoDesign.tools.utils import get_cited, require_installed, timing, device_picker
-from REvoDesign.tools.dl_weights import ModelFetchSetting
-from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file, remove_null_keys_copy
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
+from REvoDesign.bootstrap.set_config import (is_package_installed,
+                                             reload_config_file)
+from REvoDesign.tools.dl_weights import ModelFetchSetting
 from REvoDesign.tools.package_manager import run_command
-from REvoDesign import ROOT_LOGGER,issues
+from REvoDesign.tools.utils import (device_picker, get_cited,
+                                    require_installed, timing)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
-this_file_dir=os.path.dirname(os.path.abspath(__file__))
+this_file_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 RFDIFFUSION_WEIGHTS_BASE_URL = 'https://github.com/YaoYinYing/RFdiffusion/releases/download/weights/'
@@ -38,6 +38,7 @@ RFDIFFUSION_WEIGHTS_BASE_URL = 'https://github.com/YaoYinYing/RFdiffusion/releas
 # ge cuda-121: `pip install  dgl==2.2.1 -f https://data.dgl.ai/wheels/cu121/repo.html`
 # ge cuda-118: `pip install  dgl -f https://data.dgl.ai/wheels/cu118/repo.html`
 
+
 @dataclass
 class DglSolver:
     installed: bool = is_package_installed('dgl')
@@ -45,10 +46,10 @@ class DglSolver:
     which_nvcc = shutil.which('nvcc')
 
     def fetch_cuda_version_before_install(self):
-        
+
         if not self.which_nvcc:
             return
-        nvcc_version= run_command(['nvcc', '--version']).stdout.split('\n')[3]
+        nvcc_version = run_command(['nvcc', '--version']).stdout.split('\n')[3]
         nvcc_version_match = re.search(r'release (\d+\.\d+)', nvcc_version)
         if not nvcc_version_match:
             return
@@ -63,19 +64,20 @@ class DglSolver:
                 issues.PlatformNotSupportedWarning(
                     f"CUDA version {cuda_version} is not supported by DGL. Please install CUDA version >= 11.8 if you need to use DGL with CUDA support."
                 ))
-            
+
     def install(self):
         self.fetch_cuda_version_before_install()
         if self.cuda_version:
             index_link = f'https://data.dgl.ai/wheels/{self.cuda_version}/repo.html'
         else:
             index_link = 'https://data.dgl.ai/wheels/repo.html'
-            
-        c=run_command([sys.executable,'-m','pip', 'install', 'dgl==2.2.1', '-f', index_link])
+
+        c = run_command([sys.executable, '-m', 'pip', 'install', 'dgl==2.2.1', '-f', index_link])
         if c.returncode != 0:
             logging.error(f"Failed to install DGL: {c.stderr}")
             raise RuntimeError(f"Failed to install DGL: {c.stderr}")
         self.installed = True
+
 
 # Pretrained weights for RFDiffusion
 '''
@@ -145,7 +147,7 @@ RfDiffusionRFStructurePredictionWeights = ModelFetchSetting(
     md5sum='6f4d00394d34f6a9072d70976f6c8777'
 )
 
-RfDiffusionModelCollection=(
+RfDiffusionModelCollection = (
     RfDiffusionActiveSiteWeights,
     RfDiffusionBaseWeights,
     RfDiffusionBaseEpoch8Weights,
@@ -155,7 +157,7 @@ RfDiffusionModelCollection=(
     RfDiffusionInpaintSeqFoldWeights,
     RfDiffusionInpaintSeqWeights,
     RfDiffusionRFStructurePredictionWeights,
-    
+
 )
 
 
@@ -169,13 +171,12 @@ def make_deterministic(seed=0):
 
 @require_installed
 class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
-    name: str= 'RFDiffusion'
+    name: str = 'RFDiffusion'
     installed: bool = is_package_installed('rfdiffusion')
 
-    all_models= [model.name for model in RfDiffusionModelCollection]
+    all_models = [model.name for model in RfDiffusionModelCollection]
 
-
-    def pick_model(self, model_name: Optional[str]=None):
+    def pick_model(self, model_name: Optional[str] = None):
         '''
         Pick a model.
         Override Priority:
@@ -184,26 +185,26 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             3. If model_name is set in config, use it.
             4. If modelis not set, try to infer the model name from the config.
             5. Otherwise, use the default model (base).
-        
+
         Parameters
         ----------
         model_name: str, optional
             The name of the model to use. If None, the model will be automatically picked based on the input.
-        
+
         '''
         # have one model on local
         if self.config.inference.ckpt_override_path and os.path.isfile(self.config.inference.ckpt_override_path):
             logging.info(f"Using ckpt_override_path from config: {self.config.inference.ckpt_override_path}")
             return
-        
-        model_name=model_name or self.config.inference.model_name
+
+        model_name = model_name or self.config.inference.model_name
 
         if model_name:
-            model=[m for m in RfDiffusionModelCollection if m.version==model_name]
+            model = [m for m in RfDiffusionModelCollection if m.version == model_name]
             if model:
                 with timing(f"Downloading {model[0].name} weights"):
                     ckpt_path = model[0].setup()
-                    self.config.inference.ckpt_override_path=ckpt_path
+                    self.config.inference.ckpt_override_path = ckpt_path
                     logging.info(f"Using ckpt_override_path from model name ({model_name}): {ckpt_path}")
                     return
             warnings.warn(issues.FallingBackWarning(
@@ -231,26 +232,29 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             ckpt_path = RfDiffusionBaseWeights.setup()
 
         logging.warning(f'Using Model from {ckpt_path}')
-        self.config.inference.ckpt_override_path=ckpt_path
-        return 
-    
+        self.config.inference.ckpt_override_path = ckpt_path
+        return
+
     @staticmethod
     def ensure_dgl():
         '''
         Ensure DGL is installed. If not, try to install it.
         '''
-        if (dgl_solver:=DglSolver()).installed:
+        if (dgl_solver := DglSolver()).installed:
             return
-        
+
         warnings.warn(issues.MissingExternalTool(
             "DGL is not installed. Now try to install it."))
-        
+
         dgl_solver.install()
         if not dgl_solver.installed:
-            raise issues.MissingExternalToolError('DGL may not be installed. Please install it manually or take a restart to take effect.')
-        
+            raise issues.MissingExternalToolError(
+                'DGL may not be installed. Please install it manually or take a restart to take effect.')
 
-    def __init__(self,config_preset: str='base', model_name: Optional[str]=None, overrides: Optional[List[str]]=None):
+    def __init__(self,
+                 config_preset: str = 'base',
+                 model_name: Optional[str] = None,
+                 overrides: Optional[List[str]] = None):
         '''
         Instantiate RFDiffusion app with config preset and overrides.
 
@@ -263,31 +267,30 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 The overrides to use. Defaults to None.
         '''
         self.ensure_dgl()
-        
+
         try:
-            config: DictConfig=reload_config_file(f"rfdiffusion/{config_preset}", overrides=overrides)["rfdiffusion"]
-            self.config=config
+            config: DictConfig = reload_config_file(f"rfdiffusion/{config_preset}", overrides=overrides)["rfdiffusion"]
+            self.config = config
 
             print(self.config)
             self.pick_model(model_name)
-            
+
         except hydra_errors.MissingConfigException as e:
             raise issues.ConfigureOutofDateError(
                 'To run RFDiffusion, please reset/the configuration files '
                 f'or copy the entire directory {os.path.join(this_file_dir, "../../config/rfdiffusion")}'
                 f'to {os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE))} and restart REvoDesign.')
-        
-        
 
     # a copy from `https://github.com/RosettaCommons/RFdiffusion/blob/main/scripts/run_inference.py`
+
     @get_cited
     def main(self) -> None:
         '''
         Run RFdifussion inference.
         '''
         import torch
-        from rfdiffusion.util import writepdb_multi, writepdb
         from rfdiffusion.inference import utils as iu
+        from rfdiffusion.util import writepdb, writepdb_multi
 
         if self.config.inference.deterministic:
             make_deterministic()
@@ -296,7 +299,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         gpu_devices = [d for d in devices if d.startswith("cuda") or d.startswith("mps")]
 
         # Check for available GPU and print result of check
-        if any(d for d in gpu_devices ):
+        if any(d for d in gpu_devices):
             self.device = gpu_devices[0]
             logging.info(f"Found GPU with device_name {self.device}. Will run RFdiffusion on {self.device}")
         else:
@@ -315,7 +318,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             indices = [-1]
             for e in existing:
                 print(e)
-                m = re.match(".*_(\d+)\.pdb$", e)
+                m = re.match(r".*_(\d+)\.pdb$", e)
                 print(m)
                 if not m:
                     continue
@@ -444,7 +447,6 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
             with timing('cleaning up...'):
                 self.cleanup()
-            
 
     # converted using https://www.bruot.org/ris2bib/
     __bibtex__ = {
@@ -495,8 +497,10 @@ url={https://doi.org/10.1038/s41586-023-06415-8}
     }
 
 # test function to make sure the app just works
+
+
 def enzyme_rfdiffusion():
-    app=RfDiffusion('enzyme')
+    app = RfDiffusion('enzyme')
     app.main()
 
     del app

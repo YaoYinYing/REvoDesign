@@ -39,10 +39,10 @@ class ConfigureError(REvoDesignException):
 
 class ConfigureOutofDateError(ConfigureError):
     """Exception raised for errors related to  out-of-date configuration file"""
+
     def __init__(self, message):
-        self.message = 'You probably just updated REvoDesign from an older version that. \n'+ message
+        self.message = 'You probably just updated REvoDesign from an older version that. \n' + message
         super().__init__(message)
-        
 
 
 class UnexpectedWorkflowError(REvoDesignException):
