@@ -38,7 +38,7 @@ jobs:
       - run:
           name: Start Display
           command: |
-            make setup-ubuntu
+            make setup-display-gha
 
       - run:
           name: Setup Environment for << parameters.python-version >>

@@ -89,6 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - test:
   - worker: `inject_rosetta_node_config`: now only inject `rosetta.node_hint`
 ### Fixed
+- ci:
+  - setup display on GHA
 
 ### Removed
 - `TestREvoDesign_PyMOL.py` removed bcs it is not used
@@ -97,6 +99,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - unnecessary environment variables
 - global config:
   - removed rosetta node config bcs we have isolated it to `config/rosetta-node`
+- test:
+  - docker file
+  - docker test ci
 
 ## [1.7.19] - 2025-02-27
 

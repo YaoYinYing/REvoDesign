@@ -85,7 +85,7 @@ jobs:
       - name: setup Qt headless Display on Ubuntu
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          make setup-ubuntu
+          make setup-display-gha
 
       - name: Verify Docker Version and Pull Rosetta Image
         run: |

@@ -33,8 +33,8 @@ help:
 	@echo ""
 	@echo "  help                   Print this message and exit"
 	@echo "  build                  Build source and wheel distributions"
-	@echo "  setup-ubuntu           Setup ubuntu display for GitHub Actions"
-	@echo "  setup-display          Setup ubuntu display for CircleCI"
+	@echo "  setup-display-gha      Setup ubuntu display for GitHub Actions and CircleCI"
+	@echo "  setup-display          Setup ubuntu display for CircleCI, retired"
 	@echo "  upload-gists           Upload Gist files"
 	@echo "  install                Install from pip "
 	@echo "  install-no-dept        Install from pip, no dependencies"
@@ -61,11 +61,11 @@ help:
 build:
 	python -m build .
 
-setup-ubuntu:
-	apt-get install -y build-essential make sudo xvfb fluxbox curl
+setup-display-gha:
 	sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
 	/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
 
+# old setup for circleci
 setup-display:
 	Xvfb :99 -screen 0 1280x1024x24 &
 	fluxbox &
