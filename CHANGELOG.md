@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+## [1.7.20] - 2025-03-11
+
 ### Added
 - tools:
   - vina tools for box getting/moving/modifying, as well as axes generation. These tools were mainly adapted/refactored/derived from [GetBox Plugin.py](https://github.com/MengwuXiao/GetBox-PyMOL-Plugin/blob/master/GetBox%20Plugin.py) and now can be called as PyMOL command shortcuts.
