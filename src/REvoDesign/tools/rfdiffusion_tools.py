@@ -219,8 +219,8 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         default_color = "black"
 
         # Define atom sizes
-        size_map = {"H": 30, "C": 100, "N": 80, "O": 80, "S": 80}
-        default_size = 120
+        size_map = {"H": 20, "C": 60, "N": 50, "O": 50, "S": 50}
+        default_size = 90
 
         # Overlay ligand atoms
         for idx, (coord, element) in enumerate(zip(self.ligand_coords, self.ligand_elements)):
@@ -234,8 +234,7 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
             coord1 = self.ligand_coords[atom1]
             coord2 = self.ligand_coords[atom2]
 
-            linewidth = 4 if bond_type == 2 else 2
-            plt.plot([coord1[0], coord2[0]], [coord1[1], coord2[1]], color='black', linewidth=linewidth, zorder=2)
+            plt.plot([coord1[0], coord2[0]], [coord1[1], coord2[1]], color='black', linewidth=bond_type * 2, zorder=2)
 
         # Remove axis labels
         plt.xticks([])

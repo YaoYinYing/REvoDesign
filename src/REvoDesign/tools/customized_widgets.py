@@ -2,6 +2,7 @@
 Custom widgets for REvoDesign.
 """
 
+from datetime import datetime
 import json
 import os
 from collections.abc import Iterable
@@ -17,7 +18,7 @@ import pandas as pd
 
 from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
-from REvoDesign.common import file_extensions
+from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
@@ -716,7 +717,7 @@ def set_widget_value(widget, value):
     - QGridLayout: Supports a string (image path) to add an ImageWidget widget.
     """
 
-    def set_value_error(widget, value):
+    def set_value_error(widget: QtWidgets.QWidget, value:Any):
         logging.warning(f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}")
 
     # Preprocess values according to types
@@ -776,6 +777,11 @@ def set_widget_value(widget, value):
                     widget.deleteLater()
             image_widget = ImageWidget(value)  # Assuming ImageWidget is defined elsewhere
             widget.addWidget(image_widget)
+
+    elif isinstance(widget, MultiCheckableComboBox):
+        if not isinstance(value, list):
+            value = [value]
+        widget.set_checked_items([str(x) for x in value])
     else:
         set_value_error(widget, value)
 
@@ -813,6 +819,8 @@ def get_widget_value(widget):
         return float(widget.value())
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
+    elif isinstance(widget, MultiCheckableComboBox):
+        return widget.get_checked_items()
     else:
         raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
@@ -1386,6 +1394,24 @@ class ValueDialog(QtWidgets.QDialog):
 
         self.layout.addWidget(self.table)
 
+        # Add a load and save button layout
+        load_save_layout = QtWidgets.QHBoxLayout()
+        load_button = QtWidgets.QPushButton("Load")
+        load_button.clicked.connect(self._on_load_clicked)
+        load_button.setObjectName("Load")
+        load_button.setToolTip("Load the previous saved recipe to replicate the same settings. ")
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(self._on_save_clicked)
+        save_button.setObjectName("Save")
+        save_button.setToolTip("Save the current values as a new recipe.")
+
+        load_save_layout.addWidget(load_button)
+        load_save_layout.addWidget(save_button)
+
+        self.layout.addLayout(load_save_layout)
+
+
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
@@ -1528,7 +1554,7 @@ class ValueDialog(QtWidgets.QDialog):
             # Create and configure the "Load" button
             load_action_button = QtWidgets.QPushButton("Load")
             load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
-            load_action_button.clicked.connect(lambda: self._browse_file(widget, file_extensions.JSON))
+            load_action_button.clicked.connect(lambda: self._browse_file(widget, Fext.JSON))
             # Set size policy to ResizeToContents
             load_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(load_action_button)
@@ -1574,7 +1600,7 @@ class ValueDialog(QtWidgets.QDialog):
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
 
-        ext = (exts, file_extensions.Any,) if exts else (file_extensions.Any,)
+        ext = (exts, Fext.Any,) if exts else (Fext.Any,)
 
         file_dialog = FileDialog(None, os.getcwd())
         if multiple:
@@ -1595,15 +1621,11 @@ class ValueDialog(QtWidgets.QDialog):
         """
         self.updated_values = []
         for key, widget in self.input_fields.items():
-            if isinstance(widget, MultiCheckableComboBox):
-                # MultiCheckableComboBox returns a list of selected items
-                value = widget.get_checked_items()
-            else:
-                try:
-                    value = get_widget_value(widget)
-                except Exception as e:
-                    logging.error(f"Error getting value from widget {widget}: {e}")
-                    raise ValueError(f"Error getting value from widget {widget}: {e}") from e
+            try:
+                value = get_widget_value(widget)
+            except Exception as e:
+                logging.error(f"Error getting value from widget {widget}: {e}")
+                raise ValueError(f"Error getting value from widget {widget}: {e}") from e
 
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:
@@ -1623,6 +1645,63 @@ class ValueDialog(QtWidgets.QDialog):
         self.accept()
 
 
+    def _on_save_clicked(self):
+        from REvoDesign.driver.file_dialog import FileDialog
+        from REvoDesign import __version__
+        file_dialog = FileDialog(None, os.getcwd())
+        selected_file = file_dialog.browse_filename(
+            mode='w', exts=(Fext.JSON, Fext.Any)
+        )
+
+        if selected_file:
+            # save all asked values to a json file
+            # key: AskedValue.key
+            # value: AskedValue.val
+
+            contents_to_save={
+                'metadata': {
+                    '__window__': self.windowTitle(),
+                    '__version__':__version__,
+                    '__date__': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                },
+                '__asked_values__': {a.key:get_widget_value(self.input_fields[a.key]) for a in self.key_dict}
+
+            }
+
+            try:
+                with open(selected_file, 'w') as f:
+                    json.dump(contents_to_save, f, indent=4)
+                    logging.info(f"Saved recipe: {selected_file}")
+            except Exception as e:
+                logging.error(f"Error loading json file {selected_file}: {e}")
+                raise ValueError(f"Error loading json file {selected_file}: {e}") from e
+            
+    def _on_load_clicked(self):
+        from REvoDesign.driver.file_dialog import FileDialog
+        from REvoDesign import __version__
+
+        file_dialog = FileDialog(None, os.getcwd())
+        selected_file = file_dialog.browse_filename(
+            mode='r', exts=(Fext.JSON, Fext.Any)
+        )
+        if selected_file:
+            # load back all asked values from a json file
+            contents_to_load: Dict[str, Dict[str, Any]]=json.load(open(selected_file, 'r'))
+            if contents_to_load['metadata']['__window__']!=self.windowTitle():
+                logging.error(f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
+                    f"which is not compatible with the current window `{self.windowTitle()}`")
+                return
+            if contents_to_load['metadata']['__version__']!=__version__:
+                logging.warning(
+                    f"The recipe is made with version {contents_to_load['metadata']['__version__']}, "
+                    f"which may not be compatible from the current version {__version__}")
+            logging.info(f'Recipe created at: {contents_to_load["metadata"]["__date__"]}')
+            for key, val in contents_to_load['__asked_values__'].items():
+                widget=self.input_fields[key]
+                set_widget_value(widget, val)
+
+            logging.info(f"Loaded recipe: {selected_file}")
+            
 def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
     dialog = ValueDialog(title, key_dict)
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
