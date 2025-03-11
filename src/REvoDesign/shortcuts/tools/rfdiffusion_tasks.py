@@ -23,10 +23,9 @@ from REvoDesign.bootstrap.set_config import (is_package_installed,
                                              reload_config_file)
 from REvoDesign.tools.dl_weights import ModelFetchSetting
 from REvoDesign.tools.package_manager import run_command
+from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
 from REvoDesign.tools.utils import (device_picker, get_cited,
                                     require_installed, timing)
-
-from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -162,12 +161,16 @@ RfDiffusionModelCollection = (
 
 )
 
-RFDIFFUSION_CONFIG_DIR=os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), 'rfdiffusion')
-def list_all_rfd_models()-> List[str]:
+RFDIFFUSION_CONFIG_DIR = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), 'rfdiffusion')
+
+
+def list_all_rfd_models() -> List[str]:
     return [model.version for model in RfDiffusionModelCollection]
 
-def list_all_config_preset()->List[str]:
+
+def list_all_config_preset() -> List[str]:
     return [f.rstrip('.yaml') for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith('.yaml')]
+
 
 def make_deterministic(seed=0):
     import torch
@@ -506,20 +509,19 @@ url={https://doi.org/10.1038/s41586-023-06415-8}
 
 
 def visualize_substrate_potentials(pdb_path,
-            lig_key,
-            blur: bool = False,
-            weight: float = 1,
-            r_0: float = 8,
-            d_0: float = 2,
-            s: float = 1,
-            eps: float = 1e-6,
-            rep_r_0: float = 5,
-            rep_s: float = 2,
-            rep_r_min: float = 1,
-            grid_size: int=200, 
-            margin: int=10, 
-            save_to: str = 'default.png'):
-    
+                                   lig_key,
+                                   blur: bool = False,
+                                   weight: float = 1,
+                                   r_0: float = 8,
+                                   d_0: float = 2,
+                                   s: float = 1,
+                                   eps: float = 1e-6,
+                                   rep_r_0: float = 5,
+                                   rep_s: float = 2,
+                                   rep_r_min: float = 1,
+                                   grid_size: int = 200,
+                                   margin: int = 10,
+                                   save_to: str = 'default.png'):
 
     SubstratePotentialVisualizer(
         pdb_path=pdb_path,
@@ -534,13 +536,14 @@ def visualize_substrate_potentials(pdb_path,
         rep_s=rep_s,
         rep_r_min=rep_r_min,
     ).plot_potential_field(
-        grid_size=grid_size, margin=margin, save_to = save_to
+        grid_size=grid_size, margin=margin, save_to=save_to
     )
 
+
 def run_general_rfdiffusion_task(config_preset: str = 'base',
-                 model_name: Optional[str] = None,
-                 overrides: Optional[List[str]] = None):
-    
+                                 model_name: Optional[str] = None,
+                                 overrides: Optional[List[str]] = None):
+
     app = RfDiffusion(
         config_preset=config_preset,
         model_name=model_name,
@@ -549,5 +552,3 @@ def run_general_rfdiffusion_task(config_preset: str = 'base',
 
     app.main()
     del app
-
-    

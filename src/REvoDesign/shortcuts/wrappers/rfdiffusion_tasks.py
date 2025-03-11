@@ -1,16 +1,24 @@
 import os
 import shutil
+
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
-from REvoDesign.tools.utils import timing
 from REvoDesign.tools.pymol_utils import find_small_molecules_in_protein
-from ..tools.rfdiffusion_tasks import RFDIFFUSION_CONFIG_DIR, list_all_config_preset, list_all_rfd_models, run_general_rfdiffusion_task, visualize_substrate_potentials
 from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
+from REvoDesign.tools.utils import timing
+
+from ..tools.rfdiffusion_tasks import (RFDIFFUSION_CONFIG_DIR,
+                                       list_all_config_preset,
+                                       list_all_rfd_models,
+                                       run_general_rfdiffusion_task,
+                                       visualize_substrate_potentials)
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
 @dialog_wrapper(
     title="Substrate Potential Visualizer",
     banner="Visualize substrate potential energy maps for ligand pocket generation with RFdiffusion. "
@@ -31,7 +39,7 @@ logging = ROOT_LOGGER.getChild(__name__)
             typing=str,
             reason='Residue name of the ligand (e.g., "ATP", "HEM")',
             required=True,
-            choices=lambda : find_small_molecules_in_protein('(all)') or None
+            choices=lambda: find_small_molecules_in_protein('(all)') or None
         ),
         AskedValue(
             "blur",
@@ -134,7 +142,7 @@ def wrapped_visualize_substrate_potentials(**kwargs):
             '',
             typing=str,
             reason="The config preset to use. Defaults to 'base'.",
-            choices=lambda: ['']+ list_all_config_preset(),
+            choices=lambda: [''] + list_all_config_preset(),
         ),
         AskedValue(
             "config_file",
@@ -155,15 +163,15 @@ def wrapped_visualize_substrate_potentials(**kwargs):
             "overrides",
             "",
             typing=str,
-            reason="The override configure term to use.", 
+            reason="The override configure term to use.",
             required=True,
         ),
     )
 )
 def wrapped_general_rfdiffusion_task(**kwargs):
 
-    config_preset: str=kwargs.pop('config_preset')
-    config_file: str=kwargs.pop('config_file')
+    config_preset: str = kwargs.pop('config_preset')
+    config_file: str = kwargs.pop('config_file')
 
     # override config preset with user defined config file
     if config_file != '' and os.path.isfile(config_file):
@@ -171,17 +179,16 @@ def wrapped_general_rfdiffusion_task(**kwargs):
         shutil.copy(config_file, target_config_file)
 
         logging.info(f"A copy of the config file {config_file} is created at {target_config_file}")
-        
-        config_preset= Fext.YAML.basename_stem(target_config_file)
+
+        config_preset = Fext.YAML.basename_stem(target_config_file)
         logging.info(f'Config preset is set to {config_preset}')
-        
+
     else:
         config_preset = config_preset or 'base'
-    
+
     kwargs['config_preset'] = config_preset
 
-
-    overrides: str=kwargs.pop('overrides')
+    overrides: str = kwargs.pop('overrides')
     if overrides != '':
         kwargs['overrides'] = overrides.split(' ')
     else:

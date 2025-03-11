@@ -475,7 +475,6 @@ class TestWorker:
     def inject_rosetta_node_config(self, node_hint: NodeHintT):
         self.plugin.bus.set_value('rosetta.node_hint', node_hint or 'native')
 
-
     def teardown(self):
         self.performace_report()
         self.plugin.reinitialize()

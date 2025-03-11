@@ -16,7 +16,8 @@ from REvoDesign import ConfigBus
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.rosetta_utils import is_run_node_available,read_rosetta_node_config
+from REvoDesign.tools.rosetta_utils import (is_run_node_available,
+                                            read_rosetta_node_config)
 
 
 def get_ddg_mut_id(mutations: List[Mutation]) -> str:
