@@ -4,7 +4,7 @@ import re
 import shutil
 
 import time, pickle
-from typing import Optional
+from typing import List, Optional
 from omegaconf import OmegaConf,DictConfig
 from hydra.core.hydra_config import HydraConfig
 from hydra import errors as hydra_errors
@@ -19,7 +19,7 @@ from RosettaPy.utils.task import RosettaCmdTask, execute
 
 
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
-from REvoDesign.tools.utils import get_cited, require_installed, timing
+from REvoDesign.tools.utils import get_cited, require_installed, timing, device_picker
 from REvoDesign.tools.dl_weights import ModelFetchSetting
 from REvoDesign.bootstrap.set_config import is_package_installed, reload_config_file, remove_null_keys_copy
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
@@ -65,13 +65,17 @@ class DglSolver:
                 ))
             
     def install(self):
+        self.fetch_cuda_version_before_install()
         if self.cuda_version:
             index_link = f'https://data.dgl.ai/wheels/{self.cuda_version}/repo.html'
         else:
             index_link = 'https://data.dgl.ai/wheels/repo.html'
             
-        run_command([sys.executable,'-m','pip', 'install', 'dgl==2.2.1', '-f', index_link])
-        self.installed = is_package_installed('dgl')
+        c=run_command([sys.executable,'-m','pip', 'install', 'dgl==2.2.1', '-f', index_link])
+        if c.returncode != 0:
+            logging.error(f"Failed to install DGL: {c.stderr}")
+            raise RuntimeError(f"Failed to install DGL: {c.stderr}")
+        self.installed = True
 
 # Pretrained weights for RFDiffusion
 '''
@@ -166,12 +170,27 @@ def make_deterministic(seed=0):
 @require_installed
 class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
     name: str= 'RFDiffusion'
-    installed: bool = is_package_installed('rfdiffusion') and is_package_installed('dgl')
+    installed: bool = is_package_installed('rfdiffusion')
 
     all_models= [model.name for model in RfDiffusionModelCollection]
 
 
     def pick_model(self, model_name: Optional[str]=None):
+        '''
+        Pick a model.
+        Override Priority:
+            1. If ckpt_override_path is set in config, use it.
+            2. If model_name is set in input, use it.
+            3. If model_name is set in config, use it.
+            4. If modelis not set, try to infer the model name from the config.
+            5. Otherwise, use the default model (base).
+        
+        Parameters
+        ----------
+        model_name: str, optional
+            The name of the model to use. If None, the model will be automatically picked based on the input.
+        
+        '''
         # have one model on local
         if self.config.inference.ckpt_override_path and os.path.isfile(self.config.inference.ckpt_override_path):
             logging.info(f"Using ckpt_override_path from config: {self.config.inference.ckpt_override_path}")
@@ -217,6 +236,9 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
     
     @staticmethod
     def ensure_dgl():
+        '''
+        Ensure DGL is installed. If not, try to install it.
+        '''
         if (dgl_solver:=DglSolver()).installed:
             return
         
@@ -224,15 +246,26 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             "DGL is not installed. Now try to install it."))
         
         dgl_solver.install()
-        if not DglSolver().installed:
+        if not dgl_solver.installed:
             raise issues.MissingExternalToolError('DGL may not be installed. Please install it manually or take a restart to take effect.')
         
 
-    def __init__(self,config_preset: str='base', model_name: Optional[str]=None):
+    def __init__(self,config_preset: str='base', model_name: Optional[str]=None, overrides: Optional[List[str]]=None):
+        '''
+        Instantiate RFDiffusion app with config preset and overrides.
+
+        Args:
+            config_preset: str, optional
+                The config preset to use. Defaults to 'base'.
+            model_name: Optional[str], optional
+                The model name to use. Defaults to None.
+            overrides: Optional[List[str]], optional
+                The overrides to use. Defaults to None.
+        '''
         self.ensure_dgl()
         
         try:
-            config: DictConfig=reload_config_file(f"rfdiffusion/{config_preset}")["rfdiffusion"]
+            config: DictConfig=reload_config_file(f"rfdiffusion/{config_preset}", overrides=overrides)["rfdiffusion"]
             self.config=config
 
             print(self.config)
@@ -249,6 +282,9 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
     # a copy from `https://github.com/RosettaCommons/RFdiffusion/blob/main/scripts/run_inference.py`
     @get_cited
     def main(self) -> None:
+        '''
+        Run RFdifussion inference.
+        '''
         import torch
         from rfdiffusion.util import writepdb_multi, writepdb
         from rfdiffusion.inference import utils as iu
@@ -256,11 +292,15 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         if self.config.inference.deterministic:
             make_deterministic()
 
+        devices = device_picker()
+        gpu_devices = [d for d in devices if d.startswith("cuda") or d.startswith("mps")]
+
         # Check for available GPU and print result of check
-        if torch.cuda.is_available():
-            self.device = torch.cuda.get_device_name(torch.cuda.current_device())
+        if any(d for d in gpu_devices ):
+            self.device = gpu_devices[0]
             logging.info(f"Found GPU with device_name {self.device}. Will run RFdiffusion on {self.device}")
         else:
+            self.device = "cpu"
             logging.warning("////////////////////////////////////////////////")
             logging.warning("///// NO GPU DETECTED! Falling back to CPU /////")
             logging.warning("////////////////////////////////////////////////")
@@ -454,7 +494,7 @@ url={https://doi.org/10.1038/s41586-023-06415-8}
 ''',
     }
 
-
+# test function to make sure the app just works
 def enzyme_rfdiffusion():
     app=RfDiffusion('enzyme')
     app.main()

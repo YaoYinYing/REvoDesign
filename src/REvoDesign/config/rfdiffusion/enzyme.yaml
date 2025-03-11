@@ -22,6 +22,7 @@ defaults:
 inference:
   output_prefix: example_outputs/design_enzyme
   model_name: ActiveSite_ckpt
+  num_designs: 1
   input_pdb: tests/data/pdb/5an7.pdb
 contigmap:
   contigs: 

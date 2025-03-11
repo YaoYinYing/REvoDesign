@@ -11,7 +11,7 @@
 
     "Protein Models": "",
     "ESM1/2": "esm2",
-    "ESM-Efficient(CUDA Required)": "esme",
+    "ESM-Efficient(CUDA)": "esme",
 
     "Molecular Dynamics": "",
     "OpenMM": "openmm",
@@ -19,6 +19,7 @@
     "Backbone Sampler": "",
     "RFdiffusion(CUDA)": "rfdiffusion_cuda",
     "RFdiffusion(CPU)": "rfdiffusion_cpu",
+    "RFdiffusion(MPS)": "rfdiffusion_mps",
 
     "Developer Tool": "",
     "Test": "test"

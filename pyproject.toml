@@ -99,6 +99,22 @@ rfdiffusion_cuda=[
 
 ]
 
+rfdiffusion_mps=[
+    "pyrsistent",
+    "torch<=2.3.0",
+    # dgl must be installed from https://data.dgl.ai/wheels/repo.html
+    "torchvision", 
+    "torchdata==0.7.1",
+    "torchaudio",
+    "nvtx-mock @ git+https://github.com/YaoYinYing/nvtx-mock.git",
+    "nvtx",
+    "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git@rfdiffusion-mps-test",
+    "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
+    "pydantic",
+    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git@mps-test"
+
+]
+
 rfdiffusion_cpu=[
     "pyrsistent",
     "torch<=2.3.0",
