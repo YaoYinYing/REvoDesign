@@ -339,9 +339,6 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             if self.config.inference.deterministic:
                 make_deterministic(i_des)
 
-            
-
-            
             out_prefix = f"{sampler.inf_conf.output_prefix}_{i_des}"
 
             with timing(f'making design {out_prefix} / {sampler.inf_conf.num_designs}', unit='min'):

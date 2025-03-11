@@ -10,7 +10,8 @@ import tarfile
 import time
 import zipfile
 from functools import wraps
-from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
+from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
+                    Union)
 
 import matplotlib
 import numpy as np
@@ -418,7 +419,7 @@ def generate_strong_password(length=16):
 
 # modified from AlphaFold
 @contextlib.contextmanager
-def timing(msg: str, unit:Literal['ms','sec', 'min', 'hr']='sec'):
+def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
     logging.info(f"Started {msg}")
     tic = time.perf_counter()
     yield
@@ -426,7 +427,7 @@ def timing(msg: str, unit:Literal['ms','sec', 'min', 'hr']='sec'):
     tic_toc = toc - tic
     if unit == 'sec':
         logging.info(f"Finished {msg} in {tic_toc:.3f} seconds")
-    elif unit == 'min' :
+    elif unit == 'min':
         logging.info(f"Finished {msg} in {tic_toc/60:.3f} minutes")
     elif unit == 'hr':
         logging.info(f"Finished {msg} in {tic_toc/3600:.3f} hours")

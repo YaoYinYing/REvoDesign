@@ -108,8 +108,9 @@ DEPTS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignDeptsTable.json'
 # Define the proxy protocols allowed
 ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 
-HAS_CUDA=shutil.which('nvidia-smi')
-HAS_MPS=platform.system() == 'Darwin' and  platform.mac_ver()[-1] == 'arm64'
+HAS_CUDA = shutil.which('nvidia-smi')
+HAS_MPS = platform.system() == 'Darwin' and platform.mac_ver()[-1] == 'arm64'
+
 
 def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
     """
@@ -867,7 +868,7 @@ class REvoDesignPackageManager:
                 k: v for k, v in AVAILABLE_EXTRAS.items()
                 if ('CUDA' not in k or HAS_CUDA) and ('MPS' not in k or HAS_MPS)
             }
-        
+
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(
             self.installer_ui.listView_extras, AVAILABLE_EXTRAS

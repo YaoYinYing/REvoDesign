@@ -1,14 +1,14 @@
 import biotite.structure as struc
 import biotite.structure.io as bsio
-
-import numpy as np
 import matplotlib
+import numpy as np
 
 from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import require_installed
 
 matplotlib.use('Qt5Agg')
+
 
 @require_installed
 class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
@@ -202,9 +202,8 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         save_to (str, default='default.png'):
             Path to save the plot. If 'default.png', the plot will be saved in the current working directory.
         """
-        
-        import matplotlib.pyplot as plt
 
+        import matplotlib.pyplot as plt
 
         X, Y, P = self.compute_potential_field(grid_size=grid_size, margin=margin)
 

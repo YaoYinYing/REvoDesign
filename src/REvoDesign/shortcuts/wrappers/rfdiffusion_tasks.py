@@ -123,21 +123,21 @@ def wrapped_visualize_substrate_potentials(**kwargs):
     Args:
         **kwargs: Parameters collected from the dialog.
     """
-    pdb_path=kwargs.pop('pdb_path')
-    kwargs['pdb_path']= os.path.abspath(pdb_path)
+    pdb_path = kwargs.pop('pdb_path')
+    kwargs['pdb_path'] = os.path.abspath(pdb_path)
 
-    grid_size=kwargs.pop('grid_size')
-    margin=kwargs.pop('margin')
-    save_to=kwargs.pop('save_to')
+    grid_size = kwargs.pop('grid_size')
+    margin = kwargs.pop('margin')
+    save_to = kwargs.pop('save_to')
 
     with timing('ploting substrate potential'):
         print(kwargs)
-        sp_visualizer=run_worker_thread_with_progress(
+        sp_visualizer = run_worker_thread_with_progress(
             visualize_substrate_potentials,
             **kwargs,
             progress_bar=ConfigBus().ui.progressBar
         )
-    
+
     sp_visualizer.plot_potential_field(
         grid_size=grid_size, margin=margin, save_to=save_to
     )
@@ -167,7 +167,7 @@ def wrapped_visualize_substrate_potentials(**kwargs):
             '',
             typing=str,
             reason="The model name to use. Defaults to empty string to let config preset and config contents decide.",
-            choices=lambda: ['']+ list_all_rfd_models()
+            choices=lambda: [''] + list_all_rfd_models()
         ),
         AskedValue(
             "overrides",
@@ -186,7 +186,8 @@ def wrapped_general_rfdiffusion_task(**kwargs):
     if config_file != '' and os.path.isfile(config_file):
         target_config_file = os.path.join(RFDIFFUSION_CONFIG_DIR, os.path.basename(config_file))
         if os.path.exists(target_config_file):
-            logging.warning(f"The config file {config_file} already exists at {target_config_file}. It will be overwritten.")
+            logging.warning(
+                f"The config file {config_file} already exists at {target_config_file}. It will be overwritten.")
         shutil.copy(config_file, target_config_file)
 
         logging.info(f"A copy of the config file {config_file} is created at {target_config_file}")
