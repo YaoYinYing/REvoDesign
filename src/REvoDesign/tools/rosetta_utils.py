@@ -10,13 +10,14 @@ from typing import Any, Dict, List, Optional, Union
 import docker
 import docker.errors
 from hydra import errors as hydra_errors
+from omegaconf import DictConfig
 from platformdirs import user_cache_dir
 from RosettaPy.node import NodeHintT
 from RosettaPy.node.wsl import which_wsl
 from RosettaPy.utils.repository import partial_clone
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.bootstrap.set_config import reload_config_file
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.driver.ui_driver import ConfigBus
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -194,14 +195,15 @@ def read_rosetta_node_config() -> Dict[str, Any]:
 
     bus = ConfigBus()
     rosetta_node_hint = bus.get_value('rosetta.node_hint', str)
+    logging.info(f"Using Rosetta node: {rosetta_node_hint}")
 
     try:
-        node_config: Dict[str, Any] = reload_config_file(f'rosetta-node/{rosetta_node_hint}')['rosetta-node']
+        node_config: DictConfig = reload_config_file(f'rosetta-node/{rosetta_node_hint}')['rosetta-node']['node_config']
     except hydra_errors.MissingConfigException as e:
         raise issues.ConfigureOutofDateError(
             f'Rosetta node config not found. Please check your configuration files.') from e
 
     logging.info(f"Using node config: {node_config}")
-
     node_config.update({"nproc": bus.get_value("ui.header_panel.nproc", int)})
-    return node_config
+    logging.info(f"Using node config: {node_config}")
+    return ConfigConverter.convert(node_config)
