@@ -20,7 +20,7 @@ from REvoDesign import ConfigBus, file_extensions, issues
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.sidechain import SidechainSolver
-from REvoDesign.tools.customized_widgets import QButtonMatrix
+from REvoDesign.tools.customized_widgets import QButtonMatrix, REvoDesignWidget
 from REvoDesign.tools.pymol_utils import is_hidden_object
 
 from .utils import cmap_reverser, get_color, timing
@@ -739,7 +739,7 @@ def pick_design_from_profile(
                                run_worker_thread_with_progress)
 
     bus = ConfigBus()
-    ui = bus.ui
+    bus.ui
 
     molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
     chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)
@@ -922,8 +922,7 @@ def pick_design_from_profile(
     )
 
     # Create a new dialog window for the button matrix
-    window = QtWidgets.QWidget()  # This creates a standalone window.
-    window.setObjectName("ProfileDesignButtonMatrixWindow")
+    window = REvoDesignWidget("ProfileDesignButtonMatrixWindow", allow_repeat=True)  # This creates a standalone window.
 
     window.setWindowTitle(f"Mutant Profile Matrix: {profile_type} ({profile})")
 
@@ -1010,21 +1009,5 @@ View Highlight Nbr: {view_highlight_nbr}
     geometry.moveCenter(QtWidgets.QApplication.primaryScreen().availableGeometry().center())  # type: ignore
     window.move(geometry.topLeft())
 
-    # Ensure the window is properly destroyed
-    def cleanup_window():
-        if hasattr(ui, 'open_windows') and window in ui.open_windows:
-            ui.open_windows.remove(window)
-        if isinstance(ui.open_windows, list) and len(ui.open_windows) == 0:
-            delattr(ui, 'open_windows')
-        print("Window destroyed and cleaned up.")
-
-    # Graceful cleanup
-    window.destroyed.connect(cleanup_window)
-
     # Show the window
     window.show()
-
-    # Keep a reference so the dialog doesn't get garbage-collected prematurely
-    if not hasattr(ui, 'open_windows'):
-        ui.open_windows = []
-    ui.open_windows.append(window)

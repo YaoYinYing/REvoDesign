@@ -14,6 +14,7 @@ from pymol.vfont import plain
 
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+from REvoDesign.tools.customized_widgets import REvoDesignWidget
 
 from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
 from ...tools.cgo_utils import GraphicObjectCollection as GOC
@@ -863,8 +864,7 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
             print('Ignored')
 
     # Create a new standalone widget as the main window.
-    window = QtWidgets.QWidget()
-    window.setObjectName("MoveOrChangeBox")
+    window = REvoDesignWidget("MoveOrChangeBox")
 
     main_layout = QtWidgets.QVBoxLayout(window)
 
@@ -954,21 +954,4 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
     # Bind our custom keyboard event handler to the window.
     window.keyPressEvent = keyboard_event_handler
 
-    # Keep track of open windows in ui, so we can properly clean them up.
-    if not hasattr(ui, 'open_windows'):
-        ui.open_windows = []
-    ui.open_windows.append(window)
-
-    def cleanup_window():
-        """
-        Remove the current window from ui.open_windows when destroyed.
-        If no windows remain, delete the open_windows attribute from ui.
-        """
-        if hasattr(ui, 'open_windows') and window in ui.open_windows:
-            ui.open_windows.remove(window)
-        if isinstance(ui.open_windows, list) and len(ui.open_windows) == 0:
-            delattr(ui, 'open_windows')
-        print("Window destroyed and cleaned up.")
-
-    window.destroyed.connect(cleanup_window)
     window.show()

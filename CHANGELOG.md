@@ -31,9 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `ValueDialog`: load and save current input as `recipe` JSON
     - `AskedValueCollection`: class method `from_list`: generate from a `List[AskedValue]`
     - some typing overloads to `set_widget_value` and `get_widget_value` (buggy)
+    - `REvoDesignWidget`: a subclass of QtWidget, manager the self life cycle with `ConfigBus`
+  
 ### Changed
 - `customized_widgets`: 
-  - `ValueDialog`: refactored as a `QWidget` not a `QDialog`
+  - `ValueDialog`: 
+    - refactored as a `QWidget` not a `QDialog`
+    - now support recipe JSON drag and drop
   - `AppendableValueDialog`: using widget signal to control the function and window behavior
 
   

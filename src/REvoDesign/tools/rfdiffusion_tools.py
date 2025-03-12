@@ -1,5 +1,3 @@
-import biotite.structure as struc
-import biotite.structure.io as bsio
 import matplotlib
 import numpy as np
 
@@ -137,6 +135,9 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
 
     def load_ligand(self):
         """Loads ligand atomic coordinates, connectivity, and element types."""
+        import biotite.structure as struc
+        import biotite.structure.io as bsio
+
         structure = bsio.load_structure(self.pdb_path, model=1)
         ligand_atoms = structure[structure.res_name == self.lig_key]
         if len(ligand_atoms) == 0:
