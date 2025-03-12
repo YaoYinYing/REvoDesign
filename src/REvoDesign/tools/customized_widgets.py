@@ -55,7 +55,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
     It inherits from QtWidgets.QWidget, manages its lifecycle by attaching and 
     detaching from a central UI bus, and ensures no duplicate windows are opened 
     unless explicitly allowed.
-    
+
     '''
 
     def __init__(self, object_name:Optional[str]=None, allow_repeat: bool = False, parent=None):
@@ -1515,6 +1515,8 @@ class ValueDialog(REvoDesignWidget):
         self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
         self.updated_values = []
+        self.setAcceptDrops(True)
+        
 
         # Check if any AskedValue has file=True
         self.need_action = key_dict.need_action
@@ -1590,7 +1592,9 @@ class ValueDialog(REvoDesignWidget):
         load_button = QtWidgets.QPushButton("Load")
         load_button.clicked.connect(self._on_load_clicked)
         load_button.setObjectName("Load")
-        load_button.setToolTip("Load the previous saved recipe to replicate the same settings. ")
+        load_button.setToolTip(
+            'Load the previous saved recipe to replicate the same settings. '
+            'Also, you can drag and drop the recipe file (json) into this window here.')
 
         save_button = QtWidgets.QPushButton("Save")
         save_button.clicked.connect(self._on_save_clicked)
@@ -1873,18 +1877,10 @@ class ValueDialog(REvoDesignWidget):
         except Exception as e:
             logging.error(f"Error loading json file {selected_file}: {e}")
             raise ValueError(f"Error loading json file {selected_file}: {e}") from e
-
-    def _on_load_clicked(self):
-        from REvoDesign import __version__
-        from REvoDesign.driver.file_dialog import FileDialog
-
-        file_dialog = FileDialog(None, os.getcwd())
-        selected_file = file_dialog.browse_filename(
-            mode='r', exts=(Fext.JSON, Fext.Any)
-        )
-        if not selected_file:
-            return
         
+    def _load_json_file(self, selected_file):
+        from REvoDesign import __version__
+
         # load back all asked values from a json file
         contents_to_load: Dict[str, Dict[str, Any]] = json.load(open(selected_file))
         if contents_to_load['metadata']['__window__'] != self.windowTitle():
@@ -1901,6 +1897,52 @@ class ValueDialog(REvoDesignWidget):
             set_widget_value(widget, val)
 
         logging.info(f"Loaded recipe: {selected_file}")
+
+
+    def _on_load_clicked(self):
+        
+        from REvoDesign.driver.file_dialog import FileDialog
+
+        file_dialog = FileDialog(None, os.getcwd())
+        selected_file = file_dialog.browse_filename(
+            mode='r', exts=(Fext.JSON, Fext.Any)
+        )
+        if not selected_file:
+            return
+        self._load_json_file(selected_file)
+
+    def dragEnterEvent(self, a0):
+        if a0.mimeData().hasUrls:
+            a0.accept()
+        else:
+            a0.ignore()
+
+        return super().dragEnterEvent(a0)
+    
+    def dragMoveEvent(self, a0):
+        if a0.mimeData().hasUrls:
+            a0.accept()
+        else:
+            a0.ignore()
+        return super().dragMoveEvent(a0)
+
+    def dropEvent(self, a0):
+        if a0.mimeData().hasUrls:
+            a0.setDropAction(QtCore.Qt.CopyAction)
+            file_path=a0.mimeData().urls()[0].toString()
+            file_path = file_path.replace('file://', '')
+            if not file_path.endswith('.json'):
+                raise ValueError('Only json files are allowed')
+            self._load_json_file(file_path)
+
+            a0.accept()
+        else:
+            a0.ignore()
+
+        return super().dropEvent(a0)
+
+
+        
 
 
 class AppendableValueDialog(QtWidgets.QDialog):

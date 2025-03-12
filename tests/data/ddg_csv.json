@@ -1,0 +1,16 @@
+{
+    "metadata": {
+        "__window__": "Design with Profile",
+        "__version__": "1.7.20",
+        "__date__": "2025-03-12 17:20:50"
+    },
+    "__asked_values__": {
+        "profile": "/Users/yyy/Documents/protein_design/REvoDesign/tests/data/pytia_ddg/1SUO_pred_mask.csv",
+        "profile_type": "CSV",
+        "prefer_lower_score": true,
+        "keep_missing": true,
+        "residue_range": "/Users/yyy/Documents/protein_design/REvoDesign/tests/data/surface_residue_records/1SUO_residues_cutoff_30.0.txt",
+        "view_highlight": "orient",
+        "view_highlight_nbr": 6
+    }
+}
