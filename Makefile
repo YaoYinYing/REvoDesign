@@ -44,6 +44,7 @@ help:
 	@echo "  prepare-test           Run pip to install pytest-related packages"
 	@echo "  test                   Run the UnitTest suite"
 	@echo "  all-test               Run all tests"
+	@echo "  fast-test              Run all fast tests"
 	@echo "  kw-test                Run the Keyword Test suite"
 	@echo "  kw-test-pdb            Run the Keyword Test suite with pdb"
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
@@ -145,6 +146,13 @@ all-test:
 	  echo "One or more tests failed! Not combining coverage."; \
 	  exit 1; \
 	fi
+
+fast-test:
+	# Run a tmp folder to make sure the tests are run on the installed version
+	mkdir -p $(TESTDIR)
+	cd $(TESTDIR); \
+	python -m pytest $(PYTEST_RUN_FIRST_ARGS)
+
 
 
 # all test with keyword

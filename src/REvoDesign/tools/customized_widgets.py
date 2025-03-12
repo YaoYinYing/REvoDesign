@@ -7,8 +7,10 @@ import os
 from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union,
+                    overload)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -17,7 +19,7 @@ import pandas as pd
 
 from REvoDesign import issues
 from REvoDesign.basic import FileExtensionCollection as FExCol
-from REvoDesign.common import file_extensions
+from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
@@ -647,6 +649,70 @@ class QButtonMatrixGremlin(QButtonMatrix):
         return button_tip if button_tip else 'WT'
 
 
+class MultiCheckableComboBox(QtWidgets.QComboBox):
+    def __init__(self, choices: List[str], parent=None):
+        super().__init__(parent)
+        self.choices = choices
+        self.checked_items = set()
+
+        # Use a custom model for multi-check items
+        self.setModel(QtGui.QStandardItemModel(self))
+        for choice in self.choices:
+            self._add_checkable_item(choice)
+
+    def _add_checkable_item(self, text):
+        """Add a checkable item to the combo box."""
+        item = QtGui.QStandardItem(text)
+        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+        item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+        self.model().appendRow(item)
+
+    def select_all(self):
+        """Check all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+
+    def unselect_all(self):
+        """Uncheck all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+
+    def invert_selection(self):
+        """Reverse the selection of all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            current_state = item.data(QtCore.Qt.CheckStateRole)
+            item.setData(QtCore.Qt.Checked if current_state ==
+                         QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+
+    def get_checked_items(self) -> List[str]:
+        """Retrieve all checked items."""
+        checked = []
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.data(QtCore.Qt.CheckStateRole) == QtCore.Qt.Checked:
+                checked.append(item.text())
+        return checked
+
+    def set_checked_items(self, items: List[str]):
+        """Set initial checked items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.text() in items:
+                item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+
+    def hidePopup(self):
+        """Override to update selected items on close."""
+        self.checked_items = set(self.get_checked_items())
+        super().hidePopup()
+
+    def currentText(self) -> str:
+        """Override to show a comma-separated list of selected items."""
+        return ", ".join(sorted(self.checked_items))
+
+
 def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(  # type: ignore
         None,
@@ -696,6 +762,41 @@ def getOpenFileNameWithExt(*args, **kwargs):
     return fname
 
 
+@overload
+def set_widget_value(widget: QtWidgets.QStackedWidget, value: list): ...
+
+
+@overload
+def set_widget_value(widget: QtWidgets.QProgressBar, value: Union[int, List[int], tuple[int, int]]): ...
+
+
+@overload
+def set_widget_value(widget: Union[
+    QtWidgets.QDoubleSpinBox,
+    QtWidgets.QSpinBox],
+    value: Union[int, float, list[str], tuple[str, str]]): ...
+
+
+@overload
+def set_widget_value(widget: MultiCheckableComboBox, value: Union[list, tuple, str, int, float]): ...
+
+
+@overload
+def set_widget_value(widget: QtWidgets.QComboBox, value: Union[list, tuple, dict, str, int, float, bool]): ...
+
+
+@overload
+def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...
+
+
+@overload
+def set_widget_value(widget: Union[
+    QtWidgets.QLineEdit,
+    QtWidgets.QLCDNumber,
+    QtWidgets.QCheckBox
+], value: Any): ...
+
+
 def set_widget_value(widget, value):
     """
     Sets the value of a PyQt5 widget based on the provided value.
@@ -716,7 +817,7 @@ def set_widget_value(widget, value):
     - QGridLayout: Supports a string (image path) to add an ImageWidget widget.
     """
 
-    def set_value_error(widget, value):
+    def set_value_error(widget: QtWidgets.QWidget, value: Any):
         logging.warning(f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}")
 
     # Preprocess values according to types
@@ -737,6 +838,14 @@ def set_widget_value(widget, value):
             widget.setValue(int(value))
         elif isinstance(value, (list, tuple)) and len(value) > 1:
             widget.setRange(int(value[0]), int(value[1]))
+    # `MultiCheckableComboBox` is one subclass of `QComboBox`
+    #  so we need to check for that before its parent class
+    elif isinstance(widget, MultiCheckableComboBox):
+        if not isinstance(value, (list, tuple)):
+            value = [value]
+        # clear selections to reselect the ones in the list
+        widget.unselect_all()
+        widget.set_checked_items([str(x) for x in value])
     elif isinstance(widget, QtWidgets.QComboBox):
         if isinstance(value, (list, tuple)):
             widget.clear()
@@ -780,7 +889,34 @@ def set_widget_value(widget, value):
         set_value_error(widget, value)
 
 
-def get_widget_value(widget):
+@overload
+def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
+
+
+@overload
+def get_widget_value(widget: Union[  # type: ignore
+    QtWidgets.QComboBox,
+    QtWidgets.QLineEdit]) -> str: ...
+
+
+@overload
+def get_widget_value(widget: Union[  # type: ignore
+    QtWidgets.QDoubleSpinBox,
+    QtWidgets.QLCDNumber
+]) -> float: ...
+
+
+@overload
+def get_widget_value(widget: Union[  # type: ignore
+    QtWidgets.QSpinBox,
+    QtWidgets.QProgressBar]) -> int: ...
+
+
+@overload
+def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...  # type: ignore
+
+
+def get_widget_value(widget: QtWidgets.QWidget) -> Any:
     """
     Retrieves the value from a PyQt5 widget.
 
@@ -803,6 +939,8 @@ def get_widget_value(widget):
     """
     if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(widget, QtWidgets.QSpinBox):
         return widget.value()
+    elif isinstance(widget, MultiCheckableComboBox):
+        return widget.get_checked_items()
     elif isinstance(widget, QtWidgets.QComboBox):
         return widget.currentText()
     elif isinstance(widget, QtWidgets.QLineEdit):
@@ -813,6 +951,7 @@ def get_widget_value(widget):
         return float(widget.value())
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
+
     else:
         raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
@@ -1124,73 +1263,9 @@ class AskedValue:
     typing: type = str
     reason: Optional[str] = None
     required: bool = False
-    choices: Optional[Union[Iterable, Callable[[], Iterable]]] = None
+    choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
     source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
-
-
-class MultiCheckableComboBox(QtWidgets.QComboBox):
-    def __init__(self, choices: List[str], parent=None):
-        super().__init__(parent)
-        self.choices = choices
-        self.checked_items = set()
-
-        # Use a custom model for multi-check items
-        self.setModel(QtGui.QStandardItemModel(self))
-        for choice in self.choices:
-            self._add_checkable_item(choice)
-
-    def _add_checkable_item(self, text):
-        """Add a checkable item to the combo box."""
-        item = QtGui.QStandardItem(text)
-        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-        item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
-        self.model().appendRow(item)
-
-    def select_all(self):
-        """Check all items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
-
-    def unselect_all(self):
-        """Uncheck all items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
-
-    def invert_selection(self):
-        """Reverse the selection of all items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            current_state = item.data(QtCore.Qt.CheckStateRole)
-            item.setData(QtCore.Qt.Checked if current_state ==
-                         QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
-
-    def get_checked_items(self) -> List[str]:
-        """Retrieve all checked items."""
-        checked = []
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            if item.data(QtCore.Qt.CheckStateRole) == QtCore.Qt.Checked:
-                checked.append(item.text())
-        return checked
-
-    def set_checked_items(self, items: List[str]):
-        """Set initial checked items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            if item.text() in items:
-                item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
-
-    def hidePopup(self):
-        """Override to update selected items on close."""
-        self.checked_items = set(self.get_checked_items())
-        super().hidePopup()
-
-    def currentText(self) -> str:
-        """Override to show a comma-separated list of selected items."""
-        return ", ".join(sorted(self.checked_items))
 
 
 def real_bool(val: Any):
@@ -1292,17 +1367,15 @@ class AskedValueCollection:
         """
         return bool(self.asked_values)
 
-# TODO: use QtWidgets.QWidget instead
-# refactor purpose: to make the code more readable, testable and maintainable
-# 1. replace class parent with QWidget
-# 2. refactor the code to fit the new QWidget
-# 3. at bottom, add a pair of ok/cancel buttons (since Qwidgets.QDialog has them while QWidget doesn't), contained with a horizontal layout
-# 4. size policy: ??? set a fixed according to the content ?
-# 5. by given object names on the widget, it should be easier for qtbot to test with.
-# 6. widget representing value where typing == bool: use checkbox instead of ComboBox
+    @classmethod
+    def from_list(cls, list_of_asked_value: List[AskedValue]):
+        return cls(asked_values=list_of_asked_value)
 
 
-class ValueDialog(QtWidgets.QDialog):
+class ValueDialog(QtWidgets.QWidget):
+    ok_signal = QtCore.pyqtSignal(list)
+    cancel_signal = QtCore.pyqtSignal()
+
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
         Initializes the ValueDialog with specified size policies to ensure a compact and clear layout.
@@ -1354,7 +1427,7 @@ class ValueDialog(QtWidgets.QDialog):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)  # Input column
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)  # Input column
         if self.need_action:
             header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
 
@@ -1386,6 +1459,23 @@ class ValueDialog(QtWidgets.QDialog):
 
         self.layout.addWidget(self.table)
 
+        # Add a load and save button layout
+        load_save_layout = QtWidgets.QHBoxLayout()
+        load_button = QtWidgets.QPushButton("Load")
+        load_button.clicked.connect(self._on_load_clicked)
+        load_button.setObjectName("Load")
+        load_button.setToolTip("Load the previous saved recipe to replicate the same settings. ")
+
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(self._on_save_clicked)
+        save_button.setObjectName("Save")
+        save_button.setToolTip("Save the current values as a new recipe.")
+
+        load_save_layout.addWidget(load_button)
+        load_save_layout.addWidget(save_button)
+
+        self.layout.addLayout(load_save_layout)
+
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
@@ -1393,7 +1483,7 @@ class ValueDialog(QtWidgets.QDialog):
         cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.setObjectName("Cancel")
         ok_button.clicked.connect(self._on_ok_clicked)
-        cancel_button.clicked.connect(self.reject)
+        cancel_button.clicked.connect(self._on_cancel_clicked)
 
         button_layout.addWidget(ok_button)
         button_layout.addWidget(cancel_button)
@@ -1430,7 +1520,7 @@ class ValueDialog(QtWidgets.QDialog):
                 QtWidgets.QMessageBox.warning(
                     self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
                 )
-                choices = ()
+                choices = None
 
         # a multi-choice
         if asked_value.typing == list:
@@ -1528,7 +1618,7 @@ class ValueDialog(QtWidgets.QDialog):
             # Create and configure the "Load" button
             load_action_button = QtWidgets.QPushButton("Load")
             load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
-            load_action_button.clicked.connect(lambda: self._browse_file(widget, file_extensions.JSON))
+            load_action_button.clicked.connect(lambda: self._browse_file(widget, Fext.JSON))
             # Set size policy to ResizeToContents
             load_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(load_action_button)
@@ -1574,7 +1664,7 @@ class ValueDialog(QtWidgets.QDialog):
         # prevent circular import
         from REvoDesign.driver.file_dialog import FileDialog
 
-        ext = (exts, file_extensions.Any,) if exts else (file_extensions.Any,)
+        ext = (exts, Fext.Any,) if exts else (Fext.Any,)
 
         file_dialog = FileDialog(None, os.getcwd())
         if multiple:
@@ -1593,17 +1683,13 @@ class ValueDialog(QtWidgets.QDialog):
         """
         Handles the OK button click. Collects user inputs and validates required fields.
         """
-        self.updated_values = []
+        self.updated_values: List[AskedValue] = []
         for key, widget in self.input_fields.items():
-            if isinstance(widget, MultiCheckableComboBox):
-                # MultiCheckableComboBox returns a list of selected items
-                value = widget.get_checked_items()
-            else:
-                try:
-                    value = get_widget_value(widget)
-                except Exception as e:
-                    logging.error(f"Error getting value from widget {widget}: {e}")
-                    raise ValueError(f"Error getting value from widget {widget}: {e}") from e
+            try:
+                value = get_widget_value(widget)
+            except Exception as e:
+                logging.error(f"Error getting value from widget {widget}: {e}")
+                raise ValueError(f"Error getting value from widget {widget}: {e}") from e
 
             original = next((item for item in self.key_dict if item.key == key), None)
             if original and original.required and not value:
@@ -1620,13 +1706,71 @@ class ValueDialog(QtWidgets.QDialog):
                         choices=original.choices,
                     )
                 )
-        self.accept()
+        self.ok_signal.emit(self.updated_values)
 
+    def _on_cancel_clicked(self):
+        """
+        Handles the Cancel button click. Closes the dialog without saving changes.
+        """
+        self.cancel_signal.emit()
+        self.close()
 
-def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
-    dialog = ValueDialog(title, key_dict)
-    if dialog.exec_() == QtWidgets.QDialog.Accepted:
-        return AskedValueCollection(dialog.updated_values)
+    def _on_save_clicked(self):
+        from REvoDesign import __version__
+        from REvoDesign.driver.file_dialog import FileDialog
+        file_dialog = FileDialog(None, os.getcwd())
+        selected_file = file_dialog.browse_filename(
+            mode='w', exts=(Fext.JSON, Fext.Any)
+        )
+
+        if selected_file:
+            # save all asked values to a json file
+            # key: AskedValue.key
+            # value: AskedValue.val
+
+            contents_to_save = {
+                'metadata': {
+                    '__window__': self.windowTitle(),
+                    '__version__': __version__,
+                    '__date__': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                },
+                '__asked_values__': {a.key: get_widget_value(self.input_fields[a.key]) for a in self.key_dict}
+
+            }
+
+            try:
+                with open(selected_file, 'w') as f:
+                    json.dump(contents_to_save, f, indent=4)
+                    logging.info(f"Saved recipe: {selected_file}")
+            except Exception as e:
+                logging.error(f"Error loading json file {selected_file}: {e}")
+                raise ValueError(f"Error loading json file {selected_file}: {e}") from e
+
+    def _on_load_clicked(self):
+        from REvoDesign import __version__
+        from REvoDesign.driver.file_dialog import FileDialog
+
+        file_dialog = FileDialog(None, os.getcwd())
+        selected_file = file_dialog.browse_filename(
+            mode='r', exts=(Fext.JSON, Fext.Any)
+        )
+        if selected_file:
+            # load back all asked values from a json file
+            contents_to_load: Dict[str, Dict[str, Any]] = json.load(open(selected_file))
+            if contents_to_load['metadata']['__window__'] != self.windowTitle():
+                logging.error(f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
+                              f"which is not compatible with the current window `{self.windowTitle()}`")
+                return
+            if contents_to_load['metadata']['__version__'] != __version__:
+                logging.warning(
+                    f"The recipe is made with version {contents_to_load['metadata']['__version__']}, "
+                    f"which may not be compatible from the current version {__version__}")
+            logging.info(f'Recipe created at: {contents_to_load["metadata"]["__date__"]}')
+            for key, val in contents_to_load['__asked_values__'].items():
+                widget = self.input_fields[key]
+                set_widget_value(widget, val)
+
+            logging.info(f"Loaded recipe: {selected_file}")
 
 
 class AppendableValueDialog(QtWidgets.QDialog):
@@ -1834,18 +1978,21 @@ def dialog_wrapper(
                 index = dynamic_value.get("index", len(all_options))
                 all_options.insert(index, dynamic_value["value"])
 
-            # Create the dialog
-            values = ask_for_values(
-                title,
-                AskedValueCollection(all_options, banner=banner),
-            )
+            values: Optional[AskedValueCollection] = None
+            dialog = ValueDialog(title, AskedValueCollection(all_options, banner=banner))
 
-            # Exit if dialog is canceled
-            if not values:
-                return
+            def set_values(x: List[AskedValue]):
+                nonlocal values
+                values = AskedValueCollection.from_list(x)
+
+                dialog.close()
+                func(**values.typing_fixed.asdict)
+
+            dialog.ok_signal.connect(set_values)
+
+            dialog.show()
 
             # Extract values from the dialog and pass them to the wrapped function
-            func(**values.typing_fixed.asdict)
 
         return wrapper
 
@@ -1863,7 +2010,6 @@ __all__ = [
     "WorkerThread",
     "ValueDialog",
     "AskedValueCollection",
-    "ask_for_values",
     "AppendableValueDialog",
     "ask_for_appendable_values",
 ]

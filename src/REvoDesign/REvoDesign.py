@@ -47,11 +47,12 @@ from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_alterbox, menu_color_by_mutation, menu_color_by_plddt,
     menu_dump_fasta_from_struct, menu_dump_sidechains, menu_esm1v,
-    menu_fast_relax, menu_get_pca_box, menu_getbox, menu_profile_pick_design,
-    menu_pross, menu_pssm2csv, menu_real_sc, menu_relax_w_ca_constraints,
-    menu_resi_renumber, menu_rmhet, menu_rosettaligand,
-    menu_sdf2rosetta_params, menu_smiles_conformer_batch,
-    menu_smiles_conformer_single, menu_thermompnn)
+    menu_fast_relax, menu_general_rfdiffusion_task, menu_get_pca_box,
+    menu_getbox, menu_profile_pick_design, menu_pross, menu_pssm2csv,
+    menu_real_sc, menu_relax_w_ca_constraints, menu_resi_renumber, menu_rmhet,
+    menu_rosettaligand, menu_sdf2rosetta_params, menu_smiles_conformer_batch,
+    menu_smiles_conformer_single, menu_thermompnn,
+    menu_visualize_substrate_potentials)
 from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
@@ -368,6 +369,14 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 MenuItem(
                     self.bus.ui.actionRemove_Het_Atoms,
                     menu_rmhet
+                ),
+                MenuItem(
+                    self.bus.ui.actionRFdiffusion_General_Task,
+                    menu_general_rfdiffusion_task
+                ),
+                MenuItem(
+                    self.bus.ui.actionSubstrate_Potential,
+                    menu_visualize_substrate_potentials
                 ),
 
                 MenuItem(
@@ -1703,7 +1712,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not new_cfg_file:
             return
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
-        new_cfg_prefix = new_cfg_base_name.rstrip(".yaml")
+        new_cfg_prefix = new_cfg_base_name[:-5]
         experiment_file = os.path.join(
             EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
         )

@@ -16,6 +16,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- menu: 
+  - RFdiffusion general task running
+  - RFdiffusion substrate protential visualizer
+- tools:
+  - utils: 
+    - `timing`: now support units like `sec`, `min`, `hr`, `ms`
+  - `package_manager`: 
+    - installation extras string filter to drop unnecessary extras
+  - `customized_widgets`:
+    - `set_widget_value` and `get_widget_value`: now support `MultiCheckableComboBox`
+    - `AskedValue`: `choices` now support Callable with None output. if `None` is returned, the choice will be set as None.
+    - `ValueDialog`: load and save current input as `recipe` JSON
+    - `AskedValueCollection`: class method `from_list`: generate from a `List[AskedValue]`
+    - some typing overloads to `set_widget_value` and `get_widget_value` (buggy)
+### Changed
+- `customized_widgets`: 
+  - `ValueDialog`: refactored as a `QWidget` not a `QDialog`
+  - `AppendableValueDialog`: using widget signal to control the function and window behavior
+
+  
+
+### Fixed
+- basic:
+  - `FileExtensionCollection`: fixed `basename_stem`: now use string slice, not `rstrip`
+
+### Removed
+- `ask_for_values`: no longer needed
 
 ## [1.7.20] - 2025-03-11
 

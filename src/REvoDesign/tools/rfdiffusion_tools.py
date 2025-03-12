@@ -1,14 +1,13 @@
 import biotite.structure as struc
 import biotite.structure.io as bsio
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 
 from REvoDesign.basic import ThirdPartyModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.utils import require_installed
 
-matplotlib.use('Agg')
+matplotlib.use('Qt5Agg')
 
 
 @require_installed
@@ -194,7 +193,18 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
     def plot_potential_field(self, grid_size=200, margin=10, save_to: str = 'default.png'):
         """
         Plots the substrate potential field with overlaid ligand atoms and bonds.
+
+        Parameters:
+        grid_size (int, default=200):
+            Number of grid points in each direction.
+        margin (int, default=10):
+            Margin around the ligand atoms.
+        save_to (str, default='default.png'):
+            Path to save the plot. If 'default.png', the plot will be saved in the current working directory.
         """
+
+        import matplotlib.pyplot as plt
+
         X, Y, P = self.compute_potential_field(grid_size=grid_size, margin=margin)
 
         plt.figure(figsize=(8, 6))
@@ -206,11 +216,11 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
             "S": "yellow", "P": "orange", "F": "lime", "Cl": "lime",
             "Br": "lime", "I": "lime"
         }
-        default_color = "orange"
+        default_color = "black"
 
         # Define atom sizes
-        size_map = {"H": 30, "C": 100, "N": 80, "O": 80, "S": 80}
-        default_size = 120
+        size_map = {"H": 20, "C": 60, "N": 50, "O": 50, "S": 50}
+        default_size = 90
 
         # Overlay ligand atoms
         for idx, (coord, element) in enumerate(zip(self.ligand_coords, self.ligand_elements)):
@@ -224,8 +234,7 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
             coord1 = self.ligand_coords[atom1]
             coord2 = self.ligand_coords[atom2]
 
-            linewidth = 4 if bond_type == 2 else 2
-            plt.plot([coord1[0], coord2[0]], [coord1[1], coord2[1]], color='black', linewidth=linewidth, zorder=2)
+            plt.plot([coord1[0], coord2[0]], [coord1[1], coord2[1]], color='black', linewidth=bond_type * 2, zorder=2)
 
         # Remove axis labels
         plt.xticks([])
@@ -241,6 +250,6 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
 
 # # Example usage:
 # visualizer = SubstratePotentialVisualizer(
-#     pdb_path="/Users/yyy/Documents/protein_design/RFdiffusion/examples/input_pdbs/5an7.pdb", lig_key="LLK"
+#     pdb_path="/Users/yyy/Documents/protein_design/REvoDesign-test-data/1SUO.pdb", lig_key="HEM"
 # )
-# visualizer.plot_potential_field(save_to='5an7_LLK.png')
+# visualizer.plot_potential_field(save_to='HEM.png')

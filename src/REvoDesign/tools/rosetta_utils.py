@@ -66,7 +66,7 @@ def list_fastrelax_scripts() -> List[str]:
 
     # List all the relax scripts in the specified subdirectory and remove the .txt extension
     all_relax_scripts = [
-        f.rstrip('.txt') for f in os.listdir(
+        f[:-4] for f in os.listdir(
             os.path.join(
                 rosetta3_db_path,
                 subdirectory)) if f.endswith('.txt') and not f.startswith('README') and '.dualspace' not in f]

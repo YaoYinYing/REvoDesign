@@ -108,6 +108,9 @@ DEPTS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignDeptsTable.json'
 # Define the proxy protocols allowed
 ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 
+HAS_CUDA = shutil.which('nvidia-smi')
+HAS_MPS = platform.system() == 'Darwin' and platform.mac_ver()[-1] == 'arm64'
+
 
 def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
     """
@@ -858,6 +861,13 @@ class REvoDesignPackageManager:
             notify_box("Error fetching or validating the JSON data. \n"
                        "Please reconfigure your network and press <Refresh> to try again "
                        "if you wish to continue installation with extra packages")
+
+        # remove device specific extras if not available
+        if not HAS_CUDA or not HAS_MPS:
+            AVAILABLE_EXTRAS = {
+                k: v for k, v in AVAILABLE_EXTRAS.items()
+                if ('CUDA' not in k or HAS_CUDA) and ('MPS' not in k or HAS_MPS)
+            }
 
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(

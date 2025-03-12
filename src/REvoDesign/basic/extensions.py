@@ -1,6 +1,7 @@
 '''
 Data classes with file extensions used in the REvoDesign plugin.
 '''
+import os
 from dataclasses import dataclass
 from typing import Union
 
@@ -148,13 +149,15 @@ class FileExtensionCollection:
         Returns:
         str: The base name (stem) of the file name without the extension.
         """
+        fname = os.path.basename(fname)
         matched = [ext for ext in self.list_dot_ext if fname.endswith(ext)]
         if len(matched) == 1:
-            return fname.rstrip(matched[0])
+            return fname[:-len(matched[0])]
 
         if len(matched) > 1:
             # the longest win
-            return fname.rstrip(sorted(matched, key=len, reverse=True)[0])
+            matched_ext = sorted(matched, key=lambda x: len(x), reverse=True)[0]
+            return fname[:-len(matched_ext[0])]
 
         # otherwise, raise no match error
         raise issues.InternalError(

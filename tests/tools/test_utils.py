@@ -402,11 +402,20 @@ def test_generate_strong_password_value_error():
         generate_strong_password(65)
 
 
-def test_timing(caplog):
+@pytest.mark.parametrize(
+    "unit, expected_unit",
+    [
+        ("ms", "milliseconds"),
+        ("sec", "seconds"),
+        ("min", "minutes"),
+        ("hr", "hours"),
+    ]
+)
+def test_timing(caplog, unit, expected_unit):
     # Mock the perf_counter to return specific times
     with patch('time.perf_counter', side_effect=[1.0, 2.0]):
         # Define a dummy function to be decorated
-        @timing("test message")
+        @timing("test message", unit=unit)
         def dummy_function():
             pass
 
@@ -416,6 +425,8 @@ def test_timing(caplog):
         # Check the logs
         assert "Started test message" in caplog.text
         assert "Finished test message in " in caplog.text
+
+        assert expected_unit in caplog.text
 
 
 @pytest.mark.parametrize(

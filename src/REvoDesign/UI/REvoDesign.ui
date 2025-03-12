@@ -4647,7 +4647,6 @@
      <addaction name="actionSMILES_Conformers_Batch"/>
      <addaction name="separator"/>
      <addaction name="actionSDF_to_Rosetta_Parameters"/>
-     <addaction name="actionVina_3"/>
      <addaction name="separator"/>
     </widget>
     <widget class="QMenu" name="menuDesign_Tools">
@@ -4722,6 +4721,20 @@
      <addaction name="menuVina_Tools"/>
      <addaction name="separator"/>
     </widget>
+    <widget class="QMenu" name="menuBackbone_Rebuild">
+     <property name="title">
+      <string>Backbone Rebuild</string>
+     </property>
+     <widget class="QMenu" name="menuRFdiffusion">
+      <property name="title">
+       <string>RFdiffusion</string>
+      </property>
+      <addaction name="actionRFdiffusion_General_Task"/>
+      <addaction name="separator"/>
+      <addaction name="actionSubstrate_Potential"/>
+     </widget>
+     <addaction name="menuRFdiffusion"/>
+    </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
@@ -4730,6 +4743,7 @@
     <addaction name="menuMolecular_Dynamics"/>
     <addaction name="menuModeling_Tools"/>
     <addaction name="menuExport_Tools"/>
+    <addaction name="menuBackbone_Rebuild"/>
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
     <addaction name="separator"/>
@@ -5164,6 +5178,16 @@
   <action name="actionRemove_Het_Atoms">
    <property name="text">
     <string>Remove Het Atoms</string>
+   </property>
+  </action>
+  <action name="actionSubstrate_Potential">
+   <property name="text">
+    <string>Substrate Potential</string>
+   </property>
+  </action>
+  <action name="actionRFdiffusion_General_Task">
+   <property name="text">
+    <string>General Task</string>
    </property>
   </action>
  </widget>
