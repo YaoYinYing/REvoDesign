@@ -739,7 +739,7 @@ def pick_design_from_profile(
                                run_worker_thread_with_progress)
 
     bus = ConfigBus()
-    ui = bus.ui
+    bus.ui
 
     molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
     chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)

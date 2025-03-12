@@ -142,7 +142,6 @@ def test_dialog_rejection(dialog, qtbot):
         close_mock.assert_called_once()
 
 
-
 '''
 AskedValue(key="field1", val="default", typing=str, required=True, reason="Field 1 Reason"),
 AskedValue(key="field2", val=42, typing=int, choices=range(10, 100)),

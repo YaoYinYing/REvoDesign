@@ -4,6 +4,7 @@ Custom widgets for REvoDesign.
 
 import json
 import os
+import warnings
 from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -11,7 +12,6 @@ from datetime import datetime
 from functools import wraps
 from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union,
                     overload)
-import warnings
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -45,20 +45,23 @@ class ImageWidget(QtWidgets.QWidget):
 # Class REvoDesignWidget
 # This class represents a custom widget in the REvoDesign application. It inherits from QtWidgets.QWidget.
 # The widget can be named and optionally allows multiple instances with the same name.
-# It manages its lifecycle by attaching and detaching from a central UI bus, and ensures no duplicate windows are opened unless explicitly allowed.
+# It manages its lifecycle by attaching and detaching from a central UI
+# bus, and ensures no duplicate windows are opened unless explicitly
+# allowed.
+
 
 class REvoDesignWidget(QtWidgets.QWidget):
     '''
     REvoDesign Widget Window Class
 
-    This Widget class represents a custom widget in the REvoDesign application. 
-    It inherits from QtWidgets.QWidget, manages its lifecycle by attaching and 
-    detaching from a central UI bus, and ensures no duplicate windows are opened 
+    This Widget class represents a custom widget in the REvoDesign application.
+    It inherits from QtWidgets.QWidget, manages its lifecycle by attaching and
+    detaching from a central UI bus, and ensures no duplicate windows are opened
     unless explicitly allowed.
 
     '''
 
-    def __init__(self, object_name:Optional[str]=None, allow_repeat: bool = False, parent=None):
+    def __init__(self, object_name: Optional[str] = None, allow_repeat: bool = False, parent=None):
         """
         Initializes the REvoDesignWidget.
 
@@ -73,11 +76,11 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
         # Connect the destroyed signal to the detach method for cleanup
         self.destroyed.connect(self.detach)
-        
+
         # If repeat is allowed, skip the duplicate check
         if self.allow_repeat:
             return
-        
+
         # Check for duplicate windows and handle the case if one exists
         try:
             self.check_repeat()
@@ -126,9 +129,12 @@ class REvoDesignWidget(QtWidgets.QWidget):
             return
         if not hasattr(bus.ui, 'open_windows'):
             return
-        
+
         # Find windows with the same name
-        the_windows = [w for w in bus.ui.open_windows if hasattr(w, 'objectName') and getattr(w, 'objectName')() == self.objectName()]
+        the_windows = [
+            w for w in bus.ui.open_windows if hasattr(
+                w, 'objectName') and getattr(
+                w, 'objectName')() == self.objectName()]
         if any(the_windows):
             # Raise the existing window to the front
             this_window: REvoDesignWidget = the_windows[0]
@@ -145,7 +151,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         if bus.headless:
             return
         logging.debug(f"Window {self.objectName()} attaching...")
-        
+
         # Ensure the open_windows list exists and add this widget to it
         if not hasattr(bus.ui, 'open_windows'):
             bus.ui.open_windows = []
@@ -161,7 +167,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         if bus.headless:
             return
         logging.debug(f"Window {self.objectName()} detaching...")
-        
+
         # Remove this widget from the open_windows list if it exists
         if hasattr(bus.ui, 'open_windows') and self in bus.ui.open_windows:
             bus.ui.open_windows.remove(self)
@@ -1510,13 +1516,12 @@ class ValueDialog(REvoDesignWidget):
             key_dict (AskedValueCollection): The collection of fields to display in the dialog.
             parent (Optional[QWidget]): The parent widget of the dialog.
         """
-        super().__init__(f"ValueDialog - {title}", allow_repeat=False,parent=parent)
-        
+        super().__init__(f"ValueDialog - {title}", allow_repeat=False, parent=parent)
+
         self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
         self.updated_values = []
         self.setAcceptDrops(True)
-        
 
         # Check if any AskedValue has file=True
         self.need_action = key_dict.need_action
@@ -1855,7 +1860,7 @@ class ValueDialog(REvoDesignWidget):
 
         if not selected_file:
             return
-        
+
         # save all asked values to a json file
         # key: AskedValue.key
         # value: AskedValue.val
@@ -1877,7 +1882,7 @@ class ValueDialog(REvoDesignWidget):
         except Exception as e:
             logging.error(f"Error loading json file {selected_file}: {e}")
             raise ValueError(f"Error loading json file {selected_file}: {e}") from e
-        
+
     def _load_json_file(self, selected_file):
         from REvoDesign import __version__
 
@@ -1885,7 +1890,7 @@ class ValueDialog(REvoDesignWidget):
         contents_to_load: Dict[str, Dict[str, Any]] = json.load(open(selected_file))
         if contents_to_load['metadata']['__window__'] != self.windowTitle():
             logging.error(f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
-                            f"which is not compatible with the current window `{self.windowTitle()}`")
+                          f"which is not compatible with the current window `{self.windowTitle()}`")
             return
         if contents_to_load['metadata']['__version__'] != __version__:
             logging.warning(
@@ -1898,9 +1903,8 @@ class ValueDialog(REvoDesignWidget):
 
         logging.info(f"Loaded recipe: {selected_file}")
 
-
     def _on_load_clicked(self):
-        
+
         from REvoDesign.driver.file_dialog import FileDialog
 
         file_dialog = FileDialog(None, os.getcwd())
@@ -1918,7 +1922,7 @@ class ValueDialog(REvoDesignWidget):
             a0.ignore()
 
         return super().dragEnterEvent(a0)
-    
+
     def dragMoveEvent(self, a0):
         if a0.mimeData().hasUrls:
             a0.accept()
@@ -1929,7 +1933,7 @@ class ValueDialog(REvoDesignWidget):
     def dropEvent(self, a0):
         if a0.mimeData().hasUrls:
             a0.setDropAction(QtCore.Qt.CopyAction)
-            file_path=a0.mimeData().urls()[0].toString()
+            file_path = a0.mimeData().urls()[0].toString()
             file_path = file_path.replace('file://', '')
             if not file_path.endswith('.json'):
                 raise ValueError('Only json files are allowed')
@@ -1940,9 +1944,6 @@ class ValueDialog(REvoDesignWidget):
             a0.ignore()
 
         return super().dropEvent(a0)
-
-
-        
 
 
 class AppendableValueDialog(QtWidgets.QDialog):

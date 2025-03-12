@@ -28,7 +28,7 @@ class ModelFetchSetting:
     name: str
     version: str
     url: str
-    md5sum: Optional[str]=None
+    md5sum: Optional[str] = None
 
     disable_unflatten: bool = False
     unflatten_to_dir: Optional[str] = None
@@ -122,5 +122,3 @@ class ModelFetchSetting:
         if not self.need_flatten:
             return downloaded
         return self.flatten_archieve(downloaded)
-
-    
