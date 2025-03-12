@@ -2,12 +2,12 @@
 Custom widgets for REvoDesign.
 """
 
-from datetime import datetime
 import json
 import os
 from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
+from datetime import datetime
 from functools import wraps
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
@@ -717,7 +717,7 @@ def set_widget_value(widget, value):
     - QGridLayout: Supports a string (image path) to add an ImageWidget widget.
     """
 
-    def set_value_error(widget: QtWidgets.QWidget, value:Any):
+    def set_value_error(widget: QtWidgets.QWidget, value: Any):
         logging.warning(f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}")
 
     # Preprocess values according to types
@@ -1411,7 +1411,6 @@ class ValueDialog(QtWidgets.QDialog):
 
         self.layout.addLayout(load_save_layout)
 
-
         # Add OK and Cancel buttons
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
@@ -1644,10 +1643,9 @@ class ValueDialog(QtWidgets.QDialog):
                 )
         self.accept()
 
-
     def _on_save_clicked(self):
-        from REvoDesign.driver.file_dialog import FileDialog
         from REvoDesign import __version__
+        from REvoDesign.driver.file_dialog import FileDialog
         file_dialog = FileDialog(None, os.getcwd())
         selected_file = file_dialog.browse_filename(
             mode='w', exts=(Fext.JSON, Fext.Any)
@@ -1658,13 +1656,13 @@ class ValueDialog(QtWidgets.QDialog):
             # key: AskedValue.key
             # value: AskedValue.val
 
-            contents_to_save={
+            contents_to_save = {
                 'metadata': {
                     '__window__': self.windowTitle(),
-                    '__version__':__version__,
+                    '__version__': __version__,
                     '__date__': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 },
-                '__asked_values__': {a.key:get_widget_value(self.input_fields[a.key]) for a in self.key_dict}
+                '__asked_values__': {a.key: get_widget_value(self.input_fields[a.key]) for a in self.key_dict}
 
             }
 
@@ -1675,10 +1673,10 @@ class ValueDialog(QtWidgets.QDialog):
             except Exception as e:
                 logging.error(f"Error loading json file {selected_file}: {e}")
                 raise ValueError(f"Error loading json file {selected_file}: {e}") from e
-            
+
     def _on_load_clicked(self):
-        from REvoDesign.driver.file_dialog import FileDialog
         from REvoDesign import __version__
+        from REvoDesign.driver.file_dialog import FileDialog
 
         file_dialog = FileDialog(None, os.getcwd())
         selected_file = file_dialog.browse_filename(
@@ -1686,22 +1684,23 @@ class ValueDialog(QtWidgets.QDialog):
         )
         if selected_file:
             # load back all asked values from a json file
-            contents_to_load: Dict[str, Dict[str, Any]]=json.load(open(selected_file, 'r'))
-            if contents_to_load['metadata']['__window__']!=self.windowTitle():
+            contents_to_load: Dict[str, Dict[str, Any]] = json.load(open(selected_file))
+            if contents_to_load['metadata']['__window__'] != self.windowTitle():
                 logging.error(f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
-                    f"which is not compatible with the current window `{self.windowTitle()}`")
+                              f"which is not compatible with the current window `{self.windowTitle()}`")
                 return
-            if contents_to_load['metadata']['__version__']!=__version__:
+            if contents_to_load['metadata']['__version__'] != __version__:
                 logging.warning(
                     f"The recipe is made with version {contents_to_load['metadata']['__version__']}, "
                     f"which may not be compatible from the current version {__version__}")
             logging.info(f'Recipe created at: {contents_to_load["metadata"]["__date__"]}')
             for key, val in contents_to_load['__asked_values__'].items():
-                widget=self.input_fields[key]
+                widget = self.input_fields[key]
                 set_widget_value(widget, val)
 
             logging.info(f"Loaded recipe: {selected_file}")
-            
+
+
 def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
     dialog = ValueDialog(title, key_dict)
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
