@@ -1,6 +1,6 @@
 import pytest
-from REvoDesign.Qt import QtCore, QtWidgets
 
+from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import (AskedValue,
                                                  AskedValueCollection,
                                                  MultiCheckableComboBox,

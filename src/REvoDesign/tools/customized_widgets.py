@@ -9,7 +9,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union,
+                    overload)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -712,7 +713,6 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         return ", ".join(sorted(self.checked_items))
 
 
-
 def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(  # type: ignore
         None,
@@ -761,32 +761,40 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
     return fname
 
-@overload
-def set_widget_value(widget: QtWidgets.QStackedWidget , value:list): ...
 
 @overload
-def set_widget_value(widget:  QtWidgets.QProgressBar, value:Union[int, List[int], tuple[int, int]]): ...
+def set_widget_value(widget: QtWidgets.QStackedWidget, value: list): ...
+
+
+@overload
+def set_widget_value(widget: QtWidgets.QProgressBar, value: Union[int, List[int], tuple[int, int]]): ...
+
 
 @overload
 def set_widget_value(widget: Union[
     QtWidgets.QDoubleSpinBox,
-    QtWidgets.QSpinBox], 
-    value:Union[int, float, list[str], tuple[str,str]]): ...
-@overload
-def set_widget_value(widget: MultiCheckableComboBox, value:Union[list, tuple, str, int,float]): ...
+    QtWidgets.QSpinBox],
+    value: Union[int, float, list[str], tuple[str, str]]): ...
+
 
 @overload
-def set_widget_value(widget:  QtWidgets.QComboBox, value:Union[list, tuple, dict, str, int, float,bool]): ...
+def set_widget_value(widget: MultiCheckableComboBox, value: Union[list, tuple, str, int, float]): ...
+
 
 @overload
-def set_widget_value(widget:  QtWidgets.QGridLayout, value:str): ...
+def set_widget_value(widget: QtWidgets.QComboBox, value: Union[list, tuple, dict, str, int, float, bool]): ...
+
+
+@overload
+def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...
+
 
 @overload
 def set_widget_value(widget: Union[
     QtWidgets.QLineEdit,
     QtWidgets.QLCDNumber,
     QtWidgets.QCheckBox
-    ], value:Any): ...
+], value: Any): ...
 
 
 def set_widget_value(widget, value):
@@ -830,10 +838,10 @@ def set_widget_value(widget, value):
             widget.setValue(int(value))
         elif isinstance(value, (list, tuple)) and len(value) > 1:
             widget.setRange(int(value[0]), int(value[1]))
-    # `MultiCheckableComboBox` is one subclass of `QComboBox` 
+    # `MultiCheckableComboBox` is one subclass of `QComboBox`
     #  so we need to check for that before its parent class
     elif isinstance(widget, MultiCheckableComboBox):
-        if not isinstance(value, (list,tuple)):
+        if not isinstance(value, (list, tuple)):
             value = [value]
         # clear selections to reselect the ones in the list
         widget.unselect_all()
@@ -882,27 +890,30 @@ def set_widget_value(widget, value):
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ... # type: ignore
+def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
+
 
 @overload
-def get_widget_value(widget:Union[ # type: ignore
+def get_widget_value(widget: Union[  # type: ignore
     QtWidgets.QComboBox,
     QtWidgets.QLineEdit]) -> str: ...
 
-@overload
-def get_widget_value(widget: Union[ # type: ignore
-    QtWidgets.QDoubleSpinBox,
-    QtWidgets.QLCDNumber
-    ]) -> float: ...
 
 @overload
-def get_widget_value(widget: Union[ # type: ignore
+def get_widget_value(widget: Union[  # type: ignore
+    QtWidgets.QDoubleSpinBox,
+    QtWidgets.QLCDNumber
+]) -> float: ...
+
+
+@overload
+def get_widget_value(widget: Union[  # type: ignore
     QtWidgets.QSpinBox,
     QtWidgets.QProgressBar]) -> int: ...
 
 
 @overload
-def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ... # type: ignore
+def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...  # type: ignore
 
 
 def get_widget_value(widget: QtWidgets.QWidget) -> Any:
@@ -940,7 +951,7 @@ def get_widget_value(widget: QtWidgets.QWidget) -> Any:
         return float(widget.value())
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
-    
+
     else:
         raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
@@ -1355,15 +1366,16 @@ class AskedValueCollection:
             bool: True if the collection contains at least one AskedValue.
         """
         return bool(self.asked_values)
-    
+
     @classmethod
     def from_list(cls, list_of_asked_value: List[AskedValue]):
         return cls(asked_values=list_of_asked_value)
 
 
 class ValueDialog(QtWidgets.QWidget):
-    ok_signal= QtCore.pyqtSignal(list)
+    ok_signal = QtCore.pyqtSignal(list)
     cancel_signal = QtCore.pyqtSignal()
+
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
         Initializes the ValueDialog with specified size policies to ensure a compact and clear layout.
@@ -1701,6 +1713,7 @@ class ValueDialog(QtWidgets.QWidget):
         Handles the Cancel button click. Closes the dialog without saving changes.
         """
         self.cancel_signal.emit()
+
     def _on_save_clicked(self):
         from REvoDesign import __version__
         from REvoDesign.driver.file_dialog import FileDialog
@@ -1757,8 +1770,6 @@ class ValueDialog(QtWidgets.QWidget):
                 set_widget_value(widget, val)
 
             logging.info(f"Loaded recipe: {selected_file}")
-
-
 
 
 class AppendableValueDialog(QtWidgets.QDialog):
@@ -1966,7 +1977,7 @@ def dialog_wrapper(
                 index = dynamic_value.get("index", len(all_options))
                 all_options.insert(index, dynamic_value["value"])
 
-            values: Optional[AskedValueCollection]=None
+            values: Optional[AskedValueCollection] = None
             dialog = ValueDialog(title, AskedValueCollection(all_options, banner=banner))
 
             def set_values(x: List[AskedValue]):
@@ -1975,7 +1986,6 @@ def dialog_wrapper(
 
                 dialog.close()
                 func(**values.typing_fixed.asdict)
-                
 
             def close_dialog():
                 dialog.close()
@@ -1985,9 +1995,7 @@ def dialog_wrapper(
 
             dialog.show()
 
-
             # Extract values from the dialog and pass them to the wrapped function
-            
 
         return wrapper
 
