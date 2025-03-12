@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.7.21] - 2025-03-12
 ### Added
 - menu: 
   - RFdiffusion general task running
