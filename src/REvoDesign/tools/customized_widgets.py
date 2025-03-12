@@ -1713,6 +1713,7 @@ class ValueDialog(QtWidgets.QWidget):
         Handles the Cancel button click. Closes the dialog without saving changes.
         """
         self.cancel_signal.emit()
+        self.close()
 
     def _on_save_clicked(self):
         from REvoDesign import __version__
@@ -1987,11 +1988,7 @@ def dialog_wrapper(
                 dialog.close()
                 func(**values.typing_fixed.asdict)
 
-            def close_dialog():
-                dialog.close()
-
             dialog.ok_signal.connect(set_values)
-            dialog.cancel_signal.connect(close_dialog)
 
             dialog.show()
 

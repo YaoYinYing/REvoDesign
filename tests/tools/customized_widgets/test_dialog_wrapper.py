@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 
 import pytest
 
@@ -94,11 +95,10 @@ def test_required_field_validation(dialog, qtbot, monkeypatch):
 
     # Simulate OK button click
     ok_button = dialog.layout.itemAt(3).itemAt(0).widget()
-    qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)
 
-    # Ensure dialog remains open and validation failed
-    assert len(dialog.updated_values) == 0
-    assert not dialog.result()  # Dialog should not close
+    with patch.object(dialog, 'close') as close_mock:
+        qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)
+        close_mock.assert_not_called()
 
 
 @pytest.mark.parametrize("index, expected_widget_type, updated_value, expected_value", [
@@ -132,11 +132,15 @@ def test_dialog_rejection(dialog, qtbot):
     Ensures dialog rejection works as expected and captures a screenshot.
     """
     cancel_button = dialog.layout.itemAt(3).itemAt(1).widget()
-    qtbot.mouseClick(cancel_button, QtCore.Qt.LeftButton)
+    save_screenshot(dialog, "dialog_rejection")
 
     # Verify dialog is rejected
-    assert not dialog.result()
-    save_screenshot(dialog, "dialog_rejection")
+
+    with patch.object(dialog, 'close') as close_mock:
+        qtbot.mouseClick(cancel_button, QtCore.Qt.LeftButton)
+
+        close_mock.assert_called_once()
+
 
 
 '''
