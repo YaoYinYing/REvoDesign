@@ -39,7 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   
 
 ### Fixed
-- 
+- basic:
+  - `FileExtensionCollection`: fixed `basename_stem`: now use string slice, not `rstrip`
 
 ### Removed
 - `ask_for_values`: no longer needed
