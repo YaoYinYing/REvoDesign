@@ -16,6 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- menu: 
+  - RFdiffusion general task running
+  - RFdiffusion substrate protential visualizer
+- tools:
+  - utils: 
+    - `timing`: now support units like `sec`, `min`, `hr`, `ms`
+  - `package_manager`: 
+    - installation extras string filter to drop unnecessary extras
+  - `customized_widgets`:
+    - `set_widget_value` and `get_widget_value`: now support `MultiCheckableComboBox`
+    - `AskedValue`: `choices` now support Callable with None output. if `None` is returned, the choice will be set as None.
+    - `ValueDialog`: load and save current input as `recipe` JSON
+### Changed
+
+### Fixed
+- 
+
+### Removed
 
 ## [1.7.20] - 2025-03-11
 
