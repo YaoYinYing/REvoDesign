@@ -28,7 +28,7 @@ class ModelFetchSetting:
     name: str
     version: str
     url: str
-    md5sum: str
+    md5sum: Optional[str]=None
 
     disable_unflatten: bool = False
     unflatten_to_dir: Optional[str] = None
@@ -112,7 +112,7 @@ class ModelFetchSetting:
         print(f'Downloading {self.basename}...')
         downloaded = pooch.retrieve(
             self.url,
-            known_hash=f'md5:{self.md5sum}',
+            known_hash=f'md5:{self.md5sum}' if self.md5sum else None,
             path=user_cache_dir(
                 f'downloading_{self.name}_weights',
                 ensure_exists=True) if self.need_flatten else os.path.dirname(self.weight_path),
@@ -122,3 +122,5 @@ class ModelFetchSetting:
         if not self.need_flatten:
             return downloaded
         return self.flatten_archieve(downloaded)
+
+    

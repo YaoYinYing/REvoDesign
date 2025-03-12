@@ -30,11 +30,10 @@ dependencies = [
     "typing-extensions>=4.9.0",
     "immutabledict>=4.1.0",
     "biopython>=1.81",
-    "biotite",
     "joblib>=1.3.2",
     "matplotlib>=3.6.0",
     "pandas>=2.1.0",
-    "numpy<2.0.0",
+    "numpy>=1.26",
     "requests>=2.32.3",
     "scikit-learn>=1.3.0",
     "scipy>=1.11.2",
@@ -85,6 +84,7 @@ openmm=[
 ]
 
 rfdiffusion_cuda=[
+    "biotite>=1.1.0",
     "pyrsistent",
     "torch<=2.3.0",
     # dgl must be installed from  https://data.dgl.ai/wheels/cuxxx/repo.html
@@ -101,6 +101,7 @@ rfdiffusion_cuda=[
 ]
 
 rfdiffusion_mps=[
+    "biotite>=1.1.0",
     "pyrsistent",
     "torch<=2.3.0",
     # dgl must be installed from https://data.dgl.ai/wheels/repo.html
@@ -117,6 +118,7 @@ rfdiffusion_mps=[
 ]
 
 rfdiffusion_cpu=[
+    "biotite>=1.1.0",
     "pyrsistent",
     "torch<=2.3.0",
     # dgl must be installed from https://data.dgl.ai/wheels/repo.html
