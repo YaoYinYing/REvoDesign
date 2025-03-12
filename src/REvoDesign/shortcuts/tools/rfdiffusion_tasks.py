@@ -167,7 +167,7 @@ def list_all_rfd_models() -> List[str]:
 
 
 def list_all_config_preset() -> List[str]:
-    return [f.rstrip('.yaml') for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith('.yaml')]
+    return [f[:-5] for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith('.yaml')]
 
 
 def make_deterministic(seed=0):

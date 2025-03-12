@@ -1712,7 +1712,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         if not new_cfg_file:
             return
         new_cfg_base_name: str = os.path.basename(new_cfg_file)
-        new_cfg_prefix = new_cfg_base_name.rstrip(".yaml")
+        new_cfg_prefix = new_cfg_base_name[:-5]
         experiment_file = os.path.join(
             EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
         )

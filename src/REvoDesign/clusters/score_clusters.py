@@ -18,7 +18,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 def score_clusters(
     pdb, chain_id, node_hint: NodeHintT, tasks_dir: str
 ) -> List[RosettaEnergyUnitAnalyser]:
-    instance = os.path.basename(pdb).rstrip(".pdb")
+    instance = os.path.basename(pdb)[:-4]
     task_bn = os.path.basename(tasks_dir)
     node_config = read_rosetta_node_config()
     cluster_scorer = ScoreClusters(

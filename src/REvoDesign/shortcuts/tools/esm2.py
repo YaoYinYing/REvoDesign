@@ -170,7 +170,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 print(f'Fetching model {model_name}')
                 model_path = model_name
             model, alphabet = pretrained.load_model_and_alphabet(
-                model_path if os.path.isfile(model_path) else os.path.basename(model_name).rstrip('.pt'))
+                model_path if os.path.isfile(model_path) else os.path.basename(model_name)[:-3])
             model.eval()
             if self.device != "cpu":
                 model = model.to(self.device)
