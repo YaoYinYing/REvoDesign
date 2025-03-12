@@ -9,7 +9,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -648,6 +648,71 @@ class QButtonMatrixGremlin(QButtonMatrix):
         return button_tip if button_tip else 'WT'
 
 
+class MultiCheckableComboBox(QtWidgets.QComboBox):
+    def __init__(self, choices: List[str], parent=None):
+        super().__init__(parent)
+        self.choices = choices
+        self.checked_items = set()
+
+        # Use a custom model for multi-check items
+        self.setModel(QtGui.QStandardItemModel(self))
+        for choice in self.choices:
+            self._add_checkable_item(choice)
+
+    def _add_checkable_item(self, text):
+        """Add a checkable item to the combo box."""
+        item = QtGui.QStandardItem(text)
+        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+        item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+        self.model().appendRow(item)
+
+    def select_all(self):
+        """Check all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+
+    def unselect_all(self):
+        """Uncheck all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+
+    def invert_selection(self):
+        """Reverse the selection of all items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            current_state = item.data(QtCore.Qt.CheckStateRole)
+            item.setData(QtCore.Qt.Checked if current_state ==
+                         QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
+
+    def get_checked_items(self) -> List[str]:
+        """Retrieve all checked items."""
+        checked = []
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.data(QtCore.Qt.CheckStateRole) == QtCore.Qt.Checked:
+                checked.append(item.text())
+        return checked
+
+    def set_checked_items(self, items: List[str]):
+        """Set initial checked items."""
+        for row in range(self.model().rowCount()):
+            item = self.model().item(row)
+            if item.text() in items:
+                item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
+
+    def hidePopup(self):
+        """Override to update selected items on close."""
+        self.checked_items = set(self.get_checked_items())
+        super().hidePopup()
+
+    def currentText(self) -> str:
+        """Override to show a comma-separated list of selected items."""
+        return ", ".join(sorted(self.checked_items))
+
+
+
 def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(  # type: ignore
         None,
@@ -696,6 +761,33 @@ def getOpenFileNameWithExt(*args, **kwargs):
 
     return fname
 
+@overload
+def set_widget_value(widget: QtWidgets.QStackedWidget , value:list): ...
+
+@overload
+def set_widget_value(widget:  QtWidgets.QProgressBar, value:Union[int, List[int], tuple[int, int]]): ...
+
+@overload
+def set_widget_value(widget: Union[
+    QtWidgets.QDoubleSpinBox,
+    QtWidgets.QSpinBox], 
+    value:Union[int, float, list[str], tuple[str,str]]): ...
+@overload
+def set_widget_value(widget: MultiCheckableComboBox, value:Union[list, tuple, str, int,float]): ...
+
+@overload
+def set_widget_value(widget:  QtWidgets.QComboBox, value:Union[list, tuple, dict, str, int, float,bool]): ...
+
+@overload
+def set_widget_value(widget:  QtWidgets.QGridLayout, value:str): ...
+
+@overload
+def set_widget_value(widget: Union[
+    QtWidgets.QLineEdit,
+    QtWidgets.QLCDNumber,
+    QtWidgets.QCheckBox
+    ], value:Any): ...
+
 
 def set_widget_value(widget, value):
     """
@@ -738,6 +830,14 @@ def set_widget_value(widget, value):
             widget.setValue(int(value))
         elif isinstance(value, (list, tuple)) and len(value) > 1:
             widget.setRange(int(value[0]), int(value[1]))
+    # `MultiCheckableComboBox` is one subclass of `QComboBox` 
+    #  so we need to check for that before its parent class
+    elif isinstance(widget, MultiCheckableComboBox):
+        if not isinstance(value, (list,tuple)):
+            value = [value]
+        # clear selections to reselect the ones in the list
+        widget.unselect_all()
+        widget.set_checked_items([str(x) for x in value])
     elif isinstance(widget, QtWidgets.QComboBox):
         if isinstance(value, (list, tuple)):
             widget.clear()
@@ -777,16 +877,35 @@ def set_widget_value(widget, value):
                     widget.deleteLater()
             image_widget = ImageWidget(value)  # Assuming ImageWidget is defined elsewhere
             widget.addWidget(image_widget)
-
-    elif isinstance(widget, MultiCheckableComboBox):
-        if not isinstance(value, list):
-            value = [value]
-        widget.set_checked_items([str(x) for x in value])
     else:
         set_value_error(widget, value)
 
 
-def get_widget_value(widget):
+@overload
+def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...
+
+@overload
+def get_widget_value(widget:Union[
+    QtWidgets.QComboBox,
+    QtWidgets.QLineEdit]) -> str: ...
+
+@overload
+def get_widget_value(widget: Union[
+    QtWidgets.QDoubleSpinBox,
+    QtWidgets.QLCDNumber
+    ]) -> float: ...
+
+@overload
+def get_widget_value(widget: Union[
+    QtWidgets.QSpinBox,
+    QtWidgets.QProgressBar]) -> int: ...
+
+
+@overload
+def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...
+
+
+def get_widget_value(widget: QtWidgets.QWidget) -> Any:
     """
     Retrieves the value from a PyQt5 widget.
 
@@ -809,6 +928,8 @@ def get_widget_value(widget):
     """
     if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(widget, QtWidgets.QSpinBox):
         return widget.value()
+    elif isinstance(widget, MultiCheckableComboBox):
+        return widget.get_checked_items()
     elif isinstance(widget, QtWidgets.QComboBox):
         return widget.currentText()
     elif isinstance(widget, QtWidgets.QLineEdit):
@@ -819,8 +940,7 @@ def get_widget_value(widget):
         return float(widget.value())
     elif isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
-    elif isinstance(widget, MultiCheckableComboBox):
-        return widget.get_checked_items()
+    
     else:
         raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
@@ -1135,70 +1255,6 @@ class AskedValue:
     choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
     source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
-
-
-class MultiCheckableComboBox(QtWidgets.QComboBox):
-    def __init__(self, choices: List[str], parent=None):
-        super().__init__(parent)
-        self.choices = choices
-        self.checked_items = set()
-
-        # Use a custom model for multi-check items
-        self.setModel(QtGui.QStandardItemModel(self))
-        for choice in self.choices:
-            self._add_checkable_item(choice)
-
-    def _add_checkable_item(self, text):
-        """Add a checkable item to the combo box."""
-        item = QtGui.QStandardItem(text)
-        item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-        item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
-        self.model().appendRow(item)
-
-    def select_all(self):
-        """Check all items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
-
-    def unselect_all(self):
-        """Uncheck all items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
-
-    def invert_selection(self):
-        """Reverse the selection of all items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            current_state = item.data(QtCore.Qt.CheckStateRole)
-            item.setData(QtCore.Qt.Checked if current_state ==
-                         QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
-
-    def get_checked_items(self) -> List[str]:
-        """Retrieve all checked items."""
-        checked = []
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            if item.data(QtCore.Qt.CheckStateRole) == QtCore.Qt.Checked:
-                checked.append(item.text())
-        return checked
-
-    def set_checked_items(self, items: List[str]):
-        """Set initial checked items."""
-        for row in range(self.model().rowCount()):
-            item = self.model().item(row)
-            if item.text() in items:
-                item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
-
-    def hidePopup(self):
-        """Override to update selected items on close."""
-        self.checked_items = set(self.get_checked_items())
-        super().hidePopup()
-
-    def currentText(self) -> str:
-        """Override to show a comma-separated list of selected items."""
-        return ", ".join(sorted(self.checked_items))
 
 
 def real_bool(val: Any):

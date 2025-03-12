@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from pymol.Qt import QtCore, QtWidgets
+from REvoDesign.Qt import QtCore, QtWidgets
 
 from REvoDesign.tools.customized_widgets import (AskedValue,
                                                  AskedValueCollection,
@@ -93,7 +93,7 @@ def test_required_field_validation(dialog, qtbot, monkeypatch):
     monkeypatch.setattr(QtWidgets.QMessageBox, "warning", mock_warning)
 
     # Simulate OK button click
-    ok_button = dialog.layout.itemAt(2).itemAt(0).widget()
+    ok_button = dialog.layout.itemAt(3).itemAt(0).widget()
     qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)
 
     # Ensure dialog remains open and validation failed
@@ -115,13 +115,10 @@ def test_valid_field_submission(index, expected_widget_type, updated_value, expe
     """
     widget = dialog.table.cellWidget(index, 2)
     assert isinstance(widget, expected_widget_type)
-    if not isinstance(widget, MultiCheckableComboBox):
-        set_widget_value(widget, updated_value)
-    else:
-        widget.set_checked_items(updated_value)
+    set_widget_value(widget, updated_value)
 
     # Simulate OK button click
-    qtbot.mouseClick(dialog.layout.itemAt(2).itemAt(0).widget(), QtCore.Qt.LeftButton)
+    qtbot.mouseClick(dialog.layout.itemAt(3).itemAt(0).widget(), QtCore.Qt.LeftButton)
 
     # Verify updated values
     assert len(dialog.updated_values) == 6
@@ -134,7 +131,7 @@ def test_dialog_rejection(dialog, qtbot):
     """
     Ensures dialog rejection works as expected and captures a screenshot.
     """
-    cancel_button = dialog.layout.itemAt(2).itemAt(1).widget()
+    cancel_button = dialog.layout.itemAt(3).itemAt(1).widget()
     qtbot.mouseClick(cancel_button, QtCore.Qt.LeftButton)
 
     # Verify dialog is rejected
