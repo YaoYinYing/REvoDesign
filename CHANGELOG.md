@@ -29,12 +29,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `set_widget_value` and `get_widget_value`: now support `MultiCheckableComboBox`
     - `AskedValue`: `choices` now support Callable with None output. if `None` is returned, the choice will be set as None.
     - `ValueDialog`: load and save current input as `recipe` JSON
+    - `AskedValueCollection`: class method `from_list`: generate from a `List[AskedValue]`
+    - some typing overloads to `set_widget_value` and `get_widget_value` (buggy)
 ### Changed
+- `customized_widgets`: 
+  - `ValueDialog`: refactored as a `QWidget` not a `QDialog`
+  - `AppendableValueDialog`: using widget signal to control the function and window behavior
+
+  
 
 ### Fixed
 - 
 
 ### Removed
+- `ask_for_values`: no longer needed
 
 ## [1.7.20] - 2025-03-11
 

@@ -882,27 +882,27 @@ def set_widget_value(widget, value):
 
 
 @overload
-def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...
+def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ... # type: ignore
 
 @overload
-def get_widget_value(widget:Union[
+def get_widget_value(widget:Union[ # type: ignore
     QtWidgets.QComboBox,
     QtWidgets.QLineEdit]) -> str: ...
 
 @overload
-def get_widget_value(widget: Union[
+def get_widget_value(widget: Union[ # type: ignore
     QtWidgets.QDoubleSpinBox,
     QtWidgets.QLCDNumber
     ]) -> float: ...
 
 @overload
-def get_widget_value(widget: Union[
+def get_widget_value(widget: Union[ # type: ignore
     QtWidgets.QSpinBox,
     QtWidgets.QProgressBar]) -> int: ...
 
 
 @overload
-def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...
+def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ... # type: ignore
 
 
 def get_widget_value(widget: QtWidgets.QWidget) -> Any:
@@ -1355,18 +1355,15 @@ class AskedValueCollection:
             bool: True if the collection contains at least one AskedValue.
         """
         return bool(self.asked_values)
-
-# TODO: use QtWidgets.QWidget instead
-# refactor purpose: to make the code more readable, testable and maintainable
-# 1. replace class parent with QWidget
-# 2. refactor the code to fit the new QWidget
-# 3. at bottom, add a pair of ok/cancel buttons (since Qwidgets.QDialog has them while QWidget doesn't), contained with a horizontal layout
-# 4. size policy: ??? set a fixed according to the content ?
-# 5. by given object names on the widget, it should be easier for qtbot to test with.
-# 6. widget representing value where typing == bool: use checkbox instead of ComboBox
+    
+    @classmethod
+    def from_list(cls, list_of_asked_value: List[AskedValue]):
+        return cls(asked_values=list_of_asked_value)
 
 
-class ValueDialog(QtWidgets.QDialog):
+class ValueDialog(QtWidgets.QWidget):
+    ok_signal= QtCore.pyqtSignal(list)
+    cancel_signal = QtCore.pyqtSignal()
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
         Initializes the ValueDialog with specified size policies to ensure a compact and clear layout.
@@ -1418,7 +1415,7 @@ class ValueDialog(QtWidgets.QDialog):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  # Field column
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  # Type column
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)  # Input column
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)  # Input column
         if self.need_action:
             header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)  # Action column
 
@@ -1474,7 +1471,7 @@ class ValueDialog(QtWidgets.QDialog):
         cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.setObjectName("Cancel")
         ok_button.clicked.connect(self._on_ok_clicked)
-        cancel_button.clicked.connect(self.reject)
+        cancel_button.clicked.connect(self._on_cancel_clicked)
 
         button_layout.addWidget(ok_button)
         button_layout.addWidget(cancel_button)
@@ -1674,7 +1671,7 @@ class ValueDialog(QtWidgets.QDialog):
         """
         Handles the OK button click. Collects user inputs and validates required fields.
         """
-        self.updated_values = []
+        self.updated_values: List[AskedValue] = []
         for key, widget in self.input_fields.items():
             try:
                 value = get_widget_value(widget)
@@ -1697,8 +1694,13 @@ class ValueDialog(QtWidgets.QDialog):
                         choices=original.choices,
                     )
                 )
-        self.accept()
+        self.ok_signal.emit(self.updated_values)
 
+    def _on_cancel_clicked(self):
+        """
+        Handles the Cancel button click. Closes the dialog without saving changes.
+        """
+        self.cancel_signal.emit()
     def _on_save_clicked(self):
         from REvoDesign import __version__
         from REvoDesign.driver.file_dialog import FileDialog
@@ -1757,10 +1759,6 @@ class ValueDialog(QtWidgets.QDialog):
             logging.info(f"Loaded recipe: {selected_file}")
 
 
-def ask_for_values(title: str, key_dict: AskedValueCollection) -> Optional[AskedValueCollection]:
-    dialog = ValueDialog(title, key_dict)
-    if dialog.exec_() == QtWidgets.QDialog.Accepted:
-        return AskedValueCollection(dialog.updated_values)
 
 
 class AppendableValueDialog(QtWidgets.QDialog):
@@ -1968,18 +1966,28 @@ def dialog_wrapper(
                 index = dynamic_value.get("index", len(all_options))
                 all_options.insert(index, dynamic_value["value"])
 
-            # Create the dialog
-            values = ask_for_values(
-                title,
-                AskedValueCollection(all_options, banner=banner),
-            )
+            values: Optional[AskedValueCollection]=None
+            dialog = ValueDialog(title, AskedValueCollection(all_options, banner=banner))
 
-            # Exit if dialog is canceled
-            if not values:
-                return
+            def set_values(x: List[AskedValue]):
+                nonlocal values
+                values = AskedValueCollection.from_list(x)
+
+                dialog.close()
+                func(**values.typing_fixed.asdict)
+                
+
+            def close_dialog():
+                dialog.close()
+
+            dialog.ok_signal.connect(set_values)
+            dialog.cancel_signal.connect(close_dialog)
+
+            dialog.show()
+
 
             # Extract values from the dialog and pass them to the wrapped function
-            func(**values.typing_fixed.asdict)
+            
 
         return wrapper
 
@@ -1997,7 +2005,6 @@ __all__ = [
     "WorkerThread",
     "ValueDialog",
     "AskedValueCollection",
-    "ask_for_values",
     "AppendableValueDialog",
     "ask_for_appendable_values",
 ]
