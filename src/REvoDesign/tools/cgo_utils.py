@@ -57,7 +57,7 @@ import string
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Iterable, List, Literal, Optional, Union
+from typing import Callable, Iterable, List, Literal, Optional, Union
 
 import numpy as np
 import tree
@@ -69,7 +69,7 @@ from matplotlib import _color_data as _cdata
 from pymol import cgo, cmd
 from pymol.vfont import plain
 
-from REvoDesign.tools.utils import pairwise, pairwise_loop, timing
+from REvoDesign.tools.utils import pairwise_loop
 
 DEBUG = True
 
@@ -127,14 +127,30 @@ class Point:
     y: float
     z: float
 
-    def __add__(self, other: 'Point') -> 'Point':
+    def __add__(self, other: Union['Point', float, np.ndarray]) -> 'Point':
         '''
         Add two points together.
         '''
-        return Point.from_array(self.array + other.array)
+        if isinstance(other, Point):
+            return Point.from_array(self.array + other.array)
+        elif isinstance(other, (np.ndarray, float)):
+            return Point.from_array(self.array + other)
+        else:
+            raise TypeError(f"Unsupported operand type for +: 'Point' and '{type(other).__name__}'")
 
-    def __sub__(self, other: 'Point'):
-        return Point.from_array(self.array - other.array)
+    def __radd__(self, other: Union['Point', float, np.ndarray]) -> 'Point':
+        return self.__add__(other)
+
+    def __sub__(self, other: Union['Point', float, np.ndarray]):
+        if isinstance(other, Point):
+            return Point.from_array(self.array - other.array)
+        elif isinstance(other, (np.ndarray, float)):
+            return Point.from_array(self.array - other)
+        else:
+            raise TypeError(f"Unsupported operand type for -: 'Point' and '{type(other).__name__}'")
+
+    def __rsub__(self, other: Union['Point', float, np.ndarray]):
+        return other - self
 
     def __truediv__(self, other: float) -> 'Point':
         '''
@@ -142,11 +158,26 @@ class Point:
         '''
         return Point.from_array(self.array / other)
 
+    def __rtruediv__(self, other: float) -> 'Point':
+        '''
+        Divide a point by a scalar.
+        '''
+        return Point.from_array(other / self.array)
+
     def __mul__(self, other: float) -> 'Point':
         '''
         Multiply a point by a scalar.
         '''
         return Point.from_array(self.array * other)
+
+    def __rmul__(self, other: float) -> 'Point':
+        '''
+        Multiply a point by a scalar.
+        '''
+        return self * other
+
+    def apply(self, func: Callable[[float], 'Point']) -> 'Point':
+        return Point.from_array(np.vectorize(func)(self.array))
 
     @property
     def copy(self):
@@ -473,20 +504,18 @@ class PseudoBezier(PseudoCurve):
     '''
 
     def sample(self) -> List[Point]:
-        self.check_control_points(4, 4)
+        self.check_control_points(4)
         control_points = self.control_points
         n = len(control_points) - 1
         points = []
         # Use numpy linspace for t values in [0, 1]
         t_values = np.linspace(0, 1, self.steps + 1)
         for t in t_values:
-            x = y = z = 0.0
+            middle_cp = Point(0, 0, 0)
             for j, cp in enumerate(control_points):
                 bernstein = math.comb(n, j) * (t ** j) * ((1 - t) ** (n - j))
-                x += cp.x * bernstein
-                y += cp.y * bernstein
-                z += cp.z * bernstein
-            points.append(Point(x, y, z))
+                middle_cp += cp * bernstein
+            points.append(middle_cp)
         return points
 
 # ------------------------------------------------------------------
@@ -503,30 +532,20 @@ class PseudoCatmullRom(PseudoCurve):
 
     def sample(self) -> List[Point]:
         self.check_control_points(num_min=4)
-        points = []
+        points: List[Point] = []
         # Iterate through segments defined by 4 consecutive control points
         for i in range(1, len(self.control_points) - 2):
-            P0 = self.control_points[i - 1]
-            P1 = self.control_points[i]
-            P2 = self.control_points[i + 1]
-            P3 = self.control_points[i + 2]
-            t_values = np.linspace(0, 1, self.steps)
+            P0, P1, P2, P3 = self.control_points[i - 1:i + 3]
+            t_values: List[float] = np.linspace(0, 1, self.steps)
             for t in t_values:
                 t2 = t * t
                 t3 = t2 * t
-                x = 0.5 * ((2 * P1.x) +
-                           (-P0.x + P2.x) * t +
-                           (2 * P0.x - 5 * P1.x + 4 * P2.x - P3.x) * t2 +
-                           (-P0.x + 3 * P1.x - 3 * P2.x + P3.x) * t3)
-                y = 0.5 * ((2 * P1.y) +
-                           (-P0.y + P2.y) * t +
-                           (2 * P0.y - 5 * P1.y + 4 * P2.y - P3.y) * t2 +
-                           (-P0.y + 3 * P1.y - 3 * P2.y + P3.y) * t3)
-                z = 0.5 * ((2 * P1.z) +
-                           (-P0.z + P2.z) * t +
-                           (2 * P0.z - 5 * P1.z + 4 * P2.z - P3.z) * t2 +
-                           (-P0.z + 3 * P1.z - 3 * P2.z + P3.z) * t3)
-                points.append(Point(x, y, z))
+                middle_p = 0.5 * ((P1 * 2) +
+                                  (P2 - P0) * t +
+                                  (P0 * 2 - P1 * 5 + P2 * 4 - P3) * t2 +
+                                  (P1 * 3 - P2 * 3 + P3 - P0) * t3)
+
+                points.append(middle_p)
         # Append the second-to-last control point to ensure correct termination.
         points.append(self.control_points[-2])
         return points
@@ -556,7 +575,7 @@ class PseudoBSpline(PseudoCurve):
         if self.knots is None:
             self.knots = [0.0] * (p + 1) + list(range(1, n - p + 1)) + [n - p + 1] * (p + 1)
         # Convert control points to a NumPy array of shape (n+1, 3)
-        ctrl_pts = np.array([[pt.x, pt.y, pt.z] for pt in self.control_points])
+        ctrl_pts = np.array([pt.array for pt in self.control_points])
         u_start = self.knots[p]
         u_end = self.knots[n + 1]
         u_vals = np.linspace(u_start, u_end, self.steps + 1)
@@ -587,8 +606,8 @@ class PseudoHermite(PseudoCurve):
         B = self.control_points[1]
         T0 = self.tangents[0]
         T1 = self.tangents[1]
-        points = []
-        t_values = np.linspace(0, 1, self.steps + 1)
+        points: list[Point] = []
+        t_values: List[float] = np.linspace(0, 1, self.steps + 1)
         for t in t_values:
             t2 = t * t
             t3 = t2 * t
@@ -596,10 +615,8 @@ class PseudoHermite(PseudoCurve):
             h10 = t3 - 2 * t2 + t
             h01 = -2 * t3 + 3 * t2
             h11 = t3 - t2
-            x = h00 * A.x + h10 * T0.x + h01 * B.x + h11 * T1.x
-            y = h00 * A.y + h10 * T0.y + h01 * B.y + h11 * T1.y
-            z = h00 * A.z + h10 * T0.z + h01 * B.z + h11 * T1.z
-            points.append(Point(x, y, z))
+            middle_p = A * h00 + T0 * h10 + B * h01 + T1 * h11
+            points.append(middle_p)
         return points
 
 # ------------------------------------------------------------------
@@ -1441,7 +1458,7 @@ class RoundedRectangle(GraphicObject):
             points=vertices,
             line_type='LINE_LOOP'
         )
-        poly.rebuild()
+        # poly.rebuild()
         self._data = poly._data
 
 
@@ -1498,7 +1515,7 @@ class Ellipse(GraphicObject):
             points=vertices,
             line_type='LINE_LOOP'
         )
-        poly.rebuild()
+        # poly.rebuild()
         self._data = poly.data
 
 
@@ -2346,9 +2363,9 @@ class GraphicObjectCollection(GraphicObject):
 # ellipsoid = Ellipsoid(
 #     center=Point(0, 0, 0),
 #     radius_x=1,
-#     radius_y=1,
-#     radius_z=1,
-#     color='green',
+#     radius_y=2,
+#     radius_z=3,
+#     color='white',
 #     steps_theta=20,
 #     steps_phi=30
 # )
@@ -2508,9 +2525,7 @@ def __easter_egg():
         axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
         color=Color('black').array)
 
-    # from ..shortcuts.tools.vina_tools import showaxes
 
-    # showaxes()
     poision.load_as('APTX-4869')
 
     cmd.turn('z', 16)
