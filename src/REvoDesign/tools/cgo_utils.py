@@ -57,7 +57,7 @@ import string
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Callable, Iterable, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Union
 
 import numpy as np
 import tree
@@ -325,6 +325,10 @@ class Color:
             return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  # type: ignore
 
         try:
+            # If the name starts with a '#', it's a hexadecimal color value
+            if self.name.startswith('#'):
+                return np.array(webcolors.hex_to_rgb(self.name), dtype=float) / 255
+
             # Try to convert the color name to an RGB array using webcolors
             return np.array(webcolors.name_to_rgb(self.name), dtype=float) / 255
         except ValueError as e:
@@ -380,12 +384,28 @@ class Color:
         """
         return np.concatenate((np.array([cgo.ALPHA, self.alpha, cgo.COLOR]), self.array))
 
+    @classmethod
+    def from_cgo(cls, cgo: List[float]):
+        """
+        Creates a Color object from a CGO (Color Graphics Operations) representation.
+        """
+        if len(cgo) != 4:
+            raise ValueError(f"CGO color must have exactly 4 elements: {cgo}")
+        hex_name= webcolors.rgb_to_hex(np.array(np.array(cgo[:3])*255, dtype=int))
+        return cls(hex_name,alpha=cgo[3])
+
 
 @dataclass
 class GraphicObject:
     """
     A base class representing a graphic object, providing methods to rebuild and load graphic data.
     """
+
+    def reconstruct(self):
+        """
+        Rebuild the CGO data.
+        """
+        raise NotImplementedError("Rebuild method not implemented")
 
     def rebuild(self):
         """
@@ -2085,9 +2105,12 @@ class GraphicObjectCollection(GraphicObject):
     Attributes:
         objects (List[GraphicObject]): A list of GraphicObject instances.
         force_to_rebuild (bool): Whether to rebuild everything before merging data.
+        rebuildable (bool): Whether to rebuild is allowed.
     """
     objects: List[GraphicObject]
     force_to_rebuild: bool = False
+
+    rebuildable: bool=True
 
     def rebuild(self):
         """
@@ -2097,6 +2120,8 @@ class GraphicObjectCollection(GraphicObject):
         If the force_to_rebuild flag is set to True, it calls the rebuild method on each graphic object.
         Finally, it adds the data of each graphic object to the collection's _data list.
         """
+        if not self.rebuildable:
+            raise ValueError("This collection is not rebuildable.")
         # Reset the collection's data
         self._data = []
         for go_idx, go in enumerate(self.objects):
@@ -2107,6 +2132,27 @@ class GraphicObjectCollection(GraphicObject):
                 go.rebuild()
         # Iterate through each graphic object in the collection
         self._data.extend(tree.flatten([go.data for go in self.objects]))
+
+    @classmethod
+    def from_pymol(cls, pymol_name: str, dump_level:int=0) -> "GraphicObjectCollection":
+        session: Dict[str, Any]=cmd.get_session()
+        names=session['names']
+
+        obj_names=[n[0] for n in names]
+
+        if not any(n == pymol_name for n in obj_names):
+            raise RuntimeError(f"No graphic object named {pymol_name}, available names are {obj_names}")
+        
+        obj: List[float]=names[obj_names.index(pymol_name)][5][2][0][1]
+        if dump_level == 0:
+            goc=cls([],rebuildable=False)
+            goc._data=obj
+            return goc
+        elif dump_level == 1:
+            
+        
+        raise NotImplementedError("Not implemented yet")
+        ...
 
 
 # TEST CASES that can be run from pymol
