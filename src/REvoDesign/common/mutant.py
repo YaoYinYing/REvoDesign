@@ -98,7 +98,7 @@ class Mutant(RpMutant):
 
     @property
     def full_mutant_id(self) -> str:
-        return f"{self.raw_mutant_id}_{self.mutant_score}"
+        return f"{self.raw_mutant_id}_{self.mutant_score:.3f}"
 
     @property
     def raw_mutant_id(self) -> str:

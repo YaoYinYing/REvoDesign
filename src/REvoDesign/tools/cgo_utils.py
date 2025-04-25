@@ -51,6 +51,11 @@ CONE,      x1, y1, z1,
 
 '''
 
+'''
+TODO
+1. CGO load and save: pickle?
+'''
+
 import itertools
 import math
 import string
@@ -85,6 +90,54 @@ XKCD_COLORS: immutabledict[str, str] = immutabledict(
 
 # color tables
 COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
+
+CGO_LABLE_NAMES = Literal["POINTS",
+                          "LINES",
+                          "LINE_LOOP",
+                          "LINE_STRIP",
+                          "TRIANGLES",
+                          "TRIANGLE_STRIP",
+                          "TRIANGLE_FAN",
+                          "QUADS",
+                          "QUAD_STRIP",
+                          "POLYGON",
+                          "STOP",
+                          "NULL",
+                          "BEGIN",
+                          "END",
+                          "VERTEX",
+                          "NORMAL",
+                          "COLOR",
+                          "SPHERE",
+                          "TRIANGLE",
+                          "CYLINDER",
+                          "LINEWIDTH",
+                          "WIDTHSCALE",
+                          "ENABLE",
+                          "DISABLE",
+                          "SAUSAGE",
+                          "CUSTOM_CYLINDER",
+                          "DOTWIDTH",
+                          "ALPHA_TRIANGLE",
+                          "ELLIPSOID",
+                          "SHAPE_VERTEX",
+                          "SHAPE_COLOR",
+                          "SHAPE_NORMAL",
+                          "FONT",
+                          "FONT_SCALE",
+                          "FONT_VERTEX",
+                          "FONT_AXES",
+                          "CHAR",
+                          "ALPHA",
+                          "QUADRIC",
+                          "CONE",
+                          "PICK_COLOR",
+                          "BEZIER",
+                          "LIGHTING",]
+
+
+CGO_LABLE_MAPPING: immutabledict[CGO_LABLE_NAMES, float] = immutabledict(
+    {k: getattr(cgo, k) for k in CGO_LABLE_NAMES.__args__ if hasattr(cgo, k)})  # type: ignore
 
 
 def not_none_float(*args: Optional[float]):
@@ -135,21 +188,19 @@ class Point:
             return Point.from_array(self.array + other.array)
         elif isinstance(other, (np.ndarray, float)):
             return Point.from_array(self.array + other)
-        else:
-            raise TypeError(f"Unsupported operand type for +: 'Point' and '{type(other).__name__}'")
+        raise TypeError(f"Unsupported operand type for +: 'Point' and '{type(other).__name__}'")
 
     def __radd__(self, other: Union['Point', float, np.ndarray]) -> 'Point':
         return self.__add__(other)
 
-    def __sub__(self, other: Union['Point', float, np.ndarray]):
+    def __sub__(self, other: Union['Point', float, np.ndarray]) -> 'Point':
         if isinstance(other, Point):
             return Point.from_array(self.array - other.array)
         elif isinstance(other, (np.ndarray, float)):
             return Point.from_array(self.array - other)
-        else:
-            raise TypeError(f"Unsupported operand type for -: 'Point' and '{type(other).__name__}'")
+        raise TypeError(f"Unsupported operand type for -: 'Point' and '{type(other).__name__}'")
 
-    def __rsub__(self, other: Union['Point', float, np.ndarray]):
+    def __rsub__(self, other: Union['Point', float, np.ndarray]) -> 'Point':
         return other - self
 
     def __truediv__(self, other: float) -> 'Point':
@@ -175,6 +226,11 @@ class Point:
         Multiply a point by a scalar.
         '''
         return self * other
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Point):
+            raise TypeError("Cannot compare Point with non-Point object.")
+        return np.allclose(self.array, other.array)
 
     def apply(self, func: Callable[[float], 'Point']) -> 'Point':
         return Point.from_array(np.vectorize(func)(self.array))
@@ -287,7 +343,14 @@ class Point:
         '''
         Create a Point object from a NumPy array.
         '''
-        return cls(*array)
+        if array.shape == (3,):
+            return cls(*array)
+        elif array.shape == (4,):
+            if array[0] == CGO_LABLE_MAPPING['NORMAL'] or array[0] == CGO_LABLE_MAPPING['VERTEX']:
+                return cls(*array[1:4])
+            raise ValueError('The first element of the array must be either NORMAL or VERTEX.')
+
+        raise ValueError('The array must be of shape (3,) or (4,).')
 
 
 @dataclass(frozen=True)
@@ -389,10 +452,13 @@ class Color:
         """
         Creates a Color object from a CGO (Color Graphics Operations) representation.
         """
-        if len(cgo) != 4:
-            raise ValueError(f"CGO color must have exactly 4 elements: {cgo}")
-        hex_name= webcolors.rgb_to_hex(np.array(np.array(cgo[:3])*255, dtype=int))
-        return cls(hex_name,alpha=cgo[3])
+        if len(cgo) == 3:
+            cgo.append(1)
+        if len(cgo) > 4:
+            if cgo[0] == CGO_LABLE_MAPPING['COLOR']:
+                cgo = cgo[1:5]
+        hex_name = webcolors.rgb_to_hex(np.array(np.array(cgo[:3]) * 255, dtype=int))
+        return cls(hex_name, alpha=cgo[3])
 
 
 @dataclass
@@ -2110,7 +2176,13 @@ class GraphicObjectCollection(GraphicObject):
     objects: List[GraphicObject]
     force_to_rebuild: bool = False
 
-    rebuildable: bool=True
+    rebuildable: bool = True
+
+    def __post_init__(self):
+        # if it is marked as rebuildable, it will be rebuilt after initialization
+        if self.rebuildable:
+            return super().__post_init__()
+        # else no rebuilding will be performed since it contains the given _data and empty objects list
 
     def rebuild(self):
         """
@@ -2121,7 +2193,7 @@ class GraphicObjectCollection(GraphicObject):
         Finally, it adds the data of each graphic object to the collection's _data list.
         """
         if not self.rebuildable:
-            raise ValueError("This collection is not rebuildable.")
+            raise ValueError("This collection is marked as non-rebuildable.")
         # Reset the collection's data
         self._data = []
         for go_idx, go in enumerate(self.objects):
@@ -2134,23 +2206,23 @@ class GraphicObjectCollection(GraphicObject):
         self._data.extend(tree.flatten([go.data for go in self.objects]))
 
     @classmethod
-    def from_pymol(cls, pymol_name: str, dump_level:int=0) -> "GraphicObjectCollection":
-        session: Dict[str, Any]=cmd.get_session()
-        names=session['names']
+    def from_pymol(cls, pymol_name: str, dump_level: int = 0) -> "GraphicObjectCollection":
+        session: Dict[str, Any] = cmd.get_session()
+        names = session['names']
 
-        obj_names=[n[0] for n in names]
+        obj_names = [n[0] for n in names]
 
         if not any(n == pymol_name for n in obj_names):
             raise RuntimeError(f"No graphic object named {pymol_name}, available names are {obj_names}")
-        
-        obj: List[float]=names[obj_names.index(pymol_name)][5][2][0][1]
+
+        obj: List[float] = names[obj_names.index(pymol_name)][5][2][0][1]
         if dump_level == 0:
-            goc=cls([],rebuildable=False)
-            goc._data=obj
+            goc = cls([], rebuildable=False)
+            goc._data = obj
             return goc
         elif dump_level == 1:
-            
-        
+            raise NotImplementedError("Not implemented yet")
+
         raise NotImplementedError("Not implemented yet")
         ...
 
@@ -2570,7 +2642,6 @@ def __easter_egg():
         0.03,
         axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
         color=Color('black').array)
-
 
     poision.load_as('APTX-4869')
 
