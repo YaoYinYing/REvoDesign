@@ -9,6 +9,7 @@ import importlib.util
 import json
 import math
 import os
+import io
 import platform
 import re
 import shutil
@@ -21,6 +22,8 @@ import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
+import subprocess
+import threading
 from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
                     Mapping, NoReturn, Optional, Tuple, Type, TypeVar, Union,
                     overload)
@@ -183,50 +186,79 @@ class UnsupportedWidgetValueTypeError(TypeError):
     """
 
 
+
+class LiveProcessResult(subprocess.CompletedProcess):
+    """
+    A CompletedProcess-compatible result object with real-time captured output.
+    """
+    def __init__(self, args, returncode, stdout: str, stderr: str):
+        super().__init__(args=args, returncode=returncode, stdout=stdout, stderr=stderr)
+
+
 def run_command(
     cmd: Union[Tuple[str], List[str]],
     verbose: bool = False,
     env: Optional[Mapping[str, str]] = None,
-) -> subprocess.CompletedProcess:
+) -> subprocess.CompletedProcess[str]:
     """
-    Execute a specified command in the shell.
+    Execute a command with real-time output streaming, while capturing stdout and stderr.
 
     Parameters:
-    - cmd: A tuple or string representing the command to be executed. If it's a tuple, it represents the command
-    and its parameters.
-    - verbose: A boolean indicating whether to print detailed execution information.
-    - env: A mapping object containing environment variables for the command.
+    - cmd: List or tuple of command and arguments.
+    - verbose: If True, prints output in real time and logs errors.
+    - env: Optional environment variables to pass to the subprocess.
 
     Returns:
-    - The CompletedProcess object returned by subprocess.run(), containing the command execution information.
+    - A subprocess.CompletedProcess-compatible object with .args, .returncode, .stdout, .stderr.
 
     Raises:
-    - When the command execution fails (return code is not 0) and verbose is True, a RuntimeError is raised.
+    - RuntimeError: if the command fails and verbose is True.
     """
-    # Optionally print the command for debugging
     if verbose:
-        logging.info(f'launching command: {" ".join(cmd)}')
+        logging.info(f"Launching command: {' '.join(cmd)}")
 
-    # Execute the command using subprocess.run()
-    result = subprocess.run(
+    stdout_lines: List[str] = []
+    stderr_lines: List[str] = []
+
+    def stream_reader(pipe: io.IOBase, collector: List, label: str):
+        for line in iter(pipe.readline, ''):
+            if verbose:
+                logging.info(f"[{label}] {line.rstrip()}")
+            collector.append(line)
+        pipe.close()
+
+    process = subprocess.Popen(
         cmd,
-        capture_output=True,
-        encoding="utf-8",
-        env=env if env else None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        check=False,
+        bufsize=1,
+        env=env,
     )
 
-    # Optionally print the command output for debugging
-    if verbose and (res_text := result.stdout):
-        logging.info(res_text)
+    t1 = threading.Thread(target=stream_reader, args=(process.stdout, stdout_lines, "STDOUT"))
+    t2 = threading.Thread(target=stream_reader, args=(process.stderr, stderr_lines, "STDERR"))
+    t1.start()
+    t2.start()
 
-    # If the command execution fails and verbose is True, raise an exception
-    if result.returncode != 0 and verbose:
-        raise RuntimeError(f"--> Command failed: \n{'-'*79}\n{result.stderr}\n{'-'*79}")
+    process.wait()
+    t1.join()
+    t2.join()
 
-    # Return the execution result
-    return result
+    stdout_text = ''.join(stdout_lines)
+    stderr_text = ''.join(stderr_lines)
+
+    if process.returncode != 0 and verbose:
+        raise RuntimeError(
+            f"--> Command failed:\n{'-'*79}\n{stderr_text.strip()}\n{'-'*79}"
+        )
+
+    return LiveProcessResult(
+        args=cmd,
+        returncode=process.returncode,
+        stdout=stdout_text,
+        stderr=stderr_text,
+    )
 
 # Additional widget for extra selection
 
@@ -417,7 +449,7 @@ class GitSolver:
             return True, ''
 
         # Execute the Git installation command in a worker thread and monitor progress
-        git_install_std: subprocess.CompletedProcess = run_command(
+        git_install_std = run_command(
             cmd=git_fetch_command,
             verbose=True,
             env=env,
@@ -559,7 +591,7 @@ class PIPInstaller:
 
         logging.debug(f'Using verbose level {verbose_level}')
 
-        result: subprocess.CompletedProcess = run_command(
+        result = run_command(
             pip_cmd, verbose=self.verbose_level > -1, env=env or self.env)
         return result
 
@@ -581,7 +613,7 @@ class PIPInstaller:
             "-y",
             package_name,
         ]
-        result: subprocess.CompletedProcess = run_command(pip_cmd, verbose=self.verbose_level > -1, env=self.env)
+        result = run_command(pip_cmd, verbose=self.verbose_level > -1, env=self.env)
         return result
 
     def ensure_package(self, package_string: str,
@@ -1237,7 +1269,7 @@ class REvoDesignPackageManager:
         # During the uninstallation process, hold down the remove button on the UI to prevent multiple triggers
         with hold_trigger_button(self.installer_ui.pushButton_remove):
             # Run the uninstallation process in a separate thread and monitor its progress
-            ret: Optional[subprocess.CompletedProcess] = run_worker_thread_with_progress(
+            ret = run_worker_thread_with_progress(
                 worker_function=self.pip_installer.uninstall,
                 package_name='REvoDesign',
                 progress_bar=self.installer_ui.progressBar,
@@ -1405,7 +1437,7 @@ class REvoDesignPackageManager:
                 # If successful, show a notification and return True
                 notify_box(message="Git installed successfully.")
 
-            installed: Union[subprocess.CompletedProcess, None] = run_worker_thread_with_progress(
+            installed = run_worker_thread_with_progress(
                 worker_function=self.pip_installer.install,
                 source=install_source,
                 upgrade=upgrade,
@@ -1415,7 +1447,7 @@ class REvoDesignPackageManager:
                 progress_bar=self.installer_ui.progressBar,
             )
             # Provide feedback on the installation result
-            if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
+            if installed.returncode == 0:
                 notify_box(
                     message="Installation succeeded. \nIf this is an upgrade, "
                     "please restart PyMOL for it to take effect.",
