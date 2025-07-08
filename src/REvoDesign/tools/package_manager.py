@@ -6,24 +6,23 @@
 import difflib
 import importlib
 import importlib.util
+import io
 import json
 import math
 import os
-import io
 import platform
 import re
 import shutil
 import socket
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-import subprocess
-import threading
 from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
                     Mapping, NoReturn, Optional, Tuple, Type, TypeVar, Union,
                     overload)
@@ -186,11 +185,11 @@ class UnsupportedWidgetValueTypeError(TypeError):
     """
 
 
-
 class LiveProcessResult(subprocess.CompletedProcess):
     """
     A CompletedProcess-compatible result object with real-time captured output.
     """
+
     def __init__(self, args, returncode, stdout: str, stderr: str):
         super().__init__(args=args, returncode=returncode, stdout=stdout, stderr=stderr)
 
