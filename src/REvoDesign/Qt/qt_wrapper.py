@@ -24,7 +24,7 @@ else:
         from pymol.Qt import QtWidgets as _QtWidgets
         QtSource = "pymol.Qt"
     except ImportError as e:
-        raise ImportError("PyMOL is not installed or does not have Qt support.") from e
+        raise ImportError(f"PyMOL is not installed or does not have Qt support: {e}") from e
 
 # ** Explicit Type Aliases for Static Analysis (Fixes Type Checkers)**
 QtCore = _QtCore

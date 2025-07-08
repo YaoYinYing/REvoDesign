@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+### Added
+
+### Changed
+- `package_manager`: 
+  - `run_command` now use a streaming stdout and stderr manner, meaning the command running is now `live`
+
+### Fixed
+- dependencies:
+  - `pooch`
+  - `nvtx-mock`: now we already have the real package on PyPI!!!!
+
+### Removed
+
 ## [1.7.21] - 2025-03-12
 ### Added
 - menu: 

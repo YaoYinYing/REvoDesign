@@ -53,6 +53,7 @@ dependencies = [
     "tqdm",
     "webcolors",
     "fonttools",
+    "pooch"
 ]
 
 [project.optional-dependencies]
@@ -108,7 +109,7 @@ rfdiffusion_mps=[
     "torchvision", 
     "torchdata==0.7.1",
     "torchaudio",
-    "nvtx-mock @ git+https://github.com/YaoYinYing/nvtx-mock.git",
+    "nvtx-mock", # we now have a real package!!!!!
     "nvtx",
     "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git@rfdiffusion-mps-test",
     "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
@@ -125,7 +126,7 @@ rfdiffusion_cpu=[
     "torchvision", 
     "torchdata==0.7.1",
     "torchaudio",
-    "nvtx-mock @ git+https://github.com/YaoYinYing/nvtx-mock.git",
+    "nvtx-mock",
     "nvtx",
     "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git",
     "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",

@@ -100,3 +100,8 @@ save1.json
 save2.json
 save3.json
 save4.json
+branch_activity_summary.csv
+branch_summary.csv
+generate_branch_summary.py
+git_graph.txt
+pr_summary.csv
