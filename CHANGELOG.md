@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- `package_manager`: 
+  - `run_command` now use a streaming stdout and stderr manner, meaning the command running is now `live`
 
 ### Fixed
 - dependencies:
