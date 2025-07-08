@@ -1,5 +1,6 @@
 import json
 import os
+import io
 import platform
 import subprocess
 import tempfile
@@ -103,19 +104,22 @@ def test_run_command_success():
     Test run_command for a successful command execution.
     """
     cmd = ("echo", "Hello, World!")
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = subprocess.CompletedProcess(cmd, 0, stdout="Hello, World!", stderr="")
+
+    mock_stdout = io.StringIO("Hello, World!\n")
+    mock_stderr = io.StringIO("")
+
+    mock_popen = MagicMock()
+    mock_popen.stdout = mock_stdout
+    mock_popen.stderr = mock_stderr
+    mock_popen.wait.return_value = 0
+    mock_popen.returncode = 0
+
+    with patch("subprocess.Popen", return_value=mock_popen):
         result = run_command(cmd, verbose=False)
-        assert result.returncode == 0
-        assert result.stdout == "Hello, World!"
-        mock_run.assert_called_once_with(
-            cmd,
-            capture_output=True,
-            encoding="utf-8",
-            env=None,
-            text=True,
-            check=False,
-        )
+
+    assert result.returncode == 0
+    assert "Hello, World!" in result.stdout
+    assert result.stderr == ""
 
 
 def test_run_command_failure():
@@ -123,11 +127,22 @@ def test_run_command_failure():
     Test run_command for a command that fails (non-zero return code).
     """
     cmd = ("false",)
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = subprocess.CompletedProcess(cmd, 1, stdout="", stderr="Error")
+
+    mock_stdout = io.StringIO("")
+    mock_stderr = io.StringIO("Error: something went wrong\n")
+
+    mock_popen = MagicMock()
+    mock_popen.stdout = mock_stdout
+    mock_popen.stderr = mock_stderr
+    mock_popen.wait.return_value = 1
+    mock_popen.returncode = 1
+
+    with patch("subprocess.Popen", return_value=mock_popen):
         result = run_command(cmd, verbose=False)
-        assert result.returncode == 1
-        assert result.stderr == "Error"
+
+    assert result.returncode == 1
+    assert "something went wrong" in result.stderr
+    assert result.stdout == ""
 
 
 def test_run_command_verbose_failure():
@@ -135,8 +150,17 @@ def test_run_command_verbose_failure():
     Test run_command for a command that fails with verbose=True, raising an exception.
     """
     cmd = ("false",)
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = subprocess.CompletedProcess(cmd, 1, stdout="", stderr="Error")
+
+    mock_stdout = io.StringIO("")
+    mock_stderr = io.StringIO("Error: bad stuff happened\n")
+
+    mock_popen = MagicMock()
+    mock_popen.stdout = mock_stdout
+    mock_popen.stderr = mock_stderr
+    mock_popen.wait.return_value = 1
+    mock_popen.returncode = 1
+
+    with patch("subprocess.Popen", return_value=mock_popen):
         with pytest.raises(RuntimeError, match="--> Command failed"):
             run_command(cmd, verbose=True)
 
@@ -147,20 +171,24 @@ def test_run_command_with_env():
     """
     cmd = ("printenv", "MY_VAR")
     env = {"MY_VAR": "test_value"}
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = subprocess.CompletedProcess(cmd, 0, stdout="test_value", stderr="")
-        result = run_command(cmd, env=env)
-        assert result.returncode == 0
-        assert result.stdout == "test_value"
-        mock_run.assert_called_once_with(
-            cmd,
-            capture_output=True,
-            encoding="utf-8",
-            env=env,
-            text=True,
-            check=False,
-        )
 
+    mock_stdout = io.StringIO("test_value\n")
+    mock_stderr = io.StringIO("")
+
+    mock_popen = MagicMock()
+    mock_popen.stdout = mock_stdout
+    mock_popen.stderr = mock_stderr
+    mock_popen.wait.return_value = 0
+    mock_popen.returncode = 0
+
+    with patch("subprocess.Popen", return_value=mock_popen) as mock_subproc:
+        result = run_command(cmd, env=env)
+
+    assert result.returncode == 0
+    assert "test_value" in result.stdout
+    mock_subproc.assert_called_once()
+    # Check that env was passed correctly
+    assert mock_subproc.call_args.kwargs["env"] == env
 
 @pytest.fixture
 def mock_shutil_which():
