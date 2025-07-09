@@ -1,19 +1,23 @@
 '''
 Dialog wrapper registry
 '''
-import json
-import os
 import importlib
+import json
+from functools import partial
 from pathlib import Path
-from immutabledict import immutabledict
-import yaml
-from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
-from REvoDesign import issues
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
+import yaml
+from immutabledict import immutabledict
+
+from REvoDesign import issues
 from REvoDesign.common import file_extensions as Fext
+from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
+from REvoDesign.tools.package_manager import run_worker_thread_with_progress
+from REvoDesign.tools.utils import timing
 
 from ..logger import ROOT_LOGGER
+
 logging = ROOT_LOGGER.getChild(__name__)
 
 # Typing selection dictionary for safe type handling
@@ -27,14 +31,16 @@ asked_value_typing_dict: immutabledict[str, type] = immutabledict({
     "tuple": tuple,
 })
 
-REGISTRY_DIR=Path(__file__).parent / "registry"
+REGISTRY_DIR = Path(__file__).parent / "registry"
+
 
 def resolve_extension(extension: str) -> Fext.ExtColl:
     if hasattr(Fext, extension):
         return getattr(Fext, extension)
     else:
-        ext_dict={_e.lower():f'{_e.upper()} File' for _e in extension.split(';')}
+        ext_dict = {_e.lower(): f'{_e.upper()} File' for _e in extension.split(';')}
         return Fext.ExtColl.from_dict(ext_dict, prefix='Customized - ')
+
 
 def resolve_dotted_function(dotted_str: str) -> Callable:
     """
@@ -50,6 +56,7 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     module = importlib.import_module(module_path)
     return getattr(module, func_name)
 
+
 def resolve_choice_from(input_str: str) -> Iterable[Any]:
     if input_str.startswith("[") and input_str.endswith("]"):
         return list(json.loads(input_str))
@@ -57,19 +64,21 @@ def resolve_choice_from(input_str: str) -> Iterable[Any]:
         return dict(json.loads(input_str))
     elif input_str.startswith("(") and input_str.endswith(")"):
         return tuple(input_str.strip("()").split(","))
-    elif input_str.startswith('range:'): # range:1,10 or range:1,10,2
+    elif input_str.startswith('range:'):  # range:1,10 or range:1,10,2
         return range(*map(int, input_str.removeprefix('range:').split(",")))
     elif input_str.startswith("REvoDesign."):
-        resolved_callable=resolve_dotted_function(input_str)
+        resolved_callable = resolve_dotted_function(input_str)
         if isinstance(resolved_callable, Callable):
-            return resolved_callable() # Get callable dynamically
+            return resolved_callable()  # Get callable dynamically
         raise issues.ConfigurationError(f"Expected as a callable:  {resolved_callable}")
 
     raise issues.ConfigurationError(f"Unable to parse {input_str}")
+
+
 def _build_asked_value(entry: dict) -> AskedValue:
     """
     Builds an AskedValue object from configuration entry.
-    
+
     Args:
         entry (dict): A dictionary describing an AskedValue.
 
@@ -87,7 +96,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
     # Handle choices dynamically
     choices = entry.get("choices")
     if "choices_from" in entry:
-        choices_from: str=entry["choices_from"]
+        choices_from: str = entry["choices_from"]
         try:
             choices = resolve_choice_from(choices_from)
         except Exception as e:
@@ -101,6 +110,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
         required=entry.get("required", False),
         choices=choices
     )
+
 
 class DialogWrapperRegistry:
     """
@@ -121,13 +131,15 @@ class DialogWrapperRegistry:
         with path.open("r") as f:
             return yaml.safe_load(f)
 
-    def register(self, func_id: str, func: Callable):
+    def register(self, func_id: str, func: Callable, use_thread: bool = False, kwargs: Optional[Dict] = None):
         """
         Register the raw Python function under a given ID.
         """
         logging.debug(f"Registering function {func_id}")
-        self.funcs[func_id] = func
-
+        if use_thread:
+            self.funcs[func_id] = partial(run_wrapped_func_in_thread, func, **kwargs or {})
+        else:
+            self.funcs[func_id] = func
 
     def call(self, func_id: str, dynamic_values: Optional[List[dict]] = None):
         """
@@ -149,3 +161,22 @@ class DialogWrapperRegistry:
         )(self.funcs[func_id])
 
         wrapped_func(dynamic_values=dynamic_values or [])
+
+
+def run_wrapped_func_in_thread(func, **kwargs):
+    """
+    Runs the wrapped process with parameters collected from the dialog.
+
+    Args:
+        func: The wrapped process to run.
+        **kwargs: Parameters collected from the dialog.
+    """
+    from REvoDesign.driver.ui_driver import ConfigBus
+
+    with timing(f"Doing {func.__name__}"):
+        logging.info(kwargs)
+        run_worker_thread_with_progress(
+            func,
+            **kwargs,
+            progress_bar=ConfigBus().ui.progressBar
+        )

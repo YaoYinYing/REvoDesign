@@ -193,6 +193,7 @@ class LiveProcessResult(subprocess.CompletedProcess):
     def __init__(self, args, returncode, stdout: str, stderr: str):
         super().__init__(args=args, returncode=returncode, stdout=stdout, stderr=stderr)
 
+
 def run_command(
     cmd: Union[Tuple[str], List[str]],
     verbose: bool = False,

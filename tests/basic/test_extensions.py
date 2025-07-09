@@ -89,9 +89,10 @@ def test_file_extension_collection_filter_string():
 
     assert collection.filter_string == "Text File ( *.txt );;Markdown File ( *.md )"
 
+
 @pytest.mark.parametrize("prefix", ["", "Customized - "])
 def test_file_extension_collection_from_dict(prefix):
-    name_dict={"txt": "Text File", "md": "Markdown File"}
+    name_dict = {"txt": "Text File", "md": "Markdown File"}
     collection = FileExtensionCollection.from_dict(name_dict, prefix)
     assert collection.list_dot_ext == [".txt", ".md"]
     if prefix:

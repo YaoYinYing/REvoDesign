@@ -1,12 +1,15 @@
 '''
 Utility functions for dialogs hook functions
 '''
+
+
 def get_fasta_writer_choices():
     """
     Return the list of available FASTA writer choices dynamically.
     """
     from Bio import SeqIO
     return list(filter(lambda x: x.startswith("fas"), SeqIO._FormatToWriter.keys()))
+
 
 def get_designable_chain_ids():
     """
