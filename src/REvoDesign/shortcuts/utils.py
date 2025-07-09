@@ -1,83 +1,151 @@
 '''
-Utils for shortcuts
+Dialog wrapper registry
 '''
+import json
 import os
-import subprocess
-from typing import Dict, Literal
+import importlib
+from pathlib import Path
+from immutabledict import immutabledict
+import yaml
+from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from REvoDesign import issues
 
-from pymol import cmd
-from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
+from REvoDesign.common import file_extensions as Fext
 
-from REvoDesign import ROOT_LOGGER
-
+from ..logger import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
 
+# Typing selection dictionary for safe type handling
+asked_value_typing_dict: immutabledict[str, type] = immutabledict({
+    "int": int,
+    "str": str,
+    "float": float,
+    "dict": dict,
+    "list": list,
+    "bool": bool,
+    "tuple": tuple,
+})
 
-def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal['New Window', 'Current Window']):
+REGISTRY_DIR=Path(__file__).parent / "registry"
+
+def resolve_extension(extension: str) -> Fext.ExtColl:
+    if hasattr(Fext, extension):
+        return getattr(Fext, extension)
+    else:
+        ext_dict={_e.lower():f'{_e.upper()} File' for _e in extension.split(';')}
+        return Fext.ExtColl.from_dict(ext_dict, prefix='Customized - ')
+
+def resolve_dotted_function(dotted_str: str) -> Callable:
     """
-    Visualize a ligand conformer file (SDF) in a new PyMOL window.
+    Resolves a dotted string to a callable function.
 
     Args:
-        sdf_file_path (str): Path to the SDF file containing the conformers.
+        dotted_str (str): The dotted path to a function, e.g., "module.submodule:function_name".
+
+    Returns:
+        Callable: The resolved function.
     """
-    if show_conformer == 'Current Window':
-        # cmd.reinitialize()
-        cmd.load(sdf_file_path)
-        return
+    module_path, func_name = dotted_str.rsplit(":", 1) if ":" in dotted_str else dotted_str.rsplit(".", 1)
+    module = importlib.import_module(module_path)
+    return getattr(module, func_name)
 
-    # Get the absolute path of the directory containing the SDF file
-    tmpdir = os.path.abspath(os.path.dirname(sdf_file_path))
-    # Get the base name of the SDF file
-    sdf_bn = os.path.basename(sdf_file_path)
-    # Remove the file extension to get the file name
-    sdf_bn_wo_ext, _ = os.path.splitext(sdf_bn)
-    # Path for the temporary PML file
-    pml_file_path = os.path.join(tmpdir, f'{sdf_bn_wo_ext}_load_to_preview.pml')
+def resolve_choice_from(input_str: str) -> Iterable[Any]:
+    if input_str.startswith("[") and input_str.endswith("]"):
+        return list(json.loads(input_str))
+    elif input_str.startswith("{") and input_str.endswith("}"):
+        return dict(json.loads(input_str))
+    elif input_str.startswith("(") and input_str.endswith(")"):
+        return tuple(input_str.strip("()").split(","))
+    elif input_str.startswith('range:'): # range:1,10 or range:1,10,2
+        return range(*map(int, input_str.removeprefix('range:').split(",")))
+    elif input_str.startswith("REvoDesign."):
+        resolved_callable=resolve_dotted_function(input_str)
+        if isinstance(resolved_callable, Callable):
+            return resolved_callable() # Get callable dynamically
+        raise issues.ConfigurationError(f"Expected as a callable:  {resolved_callable}")
 
-    # Create the PML file with visualization commands
-    with open(pml_file_path, 'w') as pmlh:
-        # Command to load the SDF file
-        pmlh.write(f"load {os.path.abspath(sdf_file_path)}\n")
-        # Zoom and orient the view
-        pmlh.write("zoom\norient\n")
-        # Disable internal feedback in PyMOL
-        pmlh.write("set internal_feedback, 0\n")
-        # Set the viewport size
-        pmlh.write("viewport 800, 600\n")
-        # Set the background color to white
-        pmlh.write("bg_color white\n")
-
-    # Explicitly call a new PyMOL instance in the background
-    pymol_command = ["pymol", "-xi", pml_file_path]
-    subprocess.Popen(pymol_command)
-
-    print(f"PyMOL launched in the background with {sdf_file_path}.")
-
-
-def smiles_conformer_batch(smi: Dict[str, str], num_conformer: int, save_dir: str, n_jobs: int = 1):
+    raise issues.ConfigurationError(f"Unable to parse {input_str}")
+def _build_asked_value(entry: dict) -> AskedValue:
     """
-    Generates 3D conformers for a SMILES string using RDKit.
-
+    Builds an AskedValue object from configuration entry.
+    
     Args:
-        smi (Dict[str, str]): Dictionary containing the name of the molecule as the key and the SMILES string as the value.
-        num_conformer (int): Number of conformers to generate for each molecule.
-        save_dir (str): Directory to save the generated conformer files.
-        n_jobs (int, optional): Number of parallel jobs to run. Defaults to 1.
+        entry (dict): A dictionary describing an AskedValue.
+
+    Returns:
+        AskedValue: The constructed AskedValue object.
     """
-    print(f'Converting {len(smi)} molecules to 3D conformers({num_conformer})...')
-    # Initialize the SmallMoleculeParamsGenerator and convert the specified molecules
-    converter = SmallMoleculeParamsGenerator(save_dir=save_dir, num_conformer=num_conformer)
-    converter.convert(ligands=smi, n_jobs=n_jobs)
+    # Get type
+    typing_func = asked_value_typing_dict.get(entry["type"], str)  # Default to `str` if no match
+
+    # Handle default value from a callable (e.g., using a function name from dotted string)
+    val = entry.get("default")
+    if "default_from" in entry:
+        val = resolve_dotted_function(entry["default_from"])()  # Get callable dynamically
+
+    # Handle choices dynamically
+    choices = entry.get("choices")
+    if "choices_from" in entry:
+        choices_from: str=entry["choices_from"]
+        try:
+            choices = resolve_choice_from(choices_from)
+        except Exception as e:
+            raise ValueError(f"Error resolving choices from {choices_from}: {e}")
+
+    return AskedValue(
+        entry["name"],
+        val=val,
+        typing=typing_func,
+        reason=entry.get("reason", ""),
+        required=entry.get("required", False),
+        choices=choices
+    )
+
+class DialogWrapperRegistry:
+    """
+    Loads YAML config and dynamically builds & calls dialog-wrapped functions.
+    """
+
+    def __init__(self, category: str):
+        """
+        Args:
+            category (str): Functional category matching a YAML in registry/.
+        """
+        yaml_path = REGISTRY_DIR / f"{category}.yaml"
+        logging.debug(f"Loading {category} registry from {yaml_path}")
+        self.config = self._load_yaml(yaml_path)
+        self.funcs: Dict[str, Callable] = {}
+
+    def _load_yaml(self, path: Path) -> dict:
+        with path.open("r") as f:
+            return yaml.safe_load(f)
+
+    def register(self, func_id: str, func: Callable):
+        """
+        Register the raw Python function under a given ID.
+        """
+        logging.debug(f"Registering function {func_id}")
+        self.funcs[func_id] = func
 
 
-def smiles_conformer_single(ligand_name: str, smiles: str, num_conformer: int, save_dir: str,):
-    """
-    Generates 3D conformers for a single SMILES string using RDKit.
+    def call(self, func_id: str, dynamic_values: Optional[List[dict]] = None):
+        """
+        Wrap and call the function with a dialog built from YAML config.
+        """
+        logging.debug(f"Calling function {func_id}")
+        if func_id not in self.funcs:
+            raise ValueError(f"No function registered: {func_id}")
+        if func_id not in self.config:
+            raise ValueError(f"No dialog config for: {func_id}")
 
-    Args:
-        ligand_name (str): Name of the ligand.
-        smiles (str): SMILES string of the ligand.
-        num_conformer (int): Number of conformers to generate.
-        save_dir (str): Directory to save the generated conformer file.
-    """
-    return smiles_conformer_batch(smi={ligand_name: smiles}, num_conformer=num_conformer, save_dir=save_dir)
+        conf = self.config[func_id]
+        asked_values = [_build_asked_value(opt) for opt in conf["options"]]
+        logging.debug(f"Asked values: {asked_values}")
+        wrapped_func = dialog_wrapper(
+            title=conf.get("title", func_id),
+            banner=conf.get("banner", ""),
+            options=tuple(asked_values),
+        )(self.funcs[func_id])
+
+        wrapped_func(dynamic_values=dynamic_values or [])

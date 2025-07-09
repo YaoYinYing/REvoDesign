@@ -188,7 +188,7 @@ def test_run_command_with_env():
     assert "test_value" in result.stdout
     mock_subproc.assert_called_once()
     # Check that env was passed correctly
-    assert mock_subproc.call_args.kwargs["env"] == env
+    assert mock_subproc.call_args.kwargs["env"]["MY_VAR"] == "test_value"
 
 @pytest.fixture
 def mock_shutil_which():

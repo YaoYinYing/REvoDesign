@@ -2280,9 +2280,12 @@ def __init_plugin__(app=None):
     addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
 
     if is_package_installed('REvoDesign'):
-        from REvoDesign import REvoDesignPlugin
+        try:
+            from REvoDesign import REvoDesignPlugin
 
-        plugin = REvoDesignPlugin()
-        addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
+            plugin = REvoDesignPlugin()
+            addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
+        except Exception as e:
+            logging.error(str(e))
     else:
         logging.critical("REvoDesign is not available.")

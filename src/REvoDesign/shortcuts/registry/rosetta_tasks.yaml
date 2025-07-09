@@ -1,0 +1,172 @@
+wrapped_rosettaligand:
+  title: "RosettaLigand"
+  banner: "Perform RosettaLigand Docking"
+  options:
+    - name: "pdb"
+      type: str
+      reason: "Path to the PDB file"
+      source: "File"
+      required: true
+      ext: ".pdb"
+    - name: "ligand_params"
+      type: str
+      reason: "Path to the ligands (*.params) to be docked."
+      source: "Files"
+      required: true
+      ext: ".params"
+    - name: "nstruct"
+      type: int
+      reason: "Number of structures to be generated."
+      required: true
+    - name: "chain_id_for_dock"
+      type: str
+      reason: "Chain ID for the docking."
+      required: true
+    - name: "save_dir"
+      type: str
+      reason: "Path to the directory to save the results."
+      source: "Directory"
+      required: true
+    - name: "job_id"
+      type: str
+      reason: "Job ID for the docking."
+      required: true
+    - name: "cst"
+      type: str
+      reason: "Path to the constraint file."
+      source: "File"
+      required: false
+    - name: "box_size"
+      type: int
+      reason: "Box size for the docking."
+      required: true
+    - name: "move_distance"
+      type: float
+      reason: "Move distance for the docking."
+    - name: "gridwidth"
+      type: int
+      reason: "Grid width for the docking."
+      choices: [10, 90]
+    - name: "start_from_xyz_sele"
+      type: str
+      reason: "Startpoint selection from XYZ coordinates."
+      choices_from: "REvoDesign.shortcuts.dialog_hooks.get_selections"
+
+wrapped_pross:
+  title: "PROSS design"
+  banner: "Perform PROSS design"
+  options:
+    - name: "pdb"
+      type: str
+      reason: "Path to the PDB file"
+      source: "File"
+      required: true
+      ext: ".pdb"
+    - name: "pssm"
+      type: str
+      reason: "Path to the PSSM file."
+      source: "File"
+      required: true
+      ext: ".pssm"
+    - name: "res_to_fix"
+      type: str
+      reason: "Residue to fix. Default is 1A."
+    - name: "res_to_restrict"
+      type: str
+      reason: "Residue to restrict. Default is 1A."
+    - name: "nstruct_refine"
+      type: int
+      reason: "Number of structures to be generated in refinement."
+      required: true
+    - name: "save_dir"
+      type: str
+      reason: "Path to the directory to save the results."
+      source: "Directory"
+      required: true
+    - name: "job_id"
+      type: str
+      reason: "Job ID for the PROSS design."
+      required: true
+
+wrapped_fast_relax:
+  title: "FastRelax"
+  banner: "Perform Rosetta FastRelax"
+  options:
+    - name: "pdb"
+      type: str
+      reason: "Path to the PDB file"
+      source: "File"
+      required: true
+      ext: ".pdb"
+    - name: "relax_script"
+      type: str
+      reason: "Name of the fastrelax script."
+      choices_from: "REvoDesign.shortcuts.dialog_hooks.list_fastrelax_scripts"
+      required: true
+    - name: "dualspace"
+      type: bool
+      reason: "Whether to use dual space."
+    - name: "default_repeats"
+      type: int
+      reason: "Default number of repeats."
+      choices: [3, 100]
+    - name: "nstruct"
+      type: int
+      reason: "Number of structures to be generated in relax."
+      required: true
+    - name: "save_dir"
+      type: str
+      reason: "Path to the directory to save the results."
+      source: "Directory"
+      required: true
+    - name: "job_id"
+      type: str
+      reason: "Job ID for the FastRelax design."
+      required: true
+    - name: "ligand_params"
+      type: str
+      reason: "Path to the ligands (*.params) to be docked."
+      source: "Files"
+      ext: ".params"
+    - name: "opts"
+      type: str
+      reason: "Other options for the FastRelax."
+
+wrapped_relax_w_ca_constraints:
+  title: "RelaxWithCaConstraints"
+  banner: "Perform Rosetta Relax With Ca Constraints"
+  options:
+    - name: "pdb"
+      type: str
+      reason: "Path to the PDB file"
+      source: "File"
+      required: true
+      ext: ".pdb"
+    - name: "nstructs_per_round"
+      type: int
+      reason: "Number of structures to generate per round."
+      required: true
+    - name: "ncycles"
+      type: int
+      reason: "Number of cycles to run."
+      required: true
+    - name: "save_dir"
+      type: str
+      reason: "Path to the directory to save the results."
+      source: "Directory"
+      required: true
+    - name: "job_id"
+      type: str
+      reason: "Job ID for the FastRelax design."
+      required: true
+    - name: "ligand_params"
+      type: str
+      reason: "Path to the ligands (*.params) to be docked."
+      source: "Files"
+      ext: ".params"
+    - name: "opts"
+      type: str
+      reason: "Other options for the FastRelax."
+    - name: "load_to_preview"
+      type: bool
+      reason: "Whether to load the results to preview."
