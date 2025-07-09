@@ -193,7 +193,6 @@ class LiveProcessResult(subprocess.CompletedProcess):
     def __init__(self, args, returncode, stdout: str, stderr: str):
         super().__init__(args=args, returncode=returncode, stdout=stdout, stderr=stderr)
 
-
 def run_command(
     cmd: Union[Tuple[str], List[str]],
     verbose: bool = False,
@@ -216,10 +215,15 @@ def run_command(
     if verbose:
         logging.info(f"Launching command: {' '.join(cmd)}")
 
+    # Clone and patch environment for macOS if needed
+    patched_env = os.environ.copy()
+    if env:
+        patched_env.update(env)
+
     stdout_lines: List[str] = []
     stderr_lines: List[str] = []
 
-    def stream_reader(pipe: io.IOBase, collector: List, label: str):
+    def stream_reader(pipe: io.IOBase, collector: List[str], label: str):
         for line in iter(pipe.readline, ''):
             if verbose:
                 logging.info(f"[{label}] {line.rstrip()}")
@@ -232,7 +236,7 @@ def run_command(
         stderr=subprocess.PIPE,
         text=True,
         bufsize=1,
-        env=env,
+        env=patched_env,
     )
 
     t1 = threading.Thread(target=stream_reader, args=(process.stdout, stdout_lines, "STDOUT"))
@@ -1446,7 +1450,7 @@ class REvoDesignPackageManager:
                 progress_bar=self.installer_ui.progressBar,
             )
             # Provide feedback on the installation result
-            if installed.returncode == 0:
+            if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
                 notify_box(
                     message="Installation succeeded. \nIf this is an upgrade, "
                     "please restart PyMOL for it to take effect.",
