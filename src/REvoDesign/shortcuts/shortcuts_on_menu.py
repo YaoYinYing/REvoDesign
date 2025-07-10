@@ -47,7 +47,7 @@ def menu_dump_sidechains(dump_all=False):
         "index": 0,  # Specify the position in the options list
     }
 
-    wrapped_menu_dump_sidechains(dynamic_values=[dynamic_value])
+    wrapped_menu_dump_sidechains([dynamic_value])
 
 
 def menu_color_by_plddt():

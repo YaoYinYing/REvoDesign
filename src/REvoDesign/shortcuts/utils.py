@@ -6,7 +6,7 @@ import importlib
 import json
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union,overload
 
 import yaml
 from immutabledict import immutabledict
@@ -135,14 +135,18 @@ class DialogWrapperRegistry:
             return yaml.safe_load(f)
 
     def register(
-            self,
-            func_id: str,
-            func: Callable,
-            use_thread: bool = False,
-            has_dynamic_values: bool = False,
-            kwargs: Optional[Dict] = None):
+        self,
+        func_id: str,
+        func: Callable,
+        use_thread: bool = False,
+        has_dynamic_values: bool = False,
+        kwargs: Optional[Dict] = None
+    ):
         """
         Register the raw Python function under a given ID.
+        Returns either:
+        - A callable accepting dynamic values (if has_dynamic_values=True)
+        - A callable with no arguments (if has_dynamic_values=False)
         """
         logging.debug(f"Registering function {func_id}")
         if use_thread:
@@ -151,16 +155,22 @@ class DialogWrapperRegistry:
             self.funcs[func_id] = func
 
         def window_wrapper_dynamic_values(dynamic_values: Optional[List[Any]] = None):
+            f'''
+            Wrapper for the function `{func_id}` to be called from the GUI.
+            It calls the function `{func_id}` with the given dynamic values.
+            '''
             self.call(func_id, dynamic_values)
 
-        def window_wrapper():
-
+        def window_wrapper(dynamic_values: Optional[List[Any]] = None):
+            f'''
+            Wrapper for the function `{func_id}` to be called from the GUI.
+            It calls the function `{func_id}` with the no dynamic values.
+            '''
             self.call(func_id)
 
-        # Register the function for unloading gracefully at exit
         atexit.register(self.unregister, func_id)
-
         return window_wrapper_dynamic_values if has_dynamic_values else window_wrapper
+
 
     def unregister(self, func_id: str):
         """
