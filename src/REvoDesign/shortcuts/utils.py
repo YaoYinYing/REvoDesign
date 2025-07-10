@@ -6,7 +6,7 @@ import importlib
 import json
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union,overload
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import yaml
 from immutabledict import immutabledict
@@ -170,7 +170,6 @@ class DialogWrapperRegistry:
 
         atexit.register(self.unregister, func_id)
         return window_wrapper_dynamic_values if has_dynamic_values else window_wrapper
-
 
     def unregister(self, func_id: str):
         """

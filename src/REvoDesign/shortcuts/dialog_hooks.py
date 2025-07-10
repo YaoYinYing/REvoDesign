@@ -3,8 +3,6 @@ Utility functions for dialogs hook functions
 '''
 
 
-
-
 def get_fasta_writer_choices():
     """
     Return the list of available FASTA writer choices dynamically.
