@@ -3,6 +3,9 @@ Utility functions for dialogs hook functions
 '''
 
 
+from REvoDesign.tools.pymol_utils import find_small_molecules_in_protein
+
+
 def get_fasta_writer_choices():
     """
     Return the list of available FASTA writer choices dynamically.
@@ -22,3 +25,6 @@ def get_designable_chain_ids():
 def get_selections():
     from pymol import cmd
     return [''] + list(cmd.get_names("selections"))
+
+
+find_all_small_molecules_in_protein=lambda: find_small_molecules_in_protein('(all)') or None

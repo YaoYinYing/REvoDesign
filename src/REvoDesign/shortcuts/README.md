@@ -61,7 +61,7 @@ The program utilizes this logic through the **`DialogWrapperRegistry`** system, 
 
 4. **Background Execution**: The function is executed in a separate thread, allowing the UI to remain responsive. The task runs asynchronously, and the program continues to handle other interactions during this time.
 
-5. **Post-Execution Handling**: After the function completes, the program may update the UI to reflect the results, display messages, or log the output.
+5. **Lifecycle handling**: Before the app exits, the program will unregister these function windows automatically.
 
 ### **5. How a Practiced Developer Should Follow**
 
@@ -73,30 +73,63 @@ A developer can follow these steps to integrate a function into a window popup:
    Example:
 
    ```python
-   def my_function(param1, param2):
-       print(f"Executing function with {param1} and {param2}")
+   def logger_level_setter(
+        level: str = 'info',
+        channel: Optional[Literal['stdout', 'stderr', 'file', 'notebook']] = None,
+        apply_to_root_logger: bool = False) -> None:
+      """Set the logger level to the given value.
+
+      Args:
+         level (int): The level to set the logger to.
+      """
+      from REvoDesign.driver.ui_driver import ConfigBus
+      from REvoDesign.logger import ROOT_LOGGER
+
+      if channel:
+         # apply to the config
+         ConfigBus().set_value(f'log.handlers.{channel}.level', level.upper())
+         # apply to the runtime
+         for handler in ROOT_LOGGER.handlers:
+               if handler.name == channel:
+                  handler.setLevel(level)
+                  break
+      if apply_to_root_logger:
+         # apply to the config
+         ConfigBus().set_value('log.loggers.root.level', level.upper())
+         # apply to the runtime
+         ROOT_LOGGER.setLevel(level=level)
    ```
 
 2. **Create the Dialog Configuration (YAML)**:
    Create a **YAML file** that defines the dialog for the function. This includes the input fields, types, constraints, and any dynamic choices for dropdowns or selections.
+   
+   One must ensure that the YAML file is named `<catagory>.yaml` and is located in the `src/REvoDesign/shortcuts/registry` directory.
 
-   Example YAML (`my_functions.yaml`):
+   Example YAML (`logger.yaml`), where `logger` is the name of the catagory and `logger_level_setter` is the function-id:
 
    ```yaml
-   my_function_dialog:
-     title: "My Function"
-     banner: "Provide parameters for My Function"
-     options:
-       - name: "param1"
+   logger_level_setter:
+   title: "Set Logger Level"
+   banner: "Set the logger level"
+   options:
+      - name: "level"
          type: str
-         reason: "First parameter"
+         reason: "Level to set the logger to."
+         choices: ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+         default: "INFO"
          required: true
-       - name: "param2"
-         type: int
-         default: 5
-         reason: "Second parameter"
-         required: false
+      - name: "channel"
+         type: str
+         reason: "Channel to set the logger to."
+         choices: ['stdout','stderr','file','notebook']
+         default: ""
+      - name: "apply_to_root_logger"
+         type: bool
+         default: true
+         reason: "Whether to apply the logger to the root logger."
    ```
+
+   Also, one must sure that all the options used by the function is present in the function options.
 
 3. **Register the Function**:
    Use the **`DialogWrapperRegistry`** to register the function with the dialog configuration. The dialog window will be automatically generated based on the YAML file.
@@ -104,8 +137,17 @@ A developer can follow these steps to integrate a function into a window popup:
    Example (pseudo-code for registration):
 
    ```python
-   registry = DialogWrapperRegistry("my_functions")
-   registry.register("my_function_dialog", my_function)
+   # 1. import the target function
+   from REvoDesign.logger.logger import logger_level_setter
+   # 2. import the registry class
+   from REvoDesign.shortcuts.utils import DialogWrapperRegistry
+
+   # 3. create a registry instance with the catagory `logger` for the yaml file
+   registry = DialogWrapperRegistry("logger")
+
+   # 4. register the function as the function-id(in the yaml item) and the related function
+   # the returned value is the wrapped function window pop trigger.
+   wrapped_logger_level_setter = registry.register("logger_level_setter", logger_level_setter)
    ```
 
 4. **Define the Parameters and Constraints**:
@@ -114,54 +156,91 @@ A developer can follow these steps to integrate a function into a window popup:
 5. **Dialog Creation**:
    The dialog (popup window) is automatically created by the **`DialogWrapperRegistry`** system based on the function's parameters. You do not need to manually design the dialog; this is handled for you.
 
-6. **Handle Pre- and Post-Processing (Optional)**:
-   If the function requires special handling before or after execution (e.g., parsing inputs, cleaning up data), write pre- and post-processing functions. These can be applied in the **`DialogWrapperRegistry`** before and after the core function is executed.
-
-   Example (pre-processing):
-
-   ```python
-   def pre_process_function(dynamic_values):
-       # Modify dynamic_values or validate inputs
-       return dynamic_values
-   ```
-
-7. **Trigger the Function**:
-   To trigger the function, call `registry.call()` with the necessary dynamic values. The dialog will open, the user will interact with it, and the function will execute once the form is submitted.
+6. **Trigger the Function**:
+   To trigger the function, call the returned `wrapped_logger_level_setter` from registration. The dialog will open, the user will interact with it, and the function will execute once the form is submitted.
 
    Example (calling the function):
 
    ```python
-   registry.call("my_function_dialog", dynamic_values)
+   wrapped_logger_level_setter()
    ```
 
-### **6. Example Code Snippet**
+   Alternatively, bind the function to a UI widget::
 
-Here’s a complete example of how the logic could look:
+   ```python
+   actionLoggerLevelSetter.clicked.connect(wrapped_logger_level_setter)
+   ```
 
-```python
-# Function that will be called
-def my_function(param1, param2):
-    print(f"Executing function with {param1} and {param2}")
+### **6. YAML options explained**
 
-# Dialog registration and function call
-registry = DialogWrapperRegistry("my_functions")
+The YAML options are used to define the structure and behavior of the dialog. Here's what each option does:
 
-# Register the function
-registry.register("my_function_dialog", my_function)
+   ```yaml
+   title: "RelaxWithCaConstraints" # the title of the dialog
+   banner: "Perform Rosetta Relax With Ca Constraints" # the banner text of function description
+   options: # option list, each aligned with `REvoDesign.tools.customized_widgets.AskedValue`
+      - name: "pdb" # option name, passed as kwargs key. `key`
+         type: str # option type, used for typing checking before passing to the function. `typing`
+         reason: "Path to the PDB file" # reason for the option, displayed in the dialog. `reason`
+         source: "File" # source of the option, used for filtering options in the dialog. `source`
+         default: "" # default value. `val`
+         required: true # whether the option is mandatory. `required`
+         ext: "PDB_STRICT" # File extension. attributes from `REvoDesign.common.file_extensions`, or customized semi-colon-separated string like `pdb;sdf;mol2`, `ext`
+         choices: ... # list choices. `choices`
+         choices_from: ... # Optional choices alternative source, could be: a `importpath:function` string to reference a function to get choices; a range expression `range:1,10` or `range:1,20,2`; a quoted expression of list, tuple or dict like `"[1, 2, 4]"`. 
+   ```
 
-# Define dynamic values (e.g., collected from the dialog)
-dynamic_values = {
-    "param1": "Value1",
-    "param2": 10
-}
+   **Note**: The `choices_from` parameter override the `choices` parameter.
 
-# Trigger the function with dynamic values
-registry.call("my_function_dialog", dynamic_values)
-```
+### **7. External Dynamic Inputs and Threading**
+   The registration process allows developer to handle external dynamic inputs and threading to enrich the function utilities.
 
-### **7. Conclusion**
+   #### **7.1. External Dynamic Inputs**
+   To enable external dynamic inputs, set the `has_dynamic_values` flag to `True` when registering the function. You can then pass dynamic inputs to the function.
 
-In this document, we’ve outlined the **logical design** behind wrapping functions in window popups, the **reasons for using this design**, and **how to implement it**. By using the **`DialogWrapperRegistry`** system, developers can easily turn functions into interactive window popups, improving the flexibility, maintainability, and user interactivity of the application.
+   ```python
+   wrapped_menu_dump_sidechains = registry.register(
+      "menu_dump_sidechains",
+      shortcut_dump_sidechains,
+      has_dynamic_values=True)
+   ```
 
-This system separates the logic of the function from the UI design, allowing for easy customization and extensibility while improving the user experience.
+   After that, a list of kv-pairs can be passed to the function.
 
+   ```python
+   def menu_dump_sidechains(dump_all=False):
+      """
+      Prepares and launches the sidechain dumping menu.
+
+      Args:
+         dump_all (bool): If True, preselects all groups for sidechain dumping.
+      """
+      dynamic_value = {
+         "value": AskedValue(
+               "sele",
+               val=get_all_groups() if dump_all else None,
+               typing=list,
+               reason="Select the models to dump sidechains.",
+               choices=get_all_groups(),
+         ),
+         "index": 0,  # Specify the position in the options list
+      }
+
+      wrapped_menu_dump_sidechains([dynamic_value])
+   ```
+   #### **7.2. Threading**
+   If the function is time-consuming, enable threading by setting `use_thread=True`. This will ensure the function runs in a separate thread, keeping the UI responsive.
+
+   For example:
+
+   ```python
+   wrapped_rosettaligand = registry.register("rosettaligand", rosettaligand, use_thread=True)
+   ```
+
+   The task will be executed in a separate thread, and the result will be returned to the main thread. During the execution, the progress bar will be updated automatically.
+
+### **8. Conclusion**
+
+In this document, we have discussed how to turn functions into interactive window popups, highlighting the DialogWrapperRegistry system that automates much of the process. This design makes it easier to integrate interactive dialogs, improving flexibility, maintainability, and user experience.
+
+The modularity of this approach allows developers to quickly add new functions with minimal effort while ensuring a smooth, non-blocking UI for users.

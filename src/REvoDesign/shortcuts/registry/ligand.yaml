@@ -1,0 +1,80 @@
+smiles_conformer_single:
+  title: "Get SMILES Conformer"
+  banner: "Generate 3D conformers for a SMILES string using RDKit."
+  options:
+    - name: "ligand_name"
+      type: str
+      reason: "Name for the ligand. This will be used as the filename prefix."
+      required: true
+    - name: "smiles"
+      type: str
+      reason: "SMILES string to generate conformers for."
+      required: true
+    - name: "num_conformer"
+      type: int
+      reason: "Number of conformers to generate."
+      choices_from: range:50,300
+      default: 100
+    - name: "save_dir"
+      type: str
+      reason: "Directory to save the conformers."
+      source: "Directory"
+      default: "conformers"
+    - name: "show_conformer"
+      type: str
+      reason: "Show the conformer in PyMOL if True."
+      choices: ['None', 'Current Window', 'New Window']
+
+smiles_conformer_batch:
+  title: "Get SMILES Conformers (Many)"
+  banner: "Generate 3D conformers for multiple SMILES strings using RDKit."
+  options:
+    - name: "smiles"
+      type: str
+      reason: "Path to SMILES json file to generate conformers for."
+      required: true
+      source: "JsonInput"
+    - name: "num_conformer"
+      type: int
+      reason: "Number of conformers to generate."
+      choices_from: range:50,300
+      default: 100
+    - name: "save_dir"
+      type: str
+      reason: "Directory to save the conformers."
+      source: "Directory"
+    - name: "n_jobs"
+      type: int
+      reason: "Number of parallel jobs."
+      choices_from: range:1,16
+      default: 1
+    - name: "show_conformer"
+      type: str
+      reason: "Show the conformer in PyMOL if True."
+      choices: ['None', 'Current Window', 'New Window']
+      default: "None"
+
+sdf2rosetta_params:
+  title: "Convert SDF to Rosetta Parameter File"
+  banner: "Convert a given SDF to a Rosetta Parameter File."
+  options:
+    - name: "ligand_name"
+      type: str
+      reason: "A name for the ligand."
+      required: true
+    - name: "sdf_path"
+      type: str
+      reason: "File path of the SDF."
+      required: true
+      source: "File"
+      ext: "SDF"
+    - name: "charge"
+      type: int
+      reason: "Additional charge to the ligand. Default is 0."
+      choices_from: range:-3,3
+      default: 0
+    - name: "save_dir"
+      type: str
+      reason: "Save directory. Default is './ligands_sdf/'."
+      source: "Directory"
+      default: "./ligands_sdf/"

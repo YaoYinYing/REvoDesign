@@ -75,6 +75,16 @@ def resolve_choice_from(input_str: str) -> Iterable[Any]:
 
     raise issues.ConfigurationError(f"Unable to parse {input_str}")
 
+def resolve_default_value(typing: type) -> Any:
+    if typing == bool:
+        return False
+    if typing == int:
+        return 0
+    if typing == float:
+        return 0.0
+    if typing == str:
+        return ""
+    
 
 def _build_asked_value(entry: dict) -> AskedValue:
     """
@@ -105,7 +115,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
 
     return AskedValue(
         entry["name"],
-        val=val or '',
+        val=val or resolve_default_value(typing_func),
         typing=typing_func,
         reason=entry.get("reason", ""),
         required=entry.get("required", False),
@@ -113,6 +123,8 @@ def _build_asked_value(entry: dict) -> AskedValue:
         source=entry.get("source", 'None'),
         ext=resolve_extension(entry.get("ext", 'Any'))
     )
+
+
 
 
 class DialogWrapperRegistry:
