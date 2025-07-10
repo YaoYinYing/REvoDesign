@@ -9,7 +9,7 @@ import logging as python_logging
 import logging.handlers as python_logging_handlers
 import os
 import queue
-from typing import Union
+from typing import Literal, Optional, Union
 
 from omegaconf import DictConfig
 from platformdirs import user_log_path
@@ -215,3 +215,23 @@ def setup_logging() -> python_logging.Logger:
 ROOT_LOGGER = setup_logging()
 
 LoggerT = python_logging.Logger
+
+
+def logger_level_setter(
+        level: str='info', 
+        channel: Optional[Literal['stdout','stderr','file','notebook']]=None,
+        apply_to_root_logger: bool=False) -> None:
+    """Set the logger level to the given value.
+
+    Args:
+        level (int): The level to set the logger to.
+    """
+    from REvoDesign.driver.ui_driver import ConfigBus
+    from REvoDesign.logger import ROOT_LOGGER
+
+    
+    if channel:
+        ConfigBus().set_value(f'log.handlers.{channel}.level', level.upper())
+    if apply_to_root_logger:
+        ROOT_LOGGER.setLevel(level=level)
+        ConfigBus().set_value('log.loggers.root.level', level.upper())

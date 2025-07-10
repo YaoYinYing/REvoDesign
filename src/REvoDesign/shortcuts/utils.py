@@ -6,7 +6,7 @@ import json
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
-
+import atexit
 import yaml
 from immutabledict import immutabledict
 
@@ -133,7 +133,7 @@ class DialogWrapperRegistry:
         with path.open("r") as f:
             return yaml.safe_load(f)
 
-    def register(self, func_id: str, func: Callable, use_thread: bool = False, kwargs: Optional[Dict] = None):
+    def register(self, func_id: str, func: Callable, use_thread: bool = False, has_dynamic_values:bool=False, kwargs: Optional[Dict] = None):
         """
         Register the raw Python function under a given ID.
         """
@@ -142,6 +142,27 @@ class DialogWrapperRegistry:
             self.funcs[func_id] = partial(run_wrapped_func_in_thread, func, **kwargs or {})
         else:
             self.funcs[func_id] = func
+
+        def window_wrapper_dynamic_values(dynamic_values: Optional[List[Any]] = None):
+            self.call(func_id, dynamic_values)
+
+        def window_wrapper():
+            
+            self.call(func_id)
+
+
+
+        # Register the function for unloading gracefully at exit
+        atexit.register(self.unregister, func_id)
+
+        return window_wrapper_dynamic_values if has_dynamic_values else window_wrapper
+
+    def unregister(self, func_id: str):
+        """
+        Unregister the function with the given ID.
+        """
+        logging.debug(f"Unregistering function {func_id}")
+        del self.funcs[func_id]
 
     def call(self, func_id: str, dynamic_values: Optional[List[dict]] = None):
         """

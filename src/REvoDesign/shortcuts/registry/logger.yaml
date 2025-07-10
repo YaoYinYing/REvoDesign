@@ -1,0 +1,19 @@
+logger_level_setter:
+  title: "Set Logger Level"
+  banner: "Set the logger level"
+  options:
+    - name: "level"
+      type: str
+      reason: "Level to set the logger to."
+      choices: ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+      default: "INFO"
+      required: true
+    - name: "channel"
+      type: str
+      reason: "Channel to set the logger to."
+      choices: ['stdout','stderr','file','notebook']
+      default: ""
+    - name: "apply_to_root_logger"
+      type: bool
+      default: true
+      reason: "Whether to apply the logger to the root logger."
