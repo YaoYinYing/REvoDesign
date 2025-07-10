@@ -1,4 +1,4 @@
-wrapped_rosettaligand:
+rosettaligand:
   title: "RosettaLigand"
   banner: "Perform RosettaLigand Docking"
   options:
@@ -60,7 +60,7 @@ wrapped_rosettaligand:
       reason: "Startpoint selection from XYZ coordinates."
       choices_from: "REvoDesign.shortcuts.dialog_hooks.get_selections"
 
-wrapped_pross:
+pross:
   title: "PROSS design"
   banner: "Perform PROSS design"
   options:
@@ -101,7 +101,7 @@ wrapped_pross:
       reason: "Job ID for the PROSS design."
       required: true
 
-wrapped_fast_relax:
+fast_relax:
   title: "FastRelax"
   banner: "Perform Rosetta FastRelax"
   options:
@@ -150,7 +150,7 @@ wrapped_fast_relax:
       type: str
       reason: "Other options for the FastRelax."
 
-wrapped_relax_w_ca_constraints:
+relax_w_ca_constraints:
   title: "RelaxWithCaConstraints"
   banner: "Perform Rosetta Relax With Ca Constraints"
   options:

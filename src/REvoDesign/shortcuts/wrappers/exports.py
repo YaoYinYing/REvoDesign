@@ -15,10 +15,10 @@ logging = ROOT_LOGGER.getChild(__name__)
 registry = DialogWrapperRegistry("exports")
 
 # Register function manually
-wrapped_dump_fasta_from_struct = registry.register("wrapped_dump_fasta_from_struct", shortcut_dump_fasta_from_struct)
+wrapped_dump_fasta_from_struct = registry.register("dump_fasta_from_struct", shortcut_dump_fasta_from_struct)
 
 wrapped_menu_dump_sidechains = registry.register(
-    "wrapped_menu_dump_sidechains",
+    "menu_dump_sidechains",
     shortcut_dump_sidechains,
     use_thread=True,
     has_dynamic_values=True)

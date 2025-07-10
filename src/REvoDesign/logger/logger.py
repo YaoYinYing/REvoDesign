@@ -230,7 +230,16 @@ def logger_level_setter(
     from REvoDesign.logger import ROOT_LOGGER
 
     if channel:
+        # apply to the config
         ConfigBus().set_value(f'log.handlers.{channel}.level', level.upper())
+        # apply to the runtime
+        for handler in ROOT_LOGGER.handlers:
+            if handler.name == channel:
+                handler.setLevel(level)
+                break
     if apply_to_root_logger:
-        ROOT_LOGGER.setLevel(level=level)
+        # apply to the config
         ConfigBus().set_value('log.loggers.root.level', level.upper())
+        # apply to the runtime
+        ROOT_LOGGER.setLevel(level=level)
+        

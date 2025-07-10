@@ -17,8 +17,6 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 # 1. Prepare functions that has kwargs input and pre-/post-processing
 # no need to use threading
-
-
 def rosettaligand(**kwargs):
     """
     Runs the RosettaLigand docking.
@@ -90,10 +88,10 @@ registry = DialogWrapperRegistry("rosetta_tasks")
 
 # 3. Register functions into the registry by id-function pairs with threading enabled or not
 # wrapped window pop trigger will be returned after this registration
-wrapped_rosettaligand = registry.register("wrapped_rosettaligand", rosettaligand, use_thread=True)
-wrapped_pross = registry.register("wrapped_pross", shortcut_pross, use_thread=True)
-wrapped_fast_relax = registry.register("wrapped_fast_relax", fast_relax, use_thread=True)
+wrapped_rosettaligand = registry.register("rosettaligand", rosettaligand, use_thread=True)
+wrapped_pross = registry.register("pross", shortcut_pross, use_thread=True)
+wrapped_fast_relax = registry.register("fast_relax", fast_relax, use_thread=True)
 wrapped_relax_w_ca_constraints = registry.register(
-    "wrapped_relax_w_ca_constraints",
+    "relax_w_ca_constraints",
     relax_w_ca_constraints,
     use_thread=True)

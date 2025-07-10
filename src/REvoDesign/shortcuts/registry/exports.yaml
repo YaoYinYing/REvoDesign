@@ -1,4 +1,4 @@
-wrapped_dump_fasta_from_struct:
+dump_fasta_from_struct:
   title: "Dump Sequence from Structure"
   banner: "Dump the sequence of the selected molecule/chain to a sequence file."
   options:
@@ -25,7 +25,7 @@ wrapped_dump_fasta_from_struct:
       default: ""
       reason: "Suffix for the output file."
 
-wrapped_menu_dump_sidechains:
+menu_dump_sidechains:
   title: "Dump Sidechains"
   banner: "Dump all sidechain conformers of selected groups."
   options:
