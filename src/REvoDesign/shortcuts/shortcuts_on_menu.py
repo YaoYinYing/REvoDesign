@@ -27,7 +27,7 @@ from REvoDesign.shortcuts.wrappers.vina_tools import (wrapped_alterbox,
                                                       wrapped_rmhet)
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
-
+from REvoDesign.shortcuts.wrappers.utils import wrapped_logger_level_setter
 
 def menu_dump_sidechains(dump_all=False):
     """
@@ -205,3 +205,7 @@ def menu_visualize_substrate_potentials():
     Launches the dialog for visualize_substrate_potentials dialog
     """
     wrapped_visualize_substrate_potentials()
+
+
+def menu_logger_level_setter():
+    wrapped_logger_level_setter()

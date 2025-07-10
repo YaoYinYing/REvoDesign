@@ -52,7 +52,7 @@ from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_real_sc, menu_relax_w_ca_constraints, menu_resi_renumber, menu_rmhet,
     menu_rosettaligand, menu_sdf2rosetta_params, menu_smiles_conformer_batch,
     menu_smiles_conformer_single, menu_thermompnn,
-    menu_visualize_substrate_potentials)
+    menu_visualize_substrate_potentials, menu_logger_level_setter)
 from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
@@ -404,7 +404,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     self.bus.ui.actionVersion,
                     notify_box,
                     kwargs={'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
-                )
+                ),
+                MenuItem(
+                    self.bus.ui.actionSetLogLevel,
+                    menu_logger_level_setter
+                ),
             ),
         )
 
