@@ -26,7 +26,7 @@ wrapped_dump_fasta_from_struct:
       reason: "Suffix for the output file."
 
 wrapped_menu_dump_sidechains:
-  title: "Dump Sidechains - YAML"
+  title: "Dump Sidechains"
   banner: "Dump all sidechain conformers of selected groups."
   options:
     - name: "enabled_only"

@@ -37,9 +37,9 @@ REGISTRY_DIR = Path(__file__).parent / "registry"
 def resolve_extension(extension: str) -> Fext.ExtColl:
     if hasattr(Fext, extension):
         return getattr(Fext, extension)
-    else:
-        ext_dict = {_e.lower(): f'{_e.upper()} File' for _e in extension.split(';')}
-        return Fext.ExtColl.from_dict(ext_dict, prefix='Customized - ')
+    
+    ext_dict = {_e.lower(): f'{_e.upper()} File' for _e in extension.split(';')}
+    return Fext.ExtColl.from_dict(ext_dict, prefix='Customized - ')
 
 
 def resolve_dotted_function(dotted_str: str) -> Callable:
@@ -104,11 +104,13 @@ def _build_asked_value(entry: dict) -> AskedValue:
 
     return AskedValue(
         entry["name"],
-        val=val,
+        val=val or '',
         typing=typing_func,
         reason=entry.get("reason", ""),
         required=entry.get("required", False),
-        choices=choices
+        choices=choices,
+        source=entry.get("source", 'None'),
+        ext=resolve_extension(entry.get("ext", 'Any'))
     )
 
 

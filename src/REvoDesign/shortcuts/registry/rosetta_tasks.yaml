@@ -52,7 +52,7 @@ wrapped_rosettaligand:
     - name: "gridwidth"
       type: int
       default: 45
-      choices: [10, 90]
+      choices_from: range:10,90
       reason: "Grid width for the docking."
     - name: "start_from_xyz_sele"
       type: str
@@ -114,7 +114,7 @@ wrapped_fast_relax:
     - name: "relax_script"
       type: str
       reason: "Name of the fastrelax script."
-      choices_from: "REvoDesign.shortcuts.dialog_hooks.list_fastrelax_scripts"
+      choices_from: "REvoDesign.tools.rosetta_utils.list_fastrelax_scripts"
       default: "MonomerRelax2019"
       required: true
     - name: "dualspace"
@@ -124,7 +124,7 @@ wrapped_fast_relax:
     - name: "default_repeats"
       type: int
       default: 3
-      choices: [3, 100]
+      choices_from: range:3,100
       reason: "Default number of repeats."
     - name: "nstruct"
       type: int
@@ -164,13 +164,13 @@ wrapped_relax_w_ca_constraints:
       type: int
       default: 1
       reason: "Number of structures to generate per round."
-      choices: [1, 100]
+      choices_from: range:1,100
       required: true
     - name: "ncycles"
       type: int
       default: 3
       reason: "Number of cycles to run."
-      choices: [3, 100]
+      choices_from: range:3,100
       required: true
     - name: "save_dir"
       type: str

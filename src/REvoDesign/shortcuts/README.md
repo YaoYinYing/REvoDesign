@@ -1,84 +1,167 @@
-# **How to Develop a Function into a Window Pop-up in REvoDesign**
+## **How to Develop a Function into a Window Popup**
 
-### **Overview**
+### **1. Introduction**
 
-In REvoDesign, converting a function into a **window pop-up** means creating a dynamic user interface (UI) that collects user input before running the function. This is achieved by using the **dialog wrapper system**, where you define the window layout and logic in a YAML configuration and link it to the function. This allows you to display a pop-up dialog, collect inputs dynamically, and then pass them to the function for execution.
+In many applications, especially those involving user interfaces, tasks and functions need to be executed interactively. A common way of allowing interaction with functions is through the use of **window popups**. These popups allow users to provide input to a function before it is executed, creating an intuitive way for users to configure the behavior of a function dynamically.
 
-### **Steps to Convert a Function into a Window Pop-up**
+In this document, we will outline how to develop a function into a window popup, explaining:
 
-The process involves the following steps:
+1. The logic behind its design.
+2. Why this logic is useful.
+3. How the program utilizes it.
+4. How a developer should implement it.
 
-1. **Define the Function's Parameters and Logic**
-2. **Create the Dialog UI Configuration (in YAML)**
-3. **Register the Function and Dialog UI**
-4. **Run the Dialog with Dynamic Values**
+### **2. What the Logic is Designed Like**
 
-### **1. Define the Function's Parameters and Logic**
+The fundamental design of a function wrapped inside a window popup follows a clear flow:
 
-First, you need a function that will be triggered by the dialog. This function typically accepts parameters and performs some task. For example, a function that performs RosettaLigand docking:
+1. **Dialog Presentation**: The function is automatically associated with a dialog window that contains input fields (e.g., text boxes, checkboxes, or dropdowns). The user can interact with these fields to specify parameters for the function.
+
+2. **Input Collection**: Once the user fills in the parameters and presses an "OK" button, the input is collected from the window. This input is then passed as arguments to the underlying function.
+
+3. **Function Execution**: After collecting the necessary input, the function is executed with the parameters provided by the user. In this step, the function performs the intended computation or task.
+
+4. **Threading**: To ensure that the UI doesn't freeze during execution (especially for long-running tasks), functions are often executed in a separate thread. This maintains a smooth user experience while the function operates.
+
+5. **Post-Execution Handling**: Optionally, once the function completes its task, the UI may display a success message, log the results, or perform other post-processing steps (like closing the window).
+
+#### **Design Logic in Steps**:
+
+* **User Input**: The first step is gathering user input through a dialog box. You define which parameters are required and provide constraints or validation (e.g., required fields, valid ranges, file paths).
+
+* **Dialog Registration**: The function is automatically wrapped with a dialog through a **`DialogWrapperRegistry`** system. This system associates the function with its dialog, and when the user submits the form, the function is executed with the provided parameters.
+
+* **Execution in Thread**: The function is executed on a background thread so that the UI remains responsive.
+
+* **Handling Results**: After the function finishes, you can handle the results — log them, show them in the UI, or perform other tasks (like closing the window or logging data).
+
+### **3. Why We Use Such Logic**
+
+This design offers several advantages:
+
+1. **Separation of Concerns**: By isolating the user interface logic (input collection) from the functional logic (task execution), the code becomes more modular, easier to maintain, and reusable across different parts of the application.
+
+2. **User Interactivity**: Pop-up windows are a great way to collect input dynamically. Users can modify parameters, adjust configurations, or even upload files without directly interacting with the underlying code.
+
+3. **Improved User Experience**: Keeping functions in separate threads prevents the application from freezing or becoming unresponsive. The user can interact with the application while the function executes, providing a smoother experience.
+
+4. **Flexibility**: New functions can be easily integrated into this logic without modifying the core window functionality. You simply need to create a new dialog and register it with the function.
+
+5. **Reusability**: Since the logic for displaying popups and handling user input is separated, this can be reused for other functions as well, allowing for easy extensibility across the application.
+
+### **4. How the Program Uses It**
+
+The program utilizes this logic through the **`DialogWrapperRegistry`** system, which automates the process of linking a function to its dialog. Here is how it works:
+
+1. **Dialog Window Generation**: The dialog window is automatically generated by the **`DialogWrapperRegistry`** when the function is registered. You do not need to manually create a window.
+
+2. **Collecting User Input**: When the user interacts with the window (filling out input fields), the system collects the values from the dialog.
+
+3. **Function Execution**: After collecting the input, the `DialogWrapperRegistry` passes the collected parameters to the wrapped function, which then performs its task.
+
+4. **Background Execution**: The function is executed in a separate thread, allowing the UI to remain responsive. The task runs asynchronously, and the program continues to handle other interactions during this time.
+
+5. **Post-Execution Handling**: After the function completes, the program may update the UI to reflect the results, display messages, or log the output.
+
+### **5. How a Practiced Developer Should Follow**
+
+A developer can follow these steps to integrate a function into a window popup:
+
+1. **Define the Function**:
+   Start by creating the function that you want to wrap in a popup. Ensure that the function takes parameters that will be dynamically provided by the user.
+
+   Example:
+
+   ```python
+   def my_function(param1, param2):
+       print(f"Executing function with {param1} and {param2}")
+   ```
+
+2. **Create the Dialog Configuration (YAML)**:
+   Create a **YAML file** that defines the dialog for the function. This includes the input fields, types, constraints, and any dynamic choices for dropdowns or selections.
+
+   Example YAML (`my_functions.yaml`):
+
+   ```yaml
+   my_function_dialog:
+     title: "My Function"
+     banner: "Provide parameters for My Function"
+     options:
+       - name: "param1"
+         type: str
+         reason: "First parameter"
+         required: true
+       - name: "param2"
+         type: int
+         default: 5
+         reason: "Second parameter"
+         required: false
+   ```
+
+3. **Register the Function**:
+   Use the **`DialogWrapperRegistry`** to register the function with the dialog configuration. The dialog window will be automatically generated based on the YAML file.
+
+   Example (pseudo-code for registration):
+
+   ```python
+   registry = DialogWrapperRegistry("my_functions")
+   registry.register("my_function_dialog", my_function)
+   ```
+
+4. **Define the Parameters and Constraints**:
+   Define which parameters are required for the function, and specify any constraints like input types (e.g., integer, float, string), default values, or choices (e.g., dropdown menus for selecting values).
+
+5. **Dialog Creation**:
+   The dialog (popup window) is automatically created by the **`DialogWrapperRegistry`** system based on the function's parameters. You do not need to manually design the dialog; this is handled for you.
+
+6. **Handle Pre- and Post-Processing (Optional)**:
+   If the function requires special handling before or after execution (e.g., parsing inputs, cleaning up data), write pre- and post-processing functions. These can be applied in the **`DialogWrapperRegistry`** before and after the core function is executed.
+
+   Example (pre-processing):
+
+   ```python
+   def pre_process_function(dynamic_values):
+       # Modify dynamic_values or validate inputs
+       return dynamic_values
+   ```
+
+7. **Trigger the Function**:
+   To trigger the function, call `registry.call()` with the necessary dynamic values. The dialog will open, the user will interact with it, and the function will execute once the form is submitted.
+
+   Example (calling the function):
+
+   ```python
+   registry.call("my_function_dialog", dynamic_values)
+   ```
+
+### **6. Example Code Snippet**
+
+Here’s a complete example of how the logic could look:
 
 ```python
-def wrapped_rosettaligand(**kwargs):
-    """
-    Runs the RosettaLigand docking.
+# Function that will be called
+def my_function(param1, param2):
+    print(f"Executing function with {param1} and {param2}")
 
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
-    logging.info(kwargs)
+# Dialog registration and function call
+registry = DialogWrapperRegistry("my_functions")
 
-    # Parse ligand params
-    ligand_params: str = kwargs.pop('ligand_params')
-    ligands = ligand_params.split('|')
-    kwargs['ligands'] = ligands
+# Register the function
+registry.register("my_function_dialog", my_function)
 
-    # Parse start_from_xyz_sele to start_from_xyz coordinates
-    start_from_xyz_sele = kwargs.pop('start_from_xyz_sele')
-    if not start_from_xyz_sele:
-        kwargs['start_from_xyz'] = None
-    else:
-        kwargs['start_from_xyz'] = tuple(cmd.centerofmass(start_from_xyz_sele))
+# Define dynamic values (e.g., collected from the dialog)
+dynamic_values = {
+    "param1": "Value1",
+    "param2": 10
+}
 
-    # Call the actual RosettaLigand function
-    shortcut_rosettaligand(**kwargs)
+# Trigger the function with dynamic values
+registry.call("my_function_dialog", dynamic_values)
 ```
 
-In this example, the function `wrapped_rosettaligand` accepts parameters like `ligand_params`, `start_from_xyz_sele`, and others, which will be collected from the dialog.
+### **7. Conclusion**
 
-### **2. Create the Dialog UI Configuration (in YAML)**
+In this document, we’ve outlined the **logical design** behind wrapping functions in window popups, the **reasons for using this design**, and **how to implement it**. By using the **`DialogWrapperRegistry`** system, developers can easily turn functions into interactive window popups, improving the flexibility, maintainability, and user interactivity of the application.
 
-In REvoDesign, the dialog UI configuration is typically defined in a **YAML** file, which describes the fields and layout of the pop-up window. Each field corresponds to a parameter in your function. Here's an example configuration for `wrapped_rosettaligand`:
+This system separates the logic of the function from the UI design, allowing for easy customization and extensibility while improving the user experience.
 
-```yaml
-wrapped_rosettaligand:
-  title: "RosettaLigand"
-  banner: "Perform RosettaLigand Docking"
-  options:
-    - name: "pdb"
-      type: str
-      reason: "Path to the PDB file"
-      source: "File"
-      required: true
-      ext: "PDB_STRICT"
-    - name: "ligand_params"
-      type: str
-      reason: "Path to the ligands (*.params) to be docked."
-      source: "Files"
-      required: true
-      ext: "RosettaParams"
-    - name: "nstruct"
-      type: int
-      default: 10
-      reason: "Number of structures to be generated."
-      required: true
-    - name: "chain_id_for_dock"
-      type: str
-      default: "B"
-      reason: "Chain ID for the docking."
-      required: true
-    - name: "save_dir"
-      type: str
-      default: ""
-      reason: "Path to the directory to save the results."
-      source:
-```

@@ -3,6 +3,9 @@ Utility functions for dialogs hook functions
 '''
 
 
+import cmd
+
+
 def get_fasta_writer_choices():
     """
     Return the list of available FASTA writer choices dynamically.
@@ -17,3 +20,8 @@ def get_designable_chain_ids():
     """
     from REvoDesign.driver.ui_driver import ConfigBus
     return list(ConfigBus().get_value("designable_sequences", dict, reject_none=True).keys())
+
+
+def get_selections():
+    from pymol import cmd
+    return [''] + list(cmd.get_names("selections"))
