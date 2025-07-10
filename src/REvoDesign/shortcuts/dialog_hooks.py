@@ -3,7 +3,6 @@ Utility functions for dialogs hook functions
 '''
 
 
-import cmd
 
 
 def get_fasta_writer_choices():

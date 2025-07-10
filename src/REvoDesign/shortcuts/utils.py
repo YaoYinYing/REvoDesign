@@ -1,12 +1,13 @@
 '''
 Dialog wrapper registry
 '''
+import atexit
 import importlib
 import json
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
-import atexit
+
 import yaml
 from immutabledict import immutabledict
 
@@ -37,7 +38,7 @@ REGISTRY_DIR = Path(__file__).parent / "registry"
 def resolve_extension(extension: str) -> Fext.ExtColl:
     if hasattr(Fext, extension):
         return getattr(Fext, extension)
-    
+
     ext_dict = {_e.lower(): f'{_e.upper()} File' for _e in extension.split(';')}
     return Fext.ExtColl.from_dict(ext_dict, prefix='Customized - ')
 
@@ -133,7 +134,13 @@ class DialogWrapperRegistry:
         with path.open("r") as f:
             return yaml.safe_load(f)
 
-    def register(self, func_id: str, func: Callable, use_thread: bool = False, has_dynamic_values:bool=False, kwargs: Optional[Dict] = None):
+    def register(
+            self,
+            func_id: str,
+            func: Callable,
+            use_thread: bool = False,
+            has_dynamic_values: bool = False,
+            kwargs: Optional[Dict] = None):
         """
         Register the raw Python function under a given ID.
         """
@@ -147,10 +154,8 @@ class DialogWrapperRegistry:
             self.call(func_id, dynamic_values)
 
         def window_wrapper():
-            
+
             self.call(func_id)
-
-
 
         # Register the function for unloading gracefully at exit
         atexit.register(self.unregister, func_id)
