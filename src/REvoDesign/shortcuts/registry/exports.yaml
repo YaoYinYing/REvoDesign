@@ -53,7 +53,7 @@ menu_dump_sidechains:
       type: int
       default: 150
       reason: "DPI of the image."
-      choices: "(150, 300, 600, 1200)"
+      choices: [150, 300, 600, 1200]
 
     - name: "ray"
       type: bool

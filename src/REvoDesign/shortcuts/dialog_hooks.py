@@ -22,3 +22,7 @@ find_all_small_molecules_in_protein=lambda: find_small_molecules_in_protein('(al
 get_all_chain_ids=lambda: list(ConfigBus().get_value("designable_sequences", dict, reject_none=True).keys())
 
 get_all_object_names=lambda: cmd.get_names("objects")
+
+
+get_all_selections = lambda: cmd.get_names("selections")
+get_all_objects = lambda: cmd.get_names("objects")

@@ -41,12 +41,12 @@ color_by_mutation:
       type: str
       reason: "PyMOL object 1 to color."
       required: true
-      choices_from: "REvoDesign.shortcuts.dialog_hooks::get_all_object_names"
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_object_names"
     - name: "obj2"
       type: str
       reason: "PyMOL object 2 to color."
       required: true
-      choices_from: "REvoDesign.shortcuts.dialog_hooks::get_all_object_names"
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_object_names"
     - name: "waters"
       type: bool
       default: false

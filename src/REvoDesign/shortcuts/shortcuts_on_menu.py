@@ -44,6 +44,7 @@ def menu_dump_sidechains(dump_all=False):
             typing=list,
             reason="Select the models to dump sidechains.",
             choices=get_all_groups(),
+            multiple_choices=True
         ),
         "index": 0,  # Specify the position in the options list
     }
