@@ -600,11 +600,8 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
                     visualizer.min_score,
                     visualizer.max_score,
                 )
-                logging.info(
-                    f" Visualizing {
-                        m.short_mutant_id} ({
-                        m.raw_mutant_id}) : {color} with {
-                        visualizer.mutate_runner.__class__.__name__}")
+                logging.info(f"Visualizing {  m.short_mutant_id} ({ m.raw_mutant_id}) : {color} with "
+                             f"{ visualizer.mutate_runner.__class__.__name__}")
 
                 visualizer.create_mutagenesis_objects(
                     mutant_obj=m, color=color, in_place=True
@@ -656,11 +653,8 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
     output_mut_txt_dir_ckp = os.path.join(output_mut_txt_dir, "./checkpoints/")
     os.makedirs(output_mut_txt_dir_ckp, exist_ok=True)
 
-    output_mut_txt_bn_ckp = f'ckp_{
-        time.strftime(
-            "%Y%m%d_%H%M%S",
-            time.localtime())}.{
-        os.path.basename(output_mut_txt_fn)}'
+    _time_stamp=time.strftime( "%Y%m%d_%H%M%S", time.localtime())
+    output_mut_txt_bn_ckp = f'ckp_{_time_stamp}.{os.path.basename(output_mut_txt_fn)}'
     output_mut_txt_ckp = os.path.join(
         output_mut_txt_dir_ckp, output_mut_txt_bn_ckp
     )
@@ -878,11 +872,8 @@ def pick_design_from_profile(
                 score = mutant.mutant_score
 
                 color = get_color(cmap, score, -max_abs, max_abs)
-                print(
-                    f" Visualizing {
-                        mutant.short_mutant_id} ({
-                        mutant.raw_mutant_id}) : {color} with {
-                        visualizer.mutate_runner.__class__.__name__}")
+                print(f"Visualizing {mutant.short_mutant_id} ({ mutant.raw_mutant_id}) : {color} "
+                      f"with { visualizer.mutate_runner.__class__.__name__}")
                 run_worker_thread_with_progress(
                     visualizer.create_mutagenesis_objects,
                     mutant_obj=mutant,
