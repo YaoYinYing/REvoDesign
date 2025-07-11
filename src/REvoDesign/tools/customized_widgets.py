@@ -596,10 +596,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             str: Tooltip text for the button.
         """
-        return f"{self.sequence[int(col_name) -
-                                1 +
-                                self.zero_index_offset]}{str(int(col_name) +
-                                                             self.zero_index_offset)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+        return f"{self.sequence[int(col_name) - 1 + self.zero_index_offset]}{str(int(col_name) + self.zero_index_offset)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
     def init_ui(self):
         """
