@@ -59,13 +59,7 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
 
 
 def resolve_choice_from(input_str: str) -> Iterable[Any]:
-    if input_str.startswith("[") and input_str.endswith("]"):
-        return list(json.loads(input_str))
-    elif input_str.startswith("{") and input_str.endswith("}"):
-        return dict(json.loads(input_str))
-    elif input_str.startswith("(") and input_str.endswith(")"):
-        return tuple(input_str.strip("()").split(","))
-    elif input_str.startswith('range:'):  # range:1,10 or range:1,10,2
+    if input_str.startswith('range:'):  # range:1,10 or range:1,10,2
         return range(*map(int, input_str.removeprefix('range:').split(",")))
     elif input_str.startswith("REvoDesign."):
         resolved_callable = resolve_dotted_function(input_str)
@@ -121,7 +115,8 @@ def _build_asked_value(entry: dict) -> AskedValue:
         required=entry.get("required", False),
         choices=choices,
         source=entry.get("source", 'None'),
-        ext=resolve_extension(entry.get("ext", 'Any'))
+        ext=resolve_extension(entry.get("ext", 'Any')),
+        multiple_choices=entry.get('multiple_choices', False)
     )
 
 

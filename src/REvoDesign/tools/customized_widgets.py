@@ -1387,6 +1387,7 @@ class AskedValue:
             - 'Directory': Input is expected to be a directory path.
             - 'JsonInput': Input is expected to be a JSON file input.
         ext (Optional[FExCol]): File extension filters for file and directory inputs.
+        multiple_choices (bool): Whether the multiple choices mode is enabled. 
     """
 
     key: str
@@ -1397,6 +1398,7 @@ class AskedValue:
     choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
     source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
+    multiple_choices: bool=False
 
 
 def real_bool(val: Any):
@@ -1658,7 +1660,7 @@ class ValueDialog(REvoDesignWidget):
                 choices = None
 
         # a multi-choice
-        if asked_value.typing == list:
+        if asked_value.multiple_choices:
             if not choices:
                 raise issues.InternalError(f"Multi-choice field must have a valid choices, not {choices}")
             # MultiCheckableComboBox for list of choices

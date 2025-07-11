@@ -1,0 +1,50 @@
+pssm2csv:
+  title: "PSSM to CSV"
+  banner: "Convert a PSSM raw file to a CSV format for downstream processing."
+  options:
+    - name: "pssm"
+      type: str
+      default: ""
+      reason: "Path to the PSSM raw file to be converted."
+      required: true
+      source: "File"
+
+profile_pick_design:
+  title: "Design with Profile"
+  banner: "Run mutant design using a provided profile."
+  options:
+    - name: "profile"
+      type: str
+      default: ""
+      reason: "Path to the design profile file."
+      required: true
+      source: "File"
+    - name: "profile_type"
+      type: str
+      default: "PSSM"
+      reason: "Profile type to use."
+      required: true
+      choices_from: "REvoDesign.driver.group_register.CallableGroupValues:list_all_profile_parsers"
+    - name: "prefer_lower_score"
+      type: bool
+      default: false
+      reason: "Prefer lower score (useful for ddG design)."
+    - name: "keep_missing"
+      type: bool
+      default: true
+      reason: "Keep X residues in the sequence."
+    - name: "residue_range"
+      type: str
+      default: ""
+      reason: "Residue range to design. Accepts comma-separated indices or a text file path."
+      source: "File"
+    - name: "view_highlight"
+      type: str
+      default: "orient"
+      reason: "View mode to highlight designed residues."
+      choices: ["None", "center", "zoom", "orient"]
+    - name: "view_highlight_nbr"
+      type: int
+      default: 6
+      reason: "Number of neighboring residues to include in highlight."
+      choices_from: "range:0,20"

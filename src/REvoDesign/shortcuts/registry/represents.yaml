@@ -1,0 +1,57 @@
+color_by_plddt:
+  title: "Color by pLDDT"
+  banner: "Color predicted protein structures by pLDDT values recorded in the B-factor column. Optionally align to a target model and chain."
+  options:
+    - name: "selection"
+      type: str
+      default: "all"
+      reason: "The PyMOL selection of objects or residues to color."
+    - name: "align_target"
+      type: int
+      default: 0
+      reason: "Rank of target in selection (1-based). Set 0 to skip alignment."
+    - name: "chain_to_align"
+      type: str
+      default: "A"
+      reason: "Chain ID to align against."
+
+real_sc:
+  title: "Set Sidechain Representation"
+  banner: "Set molecular representation focusing on sidechains or alpha carbon."
+  options:
+    - name: "selection"
+      type: str
+      default: "(all)"
+      reason: "Atom selection to apply representation to."
+    - name: "representation"
+      type: str
+      default: "lines"
+      reason: "Representation style."
+      choices: ["lines", "sticks", "spheres", "dots"]
+    - name: "hydrogen"
+      type: bool
+      default: false
+      reason: "Include hydrogen atoms in representation."
+
+color_by_mutation:
+  title: "Color by mutation"
+  banner: "Highlight and color mutations using BLOSUM90 differences between two aligned proteins."
+  options:
+    - name: "obj1"
+      type: str
+      reason: "PyMOL object 1 to color."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks::get_all_object_names"
+    - name: "obj2"
+      type: str
+      reason: "PyMOL object 2 to color."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks::get_all_object_names"
+    - name: "waters"
+      type: bool
+      default: false
+      reason: "Include waters in comparison."
+    - name: "labels"
+      type: bool
+      default: false
+      reason: "Display mutation labels."
