@@ -1,5 +1,5 @@
 '''
-Shortcut wrappers of structure manipulation
+Shortcut wrappers of vina-related structure manipulation
 '''
 
 

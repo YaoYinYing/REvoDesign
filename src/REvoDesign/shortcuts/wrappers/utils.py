@@ -1,3 +1,6 @@
+'''
+Shortcut wrappers of other utility functions
+'''
 from REvoDesign.logger.logger import logger_level_setter
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
