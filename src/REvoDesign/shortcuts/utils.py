@@ -52,9 +52,21 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     Returns:
         Callable: The resolved function.
     """
-    module_path, func_name = dotted_str.rsplit(":", 1) if ":" in dotted_str else dotted_str.rsplit(".", 1)
+    if ":" not in dotted_str:
+        raise issues.InvalidInputError(
+            'dotted function expect an input string in pattern <import-path>:(<class>.)<function>',
+            f'not `{dotted_str}`' 
+            )
+    module_path, func_name = dotted_str.rsplit(":", 1)
     module = importlib.import_module(module_path)
-    return getattr(module, func_name)
+    if not "." in func_name:
+        return getattr(module, func_name)
+    # maybe a class method?
+    
+    _class_name, _func_name=func_name.rsplit(".")
+    logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
+    _class=getattr(module,_class_name)
+    return getattr(_class, _func_name)
 
 
 def resolve_choice_from(input_str: str):

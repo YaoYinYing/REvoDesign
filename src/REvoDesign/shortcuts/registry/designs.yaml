@@ -24,7 +24,7 @@ profile_pick_design:
       default: "PSSM"
       reason: "Profile type"
       required: true
-      choices_from: REvoDesign.driver.group_register.CallableGroupValues:list_all_profile_parsers
+      choices_from: REvoDesign.driver.group_register:CallableGroupValues.list_all_profile_parsers
     - name: "prefer_lower_score"
       type: bool
       default: false
