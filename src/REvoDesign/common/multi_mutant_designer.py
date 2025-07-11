@@ -361,7 +361,7 @@ class MultiMutantDesigner:
                 )
 
                 cmd.bond(atom1=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and "
-                         f"i. {resi_second_mutant_to_the_last} and n. CA", 
+                         f"i. {resi_second_mutant_to_the_last} and n. CA",
                          atom2=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and "
                          f"i. {resi_last_mutant} and n. CA")
 

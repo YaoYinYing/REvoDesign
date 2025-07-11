@@ -260,8 +260,8 @@ class CgoBox(GraphicObject):
         """
         Generates a string of parameters for configuring a binding site in AutoDock Vina.
         """
-        center=f"--center_x {self.cen_xyz[0]:.1f} --center_y {self.cen_xyz[1]:.1f} --center_z {self.cen_xyz[2]:.1f}"
-        size=f"--size_x {self.size_xyz[0]:.1f} --size_y {self.size_xyz[1]:.1f} --size_z {self.size_xyz[2]:.1f}"
+        center = f"--center_x {self.cen_xyz[0]:.1f} --center_y {self.cen_xyz[1]:.1f} --center_z {self.cen_xyz[2]:.1f}"
+        size = f"--size_x {self.size_xyz[0]:.1f} --size_y {self.size_xyz[1]:.1f} --size_z {self.size_xyz[2]:.1f}"
         return f"{center} {size}"
 
     @property
@@ -269,10 +269,10 @@ class CgoBox(GraphicObject):
         """
         Generates a string of parameters for configuring a grid in AutoGrid.
         """
-        npts_xyz=np.array(self.size_xyz) / 0.375
-        npts=f"npts {npts_xyz[0]} {npts_xyz[1]} {npts_xyz[2]} # num. grid points in xyz"
-        spacing='spacing 0.375 # spacing (A)'
-        center=f"gridcenter {self.cen_xyz[0]:.3f} {self.cen_xyz[1]:.3f} {self.cen_xyz[2]:.3f} # xyz-coordinates"
+        npts_xyz = np.array(self.size_xyz) / 0.375
+        npts = f"npts {npts_xyz[0]} {npts_xyz[1]} {npts_xyz[2]} # num. grid points in xyz"
+        spacing = 'spacing 0.375 # spacing (A)'
+        center = f"gridcenter {self.cen_xyz[0]:.3f} {self.cen_xyz[1]:.3f} {self.cen_xyz[2]:.3f} # xyz-coordinates"
         return f"{npts}\n{spacing}\n{center}"
 
     @property

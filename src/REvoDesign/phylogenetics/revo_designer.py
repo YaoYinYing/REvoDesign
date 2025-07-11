@@ -215,7 +215,7 @@ class REvoDesigner:
         indices_hash = hashlib.sha256(
             bytes(custom_indices_str.encode())
         ).hexdigest()
-        _time_stamp=time.strftime("%Y%m%d",time.localtime())
+        _time_stamp = time.strftime("%Y%m%d", time.localtime())
         file_name = f'{_time_stamp}_{self.molecule}_{self.design_case}_{indices_hash[:10]}'
         mutation_json_fp = (
             f"{self.pwd}/mutations_design_profile/{file_name}.json"
