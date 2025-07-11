@@ -5,7 +5,7 @@ import atexit
 import importlib
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 from immutabledict import immutabledict
@@ -68,7 +68,7 @@ def resolve_choice_from(input_str: str):
     elif input_str.startswith("CFG:"):
         from REvoDesign.driver.ui_driver import ConfigBus
 
-        if not '.' in input_str:
+        if '.' not in input_str:
             raise issues.InvalidInputError(f'Expected as a config item: {input_str}')
         return ConfigBus().get_value(input_str)
 
@@ -104,7 +104,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
     if "default_from" in entry:
         val = resolve_dotted_function(entry["default_from"])
         if isinstance(val, Callable):
-            val=val()
+            val = val()
 
     # Handle choices dynamically
     choices = entry.get("choices")
