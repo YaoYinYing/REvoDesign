@@ -1,0 +1,59 @@
+thermompnn:
+  title: "ThermoMPNN"
+  banner: "Perform ThermoMPNN prediction"
+  options:
+    - name: "pdb"
+      type: str
+      default: ""
+      reason: "Path to the PDB file"
+      source: "File"
+      required: true
+      ext: "PDB_STRICT"
+    - name: "save_dir"
+      type: str
+      default: ""
+      reason: "Path to the output directory. If not provided, output will not be saved."
+      source: "Directory"
+    - name: "chains"
+      type: list
+      reason: "Chain IDs for docking. Default is None (use all chains)."
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_chain_ids"
+    - name: "mode"
+      type: str
+      default: "single"
+      reason: "Run mode of ThermoMPNN prediction."
+      choices: ["single", "additive", "epistatic"]
+      required: true
+    - name: "batch_size"
+      type: int
+      default: 256
+      reason: "Batch size for the run."
+      choices: [64, 128, 256, 512, 1024, 2048]
+      required: true
+    - name: "threshold"
+      type: float
+      default: -0.5
+      reason: "ddG cutoff value."
+      required: true
+    - name: "distance"
+      type: float
+      default: 5.0
+      reason: "Spatial distance constraint between residues."
+      choices_from: range:1,1000
+    - name: "ss_penalty"
+      type: bool
+      default: false
+      reason: "Enable SS penalty."
+    - name: "device"
+      type: str
+      default: "cpu"
+      reason: "Device for computation. MPS may not provide optimal performance."
+      choices_from: "REvoDesign.tools.utils:device_picker"
+    - name: "load_to_preview"
+      type: bool
+      default: false
+      reason: "Whether to load results to preview."
+    - name: "top_ranked"
+      type: int
+      default: -1
+      reason: "Number of top-ranked predictions to load. -1 means all."

@@ -3,6 +3,7 @@ Utility functions for dialogs hook functions
 '''
 
 
+from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.pymol_utils import find_small_molecules_in_protein
 
 
@@ -28,3 +29,6 @@ def get_selections():
 
 
 find_all_small_molecules_in_protein=lambda: find_small_molecules_in_protein('(all)') or None
+
+
+get_all_chain_ids=lambda: list(ConfigBus().get_value("designable_sequences", dict, reject_none=True).keys())
