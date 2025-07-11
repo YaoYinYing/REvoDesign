@@ -57,14 +57,20 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     return getattr(module, func_name)
 
 
-def resolve_choice_from(input_str: str) -> Iterable[Any]:
+def resolve_choice_from(input_str: str):
     if input_str.startswith('range:'):  # range:1,10 or range:1,10,2
         return range(*map(int, input_str.removeprefix('range:').split(",")))
     elif input_str.startswith("REvoDesign."):
         resolved_callable = resolve_dotted_function(input_str)
-        if isinstance(resolved_callable, Callable):
-            return resolved_callable()  # Get callable dynamically
-        raise issues.ConfigurationError(f"Expected as a callable:  {resolved_callable}")
+        if not isinstance(resolved_callable, Callable):
+            raise issues.ConfigurationError(f"Expected as a callable: {input_str}: {resolved_callable}")
+        return resolved_callable()  # Get callable dynamically
+    elif input_str.startswith("CFG:"):
+        from REvoDesign.driver.ui_driver import ConfigBus
+
+        if not '.' in input_str:
+            raise issues.InvalidInputError(f'Expected as a config item: {input_str}')
+        return ConfigBus().get_value(input_str)
 
     raise issues.ConfigurationError(f"Unable to parse {input_str}")
 
@@ -96,7 +102,9 @@ def _build_asked_value(entry: dict) -> AskedValue:
     # Handle default value from a callable (e.g., using a function name from dotted string)
     val = entry.get("default")
     if "default_from" in entry:
-        val = resolve_dotted_function(entry["default_from"])()  # Get callable dynamically
+        val = resolve_dotted_function(entry["default_from"])
+        if isinstance(val, Callable):
+            val=val()
 
     # Handle choices dynamically
     choices = entry.get("choices")
