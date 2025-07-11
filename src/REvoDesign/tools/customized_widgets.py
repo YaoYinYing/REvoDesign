@@ -596,7 +596,10 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             str: Tooltip text for the button.
         """
-        return f"{self.sequence[int(col_name)-1+self.zero_index_offset]}{str(int(col_name) + self.zero_index_offset)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+        return f"{self.sequence[int(col_name) -
+                                1 +
+                                self.zero_index_offset]}{str(int(col_name) +
+                                                             self.zero_index_offset)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
 
     def init_ui(self):
         """
@@ -629,7 +632,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
-                    label=f"&{self.get_WT_label( row_name, col_name, row, col)}" if is_wt_button else None,
+                    label=f"&{self.get_WT_label(row_name, col_name, row, col)}" if is_wt_button else None,
                     tooltip_text=button_tip,
                     is_wt=is_wt_button,
                     size_policy=size_policy,
@@ -1387,7 +1390,7 @@ class AskedValue:
             - 'Directory': Input is expected to be a directory path.
             - 'JsonInput': Input is expected to be a JSON file input.
         ext (Optional[FExCol]): File extension filters for file and directory inputs.
-        multiple_choices (bool): Whether the multiple choices mode is enabled. 
+        multiple_choices (bool): Whether the multiple choices mode is enabled.
     """
 
     key: str
@@ -1398,7 +1401,7 @@ class AskedValue:
     choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
     source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
-    multiple_choices: bool=False
+    multiple_choices: bool = False
 
 
 def real_bool(val: Any):

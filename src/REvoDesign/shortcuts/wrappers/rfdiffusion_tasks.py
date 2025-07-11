@@ -1,19 +1,16 @@
-
-
-
 import os
 import shutil
-from ...logger import ROOT_LOGGER
+
 from REvoDesign.common import file_extensions as Fext
-from REvoDesign.shortcuts.tools.rfdiffusion_tasks import (RFDIFFUSION_CONFIG_DIR,
-                                       run_general_rfdiffusion_task,
-                                       visualize_substrate_potentials)
-
-
-
+from REvoDesign.shortcuts.tools.rfdiffusion_tasks import (
+    RFDIFFUSION_CONFIG_DIR, run_general_rfdiffusion_task,
+    visualize_substrate_potentials)
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
+from ...logger import ROOT_LOGGER
+
 logging = ROOT_LOGGER.getChild(__name__)
+
 
 def _visualize_substrate_potentials(**kwargs):
     """
@@ -29,11 +26,12 @@ def _visualize_substrate_potentials(**kwargs):
     margin = kwargs.pop('margin')
     save_to = kwargs.pop('save_to')
 
-    sp_visualizer=visualize_substrate_potentials(**kwargs)
+    sp_visualizer = visualize_substrate_potentials(**kwargs)
 
     sp_visualizer.plot_potential_field(
         grid_size=grid_size, margin=margin, save_to=save_to
     )
+
 
 def _run_general_rfdiffusion_task(**kwargs):
     config_preset: str = kwargs.pop('config_preset')

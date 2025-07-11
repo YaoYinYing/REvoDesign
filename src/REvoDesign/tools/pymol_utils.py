@@ -240,13 +240,13 @@ def is_distal_residue_pair(
                 #       /--\
                 # Ca---*    *---Ca
                 logging.warning(
-                    f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
-                )
+                    f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, {
+                        "distal" if sidechain_com_dist > minimal_distance else "closed"}.')
                 return sidechain_com_dist > minimal_distance
         else:
             logging.warning(
-                f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, {"distal" if sidechain_com_dist > minimal_distance else "closed"}.'
-            )
+                f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, {
+                    "distal" if sidechain_com_dist > minimal_distance else "closed"}.')
             # Ca---*
             #        \
             #         \
@@ -346,7 +346,13 @@ def get_atom_pair_cst(selection="sele"):
         )
         return
     else:
-        cst = f"AtomPair {_sele[0].name} {_sele[0].resi}{_sele[0].chain} {_sele[1].name} {_sele[1].resi}{_sele[1].chain} HARMONIC 3 0.5"
+        cst = f"AtomPair {
+            _sele[0].name} {
+            _sele[0].resi}{
+            _sele[0].chain} {
+                _sele[1].name} {
+                    _sele[1].resi}{
+                        _sele[1].chain} HARMONIC 3 0.5"
         return cst
 
 
@@ -468,7 +474,7 @@ def make_temperal_input_pdb(
     os.makedirs(wd, exist_ok=True)
     input_file = os.path.join(
         wd,
-        f'seg{segment_id}_chain{chain_id}_resn{resn}_sel{selection.replace(" ","-")[:20]}',
+        f'seg{segment_id}_chain{chain_id}_resn{resn}_sel{selection.replace(" ", "-")[:20]}',
         f"{molecule}.{save_as_format}",
     )
     os.makedirs(os.path.dirname(input_file), exist_ok=True)

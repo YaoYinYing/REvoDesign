@@ -3,13 +3,8 @@ Shortcut wrappers of sequence designs
 '''
 
 from REvoDesign.shortcuts.tools.designs import shortcut_pssm2csv
-
-from REvoDesign.tools.mutant_tools import pick_design_from_profile
-
-
-from REvoDesign.shortcuts.tools.designs import shortcut_pssm2csv
-from REvoDesign.tools.mutant_tools import pick_design_from_profile
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
+from REvoDesign.tools.mutant_tools import pick_design_from_profile
 
 registry = DialogWrapperRegistry("designs")
 

@@ -344,7 +344,7 @@ def get_results(md5sum):
         # Create a zip file with all the result files
         zip_filename = os.path.join(
             app.config["RESULTS_FOLDER"],
-            f'{fasta_fn.replace(".fasta","")}_PSSM_GREMLIN_results.zip',
+            f'{fasta_fn.replace(".fasta", "")}_PSSM_GREMLIN_results.zip',
         )
         if status == "finished":
             if not os.path.exists(zip_filename):
@@ -368,7 +368,7 @@ def download_results(md5sum):
     fasta_fn = os.path.basename(glob.glob(f"{result_dir}/*.fasta")[0])
     zip_filename = os.path.join(
         app.config["RESULTS_FOLDER"],
-        f'{fasta_fn.replace(".fasta","")}_PSSM_GREMLIN_results.zip',
+        f'{fasta_fn.replace(".fasta", "")}_PSSM_GREMLIN_results.zip',
     )
 
     # Check if the zip file exists
@@ -376,7 +376,7 @@ def download_results(md5sum):
         # Send the zip file as an attachment
         return send_from_directory(
             app.config["RESULTS_FOLDER"],
-            f'{fasta_fn.replace(".fasta","")}_PSSM_GREMLIN_results.zip',
+            f'{fasta_fn.replace(".fasta", "")}_PSSM_GREMLIN_results.zip',
             as_attachment=True,
         )
 

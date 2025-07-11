@@ -242,4 +242,3 @@ def logger_level_setter(
         ConfigBus().set_value('log.loggers.root.level', level.upper())
         # apply to the runtime
         ROOT_LOGGER.setLevel(level=level)
-        

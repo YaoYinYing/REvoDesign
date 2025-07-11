@@ -1,7 +1,6 @@
-
+from REvoDesign.shortcuts.tools.mutation_effect_predictors import \
+    shortcut_thermompnn
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
-
-from REvoDesign.shortcuts.tools.mutation_effect_predictors import shortcut_thermompnn
 
 # Register the ThermoMPNN task in the 'mutation' category
 registry = DialogWrapperRegistry("mutation")

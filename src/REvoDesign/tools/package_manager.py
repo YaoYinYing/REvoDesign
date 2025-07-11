@@ -254,7 +254,7 @@ def run_command(
 
     if process.returncode != 0 and verbose:
         raise RuntimeError(
-            f"--> Command failed:\n{'-'*79}\n{stderr_text.strip()}\n{'-'*79}"
+            f"--> Command failed:\n{'-' * 79}\n{stderr_text.strip()}\n{'-' * 79}"
         )
 
     return LiveProcessResult(
@@ -589,9 +589,9 @@ class PIPInstaller:
             logging.info(f"using mirror from {mirror}")
             pip_cmd.extend(["-i", mirror])
         if verbose_level < 0:
-            pip_cmd.append(f"-{'q'*-verbose_level}")
+            pip_cmd.append(f"-{'q' * -verbose_level}")
         elif verbose_level > 0:
-            pip_cmd.append(f"-{'v'*verbose_level}")
+            pip_cmd.append(f"-{'v' * verbose_level}")
 
         logging.debug(f'Using verbose level {verbose_level}')
 

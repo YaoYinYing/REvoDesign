@@ -361,9 +361,11 @@ class MultiMutantDesigner:
                 )
 
                 cmd.bond(
-                    atom1=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_second_mutant_to_the_last} and n. CA",
-                    atom2=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA",
-                )
+                    atom1=f"{
+                        self.design_case_id_in_pymol} and c. {
+                        self.chain_id} and i. {resi_second_mutant_to_the_last} and n. CA", atom2=f"{
+                        self.design_case_id_in_pymol} and c. {
+                        self.chain_id} and i. {resi_last_mutant} and n. CA", )
 
             # bond internal CAs in a multi-design mutant.
             current_mutant_info = mutant_obj.mutations

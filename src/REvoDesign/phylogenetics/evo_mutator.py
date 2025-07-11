@@ -1102,15 +1102,16 @@ class GremlinAnalyser:
             # if mutant obj exists, activate it and return early.
             if self.explored_mutant_tree.has(mutant_obj.full_mutant_id):
                 logging.info(
-                    f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) already exists. Do nothing."
-                )
+                    f"Picked mutant: {
+                        mutant_obj.short_mutant_id} ({
+                        mutant_obj.full_mutant_id}) already exists. Do nothing.")
                 self.activate_focused_interaction()
                 return
 
             with timing(f"Visualizing {mutant_obj.short_mutant_id}"):
                 # otherwise, call MutantVisualizer to display it.
                 logging.info(
-                    f"Picked mutant:{(mutant := mutant_obj.short_mutant_id)} {(full_mutant_id:=mutant_obj.full_mutant_id)} "
+                    f"Picked mutant:{(mutant := mutant_obj.short_mutant_id)} {(full_mutant_id := mutant_obj.full_mutant_id)} "
                 )
 
                 color = get_color(
@@ -1230,15 +1231,20 @@ class GremlinAnalyser:
 
             set_widget_value(
                 lineEdit_current_pair,
-                f'{pair.i_aa.replace("_","")}-{pair.j_aa.replace("_","")}, {pair.min_dist:.1f} Å',
+                f'{pair.i_aa.replace("_", "")}-{pair.j_aa.replace("_", "")}, {pair.min_dist:.1f} Å',
             )
 
             set_widget_value(lineEdit_current_pair_score, f"{pair.zscore:.3f}")
 
             if pair.all_out_of_range:
                 logging.warning(
-                    f"Resi {pair.i_1} ({pair.i_aa}) is {pair.min_dist:.2f} Å away from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å "
-                )
+                    f"Resi {
+                        pair.i_1} ({
+                        pair.i_aa}) is {
+                        pair.min_dist:.2f} Å away from {
+                        pair.j_1} {
+                        pair.j_aa}, out of distance {
+                            pair.dist_cutoff} Å ")
                 set_widget_value(lineEdit_current_pair, "Out of range.")
 
             # To disable the QbuttonMatrix:
@@ -1314,8 +1320,9 @@ class GremlinAnalyser:
 
         if self.explored_mutant_tree.has(self.picked_gremlin_mutant.full_mutant_id):
             logging.warning(
-                f"Igore repetative picking: {self.picked_gremlin_mutant.short_mutant_id} ({self.picked_gremlin_mutant.full_mutant_id})"
-            )
+                f"Igore repetative picking: {
+                    self.picked_gremlin_mutant.short_mutant_id} ({
+                    self.picked_gremlin_mutant.full_mutant_id})")
         self.hide_all_mutants()
         self.show_mutant(
             mutant_id=self.picked_gremlin_mutant.short_mutant_id,

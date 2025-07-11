@@ -6,11 +6,9 @@ from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.tools.esm2 import ESM1V_MODEL_DICT as EMD
-from REvoDesign.shortcuts.tools.esm2 import  shortcut_esm1v
-
-
-from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from REvoDesign.shortcuts.tools.esm2 import shortcut_esm1v
+from REvoDesign.shortcuts.utils import DialogWrapperRegistry
+
 from ...logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -62,4 +60,3 @@ wrapped_esm1v = registry.register(
     _esm1v,
     use_thread=True
 )
-

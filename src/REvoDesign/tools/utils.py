@@ -87,7 +87,9 @@ def require_not_none(
                 # no fallback setup, raise error
                 if callable(fallback_setup):
                     logging.warning(
-                        f"Method called {method.__name__}' with None attribute, falling back to setup by {fallback_setup.__name__}")
+                        f"Method called {
+                            method.__name__}' with None attribute, falling back to setup by {
+                            fallback_setup.__name__}")
                     fallback_setup()
                 # fallback setup is a string, try call the method with the same name
                 elif isinstance(fallback_setup, str):
@@ -98,7 +100,8 @@ def require_not_none(
                     if not callable(fallback_setup_):
                         raise AttributeError(f"Attribute '{fallback_setup}' is not callable in {self}")
                     logging.warning(
-                        f"Method called {method.__name__}' with None attribute, falling back to setup by {fallback_setup}")
+                        f"Method called {
+                            method.__name__}' with None attribute, falling back to setup by {fallback_setup}")
                     fallback_setup_()
                 else:
                     # no fallback setup, raise error
@@ -428,11 +431,11 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
     if unit == 'sec':
         logging.info(f"Finished {msg} in {tic_toc:.3f} seconds")
     elif unit == 'min':
-        logging.info(f"Finished {msg} in {tic_toc/60:.3f} minutes")
+        logging.info(f"Finished {msg} in {tic_toc / 60:.3f} minutes")
     elif unit == 'hr':
-        logging.info(f"Finished {msg} in {tic_toc/3600:.3f} hours")
+        logging.info(f"Finished {msg} in {tic_toc / 3600:.3f} hours")
     elif unit == 'ms':
-        logging.info(f"Finished {msg} in {tic_toc*1000:.3f} milliseconds")
+        logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
     else:
         raise ValueError(f"Unknown unit {unit}")
 

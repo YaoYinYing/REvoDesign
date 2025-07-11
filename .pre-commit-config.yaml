@@ -54,6 +54,7 @@ repos:
       - id: autopep8
         args:
         - --in-place
+        - --ignore=E731
         - --aggressive
         - --aggressive
         - --max-line-length

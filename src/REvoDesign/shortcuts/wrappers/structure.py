@@ -3,9 +3,8 @@ Shortcut wrappers of structure manipulation
 '''
 
 
-from REvoDesign.tools.pymol_utils import renumber_protein_chain
-
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
+from REvoDesign.tools.pymol_utils import renumber_protein_chain
 
 # Create registry for 'structure' category
 registry = DialogWrapperRegistry("structure")

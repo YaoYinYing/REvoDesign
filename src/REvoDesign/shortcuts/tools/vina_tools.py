@@ -260,16 +260,31 @@ class CgoBox(GraphicObject):
         """
         Generates a string of parameters for configuring a binding site in AutoDock Vina.
         """
-        return f"""--center_x {self.center_xyz[0]:.1f} --center_y {self.center_xyz[1]:.1f} --center_z {self.center_xyz[2]:.1f} --size_x {self.delta_xyz[0]:.1f} --size_y {self.delta_xyz[1]:.1f} --size_z {self.delta_xyz[2]:.1f}"""
+        return f"""--center_x {
+            self.center_xyz[0]:.1f} --center_y {
+            self.center_xyz[1]:.1f} --center_z {
+            self.center_xyz[2]:.1f} --size_x {
+                self.delta_xyz[0]:.1f} --size_y {
+                    self.delta_xyz[1]:.1f} --size_z {
+                        self.delta_xyz[2]:.1f}"""
 
     @property
     def to_autogrid(self):
         """
         Generates a string of parameters for configuring a grid in AutoGrid.
         """
-        return f""""npts {self.delta_xyz[0] / 0.375} {self.delta_xyz[1] / 0.375} {self.delta_xyz[2] / 0.375} # num. grid points in xyz
+        return f""""npts {
+            self.delta_xyz[0] /
+            0.375} {
+            self.delta_xyz[1] /
+            0.375} {
+            self.delta_xyz[2] /
+            0.375} # num. grid points in xyz
 spacing 0.375 # spacing (A)
-gridcenter {self.center_xyz[0]:.3f} {self.center_xyz[1]:.3f} {self.center_xyz[2]:.3f} # xyz-coordinates or auto"""
+gridcenter {
+                self.center_xyz[0]:.3f} {
+                    self.center_xyz[1]:.3f} {
+                        self.center_xyz[2]:.3f} # xyz-coordinates or auto"""
 
     @property
     def to_ledock(self):

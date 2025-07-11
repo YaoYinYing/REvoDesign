@@ -4,16 +4,16 @@ This module contains the menu shortcuts for REvoDesign.
 # To create a dialog form, one must implement a wrapper function that
 # decorated by `dialog_wrapper` and import it here
 
-from REvoDesign.shortcuts.wrappers.designs import (
-    wrapped_profile_pick_design, wrapped_pssm2csv)
+from REvoDesign.shortcuts.wrappers.designs import (wrapped_profile_pick_design,
+                                                   wrapped_pssm2csv)
 from REvoDesign.shortcuts.wrappers.esm2 import wrapped_esm1v
 from REvoDesign.shortcuts.wrappers.exports import (
     wrapped_dump_fasta_from_struct, wrapped_menu_dump_sidechains)
 from REvoDesign.shortcuts.wrappers.ligand_converters import (
     wrapped_smiles_conformer_batch, wrapped_smiles_conformer_single,
     wrapper_sdf2rosetta_params)
-from REvoDesign.shortcuts.wrappers.mutation_effect_predictors import (
-    wrapped_thermompnn)
+from REvoDesign.shortcuts.wrappers.mutation_effect_predictors import \
+    wrapped_thermompnn
 from REvoDesign.shortcuts.wrappers.represents import (
     wrapped_color_by_mutation, wrapped_color_by_plddt, wrapped_real_sc)
 from REvoDesign.shortcuts.wrappers.rfdiffusion_tasks import (
@@ -21,12 +21,12 @@ from REvoDesign.shortcuts.wrappers.rfdiffusion_tasks import (
 from REvoDesign.shortcuts.wrappers.rosetta_tasks import (
     wrapped_fast_relax, wrapped_pross, wrapped_relax_w_ca_constraints,
     wrapped_rosettaligand)
-from REvoDesign.shortcuts.wrappers.structure import (
-    wrapped_resi_renumber)
-from REvoDesign.shortcuts.wrappers.utils import (
-    wrapped_logger_level_setter)
-from REvoDesign.shortcuts.wrappers.vina_tools import (
-    wrapped_alter_box, wrapped_get_pca_box, wrapped_getbox, wrapped_rmhet)
+from REvoDesign.shortcuts.wrappers.structure import wrapped_resi_renumber
+from REvoDesign.shortcuts.wrappers.utils import wrapped_logger_level_setter
+from REvoDesign.shortcuts.wrappers.vina_tools import (wrapped_alter_box,
+                                                      wrapped_get_pca_box,
+                                                      wrapped_getbox,
+                                                      wrapped_rmhet)
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
 

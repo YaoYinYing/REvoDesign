@@ -59,7 +59,13 @@ class TestREvoDesignPlugin_TabCluster:
             test_worker.test_data.cluster_min,
             test_worker.test_data.cluster_max + 1,
         ):
-            dir = f'{test_worker.test_data.molecule}_{test_worker.test_data.chain_id}_{os.path.basename(KeyDataDuringTests.mutant_file).replace(".txt","")}_designs_{mut_num}'
+            dir = f'{
+                test_worker.test_data.molecule}_{
+                test_worker.test_data.chain_id}_{
+                os.path.basename(
+                    KeyDataDuringTests.mutant_file).replace(
+                    ".txt",
+                    "")}_designs_{mut_num}'
             assert os.path.exists(dir)
             assert all(
                 [

@@ -49,7 +49,7 @@ def shortcut_find_interface(
             )
             ifc_residues = list(
                 {
-                    f"{atom.chain}_{atom.resi}{rAA[atom.resn] if len(atom.resn) >1 and atom.resn in rAA.keys() else atom.resn}"
+                    f"{atom.chain}_{atom.resi}{rAA[atom.resn] if len(atom.resn) > 1 and atom.resn in rAA.keys() else atom.resn}"
                     for atom in cmd.get_model(
                         f"{x}_interface_{ch_combination}_{interact_dist}"
                     ).atom

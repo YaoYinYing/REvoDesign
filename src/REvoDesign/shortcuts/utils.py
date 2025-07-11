@@ -3,7 +3,6 @@ Dialog wrapper registry
 '''
 import atexit
 import importlib
-import json
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
@@ -69,6 +68,7 @@ def resolve_choice_from(input_str: str) -> Iterable[Any]:
 
     raise issues.ConfigurationError(f"Unable to parse {input_str}")
 
+
 def resolve_default_value(typing: type) -> Any:
     if typing == bool:
         return False
@@ -78,7 +78,7 @@ def resolve_default_value(typing: type) -> Any:
         return 0.0
     if typing == str:
         return ""
-    
+
 
 def _build_asked_value(entry: dict) -> AskedValue:
     """
@@ -118,8 +118,6 @@ def _build_asked_value(entry: dict) -> AskedValue:
         ext=resolve_extension(entry.get("ext", 'Any')),
         multiple_choices=entry.get('multiple_choices', False)
     )
-
-
 
 
 class DialogWrapperRegistry:
