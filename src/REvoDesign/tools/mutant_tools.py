@@ -196,9 +196,8 @@ def extract_mutant_from_sequences(
 
     if len(_mutant_sequence) != len(_wt_sequence):
         raise issues.InvalidInputError(
-            f"Lengths of filtered WT and mutant are not equal to each other: {
-                len(_wt_sequence)}: {
-                len(_mutant_sequence)}")
+            "Lengths of filtered WT and mutant are not equal to each other: "
+            f"{len(_wt_sequence)}: {len(_mutant_sequence)}")
 
     if mutant_sequence == wt_sequence:
         logging.warning("WT and mutant sequences are identical.")
@@ -223,9 +222,8 @@ def extract_mutant_from_sequences(
 
         if len(_mutant_sequence) != len(wt_sequence):
             raise issues.NoInputError(
-                f"Lengths of WT and fixed mutant are not equal to each other: {
-                    len(wt_sequence)}: {
-                    len(_mutant_sequence)}")
+                "Lengths of WT and fixed mutant are not equal to each other: "
+                f"{len(wt_sequence)}: {len(_mutant_sequence)}")
 
         mutant_sequence = _mutant_sequence
 

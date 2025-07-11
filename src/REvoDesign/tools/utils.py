@@ -87,9 +87,8 @@ def require_not_none(
                 # no fallback setup, raise error
                 if callable(fallback_setup):
                     logging.warning(
-                        f"Method called {
-                            method.__name__}' with None attribute, falling back to setup by {
-                            fallback_setup.__name__}")
+                        f"Method called {method.__name__}' with None attribute, "
+                        f"falling back to setup by {fallback_setup.__name__}")
                     fallback_setup()
                 # fallback setup is a string, try call the method with the same name
                 elif isinstance(fallback_setup, str):
@@ -99,9 +98,8 @@ def require_not_none(
                     # not a callable, raise error
                     if not callable(fallback_setup_):
                         raise AttributeError(f"Attribute '{fallback_setup}' is not callable in {self}")
-                    logging.warning(
-                        f"Method called {
-                            method.__name__}' with None attribute, falling back to setup by {fallback_setup}")
+                    logging.warning(f"Method called {method.__name__}' with None attribute, "
+                                    f"falling back to setup by {fallback_setup}")
                     fallback_setup_()
                 else:
                     # no fallback setup, raise error

@@ -75,11 +75,8 @@ class MutantVisualizer:
         score = mutant_obj.mutant_score
 
         color = get_color(self.cmap, score, self.min_score, self.max_score)
-        logging.info(
-            f" Visualizing {
-                mutant_obj.short_mutant_id} ({
-                mutant_obj.raw_mutant_id}) : {color} with {
-                self.mutate_runner.__class__.__name__}")
+        logging.info(f"Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : "
+                     f"{color} with {self.mutate_runner.__class__.__name__}")
         temp_session_path = self.create_mutagenesis_objects(
             mutant_obj, color, in_place=False
         )

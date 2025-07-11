@@ -239,14 +239,12 @@ def is_distal_residue_pair(
             else:
                 #       /--\
                 # Ca---*    *---Ca
-                logging.warning(
-                    f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, {
-                        "distal" if sidechain_com_dist > minimal_distance else "closed"}.')
+                logging.warning(f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, '
+                                f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
                 return sidechain_com_dist > minimal_distance
         else:
-            logging.warning(
-                f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, {
-                    "distal" if sidechain_com_dist > minimal_distance else "closed"}.')
+            logging.warning(f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, '
+                            f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
             # Ca---*
             #        \
             #         \
@@ -339,20 +337,14 @@ def get_atom_pair_cst(selection="sele"):
     Returns:
     - str or None: Distance constraint in CHARMM format if exactly 2 atoms are selected; otherwise, returns None
     """
-    _sele = cmd.get_model(selection=selection).atom
-    if len(_sele) != 2:
+    _s = cmd.get_model(selection=selection).atom
+    if len(_s) != 2:
         logging.error(
             f"Atom pair selection {selection} must contain exactly 2 atoms!"
         )
         return
     else:
-        cst = f"AtomPair {
-            _sele[0].name} {
-            _sele[0].resi}{
-            _sele[0].chain} {
-                _sele[1].name} {
-                    _sele[1].resi}{
-                        _sele[1].chain} HARMONIC 3 0.5"
+        cst = f"AtomPair {_s[0].name} {_s[0].resi}{_s[0].chain} {_s[1].name} {_s[1].resi}{_s[1].chain} HARMONIC 3 0.5"
         return cst
 
 

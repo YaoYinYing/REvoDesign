@@ -241,8 +241,8 @@ class CgoBox(GraphicObject):
         Post-initialization processing. Deletes existing objects with the same name and ensures all coordinates are floats.
         """
 
-        self.delta_xyz = tuple(abs(x) for x in self.p1.delta_xyz(self.p2))
-        self.center_xyz = self.p1.center_xyz(self.p2)
+        self.size_xyz = tuple(abs(x) for x in self.p1.delta_xyz(self.p2))
+        self.cen_xyz = self.p1.center_xyz(self.p2)
 
         self.cube = Cube(
             p1=self.p1,
@@ -260,31 +260,20 @@ class CgoBox(GraphicObject):
         """
         Generates a string of parameters for configuring a binding site in AutoDock Vina.
         """
-        return f"""--center_x {
-            self.center_xyz[0]:.1f} --center_y {
-            self.center_xyz[1]:.1f} --center_z {
-            self.center_xyz[2]:.1f} --size_x {
-                self.delta_xyz[0]:.1f} --size_y {
-                    self.delta_xyz[1]:.1f} --size_z {
-                        self.delta_xyz[2]:.1f}"""
+        center=f"--center_x {self.cen_xyz[0]:.1f} --center_y {self.cen_xyz[1]:.1f} --center_z {self.cen_xyz[2]:.1f}"
+        size=f"--size_x {self.size_xyz[0]:.1f} --size_y {self.size_xyz[1]:.1f} --size_z {self.size_xyz[2]:.1f}"
+        return f"{center} {size}"
 
     @property
     def to_autogrid(self):
         """
         Generates a string of parameters for configuring a grid in AutoGrid.
         """
-        return f""""npts {
-            self.delta_xyz[0] /
-            0.375} {
-            self.delta_xyz[1] /
-            0.375} {
-            self.delta_xyz[2] /
-            0.375} # num. grid points in xyz
-spacing 0.375 # spacing (A)
-gridcenter {
-                self.center_xyz[0]:.3f} {
-                    self.center_xyz[1]:.3f} {
-                        self.center_xyz[2]:.3f} # xyz-coordinates or auto"""
+        npts_xyz=np.array(self.size_xyz) / 0.375
+        npts=f"npts {npts_xyz[0]} {npts_xyz[1]} {npts_xyz[2]} # num. grid points in xyz"
+        spacing='spacing 0.375 # spacing (A)'
+        center=f"gridcenter {self.cen_xyz[0]:.3f} {self.cen_xyz[1]:.3f} {self.cen_xyz[2]:.3f} # xyz-coordinates"
+        return f"{npts}\n{spacing}\n{center}"
 
     @property
     def to_ledock(self):
@@ -310,8 +299,8 @@ gridcenter {
         """
         return f"""CgoBox `{self.name}`:
 Coordinates: {self.p1.x:.3f} - {self.p2.x:.3f}; {self.p1.y:.3f} - {self.p2.y:.3f}, {self.p1.z:.3f} - {self.p2.z:.3f}
-Size: {self.delta_xyz[0]:.3f} * {self.delta_xyz[1]:.3f} * {self.delta_xyz[2]:.3f} = {self.delta_xyz[0] * self.delta_xyz[1] * self.delta_xyz[2]:.3f}
-Center: {self.center_xyz[0]:.3f}, {self.center_xyz[1]:.3f}, {self.center_xyz[2]:.3f}"""
+Size: {self.size_xyz[0]:.3f} * {self.size_xyz[1]:.3f} * {self.size_xyz[2]:.3f} = {self.size_xyz[0] * self.size_xyz[1] * self.size_xyz[2]:.3f}
+Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
 
     @classmethod
     def from_selection(
