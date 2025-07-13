@@ -434,8 +434,6 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
         logging.info(f"Finished {msg} in {tic_toc / 3600:.3f} hours")
     elif unit == 'ms':
         logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
-    else:
-        raise ValueError(f"Unknown unit {unit}")
 
 
 def device_picker() -> List[str]:

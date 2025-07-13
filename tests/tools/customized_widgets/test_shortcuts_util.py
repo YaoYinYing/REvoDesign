@@ -1,7 +1,10 @@
+from unittest.mock import patch
 import pytest
+import yaml
+from types import SimpleNamespace
 
 from REvoDesign import issues
-from REvoDesign.shortcuts.utils import resolve_choice_from, resolve_default_value, resolve_extension, resolve_dotted_function, _build_asked_value
+from REvoDesign.shortcuts.utils import resolve_choice_from, resolve_default_value, resolve_extension, resolve_dotted_function, _build_asked_value, DialogWrapperRegistry,REGISTRY_DIR
 from REvoDesign.common.file_extensions import ExtColl
 from REvoDesign.shortcuts.tools.esm2 import list_all_esm_variant_predict_model_names
 # --- Test resolve_extension --- #
@@ -131,4 +134,35 @@ def test_build_asked_value(entry, expected_name, expected_type, expected_default
     assert asked_value.key == expected_name
     assert asked_value.typing == expected_type
     assert asked_value.val == expected_default
+
+
+
+REQUIRED_KEYS = {"title", "banner", "options"}
+
+@pytest.mark.parametrize(
+    "yaml_path", 
+    list((REGISTRY_DIR).glob("*.yaml")),
+    ids=lambda p: p.stem
+)
+def test_dialog_yaml_valid_structure(yaml_path):
+    """
+    Ensure every dialog YAML is:
+    - valid YAML syntax
+    - a dict of function names
+    - each function has required keys: title, banner, options
+    """
+    with open(yaml_path, "r", encoding="utf-8") as f:
+        try:
+            data = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            pytest.fail(f"YAML syntax error in {yaml_path.name}: {e}")
+
+    assert isinstance(data, dict), f"{yaml_path.name} should contain a dict at top level."
+
+    for func_id, config in data.items():
+        assert isinstance(config, dict), f"{func_id} in {yaml_path.name} is not a dict"
+        missing = REQUIRED_KEYS - config.keys()
+        assert not missing, f"{func_id} in {yaml_path.name} missing keys: {missing}"
+        assert isinstance(config["options"], list), f"{func_id}.options in {yaml_path.name} should be a list"
+
 
