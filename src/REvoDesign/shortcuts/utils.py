@@ -35,6 +35,29 @@ REGISTRY_DIR = Path(__file__).parent / "registry"
 
 
 def resolve_extension(extension: str) -> Fext.ExtColl:
+    """
+    Converts an extension string into an `ExtColl` object for file type handling.
+
+    This function supports two types of input:
+    
+    1. **Predefined Extension**:
+       - If the input matches a predefined attribute in `Fext`, it returns the corresponding value directly.
+    
+    2. **Custom Extension**:
+       - If the input does not match any predefined attribute, it treats the input as a custom extension string,
+         splits it by semicolons (`;`), and constructs a dictionary mapping lowercase extensions to 
+         user-friendly names with a prefix `'Customized - '`.
+
+    Args:
+        extension (str): The extension string to be resolved. It can be a predefined name or a custom list like `"pdb;csv"`.
+
+    Returns:
+        Fext.ExtColl: An object representing the file extension collection, either from predefined values or custom input.
+
+    Example:
+        Given input `"pdb;csv"`, this will generate:
+        {'pdb': 'PDB File', 'csv': 'CSV File'} under a custom prefix.
+    """
     if hasattr(Fext, extension):
         return getattr(Fext, extension)
 
@@ -44,13 +67,25 @@ def resolve_extension(extension: str) -> Fext.ExtColl:
 
 def resolve_dotted_function(dotted_str: str) -> Callable:
     """
-    Resolves a dotted string to a callable function.
+    Resolves a dotted string into a callable Python object (function or method).
+
+    The input string must follow one of these formats:
+    
+    - `<module_path>:<function_name>` (for module-level functions)
+      Example: `"my_module.submodule:my_function"`
+      
+    - `<module_path>:<class_name>.<method_name>` (for class methods)
+      Example: `"my_module.submodule:MyClass.my_method"`
 
     Args:
-        dotted_str (str): The dotted path to a function, e.g., "module.submodule:function_name".
+        dotted_str (str): A string representing the fully qualified path to a callable.
 
     Returns:
-        Callable: The resolved function.
+        Callable: The resolved callable function or method.
+
+    Raises:
+        issues.InvalidInputError: If the string does not contain a colon (`:`) or does not follow the expected format.
+        AttributeError: If the specified module, class, or function does not exist.
     """
     if ":" not in dotted_str:
         raise issues.InvalidInputError(
@@ -63,15 +98,53 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
         return getattr(module, func_name)
     # maybe a class method?
     
-    _class_name, _func_name=func_name.rsplit(".")
+    _class_name, _func_name = func_name.rsplit(".")
     logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
-    _class=getattr(module,_class_name)
+    _class = getattr(module, _class_name)
     return getattr(_class, _func_name)
 
 
 def resolve_choice_from(input_str: str):
+    """
+    Interprets an input string and dynamically returns a corresponding value based on its prefix.
+
+    The function supports three types of input:
+    
+    1. **Range Parsing**:
+       - If the input starts with `'range:'`, it parses the rest of the string as integers to create a `range()` object.
+       - Accepts formats like `range:1,10` or `range:1,10,2`.
+       - Raises InvalidInputError if parsing fails.
+
+    2. **Callable Resolution**:
+       - If the input starts with `"REvoDesign."`, it resolves a callable using resolve_dotted_function.
+       - Invokes and returns the result of the resolved callable.
+
+    3. **Configuration Value Retrieval**:
+       - If the input starts with `"CFG:"`, it retrieves a configuration value via `ConfigBus().get_value(...)`.
+
+    If none of the prefixes match, it raises a [ConfigurationError].
+
+    Args:
+        input_str (str): The input string that determines what value or object to return.
+
+    Returns:
+        range | Any | Callable: 
+            - A `range()` object if input starts with `'range:'`.
+            - The result of a resolved callable if input starts with `"REvoDesign."`.
+            - A configuration value if input starts with `"CFG:"`.
+
+    Raises:
+        issues.InvalidInputError: If the input format for 'range:' or 'CFG:' is invalid.
+        issues.ConfigurationError: If the input doesn't match any known pattern or expected type.
+    """
     if input_str.startswith('range:'):  # range:1,10 or range:1,10,2
-        return range(*map(int, input_str.removeprefix('range:').split(",")))
+        try:
+            return range(*map(int, input_str.removeprefix('range:').split(",")))
+        except TypeError as e:
+            raise issues.InvalidInputError(
+                'range input expect an input string in pattern range:[<start>,]<end>[,<step>]',
+                f'not `{input_str}`' 
+                ) from e
     elif input_str.startswith("REvoDesign."):
         resolved_callable = resolve_dotted_function(input_str)
         if not isinstance(resolved_callable, Callable):
@@ -82,7 +155,7 @@ def resolve_choice_from(input_str: str):
 
         if '.' not in input_str:
             raise issues.InvalidInputError(f'Expected as a config item: {input_str}')
-        return ConfigBus().get_value(input_str)
+        return ConfigBus().get_value(input_str.removeprefix('CFG:'))
 
     raise issues.ConfigurationError(f"Unable to parse {input_str}")
 
@@ -100,13 +173,33 @@ def resolve_default_value(typing: type) -> Any:
 
 def _build_asked_value(entry: dict) -> AskedValue:
     """
-    Builds an AskedValue object from configuration entry.
+    Constructs an `AskedValue` object from a configuration dictionary entry.
+
+    This function processes various fields in the input dictionary to create a structured `AskedValue` object,
+    which represents a user input field in a dialog interface. It handles:
+    
+    - Type resolution based on predefined types.
+    - Default value handling, optionally resolved from a callable.
+    - Dynamic choice population using either static values or a dynamic resolver.
+    - File extension handling for file selection inputs.
 
     Args:
-        entry (dict): A dictionary describing an AskedValue.
+        entry (dict): A dictionary containing configuration for a single `AskedValue`.  
+                      Expected keys include:
+                      - `"name"` (required): The identifier of the value.
+                      - `"type"`: The data type (e.g., "int", "str").
+                      - `"default"`: Static default value.
+                      - `"default_from"`: Dotted path to a callable returning the default value.
+                      - `"choices"` or `"choices_from"`: Static or dynamically resolved list of options.
+                      - `"ext"`: File extension filter for file dialogs.
+                      - `"reason"`, `"required"`, `"source"`, `"multiple_choices"`: Additional metadata.
 
     Returns:
-        AskedValue: The constructed AskedValue object.
+        AskedValue: A fully constructed `AskedValue` object ready for use in a dialog.
+
+    Raises:
+        ValueError: If there's an error resolving dynamic choices via [resolve_choice_from](file:///Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/shortcuts/utils.py#L106-L159).
+        Any exceptions raised during callable execution will propagate up.
     """
     # Get type
     typing_func = asked_value_typing_dict.get(entry["type"], str)  # Default to `str` if no match
