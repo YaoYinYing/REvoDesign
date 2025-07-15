@@ -1,7 +1,7 @@
 import pytest
 
 from REvoDesign.shortcuts.tools.mutation_effect_predictors import \
-    shortcut_thermompnn
+    shortcut_thermompnn, ThermoMpnnPredictor
 from tests.conftest import TestWorker
 
 
@@ -18,6 +18,9 @@ from tests.conftest import TestWorker
         # ['ssm_epistatic_longdist', 'epistatic', None, None,False]
     ],
 )
+@pytest.mark.skipif(
+        not ThermoMpnnPredictor.installed, reason="ThermoMpnnPredictor not installed"
+    )
 def test_shortcut_thermompnn(job_id, mode, threshold, long_dist, ss_penalty, test_worker: TestWorker):
     pdb = '../tests/data/6zcy_lig.pdb'
     test_worker.test_id = test_worker.method_name()
