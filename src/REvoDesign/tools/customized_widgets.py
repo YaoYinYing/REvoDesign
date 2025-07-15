@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
 from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union,
-                    overload)
+                    overload,TypedDict)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -2126,6 +2126,15 @@ def ask_for_multiple_values_as_json() -> str:
 
     return json_fp
 
+class AskedValueDynamic(TypedDict):
+    '''
+    Dynamic value to be passed to the dialog window.
+    It is a dictionary with two keys:
+    - value: the value to be passed to the dialog window
+    - index: the index of the value to be inserted in the list of values
+    '''
+    value: AskedValue
+    index: int
 
 def dialog_wrapper(
     title: str,
@@ -2148,7 +2157,7 @@ def dialog_wrapper(
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Prepare dynamic values with optional index
-            dynamic_values_with_index = kwargs.pop("dynamic_values", [])
+            dynamic_values_with_index: List[AskedValueDynamic] = kwargs.pop("dynamic_values", [])
             dynamic_values_with_index = sorted(dynamic_values_with_index, key=lambda x: x.get("index", len(options)))
 
             # Merge static and dynamic options based on index

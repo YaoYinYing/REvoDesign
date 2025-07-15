@@ -12,7 +12,7 @@ from immutabledict import immutabledict
 
 from REvoDesign import issues
 from REvoDesign.common import file_extensions as Fext
-from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
+from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper,AskedValueDynamic
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 
@@ -249,6 +249,15 @@ class DialogWrapperRegistry:
         self.funcs: Dict[str, Callable] = {}
 
     def _load_yaml(self, path: Path) -> dict:
+        '''
+        Load YAML file.
+
+        Args:
+            path (Path): Path to the YAML file.
+
+        Returns:
+            dict: The YAML content as a dictionary.
+        '''
         with path.open("r") as f:
             return yaml.safe_load(f)
 
@@ -262,6 +271,14 @@ class DialogWrapperRegistry:
     ):
         """
         Register the raw Python function under a given ID.
+
+        Arguments:
+        func_id (str): The ID to register the function under.
+        func (Callable): The function to register.
+        use_thread (bool): Whether to run the function in a separate thread.
+        has_dynamic_values (bool): Whether the function accepts dynamic values.
+        kwargs (Optional[Dict]): Additional keyword arguments to pass to the function.
+
         Returns either:
         - A callable accepting dynamic values (if has_dynamic_values=True)
         - A callable with no arguments (if has_dynamic_values=False)
@@ -272,33 +289,59 @@ class DialogWrapperRegistry:
         else:
             self.funcs[func_id] = func
 
-        def window_wrapper_dynamic_values(dynamic_values: Optional[List[Any]] = None):
-            f'''
-            Wrapper for the function `{func_id}` to be called from the GUI.
-            It calls the function `{func_id}` with the given dynamic values.
-            '''
+        def window_wrapper_dynamic_values(dynamic_values: Optional[List[AskedValueDynamic]] = None):
+            
             self.call(func_id, dynamic_values)
 
-        def window_wrapper(dynamic_values: Optional[List[Any]] = None):
-            f'''
-            Wrapper for the function `{func_id}` to be called from the GUI.
-            It calls the function `{func_id}` with the no dynamic values.
-            '''
+        def window_wrapper(dynamic_values: Optional[List[AskedValueDynamic]] = None):
             self.call(func_id)
 
+        if has_dynamic_values:
+            func= window_wrapper_dynamic_values 
+            func.__doc__ = f'''
+Wrapper for the function `{func_id}` to be called from the GUI.
+It calls the function `{func_id}` with the given dynamic values.
+
+Arguments:
+dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function. 
+'''
+        else:
+            func=window_wrapper
+            func.__doc__ =f'''
+Wrapper for the function `{func_id}` to be called from the GUI.
+It calls the function `{func_id}` with the no dynamic values.
+
+Arguments:
+dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function. 
+    Will be ignored if has_dynamic_values=False.
+'''
+
         atexit.register(self.unregister, func_id)
-        return window_wrapper_dynamic_values if has_dynamic_values else window_wrapper
+        return func
 
     def unregister(self, func_id: str):
         """
         Unregister the function with the given ID.
+
+        Args:
+            func_id (str): The ID of the function to unregister.
         """
         logging.debug(f"Unregistering function {func_id}")
         del self.funcs[func_id]
 
-    def call(self, func_id: str, dynamic_values: Optional[List[dict]] = None):
+    def call(self, func_id: str, dynamic_values: Optional[List[AskedValueDynamic]] = None):
         """
         Wrap and call the function with a dialog built from YAML config.
+
+        Args:
+            func_id (str): The ID of the function to call.
+            dynamic_values (Optional[List[dict]]): Dynamic values to pass to the function.
+
+        Returns:
+            Any: The result of the function call.
+        Raises:
+            ValueError: If the function ID is not registered.
+            ValueError: If the function ID is not found in the YAML config.
         """
         logging.debug(f"Calling function {func_id}")
         if func_id not in self.funcs:
@@ -309,7 +352,7 @@ class DialogWrapperRegistry:
         conf = self.config[func_id]
         asked_values = [_build_asked_value(opt) for opt in conf["options"]]
         logging.debug(f"Asked values: {asked_values}")
-        wrapped_func = dialog_wrapper(
+        wrapped_func= dialog_wrapper(
             title=conf.get("title", func_id),
             banner=conf.get("banner", ""),
             options=tuple(asked_values),
