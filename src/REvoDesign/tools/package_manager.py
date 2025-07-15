@@ -193,6 +193,7 @@ class LiveProcessResult(subprocess.CompletedProcess):
     def __init__(self, args, returncode, stdout: str, stderr: str):
         super().__init__(args=args, returncode=returncode, stdout=stdout, stderr=stderr)
 
+
 def run_command(
     cmd: Union[Tuple[str], List[str]],
     verbose: bool = False,
@@ -253,7 +254,7 @@ def run_command(
 
     if process.returncode != 0 and verbose:
         raise RuntimeError(
-            f"--> Command failed:\n{'-'*79}\n{stderr_text.strip()}\n{'-'*79}"
+            f"--> Command failed:\n{'-' * 79}\n{stderr_text.strip()}\n{'-' * 79}"
         )
 
     return LiveProcessResult(
@@ -588,9 +589,9 @@ class PIPInstaller:
             logging.info(f"using mirror from {mirror}")
             pip_cmd.extend(["-i", mirror])
         if verbose_level < 0:
-            pip_cmd.append(f"-{'q'*-verbose_level}")
+            pip_cmd.append(f"-{'q' * -verbose_level}")
         elif verbose_level > 0:
-            pip_cmd.append(f"-{'v'*verbose_level}")
+            pip_cmd.append(f"-{'v' * verbose_level}")
 
         logging.debug(f'Using verbose level {verbose_level}')
 
@@ -2280,9 +2281,12 @@ def __init_plugin__(app=None):
     addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
 
     if is_package_installed('REvoDesign'):
-        from REvoDesign import REvoDesignPlugin
+        try:
+            from REvoDesign import REvoDesignPlugin
 
-        plugin = REvoDesignPlugin()
-        addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
+            plugin = REvoDesignPlugin()
+            addmenuitemqt("REvoDesign", plugin.run_plugin_gui)
+        except Exception as e:
+            logging.error(str(e))
     else:
         logging.critical("REvoDesign is not available.")

@@ -13,9 +13,9 @@ from RosettaPy.utils.task import RosettaCmdTask, execute
 
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.utils import (smiles_conformer_batch,
-                                        smiles_conformer_single,
-                                        visualize_conformer_sdf)
+from REvoDesign.shortcuts.function_utils import (smiles_conformer_batch,
+                                                 smiles_conformer_single,
+                                                 visualize_conformer_sdf)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 

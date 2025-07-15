@@ -1,0 +1,53 @@
+esm1v:
+  title: "ESM1v"
+  banner: "Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)"
+  options:
+    - name: "model_alias"
+      type: list
+      reason: "Model(s) used to generate predictions."
+      required: true
+      choices_from: "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names"
+    - name: "checkpoint_dir"
+      type: str
+      default: ""
+      reason: "Checkpoint directory for the model. If not set, it will be downloaded automatically."
+      source: "Directory"
+    - name: "dms_output"
+      type: str
+      default: ""
+      reason: "Path to save the DMS result."
+      source: "FileO"
+      required: true
+      ext: "CSV"
+    - name: "skip_wt"
+      type: bool
+      default: false
+      reason: "Skip wildtype mutation in the results."
+    - name: "mutation_col"
+      type: str
+      default: "mutation"
+      reason: "Column name for mutation in the input file."
+    - name: "offset_idx"
+      type: int
+      default: 1
+      reason: "Offset index for sequence. Default is 1."
+      choices_from: "range:-10,10"
+    - name: "scoring_strategy"
+      type: str
+      reason: "Scoring method for variant prediction."
+      choices: ["wt-marginals", "pseudo-ppl", "masked-marginals"]
+      multiple_choices: true
+    - name: "msa_path"
+      type: str
+      default: ""
+      reason: "Optional: MSA file for running MSA-1b (if applicable)."
+      source: "FileO"
+      ext: "A3M"
+    - name: "msa_samples"
+      type: int
+      default: 400
+      reason: "Number of sampled sequences for MSA-1b."
+    - name: "device"
+      type: str
+      reason: "Device for running the model (CPU/GPU/MPS)."
+      choices_from: "REvoDesign.tools.utils:device_picker"

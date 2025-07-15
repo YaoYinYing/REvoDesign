@@ -45,14 +45,13 @@ def shortcut_find_interface(
             print(f"{x} has chain combination {ch_combination}")
             cmd.select(
                 f"{x}_interface_{ch_combination}_{interact_dist}",
-                f"({x} and chain {ch[1]} and byres /{x}//{ch[0]} around {interact_dist} ) or ({x} and chain {ch[0]} and byres /{x}//{ch[1]} around {interact_dist} )",
+                f"({x} and chain {ch[1]} and byres /{x}//{ch[0]} around {interact_dist} ) or "
+                f"({x} and chain {ch[0]} and byres /{x}//{ch[1]} around {interact_dist} )",
             )
             ifc_residues = list(
                 {
-                    f"{atom.chain}_{atom.resi}{rAA[atom.resn] if len(atom.resn) >1 and atom.resn in rAA.keys() else atom.resn}"
-                    for atom in cmd.get_model(
-                        f"{x}_interface_{ch_combination}_{interact_dist}"
-                    ).atom
+                    f"{atm.chain}_{atm.resi}{rAA[atm.resn] if len(atm.resn) > 1 and atm.resn in rAA else atm.resn}"
+                    for atm in cmd.get_model(f"{x}_interface_{ch_combination}_{interact_dist}").atom
                 }
             )
             if len(ifc_residues) == 0:

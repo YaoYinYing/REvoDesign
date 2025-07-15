@@ -367,8 +367,8 @@ class ServerControl(ServerControlAbstract):
         self.server_thread.finished_signal.connect(self._on_server_finished)
         self.server_thread.start()
         self.is_running = True
-        print(
-            f"Server started with {'SSL' if use_ssl else 'no SSL'} and {'no token' if no_token else 'token-based'} authentication.")
+        print(f"Server started with {'SSL' if use_ssl else 'no SSL'} and "
+              f"{'no token' if no_token else 'token-based'} authentication.")
         print(f'ServerControl::Config:{self.config_store.cfg}')
 
     def stop_server(self):

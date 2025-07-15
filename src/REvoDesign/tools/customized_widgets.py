@@ -10,8 +10,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
-from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union,
-                    overload)
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple,
+                    TypedDict, Union, overload)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -596,7 +596,11 @@ class QButtonMatrix(QtWidgets.QWidget):
         Returns:
             str: Tooltip text for the button.
         """
-        return f"{self.sequence[int(col_name)-1+self.zero_index_offset]}{str(int(col_name) + self.zero_index_offset)}{row_name} ({value:.3f}){', WT' if is_wt_pair else ''}"
+        _WT = self.sequence[int(col_name) - 1 + self.zero_index_offset]
+        _IDX = str(int(col_name) + self.zero_index_offset)
+        _SUB = row_name
+        _IS_WT_NOTE = ', WT' if is_wt_pair else ''
+        return f"{_WT}{_IDX}{_SUB} ({value:.3f}){_IS_WT_NOTE}"
 
     def init_ui(self):
         """
@@ -629,7 +633,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
-                    label=f"&{self.get_WT_label( row_name, col_name, row, col)}" if is_wt_button else None,
+                    label=f"&{self.get_WT_label(row_name, col_name, row, col)}" if is_wt_button else None,
                     tooltip_text=button_tip,
                     is_wt=is_wt_button,
                     size_policy=size_policy,
@@ -1387,6 +1391,7 @@ class AskedValue:
             - 'Directory': Input is expected to be a directory path.
             - 'JsonInput': Input is expected to be a JSON file input.
         ext (Optional[FExCol]): File extension filters for file and directory inputs.
+        multiple_choices (bool): Whether the multiple choices mode is enabled.
     """
 
     key: str
@@ -1397,6 +1402,7 @@ class AskedValue:
     choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
     source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
     ext: Optional[FExCol] = None
+    multiple_choices: bool = False
 
 
 def real_bool(val: Any):
@@ -1658,7 +1664,7 @@ class ValueDialog(REvoDesignWidget):
                 choices = None
 
         # a multi-choice
-        if asked_value.typing == list:
+        if asked_value.multiple_choices:
             if not choices:
                 raise issues.InternalError(f"Multi-choice field must have a valid choices, not {choices}")
             # MultiCheckableComboBox for list of choices
@@ -2121,6 +2127,17 @@ def ask_for_multiple_values_as_json() -> str:
     return json_fp
 
 
+class AskedValueDynamic(TypedDict):
+    '''
+    Dynamic value to be passed to the dialog window.
+    It is a dictionary with two keys:
+    - value (AskedValue): the value to be passed to the dialog window
+    - index (int): the index of the value to be inserted in the list of values
+    '''
+    value: AskedValue
+    index: int
+
+
 def dialog_wrapper(
     title: str,
     banner: str,
@@ -2142,7 +2159,7 @@ def dialog_wrapper(
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Prepare dynamic values with optional index
-            dynamic_values_with_index = kwargs.pop("dynamic_values", [])
+            dynamic_values_with_index: List[AskedValueDynamic] = kwargs.pop("dynamic_values", [])
             dynamic_values_with_index = sorted(dynamic_values_with_index, key=lambda x: x.get("index", len(options)))
 
             # Merge static and dynamic options based on index

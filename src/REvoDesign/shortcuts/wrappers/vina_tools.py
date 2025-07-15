@@ -1,119 +1,22 @@
 '''
-Shortcut wrappers of structure manipulation
+Shortcut wrappers of vina-related structure manipulation
 '''
 
-from pymol import cmd
 
 from REvoDesign.shortcuts.tools.vina_tools import (box_helper, get_pca_box,
                                                    getbox, rmhet)
-from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
+from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
-from ...logger import ROOT_LOGGER
+# Create registry for vina
+registry = DialogWrapperRegistry("vina")
 
-logging = ROOT_LOGGER.getChild(__name__)
+wrapped_getbox = registry.register("get_box", getbox, use_thread=True)
+wrapped_alter_box = registry.register("alter_box", box_helper, use_thread=True)
+wrapped_get_pca_box = registry.register("get_pca_box", get_pca_box, use_thread=True)
 
 
 def wrapped_rmhet():
-    '''
-    Get Auto Dock Box for a selection
-    '''
+    """
+    Remove all HETATM records (ligands, waters, ions).
+    """
     return rmhet()
-
-
-@dialog_wrapper(
-    title="Get Box",
-    banner="Get Auto Dock Box for a selection",
-    options=(
-        AskedValue(
-            "selection",
-            "",
-            typing=str,
-            reason="Selections to operated on.",
-            required=True,
-            choices=lambda: list(cmd.get_names('selections'))
-        ),
-        AskedValue(
-            "new_box_name",
-            '',
-            typing=str,
-            reason="Box name. Leave blank for a random name.",
-        ),
-        AskedValue(
-            "extending",
-            5.0,
-            typing=float,
-            reason="Box padding distance. Default is 5.",
-        ),
-    )
-)
-def wrapped_getbox(**kwargs):
-    """
-    Runs the get_box function with parameters collected from the dialog.
-
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
-    logging.info(kwargs)
-    getbox(**kwargs)
-
-
-@dialog_wrapper(
-    title="Alter Box",
-    banner="Change Box coordinates or size",
-    options=(
-        AskedValue(
-            "box_name",
-            "",
-            typing=str,
-            reason="Box name to operated on.",
-            required=True,
-            choices=cmd.get_names
-        ),
-    )
-)
-def wrapped_alterbox(**kwargs):
-    """
-    Runs the get_box function with parameters collected from the dialog.
-
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
-    logging.info(kwargs)
-    box_helper(**kwargs)
-
-
-@dialog_wrapper(
-    title="Get PCA Box, non axes aligned",
-    banner="Get PCA analysed Box for a selection",
-    options=(
-        AskedValue(
-            "selection",
-            "",
-            typing=str,
-            reason="Selections to operated on.",
-            required=True,
-            choices=lambda: list(cmd.get_names('selections'))
-        ),
-        AskedValue(
-            "new_box_name",
-            '',
-            typing=str,
-            reason="Box name. Leave blank for a random name.",
-        ),
-        AskedValue(
-            "extending",
-            5.0,
-            typing=float,
-            reason="Box padding distance. Default is 5.",
-        ),
-    )
-)
-def wrapped_get_pca_box(**kwargs):
-    """
-    Runs the get_pca_box function with parameters collected from the dialog.
-
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
-    logging.info(kwargs)
-    get_pca_box(**kwargs)

@@ -18,17 +18,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `FileExtensionCollection`: `from_dict` to create a new collection from a dictionary.
+- `logger`: `logger_level_setter`: Set the logging level.
+- `shortcuts`:
+  - `dialog_hooks`: minimal function utilities for window pops to generate choices in a more complex way
+  - `function_utils`: function utilities for tools
+  - `registry`: a collection of window pop registry, with window inputs defined in yaml files
+  - `utils`: the work horse of management of shortcut window pops from function-yaml-window routine
+    - `DialogWrapperRegistry`: a registry for dialog wrappers
+    - `resolve_extension`: resolve extension
+    - `resolve_dotted_function`: resolve dotted function from yaml description
+    - `resolve_choice_from`: resolve choice from yaml description
+    - `_build_asked_value`: build asked value object according to yaml description
+    - `run_wrapped_func_in_thread`: run wrapped function in thread
+- menu: 
+  - logger level setter
+- `customized_widgets`:
+  - `AskedValueDynamic`:  typed dict for dynamic value inputs to shortcut wrappers
+  - `AskedValue`: added `multiple_choices` bool to explicitly allow multiple choices
+- tests:
+  - test marker `skipif` for pmpnn-related tests if `colabdesign` is not installed.
 
 ### Changed
 - `package_manager`: 
   - `run_command` now use a streaming stdout and stderr manner, meaning the command running is now `live`
+- refactored shortcuts as prove-of-concept:
+  - `exports`
+  - `logger`
+  - `rosetta_tasks`
+  - `esm`
+  - `ligand`
+  - `mutation`
+  - `represents`
+  - `rfdiffusion`
+  - `structure`
+  - `vina`
+- `shortcuts_on_menu`:
+  - rewriten redefined function as one-liners
+- `shortcuts`: 
+  - `vina_tools`: refactored property codes in `CgoBox`
+- `customized_widgets`:
+  - `QButtonMatrix`:  refactored property codes
 
 ### Fixed
 - dependencies:
   - `pooch`
   - `nvtx-mock`: now we already have the real package on PyPI!!!!
+- Lint:
+  - weird linting issues in various places
+
 
 ### Removed
+- fussy codes of dialog wrappers on:
+  - `exports`
+  - `logger`
+  - `rosetta_tasks`
+  - `esm`
+  - `ligand`
+  - `mutation`
+  - `represents`
+  - `rfdiffusion`
+  - `structure`
+  - `vina`
+- pre-commit hooks
+  - `pygrep-hooks`: dropped `python-no-eval` as the false positives were buggy in torch code
+  - `autopep8`: ignored `lambda`-`def` transitions by `--ignore=E731` 
 
 ## [1.7.21] - 2025-03-12
 ### Added

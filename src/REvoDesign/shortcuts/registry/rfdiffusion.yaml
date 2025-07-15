@@ -1,0 +1,87 @@
+visualize_substrate_potentials:
+  title: "Substrate Potential Visualizer"
+  banner: "Visualize substrate potential energy maps for ligand pocket generation with RFdiffusion."
+  options:
+    - name: "pdb_path"
+      type: str
+      reason: "Path to the input PDB file containing the protein-ligand complex."
+      required: true
+      source: "File"
+      ext: "PDB_STRICT"
+    - name: "lig_key"
+      type: str
+      reason: "Residue name of the ligand (e.g., 'ATP', 'HEM')."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:find_all_small_molecules_in_protein"
+    - name: "blur"
+      type: bool
+      default: false
+      reason: "If True, applies a Gaussian blur to the potential map."
+    - name: "weight"
+      type: float
+      default: 1
+      reason: "Scaling factor for the total potential energy."
+    - name: "r_0"
+      type: float
+      default: 8
+      reason: "Defines the maximum range of attractive interactions."
+    - name: "d_0"
+      type: float
+      default: 2
+      reason: "Defines the preferred contact distance for attractive interactions."
+    - name: "s"
+      type: float
+      default: 1
+      reason: "Scaling factor for the attractive contact potential."
+    - name: "eps"
+      type: float
+      default: 1e-6
+      reason: "Small constant added to prevent division by zero."
+    - name: "rep_r_0"
+      type: float
+      default: 5
+      reason: "Defines the onset of repulsive interactions."
+    - name: "rep_s"
+      type: float
+      default: 2
+      reason: "Scaling factor for the repulsive potential."
+    - name: "rep_r_min"
+      type: float
+      default: 1
+      reason: "Defines the minimum repulsion distance."
+    - name: "grid_size"
+      type: int
+      default: 200
+      reason: "Number of grid points in each direction."
+    - name: "margin"
+      type: int
+      default: 10
+      reason: "Margin around the ligand atoms."
+    - name: "save_to"
+      type: str
+      default: default.png
+      reason: "Path to save the plot. If 'default.png', it will be saved in the current directory."
+      source: "FileO"
+      ext: "Pictures"
+      required: true
+
+general_rfdiffusion_task:
+  title: "Run RFdiffusion"
+  banner: "Run General RFdiffusion task."
+  options:
+    - name: "config_preset"
+      type: str
+      reason: "The config preset to use."
+      choices_from: "REvoDesign.shortcuts.tools.rfdiffusion_tasks:list_all_config_preset"
+    - name: "config_file"
+      type: str
+      reason: "The config file to use. Defaults to empty to use config preset."
+      source: "File"
+      ext: "YAML"
+    - name: "model_name"
+      type: str
+      reason: "The model name to use."
+      choices_from: "REvoDesign.shortcuts.tools.rfdiffusion_tasks:list_all_rfd_models"
+    - name: "overrides"
+      type: str
+      reason: "The override configuration term to use."

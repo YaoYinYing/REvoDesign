@@ -162,3 +162,7 @@ class FileExtensionCollection:
         # otherwise, raise no match error
         raise issues.InternalError(
             f'Unexpect error in file extension collection: {fname} does not match any extension of {self.list_dot_ext}')
+
+    @classmethod
+    def from_dict(cls, dic: dict, prefix: str = '') -> 'FileExtensionCollection':
+        return cls(tuple([FileExtension(d[0], f'{prefix}{d[1].lstrip("*.")}') for d in dic.items()]))

@@ -36,7 +36,7 @@ repos:
       - id: python-check-blanket-noqa
       # - id: python-check-blanket-type-ignore
       - id: python-no-log-warn
-      - id: python-no-eval
+      # - id: python-no-eval
       - id: python-use-type-annotations
       # - id: rst-backticks
       # - id: rst-directive-colons
@@ -54,6 +54,7 @@ repos:
       - id: autopep8
         args:
         - --in-place
+        - --ignore=E731
         - --aggressive
         - --aggressive
         - --max-line-length

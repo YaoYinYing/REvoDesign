@@ -1,0 +1,18 @@
+resi_renumber:
+  title: "Renumber Residue index"
+  banner: "Renumber residue indices by applying an offset."
+  options:
+    - name: "molecule"
+      type: list
+      default: ""
+      reason: "Molecule (object) to operate on."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_objects"
+    - name: "chain"
+      type: str
+      default: "A"
+      reason: "Chain ID(s) to operate on. Accepts PyMOL syntax like A+B+C."
+    - name: "offset"
+      type: int
+      default: 0
+      reason: "Offset value to add to residue index."

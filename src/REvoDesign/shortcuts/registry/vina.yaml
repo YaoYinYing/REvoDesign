@@ -1,0 +1,48 @@
+get_box:
+  title: "Get Box"
+  banner: "Get AutoDock Box for a selection"
+  options:
+    - name: "selection"
+      type: str
+      default: ""
+      reason: "Selections to operate on."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_selections"
+    - name: "new_box_name"
+      type: str
+      default: ""
+      reason: "Box name. Leave blank for a random name."
+    - name: "extending"
+      type: float
+      default: 5.0
+      reason: "Box padding distance."
+
+alter_box:
+  title: "Alter Box"
+  banner: "Change box coordinates or size"
+  options:
+    - name: "box_name"
+      type: str
+      default: ""
+      reason: "Box name to operate on."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_objects"
+
+get_pca_box:
+  title: "Get PCA Box, non axes aligned"
+  banner: "Get PCA analyzed Box for a selection"
+  options:
+    - name: "selection"
+      type: str
+      default: ""
+      reason: "Selections to operate on."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_selections"
+    - name: "new_box_name"
+      type: str
+      default: ""
+      reason: "Box name. Leave blank for a random name."
+    - name: "extending"
+      type: float
+      default: 5.0
+      reason: "Box padding distance."

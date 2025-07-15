@@ -2,14 +2,11 @@
 Shortcut wrappers of Rosetta-related tasks
 '''
 
+
 from pymol import cmd
 
-from REvoDesign.common import file_extensions as FExt
-from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper
-from REvoDesign.tools.package_manager import run_worker_thread_with_progress
-from REvoDesign.tools.rosetta_utils import (extra_res_to_opts,
-                                            list_fastrelax_scripts)
-from REvoDesign.tools.utils import timing
+from REvoDesign.shortcuts.utils import DialogWrapperRegistry
+from REvoDesign.tools.rosetta_utils import extra_res_to_opts
 
 from ...logger import ROOT_LOGGER
 from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross,
@@ -18,97 +15,11 @@ from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross,
 
 logging = ROOT_LOGGER.getChild(__name__)
 
+# 1. Prepare functions that has kwargs input and pre-/post-processing
+# no need to use threading
 
-@dialog_wrapper(
-    title="RosettaLigand",
-    banner="Perform RosettaLigand Docking",
-    options=(
-        AskedValue(
-            "pdb",
-            "",
-            typing=str,
-            reason="Path to the PDB file",
-            source='File',  # Mark this as a file input
-            required=True,
-            ext=FExt.PDB_STRICT,
-        ),
-        AskedValue(
-            "ligand_params",
-            "",
-            typing=str,
-            reason="Path to the ligands (*.params) to be docked.",
-            source='Files',  # Mark this as a multi-file input
-            required=True,
-            ext=FExt.RosettaParams
-        ),
-        AskedValue(
-            "nstruct",
-            "10",
-            typing=int,
-            reason="Number of structures to be generated.",
-            required=True,
-        ),
-        AskedValue(
-            "chain_id_for_dock",
-            "B",
-            typing=str,
-            reason="Chain ID for the docking.",
-            required=True,
-        ),
-        AskedValue(
-            "save_dir",
-            "",
-            typing=str,
-            reason="Path to the directory to save the results.",
-            source='Directory',  # Mark this as a folder input
-            required=True,
-        ),
-        AskedValue(
-            "job_id",
-            "rosettaligand",
-            typing=str,
-            reason="Job ID for the docking.",
-            required=True,
-        ),
-        AskedValue(
-            "cst",
-            "",
-            typing=str,
-            reason="Path to the constraint file.",
-            source='File',  # Mark this as a file input
-            required=False,
-        ),
-        AskedValue(
-            "box_size",
-            30,
-            typing=int,
-            reason="Box size for the docking.",
-            required=True,
-        ),
-        AskedValue(
-            "move_distance",
-            0.5,
-            typing=float,
-            reason="Move distance for the docking.",
-        ),
-        AskedValue(
-            "gridwidth",
-            45,
-            typing=int,
-            reason="Grid width for the docking.",
-            choices=range(10, 90)
-        ),
 
-        AskedValue(
-            "start_from_xyz_sele",
-            '',
-            typing=str,
-            reason="Startpoint selection from XYZ coordinates. Will use center of mass coordinates if provided.",
-            choices=lambda: [''] + list(cmd.get_names("selections")),
-        ),
-    )
-)
-def wrapped_rosettaligand(**kwargs):
+def rosettaligand(**kwargs):
     """
     Runs the RosettaLigand docking.
 
@@ -129,163 +40,10 @@ def wrapped_rosettaligand(**kwargs):
     else:
         kwargs['start_from_xyz'] = tuple(cmd.centerofmass(start_from_xyz_sele))
 
-    with timing('running RosettaLigand docking'):
-
-        run_worker_thread_with_progress(
-            shortcut_rosettaligand,
-            **kwargs,
-        )
+    shortcut_rosettaligand(**kwargs)
 
 
-@dialog_wrapper(
-    title="PROSS design",
-    banner="Perform PROSS design",
-    options=(
-        AskedValue(
-            "pdb",
-            "",
-            typing=str,
-            reason="Path to the PDB file",
-            source='File',  # Mark this as a file input
-            required=True,
-            ext=FExt.PDB_STRICT,
-        ),
-        AskedValue(
-            "pssm",
-            "",
-            typing=str,
-            reason="Path to the PSSM file. ",
-            source='File',  # Mark this as a file input
-            required=True,
-            ext=FExt.PSSM
-        ),
-        AskedValue(
-            "res_to_fix",
-            "1A",
-            typing=str,
-            reason="Residue to fix. Default is 1A.",
-        ),
-        AskedValue(
-            "res_to_restrict",
-            "1A",
-            typing=str,
-            reason="Residue to restrict. Default is 1A.",
-        ),
-        AskedValue(
-            "nstruct_refine",
-            4,
-            typing=int,
-            reason="Number of structures to be generated in refinement.",
-            required=True,
-        ),
-        AskedValue(
-            "save_dir",
-            "design/pross",
-            typing=str,
-            reason="Path to the directory to save the results.",
-            source='Directory',  # Mark this as a folder input
-            required=True,
-        ),
-        AskedValue(
-            "job_id",
-            "pross_design",
-            typing=str,
-            reason="Job ID for the PROSS design.",
-            required=True,
-        ),
-    )
-)
-def wrapped_pross(**kwargs):
-    """
-    Runs the PROSS design.
-
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
-    logging.info(kwargs)
-
-    with timing('running PROSS design'):
-
-        run_worker_thread_with_progress(
-            shortcut_pross,
-            **kwargs,
-        )
-
-
-@dialog_wrapper(
-    title="FastRelax",
-    banner="Perform Rosetta FastRelax",
-    options=(
-        AskedValue(
-            "pdb",
-            "",
-            typing=str,
-            reason="Path to the PDB file",
-            source='File',  # Mark this as a file input
-            required=True,
-            ext=FExt.PDB_STRICT,
-        ),
-        AskedValue(
-            "relax_script",
-            "MonomerRelax2019",
-            typing=str,
-            reason="Name of the fastrelax script.",
-            choices=list_fastrelax_scripts,
-            required=True,
-        ),
-        AskedValue(
-            "dualspace",
-            False,
-            typing=bool,
-            reason="Whether to use dual space. Default is False.",
-        ),
-        AskedValue(
-            "default_repeats",
-            3,
-            typing=int,
-            choices=range(3, 100),
-            reason="Default number of repeats.",
-        ),
-        AskedValue(
-            "nstruct",
-            4,
-            typing=int,
-            reason="Number of structures to be generated in relax.",
-            required=True,
-        ),
-        AskedValue(
-            "save_dir",
-            "relaxed/fastrelax",
-            typing=str,
-            reason="Path to the directory to save the results.",
-            source='Directory',  # Mark this as a folder input
-            required=True,
-        ),
-        AskedValue(
-            "job_id",
-            "relaxed",
-            typing=str,
-            reason="Job ID for the FastRelax design.",
-            required=True,
-        ),
-        AskedValue(
-            "ligand_params",
-            "",
-            typing=str,
-            reason="Path to the ligands (*.params) to be docked.",
-            source='Files',  # Mark this as a multi-file input
-            ext=FExt.RosettaParams
-        ),
-        AskedValue(
-            "opts",
-            "",
-            typing=str,
-            reason="Other options for the FastRelax.",
-
-        ),
-    )
-)
-def wrapped_fast_relax(**kwargs):
+def fast_relax(**kwargs):
     """
     Runs the FastRelax.
 
@@ -302,84 +60,10 @@ def wrapped_fast_relax(**kwargs):
 
     kwargs['relax_opts'] = [op for op in relax_opts if op]
 
-    with timing('running Rosetta FastRelax'):
-
-        run_worker_thread_with_progress(
-            shortcut_fast_relax,
-            **kwargs,
-        )
+    shortcut_fast_relax(**kwargs)
 
 
-@dialog_wrapper(
-    title="RelaxWithCaConstraints",
-    banner="Perform Rosetta Relax With Ca Constraints",
-    options=(
-        AskedValue(
-            "pdb",
-            "",
-            typing=str,
-            reason="Path to the PDB file",
-            source='File',  # Mark this as a file input
-            required=True,
-            ext=FExt.PDB_STRICT,
-        ),
-        AskedValue(
-            "nstructs_per_round",
-            1,
-            typing=int,
-            reason="Number of structures to generate per round. Default is 1.",
-            choices=range(1, 100),
-            required=True,
-        ),
-        AskedValue(
-            "ncycles",
-            3,
-            typing=int,
-            reason="Number of cycles to run. Default is 3.",
-            choices=range(3, 100),
-            required=True,
-        ),
-
-        AskedValue(
-            "save_dir",
-            "relaxed",
-            typing=str,
-            reason="Path to the directory to save the results.",
-            source='Directory',  # Mark this as a folder input
-            required=True,
-        ),
-        AskedValue(
-            "job_id",
-            "relax_w_ca_constraints",
-            typing=str,
-            reason="Job ID for the FastRelax design.",
-            required=True,
-        ),
-        AskedValue(
-            "ligand_params",
-            "",
-            typing=str,
-            reason="Path to the ligands (*.params) to be docked.",
-            source='Files',  # Mark this as a multi-file input
-            ext=FExt.RosettaParams
-        ),
-        AskedValue(
-            "opts",
-            "",
-            typing=str,
-            reason="Other options for the FastRelax.",
-
-        ),
-        AskedValue(
-            "load_to_preview",
-            False,
-            typing=bool,
-            reason="Whether to load the results to preview. Default is False.",
-
-        ),
-    )
-)
-def wrapped_relax_w_ca_constraints(**kwargs):
+def relax_w_ca_constraints(**kwargs):
     """
     Runs the FastRelax.
 
@@ -397,9 +81,19 @@ def wrapped_relax_w_ca_constraints(**kwargs):
 
     kwargs['relax_opts'] = [op for op in relax_opts if op]
 
-    with timing('running Rosetta FastRelax'):
+    shortcut_relax_w_ca_constraints(**kwargs)
 
-        run_worker_thread_with_progress(
-            shortcut_relax_w_ca_constraints,
-            **kwargs,
-        )
+
+# 2. Init registry for Rosetta-related dialogs
+registry = DialogWrapperRegistry("rosetta_tasks")
+
+
+# 3. Register functions into the registry by id-function pairs with threading enabled or not
+# wrapped window pop trigger will be returned after this registration
+wrapped_rosettaligand = registry.register("rosettaligand", rosettaligand, use_thread=True)
+wrapped_pross = registry.register("pross", shortcut_pross, use_thread=True)
+wrapped_fast_relax = registry.register("fast_relax", fast_relax, use_thread=True)
+wrapped_relax_w_ca_constraints = registry.register(
+    "relax_w_ca_constraints",
+    relax_w_ca_constraints,
+    use_thread=True)

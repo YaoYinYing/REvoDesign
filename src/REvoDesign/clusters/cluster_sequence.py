@@ -203,9 +203,8 @@ class Clustering(CitableModuleAbstract):
                     end_time = time.perf_counter()
                     refresh_window()
 
-                    logging.info(
-                        f"Cluster progress: {decimal.Decimal(batch_count / batch_number) * 100:{5}.{4}} %   \t{batch_count} / {batch_number}\t elapse time: {end_time - start_time}"
-                    )
+                    logging.info(f"Cluster progress: {decimal.Decimal(batch_count / batch_number) * 100:{5}.{4}} %  "
+                                 f"\t{batch_count} / {batch_number}\t elapse time: {end_time - start_time}")
                     res_b = [
                         ",".join([str(x) for x in list(item)])
                         for item in sub_res

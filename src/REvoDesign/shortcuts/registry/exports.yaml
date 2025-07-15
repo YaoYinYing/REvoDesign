@@ -1,0 +1,82 @@
+dump_fasta_from_struct:
+  title: "Dump Sequence from Structure"
+  banner: "Dump the sequence of the selected molecule/chain to a sequence file."
+  options:
+    - name: "format"
+      type: str
+      default: "fasta"
+      reason: "Output format. Default is fasta."
+      required: true
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_fasta_writer_choices"
+    - name: "chain_ids"
+      type: list
+      reason: "Chain IDs to operate on."
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_designable_chain_ids"
+    - name: "output_dir"
+      type: str
+      default: "dumped_sequences"
+      reason: "Output directory"
+    - name: "drop_missing_residue"
+      type: bool
+      default: false
+      reason: "Drop missing residues (`X`)."
+    - name: "suffix"
+      type: str
+      default: ""
+      reason: "Suffix for the output file."
+
+menu_dump_sidechains:
+  title: "Dump Sidechains"
+  banner: "Dump all sidechain conformers of selected groups."
+  options:
+    - name: "enabled_only"
+      type: bool
+      default: false
+      reason: "Dump only enabled models."
+
+    - name: "save_dir"
+      type: str
+      default: "png/sidechains"
+      reason: "Directory to save the sidechains."
+
+    - name: "height"
+      type: int
+      default: 1280
+      reason: "Height of the image."
+
+    - name: "width"
+      type: int
+      default: 1280
+      reason: "Width of the image."
+
+    - name: "dpi"
+      type: int
+      default: 150
+      reason: "DPI of the image."
+      choices: [150, 300, 600, 1200]
+
+    - name: "ray"
+      type: bool
+      default: true
+      reason: "Use ray tracing."
+
+    - name: "hide_mesh"
+      type: bool
+      default: true
+      reason: "Hide mesh."
+
+    - name: "neighborhood"
+      type: int
+      default: 3
+      reason: "Select with neighborhood area."
+      choices: range:1,25
+
+    - name: "recenter"
+      type: bool
+      default: false
+      reason: "Recenter sidechains. Disable to make the background unmoved."
+
+    - name: "reorient"
+      type: bool
+      default: true
+      reason: "Re-orients the residue."

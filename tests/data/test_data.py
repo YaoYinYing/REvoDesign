@@ -272,15 +272,24 @@ class TestData:
 
     @property
     def gremlin_homomer_o2a_sele(self) -> str:
-        return f"{self.gremlin_homomer_molecule} and c. {self.gremlin_homomer_chain} and i. {self.gremlin_homomer_o2a_pos}"
+        return f"""{
+            self.gremlin_homomer_molecule} and c. {
+            self.gremlin_homomer_chain} and i. {
+            self.gremlin_homomer_o2a_pos}"""
 
     @property
     def gremlin_homomer_a2a_pse(self):
-        return f"{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.a2a.pze"
+        return f"""{
+            self.test_data_repo}/analysis/{
+            self.gremlin_homomer_molecule}.{
+            self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.a2a.pze"""
 
     @property
     def gremlin_homomer_o2a_pse(self):
-        return f"{self.test_data_repo}/analysis/{self.gremlin_homomer_molecule}.{self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.o2a.pze"
+        return f"""{
+            self.test_data_repo}/analysis/{
+            self.gremlin_homomer_molecule}.{
+            self.gremlin_homomer_chains}.xtal.test_gremlin_homomer.o2a.pze"""
 
     @property
     def used_molecules(self):
