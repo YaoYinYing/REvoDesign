@@ -97,3 +97,16 @@ def test_asked_value_dynamic_merge_static_and_dynamic_values(
         all_options.insert(index, item["value"])
 
     assert [av.key for av in all_options] == expected_order
+
+def test_asked_value_dynamic_direct_use():
+    avd=[
+        AskedValueDynamic(
+            value = AskedValue(key="email", val="alice@example.com", typing=str),
+            index = 1
+        ),
+        AskedValueDynamic(
+            value=AskedValue(key="score", val=95, typing=int),
+            index=3,
+        )
+        ]
+    assert avd==dynamic_asked_values_with_index

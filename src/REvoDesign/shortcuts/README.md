@@ -205,7 +205,11 @@ The YAML options are used to define the structure and behavior of the dialog. He
       has_dynamic_values=True)
    ```
 
-   After that, a list of kv-pairs can be passed to the function.
+   After that, a list of type-fixed dicts can be passed to the function. These dict must 
+   have exactly the `value` key, which will be used as the input to the function, 
+   and `index`, which will be used as list positions to insert the value into the list.
+
+   See also the `AskedValueDynamic` definition
 
    ```python
    def menu_dump_sidechains(dump_all=False):

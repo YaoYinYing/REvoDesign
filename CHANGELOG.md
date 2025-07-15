@@ -80,6 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `rfdiffusion`
   - `structure`
   - `vina`
+- pre-commit hooks
+  - `pygrep-hooks`: dropped `python-no-eval` as the false positives were buggy in torch code
+  - `autopep8`: ignored `lambda`-`def` transitions by `--ignore=E731` 
 
 ## [1.7.21] - 2025-03-12
 ### Added

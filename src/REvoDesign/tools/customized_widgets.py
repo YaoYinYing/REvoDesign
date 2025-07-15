@@ -2131,8 +2131,8 @@ class AskedValueDynamic(TypedDict):
     '''
     Dynamic value to be passed to the dialog window.
     It is a dictionary with two keys:
-    - value: the value to be passed to the dialog window
-    - index: the index of the value to be inserted in the list of values
+    - value (AskedValue): the value to be passed to the dialog window
+    - index (int): the index of the value to be inserted in the list of values
     '''
     value: AskedValue
     index: int
