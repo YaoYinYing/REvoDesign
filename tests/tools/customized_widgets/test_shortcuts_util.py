@@ -58,19 +58,19 @@ def test_resolve_dotted_function_error(dotted_str):
 
 
 @pytest.mark.parametrize(
-        "input_str, expected_type, expected_val",
-        [
-            ('range:1,10', range, range(1, 10)),
-            ('range:1,10,2', range, range(1, 10, 2)),
-            (
-                'REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names', 
-                list, 
-                list_all_esm_variant_predict_model_names()
-            ),
-            ('CFG:ui.header_panel.cmap.default', str, 'bwr_r'),
-            ('CFG:ui.header_panel.cmap.wtf', type(None), None)
+    "input_str, expected_type, expected_val",
+    [
+        ('range:1,10', range, range(1, 10)),
+        ('range:1,10,2', range, range(1, 10, 2)),
+        (
+            'REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names',
+            list,
+            list_all_esm_variant_predict_model_names()
+        ),
+        ('CFG:ui.header_panel.cmap.default', str, 'bwr_r'),
+        ('CFG:ui.header_panel.cmap.wtf', type(None), None)
 
-        ]
+    ]
 )
 def test_resolve_choice_from(input_str, expected_type, expected_val):
     result = resolve_choice_from(input_str)
