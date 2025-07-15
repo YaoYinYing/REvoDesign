@@ -1,8 +1,11 @@
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from REvoDesign.shortcuts.utils import DialogWrapperRegistry,run_wrapped_func_in_thread
+import pytest
+
+from REvoDesign.shortcuts.utils import (DialogWrapperRegistry,
+                                        run_wrapped_func_in_thread)
 from REvoDesign.tools.customized_widgets import AskedValue
+
 
 @pytest.fixture
 def mock_yaml_content():
@@ -20,13 +23,14 @@ def mock_yaml_content():
         }
     }
 
+
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
 @patch("REvoDesign.shortcuts.utils.DialogWrapperRegistry._load_yaml")
 def test_dialog_wrapper_registry_initialization(mock_load_yaml, mock_exists, mock_yaml_content):
     mock_load_yaml.return_value = mock_yaml_content
 
     registry = DialogWrapperRegistry("test_category")
-    
+
     assert registry.config == mock_yaml_content
     mock_load_yaml.assert_called_once()
 
@@ -34,8 +38,9 @@ def test_dialog_wrapper_registry_initialization(mock_load_yaml, mock_exists, moc
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
 @patch("REvoDesign.shortcuts.utils.DialogWrapperRegistry._load_yaml")
 @patch("REvoDesign.shortcuts.utils.partial")
-def test_dialog_wrapper_registry_register_with_thread(mock_partial,mock_load_yaml, mock_exists,mock_yaml_content):
+def test_dialog_wrapper_registry_register_with_thread(mock_partial, mock_load_yaml, mock_exists, mock_yaml_content):
     mock_load_yaml.return_value = mock_yaml_content
+
     def dummy_function(**kwargs):
         return kwargs
 
@@ -48,10 +53,12 @@ def test_dialog_wrapper_registry_register_with_thread(mock_partial,mock_load_yam
     assert "test_func" in registry.funcs
     mock_partial.assert_called_once_with(run_wrapped_func_in_thread, dummy_function, **kwargs)
 
+
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
 @patch("REvoDesign.shortcuts.utils.DialogWrapperRegistry._load_yaml")
-def ttest_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_exists,mock_yaml_content):
+def ttest_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_exists, mock_yaml_content):
     mock_load_yaml.return_value = mock_yaml_content
+
     def dummy_function(**kwargs):
         return kwargs
     registry = DialogWrapperRegistry("test_category")
@@ -64,11 +71,12 @@ def ttest_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_e
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
 @patch("REvoDesign.shortcuts.utils.DialogWrapperRegistry._load_yaml")
-def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, mock_exists,mock_yaml_content):
+def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, mock_exists, mock_yaml_content):
     mock_load_yaml.return_value = mock_yaml_content
+
     def dummy_function(dynamic_values=None):
         return dynamic_values
-    
+
     dynamic_value = {
         "value": AskedValue(
             "sele",
@@ -84,7 +92,6 @@ def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, m
     registry = DialogWrapperRegistry("test_category")
     assert registry.funcs == {}
 
-
     wrapper = registry.register("test_func", dummy_function, has_dynamic_values=True)
     assert registry.funcs == {"test_func": dummy_function}
 
@@ -94,11 +101,12 @@ def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, m
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
 @patch("REvoDesign.shortcuts.utils.DialogWrapperRegistry._load_yaml")
-def test_dialog_wrapper_registry_window_wrapper_no_dynamic_values(mock_load_yaml, mock_exists,mock_yaml_content):
+def test_dialog_wrapper_registry_window_wrapper_no_dynamic_values(mock_load_yaml, mock_exists, mock_yaml_content):
     mock_load_yaml.return_value = mock_yaml_content
+
     def dummy_function():
         return "called"
-    
+
     registry = DialogWrapperRegistry("test_category")
 
     wrapper = registry.register("test_func", dummy_function, has_dynamic_values=False)
@@ -109,8 +117,9 @@ def test_dialog_wrapper_registry_window_wrapper_no_dynamic_values(mock_load_yaml
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
 @patch("REvoDesign.shortcuts.utils.DialogWrapperRegistry._load_yaml")
-def test_dialog_wrapper_registry_unregister(mock_load_yaml, mock_exists,mock_yaml_content):
+def test_dialog_wrapper_registry_unregister(mock_load_yaml, mock_exists, mock_yaml_content):
     mock_load_yaml.return_value = mock_yaml_content
+
     def dummy_function():
         return
     registry = DialogWrapperRegistry("test_category")

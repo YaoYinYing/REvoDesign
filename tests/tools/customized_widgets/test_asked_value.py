@@ -3,8 +3,9 @@ import pytest
 from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import (AskedValue,
                                                  AskedValueCollection,
+                                                 AskedValueDynamic,
                                                  MultiCheckableComboBox,
-                                                 ValueDialog, real_bool, AskedValueDynamic)
+                                                 ValueDialog, real_bool)
 
 
 @pytest.mark.parametrize("input_value, expected", [

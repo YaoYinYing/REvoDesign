@@ -1,23 +1,24 @@
-import pytest
-from typing import List, Dict, Any, Callable
+from typing import Any, Dict, List
 from unittest.mock import MagicMock
 
+import pytest
+
 # Import target module
-from REvoDesign.tools.customized_widgets import (
-    AskedValue,
-    AskedValueCollection,
-    AskedValueDynamic,
-    dialog_wrapper,
-)
+from REvoDesign.tools.customized_widgets import (AskedValue,
+                                                 AskedValueCollection,
+                                                 AskedValueDynamic,
+                                                 dialog_wrapper)
 
 # -----------------------------
 # Fixtures and Helpers
 # -----------------------------
 
+
 @pytest.fixture
 def dummy_function():
     """Returns a mock function to be wrapped by dialog_wrapper."""
     return MagicMock()
+
 
 def assert_asked_value_equal(av1: AskedValue, av2: AskedValue):
     """Helper to compare two AskedValue objects."""
@@ -26,6 +27,7 @@ def assert_asked_value_equal(av1: AskedValue, av2: AskedValue):
 # -----------------------------
 # Parametrized Tests
 # -----------------------------
+
 
 test_asked_values = [
     AskedValue(key="name", val="Alice", typing=str),
@@ -45,15 +47,19 @@ dynamic_asked_values_with_index: List[Dict[str, Any]] = [
 ]
 
 # Test that TypedDict enforces correct structure
+
+
 @pytest.mark.parametrize("input_dict", dynamic_asked_values_with_index)
 def test_asked_value_dynamic_type_check(input_dict: Dict[str, Any]):
     """Ensure that AskedValueDynamic accepts valid dicts."""
     try:
-        _: AskedValueDynamic = input_dict # type: ignore
+        _: AskedValueDynamic = input_dict  # type: ignore
     except Exception as e:
         pytest.fail(f"Unexpected exception: {e}")
 
 # Test merging static + dynamic options
+
+
 @pytest.mark.parametrize(
     "static_options, dynamic_options, expected_order",
     [
@@ -91,6 +97,3 @@ def test_asked_value_dynamic_merge_static_and_dynamic_values(
         all_options.insert(index, item["value"])
 
     assert [av.key for av in all_options] == expected_order
-
-
-

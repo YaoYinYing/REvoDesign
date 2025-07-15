@@ -10,8 +10,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
-from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union,
-                    overload,TypedDict)
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple,
+                    TypedDict, Union, overload)
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -2126,6 +2126,7 @@ def ask_for_multiple_values_as_json() -> str:
 
     return json_fp
 
+
 class AskedValueDynamic(TypedDict):
     '''
     Dynamic value to be passed to the dialog window.
@@ -2135,6 +2136,7 @@ class AskedValueDynamic(TypedDict):
     '''
     value: AskedValue
     index: int
+
 
 def dialog_wrapper(
     title: str,

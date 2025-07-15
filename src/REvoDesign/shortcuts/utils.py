@@ -12,7 +12,8 @@ from immutabledict import immutabledict
 
 from REvoDesign import issues
 from REvoDesign.common import file_extensions as Fext
-from REvoDesign.tools.customized_widgets import AskedValue, dialog_wrapper,AskedValueDynamic
+from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
+                                                 dialog_wrapper)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 
@@ -39,13 +40,13 @@ def resolve_extension(extension: str) -> Fext.ExtColl:
     Converts an extension string into an `ExtColl` object for file type handling.
 
     This function supports two types of input:
-    
+
     1. **Predefined Extension**:
        - If the input matches a predefined attribute in `Fext`, it returns the corresponding value directly.
-    
+
     2. **Custom Extension**:
        - If the input does not match any predefined attribute, it treats the input as a custom extension string,
-         splits it by semicolons (`;`), and constructs a dictionary mapping lowercase extensions to 
+         splits it by semicolons (`;`), and constructs a dictionary mapping lowercase extensions to
          user-friendly names with a prefix `'Customized - '`.
 
     Args:
@@ -70,10 +71,10 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     Resolves a dotted string into a callable Python object (function or method).
 
     The input string must follow one of these formats:
-    
+
     - `<module_path>:<function_name>` (for module-level functions)
       Example: `"my_module.submodule:my_function"`
-      
+
     - `<module_path>:<class_name>.<method_name>` (for class methods)
       Example: `"my_module.submodule:MyClass.my_method"`
 
@@ -90,14 +91,14 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     if ":" not in dotted_str:
         raise issues.InvalidInputError(
             'dotted function expect an input string in pattern <import-path>:(<class>.)<function>',
-            f'not `{dotted_str}`' 
-            )
+            f'not `{dotted_str}`'
+        )
     module_path, func_name = dotted_str.rsplit(":", 1)
     module = importlib.import_module(module_path)
-    if not "." in func_name:
+    if "." not in func_name:
         return getattr(module, func_name)
     # maybe a class method?
-    
+
     _class_name, _func_name = func_name.rsplit(".")
     logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
     _class = getattr(module, _class_name)
@@ -109,7 +110,7 @@ def resolve_choice_from(input_str: str):
     Interprets an input string and dynamically returns a corresponding value based on its prefix.
 
     The function supports three types of input:
-    
+
     1. **Range Parsing**:
        - If the input starts with `'range:'`, it parses the rest of the string as integers to create a `range()` object.
        - Accepts formats like `range:1,10` or `range:1,10,2`.
@@ -128,7 +129,7 @@ def resolve_choice_from(input_str: str):
         input_str (str): The input string that determines what value or object to return.
 
     Returns:
-        range | Any | Callable: 
+        range | Any | Callable:
             - A `range()` object if input starts with `'range:'`.
             - The result of a resolved callable if input starts with `"REvoDesign."`.
             - A configuration value if input starts with `"CFG:"`.
@@ -143,8 +144,8 @@ def resolve_choice_from(input_str: str):
         except TypeError as e:
             raise issues.InvalidInputError(
                 'range input expect an input string in pattern range:[<start>,]<end>[,<step>]',
-                f'not `{input_str}`' 
-                ) from e
+                f'not `{input_str}`'
+            ) from e
     elif input_str.startswith("REvoDesign."):
         resolved_callable = resolve_dotted_function(input_str)
         if not isinstance(resolved_callable, Callable):
@@ -177,14 +178,14 @@ def _build_asked_value(entry: dict) -> AskedValue:
 
     This function processes various fields in the input dictionary to create a structured `AskedValue` object,
     which represents a user input field in a dialog interface. It handles:
-    
+
     - Type resolution based on predefined types.
     - Default value handling, optionally resolved from a callable.
     - Dynamic choice population using either static values or a dynamic resolver.
     - File extension handling for file selection inputs.
 
     Args:
-        entry (dict): A dictionary containing configuration for a single `AskedValue`.  
+        entry (dict): A dictionary containing configuration for a single `AskedValue`.
                       Expected keys include:
                       - `"name"` (required): The identifier of the value.
                       - `"type"`: The data type (e.g., "int", "str").
@@ -290,29 +291,29 @@ class DialogWrapperRegistry:
             self.funcs[func_id] = func
 
         def window_wrapper_dynamic_values(dynamic_values: Optional[List[AskedValueDynamic]] = None):
-            
+
             self.call(func_id, dynamic_values)
 
         def window_wrapper(dynamic_values: Optional[List[AskedValueDynamic]] = None):
             self.call(func_id)
 
         if has_dynamic_values:
-            func= window_wrapper_dynamic_values 
+            func = window_wrapper_dynamic_values
             func.__doc__ = f'''
 Wrapper for the function `{func_id}` to be called from the GUI.
 It calls the function `{func_id}` with the given dynamic values.
 
 Arguments:
-dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function. 
+dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
 '''
         else:
-            func=window_wrapper
-            func.__doc__ =f'''
+            func = window_wrapper
+            func.__doc__ = f'''
 Wrapper for the function `{func_id}` to be called from the GUI.
 It calls the function `{func_id}` with the no dynamic values.
 
 Arguments:
-dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function. 
+dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
     Will be ignored if has_dynamic_values=False.
 '''
 
@@ -352,7 +353,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         conf = self.config[func_id]
         asked_values = [_build_asked_value(opt) for opt in conf["options"]]
         logging.debug(f"Asked values: {asked_values}")
-        wrapped_func= dialog_wrapper(
+        wrapped_func = dialog_wrapper(
             title=conf.get("title", func_id),
             banner=conf.get("banner", ""),
             options=tuple(asked_values),

@@ -26,7 +26,7 @@ def sample_asked_value_collection():
         AskedValue(key="field5", val='choice1', typing=str, choices=("choice1", "choice2", "choice3",)),
         AskedValue(
             key="field6", val='', typing=list, reason="Field 6 Reason",
-            choices=["choice1", "choice2", "choice3",],multiple_choices=True),
+            choices=["choice1", "choice2", "choice3",], multiple_choices=True),
     ]
     return AskedValueCollection(asked_values=asked_values, banner="Sample Banner")
 
