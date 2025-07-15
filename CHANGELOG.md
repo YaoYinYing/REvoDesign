@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+
+### Changed
+- `package_manager`: freeze dialog while initializing or task running
+
+### Fixed
+
+### Removed
 
 ## [1.8.0] - 2025-07-15
 
