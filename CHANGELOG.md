@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+## [1.8.0] - 2025-07-15
+
 ### Added
 - `FileExtensionCollection`: `from_dict` to create a new collection from a dictionary.
 - `logger`: `logger_level_setter`: Set the logging level.
@@ -66,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `nvtx-mock`: now we already have the real package on PyPI!!!!
 - Lint:
   - weird linting issues in various places
+- ci:
+  - pyqt5 and python 3.10
 
 
 ### Removed
