@@ -801,6 +801,17 @@ class REvoDesignPackageManager:
             title='REvoDesign Manager'
         )
 
+    @contextmanager
+    def freeze_manager(self):
+        """
+        Freezes the dialog while the plugin is running.
+        """
+        self.dialog.setEnabled(False)
+        logging.info("Dialog locked.")
+        yield
+        self.dialog.setEnabled(True)
+        logging.info("Dialog unlocked.")
+
     def run_plugin_gui(self):
         """
         Runs the plugin GUI.
@@ -817,9 +828,18 @@ class REvoDesignPackageManager:
         - Connect the 'Everything' radio button to check all items in the checkbox list.
         - Run a worker thread to fetch tags with a progress bar.
         """
+        logging.debug('Initializing dialog window...')
         if self.dialog is None:
             self.dialog = self.make_window()
+
+        with self.freeze_manager():
+            self.initialize_manager()
+
+    def initialize_manager(self):
         self.dialog.show()
+        logging.debug('Dialog window initialized.')
+
+        logging.debug('Run pre-fetching tasks... ')
 
         self.refresh_extras_table()
 
@@ -841,6 +861,7 @@ class REvoDesignPackageManager:
 
         # Run a worker thread to fetch tags with a progress bar
         self.fetch_tags()
+        logging.debug("Package manager initialized.")
 
     def proxy_in_env(self, proxy: Optional[str] = None, mirror: Optional[str] = None) -> Dict[str, str]:
         """
@@ -1271,7 +1292,7 @@ class REvoDesignPackageManager:
             return
 
         # During the uninstallation process, hold down the remove button on the UI to prevent multiple triggers
-        with hold_trigger_button(self.installer_ui.pushButton_remove):
+        with hold_trigger_button(self.installer_ui.pushButton_remove), self.freeze_manager():
             # Run the uninstallation process in a separate thread and monitor its progress
             ret = run_worker_thread_with_progress(
                 worker_function=self.pip_installer.uninstall,
@@ -1413,7 +1434,7 @@ class REvoDesignPackageManager:
         self.pip_installer.env = env
 
         # Perform the installation process
-        with hold_trigger_button(self.installer_ui.pushButton_install):
+        with hold_trigger_button(self.installer_ui.pushButton_install), self.freeze_manager():
             git_solver = GitSolver()
             if not git_solver.has_git:
                 git_fetch_command = git_solver.where_to_install
