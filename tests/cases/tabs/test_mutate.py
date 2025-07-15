@@ -1,8 +1,8 @@
 import os
 
 import pytest
-from REvoDesign.magician.designers import ColabDesigner_MPNN
 
+from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.tools.customized_widgets import set_widget_value
 
 from ...conftest import TestWorker
