@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `run_wrapped_func_in_thread`: run wrapped function in thread
 - menu: 
   - logger level setter
+- `customized_widgets`:
+  - `AskedValueDynamic`:  typed dict for dynamic value inputs to shortcut wrappers
+  - `AskedValue`: added `multiple_choices` bool to explicitly allow multiple choices
+- tests:
+  - test marker `skipif` for pmpnn-related tests if `colabdesign` is not installed.
 
 ### Changed
 - `package_manager`: 
@@ -41,17 +46,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `exports`
   - `logger`
   - `rosetta_tasks`
+  - `esm`
+  - `ligand`
+  - `mutation`
+  - `represents`
+  - `rfdiffusion`
+  - `structure`
+  - `vina`
+- `shortcuts_on_menu`:
+  - rewriten redefined function as one-liners
+- `shortcuts`: 
+  - `vina_tools`: refactored property codes in `CgoBox`
+- `customized_widgets`:
+  - `QButtonMatrix`:  refactored property codes
 
 ### Fixed
 - dependencies:
   - `pooch`
   - `nvtx-mock`: now we already have the real package on PyPI!!!!
+- Lint:
+  - weird linting issues in various places
+
 
 ### Removed
 - fussy codes of dialog wrappers on:
   - `exports`
   - `logger`
   - `rosetta_tasks`
+  - `esm`
+  - `ligand`
+  - `mutation`
+  - `represents`
+  - `rfdiffusion`
+  - `structure`
+  - `vina`
 
 ## [1.7.21] - 2025-03-12
 ### Added

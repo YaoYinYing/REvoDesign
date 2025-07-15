@@ -33,6 +33,12 @@ from REvoDesign.tools.pymol_utils import get_all_groups
 
 
 def menu_dump_sidechains(dump_all=False):
+    """
+    Prepares and launches the sidechain dumping menu.
+
+    Args:
+        dump_all (bool): If True, preselects all groups for sidechain dumping.
+    """
     dynamic_value = {
         "value": AskedValue(
             "sele",
