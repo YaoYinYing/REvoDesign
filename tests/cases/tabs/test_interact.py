@@ -3,6 +3,7 @@ import os
 import pytest
 from pymol import cmd
 
+from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.tools.customized_widgets import (QButtonBrick,
                                                  get_widget_value,
                                                  set_widget_value)
@@ -484,6 +485,9 @@ class TestREvoDesignPlugin_TabInteract:
         del test_worker.plugin.gremlin_worker.coevolved_pairs
         del test_worker.plugin.gremlin_worker
 
+    @pytest.mark.skipif(
+        not ColabDesigner_MPNN.installed, reason="ColabDesign not installed"
+    )
     def test_gremlin_one2all_mpnn_score(self, test_worker: TestWorker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()

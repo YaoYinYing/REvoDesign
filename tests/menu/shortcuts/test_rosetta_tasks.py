@@ -177,8 +177,8 @@ def test_shortcut_relax_w_ca_constraints(job_id, pdb, ligand, test_worker: TestW
         assert all_pdbs, f'{run_dir}/all should contain pdb files'
         assert len(all_pdbs) == 4, f'{run_dir}/all should contain exact 4 pdb files'
         for j in range(4):
-            relaxed_pdb_name=f'{pdb_bn}_R{i}_0000{j + 1}.pdb'
-            assert  relaxed_pdb_name in all_pdbs, f'{run_dir}/all should contain {relaxed_pdb_name}'
+            relaxed_pdb_name = f'{pdb_bn}_R{i}_0000{j + 1}.pdb'
+            assert relaxed_pdb_name in all_pdbs, f'{run_dir}/all should contain {relaxed_pdb_name}'
         analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
         # bn move to the next round
         pdb_bn = analyser.best_decoy['decoy']
