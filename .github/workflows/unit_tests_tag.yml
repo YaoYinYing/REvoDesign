@@ -107,7 +107,7 @@ jobs:
       
       - name: Setup PyMOL - (${{ matrix.pymol-tag }})-(${{ matrix.os }}-py${{ matrix.python-version }})
         run: |
-          conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' -n ${{ env.conda_env }} -y 
+          conda install ${{ matrix.conda-channel}} '${{ matrix.pymol-version}}' pyqt=5 -n ${{ env.conda_env }} -y
           conda info
           conda list
           which python
