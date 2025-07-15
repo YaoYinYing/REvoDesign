@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.sidechain.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import set_widget_value
 
@@ -77,6 +78,9 @@ class TestREvoDesignPlugin_TabVisualize:
         assert os.path.exists(test_worker.test_data.visualize_1_pse)
         test_worker.check_existed_mutant_tree()
 
+    @pytest.mark.skipif(
+        not ColabDesigner_MPNN.installed, reason="ColabDesign not installed"
+    )
     def test_visualize_pssm_mpnn(self, test_worker, KeyDataDuringTests: KeyData):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()

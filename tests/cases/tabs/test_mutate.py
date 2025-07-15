@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from REvoDesign.magician.designers import ColabDesigner_MPNN
 
 from REvoDesign.tools.customized_widgets import set_widget_value
 
@@ -71,6 +72,9 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.check_existed_mutant_tree()
         test_worker.pse_snapshot('fin')
 
+    @pytest.mark.skipif(
+        not ColabDesigner_MPNN.installed, reason="ColabDesign not installed"
+    )
     def test_mpnn_surf(self, test_worker):
         test_worker.test_id = test_worker.method_name()
         test_worker.load_session_and_check()
