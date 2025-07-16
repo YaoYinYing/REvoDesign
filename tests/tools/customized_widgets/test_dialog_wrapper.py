@@ -109,7 +109,13 @@ def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch):
     (4, QtWidgets.QComboBox, "choice2", "choice2"),
     (5, MultiCheckableComboBox, ["choice2", "choice3"], ["choice2", "choice3"]),
 ])
-def test_dialog_wrapper_valid_field_submission(index, expected_widget_type, updated_value, expected_value, dialog, qtbot):
+def test_dialog_wrapper_valid_field_submission(
+        index,
+        expected_widget_type,
+        updated_value,
+        expected_value,
+        dialog,
+        qtbot):
     """
     Tests that valid fields are correctly submitted and captures a screenshot.
     """
