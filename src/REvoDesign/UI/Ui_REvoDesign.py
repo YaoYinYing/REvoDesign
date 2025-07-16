@@ -254,7 +254,7 @@ class Ui_REvoDesignPyMOL_UI:
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.doubleSpinBox_surface_cutoff.sizePolicy().hasHeightForWidth())
         self.doubleSpinBox_surface_cutoff.setSizePolicy(sizePolicy)
-        self.doubleSpinBox_surface_cutoff.setMaximumSize(QtCore.QSize(71, 16777215))
+        self.doubleSpinBox_surface_cutoff.setMaximumSize(QtCore.QSize(61, 16777215))
         self.doubleSpinBox_surface_cutoff.setDecimals(1)
         self.doubleSpinBox_surface_cutoff.setMinimum(1.0)
         self.doubleSpinBox_surface_cutoff.setMaximum(50.0)
@@ -2355,7 +2355,7 @@ class Ui_REvoDesignPyMOL_UI:
         self.label_surface_cutoff.setText(_translate("REvoDesignPyMOL_UI", "Exposure area ≧"))
         self.doubleSpinBox_surface_cutoff.setStatusTip(_translate(
             "REvoDesignPyMOL_UI", "Surface area exposure cutoff."))
-        self.doubleSpinBox_surface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å^2"))
+        self.doubleSpinBox_surface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å²"))
         self.pushButton_run_surface_refresh.setStatusTip(_translate(
             "REvoDesignPyMOL_UI", "Refresh PyMOL selection list in REvoDesign"))
         self.pushButton_run_surface_refresh.setText(_translate("REvoDesignPyMOL_UI", "Refresh Selection"))

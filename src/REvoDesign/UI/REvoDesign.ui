@@ -553,7 +553,7 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>71</width>
+                  <width>61</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -561,7 +561,7 @@
                  <string>Surface area exposure cutoff.</string>
                 </property>
                 <property name="suffix">
-                 <string>Å^2</string>
+                 <string>Å²</string>
                 </property>
                 <property name="decimals">
                  <number>1</number>

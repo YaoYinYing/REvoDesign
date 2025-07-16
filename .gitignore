@@ -105,3 +105,4 @@ branch_summary.csv
 generate_branch_summary.py
 git_graph.txt
 pr_summary.csv
+src/REvoDesign/UI/REvoDesign_ui.py
