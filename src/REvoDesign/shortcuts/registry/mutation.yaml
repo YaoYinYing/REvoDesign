@@ -15,9 +15,10 @@ thermompnn:
       reason: "Path to the output directory. If not provided, output will not be saved."
       source: "Directory"
     - name: "chains"
-      type: list
+      type: str
       reason: "Chain IDs for docking. Default is None (use all chains)."
       choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_chain_ids"
+      multiple_choices: true
     - name: "mode"
       type: str
       default: "single"

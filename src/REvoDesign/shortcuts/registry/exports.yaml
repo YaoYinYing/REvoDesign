@@ -9,9 +9,10 @@ dump_fasta_from_struct:
       required: true
       choices_from: "REvoDesign.shortcuts.dialog_hooks:get_fasta_writer_choices"
     - name: "chain_ids"
-      type: list
+      type: str
       reason: "Chain IDs to operate on."
       choices_from: "REvoDesign.shortcuts.dialog_hooks:get_designable_chain_ids"
+      multiple_choices: true
     - name: "output_dir"
       type: str
       default: "dumped_sequences"

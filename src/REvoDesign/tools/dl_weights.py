@@ -21,17 +21,27 @@ class ModelFetchSetting:
 
     Attributes:
         name (str): The name of the model.
-        version (str): The version of the model.
+        version (Optional[str]): The version of the model.
         url (str): The URL to download the model from.
-        md5sum (str): The MD5 checksum used to verify the integrity of the downloaded file.
+        md5sum (Optional[str]): The MD5 checksum used to verify the integrity of the downloaded file.
+
+        disable_unflatten (bool): Whether to disable unflattening the model even if the downloaded file was compressed. 
+            Defaults to False.
+        unflatten_to_dir (Optional[str]): The directory to unflatten the model to. Defaults to None.
+
+        customized_directory (Optional[str]): The directory to store the model in. 
+            Defaults to None. If not set, the model will be stored in the user data directory.
+
     """
     name: str
-    version: str
     url: str
+    version: Optional[str] = None
     md5sum: Optional[str] = None
 
     disable_unflatten: bool = False
     unflatten_to_dir: Optional[str] = None
+
+    customized_directory: Optional[str] = None
 
     @cached_property
     def downloaded_basename(self):
@@ -67,11 +77,11 @@ class ModelFetchSetting:
         Returns:
             str: Path to the directory containing the model weights.
         """
+        if self.customized_directory:
+            os.makedirs(self.customized_directory, exist_ok=True)
+            return self.customized_directory
         return os.path.join(
-            user_data_dir(
-                self.name,
-                version=self.version,
-                ensure_exists=True),
+            user_data_dir(self.name,version=self.version,ensure_exists=True),
             self.unflatten_to_dir or self.basename)
 
     @property
@@ -110,12 +120,18 @@ class ModelFetchSetting:
             return self.weight_path
 
         print(f'Downloading {self.basename}...')
+
+        if self.need_flatten:
+            download_dir=user_cache_dir(
+                f'downloading_{self.name}_weights',
+                ensure_exists=True)
+        else:
+            download_dir = self.customized_directory or os.path.dirname(self.weight_path)
+            
         downloaded = pooch.retrieve(
             self.url,
             known_hash=f'md5:{self.md5sum}' if self.md5sum else None,
-            path=user_cache_dir(
-                f'downloading_{self.name}_weights',
-                ensure_exists=True) if self.need_flatten else os.path.dirname(self.weight_path),
+            path= download_dir ,
             fname=self.basename,
             progressbar=True)
 
