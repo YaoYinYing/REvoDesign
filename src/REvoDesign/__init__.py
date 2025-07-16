@@ -25,7 +25,7 @@ from REvoDesign.REvoDesign import REvoDesignPlugin
 from REvoDesign.shortcuts import __all__ as all_shortcuts
 
 # 8. Set version info
-__version__ = "1.8.0"
+__version__ = "1.8.1"
 
 # 9. enable garbage collection
 gc.enable()

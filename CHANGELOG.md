@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+
+## [1.8.1] - 2025-07-16
 ### Added
 - `dl_weights`: 
   - `ModelFetchSetting` now support optional `version` and `customized_directory`
