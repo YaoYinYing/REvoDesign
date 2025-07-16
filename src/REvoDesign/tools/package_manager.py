@@ -801,16 +801,18 @@ class REvoDesignPackageManager:
             title='REvoDesign Manager'
         )
 
+        self.ensure_ui_file(upgrade=True)
+
     @contextmanager
     def freeze_manager(self):
         """
         Freezes the dialog while the plugin is running.
         """
         self.dialog.setEnabled(False)
-        logging.info("Dialog locked.")
+        logging.debug("Dialog locked.")
         yield
         self.dialog.setEnabled(True)
-        logging.info("Dialog unlocked.")
+        logging.debug("Dialog unlocked.")
 
     def run_plugin_gui(self):
         """
@@ -832,12 +834,13 @@ class REvoDesignPackageManager:
         if self.dialog is None:
             self.dialog = self.make_window()
 
+        self.dialog.show()
+        logging.debug('Dialog window initialized.')
+
         with self.freeze_manager():
             self.initialize_manager()
 
     def initialize_manager(self):
-        self.dialog.show()
-        logging.debug('Dialog window initialized.')
 
         logging.debug('Run pre-fetching tasks... ')
 
@@ -1049,7 +1052,6 @@ class REvoDesignPackageManager:
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
         menuitems = [
             MenuItem('Upgrades'),
-            MenuItem("Upgrade UI", self.ensure_ui_file, kwargs={"upgrade": True}),
             MenuItem("Upgrade this manager", self.self_upgrade),
 
             MenuItem('Fetch remote data'),
