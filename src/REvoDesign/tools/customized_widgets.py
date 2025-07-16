@@ -1367,7 +1367,7 @@ class AskedValue:
         key (str): The unique identifier or label for the input field.
         val (Optional[Any]): The default or current value of the field.
         typing (type): The expected data type for the field's value.
-            Specifies available typing for the field. 
+            Specifies available typing for the field.
             Used as item typing if the val is iterable container like list or tuple
         reason (Optional[str]): Additional description or reason for the field.
         required (bool): Indicates whether the field is mandatory.

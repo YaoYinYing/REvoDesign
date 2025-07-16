@@ -16,12 +16,12 @@ from tqdm import tqdm
 
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.tools.utils import get_cited, require_installed
 from REvoDesign.tools.dl_weights import ModelFetchSetting
+from REvoDesign.tools.utils import get_cited, require_installed
 
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
-ESM_MODEL_BASE_URL= 'https://dl.fbaipublicfiles.com/fair-esm/models'
+ESM_MODEL_BASE_URL = 'https://dl.fbaipublicfiles.com/fair-esm/models'
 
 ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     {
@@ -161,8 +161,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     for idx, mut in itertools.product(range(0, len(self.sequence)), alphabet)
                 ], columns=[self.mutation_col])
         return df_dms
-    
-
 
     @get_cited
     def predict(self):
@@ -183,14 +181,14 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     f'{model_name}.pt'))):
                 print(f"Loading model from {model_path}")
             else:
-                
+
                 print(f'Fetching model {model_name}')
                 if self.checkpoint_dir:
-                    model_path= ModelFetchSetting(
-                            name="ESM2",
-                            url=f"{ESM_MODEL_BASE_URL}/{model_name}.pt",
-                            customized_directory=self.checkpoint_dir
-                        ).setup()
+                    model_path = ModelFetchSetting(
+                        name="ESM2",
+                        url=f"{ESM_MODEL_BASE_URL}/{model_name}.pt",
+                        customized_directory=self.checkpoint_dir
+                    ).setup()
                 else:
                     model_path = model_name
             model, alphabet = pretrained.load_model_and_alphabet(model_path)
