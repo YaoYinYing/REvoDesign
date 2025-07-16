@@ -810,7 +810,10 @@ class REvoDesignPackageManager:
         """
         self.dialog.setEnabled(False)
         logging.debug("Dialog locked.")
-        yield
+        try:
+            yield
+        except Exception as e:
+            logging.error(f"Error occurred: {e}")
         self.dialog.setEnabled(True)
         logging.debug("Dialog unlocked.")
 

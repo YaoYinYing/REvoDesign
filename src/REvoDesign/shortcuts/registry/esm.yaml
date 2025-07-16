@@ -3,10 +3,11 @@ esm1v:
   banner: "Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)"
   options:
     - name: "model_alias"
-      type: list
+      type: str
       reason: "Model(s) used to generate predictions."
       required: true
       choices_from: "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names"
+      multiple_choices: true
     - name: "checkpoint_dir"
       type: str
       default: ""
@@ -36,7 +37,6 @@ esm1v:
       type: str
       reason: "Scoring method for variant prediction."
       choices: ["wt-marginals", "pseudo-ppl", "masked-marginals"]
-      multiple_choices: true
     - name: "msa_path"
       type: str
       default: ""

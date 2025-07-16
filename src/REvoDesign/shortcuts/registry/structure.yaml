@@ -3,11 +3,12 @@ resi_renumber:
   banner: "Renumber residue indices by applying an offset."
   options:
     - name: "molecule"
-      type: list
+      type: str
       default: ""
       reason: "Molecule (object) to operate on."
       required: true
       choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_objects"
+      multiple_choices: true
     - name: "chain"
       type: str
       default: "A"

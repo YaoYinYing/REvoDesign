@@ -1367,9 +1367,8 @@ class AskedValue:
         key (str): The unique identifier or label for the input field.
         val (Optional[Any]): The default or current value of the field.
         typing (type): The expected data type for the field's value.
-            Specifies available typing for the field. Can be:
-                - list: Output a list of options used as multiple choice.
-                - non-list: Output a non-list-typed-object that is used as single choice.
+            Specifies available typing for the field.
+            Used as item typing if the val is iterable container like list or tuple
         reason (Optional[str]): Additional description or reason for the field.
         required (bool): Indicates whether the field is mandatory.
         choices (Optional[Union[Iterable, Callable[[], Iterable]]]):
@@ -1481,7 +1480,12 @@ class AskedValueCollection:
         """
         self_mirror = deepcopy(self)
         for asked in self_mirror.asked_values:
-            asked.val = asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val)
+            if not asked.multiple_choices:
+                asked.val = asked.typing(asked.val) if asked.typing is not bool else real_bool(asked.val)
+            elif not isinstance(asked.val, Iterable):
+                raise ValueError(f"Multiple choices are enabled, yet value is not iterable: {asked.val}")
+            else:
+                asked.val = [asked.typing(val) if asked.typing is not bool else real_bool(val) for val in asked.val]
         return self_mirror
 
     @property
@@ -1767,8 +1771,8 @@ class ValueDialog(REvoDesignWidget):
             # Set the container widget as the cell widget
             self.table.setCellWidget(row, 3, container_widget)
 
-        # Column 4: Action button if list=True for multiple choices
-        elif asked_value.typing is list:
+        # Column 4: Action button if multiple_choices=True for multiple choices
+        elif asked_value.multiple_choices:
             # Create a container widget for the layout
             container_widget = QtWidgets.QWidget()
             button_layout = QtWidgets.QHBoxLayout(container_widget)
@@ -1845,6 +1849,7 @@ class ValueDialog(REvoDesignWidget):
                         reason=original.reason,
                         required=original.required,
                         choices=original.choices,
+                        multiple_choices=original.multiple_choices,
                     )
                 )
         self.ok_signal.emit(self.updated_values)

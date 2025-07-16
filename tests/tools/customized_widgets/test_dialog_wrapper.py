@@ -25,7 +25,7 @@ def sample_asked_value_collection():
         AskedValue(key="field4", val=1.0, typing=float, choices=(1.0, 2.5, 3.5,)),
         AskedValue(key="field5", val='choice1', typing=str, choices=("choice1", "choice2", "choice3",)),
         AskedValue(
-            key="field6", val='', typing=list, reason="Field 6 Reason",
+            key="field6", val='', typing=str, reason="Field 6 Reason",
             choices=["choice1", "choice2", "choice3",], multiple_choices=True),
     ]
     return AskedValueCollection(asked_values=asked_values, banner="Sample Banner")
@@ -57,7 +57,7 @@ def save_screenshot(widget, name):
     (4, QtWidgets.QComboBox),
     (5, MultiCheckableComboBox),
 ])
-def test_field_widget_types(dialog, index, expected_widget_type):
+def test_dialog_wrapper_field_widget_types(dialog, index, expected_widget_type):
     """
     Validates the widget type assigned to each field and captures a screenshot.
     """
@@ -66,7 +66,7 @@ def test_field_widget_types(dialog, index, expected_widget_type):
     save_screenshot(dialog, f"field_widget_types_row_{index}")
 
 
-def test_dialog_initialization(dialog):
+def test_dialog_wrapper_dialog_initialization(dialog):
     """
     Verifies that the dialog initializes correctly and captures a screenshot.
     """
@@ -76,7 +76,7 @@ def test_dialog_initialization(dialog):
     save_screenshot(dialog, "dialog_initialization")
 
 
-def test_required_field_validation(dialog, qtbot, monkeypatch):
+def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch):
     """
     Tests that required fields are validated and QMessageBox is triggered. Captures a screenshot.
     """
@@ -109,7 +109,13 @@ def test_required_field_validation(dialog, qtbot, monkeypatch):
     (4, QtWidgets.QComboBox, "choice2", "choice2"),
     (5, MultiCheckableComboBox, ["choice2", "choice3"], ["choice2", "choice3"]),
 ])
-def test_valid_field_submission(index, expected_widget_type, updated_value, expected_value, dialog, qtbot):
+def test_dialog_wrapper_valid_field_submission(
+        index,
+        expected_widget_type,
+        updated_value,
+        expected_value,
+        dialog,
+        qtbot):
     """
     Tests that valid fields are correctly submitted and captures a screenshot.
     """
@@ -127,7 +133,7 @@ def test_valid_field_submission(index, expected_widget_type, updated_value, expe
     save_screenshot(dialog, f"valid_field_submission-{index}-{expected_widget_type.__name__}")
 
 
-def test_dialog_rejection(dialog, qtbot):
+def test_dialog_wrapper_dialog_rejection(dialog, qtbot):
     """
     Ensures dialog rejection works as expected and captures a screenshot.
     """
@@ -153,7 +159,7 @@ AskedValue(key="field6", val='', typing=list, reason="Field 6 Reason", choices=[
 '''
 
 
-def test_field_populates_correctly(dialog):
+def test_dialog_wrapper_field_populates_correctly(dialog):
     """
     Tests that fields are populated with the correct initial values and captures a screenshot.
     """

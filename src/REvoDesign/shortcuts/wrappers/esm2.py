@@ -14,7 +14,7 @@ from ...logger import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
 
 
-def _esm1v(**kwargs):
+def esm1v(**kwargs):
     """
     Wrapper function to execute ESM-1v models.
 
@@ -57,6 +57,6 @@ registry = DialogWrapperRegistry("esm")
 
 wrapped_esm1v = registry.register(
     "esm1v",
-    _esm1v,
+    esm1v,
     use_thread=True
 )

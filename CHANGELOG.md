@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- `dl_weights`: 
+  - `ModelFetchSetting` now support optional `version` and `customized_directory`
 
 ### Changed
 - `package_manager`: 
@@ -25,8 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- Fixed typing transition of dialog returned values
+- shortcut util:
+  - `run_wrapped_func_in_thread`: fied typo
+- `customized_widgets`:
+  - `AskedValueCollection`: fixed typing copy with `multiple_choices` flag
 
 ### Removed
+- shortcut yaml:
+  - removed `AskedValue.typing=list`, replaced with `AskedValue.multiple_choices` bool
 
 ## [1.8.0] - 2025-07-15
 

@@ -372,7 +372,7 @@ def run_wrapped_func_in_thread(func, **kwargs):
     """
     from REvoDesign.driver.ui_driver import ConfigBus
 
-    with timing(f"Doing {func.__name__}"):
+    with timing(f"performing {func.__name__}"):
         logging.info(kwargs)
         run_worker_thread_with_progress(
             func,
