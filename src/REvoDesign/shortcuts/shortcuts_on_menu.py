@@ -43,7 +43,7 @@ def menu_dump_sidechains(dump_all=False):
         "value": AskedValue(
             "sele",
             val=get_all_groups() if dump_all else None,
-            typing=list,
+            typing=str,
             reason="Select the models to dump sidechains.",
             choices=get_all_groups(),
             multiple_choices=True
