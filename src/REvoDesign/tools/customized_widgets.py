@@ -1771,7 +1771,7 @@ class ValueDialog(REvoDesignWidget):
             # Set the container widget as the cell widget
             self.table.setCellWidget(row, 3, container_widget)
 
-        # Column 4: Action button if list=True for multiple choices
+        # Column 4: Action button if multiple_choices=True for multiple choices
         elif asked_value.multiple_choices:
             # Create a container widget for the layout
             container_widget = QtWidgets.QWidget()
