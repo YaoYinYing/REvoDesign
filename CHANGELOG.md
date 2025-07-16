@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `run_wrapped_func_in_thread`: fied typo
 - `customized_widgets`:
   - `AskedValueCollection`: fixed typing copy with `multiple_choices` flag
+- UI:
+  - Tab Prepare: Fixed misleading label of surface exposure cutoff
 
 ### Removed
 - shortcut yaml:
