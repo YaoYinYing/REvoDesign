@@ -19,7 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- `package_manager`: freeze dialog while initializing or task running
+- `package_manager`: 
+  - freeze dialog while initializing or task running
+  - self upgrade py and ui files in one click not two
+
 
 ### Fixed
 
