@@ -254,7 +254,7 @@ class Ui_REvoDesignPyMOL_UI:
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.doubleSpinBox_surface_cutoff.sizePolicy().hasHeightForWidth())
         self.doubleSpinBox_surface_cutoff.setSizePolicy(sizePolicy)
-        self.doubleSpinBox_surface_cutoff.setMaximumSize(QtCore.QSize(55, 16777215))
+        self.doubleSpinBox_surface_cutoff.setMaximumSize(QtCore.QSize(61, 16777215))
         self.doubleSpinBox_surface_cutoff.setDecimals(1)
         self.doubleSpinBox_surface_cutoff.setMinimum(1.0)
         self.doubleSpinBox_surface_cutoff.setMaximum(50.0)
@@ -1982,7 +1982,7 @@ class Ui_REvoDesignPyMOL_UI:
         self.progressBar.setObjectName("progressBar")
         REvoDesignPyMOL_UI.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(REvoDesignPyMOL_UI)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 660, 37))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 660, 24))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
@@ -2351,10 +2351,11 @@ class Ui_REvoDesignPyMOL_UI:
             _translate(
                 "REvoDesignPyMOL_UI",
                 "Excluded selection. Use PyMOL selection syntax(eg. ((sele_1 and sele_2) or (sele_3 and sele_4)))"))
-        self.label_surface_cutoff.setText(_translate("REvoDesignPyMOL_UI", "Probe radius:"))
+        self.label_surface_cutoff.setStatusTip(_translate("REvoDesignPyMOL_UI", "Surface area exposure cutoff."))
+        self.label_surface_cutoff.setText(_translate("REvoDesignPyMOL_UI", "Exposure area ≧"))
         self.doubleSpinBox_surface_cutoff.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Probe radius for surface residue detection."))
-        self.doubleSpinBox_surface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
+            "REvoDesignPyMOL_UI", "Surface area exposure cutoff."))
+        self.doubleSpinBox_surface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å²"))
         self.pushButton_run_surface_refresh.setStatusTip(_translate(
             "REvoDesignPyMOL_UI", "Refresh PyMOL selection list in REvoDesign"))
         self.pushButton_run_surface_refresh.setText(_translate("REvoDesignPyMOL_UI", "Refresh Selection"))
