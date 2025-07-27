@@ -268,6 +268,7 @@ class DialogWrapperRegistry:
         func: Callable,
         use_thread: bool = False,
         has_dynamic_values: bool = False,
+        use_progressbar: bool=True,
         kwargs: Optional[Dict] = None
     ):
         """
@@ -278,6 +279,7 @@ class DialogWrapperRegistry:
         func (Callable): The function to register.
         use_thread (bool): Whether to run the function in a separate thread.
         has_dynamic_values (bool): Whether the function accepts dynamic values.
+        use_progressbar (bool): Whether to use a progress bar.
         kwargs (Optional[Dict]): Additional keyword arguments to pass to the function.
 
         Returns either:
@@ -286,7 +288,7 @@ class DialogWrapperRegistry:
         """
         logging.debug(f"Registering function {func_id}")
         if use_thread:
-            self.funcs[func_id] = partial(run_wrapped_func_in_thread, func, **kwargs or {})
+            self.funcs[func_id] = partial(run_wrapped_func_in_thread, func, use_progressbar=use_progressbar, **kwargs or {})
         else:
             self.funcs[func_id] = func
 
@@ -351,7 +353,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
             raise ValueError(f"No dialog config for: {func_id}")
 
         conf = self.config[func_id]
-        asked_values = [_build_asked_value(opt) for opt in conf["options"]]
+        asked_values = [_build_asked_value(opt) for opt in conf["options"]] if conf.get("options") else []
         logging.debug(f"Asked values: {asked_values}")
         wrapped_func = dialog_wrapper(
             title=conf.get("title", func_id),
@@ -362,7 +364,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         wrapped_func(dynamic_values=dynamic_values or [])
 
 
-def run_wrapped_func_in_thread(func, **kwargs):
+def run_wrapped_func_in_thread(func, use_progressbar: bool=True, **kwargs):
     """
     Runs the wrapped process with parameters collected from the dialog.
 
@@ -377,5 +379,5 @@ def run_wrapped_func_in_thread(func, **kwargs):
         run_worker_thread_with_progress(
             func,
             **kwargs,
-            progress_bar=ConfigBus().ui.progressBar
+            progress_bar=ConfigBus().ui.progressBar if use_progressbar else None
         )
