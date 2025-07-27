@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- shortcuts: 
+  - utils: 
+    - `get_pymol_plugin_paths`: returns a list of paths to pymol plugins
+    - `DialogWrapperRegistry.register`: `use_progressbar`: whether to use the progress bar
+- ci: 
+  - `fuck-u-code`: `fuck-u-code` code quality check
+  
+  
+### Changed
+
+### Fixed
+- shortcuts: 
+  - fixed directory input options on yamls
+### Removed
 
 ## [1.8.1] - 2025-07-16
 ### Added

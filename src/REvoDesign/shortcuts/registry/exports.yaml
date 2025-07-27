@@ -17,6 +17,7 @@ dump_fasta_from_struct:
       type: str
       default: "dumped_sequences"
       reason: "Output directory"
+      source: "Directory"
     - name: "drop_missing_residue"
       type: bool
       default: false
@@ -39,6 +40,7 @@ menu_dump_sidechains:
       type: str
       default: "png/sidechains"
       reason: "Directory to save the sidechains."
+      source: "Directory"
 
     - name: "height"
       type: int

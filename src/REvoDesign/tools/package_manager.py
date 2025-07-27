@@ -2159,7 +2159,13 @@ def issue_collection(
                 ConfigBus().cfg) if ConfigBus._instance is not None else 'N/A'})
     return issue_dict
 
-
+# TODO:
+# add abort button
+'''
+self.abortbutton = QtWidgets.QPushButton('Abort')
+self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
+self.abortbutton.released.connect(cmd.interrupt)
+'''
 @contextmanager
 def hold_trigger_button(
     buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],
