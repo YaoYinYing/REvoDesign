@@ -3,7 +3,7 @@
     "entities": [
         {
             "name" : "Sidechain Solvers",
-            "description": "Sidechain Solvers",
+            "description": "Third Party Sidechain Solvers",
             "extras": [
                 {
                     "name": "DLPacker",
@@ -49,9 +49,10 @@
                     "depts": ["fair-esm2"]
                 },
                 {
-                    "name": "ESM-Efficient(CUDA)",
+                    "name": "ESM-Efficient",
                     "extras_id":"esme",
-                    "depts": ["esm-efficient","flash-attn"]
+                    "depts": ["esm-efficient","flash-attn"],
+                    "platform": ["CUDA"]
                 }
             ]
         },
@@ -71,18 +72,23 @@
             "description": "Backbone Sampler",
             "extras": [
                 {
-                    "name": "RFdiffusion(CUDA)",
+                    "name": "RFdiffusion (CUDA)",
                     "extras_id":"rfdiffusion_cuda",
-                    "depts": ["rfdiffusion","nvtx","se3-transformer"]
+                    "depts": ["rfdiffusion","nvtx","se3-transformer"],
+                    "description": "RFdiffusion on CUDA",
+                    "platform": ["CUDA"]
                 },
                 {
-                    "name": "RFdiffusion(MacOS, Apple Silicon)",
+                    "name": "RFdiffusion (MPS)",
                     "extras_id":"rfdiffusion_mps",
-                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"]
+                    "description": "RFdiffusion on MacOS, Apple Silicon",
+                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"],
+                    "platform": ["MPS"]
                 },
                 {
-                    "name": "RFdiffusion(CPU)",
+                    "name": "RFdiffusion",
                     "extras_id":"rfdiffusion_cpu",
+                    "description": "RFdiffusion on CPU only",
                     "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"]
                 }
             ]
