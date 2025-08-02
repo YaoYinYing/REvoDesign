@@ -1,0 +1,128 @@
+{
+    "_comment": "dada",
+    "entities": [
+        {
+            "name" : "Sidechain Solvers",
+            "description": "Sidechain Solvers",
+            "extras": [
+                {
+                    "name": "DLPacker",
+                    "extras_id":"dlpacker",
+                    "depts": ["DLPacker"]
+                },
+                {
+                    "name": "PIPPack",
+                    "extras_id":"pippack",
+                    "depts": ["PIPPack"]
+                }
+            ]
+        },
+        {
+            "name" : "Designers",
+            "description": "Designers",
+            "extras": [
+                {
+                    "name": "ColabDesign",
+                    "extras_id":"colabdesign",
+                    "depts": ["colabdesign"]
+                }
+            ]
+        },
+        {
+            "name" : "Predictors",
+            "description": "Predictors",
+            "extras": [
+                {
+                    "name": "ThermoMPNN",
+                    "extras_id":"thermompnn",
+                    "depts": ["thermompnn"]
+                }
+            ]
+        },
+        {
+            "name" : "Protein Models",
+            "description": "Protein Models",
+            "extras": [
+                {
+                    "name": "ESM1/2",
+                    "extras_id":"esm2",
+                    "depts": ["fair-esm2"]
+                },
+                {
+                    "name": "ESM-Efficient(CUDA)",
+                    "extras_id":"esme",
+                    "depts": ["esm-efficient","flash-attn"]
+                }
+            ]
+        },
+        {
+            "name" : "Molecular Dynamics",
+            "description": "Molecular Dynamics",
+            "extras": [
+                {
+                    "name": "OpenMM",
+                    "extras_id":"openmm",
+                    "depts": ["openmm","asgiref","pdbfixer","openmm-setup"]
+                }
+            ]
+        },
+        {
+            "name" : "Backbone Sampler",
+            "description": "Backbone Sampler",
+            "extras": [
+                {
+                    "name": "RFdiffusion(CUDA)",
+                    "extras_id":"rfdiffusion_cuda",
+                    "depts": ["rfdiffusion","nvtx","se3-transformer"]
+                },
+                {
+                    "name": "RFdiffusion(MacOS, Apple Silicon)",
+                    "extras_id":"rfdiffusion_mps",
+                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"]
+                },
+                {
+                    "name": "RFdiffusion(CPU)",
+                    "extras_id":"rfdiffusion_cpu",
+                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"]
+                }
+            ]
+        },
+        {
+            "name" : "Developer Tool",
+            "description": "Developer Tool",
+            "extras": [
+                {
+                    "name": "Test",
+                    "extras_id":"test",
+                    "depts": [
+                        "bandit",
+                        "black",
+                        "check-manifest",
+                        "flake8-bugbear",
+                        "flake8-docstrings",
+                        "flake8-formatter_junit_xml",
+                        "flake8",
+                        "flake8-pyproject",
+                        "pylint",
+                        "pylint_junit",
+                        "pytest",
+                        "pytest-qt",
+                        "pytest-cov",
+                        "pytest-mock",
+                        "pytest-runner",
+                        "pytest",
+                        "pytest-order",
+                        "pytest-emoji",
+                        "pytest-github-actions-annotate-failures",
+                        "shellcheck-py",
+                        "pre-commit",
+                        "virtualenv",
+                        "pooch",
+                        "coverage"
+                    ]
+                }
+            ]
+        }
+    ]
+    
+}

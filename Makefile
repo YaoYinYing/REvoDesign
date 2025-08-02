@@ -78,8 +78,7 @@ upload-gists:
 	# installer ui
 	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign-PyMOL-entry.ui src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
 	# JSONs for installer
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignDeptsTable.json jsons/REvoDesignDeptsTable.json
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTable.json jsons/REvoDesignExtrasTable.json
+	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTableRich.json jsons/REvoDesignExtrasTableRich.json
 
 
 # only for test on runner or local machine.

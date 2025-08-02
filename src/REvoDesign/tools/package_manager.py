@@ -22,10 +22,10 @@ import urllib.request
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import partial
+from functools import partial, cached_property
 from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
                     Mapping, NoReturn, Optional, Tuple, Type, TypeVar, Union,
-                    overload)
+                    overload,TypedDict)
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -103,8 +103,7 @@ UI_FILE_URL = f'{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui'
 # refer to THIS file, an installable package manager via pymol's plugin manager.
 THIS_FILE_URL = f'{GIST_BASE_URL}/REvoDesign_PyMOL.py'
 # Define the URL of the JSON file
-EXTRAS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTable.json'
-DEPTS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignDeptsTable.json'
+RICH_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTableRich.json'
 
 
 # Define the proxy protocols allowed
@@ -112,6 +111,129 @@ ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 
 HAS_CUDA = shutil.which('nvidia-smi')
 HAS_MPS = platform.system() == 'Darwin' and platform.mac_ver()[-1] == 'arm64'
+
+
+@dataclass
+class ExtrasItem:
+    '''
+    A dataclass representing an extras item.
+
+    Attributes:
+    - name (str): The name of the extras item.
+    - extras_id (str): The unique identifier for the extras item.
+    - depts (list[str]): The departments associated with the extras item.
+    '''
+    name: str
+    extras_id: str
+    depts: list[str]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ExtrasItem':
+        """
+        Create an ExtrasItem instance from a dictionary.
+
+        Parameters:
+        data (dict): The dictionary containing the extras item data.
+
+        Returns:
+        ExtrasItem: An instance of ExtrasItem created from the provided data.
+        """
+        return cls(
+            name=data['name'],
+            extras_id=data['extras_id'],
+            depts=data['depts']
+        )
+
+
+@dataclass
+class ExtrasGroup:
+    '''
+    A dataclass representing an extras group.
+
+    Attributes:
+    - name (str): The name of the extras group.
+    - description (str): The description of the extras group.
+    - extras (ExtrasItem): The extras item associated with this group.
+    
+    '''
+    name: str
+    description: str
+    extras: list[ExtrasItem]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ExtrasGroup':
+        """
+        Create an ExtrasGroup instance from a dictionary.
+
+        Parameters:
+        data (dict): The dictionary containing the group data.
+
+        Returns:
+        ExtrasGroup: An instance of ExtrasGroup created from the provided data.
+        """
+        return cls(
+            name=data['name'],
+            description=data['description'],
+            extras=[ExtrasItem.from_dict(item) for item in data['extras']]
+        )
+    
+    @cached_property
+    def as_checkbox_dict(self) -> dict:
+        """
+        Convert the ExtrasGroup instance to a dictionary suitable for use as a checkbox list.
+
+        Returns:
+        dict: A dictionary containing the group name, description, and a list of checkbox items.
+        """
+        d={self.name: ""}
+        d.update({
+            item.name: item.extras_id
+            for item in self.extras
+        })
+        return d
+    
+
+@dataclass
+class ExtrasGroups:
+    entities: tuple[ExtrasGroup, ...]
+
+    @classmethod
+    def from_dict(cls, d: dict) -> 'ExtrasGroups':
+        """
+        Create an ExtrasGroups object from a dictionary.
+
+        Args:
+        d (dict): A dictionary containing the group names and descriptions.
+
+        Returns:
+        ExtrasGroups: An ExtrasGroups object.
+        """
+        if d and 'entities' in d:
+            return cls(
+                tuple(
+                    ExtrasGroup.from_dict(_d)
+                    for _d in d['entities']
+                )
+            )
+        return cls(tuple())
+    
+
+    @property
+    def as_checkbox_inputs(self) -> dict[str,str]:
+
+        d={}
+        for e in self.entities:
+            d.update(e.as_checkbox_dict)
+
+        return d or {"No Extras is Fetched": ''}
+    
+    @property
+    def all_extras(self) -> list[ExtrasItem]:
+        """
+        Returns:
+        list[Extras]: A list of all Extras items in the ExtrasGroups instance.
+        """
+        return [item for group in self.entities for item in group.extras]
 
 
 def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
@@ -141,9 +263,7 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
         raise ValueError(f"Invalid URL: {e}") from e
 
 # Fetch and validate JSON data
-
-
-def fetch_gist_json(url: str) -> Dict[str, str]:
+def fetch_gist_json(url: str) -> dict[str, Any]:
     """
     Fetches JSON data from the specified URL and validates its structure.
 
@@ -163,9 +283,6 @@ def fetch_gist_json(url: str) -> Dict[str, str]:
             # Validate the structure of the fetched data
             if not isinstance(json_data, dict):
                 raise ValueError("Fetched data is not a dictionary.")
-            for key, value in json_data.items():
-                if not isinstance(key, str) or not (isinstance(value, str) or value is None):
-                    raise ValueError("Invalid key-value format in JSON data.")
             return json_data
     except Exception as e:
         logging.error(f"Error fetching or validating the JSON data: {e}: ")
@@ -681,8 +798,9 @@ class REvoDesignPackageManager:
 
     dialog: Any = None
     installer_ui: Any = None
-    extra_checkbox: CheckableListView = None
-    pip_installer: PIPInstaller = None
+    extra_checkbox: CheckableListView = None # type: ignore
+    pip_installer: PIPInstaller = None # type: ignore
+    remote_extra_group_data: ExtrasGroups = None # type: ignore
 
     def ensure_ui_file(self, upgrade: bool = False):
         ui_file = os.path.abspath(
@@ -912,18 +1030,23 @@ class REvoDesignPackageManager:
         This method uses a worker thread to fetch extras data with a progress bar indication.
         If fetching fails, it shows an error notification and sets up an empty extras list.
         """
-        # Run a worker thread to fetch extras with a progress bar
-        AVAILABLE_EXTRAS = run_worker_thread_with_progress(
+        remote_data=run_worker_thread_with_progress(
             worker_function=fetch_gist_json,
-            url=EXTRAS_TABLE_JSON,
+            url=RICH_TABLE_JSON,
             progress_bar=self.installer_ui.progressBar)
-
-        # Handle the case where no extras are fetched
-        if not AVAILABLE_EXTRAS:
-            AVAILABLE_EXTRAS = {"No Extras is Fetched": ''}
+        
+        if not remote_data:
             notify_box("Error fetching or validating the JSON data. \n"
                        "Please reconfigure your network and press <Refresh> to try again "
                        "if you wish to continue installation with extra packages")
+        
+        if not 'entities' in remote_data:
+            notify_box('Fetched data is not valid. The data is expected to have an `entities` key.')
+
+        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data)
+
+        # Run a worker thread to fetch extras with a progress bar
+        AVAILABLE_EXTRAS = self.remote_extra_group_data.as_checkbox_inputs
 
         # remove device specific extras if not available
         if not HAS_CUDA or not HAS_MPS:
@@ -1337,18 +1460,18 @@ class REvoDesignPackageManager:
         - None
         """
         # Fetch the dependency package mapping table
-        deps_table: Dict[str, str] = fetch_gist_json(DEPTS_TABLE_JSON)
+
         # Filter out dependencies whose package ID is empty
-        deps_table = {k: v for k, v in deps_table.items() if v != ''}
+        
         # Get the list of dependencies checked by the user for uninstallation
         checked_depts_to_uninstall = self.extra_checkbox.get_checked_items()
         # Iterate over the dependency table
-        for pkg_name, pkg_id in deps_table.items():
-            if pkg_name not in checked_depts_to_uninstall:
-                logging.debug(f'Skip unchecked item: {pkg_name}')
+        for e in self.remote_extra_group_data.all_extras:
+            if e.extras_id not in checked_depts_to_uninstall:
+                logging.debug(f'Skip unchecked item: {e.name}')
                 continue
             # Uninstall each package associated with the checked dependency
-            for _p in pkg_id.split(';'):
+            for _p in e.depts:
                 logging.info(f"Removing {_p}...")
                 self.pip_installer.uninstall(_p)
 
