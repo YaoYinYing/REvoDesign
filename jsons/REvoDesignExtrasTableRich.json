@@ -89,7 +89,12 @@
                     "name": "RFdiffusion",
                     "extras_id":"rfdiffusion_cpu",
                     "description": "RFdiffusion on CPU only",
-                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"]
+                    "depts": [
+                        "rfdiffusion",
+                        "nvtx",
+                        "se3-transformer",
+                        "nvtx-mock"
+                    ]
                 }
             ]
         },
