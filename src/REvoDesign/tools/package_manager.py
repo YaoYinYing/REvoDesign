@@ -207,6 +207,7 @@ class ExtrasGroups:
         Returns:
         ExtrasGroups: An ExtrasGroups object.
         """
+        
         if d and 'entities' in d:
             return cls(
                 tuple(
@@ -214,6 +215,7 @@ class ExtrasGroups:
                     for _d in d['entities']
                 )
             )
+        
         return cls(tuple())
 
 
@@ -1031,6 +1033,11 @@ class REvoDesignPackageManager:
         This method uses a worker thread to fetch extras data with a progress bar indication.
         If fetching fails, it shows an error notification and sets up an empty extras list.
         """
+        d_placeholder={'entities': [{
+            "name" : "No Extras is Fetched",
+            "description": "No Extras is Fetched, please check the internet connection",
+            "extras": []
+        }],}
         remote_data = run_worker_thread_with_progress(
             worker_function=fetch_gist_json,
             url=RICH_TABLE_JSON,
@@ -1044,7 +1051,8 @@ class REvoDesignPackageManager:
         if 'entities' not in remote_data:
             notify_box('Fetched data is not valid. The data is expected to have an `entities` key.')
 
-        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data)
+
+        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data or d_placeholder)
 
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(
