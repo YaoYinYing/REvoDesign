@@ -48,10 +48,10 @@ def test_dialog_wrapper_registry_register_with_thread(mock_partial, mock_load_ya
     registry.funcs = {}  # reset
 
     kwargs = {"key": "value"}
-    registry.register("test_func", dummy_function, use_thread=True, kwargs=kwargs)
+    registry.register("test_func", dummy_function, use_thread=True, use_progressbar=False, kwargs=kwargs)
 
     assert "test_func" in registry.funcs
-    mock_partial.assert_called_once_with(run_wrapped_func_in_thread, dummy_function, **kwargs)
+    mock_partial.assert_called_once_with(run_wrapped_func_in_thread, dummy_function, use_progressbar=False, **kwargs)
 
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
@@ -64,7 +64,7 @@ def ttest_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_e
     registry = DialogWrapperRegistry("test_category")
     registry.funcs = {}  # reset
 
-    registry.register("test_func", dummy_function, use_thread=False)
+    registry.register("test_func", dummy_function,use_progressbar=False, use_thread=False)
 
     assert registry.funcs["test_func"] == dummy_function
 
@@ -92,7 +92,7 @@ def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, m
     registry = DialogWrapperRegistry("test_category")
     assert registry.funcs == {}
 
-    wrapper = registry.register("test_func", dummy_function, has_dynamic_values=True)
+    wrapper = registry.register("test_func", dummy_function,use_progressbar=False, has_dynamic_values=True)
     assert registry.funcs == {"test_func": dummy_function}
 
     assert wrapper.__doc__ is not None
@@ -109,7 +109,7 @@ def test_dialog_wrapper_registry_window_wrapper_no_dynamic_values(mock_load_yaml
 
     registry = DialogWrapperRegistry("test_category")
 
-    wrapper = registry.register("test_func", dummy_function, has_dynamic_values=False)
+    wrapper = registry.register("test_func", dummy_function,use_progressbar=False, has_dynamic_values=False)
 
     assert wrapper.__doc__ is not None
     assert 'no dynamic values' in wrapper.__doc__
@@ -123,7 +123,7 @@ def test_dialog_wrapper_registry_unregister(mock_load_yaml, mock_exists, mock_ya
     def dummy_function():
         return
     registry = DialogWrapperRegistry("test_category")
-    registry.register("test_func", dummy_function)
+    registry.register("test_func", dummy_function, use_progressbar=False)
 
     assert registry.funcs == {"test_func": dummy_function}
 
