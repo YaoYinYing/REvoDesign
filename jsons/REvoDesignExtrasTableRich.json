@@ -11,6 +11,7 @@
                 {
                     "name": "DLPacker",
                     "extras_id":"dlpacker",
+                    "description": "DLPacker is a GNN-based sidechain solver",
                     "depts": ["DLPacker"]
                 },
                 {
@@ -26,6 +27,7 @@
             "extras": [
                 {
                     "name": "ColabDesign",
+                    "description": "ColabDesign to run ProteinMPNN",
                     "extras_id":"colabdesign",
                     "depts": ["colabdesign"]
                 }
@@ -37,6 +39,7 @@
             "extras": [
                 {
                     "name": "ThermoMPNN",
+                    "description": "ThermoMPNN-D",
                     "extras_id":"thermompnn",
                     "depts": ["thermompnn"]
                 }
@@ -49,11 +52,13 @@
                 {
                     "name": "ESM1/2",
                     "extras_id":"esm2",
+                    "description": "ESM1/2, a protein language model. Renamed as fair-esm2 to avoid name collision with esm3",
                     "depts": ["fair-esm2"]
                 },
                 {
                     "name": "ESM-Efficient",
                     "extras_id":"esme",
+                    "description": "ESM-Efficient, ESM with Flash Attention for faster inference and reduced memory usage",
                     "depts": ["esm-efficient","flash-attn"],
                     "platform": ["CUDA"]
                 }
@@ -108,7 +113,7 @@
                 {
                     "name": "Test",
                     "extras_id":"test",
-                    "description": "Dependancies to run PyTest",
+                    "description": "Dependencies to run test suite",
                     "depts": [
                         "bandit",
                         "black",
