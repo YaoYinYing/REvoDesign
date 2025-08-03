@@ -1,5 +1,8 @@
 {
     "_comment": "dada",
+    "notification": [
+        {"level": "info", "message": "Welcome to REvoDesign!"}
+    ],
     "entities": [
         {
             "name" : "Sidechain Solvers",
@@ -105,6 +108,7 @@
                 {
                     "name": "Test",
                     "extras_id":"test",
+                    "description": "Dependancies to run PyTest",
                     "depts": [
                         "bandit",
                         "black",

@@ -968,7 +968,7 @@ class REvoDesignPackageManager:
 
         logging.debug('Run pre-fetching tasks... ')
 
-        self.refresh_extras_table()
+        self.refresh_remote_json()
 
         self.pip_installer = run_worker_thread_with_progress(PIPInstaller)
 
@@ -984,7 +984,7 @@ class REvoDesignPackageManager:
             self.extra_checkbox.check_all,
         )
 
-        self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_extras_table)
+        self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_remote_json)
 
         # Run a worker thread to fetch tags with a progress bar
         self.fetch_tags()
@@ -1026,7 +1026,7 @@ class REvoDesignPackageManager:
         }
         return proxy_env
 
-    def refresh_extras_table(self):
+    def refresh_remote_json(self):
         """
         Refreshes the list of available extras by fetching data from a JSON source.
 
@@ -1042,6 +1042,8 @@ class REvoDesignPackageManager:
             worker_function=fetch_gist_json,
             url=RICH_TABLE_JSON,
             progress_bar=self.installer_ui.progressBar)
+        
+        self.notification_channel(remote_data)
 
         if not remote_data:
             notify_box("Error fetching or validating the JSON data. \n"
@@ -1058,6 +1060,24 @@ class REvoDesignPackageManager:
         self.extra_checkbox = CheckableListView(
             self.installer_ui.listView_extras, self.remote_extra_group_data, filter=self.platform_info
         )
+
+    def notification_channel(self, d: dict):
+        """
+        Process notification messages and send them to the notification box
+        
+        Args:
+            d (dict): A dictionary containing notification information, should include 'notification' key
+            
+        Returns:
+            None
+        """
+        # Check if input dictionary is valid and contains notification key
+        if not d or not 'notification' in d:
+            return
+        
+        # Iterate through all notification messages and send to notification box
+        for n in d['notification']:
+            notify_box(message=f'[{n.get("level", "unknown")}]: {n.get("message")}')
 
     def collect_diagnostic_data(self, collect_dummy: bool = False, drop_sensitives=True):
         """
