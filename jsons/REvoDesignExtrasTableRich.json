@@ -137,7 +137,6 @@
                         "shellcheck-py",
                         "pre-commit",
                         "virtualenv",
-                        "pooch",
                         "coverage"
                     ]
                 }

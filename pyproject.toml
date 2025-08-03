@@ -170,7 +170,6 @@ test = [
     "shellcheck-py==0.10.0.1",
     "pre-commit",
     "virtualenv<=20.27.1",
-    "pooch>=1.8.0",
     "coverage",
     "httpx",
     "psutil",
