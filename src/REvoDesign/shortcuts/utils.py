@@ -268,7 +268,7 @@ class DialogWrapperRegistry:
         func: Callable,
         use_thread: bool = False,
         has_dynamic_values: bool = False,
-        use_progressbar: bool=True,
+        use_progressbar: bool = True,
         kwargs: Optional[Dict] = None
     ):
         """
@@ -288,7 +288,11 @@ class DialogWrapperRegistry:
         """
         logging.debug(f"Registering function {func_id}")
         if use_thread:
-            self.funcs[func_id] = partial(run_wrapped_func_in_thread, func, use_progressbar=use_progressbar, **kwargs or {})
+            self.funcs[func_id] = partial(
+                run_wrapped_func_in_thread,
+                func,
+                use_progressbar=use_progressbar,
+                **kwargs or {})
         else:
             self.funcs[func_id] = func
 
@@ -364,7 +368,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         wrapped_func(dynamic_values=dynamic_values or [])
 
 
-def run_wrapped_func_in_thread(func, use_progressbar: bool=True, **kwargs):
+def run_wrapped_func_in_thread(func, use_progressbar: bool = True, **kwargs):
     """
     Runs the wrapped process with parameters collected from the dialog.
 

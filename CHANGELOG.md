@@ -22,15 +22,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `get_pymol_plugin_paths`: returns a list of paths to pymol plugins
     - `DialogWrapperRegistry.register`: `use_progressbar`: whether to use the progress bar
 - ci: 
-  - `fuck-u-code`: `fuck-u-code` code quality check
-  
+  - `shitty-code`: `fuck-u-code` code quality check
+- json:
+  - `REvoDesignExtrasTableRich.json`: a rich json to store the meta data of package manager
   
 ### Changed
+- `package_manager`:
+  - use a rich json to store the meta data of package manager
+  - notification channel
+  - `CheckableListView`: now accept `ExtrasGroups` object and `PlatformInfo` as platform filter, with tool tips used as descriptions for each row
 
 ### Fixed
 - shortcuts: 
   - fixed directory input options on yamls
+- depts:
+  - `colabdesign`
+    - `jax<0.6.0,>=0.4.25`
+    - `colabdesign==1.1.3`
+
 ### Removed
+- `package_manager`:
+  - depts table
+  - extras table
 
 ## [1.8.1] - 2025-07-16
 ### Added

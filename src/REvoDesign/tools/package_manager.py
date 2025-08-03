@@ -22,7 +22,7 @@ import urllib.request
 import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import partial
+from functools import cached_property, partial
 from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
                     Mapping, NoReturn, Optional, Tuple, Type, TypeVar, Union,
                     overload)
@@ -103,15 +103,141 @@ UI_FILE_URL = f'{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui'
 # refer to THIS file, an installable package manager via pymol's plugin manager.
 THIS_FILE_URL = f'{GIST_BASE_URL}/REvoDesign_PyMOL.py'
 # Define the URL of the JSON file
-EXTRAS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTable.json'
-DEPTS_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignDeptsTable.json'
+RICH_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTableRich.json'
 
 
 # Define the proxy protocols allowed
 ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 
-HAS_CUDA = shutil.which('nvidia-smi')
-HAS_MPS = platform.system() == 'Darwin' and platform.mac_ver()[-1] == 'arm64'
+
+@dataclass
+class PlatformInfo:
+    """
+    A dataclass representing platform information.
+    """
+
+    HAS_CUDA = shutil.which('nvidia-smi') is not None
+    HAS_MPS = platform.system() == 'Darwin' and platform.mac_ver()[-1] == 'arm64'
+
+
+@dataclass
+class ExtrasItem:
+    '''
+    A dataclass representing an extras item.
+
+    Attributes:
+    - name (str): The name of the extras item.
+    - extras_id (str): The unique identifier for the extras item.
+    - depts (list[str]): The departments associated with the extras item.
+    '''
+    name: str
+    extras_id: str
+    depts: list[str]
+    description: Optional[str] = None
+    platform: Optional[list[str]] = None
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ExtrasItem':
+        """
+        Create an ExtrasItem instance from a dictionary.
+
+        Parameters:
+        data (dict): The dictionary containing the extras item data.
+
+        Returns:
+        ExtrasItem: An instance of ExtrasItem created from the provided data.
+        """
+        return cls(
+            name=data['name'],
+            extras_id=data['extras_id'],
+            depts=data['depts'],
+            description=data.get('description', data['name']),
+            platform=data.get('platform', None),
+        )
+
+
+@dataclass
+class ExtrasGroup:
+    '''
+    A dataclass representing an extras group.
+
+    Attributes:
+    - name (str): The name of the extras group.
+    - description (str): The description of the extras group.
+    - extras (ExtrasItem): The extras item associated with this group.
+
+    '''
+    name: str
+    description: str
+    extras: list[ExtrasItem]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ExtrasGroup':
+        """
+        Create an ExtrasGroup instance from a dictionary.
+
+        Parameters:
+        data (dict): The dictionary containing the group data.
+
+        Returns:
+        ExtrasGroup: An instance of ExtrasGroup created from the provided data.
+        """
+        return cls(
+            name=data['name'],
+            description=data['description'],
+            extras=[ExtrasItem.from_dict(item) for item in data['extras']]
+        )
+
+    @cached_property
+    def extras_id_list(self) -> list[str]:
+        return [item.extras_id for item in self.extras]
+
+
+@dataclass
+class ExtrasGroups:
+    entities: tuple[ExtrasGroup, ...]
+
+    @classmethod
+    def from_dict(cls, d: dict) -> 'ExtrasGroups':
+        """
+        Create an ExtrasGroups object from a dictionary.
+
+        Args:
+        d (dict): A dictionary containing the group names and descriptions.
+
+        Returns:
+        ExtrasGroups: An ExtrasGroups object.
+        """
+
+        if d and 'entities' in d:
+            return cls(
+                tuple(
+                    ExtrasGroup.from_dict(_d)
+                    for _d in d['entities']
+                )
+            )
+
+        return cls(tuple())
+
+    @cached_property
+    def all_extras(self) -> list[ExtrasItem]:
+        """
+        Returns:
+        list[Extras]: A list of all Extras items in the ExtrasGroups instance.
+        """
+        return [item for group in self.entities for item in group.extras]
+
+    def find_extras(self, name: str) -> list[ExtrasItem]:
+        """
+        Finds all Extras items with a given name in the ExtrasGroups instance.
+
+        Args:
+            name (str): The name of the Extras item to find.
+
+        Returns:
+            list[Extras]: A list of all Extras items with the given name.
+        """
+        return [item for item in self.all_extras if item.name == name]
 
 
 def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
@@ -143,7 +269,7 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
 # Fetch and validate JSON data
 
 
-def fetch_gist_json(url: str) -> Dict[str, str]:
+def fetch_gist_json(url: str) -> dict[str, Any]:
     """
     Fetches JSON data from the specified URL and validates its structure.
 
@@ -163,9 +289,6 @@ def fetch_gist_json(url: str) -> Dict[str, str]:
             # Validate the structure of the fetched data
             if not isinstance(json_data, dict):
                 raise ValueError("Fetched data is not a dictionary.")
-            for key, value in json_data.items():
-                if not isinstance(key, str) or not (isinstance(value, str) or value is None):
-                    raise ValueError("Invalid key-value format in JSON data.")
             return json_data
     except Exception as e:
         logging.error(f"Error fetching or validating the JSON data: {e}: ")
@@ -276,7 +399,7 @@ class CheckableListView(QtWidgets.QWidget):
         model: The data model instance used by the list view.
     """
 
-    def __init__(self, list_view, items: Dict[str, str] = {}, parent=None):
+    def __init__(self, list_view, items: ExtrasGroups, filter: PlatformInfo, parent=None):
         """
         Initializes the CheckableListView instance.
 
@@ -301,31 +424,35 @@ class CheckableListView(QtWidgets.QWidget):
         # Clear the model before adding new items
         self.model.clear()
 
-        # Add items to the model with optional separators
-        if not items:
-            return
-
         self.items = items
+        self.filter = filter
 
-        for k, v in items.items():
-            if not v:
-                # Add as a separator
-                separator_item = QtGui.QStandardItem(k)
-                separator_item.setEnabled(False)  # Non-interactive
-                separator_item.setSelectable(False)  # Non-selectable
-                separator_item.setCheckable(False)  # Non-checkable
-                separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))
-                separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))   # Different background
-                separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
-                self.model.appendRow(separator_item)
-            else:
+        for e in self.items.entities:
+            # Add as a separator
+            separator_item = QtGui.QStandardItem(e.name)
+            separator_item.setEnabled(False)  # Non-interactive
+            separator_item.setSelectable(False)  # Non-selectable
+            separator_item.setCheckable(False)  # Non-checkable
+            separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))
+            separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))   # Different background
+            separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
+            separator_item.setToolTip(e.description or e.name)
+            self.model.appendRow(separator_item)
+
+            for _e in e.extras:
+                if _e.platform:
+                    if any(not getattr(filter, f'HAS_{p}') for p in _e.platform):
+                        logging.debug(f"Skipping {_e.name} for {_e.platform}")
+                        continue
+
                 # Add as a regular checkable item
-                item = QtGui.QStandardItem(k)
+                item = QtGui.QStandardItem(_e.name)
                 item.setCheckable(True)
                 item.setCheckState(QtCore.Qt.Unchecked)   # Default unchecked
+                item.setToolTip(_e.description or _e.name)
                 self.model.appendRow(item)
 
-    def _get_items_by_check_state(self, check_state):
+    def _get_items_by_check_state(self, check_state) -> ExtrasGroup:
         """
         Helper function to get items based on their check state.
 
@@ -335,14 +462,15 @@ class CheckableListView(QtWidgets.QWidget):
         Returns:
             A list of strings representing the texts of items with the specified check state.
         """
-        items = []
+        items = ExtrasGroup(f'{"" if check_state else "un" }checked', '', [])
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable() and item.checkState() == check_state:
-                items.append(self.items.get(item.text(), None))
+                items.extras.extend(self.items.find_extras(item.text()))
         return items
 
-    def get_checked_items(self):
+    @property
+    def checked_items(self) -> list[str]:
         """
         Returns a list of all checked items' text.
 
@@ -351,16 +479,7 @@ class CheckableListView(QtWidgets.QWidget):
         """
         checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)
         logging.debug(f'Checked: {checked_items}')
-        return checked_items
-
-    def get_unchecked_items(self):
-        """
-        Returns a list of all unchecked items' text.
-
-        Returns:
-            A list of strings representing the texts of all unchecked items.
-        """
-        return self._get_items_by_check_state(QtCore.Qt.Unchecked)
+        return checked_items.extras_id_list
 
     def check_all(self):
         """
@@ -681,8 +800,11 @@ class REvoDesignPackageManager:
 
     dialog: Any = None
     installer_ui: Any = None
-    extra_checkbox: CheckableListView = None
-    pip_installer: PIPInstaller = None
+    extra_checkbox: CheckableListView = None  # type: ignore
+    pip_installer: PIPInstaller = None  # type: ignore
+    remote_extra_group_data: ExtrasGroups = None  # type: ignore
+
+    platform_info = PlatformInfo()
 
     def ensure_ui_file(self, upgrade: bool = False):
         ui_file = os.path.abspath(
@@ -847,7 +969,7 @@ class REvoDesignPackageManager:
 
         logging.debug('Run pre-fetching tasks... ')
 
-        self.refresh_extras_table()
+        self.refresh_remote_json()
 
         self.pip_installer = run_worker_thread_with_progress(PIPInstaller)
 
@@ -863,7 +985,7 @@ class REvoDesignPackageManager:
             self.extra_checkbox.check_all,
         )
 
-        self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_extras_table)
+        self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_remote_json)
 
         # Run a worker thread to fetch tags with a progress bar
         self.fetch_tags()
@@ -905,37 +1027,57 @@ class REvoDesignPackageManager:
         }
         return proxy_env
 
-    def refresh_extras_table(self):
+    def refresh_remote_json(self):
         """
         Refreshes the list of available extras by fetching data from a JSON source.
 
         This method uses a worker thread to fetch extras data with a progress bar indication.
         If fetching fails, it shows an error notification and sets up an empty extras list.
         """
-        # Run a worker thread to fetch extras with a progress bar
-        AVAILABLE_EXTRAS = run_worker_thread_with_progress(
+        d_placeholder = {'entities': [{
+            "name": "No Extras is Fetched",
+            "description": "No Extras is Fetched, please check the internet connection",
+            "extras": []
+        }], }
+        remote_data = run_worker_thread_with_progress(
             worker_function=fetch_gist_json,
-            url=EXTRAS_TABLE_JSON,
+            url=RICH_TABLE_JSON,
             progress_bar=self.installer_ui.progressBar)
 
-        # Handle the case where no extras are fetched
-        if not AVAILABLE_EXTRAS:
-            AVAILABLE_EXTRAS = {"No Extras is Fetched": ''}
+        self.notification_channel(remote_data)
+
+        if not remote_data:
             notify_box("Error fetching or validating the JSON data. \n"
                        "Please reconfigure your network and press <Refresh> to try again "
                        "if you wish to continue installation with extra packages")
 
-        # remove device specific extras if not available
-        if not HAS_CUDA or not HAS_MPS:
-            AVAILABLE_EXTRAS = {
-                k: v for k, v in AVAILABLE_EXTRAS.items()
-                if ('CUDA' not in k or HAS_CUDA) and ('MPS' not in k or HAS_MPS)
-            }
+        if 'entities' not in remote_data:
+            notify_box('Fetched data is not valid. The data is expected to have an `entities` key.')
+
+        self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data or d_placeholder)
 
         # Create and position the extra components checkbox list
         self.extra_checkbox = CheckableListView(
-            self.installer_ui.listView_extras, AVAILABLE_EXTRAS
+            self.installer_ui.listView_extras, self.remote_extra_group_data, filter=self.platform_info
         )
+
+    def notification_channel(self, d: dict):
+        """
+        Process notification messages and send them to the notification box
+
+        Args:
+            d (dict): A dictionary containing notification information, should include 'notification' key
+
+        Returns:
+            None
+        """
+        # Check if input dictionary is valid and contains notification key
+        if not d or 'notification' not in d:
+            return
+
+        # Iterate through all notification messages and send to notification box
+        for n in d['notification']:
+            notify_box(message=f'[{n.get("level", "unknown")}]: {n.get("message")}')
 
     def collect_diagnostic_data(self, collect_dummy: bool = False, drop_sensitives=True):
         """
@@ -1337,18 +1479,18 @@ class REvoDesignPackageManager:
         - None
         """
         # Fetch the dependency package mapping table
-        deps_table: Dict[str, str] = fetch_gist_json(DEPTS_TABLE_JSON)
+
         # Filter out dependencies whose package ID is empty
-        deps_table = {k: v for k, v in deps_table.items() if v != ''}
+
         # Get the list of dependencies checked by the user for uninstallation
-        checked_depts_to_uninstall = self.extra_checkbox.get_checked_items()
+        checked_depts_to_uninstall = self.extra_checkbox.checked_items
         # Iterate over the dependency table
-        for pkg_name, pkg_id in deps_table.items():
-            if pkg_name not in checked_depts_to_uninstall:
-                logging.debug(f'Skip unchecked item: {pkg_name}')
+        for e in self.remote_extra_group_data.all_extras:
+            if e.extras_id not in checked_depts_to_uninstall:
+                logging.debug(f'Skip unchecked item: {e.name}')
                 continue
             # Uninstall each package associated with the checked dependency
-            for _p in pkg_id.split(';'):
+            for _p in e.depts:
                 logging.info(f"Removing {_p}...")
                 self.pip_installer.uninstall(_p)
 
@@ -1367,7 +1509,7 @@ class REvoDesignPackageManager:
         local_source: str = self.installer_ui.lineEdit_local.text()
 
         # Determine additional components to install
-        extras = ",".join(self.extra_checkbox.get_checked_items())
+        extras = ",".join(self.extra_checkbox.checked_items)
         upgrade = self.installer_ui.checkBox_upgrade.isChecked()
         verbose_level = self.installer_ui.horizontalSlider_Verbose.value()
 
@@ -2159,6 +2301,7 @@ def issue_collection(
                 ConfigBus().cfg) if ConfigBus._instance is not None else 'N/A'})
     return issue_dict
 
+
 # TODO:
 # add abort button
 '''
@@ -2166,6 +2309,8 @@ self.abortbutton = QtWidgets.QPushButton('Abort')
 self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
 self.abortbutton.released.connect(cmd.interrupt)
 '''
+
+
 @contextmanager
 def hold_trigger_button(
     buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],

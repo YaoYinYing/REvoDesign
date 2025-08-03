@@ -1,0 +1,147 @@
+{
+    "_comment": "dada",
+    "notification": [
+        {"level": "info", "message": "Welcome to REvoDesign!"}
+    ],
+    "entities": [
+        {
+            "name" : "Sidechain Solvers",
+            "description": "Third Party Sidechain Solvers",
+            "extras": [
+                {
+                    "name": "DLPacker",
+                    "extras_id":"dlpacker",
+                    "description": "DLPacker is a GNN-based sidechain solver",
+                    "depts": ["DLPacker"]
+                },
+                {
+                    "name": "PIPPack",
+                    "extras_id":"pippack",
+                    "depts": ["PIPPack"]
+                }
+            ]
+        },
+        {
+            "name" : "Designers",
+            "description": "Designers",
+            "extras": [
+                {
+                    "name": "ColabDesign",
+                    "description": "ColabDesign to run ProteinMPNN",
+                    "extras_id":"colabdesign",
+                    "depts": ["colabdesign"]
+                }
+            ]
+        },
+        {
+            "name" : "Predictors",
+            "description": "Predictors",
+            "extras": [
+                {
+                    "name": "ThermoMPNN",
+                    "description": "ThermoMPNN-D",
+                    "extras_id":"thermompnn",
+                    "depts": ["thermompnn"]
+                }
+            ]
+        },
+        {
+            "name" : "Protein Models",
+            "description": "Protein Models",
+            "extras": [
+                {
+                    "name": "ESM1/2",
+                    "extras_id":"esm2",
+                    "description": "ESM1/2, a protein language model. Renamed as fair-esm2 to avoid name collision with esm3",
+                    "depts": ["fair-esm2"]
+                },
+                {
+                    "name": "ESM-Efficient",
+                    "extras_id":"esme",
+                    "description": "ESM-Efficient, ESM with Flash Attention for faster inference and reduced memory usage",
+                    "depts": ["esm-efficient","flash-attn"],
+                    "platform": ["CUDA"]
+                }
+            ]
+        },
+        {
+            "name" : "Molecular Dynamics",
+            "description": "Molecular Dynamics",
+            "extras": [
+                {
+                    "name": "OpenMM",
+                    "extras_id":"openmm",
+                    "depts": ["openmm","asgiref","pdbfixer","openmm-setup"]
+                }
+            ]
+        },
+        {
+            "name" : "Backbone Sampler",
+            "description": "Backbone Sampler",
+            "extras": [
+                {
+                    "name": "RFdiffusion (CUDA)",
+                    "extras_id":"rfdiffusion_cuda",
+                    "depts": ["rfdiffusion","nvtx","se3-transformer"],
+                    "description": "RFdiffusion on CUDA",
+                    "platform": ["CUDA"]
+                },
+                {
+                    "name": "RFdiffusion (MPS)",
+                    "extras_id":"rfdiffusion_mps",
+                    "description": "RFdiffusion on MacOS, Apple Silicon",
+                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"],
+                    "platform": ["MPS"]
+                },
+                {
+                    "name": "RFdiffusion",
+                    "extras_id":"rfdiffusion_cpu",
+                    "description": "RFdiffusion on CPU only",
+                    "depts": [
+                        "rfdiffusion",
+                        "nvtx",
+                        "se3-transformer",
+                        "nvtx-mock"
+                    ]
+                }
+            ]
+        },
+        {
+            "name" : "Developer Tool",
+            "description": "Developer Tool",
+            "extras": [
+                {
+                    "name": "Test",
+                    "extras_id":"test",
+                    "description": "Dependencies to run test suite",
+                    "depts": [
+                        "bandit",
+                        "black",
+                        "check-manifest",
+                        "flake8-bugbear",
+                        "flake8-docstrings",
+                        "flake8-formatter_junit_xml",
+                        "flake8",
+                        "flake8-pyproject",
+                        "pylint",
+                        "pylint_junit",
+                        "pytest",
+                        "pytest-qt",
+                        "pytest-cov",
+                        "pytest-mock",
+                        "pytest-runner",
+                        "pytest",
+                        "pytest-order",
+                        "pytest-emoji",
+                        "pytest-github-actions-annotate-failures",
+                        "shellcheck-py",
+                        "pre-commit",
+                        "virtualenv",
+                        "coverage"
+                    ]
+                }
+            ]
+        }
+    ]
+    
+}
