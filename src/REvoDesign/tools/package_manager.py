@@ -133,8 +133,8 @@ class ExtrasItem:
     name: str
     extras_id: str
     depts: list[str]
-    description: Optional[str]=None
-    platform: Optional[list[str]]=None
+    description: Optional[str] = None
+    platform: Optional[list[str]] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ExtrasItem':
@@ -187,10 +187,11 @@ class ExtrasGroup:
             description=data['description'],
             extras=[ExtrasItem.from_dict(item) for item in data['extras']]
         )
-    
+
     @cached_property
     def extras_id_list(self) -> list[str]:
         return [item.extras_id for item in self.extras]
+
 
 @dataclass
 class ExtrasGroups:
@@ -207,7 +208,7 @@ class ExtrasGroups:
         Returns:
         ExtrasGroups: An ExtrasGroups object.
         """
-        
+
         if d and 'entities' in d:
             return cls(
                 tuple(
@@ -215,9 +216,8 @@ class ExtrasGroups:
                     for _d in d['entities']
                 )
             )
-        
-        return cls(tuple())
 
+        return cls(tuple())
 
     @cached_property
     def all_extras(self) -> list[ExtrasItem]:
@@ -238,6 +238,7 @@ class ExtrasGroups:
             list[Extras]: A list of all Extras items with the given name.
         """
         return [item for item in self.all_extras if item.name == name]
+
 
 def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
     """
@@ -424,7 +425,7 @@ class CheckableListView(QtWidgets.QWidget):
         self.model.clear()
 
         self.items = items
-        self.filter= filter
+        self.filter = filter
 
         for e in self.items.entities:
             # Add as a separator
@@ -1033,16 +1034,16 @@ class REvoDesignPackageManager:
         This method uses a worker thread to fetch extras data with a progress bar indication.
         If fetching fails, it shows an error notification and sets up an empty extras list.
         """
-        d_placeholder={'entities': [{
-            "name" : "No Extras is Fetched",
+        d_placeholder = {'entities': [{
+            "name": "No Extras is Fetched",
             "description": "No Extras is Fetched, please check the internet connection",
             "extras": []
-        }],}
+        }], }
         remote_data = run_worker_thread_with_progress(
             worker_function=fetch_gist_json,
             url=RICH_TABLE_JSON,
             progress_bar=self.installer_ui.progressBar)
-        
+
         self.notification_channel(remote_data)
 
         if not remote_data:
@@ -1052,7 +1053,6 @@ class REvoDesignPackageManager:
 
         if 'entities' not in remote_data:
             notify_box('Fetched data is not valid. The data is expected to have an `entities` key.')
-
 
         self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data or d_placeholder)
 
@@ -1064,17 +1064,17 @@ class REvoDesignPackageManager:
     def notification_channel(self, d: dict):
         """
         Process notification messages and send them to the notification box
-        
+
         Args:
             d (dict): A dictionary containing notification information, should include 'notification' key
-            
+
         Returns:
             None
         """
         # Check if input dictionary is valid and contains notification key
-        if not d or not 'notification' in d:
+        if not d or 'notification' not in d:
             return
-        
+
         # Iterate through all notification messages and send to notification box
         for n in d['notification']:
             notify_box(message=f'[{n.get("level", "unknown")}]: {n.get("message")}')
