@@ -58,7 +58,8 @@ dependencies = [
 
 [project.optional-dependencies]
 colabdesign = [
-    "colabdesign @ git+https://github.com/sokrypton/ColabDesign.git@v1.1.1#egg=colabdesign",
+    "colabdesign @ git+https://github.com/sokrypton/ColabDesign.git@v1.1.3#egg=colabdesign",
+    "jax<0.6.0,>=0.4.25"
 ]
 
 pippack = [

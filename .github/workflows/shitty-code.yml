@@ -1,4 +1,4 @@
-name: Fuck U Code Scan
+name: Shitty Code Scan
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Scaning
-        uses: YaoYinYing/fuck-u-code-github-action@v1.0.0
+        uses: YaoYinYing/fuck-u-code-github-action@v1.1.0
         with:
           target-path: src # scan src package only
           reverse-score: "true"
