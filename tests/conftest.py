@@ -109,7 +109,7 @@ def mock_fetch_json(url):
     return d
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def pm_plugin(qtbot: qtbot.QtBot) -> REvoDesignPackageManager:
 
     with patch('REvoDesign.tools.package_manager.notify_box', side_effect=lambda *args, **kargs: None) as mock_notify_box, \
