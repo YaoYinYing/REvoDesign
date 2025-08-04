@@ -106,3 +106,4 @@ generate_branch_summary.py
 git_graph.txt
 pr_summary.csv
 src/REvoDesign/UI/REvoDesign_ui.py
+src/REvoDesign/tools/REvoDesign-manager/UI/REvoDesign_installer.ui

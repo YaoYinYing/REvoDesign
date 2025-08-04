@@ -4,6 +4,7 @@ pytest configuration
 from __future__ import annotations
 
 import gc
+import json
 import os
 import platform
 import shutil
@@ -11,7 +12,7 @@ import time
 import warnings
 from dataclasses import dataclass
 from typing import Literal, Optional
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import psutil
 import pytest
@@ -23,6 +24,7 @@ from RosettaPy.node import NodeHintT
 from RosettaPy.utils import tmpdir_manager
 
 from REvoDesign import REvoDesignPlugin
+from REvoDesign.tools.package_manager import LiveProcessResult, REvoDesignPackageManager,refresh_window
 from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
 from REvoDesign.common import MutantTree
@@ -37,6 +39,7 @@ os.environ["PYTEST_QT_API"] = "pyqt5"
 
 TAB_NAMES = Literal["prepare", "mutate", "evaluate", "cluster", "visualize", "interact", "socket", "config"]
 
+repo_dir= os.path.join(os.path.dirname(__file__), '..')
 
 def pytest_collection_modifyitems(items: list[Item]):
     for item in items:
@@ -94,6 +97,98 @@ def plugin(qtbot: qtbot.QtBot, app):
     )  # Add the plugin's main window to qtbot for automatic cleanup
     return plugin
 
+
+def mock_fetch_json(url):
+    d = json.load(open(os.path.join(repo_dir, 'jsons', 'REvoDesignExtrasTableRich.json')))
+    if 'notification' in d:
+        warnings.warn(UserWarning(f'These notification lines will be removed: {d["notification"]}' ))
+        del d['notification']
+    return d
+
+@pytest.fixture()
+def pm_plugin(qtbot: qtbot.QtBot) -> REvoDesignPackageManager:
+
+        
+
+    with patch('REvoDesign.tools.package_manager.notify_box', side_effect=lambda *args,**kargs: None) as mock_notify_box, \
+        patch('REvoDesign.tools.package_manager.fetch_gist_json',side_effect=mock_fetch_json) as mock_fetch_gist_json, \
+        patch('REvoDesign.tools.package_manager.get_github_repo_tags', side_effect=lambda repo_url: ['1.0.0', '1.0.1', '1.0.2']) as mock_notify_box:
+
+        plugin = REvoDesignPackageManager()
+        plugin.run_plugin_gui()
+        plugin.dialog.lineEdit_local.setText(repo_dir)
+
+        qtbot.addWidget(
+            plugin.dialog
+        )
+        return plugin
+    
+class PmTestWorker:
+    def __init__(self, qtbot: qtbot.QtBot, plugin: REvoDesignPackageManager):
+        ...
+        self.qtbot = qtbot
+        self.plugin = plugin
+
+        self.SCREENSHOT_DIR = os.path.join(os.path.abspath("."), "screenshots", "package_manager")
+        os.makedirs(self.SCREENSHOT_DIR, exist_ok=True)
+
+    def save_screenshot(
+        self,
+        widget: QtWidgets.QWidget,  # type: ignore
+        basename: str = "default",
+    ):
+        png_file = self.qtbot.screenshot(widget=widget)
+        moved_file = os.rename(
+            png_file, os.path.join(self.SCREENSHOT_DIR, f"{basename}.png")
+        )
+        return moved_file
+    
+    def _click(self, widget: QtWidgets.QWidget, cursor,times: int = 1, ):  # type: ignore
+        if isinstance(widget, QtWidgets.QAction):
+            for t in range(times):
+                widget.trigger()
+                self.sleep(100)
+            return self
+
+        for t in range(times):
+            self.qtbot.mouseClick(widget, cursor)
+            self.sleep(100)
+        return self
+    
+    def click(self, widget: QtWidgets.QWidget, times: int = 1,):
+        return self._click(widget, QtCore.Qt.MouseButton.LeftButton, times)
+    
+    def rclick(self, widget: QtWidgets.QWidget, times: int = 1):
+        return self._click(widget, QtCore.Qt.MouseButton.RightButton, times)
+
+    def sleep(self, time=1000):
+        for i in range(int(time/10)):
+            self.qtbot.wait(i*10)
+            refresh_window()
+
+
+    def do_typing(
+        self, widget: QtWidgets.QWidget, text: str, strict_mode: bool = False  # type: ignore
+    ):
+        set_widget_value(widget=widget, value="")
+        # if text is short enough or in strict mode
+        # type one after another
+        if (len(text) < 10) or strict_mode:
+            self.qtbot.keyClicks(widget, text)
+            return
+        # otherwise,
+        # only type the last character to trigger hook connected to this widget
+        _tex, _t = text[:-1], text[-1]
+        set_widget_value(widget=widget, value=_tex)
+
+        self.qtbot.keyClicks(widget, _t)
+        self.sleep(100)
+
+    @property
+    def method_name(self):
+        import sys
+
+        return sys._getframe(1).f_code.co_name
 
 class TestWorker:
     def __init__(self, qtbot: qtbot.QtBot, plugin: REvoDesignPlugin):
@@ -498,6 +593,22 @@ def test_worker(
 
     yield w
     request.addfinalizer(final_action)
+
+@pytest.fixture
+def pm_test_worker(
+    qtbot: qtbot.QtBot,
+    pm_plugin,
+    request,
+):
+    w = PmTestWorker(qtbot, pm_plugin)
+
+    def final_action():
+        gc.collect()
+    
+
+    yield w
+    request.addfinalizer(final_action)
+
 
 
 @pytest.fixture(scope="session")
