@@ -1160,6 +1160,7 @@ class REvoDesignPackageManager:
             pos (QPoint): The position where the menu should be shown, in widget coordinates.
         """
         # Show the menu at the position of the mouse cursor
+        logging.debug(f'showing menu at {pos}')
         global_pos = self.installer_ui.mapToGlobal(pos)
         self.menu.exec_(global_pos)
 
@@ -1623,13 +1624,13 @@ class REvoDesignPackageManager:
                 notify_box(
                     message="Installation succeeded. \nIf this is an upgrade, "
                     "please restart PyMOL for it to take effect.",
-                    details=f'STDOUT:\n{installed.stdout}\n\nSTDERR:\n{installed.stderr}' if installed else None)
+                    details=f'CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT:\n{installed.stdout}\n\nSTDERR:\n{installed.stderr}' if installed else None)
                 return
 
             notify_box(
                 message=f"Installation failed from: {install_source} \n",
                 error_type=RuntimeError,
-                details=f'STDOUT: \n{installed.stderr}\n\nSTDERR: \n{installed.stderr}' if installed else None,
+                details=f'CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT: \n{installed.stderr}\n\nSTDERR: \n{installed.stderr}' if installed else None,
             )
 
     def setup_cache_dir(self):

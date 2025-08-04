@@ -64,7 +64,7 @@ def ttest_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_e
     registry = DialogWrapperRegistry("test_category")
     registry.funcs = {}  # reset
 
-    registry.register("test_func", dummy_function,use_progressbar=False, use_thread=False)
+    registry.register("test_func", dummy_function, use_progressbar=False, use_thread=False)
 
     assert registry.funcs["test_func"] == dummy_function
 
@@ -92,7 +92,7 @@ def test_dialog_wrapper_registry_window_wrapper_dynamic_values(mock_load_yaml, m
     registry = DialogWrapperRegistry("test_category")
     assert registry.funcs == {}
 
-    wrapper = registry.register("test_func", dummy_function,use_progressbar=False, has_dynamic_values=True)
+    wrapper = registry.register("test_func", dummy_function, use_progressbar=False, has_dynamic_values=True)
     assert registry.funcs == {"test_func": dummy_function}
 
     assert wrapper.__doc__ is not None
@@ -109,7 +109,7 @@ def test_dialog_wrapper_registry_window_wrapper_no_dynamic_values(mock_load_yaml
 
     registry = DialogWrapperRegistry("test_category")
 
-    wrapper = registry.register("test_func", dummy_function,use_progressbar=False, has_dynamic_values=False)
+    wrapper = registry.register("test_func", dummy_function, use_progressbar=False, has_dynamic_values=False)
 
     assert wrapper.__doc__ is not None
     assert 'no dynamic values' in wrapper.__doc__
