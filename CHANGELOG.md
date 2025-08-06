@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - shortcuts: 
   - fixed directory input options on yamls
+  - fixed profile design threading - bus error, indroduced from refactor works in v1.8.0
 - depts:
   - `colabdesign`
     - `jax<0.6.0,>=0.4.25`
