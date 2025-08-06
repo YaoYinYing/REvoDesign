@@ -2,6 +2,7 @@
 Custom widgets for REvoDesign.
 """
 
+import gc
 import json
 import os
 import warnings
@@ -1860,6 +1861,7 @@ class ValueDialog(REvoDesignWidget):
         """
         self.cancel_signal.emit()
         self.close()
+        gc.collect()
 
     def _on_save_clicked(self):
         from REvoDesign import __version__

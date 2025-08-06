@@ -897,7 +897,7 @@ def pick_design_from_profile(
         if view_highlight_nbr > 0:
             highlight_method(f'byres {mutant.full_mutant_id} around {view_highlight_nbr}', animate=1)
         else:
-            highlight_method(mutant.full_mutant_id)
+            highlight_method(mutant.full_mutant_id, animate=1)
 
     # Prepare the data for the button matrix
 

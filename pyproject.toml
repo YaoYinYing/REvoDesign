@@ -70,6 +70,12 @@ dlpacker = [
     "DLPacker @ git+https://github.com/YaoYinYing/DLPacker.git@pip-installable-cpu#egg=DLPacker",
 ]
 
+dlpacker_mps = [
+    "DLPacker @ git+https://github.com/YaoYinYing/DLPacker.git@pip-installable-cpu#egg=DLPacker",
+    "tensorflow-macos",
+    "tensorflow-metal",
+]
+
 thermompnn = [
     "thermompnn @ git+https://github.com/YaoYinYing/ThermoMPNN-D#egg=thermompnn",
 ]

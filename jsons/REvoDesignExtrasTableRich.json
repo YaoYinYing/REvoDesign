@@ -15,6 +15,13 @@
                     "depts": ["DLPacker"]
                 },
                 {
+                    "name": "DLPacker (MPS)",
+                    "extras_id":"dlpacker_mps",
+                    "description": "DLPacker is a GNN-based sidechain solver, MPS",
+                    "depts": ["DLPacker"],
+                    "platform": ["MPS"]
+                },
+                {
                     "name": "PIPPack",
                     "extras_id":"pippack",
                     "depts": ["PIPPack"]
