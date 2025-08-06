@@ -16,6 +16,5 @@ wrapped_pssm2csv = registry.register(
 
 wrapped_profile_pick_design = registry.register(
     "profile_pick_design",
-    pick_design_from_profile,
-    use_thread=True
+    pick_design_from_profile
 )
