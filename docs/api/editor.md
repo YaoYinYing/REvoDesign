@@ -4,6 +4,7 @@
 - MonacoEditorManager: Ensure and manage Monaco editor assets.
 
 Example:
+
 ```python
 from REvoDesign.editor.monaco.monaco import MonacoEditorManager
 m = MonacoEditorManager(app_name="REvoDesign", app_author="REvoDesign")

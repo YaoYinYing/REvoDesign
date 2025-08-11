@@ -16,6 +16,7 @@
 [![pymol-open-source](https://tinyurl.com/pymol-open-source)](https://anaconda.org/conda-forge/pymol-open-source)
 ![pyqt](https://img.shields.io/badge/PyQt-5-41CD52?logo=qt)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+
 ---
 
 ## CI Status
@@ -76,9 +77,12 @@ Please refer to the [documentation(WIP)](link_to_documentation) for detailed ins
 ---
 
 ## Dependencies wait list
+
 > [!NOTE]
 > These are the dependencies that are not yet implemented but will be added in the toolkit.
+
 ### Designers
+
 - [ ] [SaProt](https://github.com/westlake-repl/SaProt)
 - [ ] [Prime](https://github.com/ai4protein/Pro-Prime)
 - [ ] [ProtSSN](https://github.com/tyang816/ProtSSN)
@@ -90,6 +94,7 @@ Please refer to the [documentation(WIP)](link_to_documentation) for detailed ins
 - [ ] [ByProt](https://github.com/BytedProtein/ByProt)
 
 ### Sidechain Solvers
+
 - [ ] [AttnPacker](https://github.com/MattMcPartlon/AttnPacker)
 - [ ] [opus_rota4](https://github.com/OPUS-MaLab/opus_rota4)
 - [ ] [GeoPacker](https://github.com/PKUliujl/GeoPacker)
@@ -108,9 +113,11 @@ Before installing the main program, you need to install the REvoDesign Package M
 2. Navigate to **Plugin > Plugin Manager** and select **Install New Plugin**.
 3. Choose **Install from PyMOLWiki or any URL**.
 4. Paste the following URL:
+
    ```text
    https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw/REvoDesign_PyMOL.py
    ```
+
 5. Click **Fetch**.
 
    ![Install from URL](https://github-image-cache.yaoyy.moe/2024/11/a68d9f8394a6b9dcf952deef264838b5.png)
@@ -125,7 +132,7 @@ Before installing the main program, you need to install the REvoDesign Package M
 
 Once installed, the REvoDesign Package Manager will appear in the PyMOL menu.
 
-   ![REvoDesign Package Manager](https://github-image-cache.yaoyy.moe/2024/04/6fd3d7838e0f92d88ab9fab99eeba250.png)
+![REvoDesign Package Manager](https://github-image-cache.yaoyy.moe/2024/04/6fd3d7838e0f92d88ab9fab99eeba250.png)
 
 ---
 
@@ -133,7 +140,8 @@ Once installed, the REvoDesign Package Manager will appear in the PyMOL menu.
 
 The REvoDesign Package Manager simplifies the installation of the core **REvoDesign** program. It supports various installation methods and configurations:
 
-#### Features:
+#### Features
+
 - **Installation Sources:**
   - **Repository:** Install directly from the remote repository.
   - **Local clone/directory:** Install from a local source code or cloned repository.
@@ -197,7 +205,7 @@ ssh -D 7899 -C root@<your.vps.ip> -p<ssh-port>
 
 Configure the proxy in the manager:
 
-   ![Proxy Configuration](https://github-image-cache.yaoyy.moe/2024/11/8c7849a70ea512f3b2166110a07a45ab.png)
+![Proxy Configuration](https://github-image-cache.yaoyy.moe/2024/11/8c7849a70ea512f3b2166110a07a45ab.png)
 
 ---
 
@@ -205,33 +213,32 @@ Configure the proxy in the manager:
 
 Right-click any non-editing area of the manager and select **Upgrade this manager** to fetch the latest version.
 
-   ![Self Upgrade](https://github-image-cache.yaoyy.moe/2024/11/85e6e45ae880674a5081459d80687453.png)
+![Self Upgrade](https://github-image-cache.yaoyy.moe/2024/11/85e6e45ae880674a5081459d80687453.png)
 
 After confirming, the script will replace the existing manager with the updated version.
 
-   ![Upgrade Confirmation](https://github-image-cache.yaoyy.moe/2024/11/4ddb145c98ac3fc472c2d9e4ffc23489.png)
+![Upgrade Confirmation](https://github-image-cache.yaoyy.moe/2024/11/4ddb145c98ac3fc472c2d9e4ffc23489.png)
 
 ---
 
 You are now ready to use **REvoDesign** for your enzyme redesign projects!
 
-   **Extras table**
+**Extras table**
 
-   | extras tag and packages |                        references                      |   explanations  |
-   | :---------------------: | :----------------------------------------------------- | :-------------: |
-   |   `ColabDesign`   | https://github.com/sokrypton/ColabDesign.git@v1.1.1    |     with JAX    |
-   |     `DLPacker`    | https://github.com/YaoYinYing/DLPacker@pip-installable | with TensorFlow |
-   |     `PIPPack`     | https://github.com/YaoYinYing/PIPPack@pip-installable  |  with PyTorch   |
-   
+| extras tag and packages | references                                               |  explanations   |
+| :---------------------: | :------------------------------------------------------- | :-------------: |
+|      `ColabDesign`      | <https://github.com/sokrypton/ColabDesign.git@v1.1.1>    |    with JAX     |
+|       `DLPacker`        | <https://github.com/YaoYinYing/DLPacker@pip-installable> | with TensorFlow |
+|        `PIPPack`        | <https://github.com/YaoYinYing/PIPPack@pip-installable>  |  with PyTorch   |
 
 > [!WARNING]
 > ColabDesign uses Jax, which requires **Python >= 3.9**
 
 > [!IMPORTANT]
-> Please make sure that modern PyMOL version is fetched from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (* < v2.5.7*, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+> Please make sure that modern PyMOL version is fetched from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (_< v2.5.7_, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
 
 > [!IMPORTANT]
-> ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`. 
+> ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2`.
 > Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
 
 **Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
@@ -243,10 +250,10 @@ You are now ready to use **REvoDesign** for your enzyme redesign projects!
    - Click `Menu` -> `REvoDesign` -> `Import PyMOL Session` to let **REvoDesign** find a designable molecule. Here is a keyboard shortcut: `Ctrl+N`.
    - Have fun!
 
-
 Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from **REvoDesign** toolkit's support resources.
 
 ---
+
 [![CircleCI](https://dl.circleci.com/insights-snapshot/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/main/test/badge.svg?window=30d&circle-token=465c8a4e66021ab11dd31f920a60a452b09a4cb8)](https://app.circleci.com/insights/circleci/97VjoN5in7mMaQdymWj7Qk/EVmMjwc2AXdvw6kpYNfFPj/workflows/test/overview?branch=main&reporting-window=last-30-days&insights-snapshot=true) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=large&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_large&issueType=license)
 
 ## API Reference

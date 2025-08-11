@@ -11,6 +11,7 @@
 - MenuActionServerMonitor, ServerControlAbstract: helper interfaces for server control.
 
 Example (singleton):
+
 ```python
 from REvoDesign.basic import SingletonAbstract
 

@@ -5,11 +5,13 @@ Central UI-configuration bus (singleton) providing typed access to configuration
 Constructor: use `ConfigBus()`; it’s a singleton.
 
 Key attributes:
+
 - headless: bool
 - cfg: omegaconf.DictConfig
 
 Selected methods:
-- initialize_widget_with_group()  # non-headless
+
+- initialize_widget_with_group() # non-headless
 - update_cfg_item_from_widget(widget_id: str)
 - register_widget_changes_to_cfg()
 - get_widget_from_id(widget_id: str) -> QWidget
@@ -24,6 +26,7 @@ Selected methods:
 - set_value(cfg_item: str, value) -> None
 
 Example (headless value access):
+
 ```python
 from REvoDesign.driver.ui_driver import ConfigBus
 

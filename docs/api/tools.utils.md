@@ -16,6 +16,7 @@
 - pairwise(iterable)
 
 Examples:
+
 ```python
 from REvoDesign.tools.utils import timing, generate_strong_password, extract_archive
 
