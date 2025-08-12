@@ -31,6 +31,7 @@
 ## Code checkings
 
 [![pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/REvoDesign/pylint/pylint_scan.svg)](https://github.com/Silleellie/pylint-github-action)
+[![Maintainability](https://qlty.sh/badges/8a669407-26a2-45aa-8323-b5567c391cbf/maintainability.svg)](https://qlty.sh/gh/YaoYinYing/projects/REvoDesign)
 [![fuck-u-code score](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/REvoDesign/fuck-u-code/fuck-u-code_scan.svg)](https://github.com/YaoYinYing/fuck-u-code-github-action)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/3583a7e4923d4116931fcbab21492f21)](https://app.codacy.com?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)

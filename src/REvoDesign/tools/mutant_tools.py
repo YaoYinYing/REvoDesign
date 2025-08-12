@@ -7,7 +7,6 @@ import os
 import re
 import time
 import warnings
-from functools import partial
 from typing import List, Mapping, Optional, Tuple, Union
 
 import numpy as np
@@ -878,7 +877,6 @@ def pick_design_from_profile(
                     mutant_obj=mutant,
                     color=color,
                     in_place=True)
-                
 
                 designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
 
@@ -913,7 +911,7 @@ def pick_design_from_profile(
     button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
-    button_matrix.active_func =mutate_with_gridbuttons
+    button_matrix.active_func = mutate_with_gridbuttons
 
     # Create a new dialog window for the button matrix
     window = REvoDesignWidget("ProfileDesignButtonMatrixWindow", allow_repeat=True)  # This creates a standalone window.

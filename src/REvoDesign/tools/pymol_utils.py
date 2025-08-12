@@ -4,14 +4,15 @@ Molecule utilities with PyMOL
 TODO: deprecate this module with biotite or biopython
 '''
 
-from dataclasses import dataclass
 import os
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union, TypedDict
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from immutabledict import immutabledict
 from pymol import cmd, get_version_message
-from pymol.setting import index_dict
 from pymol.parsing import QuietException
+from pymol.setting import index_dict
 
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
@@ -601,14 +602,15 @@ def renumber_protein_chain(molecule: Union[str, List[str]], chain: Optional[str]
     cmd.rebuild()  # Ensure the visualization updates properly
 
 
-PYMOL_SETTINGS: immutabledict[str, int]= immutabledict(index_dict)
+PYMOL_SETTINGS: immutabledict[str, int] = immutabledict(index_dict)
+
 
 @dataclass
 class PyMOLSetting:
     name: str
     val: Any
     typing: type
-    obj: Optional[str]=''
+    obj: Optional[str] = ''
 
     def apply(self):
         cmd.set(self.name, self.typing(self.val), selection=self.obj or '')
@@ -617,12 +619,10 @@ class PyMOLSetting:
     def as_dict_item(self) -> Tuple[str, Any]:
         return self.name, self
 
-def get_pymol_settings(keyword: str, obj: Optional[str]='')-> Dict[str, PyMOLSetting]:
+
+def get_pymol_settings(keyword: str, obj: Optional[str] = '') -> Dict[str, PyMOLSetting]:
     return {
-            key_name: PyMOLSetting(key_name, cmd.get(key_name, selection=obj or ''), type(cmd.get(key_name)), obj) 
-            for key_name in PYMOL_SETTINGS
-            if keyword in key_name
-        }
-
-
-
+        key_name: PyMOLSetting(key_name, cmd.get(key_name, selection=obj or ''), type(cmd.get(key_name)), obj)
+        for key_name in PYMOL_SETTINGS
+        if keyword in key_name
+    }
