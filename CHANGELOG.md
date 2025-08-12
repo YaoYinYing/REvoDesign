@@ -30,7 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `REvoDesignExtrasTableRich.json`: a rich json to store the meta data of package manager
 - `QButtonMatrix`:
   - `shape` property for performance checks
-  - button signal binding
 - `tools`:
   - `pymol_utils`: `PYMOL_SETTINGS`, `PyMOLSetting`, `get_pymol_settings` for future uses.
 
@@ -39,9 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - use a rich json to store the meta data of package manager
   - notification channel
   - `CheckableListView`: now accept `ExtrasGroups` object and `PlatformInfo` as platform filter, with tool tips used as descriptions for each row
-- `QButtonMatrix`:
-  - button signal binding: via qthread worker
-- `pick_design_from_profile`: refined signal binding
 
 ### Fixed
 - shortcuts: 

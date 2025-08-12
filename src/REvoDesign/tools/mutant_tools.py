@@ -873,10 +873,13 @@ def pick_design_from_profile(
                 color = get_color(cmap, score, -max_abs, max_abs)
                 print(f"Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} "
                       f"with {visualizer.mutate_runner.__class__.__name__}")
-                visualizer.create_mutagenesis_objects(
+                run_worker_thread_with_progress(
+                    visualizer.create_mutagenesis_objects,
                     mutant_obj=mutant,
                     color=color,
-                    in_place=True)
+                    in_place=True,
+                    progress_bar=bus.ui.progressBar
+                )
 
                 designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
 
@@ -911,6 +914,7 @@ def pick_design_from_profile(
     button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
+
     button_matrix.active_func = mutate_with_gridbuttons
 
     # Create a new dialog window for the button matrix

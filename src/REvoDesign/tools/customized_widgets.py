@@ -659,9 +659,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                 button.leave_signal.connect(self.on_leave)
 
                 # connect click signals
-                button.clicked.connect(lambda checked, r=row, c=col: run_worker_thread_with_progress(
-                    self.signal_process, r, c
-                ))
+                button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
 
                 # add to layout
                 self.button_layout.addWidget(button, row, col + 1)
