@@ -7,7 +7,6 @@ import os
 import re
 import time
 import warnings
-from functools import partial
 from typing import List, Mapping, Optional, Tuple, Union
 
 import numpy as np
@@ -739,8 +738,6 @@ def pick_design_from_profile(
                                run_worker_thread_with_progress)
 
     bus = ConfigBus()
-    bus.ui
-
     molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
     chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)
 
@@ -839,11 +836,13 @@ def pick_design_from_profile(
 
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
-    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix):
+    def mutate_with_gridbuttons(row, col):
+        nonlocal button_matrix
+        nonlocal designed_tree
 
-        resn: str = matrix.alphabet_row[row]
+        resn: str = button_matrix.alphabet_row[row]
         # one-indexed, int
-        resi: int = int(matrix.alphabet_col[col])
+        resi: int = int(button_matrix.alphabet_col[col])
         wt_res = sequence[resi - 1]
 
         wt_score = df.loc[wt_res, resi]
@@ -897,7 +896,7 @@ def pick_design_from_profile(
         if view_highlight_nbr > 0:
             highlight_method(f'byres {mutant.full_mutant_id} around {view_highlight_nbr}', animate=1)
         else:
-            highlight_method(mutant.full_mutant_id)
+            highlight_method(mutant.full_mutant_id, animate=1)
 
     # Prepare the data for the button matrix
 
@@ -915,10 +914,8 @@ def pick_design_from_profile(
     button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
-    button_matrix.active_func = partial(
-        mutate_with_gridbuttons,
-        matrix=button_matrix,
-    )
+
+    button_matrix.active_func = mutate_with_gridbuttons
 
     # Create a new dialog window for the button matrix
     window = REvoDesignWidget("ProfileDesignButtonMatrixWindow", allow_repeat=True)  # This creates a standalone window.

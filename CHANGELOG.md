@@ -23,9 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `DialogWrapperRegistry.register`: `use_progressbar`: whether to use the progress bar
 - ci: 
   - `shitty-code`: `fuck-u-code` code quality check
+  - `deepsource`
+  - `semantic-pr-check`: PR checker
+  - `schedule-update-actions`: Action version checker
 - json:
   - `REvoDesignExtrasTableRich.json`: a rich json to store the meta data of package manager
-  
+- `QButtonMatrix`:
+  - `shape` property for performance checks
+- `tools`:
+  - `pymol_utils`: `PYMOL_SETTINGS`, `PyMOLSetting`, `get_pymol_settings` for future uses.
+
 ### Changed
 - `package_manager`:
   - use a rich json to store the meta data of package manager
@@ -35,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - shortcuts: 
   - fixed directory input options on yamls
+  - fixed profile design threading - bus error, indroduced from refactor works in v1.8.0
 - depts:
   - `colabdesign`
     - `jax<0.6.0,>=0.4.25`
