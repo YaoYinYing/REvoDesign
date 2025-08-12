@@ -23,14 +23,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `DialogWrapperRegistry.register`: `use_progressbar`: whether to use the progress bar
 - ci: 
   - `shitty-code`: `fuck-u-code` code quality check
+  - `deepsource`
+  - `semantic-pr-check`: PR checker
+  - `schedule-update-actions`: Action version checker
 - json:
   - `REvoDesignExtrasTableRich.json`: a rich json to store the meta data of package manager
-  
+- `QButtonMatrix`:
+  - `shape` property for performance checks
+  - button signal binding
+- `tools`:
+  - `pymol_utils`: `PYMOL_SETTINGS`, `PyMOLSetting`, `get_pymol_settings` for future uses.
+
 ### Changed
 - `package_manager`:
   - use a rich json to store the meta data of package manager
   - notification channel
   - `CheckableListView`: now accept `ExtrasGroups` object and `PlatformInfo` as platform filter, with tool tips used as descriptions for each row
+- `QButtonMatrix`:
+  - button signal binding: via qthread worker
+- `pick_design_from_profile`: refined signal binding
 
 ### Fixed
 - shortcuts: 

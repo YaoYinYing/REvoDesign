@@ -1629,7 +1629,6 @@ class REvoDesignPackageManager:
 
             notify_box(
                 message=f"Installation failed from: {install_source} \n",
-                error_type=RuntimeError,
                 details=f'CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT: \n{installed.stderr}\n\nSTDERR: \n{installed.stderr}' if installed else None,
             )
 

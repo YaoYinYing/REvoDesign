@@ -26,7 +26,7 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
-                              notify_box, refresh_window)
+                              notify_box, refresh_window, run_worker_thread_with_progress)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -574,6 +574,11 @@ class QButtonMatrix(QtWidgets.QWidget):
 
     def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
         return row_name
+    
+    @property
+    def shape(self) -> Tuple[int, int]:
+        return (len(self.alphabet_row), len(self.alphabet_col))
+    
 
     def _make_button_tip(
             self,
@@ -610,6 +615,8 @@ class QButtonMatrix(QtWidgets.QWidget):
         font = QtGui.QFont()
         font.setPointSizeF(self.button_size * 0.8)
         font.setBold(True)
+
+        logging.debug(f'Initialized button matrix with shape {self.shape}: {self.shape[0]} rows, {self.shape[1]} columns')
 
         size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
@@ -651,7 +658,9 @@ class QButtonMatrix(QtWidgets.QWidget):
                 button.leave_signal.connect(self.on_leave)
 
                 # connect click signals
-                button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
+                button.clicked.connect(lambda checked, r=row, c=col: run_worker_thread_with_progress(
+                    self.signal_process, r, c
+                ))
 
                 # add to layout
                 self.button_layout.addWidget(button, row, col + 1)

@@ -739,8 +739,6 @@ def pick_design_from_profile(
                                run_worker_thread_with_progress)
 
     bus = ConfigBus()
-    bus.ui
-
     molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
     chain_id = bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)
 
@@ -839,11 +837,13 @@ def pick_design_from_profile(
 
     designed_tree = existed_mutant_tree(sequences=designable_sequences, enabled_only=0)
 
-    def mutate_with_gridbuttons(row, col, matrix: QButtonMatrix):
+    def mutate_with_gridbuttons(row, col):
+        nonlocal button_matrix
+        nonlocal designed_tree
 
-        resn: str = matrix.alphabet_row[row]
+        resn: str = button_matrix.alphabet_row[row]
         # one-indexed, int
-        resi: int = int(matrix.alphabet_col[col])
+        resi: int = int(button_matrix.alphabet_col[col])
         wt_res = sequence[resi - 1]
 
         wt_score = df.loc[wt_res, resi]
@@ -874,13 +874,11 @@ def pick_design_from_profile(
                 color = get_color(cmap, score, -max_abs, max_abs)
                 print(f"Visualizing {mutant.short_mutant_id} ({mutant.raw_mutant_id}) : {color} "
                       f"with {visualizer.mutate_runner.__class__.__name__}")
-                run_worker_thread_with_progress(
-                    visualizer.create_mutagenesis_objects,
+                visualizer.create_mutagenesis_objects(
                     mutant_obj=mutant,
                     color=color,
-                    in_place=True,
-                    progress_bar=bus.ui.progressBar
-                )
+                    in_place=True)
+                
 
                 designed_tree.add_mutant_to_branch(branch=group_id, mutant=mutant.full_mutant_id, mutant_obj=mutant)
 
@@ -915,10 +913,7 @@ def pick_design_from_profile(
     button_matrix.label_size = [18, 9]
     button_matrix.sequence = sequence
     button_matrix.init_ui()
-    button_matrix.active_func = partial(
-        mutate_with_gridbuttons,
-        matrix=button_matrix,
-    )
+    button_matrix.active_func =mutate_with_gridbuttons
 
     # Create a new dialog window for the button matrix
     window = REvoDesignWidget("ProfileDesignButtonMatrixWindow", allow_repeat=True)  # This creates a standalone window.

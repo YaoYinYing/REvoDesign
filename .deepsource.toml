@@ -1,0 +1,25 @@
+version = 1
+
+test_patterns = [
+  "tests/**",
+  "tests/**/**"
+]
+
+exclude_patterns = [
+  "docs/**",
+  ".idea/**",
+  ".circleci/**",
+  ".github/**",
+  ".github/**/**",
+  ".devcontainer/**",
+  "*.md",
+  "scripts/**",
+  "tools/**"
+]
+
+[[analyzers]]
+name = "python"
+
+  [analyzers.meta]
+  runtime_version = "3.x.x"
+  max_line_length = 120
