@@ -262,6 +262,8 @@ The YAML options are used to define the structure and behavior of the dialog. He
 
    The task will be executed in a separate thread, and the result will be returned to the main thread. During the execution, the progress bar will be updated automatically.
 
+   **Note**: The threading feature conflicts with any UI operations, as these UI operations must be performed in the main thread. Forcing the subthread to update the UI will cause an bus error.
+
 ### **8. Conclusion**
 
 In this document, we have discussed how to turn functions into interactive window popups, highlighting the DialogWrapperRegistry system that automates much of the process. This design makes it easier to integrate interactive dialogs, improving flexibility, maintainability, and user experience.

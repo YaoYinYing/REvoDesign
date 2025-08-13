@@ -22,7 +22,7 @@ jobs:
         with:
           target-path: src # scan src package only
           reverse-score: "true"
-          badge-text: fuck--u--code score
+          badge-text: shitty--code score
           badge-file-name: fuck-u-code_scan
           badge-logo-id: python
           badge-artifact-name: upload-my-awesome-badge-${{ github.run_id }}
