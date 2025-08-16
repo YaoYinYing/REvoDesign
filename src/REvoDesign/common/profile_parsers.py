@@ -301,91 +301,11 @@ class TSVProfileParser(ProfileParserAbstract):
         return self.df
 
 
-# class Pythia_ddG_Parser(ProfileParserAbstract):
-#     """
-#     The `Pythia_ddG_Parser` class is designed to parse the binding free energy (ddG) predictions from Pythia
-#     and convert them into a DataFrame format.
-
-#     Methods:
-#     - `parse`: Parses the ddG data and returns it as a pandas DataFrame. If the expected output does not exist,
-#     triggers a cloud computation.
-#     - `_run_cloud`: Internal method to initiate Pythia calculations in case the output is not found locally.
-#     Sets up the working directory and handles the execution and citation of Pythia.
-#     """
-
-#     name = "Pythia-ddG"
-#     prefer_lower = True
-
-#     def parse(self) -> pd.DataFrame:
-#         """
-#         Parses the Pythia ddG prediction file and returns its content as a pandas DataFrame.
-
-#         Returns:
-#         - `pd.DataFrame`: DataFrame containing parsed ddG data.
-
-#         If the expected Pythia output file does not exist, the `_run_cloud` method is invoked to generate
-#         the predictions remotely.
-#         """
-#         self.profile_input = os.path.join(
-#             os.path.abspath("."),
-#             "pythia",
-#             f"{self.molecule}_pred_mask.csv",
-#         )
-
-#         # Check for existing Pythia output; if not present, initiate cloud computation.
-#         if not os.path.exists(self.profile_input):
-#             self._run_cloud()
-#         else:
-#             logging.warning(
-#                 f"Found expected Pythia output: `{self.profile_input}`, skipping computation."
-#             )
-
-#         # Instantiate and use CSVProfileParser to convert the CSV into a DataFrame.
-#         csv_parser = CSVProfileParser(
-#             profile_input=self.profile_input,
-#             molecule=self.molecule,
-#             chain_id=self.chain_id,
-#             sequence=self.sequence,
-#         )
-#         csv_parser.parse()
-
-#         # Assign the DataFrame from CSVParser to this instance's attribute.
-#         self.df = csv_parser.df
-
-#         return self.df
-
-#     def _run_cloud(self):
-#         """
-#         Internal method that triggers Pythia calculations in a remote environment when local output is missing.
-
-#         Establishes the working directory for Pythia, initiates the prediction process, and handles result
-#         storage and citation.
-#         In case of errors during Pythia execution, logs an error message.
-#         """
-#         from REvoDesign.clients.PythiaBiolibClient import PythiaBiolib
-
-#         ddg_runner = PythiaBiolib(
-#             molecule=self.molecule, chain_id=self.chain_id
-#         )
-#         ddg_runner.work_dir = os.path.join(os.path.abspath("."), "pythia")
-#         os.makedirs(ddg_runner.work_dir, exist_ok=True)
-
-#         # Execute Pythia prediction and handle potential errors.
-#         self.profile_input = ddg_runner.predict()
-
-#         if not self.profile_input:
-#             logging.error("An error occurred during the Pythia run!")
-#             return
-
-#         logging.debug(f"The result file is stored at: {self.profile_input}")
-#         ddg_runner.cite()
-
 
 ALL_PARSER_CLASSES = (
     PSSM_Parser,
     CSVProfileParser,
     TSVProfileParser,
-    # Pythia_ddG_Parser,
 )
 
 
