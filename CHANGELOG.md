@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+- parser: `biolib`-wrapped `pythia-ddg`
+- depts: `pybiolib`
 
 ## [1.8.2] - 2025-08-13
 ### Added
