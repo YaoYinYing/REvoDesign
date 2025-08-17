@@ -1,10 +1,8 @@
 import os
+from unittest.mock import patch
 
 import pytest
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
-from unittest.mock import MagicMock, patch
-
-
 
 from REvoDesign.bootstrap.set_config import reload_config_file
 from REvoDesign.shortcuts.tools.rosetta_tasks import (
@@ -26,7 +24,8 @@ class TestRosettaTasks:
         save_dir = 'rosetta_tests/outputs'
         with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
-            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
+            patched_read_rosetta_node_config.return_value = reload_config_file(
+                f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
             patch_bus.get_value.return_value = test_node_hint
 
             shortcut_rosettaligand(
@@ -50,7 +49,6 @@ class TestRosettaTasks:
 
             analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'scorefile'))
             assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
-
 
     # time expensive test
     # def test_pross(test_worker: TestWorker, test_node_hint):
@@ -100,8 +98,8 @@ class TestRosettaTasks:
     #     assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
     #     assert analyser.df.shape[0] == 8, 'Scorefile should contain exact 8 rows'
 
-
     # a variant test from RosettaPy's short app tests
+
     @pytest.mark.parametrize(
         "job_id,pdb,dualspace,ligand",
         [
@@ -110,13 +108,14 @@ class TestRosettaTasks:
             ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', False, '../tests/data/lig/lig.fa.params'],
         ],
     )
-    def test_fast_relax(self,job_id, pdb, dualspace, ligand, test_node_hint):
+    def test_fast_relax(self, job_id, pdb, dualspace, ligand, test_node_hint):
 
         with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
-            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
+            patched_read_rosetta_node_config.return_value = reload_config_file(
+                f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
             patch_bus.get_value.return_value = test_node_hint
-        
+
             save_dir = 'rosetta_tests/outputs/fastrelax'
             relax_script = 'MonomerRelax2019'
 
@@ -146,8 +145,8 @@ class TestRosettaTasks:
             analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
             assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
 
-
     # a variant test from RosettaPy's short app tests
+
     @pytest.mark.parametrize(
         "job_id,pdb,ligand",
         [
@@ -156,11 +155,12 @@ class TestRosettaTasks:
             ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', '../tests/data/lig/lig.fa.params'],
         ],
     )
-    def test_shortcut_relax_w_ca_constraints(self,job_id, pdb, ligand, test_node_hint):
+    def test_shortcut_relax_w_ca_constraints(self, job_id, pdb, ligand, test_node_hint):
 
         with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
-            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
+            patched_read_rosetta_node_config.return_value = reload_config_file(
+                f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
             patch_bus.get_value.return_value = test_node_hint
 
             save_dir = 'rosetta_tests/outputs/relax_w_ca_constraints'

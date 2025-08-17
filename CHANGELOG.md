@@ -24,13 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - conftest:
     - fixed imports like `from tests.conftest import ...`
     - `MEMORY_AVAILABLE_GB` for retienving memory size
+- Makefile: 
+  - `install-dgl-linux`: for ci, linux, rfdiffusion
 
 ### Changed
 - tools:
   - Downloading handled by `FileDownloadRegistry` and `DownloadedFile`
 - dialog registry yaml:
   - esm1v: `model_alias` -> `model_names`
-- depts: `wandb` for py312 
+- depts: 
+  - `wandb` for py312 
+  - pin `torch` to `<=2.3.0`
 
 ### Fixed
 - `phylogenetics`: 
@@ -40,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - fixed frozen window when running `rfdiffusion`
 - tests:
   - reduce rosetta related tests to minimum nstruct and iterations
+- linting:
+  - fixed unnecessary comprehensions
+  - fixed list as arguments
 
 
 ### Removed
