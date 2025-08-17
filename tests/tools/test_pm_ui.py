@@ -5,7 +5,6 @@ import pytest
 from REvoDesign.Qt.qt_wrapper import QtCore
 from REvoDesign.tools.package_manager import (CheckableListView,
                                               LiveProcessResult)
-
 from tests.conftest import PmTestWorker
 
 

@@ -4,7 +4,6 @@ import pytest
 
 from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.tools.customized_widgets import set_widget_value
-
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 

@@ -1,18 +1,20 @@
 import os
+
 import pytest
 
-from REvoDesign.shortcuts.tools.esm2 import shortcut_esm1v, Esm1v
-
+from REvoDesign.shortcuts.tools.esm2 import Esm1v, shortcut_esm1v
 from tests.conftest import MEMORY_AVAILABLE_GB
 
 # DISABLED FOR MEMEORY ISSUE
+
+
 @pytest.mark.serial
-@pytest.mark.skipif(MEMORY_AVAILABLE_GB<10, reason="Not enough memory available for this test")
+@pytest.mark.skipif(MEMORY_AVAILABLE_GB < 10, reason="Not enough memory available for this test")
 @pytest.mark.skipif(
-        not Esm1v.installed, reason="Esm1v not installed"
-    )
+    not Esm1v.installed, reason="Esm1v not installed"
+)
 def test_esm1v():
-    
+
     sequence: str = 'YINYING'
 
     save_dir = 'predictors/esm1v'

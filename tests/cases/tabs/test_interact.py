@@ -7,7 +7,6 @@ from REvoDesign.magician.designers import ColabDesigner_MPNN
 from REvoDesign.tools.customized_widgets import (QButtonBrick,
                                                  get_widget_value,
                                                  set_widget_value)
-
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 

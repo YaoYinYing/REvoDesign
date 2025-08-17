@@ -2,7 +2,6 @@ import os
 
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
-
 from tests.conftest import TestWorker
 from tests.data.test_data import KeyData
 
