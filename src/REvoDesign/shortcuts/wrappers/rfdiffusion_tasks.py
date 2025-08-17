@@ -14,6 +14,7 @@ from ...logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
 
+
 def _visualize_substrate_potentials(**kwargs):
     """
     Runs the visualize_substrate_potentials function with parameters collected from the dialog.

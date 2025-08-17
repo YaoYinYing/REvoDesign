@@ -14,11 +14,11 @@ from Bio import SeqIO
 from immutabledict import immutabledict
 from tqdm import tqdm
 
+from REvoDesign import issues
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.dl_weights import FileDownloadRegistry
 from REvoDesign.tools.utils import get_cited, require_installed
-from REvoDesign import issues
 
 from ...logger import ROOT_LOGGER
 
@@ -41,7 +41,7 @@ ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     }
 )
 
-ESM1V_WEIGHTS=FileDownloadRegistry(
+ESM1V_WEIGHTS = FileDownloadRegistry(
     name="ESM2",
     base_url=ESM_MODEL_BASE_URL,
     registry={f'{v}.pt': None for v in ESM1V_MODEL_DICT.values()}
@@ -167,17 +167,17 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
     def _resolve_model_weight(self, model_name: str):
         """
         Resolve and get the model weight file path
-        
-        This function decides whether to load the model from a local checkpoint directory or download 
-        it from a remote server based on the configuration. If a checkpoint directory is configured, 
+
+        This function decides whether to load the model from a local checkpoint directory or download
+        it from a remote server based on the configuration. If a checkpoint directory is configured,
         it will load from local first; otherwise it downloads from the default ESM1V weight server.
-        
+
         Args:
             model_name (str): Model name used to construct the model file path
-            
+
         Returns:
             str: Full path to the model weight file
-            
+
         Raises:
             issues.ConfigureError: When the checkpoint directory is misconfigured or the model file does not exist
         """
@@ -185,22 +185,21 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         if self.checkpoint_dir:
             # Verify that the checkpoint directory exists and contains the specified model file
             if not (os.path.isdir(
-            self.checkpoint_dir) and os.path.isfile(
-            model_path := (
-                os.path.join(
-                self.checkpoint_dir,
-                model_name)))):
+                self.checkpoint_dir) and os.path.isfile(
+                model_path := (
+                    os.path.join(
+                    self.checkpoint_dir,
+                    model_name)))):
                 raise issues.ConfigureError(
                     'Checkpoint directory is expected to be existing and containing model checkpoint file.'
                     'If you dont have model checkpoint file, please keep it as blank.')
-            
+
             logging.info(f"Loading model from {model_path}")
             return model_path
 
         # Download model from remote server
         logging.info(f'Fetching model {model_name} from {ESM1V_WEIGHTS.base_url}')
         return ESM1V_WEIGHTS.setup(model_name).downloaded
-
 
     @get_cited
     def predict(self):

@@ -6,14 +6,15 @@ Utils for fetching pretrained model weights
 import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional
-
 from urllib.parse import urljoin
-import pooch
-from platformdirs import  user_data_dir
-from REvoDesign.citations import CitableModuleAbstract
 
-from REvoDesign.tools.utils import extract_archive,get_cited
+import pooch
+from platformdirs import user_data_dir
+
 from REvoDesign import issues
+from REvoDesign.citations import CitableModuleAbstract
+from REvoDesign.tools.utils import extract_archive, get_cited
+
 from ..logger import ROOT_LOGGER
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -23,7 +24,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 class DownloadedFile:
     """
     Represents a downloaded file with its metadata
-    
+
     Attributes:
         name (str): Name of the file
         version (Optional[str]): Version of the file, can be None
@@ -36,34 +37,34 @@ class DownloadedFile:
     url: str
     downloaded: str
 
-    registry: Optional[str]=None
+    registry: Optional[str] = None
 
     @property
     def flatten_dir(self) -> str:
         """
         Get or create the flatten directory path
-        
+
         Creates directory if it doesn't exist, with name based on downloaded path plus '_flatten' suffix
-        
+
         Returns:
             str: Path to the flatten directory
         """
-        dir=f'{self.downloaded}_flatten/'
+        dir = f'{self.downloaded}_flatten/'
         os.makedirs(dir, exist_ok=True)
         return dir
-    
+
     @property
     def flatten_archieve(self):
         """
         Extract archive file to flatten directory
-        
+
         If flatten directory is empty, extracts the downloaded archive file to that directory
         and returns the list of extracted files
-        
+
         Returns:
             List[str]: List of extracted file names
         """
-        dist_dir=self.flatten_dir
+        dist_dir = self.flatten_dir
         # Check if destination directory is empty, if so extract archive
         extracted_files: List[str] = os.listdir(dist_dir)
         if not extracted_files:
@@ -75,14 +76,13 @@ class DownloadedFile:
         return extracted_files
 
 
-
 class FileDownloadRegistry(CitableModuleAbstract):
     """
     A file download registry manager for handling remote file resources.
-    
-    This class implements automatic file downloading, verification, and cache management based on the pooch library. 
+
+    This class implements automatic file downloading, verification, and cache management based on the pooch library.
     It supports specifying file hash values through a registry and provides convenient methods to fetch and verify remote files.
-    
+
     :param name: Module name, used to construct the default data directory path.
     :param base_url: Base URL for remote files.
     :param registry: File registry where keys are filenames and values are corresponding hash values (optional).
@@ -91,11 +91,11 @@ class FileDownloadRegistry(CitableModuleAbstract):
     """
 
     def __init__(
-            self, 
-            name: str, 
-            base_url: str, 
-            registry: Dict[str, Optional[str]], 
-            version: Optional[str] = None,  
+            self,
+            name: str,
+            base_url: str,
+            registry: Dict[str, Optional[str]],
+            version: Optional[str] = None,
             customized_directory: Optional[str] = None):
         self.name = name
         self.base_url = base_url
@@ -105,7 +105,8 @@ class FileDownloadRegistry(CitableModuleAbstract):
         self.registry = FileDownloadRegistry.preprocess_registry(registry=registry)
 
         # Set download directory, use default user data directory if not provided
-        self.customized_directory = customized_directory or user_data_dir(self.name, version=self.version, ensure_exists=True)
+        self.customized_directory = customized_directory or user_data_dir(
+            self.name, version=self.version, ensure_exists=True)
 
         # Create pooch instance for file downloading and management
         self.pooch: pooch.Pooch = pooch.create(
@@ -115,12 +116,12 @@ class FileDownloadRegistry(CitableModuleAbstract):
             registry=self.registry,
             retry_if_failed=99,
         )
-        
+
     @staticmethod
-    def _complete_varify_string(a_string: Optional[str]=None, hash_type: str = 'md5') -> Optional[str]:
+    def _complete_varify_string(a_string: Optional[str] = None, hash_type: str = 'md5') -> Optional[str]:
         """
         Complete hash string format, return directly if not provided or already contains type prefix.
-        
+
         :param a_string: Original hash string.
         :param hash_type: Default hash type (e.g., 'md5').
         :return: Formatted hash string in 'type:value' format.
@@ -135,17 +136,17 @@ class FileDownloadRegistry(CitableModuleAbstract):
     def preprocess_registry(registry: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
         """
         Preprocess registry to ensure all hash values conform to pooch requirements.
-        
+
         :param registry: Original registry.
         :return: Processed registry.
         """
         return {k: FileDownloadRegistry._complete_varify_string(v) for k, v in registry.items()}
-    
+
     @get_cited
     def setup(self, item: str) -> DownloadedFile:
         """
         Download and return the local path and related information of the specified file.
-        
+
         :param item: Filename to download.
         :return: DownloadedFile object containing file information.
         :raises NetworkError: Raises network error exception if download fails.
@@ -158,36 +159,36 @@ class FileDownloadRegistry(CitableModuleAbstract):
             raise issues.NetworkError(f"Failed to fetch {item}: {e}") from e
         registry_entry = self.pooch.registry.get(item, None)
         return DownloadedFile(
-            name=item, 
-            version=self.version, 
+            name=item,
+            version=self.version,
             url=url,
             downloaded=downloaded_path,
             registry=registry_entry
         )
-    
+
     @property
     def list_all_files(self) -> list[str]:
         """
         Get a list of all files in the registry.
-        
+
         :return: List of filenames.
         """
         return self.pooch.registry_files
-    
+
     def has(self, item: str) -> bool:
         """
         Check if the specified file exists in the registry.
-        
+
         :param item: Filename.
         :return: True if exists, False otherwise.
         """
         return item in self.pooch.registry_files
-    
+
     @staticmethod
     def prepare_registry_from_md5(md5_contents: str) -> Dict[str, Optional[str]]:
         """
         Parse and generate registry from MD5 content string.
-        
+
         :param md5_contents: String containing MD5 values and filenames, each line in 'hash filename' format.
         :return: Parsed registry dictionary.
         """

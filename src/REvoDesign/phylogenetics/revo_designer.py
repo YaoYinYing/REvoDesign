@@ -147,7 +147,7 @@ class REvoDesigner:
 
         max_abs_value = np.max((np.abs(df_trunc.values.min()), df_trunc.values.max()))
 
-        plt.figure(figsize=(0.31 * len(sequence_trunc), 5),dpi=dpi)
+        plt.figure(figsize=(0.31 * len(sequence_trunc), 5), dpi=dpi)
         pcm = plt.imshow(
             df_trunc, cmap=self.cmap, vmin=-max_abs_value, vmax=max_abs_value
         )

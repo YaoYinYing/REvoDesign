@@ -37,7 +37,7 @@ RFDIFFUSION_WEIGHTS_BASE_URL = 'https://github.com/YaoYinYing/RFdiffusion/releas
 # ge cuda-121: `pip install  dgl==2.2.1 -f https://data.dgl.ai/wheels/cu121/repo.html`
 # ge cuda-118: `pip install  dgl -f https://data.dgl.ai/wheels/cu118/repo.html`
 
-RFD_WEIGHTS_STR='''
+RFD_WEIGHTS_STR = '''
 0d9f82af03c73011c6fec060bac5b731 ActiveSite_ckpt.pt
 4aa4a27ba280d23541e01860c106c7cc Base_ckpt.pt
 5c58d7d5c329c1297fab0aa6cebad81b Base_epoch8_ckpt.pt
@@ -48,6 +48,7 @@ RFD_WEIGHTS_STR='''
 a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
 6f4d00394d34f6a9072d70976f6c8777 RF_structure_prediction_weights.pt
 '''
+
 
 @dataclass
 class DglSolver:
@@ -88,7 +89,8 @@ class DglSolver:
             raise RuntimeError(f"Failed to install DGL: {c.stderr}")
         self.installed = True
 
-RFD_WEIGHTS=FileDownloadRegistry(
+
+RFD_WEIGHTS = FileDownloadRegistry(
     name='RFdiffusion',
     base_url=RFDIFFUSION_WEIGHTS_BASE_URL,
     # version='',
@@ -157,7 +159,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         if model_name:
             if RFD_WEIGHTS.has(model_name):
                 return self._download_and_set_model(model_name)
-                
+
             warnings.warn(issues.FallingBackWarning(
                 f"Model {model_name} not found. Falling back to pick one according to the input."))
 
@@ -169,18 +171,18 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 # this is only used for partial diffusion
                 assert self.config.diffuser.partial_T is not None, "The provide_seq input is specifically for partial diffusion"
             if self.config.scaffoldguided.scaffoldguided:
-                model_name= 'InpaintSeq_Fold_ckpt'
+                model_name = 'InpaintSeq_Fold_ckpt'
             else:
-                model_name= 'InpaintSeq_ckpt'
+                model_name = 'InpaintSeq_ckpt'
         elif self.config.ppi.hotspot_res is not None and self.config.scaffoldguided.scaffoldguided is False:
             # use complex trained model
-            model_name= 'Complex_base_ckpt'
+            model_name = 'Complex_base_ckpt'
         elif self.config.scaffoldguided.scaffoldguided is True:
             # use complex and secondary structure-guided model
-            model_name= 'Complex_Fold_base_ckpt'
+            model_name = 'Complex_Fold_base_ckpt'
         else:
             # use default model
-            model_name= 'Base_ckpt'
+            model_name = 'Base_ckpt'
 
         logging.warning(f'Using Model {model_name}')
         return self._download_and_set_model(model_name)
