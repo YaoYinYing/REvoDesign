@@ -4,25 +4,26 @@ import pytest
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 from unittest.mock import MagicMock, patch
 
+
+
 from REvoDesign.shortcuts.tools.rosetta_tasks import (
     shortcut_fast_relax, shortcut_relax_w_ca_constraints,
     shortcut_rosettaligand)
 
-class TestRosettaTasks:
-    @patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus')
-    @patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config')
-    # a variant test from RosettaPy's short app tests
-    @pytest.mark.parametrize(
-        "job_id,start_from,cst",
-        [
-            ['no_start_no_cst', None, None],
-            # ['has_start_no_cst', (-13.218, 6.939, 6.592), None],
-            # ['no_start_has_cst', None, '../tests/data/cst/6zcy_lig_disance.cst']
-        ],
-    )
-    def test_rosetta_ligand(self, job_id, start_from, cst, patched_read_rosetta_node_config, patch_bus, test_node_hint):
 
-        save_dir = 'rosetta_tests/outputs'
+
+@pytest.mark.parametrize(
+    "job_id,start_from,cst",
+    [
+        ['no_start_no_cst', None, None],
+        # ['has_start_no_cst', (-13.218, 6.939, 6.592), None],
+        # ['no_start_has_cst', None, '../tests/data/cst/6zcy_lig_disance.cst']
+    ],
+)
+def test_rosetta_ligand(job_id, start_from, cst, test_node_hint):
+
+    save_dir = 'rosetta_tests/outputs'
+    with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
         patched_read_rosetta_node_config.return_value = test_node_hint
         patch_bus.get_value.return_value = test_node_hint
@@ -50,70 +51,71 @@ class TestRosettaTasks:
         assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
 
 
-    # time expensive test
-    # def test_pross(test_worker: TestWorker, test_node_hint):
-    #     test_worker.inject_rosetta_node_config(test_node_hint)
+# time expensive test
+# def test_pross(test_worker: TestWorker, test_node_hint):
+#     test_worker.inject_rosetta_node_config(test_node_hint)
 
-    #     save_dir = 'rosetta_tests/outputs'
-    #     shortcut_pross(
-    #         pdb="../tests/data/3fap_hf3_A_short.pdb",
-    #         pssm="../tests/data/3fap_hf3_A_ascii_mtx_file_short",
-    #         res_to_fix='1A',
-    #         res_to_restrict='1A',
-    #         nstruct_refine=4,
-    #         save_dir=save_dir,
-    #         job_id="pross",
-    #     )
+#     save_dir = 'rosetta_tests/outputs'
+#     shortcut_pross(
+#         pdb="../tests/data/3fap_hf3_A_short.pdb",
+#         pssm="../tests/data/3fap_hf3_A_ascii_mtx_file_short",
+#         res_to_fix='1A',
+#         res_to_restrict='1A',
+#         nstruct_refine=4,
+#         save_dir=save_dir,
+#         job_id="pross",
+#     )
 
-    #     run_dir = os.path.join(save_dir, 'pross')
-    #     for dir in ['refinement', 'filterscan', 'design']:
-    #         assert os.path.isdir(os.path.join(run_dir, dir)), f"{run_dir}/{dir} does not exist"
+#     run_dir = os.path.join(save_dir, 'pross')
+#     for dir in ['refinement', 'filterscan', 'design']:
+#         assert os.path.isdir(os.path.join(run_dir, dir)), f"{run_dir}/{dir} does not exist"
 
-    #     refined_pdbs = [
-    #         x for x in os.listdir(
-    #             os.path.join(
-    #                 run_dir,
-    #                 'refinement',
-    #                 'pross_refinement',
-    #                 'pdb')) if x.endswith('.pdb')]
-    #     assert refined_pdbs, f'{run_dir}/refinement should contain pdb files'
-    #     assert len(refined_pdbs) == 4, f'{run_dir}/refinement should contain exact 4 pdb files'
+#     refined_pdbs = [
+#         x for x in os.listdir(
+#             os.path.join(
+#                 run_dir,
+#                 'refinement',
+#                 'pross_refinement',
+#                 'pdb')) if x.endswith('.pdb')]
+#     assert refined_pdbs, f'{run_dir}/refinement should contain pdb files'
+#     assert len(refined_pdbs) == 4, f'{run_dir}/refinement should contain exact 4 pdb files'
 
-    #     filter_scan_dir = os.path.join(run_dir, 'filterscan')
-    #     assert os.path.isdir(os.path.join(filter_scan_dir, 'resfiles')), f"{filter_scan_dir}/resfiles does not exist"
-    #     assert [x for x in os.listdir(os.path.join(filter_scan_dir, 'resfiles')) if x.startswith(
-    #         'designable_aa_resfile')], f'{filter_scan_dir}/resfiles should contain resfiles'
+#     filter_scan_dir = os.path.join(run_dir, 'filterscan')
+#     assert os.path.isdir(os.path.join(filter_scan_dir, 'resfiles')), f"{filter_scan_dir}/resfiles does not exist"
+#     assert [x for x in os.listdir(os.path.join(filter_scan_dir, 'resfiles')) if x.startswith(
+#         'designable_aa_resfile')], f'{filter_scan_dir}/resfiles should contain resfiles'
 
-    #     design_dir = os.path.join(run_dir, 'design/3fap_hf3_A_short_design')
-    #     assert os.path.isdir(os.path.join(design_dir, 'pdb')), f"{design_dir}/pdb does not exist"
-    #     designed_pdbs = [x for x in os.listdir(os.path.join(design_dir, 'pdb')) if x.endswith('.pdb')]
-    #     assert designed_pdbs, f'{design_dir}/pdb should contain pdb files'
-    #     assert len(designed_pdbs) == 8, f'{design_dir}/pdb should contain exact 8 pdb files'
+#     design_dir = os.path.join(run_dir, 'design/3fap_hf3_A_short_design')
+#     assert os.path.isdir(os.path.join(design_dir, 'pdb')), f"{design_dir}/pdb does not exist"
+#     designed_pdbs = [x for x in os.listdir(os.path.join(design_dir, 'pdb')) if x.endswith('.pdb')]
+#     assert designed_pdbs, f'{design_dir}/pdb should contain pdb files'
+#     assert len(designed_pdbs) == 8, f'{design_dir}/pdb should contain exact 8 pdb files'
 
-    #     assert os.path.isdir(os.path.join(design_dir, 'scorefile')), f"{design_dir}/scorefile does not exist"
-    #     assert [x for x in os.listdir(os.path.join(design_dir, 'scorefile')) if x.endswith(
-    #         '.sc')], f'{design_dir}/scorefile should contain score files ends with .sc'
+#     assert os.path.isdir(os.path.join(design_dir, 'scorefile')), f"{design_dir}/scorefile does not exist"
+#     assert [x for x in os.listdir(os.path.join(design_dir, 'scorefile')) if x.endswith(
+#         '.sc')], f'{design_dir}/scorefile should contain score files ends with .sc'
 
-    #     analyser = RosettaEnergyUnitAnalyser(os.path.join(design_dir, 'scorefile'))
-    #     assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
-    #     assert analyser.df.shape[0] == 8, 'Scorefile should contain exact 8 rows'
+#     analyser = RosettaEnergyUnitAnalyser(os.path.join(design_dir, 'scorefile'))
+#     assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
+#     assert analyser.df.shape[0] == 8, 'Scorefile should contain exact 8 rows'
 
-    @patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus')
-    @patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config')
-    # a variant test from RosettaPy's short app tests
-    @pytest.mark.parametrize(
-        "job_id,pdb,dualspace,ligand",
-        [
-            # ['mono', '../tests/data/3fap_hf3_A_short.pdb', False, ''],
-            # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', True, ''],
-            ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', False, '../tests/data/lig/lig.fa.params'],
-        ],
-    )
-    def test_fast_relax(self, job_id, pdb, dualspace, ligand,patched_read_rosetta_node_config,patch_bus, test_node_hint):
+
+# a variant test from RosettaPy's short app tests
+@pytest.mark.parametrize(
+    "job_id,pdb,dualspace,ligand",
+    [
+        # ['mono', '../tests/data/3fap_hf3_A_short.pdb', False, ''],
+        # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', True, ''],
+        ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', False, '../tests/data/lig/lig.fa.params'],
+    ],
+)
+def test_fast_relax(job_id, pdb, dualspace, ligand, test_node_hint):
+
+    with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
         patched_read_rosetta_node_config.return_value = test_node_hint
         patch_bus.get_value.return_value = test_node_hint
-
+    
         save_dir = 'rosetta_tests/outputs/fastrelax'
         relax_script = 'MonomerRelax2019'
 
@@ -143,18 +145,19 @@ class TestRosettaTasks:
         analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'all'))
         assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
 
-    @patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus')
-    @patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config')
-    # a variant test from RosettaPy's short app tests
-    @pytest.mark.parametrize(
-        "job_id,pdb,ligand",
-        [
-            ['mono', '../tests/data/3fap_hf3_A_short.pdb', ''],
-            # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', ''],
-            ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', '../tests/data/lig/lig.fa.params'],
-        ],
-    )
-    def test_shortcut_relax_w_ca_constraints(self, job_id, pdb, ligand,patched_read_rosetta_node_config,patch_bus, test_node_hint):
+
+# a variant test from RosettaPy's short app tests
+@pytest.mark.parametrize(
+    "job_id,pdb,ligand",
+    [
+        ['mono', '../tests/data/3fap_hf3_A_short.pdb', ''],
+        # ['mono_dualspace', '../tests/data/3fap_hf3_A_short.pdb', ''],
+        ['w_ligand', '../tests/data/pdb/3fap_hf3_A_short_lig.pdb', '../tests/data/lig/lig.fa.params'],
+    ],
+)
+def test_shortcut_relax_w_ca_constraints(job_id, pdb, ligand, test_node_hint):
+
+    with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
         patched_read_rosetta_node_config.return_value = test_node_hint
         patch_bus.get_value.return_value = test_node_hint
