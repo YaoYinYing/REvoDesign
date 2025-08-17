@@ -19,7 +19,7 @@ from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
 from REvoDesign.bootstrap.set_config import (is_package_installed,
                                              reload_config_file)
-from REvoDesign.tools.dl_weights import FileDownloadRegistry
+from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.package_manager import run_command
 from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
 from REvoDesign.tools.utils import (device_picker, get_cited,

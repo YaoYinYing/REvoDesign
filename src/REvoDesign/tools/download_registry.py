@@ -1,5 +1,5 @@
 '''
-Utils for fetching pretrained model weights
+Utils for fetching files from the internet
 
 '''
 

@@ -1,7 +1,7 @@
 import pytest
 import os
 from unittest.mock import patch, MagicMock
-from REvoDesign.tools.dl_weights import FileDownloadRegistry, DownloadedFile
+from REvoDesign.tools.download_registry import FileDownloadRegistry, DownloadedFile
 
 class TestFileDownloadRegistry:
     """Test cases for FileDownloadRegistry class"""

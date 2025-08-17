@@ -17,7 +17,7 @@ from tqdm import tqdm
 from REvoDesign import issues
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.tools.dl_weights import FileDownloadRegistry
+from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.utils import get_cited, require_installed
 
 from ...logger import ROOT_LOGGER
