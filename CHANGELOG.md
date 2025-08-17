@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 ### Added
+- tests:
+  - cases
+    - `esm1v`
+    - `rfdiffusion`
+  - conftest:
+    - fixed imports like `from tests.conftest import ...`
+    - `MEMORY_AVAILABLE_GB` for retienving memory size
 
 ### Changed
 - tools:
@@ -30,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `plot_custom_indices_segments`: added dpi settings for clearer image plot.
 - shortcuts:
   - fixed frozen window when running `rfdiffusion`
+- tests:
+  - reduce rosetta related tests to minimum nstruct and iterations
 
 
 ### Removed
