@@ -186,7 +186,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         """
         # Load model from local checkpoint directory
         if self.checkpoint_dir:
-            expected_model_path=os.path.join(self.checkpoint_dir,model_name)
+            expected_model_path = os.path.join(self.checkpoint_dir, model_name)
             # Verify that the checkpoint directory exists and contains the specified model file
             if not (os.path.isdir(self.checkpoint_dir) and os.path.isfile(expected_model_path)):
                 raise issues.ConfigureError(
