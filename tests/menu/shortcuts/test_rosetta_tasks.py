@@ -1,16 +1,15 @@
 import os
+import warnings
 from unittest.mock import patch
 
-import warnings
 import pytest
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 from RosettaPy.node import node_picker
 
-from REvoDesign.bootstrap.set_config import reload_config_file,ConfigConverter
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.shortcuts.tools.rosetta_tasks import (
     shortcut_fast_relax, shortcut_relax_w_ca_constraints,
     shortcut_rosettaligand)
-
 
 
 class TestRosettaTasks:
@@ -29,7 +28,8 @@ class TestRosettaTasks:
 
             patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_node_picker.return_value = node_picker(test_node_hint, **patched_read_rosetta_node_config.return_value)
+            patch_node_picker.return_value = node_picker(
+                test_node_hint, **patched_read_rosetta_node_config.return_value)
 
             warnings.warn(RuntimeWarning(
                 f"Using rosetta-node/{test_node_hint} as node config: {patched_read_rosetta_node_config.return_value}"
@@ -121,7 +121,8 @@ class TestRosettaTasks:
 
             patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_node_picker.return_value = node_picker(test_node_hint, **patched_read_rosetta_node_config.return_value)
+            patch_node_picker.return_value = node_picker(
+                test_node_hint, **patched_read_rosetta_node_config.return_value)
 
             save_dir = 'rosetta_tests/outputs/fastrelax'
             relax_script = 'MonomerRelax2019'
@@ -168,7 +169,8 @@ class TestRosettaTasks:
 
             patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_node_picker.return_value = node_picker(test_node_hint, **patched_read_rosetta_node_config.return_value)
+            patch_node_picker.return_value = node_picker(
+                test_node_hint, **patched_read_rosetta_node_config.return_value)
             save_dir = 'rosetta_tests/outputs/relax_w_ca_constraints'
 
             relax_opts = []
