@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- `phylogenetics`: 
+  - `REvoDesigner`: 
+    - `plot_custom_indices_segments`: added dpi settings for clearer image plot.
 
 ### Removed
 - parser: `biolib`-wrapped `pythia-ddg`
