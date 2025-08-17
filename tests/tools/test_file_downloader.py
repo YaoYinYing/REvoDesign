@@ -194,49 +194,50 @@ class TestFileDownloadRegistry:
 class TestDownloadedFile:
     """Test cases for DownloadedFile dataclass"""
     
-    def test_downloaded_file_creation(self):
+    def test_downloaded_file_creation(self,test_tmp_dir):
         """Test DownloadedFile object creation"""
         downloaded_file = DownloadedFile(
             name="test.txt",
             version="1.0",
             url="http://example.com/test.txt",
-            downloaded="/path/to/test.txt",
+            downloaded=f"{test_tmp_dir}/test.txt",
             registry="md5:abc123"
         )
         
         assert downloaded_file.name == "test.txt"
         assert downloaded_file.version == "1.0"
         assert downloaded_file.url == "http://example.com/test.txt"
-        assert downloaded_file.downloaded == "/path/to/test.txt"
+        assert downloaded_file.downloaded == f"{test_tmp_dir}/test.txt"
         assert downloaded_file.registry == "md5:abc123"
     
     @patch('REvoDesign.tools.dl_weights.os.makedirs')
     @patch('REvoDesign.tools.dl_weights.os.listdir')
-    def test_flatten_dir(self, mock_listdir, mock_makedirs):
+    def test_flatten_dir(self, mock_listdir, mock_makedirs, test_tmp_dir):
+        
         """Test flatten_dir property"""
         downloaded_file = DownloadedFile(
             name="test.txt",
             version="1.0",
             url="http://example.com/test.txt",
-            downloaded="/path/to/test.txt"
+            downloaded=f"{test_tmp_dir}/test.txt"
         )
         
         mock_listdir.return_value = []
         flatten_dir = downloaded_file.flatten_dir
         
-        expected_dir = "/path/to/test.txt_flatten/"
+        expected_dir = f"{test_tmp_dir}/test.txt_flatten/"
         assert flatten_dir == expected_dir
         mock_makedirs.assert_called_once_with(expected_dir, exist_ok=True)
     
     @patch('REvoDesign.tools.dl_weights.extract_archive')
     @patch('REvoDesign.tools.dl_weights.os.listdir')
-    def test_flatten_archieve_with_empty_dir(self, mock_listdir, mock_extract_archive):
+    def test_flatten_archieve_with_empty_dir(self, mock_listdir, mock_extract_archive,test_tmp_dir):
         """Test flatten_archieve property when directory is empty"""
         downloaded_file = DownloadedFile(
             name="test.zip",
             version="1.0",
             url="http://example.com/test.zip",
-            downloaded="/path/to/test.zip"
+            downloaded=f"{test_tmp_dir}/test.zip"
         )
         
         # First call returns empty list (directory is empty)
@@ -249,17 +250,17 @@ class TestDownloadedFile:
         extracted_files = downloaded_file.flatten_archieve
         
         assert extracted_files == ["file1.txt", "file2.txt"]
-        mock_extract_archive.assert_called_once_with("/path/to/test.zip", "/path/to/test.zip_flatten/")
+        mock_extract_archive.assert_called_once_with(f"{test_tmp_dir}/test.zip", f"{test_tmp_dir}/test.zip_flatten/")
     
     @patch('REvoDesign.tools.dl_weights.extract_archive')
     @patch('REvoDesign.tools.dl_weights.os.listdir')
-    def test_flatten_archieve_with_non_empty_dir(self, mock_listdir, mock_extract_archive):
+    def test_flatten_archieve_with_non_empty_dir(self, mock_listdir, mock_extract_archive,test_tmp_dir):
         """Test flatten_archieve property when directory is not empty"""
         downloaded_file = DownloadedFile(
             name="test.zip",
             version="1.0",
             url="http://example.com/test.zip",
-            downloaded="/path/to/test.zip"
+            downloaded=f"{test_tmp_dir}/test.zip"
         )
         
         # Directory already has files
