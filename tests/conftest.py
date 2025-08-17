@@ -900,7 +900,7 @@ WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not
             ),
         ),
         pytest.param(
-            None,
+            "native",
             marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed."),
         ),
     ]

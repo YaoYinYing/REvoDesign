@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Downloading handled by `FileDownloadRegistry` and `DownloadedFile`
 - dialog registry yaml:
   - esm1v: `model_alias` -> `model_names`
+- depts: `wandb` for py312 
 
 ### Fixed
 - `phylogenetics`: 

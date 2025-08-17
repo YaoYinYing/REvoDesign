@@ -49,9 +49,9 @@ class DownloadedFile:
         Returns:
             str: Path to the flatten directory
         """
-        dir = f'{self.downloaded}_flatten/'
-        os.makedirs(dir, exist_ok=True)
-        return dir
+        flatten_dir = f'{self.downloaded}_flatten/'
+        os.makedirs(flatten_dir, exist_ok=True)
+        return flatten_dir
 
     @property
     def flatten_archieve(self):

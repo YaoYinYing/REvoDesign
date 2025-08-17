@@ -133,7 +133,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.info(f"Using ckpt_override_path from model name ({model_name}): {ckpt_path}")
             return
 
-    def pick_model(self, model_name: Optional[str] = None):
+    def pick_model(self, model_name: Optional[str] = None) -> None:
         '''
         Pick a model.
         Override Priority:
@@ -152,7 +152,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         # have one model on local
         if self.config.inference.ckpt_override_path and os.path.isfile(self.config.inference.ckpt_override_path):
             logging.info(f"Using ckpt_override_path from config: {self.config.inference.ckpt_override_path}")
-            return
+            return None
 
         model_name = model_name or self.config.inference.model_name
 
@@ -248,7 +248,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             make_deterministic()
 
         devices = device_picker()
-        gpu_devices = [d for d in devices if d.startswith("cuda") or d.startswith("mps")]
+        gpu_devices = [d for d in devices if d.startswith(("cuda", "mps"))]
 
         # Check for available GPU and print result of check
         if any(d for d in gpu_devices):

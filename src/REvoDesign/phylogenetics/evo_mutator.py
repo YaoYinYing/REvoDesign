@@ -206,7 +206,7 @@ class MutateWorker:
                     mutation_png_fp,
                 ) = self.design.setup_profile_design(
                     custom_indices_fp=custom_indices_fp,
-                    cutoff=cutoff,
+                    cutoff=tuple(cutoff),
                 )
 
                 run_worker_thread_with_progress(

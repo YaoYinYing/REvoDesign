@@ -115,6 +115,8 @@ jobs:
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           make install
+          make install-dgl-linux
+          
 
 
       - name: Full Unit Test on Ubuntu

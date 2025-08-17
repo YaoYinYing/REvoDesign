@@ -26,7 +26,7 @@ class TestRosettaTasks:
         save_dir = 'rosetta_tests/outputs'
         with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
-            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint or "native"}')['rosetta-node']['node_config']
+            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
             patch_bus.get_value.return_value = test_node_hint
 
             shortcut_rosettaligand(
@@ -114,7 +114,7 @@ class TestRosettaTasks:
 
         with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
-            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint or "native"}')['rosetta-node']['node_config']
+            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
             patch_bus.get_value.return_value = test_node_hint
         
             save_dir = 'rosetta_tests/outputs/fastrelax'
@@ -160,7 +160,7 @@ class TestRosettaTasks:
 
         with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
-            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint or "native"}')['rosetta-node']['node_config']
+            patched_read_rosetta_node_config.return_value = reload_config_file(f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config']
             patch_bus.get_value.return_value = test_node_hint
 
             save_dir = 'rosetta_tests/outputs/relax_w_ca_constraints'

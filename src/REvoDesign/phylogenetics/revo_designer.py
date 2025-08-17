@@ -86,7 +86,7 @@ class REvoDesigner:
         self,
         df_ori: pd.DataFrame,
         custom_indices_str="",
-        cutoff=[-100, 100],
+        cutoff=(-100, 100,),
         preferred_substitutions=None,
         dpi=600,
     ):
@@ -128,9 +128,7 @@ class REvoDesigner:
         logging.info(custom_indices)
 
         if custom_indices == []:
-            custom_indices = [
-                resi for resi in range(1, len(self.sequence) + 1)
-            ]
+            custom_indices = list(range(1, len(self.sequence) + 1))
 
         # pick out the columns selected by custom indices input
         # one-indexed
@@ -154,7 +152,7 @@ class REvoDesigner:
 
         alphabet_row: List[str] = df_trunc.index.to_list()
 
-        x_ax = [i for i in map(str, custom_indices)]
+        x_ax = list(map(str, custom_indices))
         plt.xticks(range(len(x_ax)), x_ax, rotation=45)
         plt.yticks(range(20), alphabet_row)
         plt.grid(False)
@@ -251,10 +249,7 @@ class REvoDesigner:
         preffered_mutation_string = preffered_mutation_string.replace(
             "[", ""
         ).replace("]", "")
-        if re.match(pattern, preffered_mutation_string):
-            return True
-        else:
-            return False
+        return bool(re.match(pattern, preffered_mutation_string))
 
     def parse_preffered_mutation_string(self, preffered_str):
         """
@@ -267,7 +262,7 @@ class REvoDesigner:
         - dict: Dictionary representation of preferred mutations.
         """
         preffered_dict = {
-            _preffered_sub[0]: [res for res in _preffered_sub[2:]]
+            _preffered_sub[0]: _preffered_sub[2:]
             for _preffered_sub in preffered_str.split(" ")
             if self.validate_preffered_mutation_string(_preffered_sub)
         }
@@ -499,14 +494,14 @@ class REvoDesigner:
     def setup_profile_design(
         self,
         custom_indices_fp="",
-        cutoff=[-100, 100],
+        cutoff=(-100, 100,),
     ):
         """
         Set up profile design based on specified parameters.
 
         Args:
         - custom_indices_fp: File path to custom indices.
-        - cutoff: List representing cutoff values.
+        - cutoff: Tuple representing cutoff values.
 
         Returns:
         - Tuple: File paths for JSON and PNG representations of mutations.

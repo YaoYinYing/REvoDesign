@@ -62,6 +62,7 @@ colabdesign = [
 ]
 
 pippack = [
+    "torch<=2.3.0",
     "PIPPack @ git+https://github.com/YaoYinYing/PIPPack.git@pip-installable-cpu#egg=PIPPack",
 ]
 
@@ -120,7 +121,8 @@ rfdiffusion_mps=[
     "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git@rfdiffusion-mps-test",
     "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
     "pydantic",
-    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git@mps-test"
+    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git@mps-test",
+    "wandb==0.16.0"
 
 ]
 
@@ -137,7 +139,7 @@ rfdiffusion_cpu=[
     "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git",
     "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
     "pydantic",
-    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git"
+    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git",
 
 ]
 

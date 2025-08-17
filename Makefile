@@ -4,6 +4,7 @@ PROJECT=REvoDesign
 PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,test
 PIP_EXTRAS_2=rfdiffusion_cpu,esm2
 
+
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
 PYTEST_CASES_PATH=../tests
@@ -86,6 +87,9 @@ upload-gists:
 install:
 	python -m pip install ".[$(PIP_EXTRAS)]" -U --no-cache-dir
 	python -m pip install ".[$(PIP_EXTRAS_2)]" -U --no-cache-dir
+
+install-dgl-linux:
+	python -m pip install dgl -f https://data.dgl.ai/wheels/torch-2.3/repo.html
 
 # only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:

@@ -89,7 +89,7 @@
                 {
                     "name": "RFdiffusion (CUDA)",
                     "extras_id":"rfdiffusion_cuda",
-                    "depts": ["rfdiffusion","nvtx","se3-transformer"],
+                    "depts": ["rfdiffusion","nvtx","se3-transformer","wandb"],
                     "description": "RFdiffusion on CUDA",
                     "platform": ["CUDA"]
                 },
@@ -97,7 +97,7 @@
                     "name": "RFdiffusion (MPS)",
                     "extras_id":"rfdiffusion_mps",
                     "description": "RFdiffusion on MacOS, Apple Silicon",
-                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock"],
+                    "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock","wandb"],
                     "platform": ["MPS"]
                 },
                 {
@@ -108,7 +108,8 @@
                         "rfdiffusion",
                         "nvtx",
                         "se3-transformer",
-                        "nvtx-mock"
+                        "nvtx-mock",
+                        "wandb"
                     ]
                 }
             ]
