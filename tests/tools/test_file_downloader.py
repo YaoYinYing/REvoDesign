@@ -63,8 +63,8 @@ class TestFileDownloadRegistry:
         result = FileDownloadRegistry.prepare_registry_from_md5(md5_contents)
         assert result == expected
 
-    @patch('REvoDesign.tools.dl_weights.user_data_dir')
-    @patch('REvoDesign.tools.dl_weights.pooch.create')
+    @patch('REvoDesign.tools.download_registry.user_data_dir')
+    @patch('REvoDesign.tools.download_registry.pooch.create')
     def test_init_with_custom_directory(self, mock_pooch_create, mock_user_data_dir):
         """Test FileDownloadRegistry initialization with custom directory"""
         mock_user_data_dir.return_value = "/default/path"
@@ -89,8 +89,8 @@ class TestFileDownloadRegistry:
             retry_if_failed=99,
         )
 
-    @patch('REvoDesign.tools.dl_weights.user_data_dir')
-    @patch('REvoDesign.tools.dl_weights.pooch.create')
+    @patch('REvoDesign.tools.download_registry.user_data_dir')
+    @patch('REvoDesign.tools.download_registry.pooch.create')
     def test_init_without_custom_directory(self, mock_pooch_create, mock_user_data_dir):
         """Test FileDownloadRegistry initialization without custom directory"""
         mock_user_data_dir.return_value = "/default/path"
@@ -115,8 +115,8 @@ class TestFileDownloadRegistry:
         ("file1.txt", ["file1.txt", "file2.txt"], True),
         ("file3.txt", ["file1.txt", "file2.txt"], False),
     ])
-    @patch('REvoDesign.tools.dl_weights.user_data_dir')
-    @patch('REvoDesign.tools.dl_weights.pooch.create')
+    @patch('REvoDesign.tools.download_registry.user_data_dir')
+    @patch('REvoDesign.tools.download_registry.pooch.create')
     def test_has_method(self, mock_pooch_create, mock_user_data_dir, item, registry_files, expected):
         """Test has method to check if file exists in registry"""
         mock_user_data_dir.return_value = "/default/path"
@@ -132,8 +132,8 @@ class TestFileDownloadRegistry:
 
         assert registry.has(item) == expected
 
-    @patch('REvoDesign.tools.dl_weights.user_data_dir')
-    @patch('REvoDesign.tools.dl_weights.pooch.create')
+    @patch('REvoDesign.tools.download_registry.user_data_dir')
+    @patch('REvoDesign.tools.download_registry.pooch.create')
     def test_list_all_files(self, mock_pooch_create, mock_user_data_dir):
         """Test list_all_files property"""
         mock_user_data_dir.return_value = "/default/path"
@@ -149,8 +149,8 @@ class TestFileDownloadRegistry:
 
         assert registry.list_all_files == ["file1.txt", "file2.txt"]
 
-    @patch('REvoDesign.tools.dl_weights.user_data_dir')
-    @patch('REvoDesign.tools.dl_weights.pooch.create')
+    @patch('REvoDesign.tools.download_registry.user_data_dir')
+    @patch('REvoDesign.tools.download_registry.pooch.create')
     def test_setup_success(self, mock_pooch_create, mock_user_data_dir):
         """Test setup method for successful file download"""
         mock_user_data_dir.return_value = "/default/path"
@@ -175,8 +175,8 @@ class TestFileDownloadRegistry:
         assert result.registry == "md5:abc123"
         mock_pooch.fetch.assert_called_once_with("file.txt", progressbar=True)
 
-    @patch('REvoDesign.tools.dl_weights.user_data_dir')
-    @patch('REvoDesign.tools.dl_weights.pooch.create')
+    @patch('REvoDesign.tools.download_registry.user_data_dir')
+    @patch('REvoDesign.tools.download_registry.pooch.create')
     def test_setup_failure(self, mock_pooch_create, mock_user_data_dir):
         """Test setup method when file download fails"""
         mock_user_data_dir.return_value = "/default/path"
@@ -213,8 +213,8 @@ class TestDownloadedFile:
         assert downloaded_file.downloaded == f"{test_tmp_dir}/test.txt"
         assert downloaded_file.registry == "md5:abc123"
 
-    @patch('REvoDesign.tools.dl_weights.os.makedirs')
-    @patch('REvoDesign.tools.dl_weights.os.listdir')
+    @patch('REvoDesign.tools.download_registry.os.makedirs')
+    @patch('REvoDesign.tools.download_registry.os.listdir')
     def test_flatten_dir(self, mock_listdir, mock_makedirs, test_tmp_dir):
         """Test flatten_dir property"""
         downloaded_file = DownloadedFile(
@@ -231,8 +231,8 @@ class TestDownloadedFile:
         assert flatten_dir == expected_dir
         mock_makedirs.assert_called_once_with(expected_dir, exist_ok=True)
 
-    @patch('REvoDesign.tools.dl_weights.extract_archive')
-    @patch('REvoDesign.tools.dl_weights.os.listdir')
+    @patch('REvoDesign.tools.download_registry.extract_archive')
+    @patch('REvoDesign.tools.download_registry.os.listdir')
     def test_flatten_archieve_with_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
         """Test flatten_archieve property when directory is empty"""
         downloaded_file = DownloadedFile(
@@ -254,8 +254,8 @@ class TestDownloadedFile:
         assert extracted_files == ["file1.txt", "file2.txt"]
         mock_extract_archive.assert_called_once_with(f"{test_tmp_dir}/test.zip", f"{test_tmp_dir}/test.zip_flatten/")
 
-    @patch('REvoDesign.tools.dl_weights.extract_archive')
-    @patch('REvoDesign.tools.dl_weights.os.listdir')
+    @patch('REvoDesign.tools.download_registry.extract_archive')
+    @patch('REvoDesign.tools.download_registry.os.listdir')
     def test_flatten_archieve_with_non_empty_dir(self, mock_listdir, mock_extract_archive, test_tmp_dir):
         """Test flatten_archieve property when directory is not empty"""
         downloaded_file = DownloadedFile(
