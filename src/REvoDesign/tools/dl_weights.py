@@ -108,6 +108,7 @@ class ModelFetchSetting:
         print(f'Extracted {extracted_files}')
         return self.weight_path
 
+    # TODO: pooch.create
     def setup(self):
         """
         Method to set up the model by downloading and extracting it if necessary.
