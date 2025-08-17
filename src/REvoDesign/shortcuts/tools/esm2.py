@@ -1,3 +1,6 @@
+'''
+ESM-1v variant predict
+'''
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
@@ -183,22 +186,18 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         """
         # Load model from local checkpoint directory
         if self.checkpoint_dir:
+            expected_model_path=os.path.join(self.checkpoint_dir,model_name)
             # Verify that the checkpoint directory exists and contains the specified model file
-            if not (os.path.isdir(
-                self.checkpoint_dir) and os.path.isfile(
-                model_path := (
-                    os.path.join(
-                    self.checkpoint_dir,
-                    model_name)))):
+            if not (os.path.isdir(self.checkpoint_dir) and os.path.isfile(expected_model_path)):
                 raise issues.ConfigureError(
                     'Checkpoint directory is expected to be existing and containing model checkpoint file.'
                     'If you dont have model checkpoint file, please keep it as blank.')
 
-            logging.info(f"Loading model from {model_path}")
-            return model_path
+            logging.info(f"Loading model from {expected_model_path=}")
+            return expected_model_path
 
         # Download model from remote server
-        logging.info(f'Fetching model {model_name} from {ESM1V_WEIGHTS.base_url}')
+        logging.info(f'Fetching model {model_name=} from {ESM1V_WEIGHTS.base_url}')
         return ESM1V_WEIGHTS.setup(model_name).downloaded
 
     @get_cited

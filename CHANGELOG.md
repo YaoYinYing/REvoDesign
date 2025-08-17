@@ -19,15 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- tools:
+  - Downloading handled by `FileDownloadRegistry` and `DownloadedFile`
+- dialog registry yaml:
+  - esm1v: `model_alias` -> `model_names`
 
 ### Fixed
 - `phylogenetics`: 
   - `REvoDesigner`: 
     - `plot_custom_indices_segments`: added dpi settings for clearer image plot.
+- shortcuts:
+  - fixed frozen window when running `rfdiffusion`
+
 
 ### Removed
 - parser: `biolib`-wrapped `pythia-ddg`
 - depts: `pybiolib`
+- tools: `ModelFetchSetting`
+- shortcuts: 
+  - fussy code of `ModelFetchSetting` instances from `rfdiffusion` and `esm1v`
 
 ## [1.8.2] - 2025-08-13
 ### Added
