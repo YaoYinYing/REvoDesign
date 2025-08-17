@@ -33,8 +33,8 @@ def esm1v(**kwargs):
     logging.info(kwargs)
 
     # Extract the model alias from kwargs and map it to actual model names using EMD dictionary
-    model_alias = kwargs.pop("model_alias")
-    kwargs['model_names'] = [EMD[x] for x in model_alias if x in EMD]
+    # model_alias = kwargs.pop("model_alias")
+    # kwargs['model_names'] = [EMD[x] for x in model_alias if x in EMD]
 
     # Initialize the ConfigBus to retrieve configuration values
     bus = ConfigBus()

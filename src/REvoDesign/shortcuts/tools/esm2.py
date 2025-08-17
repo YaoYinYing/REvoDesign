@@ -16,8 +16,14 @@ from tqdm import tqdm
 
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
-from REvoDesign.tools.dl_weights import ModelFetchSetting
+from REvoDesign.tools.dl_weights import FileDownloadRegistry
 from REvoDesign.tools.utils import get_cited, require_installed
+from REvoDesign import issues
+
+from ...logger import ROOT_LOGGER
+
+logging = ROOT_LOGGER.getChild(__name__)
+
 
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
 
@@ -35,14 +41,10 @@ ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     }
 )
 
-ESM1V_MODEL_DICT_MODEL_FETCH: immutabledict[str, ModelFetchSetting] = immutabledict(
-    {
-        v: ModelFetchSetting(
-            name="ESM2",
-            url=f"{ESM_MODEL_BASE_URL}/{v}.pt",
-
-        ) for k, v in ESM1V_MODEL_DICT.items()
-    }
+ESM1V_WEIGHTS=FileDownloadRegistry(
+    name="ESM2",
+    base_url=ESM_MODEL_BASE_URL,
+    registry={f'{v}.pt': None for v in ESM1V_MODEL_DICT.values()}
 )
 
 
@@ -53,7 +55,7 @@ def list_all_esm_variant_predict_model_names() -> list[str]:
     Returns:
         list[str]: List of ESM-1v variant predict model names
     '''
-    return list(ESM1V_MODEL_DICT.keys())
+    return ESM1V_WEIGHTS.list_all_files
 
 
 def remove_insertions(sequence: str) -> str:
@@ -162,6 +164,26 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 ], columns=[self.mutation_col])
         return df_dms
 
+    def _resolve_model_weight(self, model_name: str):
+        # load the model from the checkpoint directory
+        if self.checkpoint_dir:
+            if not (os.path.isdir(
+            self.checkpoint_dir) and os.path.isfile(
+            model_path := (
+                os.path.join(
+                self.checkpoint_dir,
+                model_name)))):
+                raise issues.ConfigureError(
+                    'Checkpoint directory is expected to be existing and containing model checkpoint file.'
+                    'If you dont have model checkpoint file, please keep it as blank.')
+            
+            logging.info(f"Loading model from {model_path}")
+            return model_path
+
+        logging.info(f'Fetching model {model_name} from {ESM1V_WEIGHTS.base_url}')
+        return ESM1V_WEIGHTS.setup(model_name).downloaded
+
+
     @get_cited
     def predict(self):
         import torch
@@ -172,30 +194,12 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
         # inference for each model
         for model_name in self.model_names:
-            # load the model from the checkpoint directory
-            if self.checkpoint_dir is not None and os.path.isdir(
-                self.checkpoint_dir) and os.path.isfile(
-                model_path := (
-                    os.path.join(
-                    self.checkpoint_dir,
-                    f'{model_name}.pt'))):
-                print(f"Loading model from {model_path}")
-            else:
-
-                print(f'Fetching model {model_name}')
-                if self.checkpoint_dir:
-                    model_path = ModelFetchSetting(
-                        name="ESM2",
-                        url=f"{ESM_MODEL_BASE_URL}/{model_name}.pt",
-                        customized_directory=self.checkpoint_dir
-                    ).setup()
-                else:
-                    model_path = model_name
+            model_path = self._resolve_model_weight(model_name)
             model, alphabet = pretrained.load_model_and_alphabet(model_path)
             model.eval()
             if self.device != "cpu":
                 model = model.to(self.device)
-                print(f"Transferred model to {self.device}")
+                logging.info(f"Transferred model to {self.device}")
 
             batch_converter = alphabet.get_batch_converter()
 

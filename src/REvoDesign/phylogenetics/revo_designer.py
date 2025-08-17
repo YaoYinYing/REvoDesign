@@ -1,5 +1,7 @@
 '''
 Work horse of generating mutant from profile or designer
+
+TODO: need refactor
 '''
 
 import collections

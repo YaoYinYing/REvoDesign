@@ -19,7 +19,7 @@ from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
 from REvoDesign.bootstrap.set_config import (is_package_installed,
                                              reload_config_file)
-from REvoDesign.tools.dl_weights import ModelFetchSetting
+from REvoDesign.tools.dl_weights import FileDownloadRegistry
 from REvoDesign.tools.package_manager import run_command
 from REvoDesign.tools.rfdiffusion_tools import SubstratePotentialVisualizer
 from REvoDesign.tools.utils import (device_picker, get_cited,
@@ -37,6 +37,17 @@ RFDIFFUSION_WEIGHTS_BASE_URL = 'https://github.com/YaoYinYing/RFdiffusion/releas
 # ge cuda-121: `pip install  dgl==2.2.1 -f https://data.dgl.ai/wheels/cu121/repo.html`
 # ge cuda-118: `pip install  dgl -f https://data.dgl.ai/wheels/cu118/repo.html`
 
+RFD_WEIGHTS_STR='''
+0d9f82af03c73011c6fec060bac5b731 ActiveSite_ckpt.pt
+4aa4a27ba280d23541e01860c106c7cc Base_ckpt.pt
+5c58d7d5c329c1297fab0aa6cebad81b Base_epoch8_ckpt.pt
+9c000b475b293b54bcf5fbd8109f5794 Complex_Fold_base_ckpt.pt
+7a5d99f3c8bede52d9240f79a99bc30b Complex_base_ckpt.pt
+5bb77fc129777d742045a444f43bf587 Complex_beta_ckpt.pt
+1e9245a486262dff3cb3286f22a3014d InpaintSeq_Fold_ckpt.pt
+a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
+6f4d00394d34f6a9072d70976f6c8777 RF_structure_prediction_weights.pt
+'''
 
 @dataclass
 class DglSolver:
@@ -77,93 +88,19 @@ class DglSolver:
             raise RuntimeError(f"Failed to install DGL: {c.stderr}")
         self.installed = True
 
-
-# Pretrained weights for RFDiffusion
-'''
-0d9f82af03c73011c6fec060bac5b731 ActiveSite_ckpt.pt
-4aa4a27ba280d23541e01860c106c7cc Base_ckpt.pt
-5c58d7d5c329c1297fab0aa6cebad81b Base_epoch8_ckpt.pt
-9c000b475b293b54bcf5fbd8109f5794 Complex_Fold_base_ckpt.pt
-7a5d99f3c8bede52d9240f79a99bc30b Complex_base_ckpt.pt
-5bb77fc129777d742045a444f43bf587 Complex_beta_ckpt.pt
-1e9245a486262dff3cb3286f22a3014d InpaintSeq_Fold_ckpt.pt
-a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
-6f4d00394d34f6a9072d70976f6c8777 RF_structure_prediction_weights.pt
-'''
-
-RfDiffusionActiveSiteWeights = ModelFetchSetting(
+RFD_WEIGHTS=FileDownloadRegistry(
     name='RFdiffusion',
-    version='ActiveSite_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'ActiveSite_ckpt.pt',
-    md5sum='0d9f82af03c73011c6fec060bac5b731'
-)
-RfDiffusionBaseWeights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='Base_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Base_ckpt.pt',
-    md5sum='4aa4a27ba280d23541e01860c106c7cc'
-)
-RfDiffusionBaseEpoch8Weights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='Base_epoch8_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Base_epoch8_ckpt.pt',
-    md5sum='5c58d7d5c329c1297fab0aa6cebad81b'
-)
-RfDiffusionComplexFoldBaseWeights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='Complex_Fold_base_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Complex_Fold_base_ckpt.pt',
-    md5sum='9c000b475b293b54bcf5fbd8109f5794'
-)
-RfDiffusionComplexBaseWeights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='Complex_base_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Complex_base_ckpt.pt',
-    md5sum='7a5d99f3c8bede52d9240f79a99bc30b'
-)
-RfDiffusionComplexBetaWeights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='Complex_beta_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'Complex_beta_ckpt.pt',
-    md5sum='5bb77fc129777d742045a444f43bf587'
-)
-RfDiffusionInpaintSeqFoldWeights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='InpaintSeq_Fold_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'InpaintSeq_Fold_ckpt.pt',
-    md5sum='1e9245a486262dff3cb3286f22a3014d'
-)
-RfDiffusionInpaintSeqWeights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='InpaintSeq_ckpt',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'InpaintSeq_ckpt.pt',
-    md5sum='a6f8652938bb45c332ffa683d8ad3509'
-)
-RfDiffusionRFStructurePredictionWeights = ModelFetchSetting(
-    name='RFdiffusion',
-    version='RF_structure_prediction_weights',
-    url=RFDIFFUSION_WEIGHTS_BASE_URL + 'RF_structure_prediction_weights.pt',
-    md5sum='6f4d00394d34f6a9072d70976f6c8777'
+    base_url=RFDIFFUSION_WEIGHTS_BASE_URL,
+    # version='',
+    registry=FileDownloadRegistry.prepare_registry_from_md5(RFD_WEIGHTS_STR)
 )
 
-RfDiffusionModelCollection = (
-    RfDiffusionActiveSiteWeights,
-    RfDiffusionBaseWeights,
-    RfDiffusionBaseEpoch8Weights,
-    RfDiffusionComplexFoldBaseWeights,
-    RfDiffusionComplexBaseWeights,
-    RfDiffusionComplexBetaWeights,
-    RfDiffusionInpaintSeqFoldWeights,
-    RfDiffusionInpaintSeqWeights,
-    RfDiffusionRFStructurePredictionWeights,
-
-)
 
 RFDIFFUSION_CONFIG_DIR = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), 'rfdiffusion')
 
 
 def list_all_rfd_models() -> List[str]:
-    return [model.version for model in RfDiffusionModelCollection]
+    return RFD_WEIGHTS.list_all_files
 
 
 def list_all_config_preset() -> List[str]:
@@ -183,7 +120,16 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
     name: str = 'RFDiffusion'
     installed: bool = is_package_installed('rfdiffusion')
 
-    all_models = [model.name for model in RfDiffusionModelCollection]
+    all_models = RFD_WEIGHTS.list_all_files
+
+    def _download_and_set_model(self, model_name: str):
+        if not model_name.endswith('.pt'):
+            model_name += '.pt'
+        with timing(f"Downloading {model_name} weights"):
+            ckpt_path = RFD_WEIGHTS.setup(model_name).downloaded
+            self.config.inference.ckpt_override_path = ckpt_path
+            logging.info(f"Using ckpt_override_path from model name ({model_name}): {ckpt_path}")
+            return
 
     def pick_model(self, model_name: Optional[str] = None):
         '''
@@ -209,13 +155,9 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         model_name = model_name or self.config.inference.model_name
 
         if model_name:
-            model = [m for m in RfDiffusionModelCollection if m.version == model_name]
-            if model:
-                with timing(f"Downloading {model[0].name} weights"):
-                    ckpt_path = model[0].setup()
-                    self.config.inference.ckpt_override_path = ckpt_path
-                    logging.info(f"Using ckpt_override_path from model name ({model_name}): {ckpt_path}")
-                    return
+            if RFD_WEIGHTS.has(model_name):
+                return self._download_and_set_model(model_name)
+                
             warnings.warn(issues.FallingBackWarning(
                 f"Model {model_name} not found. Falling back to pick one according to the input."))
 
@@ -227,22 +169,21 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 # this is only used for partial diffusion
                 assert self.config.diffuser.partial_T is not None, "The provide_seq input is specifically for partial diffusion"
             if self.config.scaffoldguided.scaffoldguided:
-                ckpt_path = RfDiffusionInpaintSeqFoldWeights.setup()
+                model_name= 'InpaintSeq_Fold_ckpt'
             else:
-                ckpt_path = RfDiffusionInpaintSeqWeights.setup()
+                model_name= 'InpaintSeq_ckpt'
         elif self.config.ppi.hotspot_res is not None and self.config.scaffoldguided.scaffoldguided is False:
             # use complex trained model
-            ckpt_path = RfDiffusionComplexBaseWeights.setup()
+            model_name= 'Complex_base_ckpt'
         elif self.config.scaffoldguided.scaffoldguided is True:
             # use complex and secondary structure-guided model
-            ckpt_path = RfDiffusionComplexFoldBaseWeights.setup()
+            model_name= 'Complex_Fold_base_ckpt'
         else:
             # use default model
-            ckpt_path = RfDiffusionBaseWeights.setup()
+            model_name= 'Base_ckpt'
 
-        logging.warning(f'Using Model from {ckpt_path}')
-        self.config.inference.ckpt_override_path = ckpt_path
-        return
+        logging.warning(f'Using Model {model_name}')
+        return self._download_and_set_model(model_name)
 
     @staticmethod
     def ensure_dgl():

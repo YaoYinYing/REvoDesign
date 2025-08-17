@@ -1,3 +1,11 @@
+'''
+Evolutionary involved mutation processings
+
+TODO: need refactor:
+1. GREMLIN analyser: use CGO to replace bonding
+2. Decision making workflow: refactor
+'''
+
 import asyncio
 import itertools
 import os

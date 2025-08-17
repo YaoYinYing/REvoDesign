@@ -2,7 +2,7 @@ esm1v:
   title: "ESM1v"
   banner: "Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)"
   options:
-    - name: "model_alias"
+    - name: "model_names"
       type: str
       reason: "Model(s) used to generate predictions."
       required: true
