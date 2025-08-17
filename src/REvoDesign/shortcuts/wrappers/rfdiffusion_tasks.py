@@ -78,5 +78,7 @@ wrapped_visualize_substrate_potentials = registry.register(
 # Register the General RFdiffusion Task
 wrapped_general_rfdiffusion_task = registry.register(
     "general_rfdiffusion_task",
-    _run_general_rfdiffusion_task
+    _run_general_rfdiffusion_task,
+    use_thread=True,
+    use_progressbar=True
 )

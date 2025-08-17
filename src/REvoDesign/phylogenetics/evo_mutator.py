@@ -1,3 +1,11 @@
+'''
+Evolutionary involved mutation processings
+
+TODO: need refactor:
+1. GREMLIN analyser: use CGO to replace bonding
+2. Decision making workflow: refactor
+'''
+
 import asyncio
 import itertools
 import os
@@ -198,7 +206,7 @@ class MutateWorker:
                     mutation_png_fp,
                 ) = self.design.setup_profile_design(
                     custom_indices_fp=custom_indices_fp,
-                    cutoff=cutoff,
+                    cutoff=tuple(cutoff),
                 )
 
                 run_worker_thread_with_progress(

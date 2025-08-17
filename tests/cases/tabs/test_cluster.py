@@ -3,9 +3,8 @@ import os
 import pytest
 
 from REvoDesign.tools.customized_widgets import set_widget_value
-
-from ...conftest import TestWorker
-from ...data.test_data import KeyData
+from tests.conftest import TestWorker
+from tests.data.test_data import KeyData
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 

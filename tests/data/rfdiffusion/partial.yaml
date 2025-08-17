@@ -1,0 +1,14 @@
+defaults:
+  - base
+
+
+inference:
+  output_prefix: rfdiffusion/partial_diffusion/3fap_hf3
+  num_designs: 1
+  input_pdb: ../tests/data/3fap_hf3_A_short.pdb
+contigmap:
+  contigs: 
+    - 6-6/A7-11
+
+diffuser:
+  partial_T: 2

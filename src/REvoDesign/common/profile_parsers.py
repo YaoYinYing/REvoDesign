@@ -301,7 +301,6 @@ class TSVProfileParser(ProfileParserAbstract):
         return self.df
 
 
-
 ALL_PARSER_CLASSES = (
     PSSM_Parser,
     CSVProfileParser,

@@ -5,8 +5,7 @@ import pytest
 from pymol import cmd
 
 from REvoDesign.tools.customized_widgets import set_widget_value
-
-from ...conftest import TestWorker
+from tests.conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 
