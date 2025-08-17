@@ -1,6 +1,6 @@
 import os
 
-from ...conftest import TestWorker
+from tests.conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 

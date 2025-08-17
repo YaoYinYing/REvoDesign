@@ -6,7 +6,7 @@ from REvoDesign.Qt.qt_wrapper import QtCore
 from REvoDesign.tools.package_manager import (CheckableListView,
                                               LiveProcessResult)
 
-from ..conftest import PmTestWorker
+from tests.conftest import PmTestWorker
 
 
 def test_pm_dialog_visualize(pm_test_worker: PmTestWorker):

@@ -6,7 +6,7 @@ from REvoDesign.sidechain.mutate_runner.PIPPack import PIPPack_worker
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 
-from ...conftest import TestWorker
+from tests.conftest import TestWorker
 
 os.environ["PYTEST_QT_API"] = "pyqt5"
 

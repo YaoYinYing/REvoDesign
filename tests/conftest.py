@@ -907,3 +907,10 @@ WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not
 )
 def test_node_hint(request):
     return request.param
+
+
+def chech_memory_available():
+    return psutil.virtual_memory().available / (1024 ** 3)
+
+
+MEMORY_AVAILABLE_GB = chech_memory_available()
