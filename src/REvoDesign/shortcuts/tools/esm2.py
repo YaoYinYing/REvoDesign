@@ -165,8 +165,25 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         return df_dms
 
     def _resolve_model_weight(self, model_name: str):
-        # load the model from the checkpoint directory
+        """
+        Resolve and get the model weight file path
+        
+        This function decides whether to load the model from a local checkpoint directory or download 
+        it from a remote server based on the configuration. If a checkpoint directory is configured, 
+        it will load from local first; otherwise it downloads from the default ESM1V weight server.
+        
+        Args:
+            model_name (str): Model name used to construct the model file path
+            
+        Returns:
+            str: Full path to the model weight file
+            
+        Raises:
+            issues.ConfigureError: When the checkpoint directory is misconfigured or the model file does not exist
+        """
+        # Load model from local checkpoint directory
         if self.checkpoint_dir:
+            # Verify that the checkpoint directory exists and contains the specified model file
             if not (os.path.isdir(
             self.checkpoint_dir) and os.path.isfile(
             model_path := (
@@ -180,6 +197,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.info(f"Loading model from {model_path}")
             return model_path
 
+        # Download model from remote server
         logging.info(f'Fetching model {model_name} from {ESM1V_WEIGHTS.base_url}')
         return ESM1V_WEIGHTS.setup(model_name).downloaded
 
