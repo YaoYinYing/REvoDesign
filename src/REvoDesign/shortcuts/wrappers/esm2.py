@@ -5,7 +5,6 @@ Shortcut wrappers of esm2
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.shortcuts.tools.esm2 import ESM1V_MODEL_DICT as EMD
 from REvoDesign.shortcuts.tools.esm2 import shortcut_esm1v
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 
@@ -31,10 +30,6 @@ def esm1v(**kwargs):
 
     # Log the provided keyword arguments for debugging purposes
     logging.info(kwargs)
-
-    # Extract the model alias from kwargs and map it to actual model names using EMD dictionary
-    # model_alias = kwargs.pop("model_alias")
-    # kwargs['model_names'] = [EMD[x] for x in model_alias if x in EMD]
 
     # Initialize the ConfigBus to retrieve configuration values
     bus = ConfigBus()
