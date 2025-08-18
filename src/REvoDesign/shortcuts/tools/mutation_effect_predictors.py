@@ -147,8 +147,8 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
             # Add the mutant to the appropriate branch in the MutantTree
             mutant_tree.add_mutant_to_branch(
-                self.prefix 
-                if sorted_by == 'prefix' 
+                self.prefix
+                if sorted_by == 'prefix'
                 else 'TMPNN_' + '_vs_'.join(str(m.position) for m in mutant.mutations), mutant.full_mutant_id, mutant)
 
         return mutant_tree

@@ -4,8 +4,6 @@ import json
 import logging as python_logging
 import os
 from typing import Any, Dict
-from unittest.mock import patch
-import warnings
 
 import pytest
 from absl.testing import absltest
@@ -21,7 +19,9 @@ from REvoDesign.bootstrap.set_config import ConfigConverter
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
-from REvoDesign.sidechain.mutate_runner import DLPacker_worker, PIPPack_worker,MutateRelax_worker, PyMOL_mutate
+from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
+                                                MutateRelax_worker,
+                                                PIPPack_worker, PyMOL_mutate)
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,
@@ -968,4 +968,3 @@ class TestMutantTools(absltest.TestCase):
 
     def tearDown(self):
         cmd.reinitialize()
-

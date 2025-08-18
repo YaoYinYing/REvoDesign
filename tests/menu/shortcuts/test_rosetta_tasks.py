@@ -60,13 +60,15 @@ class TestRosettaTasks:
 
     # # a time expensive test
     # def test_pross(self, test_node_hint):
-    #     with patch('REvoDesign.shortcuts.tools.rosetta_tasks.node_picker') as patch_node_picker, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
+    # with patch('REvoDesign.shortcuts.tools.rosetta_tasks.node_picker') as
+    # patch_node_picker,
+    # patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config')
+    # as patched_read_rosetta_node_config:
 
     #         patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
     #             f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
     #         patch_node_picker.return_value = node_picker(
     #             test_node_hint, **patched_read_rosetta_node_config.return_value)
-
 
     #         save_dir = f'rosetta_tests/outputs/pross/{test_node_hint}'
     #         shortcut_pross(

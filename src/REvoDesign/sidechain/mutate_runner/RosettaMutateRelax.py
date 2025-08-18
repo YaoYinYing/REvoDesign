@@ -5,23 +5,24 @@ import gc
 import os
 from typing import List
 
-from REvoDesign import ConfigBus
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup
-
-from RosettaPy.app.mutate_relax import ScoreClusters,script_dir
+from RosettaPy.app.mutate_relax import ScoreClusters, script_dir
 from RosettaPy.node import NodeHintT, node_picker
 
+from REvoDesign import ConfigBus
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.tools.rosetta_utils import is_run_node_available, read_rosetta_node_config
+from REvoDesign.tools.rosetta_utils import (is_run_node_available,
+                                            read_rosetta_node_config)
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
+
 class MutateRelax(ScoreClusters):
 
-    def score(self, branch: str, variants: List[Mutant]) -> Rosetta: # type: ignore
+    def score(self, branch: str, variants: List[Mutant]) -> Rosetta:  # type: ignore
         """
         Scores the provided variants within a specific branch.
 
@@ -34,7 +35,7 @@ class MutateRelax(ScoreClusters):
         """
         # Set up the scoring result save directory
         score_dir = self.save_dir
-        pdb_bn=os.path.basename(self.pdb)
+        pdb_bn = os.path.basename(self.pdb)
         os.makedirs(score_dir, exist_ok=True)
 
         # Initialize Rosetta object with scoring configuration
@@ -52,9 +53,9 @@ class MutateRelax(ScoreClusters):
             job_id=branch,
             run_node=self.node,
         )
-    
+
         # Format variant names for task configuration
-        variant_names=[v.format_as("${wt_res}${position}${mut_res}") for v in variants]
+        variant_names = [v.format_as("${wt_res}${position}${mut_res}") for v in variants]
 
         # Build scoring task configuration for each variant
         branch_tasks = [
@@ -69,9 +70,9 @@ class MutateRelax(ScoreClusters):
                 "-out:file:scorefile": f"{variant_name}.sc",
                 "-out:prefix": f'{variant.full_mutant_id}.',
             }
-            for variant_name,variant in zip(variant_names,variants)
+            for variant_name, variant in zip(variant_names, variants)
         ]
-        
+
         # Execute scoring tasks and record execution time
         with timing("Mutate Relax"):
             rosetta.run(inputs=branch_tasks)
@@ -85,17 +86,16 @@ class MutateRelax(ScoreClusters):
             )
 
         return rosetta
-    
 
-    def run(self, mutants: List[Mutant]): # type: ignore
+    def run(self, mutants: List[Mutant]):  # type: ignore
         """
         Execute the mutant scoring process
-        
+
         This function calls the score method to evaluate the given list of mutants using the 'mutate_relax' branch strategy
-        
+
         Parameters:
             mutants (List[Mutant]): List of mutants to be scored
-            
+
         Returns:
             Scoring results, the specific type depends on the implementation of the score method
         """
@@ -104,7 +104,7 @@ class MutateRelax(ScoreClusters):
 
 class MutateRelax_worker(MutateRunnerAbstract):
     """
-    MutateRelax_worker class for executing Rosetta's MutateRelax operations, supporting single 
+    MutateRelax_worker class for executing Rosetta's MutateRelax operations, supporting single
     or parallel protein mutation and structure optimization.
 
     Attributes:
@@ -210,7 +210,7 @@ url = {https://www.sciencedirect.com/science/article/pii/B9780123812704000196},
 author = {Andrew Leaver-Fay and Michael Tyka and Steven M. Lewis and Oliver F. Lange and James Thompson and Ron Jacak and Kristian W. Kaufman and P. Douglas Renfrew and Colin A. Smith and Will Sheffler and Ian W. Davis and Seth Cooper and Adrien Treuille and Daniel J. Mandell and Florian Richter and Yih-En Andrew Ban and Sarel J. Fleishman and Jacob E. Corn and David E. Kim and Sergey Lyskov and Monica Berrondo and Stuart Mentzer and Zoran Popović and James J. Havranek and John Karanicolas and Rhiju Das and Jens Meiler and Tanja Kortemme and Jeffrey J. Gray and Brian Kuhlman and David Baker and Philip Bradley},
 abstract = {We have recently completed a full rearchitecturing of the Rosetta molecular modeling program, generalizing and expanding its existing functionality. The new architecture enables the rapid prototyping of novel protocols by providing easy-to-use interfaces to powerful tools for molecular modeling. The source code of this rearchitecturing has been released as Rosetta3 and is freely available for academic use. At the time of its release, it contained 470,000 lines of code. Counting currently unpublished protocols at the time of this writing, the source includes 1,285,000 lines. Its rapid growth is a testament to its ease of use. This chapter describes the requirements for our new architecture, justifies the design decisions, sketches out central classes, and highlights a few of the common tasks that the new software can perform.}
 }""",
-    'RosettaScripts': """
+        'RosettaScripts': """
 @article{10.1371/journal.pone.0020161,
     doi = {10.1371/journal.pone.0020161},
     author = {Fleishman, Sarel J. AND Leaver-Fay, Andrew AND Corn, Jacob E. AND Strauch, Eva-Maria AND Khare, Sagar D. AND Koga, Nobuyasu AND Ashworth, Justin AND Murphy, Paul AND Richter, Florian AND Lemmon, Gordon AND Meiler, Jens AND Baker, David},
@@ -226,6 +226,6 @@ abstract = {We have recently completed a full rearchitecturing of the Rosetta mo
     number = {6},
 
 }""",
-    'Rosetta All-Atom Energy Function': """
+        'Rosetta All-Atom Energy Function': """
 @article{10.1021/acs.jctc.7b00125, author = {Alford, R. F. and Leaver‐Fay, A. and Jeliazkov, J. R. and O’Meara, M. J. and DiMaio, F. and Park, H. and Shapovalov, M. V. and Renfrew, P. D. and Mulligan, V. K. and Kappel, K. and Labonte, J. W. and Pacella, M. S. and Bonneau, R. and Bradley, P. and Dunbrack, R. L. and Das, R. and Baker, D. and Kuhlman, B. and Kortemme, T. and Gray, J. J.}, title = {The rosetta all-atom energy function for macromolecular modeling and design}, journal = {Journal of Chemical Theory and Computation}, year = {2017}, volume = {13}, issue = {6}, pages = {3031-3048}, doi = {10.1021/acs.jctc.7b00125} }"""
     }

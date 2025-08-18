@@ -1,43 +1,40 @@
-
-
-
-from contextlib import contextmanager,ExitStack
-from unittest.mock import patch
 import warnings
+from unittest.mock import patch
 
 import pytest
 from pymol import cmd
-from REvoDesign.common.mutant import Mutant
+
 from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
-from REvoDesign.sidechain.mutate_runner import DLPacker_worker, PyMOL_mutate, PIPPack_worker, MutateRelax_worker
+from REvoDesign.common.mutant import Mutant
+from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
+                                                MutateRelax_worker,
+                                                PIPPack_worker, PyMOL_mutate)
 
+WT_PDB = '../tests/data/3fap_hf3_A_short.pdb'
+MUT_PDB = '../tests/data/3fap_hf3_A_RFD.pdb'
+MOLECULE = '3fap_hf3_A_short'
+MUTANTS: list[Mutant] = [Mutant(**m.__dict__) for m in Mutant.from_pdb(WT_PDB, [MUT_PDB])]
+mutant_string = MUTANTS[0].full_mutant_id
 
-WT_PDB='../tests/data/3fap_hf3_A_short.pdb'
-MUT_PDB='../tests/data/3fap_hf3_A_RFD.pdb'
-MOLECULE='3fap_hf3_A_short'
-MUTANTS:list[Mutant]=[Mutant(**m.__dict__) for m in Mutant.from_pdb(WT_PDB, [MUT_PDB])]
-mutant_string=MUTANTS[0].full_mutant_id
-
-        
 
 class TestSidechainSolver:
 
     @pytest.mark.parametrize(
-            'id, runner,init_kwargs', [
-                ['DLpacker',DLPacker_worker, {'pdb_file':WT_PDB}, ],
-                ['DLpacker-range',DLPacker_worker, {'pdb_file':WT_PDB, 'radius':3.5}, ],
-                ['PIPPack-model_1',PIPPack_worker, {'pdb_file':WT_PDB, 'use_model':"pippack_model_1"}], 
-                ['PIPPack-ensumble',PIPPack_worker, {'pdb_file':WT_PDB,}], 
-                ['PyMOL-mutate',PyMOL_mutate, {'molecule':MOLECULE, 'pdb_file':WT_PDB}],
-            ]
+        'id, runner,init_kwargs', [
+            ['DLpacker', DLPacker_worker, {'pdb_file': WT_PDB}, ],
+            ['DLpacker-range', DLPacker_worker, {'pdb_file': WT_PDB, 'radius': 3.5}, ],
+            ['PIPPack-model_1', PIPPack_worker, {'pdb_file': WT_PDB, 'use_model': "pippack_model_1"}],
+            ['PIPPack-ensumble', PIPPack_worker, {'pdb_file': WT_PDB, }],
+            ['PyMOL-mutate', PyMOL_mutate, {'molecule': MOLECULE, 'pdb_file': WT_PDB}],
+        ]
     )
-    def test_runner_mutate(self, id, runner,init_kwargs):
+    def test_runner_mutate(self, id, runner, init_kwargs):
         if not runner.installed:
             pytest.skip(f"{runner.__name__} is not installed")
 
         cmd.load(WT_PDB)
 
-        mutate_runner = runner( **init_kwargs )
+        mutate_runner = runner(**init_kwargs)
         mutate_pdb_path = mutate_runner.run_mutate(mutant=MUTANTS[0])
 
         from Bio.PDB.PDBParser import PDBParser
@@ -52,13 +49,12 @@ class TestSidechainSolver:
         assert mut_residue_1.get_resname() == "GLY"
         assert mut_residue_2.get_resname() == "GLY"
 
-
     @pytest.mark.parametrize(
-            'id, runner,init_kwargs', [
-                ['MutateRelax_worker',MutateRelax_worker, {'pdb_file':WT_PDB}]
-            ]
+        'id, runner,init_kwargs', [
+            ['MutateRelax_worker', MutateRelax_worker, {'pdb_file': WT_PDB}]
+        ]
     )
-    def test_runner_mutate_rosetta(self, id, runner,init_kwargs, test_node_hint):
+    def test_runner_mutate_rosetta(self, id, runner, init_kwargs, test_node_hint):
         if not runner.installed:
             pytest.skip(f"{runner.__name__} is not installed")
 
@@ -73,7 +69,7 @@ class TestSidechainSolver:
             warnings.warn(RuntimeWarning(
                 f"Using rosetta-node/{test_node_hint} as node config: {patched_read_rosetta_node_config.return_value}"
             ))
-            mutate_runner = runner( **init_kwargs )
+            mutate_runner = runner(**init_kwargs)
             mutate_pdb_path = mutate_runner.run_mutate(mutant=MUTANTS[0])
 
         from Bio.PDB.PDBParser import PDBParser
@@ -87,4 +83,3 @@ class TestSidechainSolver:
         mut_residue_2 = structure[0]["A"][2]
         assert mut_residue_1.get_resname() == "GLY"
         assert mut_residue_2.get_resname() == "GLY"
-
