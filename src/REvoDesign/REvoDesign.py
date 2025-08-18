@@ -15,6 +15,7 @@ from typing import Any, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
+
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
@@ -768,7 +769,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def reload_molecule_info(self):
         """Reload the molecule in current session."""
-        self.temperal_session = tempfile.NamedTemporaryFile(delete=False, suffix=".pse")
+        self.temperal_session = tempfile.mkstemp(suffix=".pse")[1]
+        # self.temperal_session= tempfile.NamedTemporaryFile(delete=False)
 
         if not is_empty_session():
             # remove alternative comformations
@@ -1530,7 +1532,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                         "Server is already in running state. Do nothing."
                     )
                     return
-
+                
                 logging.info("Server is launching...")
                 self.setup_ws_server()
 

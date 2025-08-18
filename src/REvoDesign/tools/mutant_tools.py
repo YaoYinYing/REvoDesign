@@ -700,10 +700,10 @@ def get_mutant_table_columns(mutfile: str):
     if mutfile.lower().endswith(".csv"):
         mutation_data = pd.read_csv(mutfile)
 
-    if mutfile.lower().endswith(".tsv"):
+    elif mutfile.lower().endswith(".tsv"):
         mutation_data = pd.read_fwf(mutfile)
 
-    if mutfile.lower().endswith(".xlsx") or mutfile.lower().endswith(".xls"):
+    elif mutfile.lower().endswith((".xlsx",".xls")):
         mutation_data = pd.read_excel(mutfile)
     else:
         raise issues.UnsupportedDataTypeError(f'Unsupported file type for mutant table: {filename_ext}')

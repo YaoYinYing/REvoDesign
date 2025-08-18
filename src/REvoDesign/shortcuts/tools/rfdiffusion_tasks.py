@@ -93,7 +93,6 @@ class DglSolver:
 RFD_WEIGHTS = FileDownloadRegistry(
     name='RFdiffusion',
     base_url=RFDIFFUSION_WEIGHTS_BASE_URL,
-    # version='',
     registry=FileDownloadRegistry.prepare_registry_from_md5(RFD_WEIGHTS_STR)
 )
 
@@ -487,4 +486,3 @@ def run_general_rfdiffusion_task(config_preset: str = 'base',
     )
 
     app.main()
-    del app

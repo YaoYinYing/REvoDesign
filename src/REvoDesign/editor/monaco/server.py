@@ -37,7 +37,6 @@ def get_file_whitelist():
     from platformdirs import user_log_path
 
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
-    from REvoDesign.driver.ui_driver import ConfigBus
 
     bus = ConfigBus()
     logfile = bus.cfg.log.handlers.file.filename

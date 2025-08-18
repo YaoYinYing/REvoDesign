@@ -162,8 +162,6 @@ class Evalutator:
         comboBox_group_ids = self.bus.ui.comboBox_group_ids
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
 
-        # self.mutant_tree_pssm.walk_the_mutants(walk_to_next_one=walk_to_next)
-
         (
             current_branch_id,
             current_mutant_id,

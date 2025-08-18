@@ -219,16 +219,13 @@ class MutantVisualizer:
             return pd.read_csv(
                 self.mutfile, sep="\t", names=[self.key_col]
             )
-        if self.mutfile.lower().endswith(".xlsx") or self.mutfile.lower().endswith(".xls"):
+        if self.mutfile.lower().endswith((".xlsx",".xls")):
             # Read mutation data from Excel file using pandas
             return pd.read_excel(self.mutfile)
         if self.mutfile.lower().endswith(".tsv"):
             # Read mutation data from TSV file using pandas
             return pd.read_fwf(self.mutfile)
-        if any(
-            self.mutfile.lower().endswith(ext)
-            for ext in [".fasta", ".fas", ".fa"]
-        ):
+        if self.mutfile.lower().endswith((".fasta", ".fas", ".fa")):
             # Read mutant data from fasta file.
             _mutation_objs = [
                 extract_mutant_from_sequences(
