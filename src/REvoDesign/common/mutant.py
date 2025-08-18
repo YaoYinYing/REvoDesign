@@ -6,6 +6,7 @@ import hashlib
 import os
 from dataclasses import dataclass
 from typing import TypeVar, Union
+from string import Template
 
 from RosettaPy.common.mutation import Chain
 from RosettaPy.common.mutation import Mutant as RpMutant
@@ -23,6 +24,26 @@ class Mutant(RpMutant):
         return (
             f"Mutant Info: {self.mutations}, Mutant Score: {self.mutant_score}"
         )
+    
+    def format_as(self, mutation_template_str: str='${chain_id}${wt_res}${position}${mut_res}', separator: str="_"):
+        """
+        Format mutation information according to specified template string
+        
+        Args:
+            mutation_template_str (str): 
+                Template string for mutation formatting, default is '${chain_id}${wt_res}${position}${mut_res}'
+            separator (str):
+                Separator used to join multiple mutations, default is "_"
+            
+        Returns:
+            str: Formatted mutation string
+        """
+        # Use template string to substitute mutation object attributes
+        template=Template(mutation_template_str)
+        mutations_str=map(lambda m: template.substitute(m.__dict__), self.mutations)
+        # Join all mutation strings with separator
+        return separator.join(mutations_str)
+        
 
     @property
     def empty(self) -> bool:

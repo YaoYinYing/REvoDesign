@@ -8,7 +8,7 @@ from RosettaPy.node import node_picker
 
 from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.shortcuts.tools.rosetta_tasks import (
-    shortcut_fast_relax, shortcut_relax_w_ca_constraints,
+    shortcut_fast_relax, shortcut_pross, shortcut_relax_w_ca_constraints,
     shortcut_rosettaligand)
 
 
@@ -23,7 +23,8 @@ class TestRosettaTasks:
     )
     def test_rosetta_ligand(self, job_id, start_from, cst, test_node_hint):
 
-        save_dir = 'rosetta_tests/outputs'
+        save_dir = f'rosetta_tests/outputs/rosetta_ligand/{job_id}/{test_node_hint}'
+
         with patch('REvoDesign.shortcuts.tools.rosetta_tasks.node_picker') as patch_node_picker, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
             patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
@@ -57,20 +58,26 @@ class TestRosettaTasks:
             analyser = RosettaEnergyUnitAnalyser(os.path.join(run_dir, 'scorefile'))
             assert not analyser.df.empty, 'Scorefile should be loaded and analysed'
 
-    # time expensive test
-    # def test_pross(test_worker: TestWorker, test_node_hint):
-    #     test_worker.inject_rosetta_node_config(test_node_hint)
+    # # a time expensive test
+    # def test_pross(self, test_node_hint):
+    #     with patch('REvoDesign.shortcuts.tools.rosetta_tasks.node_picker') as patch_node_picker, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
 
-    #     save_dir = 'rosetta_tests/outputs'
-    #     shortcut_pross(
-    #         pdb="../tests/data/3fap_hf3_A_short.pdb",
-    #         pssm="../tests/data/3fap_hf3_A_ascii_mtx_file_short",
-    #         res_to_fix='1A',
-    #         res_to_restrict='1A',
-    #         nstruct_refine=4,
-    #         save_dir=save_dir,
-    #         job_id="pross",
-    #     )
+    #         patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
+    #             f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
+    #         patch_node_picker.return_value = node_picker(
+    #             test_node_hint, **patched_read_rosetta_node_config.return_value)
+
+
+    #         save_dir = f'rosetta_tests/outputs/pross/{test_node_hint}'
+    #         shortcut_pross(
+    #             pdb="../tests/data/3fap_hf3_A_short.pdb",
+    #             pssm="../tests/data/3fap_hf3_A_ascii_mtx_file_short",
+    #             res_to_fix='1A',
+    #             res_to_restrict='1A',
+    #             nstruct_refine=1,
+    #             save_dir=save_dir,
+    #             job_id="pross",
+    #         )
 
     #     run_dir = os.path.join(save_dir, 'pross')
     #     for dir in ['refinement', 'filterscan', 'design']:
@@ -84,7 +91,7 @@ class TestRosettaTasks:
     #                 'pross_refinement',
     #                 'pdb')) if x.endswith('.pdb')]
     #     assert refined_pdbs, f'{run_dir}/refinement should contain pdb files'
-    #     assert len(refined_pdbs) == 4, f'{run_dir}/refinement should contain exact 4 pdb files'
+    #     assert len(refined_pdbs) == 1, f'{run_dir}/refinement should contain exact 1 pdb files'
 
     #     filter_scan_dir = os.path.join(run_dir, 'filterscan')
     #     assert os.path.isdir(os.path.join(filter_scan_dir, 'resfiles')), f"{filter_scan_dir}/resfiles does not exist"
@@ -124,7 +131,7 @@ class TestRosettaTasks:
             patch_node_picker.return_value = node_picker(
                 test_node_hint, **patched_read_rosetta_node_config.return_value)
 
-            save_dir = 'rosetta_tests/outputs/fastrelax'
+            save_dir = f'rosetta_tests/outputs/fastrelax/{job_id}/{test_node_hint}'
             relax_script = 'MonomerRelax2019'
 
             relax_opts = []
@@ -171,7 +178,7 @@ class TestRosettaTasks:
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
             patch_node_picker.return_value = node_picker(
                 test_node_hint, **patched_read_rosetta_node_config.return_value)
-            save_dir = 'rosetta_tests/outputs/relax_w_ca_constraints'
+            save_dir = f'rosetta_tests/outputs/relax_w_ca_constraints/{job_id}/{test_node_hint}'
 
             relax_opts = []
             if ligand:

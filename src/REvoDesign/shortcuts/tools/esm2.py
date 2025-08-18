@@ -87,7 +87,8 @@ def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
 
 def label_row(row, sequence, token_probs, alphabet, offset_idx):
     wt, idx, mt = row[0], int(row[1:-1]) - offset_idx, row[-1]
-    assert sequence[idx] == wt, "The listed wildtype does not match the provided sequence"
+    if sequence[idx] != wt:
+        raise ValueError("The listed wildtype does not match the provided sequence")
 
     wt_encoded, mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
 
@@ -101,6 +102,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
     name: str = "esm1v"
     installed: bool = is_package_installed('esm2')
 
+    # skipcq: PYL-W0231
     def __init__(
             self,
             model_names: List[str],
@@ -223,11 +225,10 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 if self.msa_path is None:
                     raise ValueError("MSA Transformer requires an MSA file")
                 data = [read_msa(self.msa_path, self.msa_samples)]
-                assert (
-                    self.scoring_strategy == "masked-marginals"
-                ), "MSA Transformer only supports masked marginal strategy"
+                if self.scoring_strategy != "masked-marginals":
+                    raise NotImplementedError("MSA Transformer only supports masked marginal strategy")
 
-                batch_labels, batch_strs, batch_tokens = batch_converter(data)
+                _unused_batch_labels, _unused_batch_strs, batch_tokens = batch_converter(data)
 
                 all_token_probs = []
                 for i in tqdm(range(batch_tokens.size(2))):
@@ -250,7 +251,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 data = [
                     ("protein1", self.sequence),
                 ]
-                batch_labels, batch_strs, batch_tokens = batch_converter(data)
+                _unused_batch_labels, _unused_batch_strs, batch_tokens = batch_converter(data)
 
                 if self.scoring_strategy == "wt-marginals":
                     with torch.no_grad():
@@ -301,7 +302,8 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         import torch
 
         wt, idx, mt = row[0], int(row[1:-1]) - offset_idx, row[-1]
-        assert sequence[idx] == wt, "The listed wildtype does not match the provided sequence"
+        if sequence[idx] != wt:
+            raise ValueError("The listed wildtype does not match the provided sequence")
 
         # modify the sequence
         sequence = sequence[:idx] + mt + sequence[(idx + 1):]
@@ -313,9 +315,9 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
         batch_converter = alphabet.get_batch_converter()
 
-        batch_labels, batch_strs, batch_tokens = batch_converter(data)
+        _unused_batch_labels, _unused_batch_strs, batch_tokens = batch_converter(data)
 
-        wt_encoded, mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
+        _unused_wt_encoded, _unused_mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
 
         # compute probabilities at each position
         log_probs = []
@@ -391,5 +393,3 @@ def shortcut_esm1v(
     )
     predictor.predict()
     predictor.cleanup()
-
-    del predictor

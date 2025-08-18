@@ -9,7 +9,7 @@ from typing import List, Literal, Optional
 import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
-from REvoDesign import ROOT_LOGGER, issues
+from REvoDesign import ROOT_LOGGER
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
@@ -137,7 +137,7 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         """
         mutant_tree = MutantTree()
         # Iterate over each row in the DataFrame to create Mutant objects and add them to the MutantTree
-        for i, row in df.iterrows():
+        for _, row in df.iterrows():
             score: float = row['ddG']
             mutation: str = row['Mutation']
             logging.debug(f'{mutation=}, {score=}')
@@ -146,8 +146,10 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             mutant.wt_score = 0
 
             # Add the mutant to the appropriate branch in the MutantTree
-            mutant_tree.add_mutant_to_branch(self.prefix if sorted_by == 'prefix' else 'TMPNN_' +
-                                             '_vs_'.join(str(m.position) for m in mutant.mutations), mutant.full_mutant_id, mutant)
+            mutant_tree.add_mutant_to_branch(
+                self.prefix 
+                if sorted_by == 'prefix' 
+                else 'TMPNN_' + '_vs_'.join(str(m.position) for m in mutant.mutations), mutant.full_mutant_id, mutant)
 
         return mutant_tree
 
@@ -214,7 +216,5 @@ def shortcut_thermompnn(
 
     app.cleanup()
 
-    del df, mutant_tree
-    del app
     import gc
     gc.collect()
