@@ -17,6 +17,11 @@ class TestREvoDesignPlugin_TabMutate:
         test_worker.load_session_and_check()
         test_worker.go_to_tab(tab_name="mutate")
 
+        set_widget_value(
+            test_worker.plugin.ui.comboBox_sidechain_solver,
+            "Dunbrack Rotamer Library",
+        )
+
         pssm_file = KeyDataDuringTests.pssm_file
 
         test_worker.do_typing(

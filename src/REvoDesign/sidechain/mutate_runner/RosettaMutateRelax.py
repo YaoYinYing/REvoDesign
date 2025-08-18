@@ -1,5 +1,5 @@
 '''
-Wrapper for DLPacker
+Wrapper for MutateRelax Sidechain Builder
 '''
 import gc
 import os

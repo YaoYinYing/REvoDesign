@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `MEMORY_AVAILABLE_GB` for retienving memory size
 - Makefile: 
   - `install-dgl-linux`: for ci, linux, rfdiffusion
+- `sidechain_solver`: `MutateRelax_worker`
+- `Mutant`: 
+  - `format_as` to format mutation according to the template
 
 ### Changed
 - tools:
@@ -44,9 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - fixed frozen window when running `rfdiffusion`
 - tests:
   - reduce rosetta related tests to minimum nstruct and iterations
+  - default sidechain solver as `Dunbrack Rotamer Library`
 - linting:
   - fixed unnecessary comprehensions
   - fixed list as arguments
+  - fixed assertions and unused variables
 
 
 ### Removed
