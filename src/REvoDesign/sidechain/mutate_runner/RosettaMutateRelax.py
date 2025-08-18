@@ -90,7 +90,7 @@ class MutateRelax(ScoreClusters):
         """
         Execute the mutant scoring process
 
-        This function calls the score method to evaluate the given list of mutants using the 'mutate_relax' 
+        This function calls the score method to evaluate the given list of mutants using the 'mutate_relax'
         branch strategy
 
         Parameters:
@@ -129,7 +129,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
             pdb_bn (str): Base name of the PDB file (without path).
             node_hint (NodeHintT): Node hint information retrieved from the configuration bus.
             installed (bool): Check if the run node is available.
-            mutate_relax_instance (MutateRelax): MutateRelax instance used to actually perform mutation 
+            mutate_relax_instance (MutateRelax): MutateRelax instance used to actually perform mutation
             and optimization operations.
         """
         super().__init__(pdb_file)

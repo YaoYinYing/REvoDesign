@@ -8,6 +8,7 @@ import re
 import time
 import warnings
 from typing import List, Mapping, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
 from Bio.Data import IUPACData
@@ -354,7 +355,6 @@ def extract_mutant_from_pymol_object(
     Returns:
     Mutant : Mutant object.
     """
-    
 
     mutant_info = []
 
@@ -574,7 +574,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         # run mutate
 
-        mutant_tree=mutant_tree.run_mutate_parallel(
+        mutant_tree = mutant_tree.run_mutate_parallel(
             mutate_runner=sidechain_solver.mutate_runner,
             nproc=visualizer.nproc,
         )
@@ -729,7 +729,6 @@ def pick_design_from_profile(
     from ..common.mutant_visualise import MutantVisualizer
     from ..phylogenetics.revo_designer import REvoDesigner
     from ..sidechain.sidechain_solver import SidechainSolver
-
     from ..tools.utils import (cmap_reverser, get_color,
                                run_worker_thread_with_progress)
 
@@ -773,7 +772,7 @@ def pick_design_from_profile(
     df = profile_parser.parse_profile(profile_fp=profile, profile_format=profile_type)
 
     first_idx: Union[str, int] = df.columns.tolist()[0]
-    if first_idx  in (0, "0"):
+    if first_idx in (0, "0"):
         logging.debug("Input profile is zero-indexed, convert to 1-indexed")
         df.columns = df.columns.map(lambda x: int(x) + 1)
     else:

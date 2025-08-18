@@ -19,7 +19,6 @@ from REvoDesign.bootstrap.set_config import ConfigConverter
 from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.driver.ui_driver import Widget2ConfigMapper
 from REvoDesign.logger.logger import REvoDesignLogFormatter
-
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.mutant_tools import (expand_range,
                                            extract_mutant_from_sequences,

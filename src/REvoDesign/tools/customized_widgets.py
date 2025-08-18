@@ -1081,7 +1081,7 @@ def get_widget_value(widget: QtWidgets.QWidget) -> Any:
     Raises:
     - ValueError: If the widget type is not supported for value retrieval.
     """
-    if isinstance(widget, (QtWidgets.QDoubleSpinBox,QtWidgets.QSpinBox)):
+    if isinstance(widget, (QtWidgets.QDoubleSpinBox, QtWidgets.QSpinBox)):
         return widget.value()
     if isinstance(widget, MultiCheckableComboBox):
         return widget.get_checked_items()
@@ -1735,7 +1735,7 @@ class ValueDialog(REvoDesignWidget):
             QtWidgets.QSizePolicy.Policy.Fixed)
 
         # Column 3: Action button if file=True
-        if asked_value.source in ("File",'FileO'):
+        if asked_value.source in ("File", 'FileO'):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a file")
             action_button.clicked.connect(

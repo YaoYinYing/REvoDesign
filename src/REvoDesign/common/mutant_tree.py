@@ -617,7 +617,7 @@ class MutantTree:
                 mutants=self.all_mutant_objects, nproc=nproc
             )
 
-        updated_self=mutate_runner.mutated_pdb_mapping(
+        updated_self = mutate_runner.mutated_pdb_mapping(
             mutant_tree=self, pdb_fps=all_mutants_pdb_fp
         )
         mutate_runner.cite()

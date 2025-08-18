@@ -415,7 +415,7 @@ class MutantVisualizer:
                 f"re-compute sidechain for {self.mutant_tree.branch_num}: {self.mutant_tree.mutant_num} MutantTree."
             )
 
-            self.mutant_tree=self.mutant_tree.run_mutate_parallel(
+            self.mutant_tree = self.mutant_tree.run_mutate_parallel(
                 mutate_runner=self.mutate_runner,
                 nproc=self.nproc,  # type: ignore
             )

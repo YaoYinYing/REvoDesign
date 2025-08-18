@@ -8,8 +8,8 @@ import os
 import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
-import numpy as np
 
+import numpy as np
 from immutabledict import immutabledict
 from pymol import cmd, get_version_message
 from pymol.parsing import QuietException
