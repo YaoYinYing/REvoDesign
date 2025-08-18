@@ -27,15 +27,17 @@ class MutateRelax(ScoreClusters):
 
         Parameters:
         branch (str): Identifier of the branch.
-        variants (List[str]): List of variants to be scored.
+        variants (List[Mutant]): List of variants to be scored.
 
         Returns:
-        RosettaEnergyUnitAnalyser: An object containing the analysis of the scoring results.
+        Rosetta: An object containing the analysis of the scoring results.
         """
+        # Set up the scoring result save directory
         score_dir = self.save_dir
         pdb_bn=os.path.basename(self.pdb)
         os.makedirs(score_dir, exist_ok=True)
 
+        # Initialize Rosetta object with scoring configuration
         rosetta = Rosetta(
             bin="rosetta_scripts",
             flags=[os.path.join(script_dir, "deps/mutate_relax/flags/cluster_scoring.flags")],
@@ -51,8 +53,10 @@ class MutateRelax(ScoreClusters):
             run_node=self.node,
         )
     
+        # Format variant names for task configuration
         variant_names=[v.format_as("${wt_res}${position}${mut_res}") for v in variants]
 
+        # Build scoring task configuration for each variant
         branch_tasks = [
             {
                 "rsv": RosettaScriptsVariableGroup.from_dict(
@@ -67,10 +71,12 @@ class MutateRelax(ScoreClusters):
             }
             for variant_name,variant in zip(variant_names,variants)
         ]
+        
+        # Execute scoring tasks and record execution time
         with timing("Mutate Relax"):
             rosetta.run(inputs=branch_tasks)
 
-        # rename pdb files and move to output directory
+        # Rename generated pdb files and move to output directory
         logging.info("Renaming pdb files")
         for m in variants:
             os.rename(
@@ -79,31 +85,70 @@ class MutateRelax(ScoreClusters):
             )
 
         return rosetta
+    
+
     def run(self, mutants: List[Mutant]): # type: ignore
+        """
+        Execute the mutant scoring process
+        
+        This function calls the score method to evaluate the given list of mutants using the 'mutate_relax' branch strategy
+        
+        Parameters:
+            mutants (List[Mutant]): List of mutants to be scored
+            
+        Returns:
+            Scoring results, the specific type depends on the implementation of the score method
+        """
         return self.score(branch='mutate_relax', variants=mutants)
 
 
 class MutateRelax_worker(MutateRunnerAbstract):
+    """
+    MutateRelax_worker class for executing Rosetta's MutateRelax operations, supporting single 
+    or parallel protein mutation and structure optimization.
+
+    Attributes:
+        name (str): Worker name, identified as "Rosetta-MutateRelax".
+        installed (bool): Indicates whether the node is available.
+    """
+
     name: str = "Rosetta-MutateRelax"
-    installed: bool =True
+    installed: bool = True
 
     def __init__(self, pdb_file: str, **kwargs):
+        """
+        Initialize MutateRelax_worker instance.
+
+        Parameters:
+            pdb_file (str): Path to the input PDB file.
+            **kwargs: Additional optional parameters passed to the parent class initialization method.
+
+        Attributes:
+            pdb_file (str): Path to the input PDB file.
+            temp_dir (str): Temporary cache directory path.
+            pdb_bn (str): Base name of the PDB file (without path).
+            node_hint (NodeHintT): Node hint information retrieved from the configuration bus.
+            installed (bool): Check if the run node is available.
+            mutate_relax_instance (MutateRelax): MutateRelax instance used to actually perform mutation and optimization operations.
+        """
         super().__init__(pdb_file)
         self.pdb_file = pdb_file
         self.temp_dir = self.new_cache_dir
 
-        
+        # Get the base name of the PDB file
+        self.pdb_bn = os.path.basename(pdb_file)
 
-        self.pdb_bn=os.path.basename(pdb_file)
-
-        bus=ConfigBus()
+        # Read node hint information from configuration bus
+        bus = ConfigBus()
         self.node_hint: NodeHintT = bus.get_value(
-                    "rosetta.node_hint", default_value="native")  # type: ignore
+            "rosetta.node_hint", default_value="native")  # type: ignore
 
-
+        # Check if the run node is available
         self.installed = is_run_node_available(self.node_hint)
-        self.mutate_relax_instance= MutateRelax(
-            pdb_file, 
+
+        # Initialize MutateRelax instance
+        self.mutate_relax_instance = MutateRelax(
+            pdb_file,
             chain_id=bus.get_value("ui.header_panel.input.chain_id"),
             save_dir=self.new_cache_dir,
             job_id='mutate_relax',
@@ -113,8 +158,18 @@ class MutateRelax_worker(MutateRunnerAbstract):
         self,
         mutant: Mutant,
     ):
-        self.mutate_relax_instance.node=node_picker(node_type=self.node_hint, **read_rosetta_node_config())
-        ret:Rosetta=self.mutate_relax_instance.run([mutant])
+        """
+        Execute MutateRelax operation on a single mutant.
+
+        Parameters:
+            mutant (Mutant): The mutant object to be processed.
+
+        Returns:
+            str: Path to the output PDB file.
+        """
+        # Refresh node configuration before each run
+        self.mutate_relax_instance.node = node_picker(node_type=self.node_hint, **read_rosetta_node_config())
+        ret: Rosetta = self.mutate_relax_instance.run([mutant])
         return os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb')
 
     def run_mutate_parallel(
@@ -122,11 +177,21 @@ class MutateRelax_worker(MutateRunnerAbstract):
         mutants: List[Mutant],
         nproc: int = 2,
     ) -> List[str]:
-        # always refresh the node config before running
-        self.mutate_relax_instance.node=node_picker(node_type=self.node_hint, **read_rosetta_node_config())
-        ret:Rosetta=self.mutate_relax_instance.run(mutants)
+        """
+        Process multiple mutants' MutateRelax operations in parallel.
+
+        Parameters:
+            mutants (List[Mutant]): List of mutant objects.
+            nproc (int): Number of parallel processes, default is 2.
+
+        Returns:
+            List[str]: List of output PDB file paths for all mutants.
+        """
+        # Refresh node configuration before each run
+        self.mutate_relax_instance.node = node_picker(node_type=self.node_hint, **read_rosetta_node_config())
+        ret: Rosetta = self.mutate_relax_instance.run(mutants)
         return [os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb') for mutant in mutants]
-    
+
     __bibtex__ = {
         'Rosetta': """@article{10.1038/s41592-020-0848-2, author = {Leman, J. K. and Weitzner, B. D. and Lewis, S. M. and Adolf‐Bryfogle, J. and Alam, N. and Alford, R. F. and Aprahamian, M. L. and Baker, D. and Barlow, K. A. and Barth, P. and Basanta, B. and Bender, B. J. and Blacklock, K. and Bonet, J. and Boyken, S. E. and Bradley, P. and Bystroff, C. and Conway, P. and Cooper, S. and Correia, B. E. and Coventry, B. and Das, R. and Jong, R. M. d. and DiMaio, F. and Dsilva, L. and Dunbrack, R. L. and Ford, A. S. and Frenz, B. and Fu, D. and Geniesse, C. and Goldschmidt, L. and Gowthaman, R. and Gray, J. J. and Gront, D. and Guffy, S. L. and Horowitz, S. and Huang, P. and Huber, T. and Jacobs, T. M. and Jeliazkov, J. R. and Johnson, D. K. and Kappel, K. and Karanicolas, J. and Khakzad, H. and Khar, K. R. and Khare, S. D. and Khatib, F. and Khramushin, A. and King, C. and Kleffner, R. and Koepnick, B. and Kortemme, T. and Kuenze, G. and Kuhlman, B. and Kuroda, D. and Labonte, J. W. and Lai, J. and Lapidoth, G. and Leaver‐Fay, A. and Lindert, S. and Linsky, T. W. and London, N. and Lubin, J. H. and Lyskov, S. and Maguire, J. B. and Malmström, L. and Marcos, E. and Marcu, O. and Marze, N. and Meiler, J. and Moretti, R. and Mulligan, V. K. and Nerli, S. and Norn, C. and Ó’Conchúir, S. and Ollikainen, N. and Ovchinnikov, S. and Pacella, M. S. and Pan, X. and Park, H. and Pavlovicz, R. E. and Pethe, M. A. and Pierce, B. G. and Pilla, K. B. and Raveh, B. and Renfrew, P. D. and Burman, S. S. R. and Rubenstein, A. B. and Sauer, M. F. and Scheck, A. and Schief, W. R. and Schueler‐Furman, O. and Sedan, Y. and Sevy, A. M. and Sgourakis, N. G. and Shi, L. and Siegel, J. B. and Silva, D. and Smith, S. T. and Song, Y. and Stein, A. and Szegedy, M. and Teets, F. D. and Thyme, S. B. and Wang, R. Y. and Watkins, A. M. and Zimmerman, L. and Bonneau, R.}, title = {Macromolecular modeling and design in rosetta: recent methods and frameworks}, journal = {Nature Methods}, year = {2020}, volume = {17}, issue = {7}, pages = {665-680}, doi = {10.1038/s41592-020-0848-2} }""",
         'Rosetta3': """
