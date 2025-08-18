@@ -173,12 +173,10 @@ def minibatches(inputs_data, batch_size):
     for start_idx in range(0, len(inputs_data), batch_size):
         if len(inputs_data[start_idx:]) > batch_size:
             excerpt = slice(start_idx, start_idx + batch_size)
-            print("Send data in length: %s" % len(inputs_data[excerpt]))
+            print(f"Send data in length: {len(inputs_data[excerpt])}" )
             yield inputs_data[excerpt]
         else:
-            print(
-                "Send final data in length: %s" % len(inputs_data[start_idx:])
-            )
+            print(f"Send final data in length: {len(inputs_data[start_idx:])}" )
             yield inputs_data[start_idx:]
 
 

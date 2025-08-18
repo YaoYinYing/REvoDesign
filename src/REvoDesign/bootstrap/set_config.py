@@ -126,12 +126,11 @@ class ConfigConverter:
                 key: ConfigConverter._recursive_convert(value)
                 for key, value in config.items()
             }
-        elif isinstance(config, list):
+        if isinstance(config, list):
             return [
                 ConfigConverter._recursive_convert(item) for item in config
             ]
-        else:
-            return config
+        return config
 
 
 def is_package_installed(package):

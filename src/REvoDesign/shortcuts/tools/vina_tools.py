@@ -743,7 +743,6 @@ def box_helper(box_name: str):
     """
     from REvoDesign import ConfigBus
     bus = ConfigBus()
-    ui = bus.ui
 
     # Default direction is set to 'x', with a default distance of 1.0.
     direction: Literal['x', 'y', 'z'] = 'x'

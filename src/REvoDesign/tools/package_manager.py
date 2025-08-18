@@ -217,7 +217,7 @@ class ExtrasGroups:
                 )
             )
 
-        return cls(tuple())
+        return cls(())
 
     @cached_property
     def all_extras(self) -> list[ExtrasItem]:
@@ -1191,8 +1191,7 @@ class REvoDesignPackageManager:
             if decided:
                 os.remove(ui_file)
                 return self.make_window()
-            else:
-                raise RuntimeError(f"Error occurs while loading UI file: {e}.")
+            raise RuntimeError(f"Error occurs while loading UI file: {e}.")
 
         # add right-click menu on `self.installer_ui.label_header`,
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`

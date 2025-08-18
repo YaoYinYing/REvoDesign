@@ -198,8 +198,7 @@ class Combinations:
                     if position == position2:
                         print(f"skip {i} - {j} : {position} == {position2}")
                         return False
-                    else:
-                        continue
+                    continue
 
         return unique
 

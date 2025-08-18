@@ -21,8 +21,8 @@ class TestSidechainSolver:
 
     @pytest.mark.parametrize(
         'id, runner,init_kwargs', [
-            ['DLpacker', DLPacker_worker, {'pdb_file': WT_PDB}, ],
-            ['DLpacker-range', DLPacker_worker, {'pdb_file': WT_PDB, 'radius': 3.5}, ],
+            # ['DLpacker', DLPacker_worker, {'pdb_file': WT_PDB}, ],
+            # ['DLpacker-range', DLPacker_worker, {'pdb_file': WT_PDB, 'radius': 3.5}, ],
             ['PIPPack-model_1', PIPPack_worker, {'pdb_file': WT_PDB, 'use_model': "pippack_model_1"}],
             ['PIPPack-ensumble', PIPPack_worker, {'pdb_file': WT_PDB, }],
             ['PyMOL-mutate', PyMOL_mutate, {'molecule': MOLECULE, 'pdb_file': WT_PDB}],

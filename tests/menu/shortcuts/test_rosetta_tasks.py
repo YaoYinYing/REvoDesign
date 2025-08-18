@@ -8,7 +8,7 @@ from RosettaPy.node import node_picker
 
 from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.shortcuts.tools.rosetta_tasks import (
-    shortcut_fast_relax, shortcut_pross, shortcut_relax_w_ca_constraints,
+    shortcut_fast_relax, shortcut_relax_w_ca_constraints,
     shortcut_rosettaligand)
 
 

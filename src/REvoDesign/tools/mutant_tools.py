@@ -8,7 +8,6 @@ import re
 import time
 import warnings
 from typing import List, Mapping, Optional, Tuple, Union
-
 import numpy as np
 import pandas as pd
 from Bio.Data import IUPACData
@@ -355,7 +354,7 @@ def extract_mutant_from_pymol_object(
     Returns:
     Mutant : Mutant object.
     """
-    from pymol import cmd
+    
 
     mutant_info = []
 
@@ -405,7 +404,8 @@ def read_customized_indice(custom_indices_from_input="") -> str:
         return ""
 
     if os.path.isfile(custom_indices_from_input):
-        custom_indices_str = open(custom_indices_from_input).read().strip()
+        with open(custom_indices_from_input) as f:
+            custom_indices_str = f.read().strip()
         return custom_indices_str
 
     # treat input as a digit
@@ -413,7 +413,7 @@ def read_customized_indice(custom_indices_from_input="") -> str:
         return custom_indices_from_input
 
     # direct input of customized indices: 1-20;78-99
-    if any([custom_indices_from_input.count(x) >= 1 for x in "-:,;+ "]):
+    if any(custom_indices_from_input.count(x) >= 1 for x in "-:,;+ "):
         from REvoDesign.tools.utils import count_and_sort_characters
 
         _guessed_connector = count_and_sort_characters(
@@ -439,10 +439,9 @@ def read_customized_indice(custom_indices_from_input="") -> str:
 
         return ",".join([str(x) for x in custom_indices_str])
 
-    else:
-        raise issues.InvalidInputError(
-            f"Failed in parsing customized indice file/string: {custom_indices_from_input}"
-        )
+    raise issues.InvalidInputError(
+        f"Failed in parsing customized indice file/string: {custom_indices_from_input}"
+    )
 
 
 def process_mutations(data):
@@ -543,7 +542,6 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
     chain_id = bus.get_value("ui.header_panel.input.chain_id")
     designable_sequences: RosettaPyProteinSequence = bus.get_value(
         "designable_sequences", RosettaPyProteinSequence.from_dict)
-    sequence: str = designable_sequences.get_sequence_by_chain(chain_id)
 
     nproc = bus.get_value("ui.header_panel.nproc")
 
@@ -576,7 +574,7 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
 
         # run mutate
 
-        mutant_tree.run_mutate_parallel(
+        mutant_tree=mutant_tree.run_mutate_parallel(
             mutate_runner=sidechain_solver.mutate_runner,
             nproc=visualizer.nproc,
         )
@@ -665,9 +663,8 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
 
 
 def write_input_mutant_table(output_mut_txt_fn, mutant_list):
-    open(output_mut_txt_fn, "w").write(
-        "\n".join(mutant_list) if mutant_list else ""
-    )
+    with open(output_mut_txt_fn, "w") as f:
+        f.write("\n".join(mutant_list) if mutant_list else "")
 
 
 def determine_profile_type(profile_fp: str) -> str:
@@ -697,16 +694,16 @@ def get_mutant_table_columns(mutfile: str):
             f"All available: {file_extensions.Mutable.list_dot_ext=}"
         )
 
-    elif mutfile.lower().endswith(".txt"):
+    if mutfile.lower().endswith(".txt"):
         return None
 
     if mutfile.lower().endswith(".csv"):
         mutation_data = pd.read_csv(mutfile)
 
-    elif mutfile.lower().endswith(".tsv"):
+    if mutfile.lower().endswith(".tsv"):
         mutation_data = pd.read_fwf(mutfile)
 
-    elif mutfile.lower().endswith(".xlsx") or mutfile.lower().endswith(".xls"):
+    if mutfile.lower().endswith(".xlsx") or mutfile.lower().endswith(".xls"):
         mutation_data = pd.read_excel(mutfile)
     else:
         raise issues.UnsupportedDataTypeError(f'Unsupported file type for mutant table: {filename_ext}')
@@ -732,8 +729,7 @@ def pick_design_from_profile(
     from ..common.mutant_visualise import MutantVisualizer
     from ..phylogenetics.revo_designer import REvoDesigner
     from ..sidechain.sidechain_solver import SidechainSolver
-    from ..tools.mutant_tools import (existed_mutant_tree, expand_range,
-                                      read_customized_indice)
+
     from ..tools.utils import (cmap_reverser, get_color,
                                run_worker_thread_with_progress)
 
@@ -777,7 +773,7 @@ def pick_design_from_profile(
     df = profile_parser.parse_profile(profile_fp=profile, profile_format=profile_type)
 
     first_idx: Union[str, int] = df.columns.tolist()[0]
-    if first_idx == 0 or first_idx == '0':
+    if first_idx  in (0, "0"):
         logging.debug("Input profile is zero-indexed, convert to 1-indexed")
         df.columns = df.columns.map(lambda x: int(x) + 1)
     else:

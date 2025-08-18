@@ -1081,23 +1081,22 @@ def get_widget_value(widget: QtWidgets.QWidget) -> Any:
     Raises:
     - ValueError: If the widget type is not supported for value retrieval.
     """
-    if isinstance(widget, QtWidgets.QDoubleSpinBox) or isinstance(widget, QtWidgets.QSpinBox):
+    if isinstance(widget, (QtWidgets.QDoubleSpinBox,QtWidgets.QSpinBox)):
         return widget.value()
-    elif isinstance(widget, MultiCheckableComboBox):
+    if isinstance(widget, MultiCheckableComboBox):
         return widget.get_checked_items()
-    elif isinstance(widget, QtWidgets.QComboBox):
+    if isinstance(widget, QtWidgets.QComboBox):
         return widget.currentText()
-    elif isinstance(widget, QtWidgets.QLineEdit):
+    if isinstance(widget, QtWidgets.QLineEdit):
         return widget.text()
-    elif isinstance(widget, QtWidgets.QProgressBar):
+    if isinstance(widget, QtWidgets.QProgressBar):
         return widget.value()
-    elif isinstance(widget, QtWidgets.QLCDNumber):
+    if isinstance(widget, QtWidgets.QLCDNumber):
         return float(widget.value())
-    elif isinstance(widget, QtWidgets.QCheckBox):
+    if isinstance(widget, QtWidgets.QCheckBox):
         return widget.isChecked()
 
-    else:
-        raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
+    raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
 
 def widget_signal_tape(widget: QtWidgets.QWidget, event):
@@ -1736,7 +1735,7 @@ class ValueDialog(REvoDesignWidget):
             QtWidgets.QSizePolicy.Policy.Fixed)
 
         # Column 3: Action button if file=True
-        if asked_value.source == "File" or asked_value.source == 'FileO':
+        if asked_value.source in ("File",'FileO'):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a file")
             action_button.clicked.connect(

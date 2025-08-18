@@ -1,7 +1,6 @@
 '''
 Wrapper for MutateRelax Sidechain Builder
 '''
-import gc
 import os
 from typing import List
 
@@ -91,7 +90,8 @@ class MutateRelax(ScoreClusters):
         """
         Execute the mutant scoring process
 
-        This function calls the score method to evaluate the given list of mutants using the 'mutate_relax' branch strategy
+        This function calls the score method to evaluate the given list of mutants using the 'mutate_relax' 
+        branch strategy
 
         Parameters:
             mutants (List[Mutant]): List of mutants to be scored
@@ -129,7 +129,8 @@ class MutateRelax_worker(MutateRunnerAbstract):
             pdb_bn (str): Base name of the PDB file (without path).
             node_hint (NodeHintT): Node hint information retrieved from the configuration bus.
             installed (bool): Check if the run node is available.
-            mutate_relax_instance (MutateRelax): MutateRelax instance used to actually perform mutation and optimization operations.
+            mutate_relax_instance (MutateRelax): MutateRelax instance used to actually perform mutation 
+            and optimization operations.
         """
         super().__init__(pdb_file)
         self.pdb_file = pdb_file
@@ -169,7 +170,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
         """
         # Refresh node configuration before each run
         self.mutate_relax_instance.node = node_picker(node_type=self.node_hint, **read_rosetta_node_config())
-        ret: Rosetta = self.mutate_relax_instance.run([mutant])
+        self.mutate_relax_instance.run([mutant])
         return os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb')
 
     def run_mutate_parallel(
@@ -189,7 +190,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
         """
         # Refresh node configuration before each run
         self.mutate_relax_instance.node = node_picker(node_type=self.node_hint, **read_rosetta_node_config())
-        ret: Rosetta = self.mutate_relax_instance.run(mutants)
+        self.mutate_relax_instance.run(mutants)
         return [os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb') for mutant in mutants]
 
     __bibtex__ = {

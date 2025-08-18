@@ -207,37 +207,37 @@ class Evalutator:
         if not branch:
             logging.warning("Branch id is empty or null, skipped.")
             return
-        elif not self.mutant_tree_candidates:
+        if not self.mutant_tree_candidates:
             logging.error("Mutant tree is invalid.")
             return
-        else:
-            logging.info(f"Jump to {branch} as required.")
-            self.mutant_tree_candidates.jump_to_branch(branch_id=branch)
 
-            progress = (
-                self.mutant_tree_candidates.get_mutant_index_in_all_mutants(
-                    self.mutant_tree_candidates.current_mutant_id
-                )
-            )
-            logging.info(
-                f"Progressbar set to {progress}: {self.mutant_tree_candidates.current_mutant_id}"
-            )
-            set_widget_value(progressBar_mutant_choosing, progress)
+        logging.info(f"Jump to {branch} as required.")
+        self.mutant_tree_candidates.jump_to_branch(branch_id=branch)
 
-            # Setting mutant ids to candidates box
-            set_widget_value(
-                comboBox_mutant_ids,
-                list(
-                    self.mutant_tree_candidates.get_a_branch(
-                        branch_id=branch
-                    ).keys()
-                ),
+        progress = (
+            self.mutant_tree_candidates.get_mutant_index_in_all_mutants(
+                self.mutant_tree_candidates.current_mutant_id
             )
-            set_widget_value(
-                comboBox_mutant_ids,
-                self.mutant_tree_candidates.current_mutant_id,
-            )
-            return
+        )
+        logging.info(
+            f"Progressbar set to {progress}: {self.mutant_tree_candidates.current_mutant_id}"
+        )
+        set_widget_value(progressBar_mutant_choosing, progress)
+
+        # Setting mutant ids to candidates box
+        set_widget_value(
+            comboBox_mutant_ids,
+            list(
+                self.mutant_tree_candidates.get_a_branch(
+                    branch_id=branch
+                ).keys()
+            ),
+        )
+        set_widget_value(
+            comboBox_mutant_ids,
+            self.mutant_tree_candidates.current_mutant_id,
+        )
+        return
 
     # end of mutant switching machanism. This step will do focusing, centering, progress bar updating.
     def jump_to_a_mutant(self):
@@ -380,9 +380,8 @@ class Evalutator:
             )
             return
 
-        mutants_from_checkpoint = (
-            open(mutant_choice_checkpoint_fn).read().strip().split("\n")
-        )
+        with open(mutant_choice_checkpoint_fn) as f:
+            mutants_from_checkpoint = f.read().strip().split("\n")
 
         self.mutant_tree_pssm_selected = (
             self.mutant_tree_candidates.create_mutant_tree_from_list(

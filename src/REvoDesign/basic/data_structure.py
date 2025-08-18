@@ -66,8 +66,7 @@ class IterableLoop(Generic[T]):
 
         if direction:
             return self.pick_next()
-        else:
-            return self.pick_previous()
+        return self.pick_previous()
 
     @property
     def current_item(self) -> T:

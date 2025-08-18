@@ -214,18 +214,18 @@ class MutantVisualizer:
         if self.mutfile.lower().endswith(".csv"):
             # Read mutation data from CSV file using pandas
             return pd.read_csv(self.mutfile)
-        elif self.mutfile.lower().endswith(".txt"):
+        if self.mutfile.lower().endswith(".txt"):
             # Read mutation data from TXT file using pandas and use 'key_col' as the column name
             return pd.read_csv(
                 self.mutfile, sep="\t", names=[self.key_col]
             )
-        elif self.mutfile.lower().endswith(".xlsx") or self.mutfile.lower().endswith(".xls"):
+        if self.mutfile.lower().endswith(".xlsx") or self.mutfile.lower().endswith(".xls"):
             # Read mutation data from Excel file using pandas
             return pd.read_excel(self.mutfile)
-        elif self.mutfile.lower().endswith(".tsv"):
+        if self.mutfile.lower().endswith(".tsv"):
             # Read mutation data from TSV file using pandas
             return pd.read_fwf(self.mutfile)
-        elif any(
+        if any(
             self.mutfile.lower().endswith(ext)
             for ext in [".fasta", ".fas", ".fa"]
         ):
@@ -251,10 +251,9 @@ class MutantVisualizer:
                 }
             )
 
-        else:
-            raise issues.InvalidInputError(
-                "Invalid file format. Only CSV, TSV, Microsoft Excel Table, FASTA and TXT formats are supported."
-            )
+        raise issues.InvalidInputError(
+            "Invalid file format. Only CSV, TSV, Microsoft Excel Table, FASTA and TXT formats are supported."
+        )
 
     def run(self):
         """
@@ -416,7 +415,7 @@ class MutantVisualizer:
                 f"re-compute sidechain for {self.mutant_tree.branch_num}: {self.mutant_tree.mutant_num} MutantTree."
             )
 
-            self.mutant_tree.run_mutate_parallel(
+            self.mutant_tree=self.mutant_tree.run_mutate_parallel(
                 mutate_runner=self.mutate_runner,
                 nproc=self.nproc,  # type: ignore
             )
