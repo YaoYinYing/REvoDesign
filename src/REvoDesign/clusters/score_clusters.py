@@ -8,9 +8,11 @@ import pandas as pd
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 from RosettaPy.app.mutate_relax import ScoreClusters
 from RosettaPy.node import NodeHintT
+
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
-from REvoDesign.tools.rosetta_utils import read_rosetta_node_config, IS_ROSETTA_RUNNABLE
+from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
+                                            read_rosetta_node_config)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -21,7 +23,7 @@ def score_clusters(
     if not IS_ROSETTA_RUNNABLE:
         raise issues.DependencyError(
             "Rosetta is not runnable on this machine. "
-            "Please chech the documentation of RosettaPy for more details." )
+            "Please chech the documentation of RosettaPy for more details.")
     instance = os.path.basename(pdb)[:-4]
     task_bn = os.path.basename(tasks_dir)
     node_config = read_rosetta_node_config()

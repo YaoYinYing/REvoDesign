@@ -17,11 +17,11 @@ from RosettaPy.node import NodeHintT
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.driver.ui_driver import ConfigBus
+from REvoDesign.sidechain.mutate_runner.RosettaMutateRelax import \
+    MutateRelax_worker
 from REvoDesign.tools.rosetta_utils import (copy_rosetta_citation,
                                             read_rosetta_node_config)
-
-from REvoDesign.sidechain.mutate_runner.RosettaMutateRelax import MutateRelax_worker
-from REvoDesign.tools.utils import timing,get_cited
+from REvoDesign.tools.utils import get_cited, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
 
