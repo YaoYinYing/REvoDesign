@@ -19,7 +19,9 @@ from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.rosetta_utils import (copy_rosetta_citation,
                                             read_rosetta_node_config)
-from REvoDesign.tools.utils import timing
+
+from REvoDesign.sidechain.mutate_runner.RosettaMutateRelax import MutateRelax_worker
+from REvoDesign.tools.utils import timing,get_cited
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -197,7 +199,11 @@ def shortcut_fast_relax(
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
 ):
 
-    class FastRelaxOpts(FastRelax):
+    class FastRelaxOpts(FastRelax, CitableModuleAbstract):
+
+        __bibtex__ = MutateRelax_worker.__bibtex__
+
+        @get_cited
         def run(self, nstruct: int = 8, default_repeats: int = 15,
                 opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
             """
@@ -275,7 +281,9 @@ def shortcut_fast_relax(
     logging.info(f"FastRelax finished. Best decoy: {best_relaxed_decoy}")
 
 
-class RelaxWithCaConstraints(RosettaAppBase):
+class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
+
+    __bibtex__ = MutateRelax_worker.__bibtex__
 
     def __init__(
             self,
@@ -336,6 +344,7 @@ class RelaxWithCaConstraints(RosettaAppBase):
         print(f'Best Hit on this Relax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
         return pdb_path
 
+    @get_cited
     def run(self, load_to_preview: bool = False):
 
         new_pdb_path = self.pdb

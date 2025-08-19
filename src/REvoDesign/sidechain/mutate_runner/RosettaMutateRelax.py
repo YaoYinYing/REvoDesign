@@ -213,6 +213,5 @@ class MutateRelax_worker(MutateRunnerAbstract):
     __bibtex__ = copy_rosetta_citation(
         {
             "Relax": """@article{10.1002/pro.2389, author = {Conway, P. and Tyka, M. D. and DiMaio, F. and Konerding, D. E. and Baker, D.}, title = {Relaxation of backbone bond geometry improves protein energy landscape modeling}, journal = {Protein Science}, year = {2013}, volume = {23}, issue = {1}, pages = {47-55}, doi = {10.1002/pro.2389} }"""
-
         }
     )
