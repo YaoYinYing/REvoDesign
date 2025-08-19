@@ -25,15 +25,18 @@ class TestRosettaTasks:
 
         save_dir = f'rosetta_tests/outputs/rosetta_ligand/{job_id}/{test_node_hint}'
 
-        with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
+        with patch('REvoDesign.shortcuts.tools.rosetta_tasks.RosettaLigand') as patched_app:
 
-            patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
+            # fetch node config according to node_hint
+            node_config = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_bus.get_value.return_value = node_picker(
-                test_node_hint, **patched_read_rosetta_node_config.return_value)
+            
+            # inject test node
+            patched_app._node = node_picker(
+                test_node_hint, **node_config)
 
             warnings.warn(RuntimeWarning(
-                f"Using rosetta-node/{test_node_hint} as node config: {patched_read_rosetta_node_config.return_value}"
+                f"Using rosetta-node/{test_node_hint} as node config: {node_config}"
             ))
 
             shortcut_rosettaligand(
@@ -126,12 +129,17 @@ class TestRosettaTasks:
     )
     def test_fast_relax(self, job_id, pdb, dualspace, ligand, test_node_hint):
 
-        with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
+        with patch('REvoDesign.shortcuts.tools.rosetta_tasks.FastRelaxOpts') as patched_app:
 
-            patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
+            # fetch node config according to node_hint
+            node_config = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_bus.get_value.return_value = node_picker(
-                test_node_hint, **patched_read_rosetta_node_config.return_value)
+            
+            # inject test node
+            patched_app._node = node_picker(test_node_hint, **node_config)
+            warnings.warn(RuntimeWarning(
+                f"Using rosetta-node/{test_node_hint} as node config: {node_config}"
+            ))
 
             save_dir = f'rosetta_tests/outputs/fastrelax/{job_id}/{test_node_hint}'
             relax_script = 'MonomerRelax2019'
@@ -174,12 +182,20 @@ class TestRosettaTasks:
     )
     def test_shortcut_relax_w_ca_constraints(self, job_id, pdb, ligand, test_node_hint):
 
-        with patch('REvoDesign.shortcuts.tools.rosetta_tasks.ConfigBus') as patch_bus, patch('REvoDesign.shortcuts.tools.rosetta_tasks.read_rosetta_node_config') as patched_read_rosetta_node_config:
+        with patch('REvoDesign.shortcuts.tools.rosetta_tasks.RelaxWithCaConstraints') as patched_app:
 
-            patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
+            # fetch node config according to node_hint
+            node_config = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_bus.get_value.return_value = node_picker(
-                test_node_hint, **patched_read_rosetta_node_config.return_value)
+            
+            # inject test node
+            patched_app._node = node_picker(
+                test_node_hint, **node_config)
+            
+            warnings.warn(RuntimeWarning(
+                f"Using rosetta-node/{test_node_hint} as node config: {node_config}"
+            ))
+
             
             save_dir = f'rosetta_tests/outputs/relax_w_ca_constraints/{job_id}/{test_node_hint}'
 

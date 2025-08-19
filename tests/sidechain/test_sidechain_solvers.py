@@ -60,14 +60,20 @@ class TestSidechainSolver:
 
         cmd.load(WT_PDB)
         from RosettaPy.node import node_picker
-        with patch('REvoDesign.sidechain.mutate_runner.RosettaMutateRelax.ConfigBus') as patch_bus, patch('REvoDesign.sidechain.mutate_runner.RosettaMutateRelax.read_rosetta_node_config') as patched_read_rosetta_node_config:
-            patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
+        
+        # patch the app
+        with patch('REvoDesign.sidechain.mutate_runner.RosettaMutateRelax.MutateRelax') as patched_app:
+
+            # fetch node config according to node_hint
+            node_config = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_bus.get_value.return_value = node_picker(
-                test_node_hint, **patched_read_rosetta_node_config.return_value)
+            
+            # inject test node
+            patched_app._node = node_picker(
+                test_node_hint, **node_config)
 
             warnings.warn(RuntimeWarning(
-                f"Using rosetta-node/{test_node_hint} as node config: {patched_read_rosetta_node_config.return_value}"
+                f"Using rosetta-node/{test_node_hint} as node config: {node_config}"
             ))
             mutate_runner = runner(**init_kwargs)
             mutate_pdb_path = mutate_runner.run_mutate(mutant=MUTANTS[0])
