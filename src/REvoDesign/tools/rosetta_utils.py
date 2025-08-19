@@ -295,15 +295,15 @@ abstract = {We have recently completed a full rearchitecturing of the Rosetta mo
 def copy_rosetta_citation(citetation: dict[str, Union[str, tuple]]) -> dict[str, Union[str, tuple]]:
     """
     Copy Rosetta citation information and update with custom citation content
-    
-    This function creates a copy of the Rosetta common citation information and updates it 
-    with the provided custom citation information. It is mainly used to generate complete 
+
+    This function creates a copy of the Rosetta common citation information and updates it
+    with the provided custom citation information. It is mainly used to generate complete
     citation information by combining common and specific parts.
-    
+
     Parameters:
-        citetation (dict[str, Union[str, tuple]]): Custom citation information dictionary 
+        citetation (dict[str, Union[str, tuple]]): Custom citation information dictionary
                                                   used to update the common citation information
-        
+
     Returns:
         dict[str, Union[str, tuple]]: Updated complete citation information dictionary
     """
