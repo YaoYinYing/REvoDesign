@@ -26,8 +26,10 @@ from RosettaPy.utils import tmpdir_manager
 from REvoDesign import REvoDesignPlugin
 from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.common import MutantTree
 from REvoDesign.Qt import QtCore, QtWidgets
+from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
 from REvoDesign.tools.package_manager import (LiveProcessResult,
@@ -914,3 +916,39 @@ def chech_memory_available():
 
 
 MEMORY_AVAILABLE_GB = chech_memory_available()
+
+
+def fetch_node_config_from_hint(node_hint: NodeHintT):
+    # fetch node config according to node_hint
+    node_config= ConfigConverter.convert(reload_config_file(
+        f'rosetta-node/{node_hint}')['rosetta-node']['node_config'])
+    
+    warnings.warn(RuntimeWarning(
+                f"Using rosetta-node/{test_node_hint} as node config: {node_config}"
+            ))
+    return node_config
+
+
+@pytest.fixture
+def mock_rosetta_node_config(test_node_hint):
+    """
+    Fixture to mock rosetta node configuration for tests
+    
+    This fixture sets up the rosetta node hint in ConfigBus and patches the 
+    read_rosetta_node_config function to return the node configuration 
+    corresponding to the test_node_hint.
+    
+    Parameters:
+        test_node_hint: The node hint to use for fetching node configuration
+        
+    Yields:
+        node_config: The mocked node configuration dictionary
+    """
+    # real test node inject
+    ConfigBus().set_value('rosetta.node_hint', test_node_hint)
+
+    with patch('REvoDesign.tools.rosetta_utils.read_rosetta_node_config') as mock_read_rosetta_node_config:
+        
+        node_config = fetch_node_config_from_hint(test_node_hint)
+        mock_read_rosetta_node_config.return_value = node_config
+        yield node_config

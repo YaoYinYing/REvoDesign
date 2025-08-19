@@ -24,8 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - conftest:
     - fixed imports like `from tests.conftest import ...`
     - `MEMORY_AVAILABLE_GB` for retienving memory size
+    - `fetch_node_config_from_hint`: to handle node config accordingly
+    - `mock_rosetta_node_config`: mock node config according to node hint
   - `sidechain_solver`: `TestSidechainSolver`
-    - known issue: `DLpacker` is not testable in this case, which causes segfault
+    - known issue: `DLPacker` failed this case with **segfault** on GitHub CI (py310 & py312, Ubuntu 24.04), which causes segfault
 - Makefile: 
   - `install-dgl-linux`: for ci, linux, rfdiffusion
 - `sidechain_solver`: `MutateRelax_worker`
