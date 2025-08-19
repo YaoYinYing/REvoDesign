@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - depts: 
   - `wandb` for py312 
   - pin `torch` to `<=2.3.0`
+  - pin `RosettaPy` to `==0.2.13`
 
 ### Fixed
 - `phylogenetics`: 

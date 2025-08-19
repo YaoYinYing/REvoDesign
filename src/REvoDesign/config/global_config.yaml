@@ -148,6 +148,9 @@ editor:
 rosetta: 
   node_hint: native # Literal["docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native"]
 
+  opts: 
+    general: -ignore_unrecognized_res # -extra_res_fa XXX
+
   cart_ddg:
     use_legacy: False
     relax:

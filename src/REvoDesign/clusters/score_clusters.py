@@ -7,7 +7,7 @@ from typing import List
 import pandas as pd
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
 from RosettaPy.app.mutate_relax import ScoreClusters
-from RosettaPy.node import NodeHintT, node_picker
+from RosettaPy.node import NodeHintT
 
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.rosetta_utils import read_rosetta_node_config
@@ -26,7 +26,8 @@ def score_clusters(
         chain_id=chain_id,
         save_dir="cluster_scorings/output/",
         job_id=f"{instance}_{node_hint}_{task_bn}",
-        node=node_picker(node_type=node_hint, **node_config),
+        node_hint=node_hint,
+        node_config=node_config,
     )
     ret = cluster_scorer.run(tasks_dir)
     for i, r in enumerate(ret):
