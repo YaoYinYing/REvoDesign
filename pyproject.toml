@@ -42,7 +42,7 @@ dependencies = [
     "omegaconf>=2.3.0",
     "rdkit>=2023.9.4",
     "msgpack",
-    "RosettaPy>=0.2.11.post3",
+    "RosettaPy==0.2.13",
     "bibtexparser @ git+https://github.com/sciunto-org/python-bibtexparser.git@v2.0.0b7#egg=bibtexparser",
     "platformdirs",
     "fastapi",

@@ -26,7 +26,9 @@ from RosettaPy.utils import tmpdir_manager
 from REvoDesign import REvoDesignPlugin
 from REvoDesign.basic.abc_singleton import SingletonAbstract, reset_singletons
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR
+from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.common import MutantTree
+from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.Qt import QtCore, QtWidgets
 from REvoDesign.tools.customized_widgets import (get_widget_value,
                                                  set_widget_value)
@@ -863,17 +865,17 @@ def test_tmp_dir():
 
 # rosetta test configuration from RosettaPy
 
-def no_rosetta():
+def has_native_rosetta():
     import subprocess
 
     result = subprocess.run(["whichrosetta", "rosetta_scripts"], capture_output=True, text=True)
     # Check that the command was successful
     has_rosetta_installed = "rosetta_scripts" in result.stdout
     warnings.warn(UserWarning(f"Rosetta Installed: {has_rosetta_installed} - {result.stdout}"))
-    return not has_rosetta_installed
+    return has_rosetta_installed
 
 
-NO_NATIVE_ROSETTA = no_rosetta()
+HAS_NATIVE_ROSETTA = has_native_rosetta()
 
 
 def github_rosetta_test():
@@ -886,7 +888,7 @@ is_github_actions = os.environ.get("GITHUB_ACTIONS") == "true"
 has_docker = shutil.which("docker") is not None
 
 # Github Actions, Ubuntu-latest with Rosetta Docker container enabled
-GITHUB_CONTAINER_ROSETTA_TEST = os.environ.get("GITHUB_CONTAINER_ROSETTA_TEST", "NO") == "YES"
+ENABLE_ROSETTA_CONTAINER_NODE_TEST = os.environ.get("ENABLE_ROSETTA_CONTAINER_NODE_TEST", "NO") == "YES"
 
 WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not None
 
@@ -896,12 +898,12 @@ WINDOWS_WITH_WSL = platform.system() == "Windows" and shutil.which("wsl") is not
         pytest.param(
             "docker_mpi",
             marks=pytest.mark.skipif(
-                not GITHUB_CONTAINER_ROSETTA_TEST, reason="Skipping docker tests in GitHub Actions"
+                not ENABLE_ROSETTA_CONTAINER_NODE_TEST, reason="Skipping docker tests in GitHub Actions"
             ),
         ),
         pytest.param(
             "native",
-            marks=pytest.mark.skipif(NO_NATIVE_ROSETTA, reason="No Rosetta Installed."),
+            marks=pytest.mark.skipif(not HAS_NATIVE_ROSETTA, reason="No Rosetta Installed."),
         ),
     ]
 )
@@ -914,3 +916,39 @@ def chech_memory_available():
 
 
 MEMORY_AVAILABLE_GB = chech_memory_available()
+
+
+def fetch_node_config_from_hint(node_hint: NodeHintT):
+    # fetch node config according to node_hint
+    node_config = ConfigConverter.convert(reload_config_file(
+        f'rosetta-node/{node_hint}')['rosetta-node']['node_config'])
+
+    warnings.warn(RuntimeWarning(
+        f"Using rosetta-node/{test_node_hint} as node config: {node_config}"
+    ))
+    return node_config
+
+
+@pytest.fixture
+def mock_rosetta_node_config(test_node_hint):
+    """
+    Fixture to mock rosetta node configuration for tests
+
+    This fixture sets up the rosetta node hint in ConfigBus and patches the
+    read_rosetta_node_config function to return the node configuration
+    corresponding to the test_node_hint.
+
+    Parameters:
+        test_node_hint: The node hint to use for fetching node configuration
+
+    Yields:
+        node_config: The mocked node configuration dictionary
+    """
+    # real test node inject
+    ConfigBus().set_value('rosetta.node_hint', test_node_hint)
+
+    with patch('REvoDesign.tools.rosetta_utils.read_rosetta_node_config') as mock_read_rosetta_node_config:
+
+        node_config = fetch_node_config_from_hint(test_node_hint)
+        mock_read_rosetta_node_config.return_value = node_config
+        yield node_config

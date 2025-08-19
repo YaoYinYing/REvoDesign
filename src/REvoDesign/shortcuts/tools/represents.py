@@ -245,10 +245,10 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     from pymol import CmdException, stored  # type: ignore
 
     if cmd.count_atoms(obj1) == 0:
-        print("%s is empty" % obj1)
+        print(f"{obj1} is empty")
         return
     if cmd.count_atoms(obj2) == 0:
-        print("%s is empty" % obj2)
+        print(f"{obj2} is empty")
         return
     waters = int(waters)
     labels = int(labels)
@@ -303,13 +303,11 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
             c2 = '""'
         if n1 == n2:
             non_mutant_selection += (
-                "((%s and resi %s and chain %s) or (%s and resi %s and chain %s)) or "
-                % (obj1, i1, c1, obj2, i2, c2)
+                f"(({obj1} and resi {i1} and chain {c1}) or ({obj2} and resi {i2} and chain {c2})) or "
             )
         else:
             mutant_selection += (
-                "((%s and resi %s and chain %s) or (%s and resi %s and chain %s)) or "
-                % (obj1, i1, c1, obj2, i2, c2)
+                f"(({obj1} and resi {i1} and chain {c1}) or ({obj2} and resi {i2} and chain {c2})) or "
             )
             # get the similarity (according to the blosum matrix) of the two residues and
             c = getBlosum90ColorName(n1, n2)
@@ -333,13 +331,12 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.show("cartoon", f"{obj1} or {obj2}")
     cmd.show(
         "lines",
-        "(%s or %s) and ((non_mutations or not_aligned) and not name c+o+n)"
-        % (obj1, obj2),
+        f"({obj1} or {obj2}) and ((non_mutations or not_aligned) and not name c+o+n)"
     )
     cmd.show("sticks", f"({obj1} or {obj2}) and mutations and not name c+o+n")
     cmd.color("gray", "elem C and not_aligned")
     cmd.color("white", "elem C and non_mutations")
-    cmd.color("blue", "elem C and mutations and %s" % obj1)
+    cmd.color("blue", f"elem C and mutations and {obj1}")
     for col, sel in colors:
         cmd.color(col, sel)
 
@@ -350,18 +347,17 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     if waters:
         cmd.set("sphere_scale", "0.1")  # type: ignore
         cmd.show("spheres", f"resn HOH and ({obj1} or {obj2})")
-        cmd.color("red", "resn HOH and %s" % obj1)
-        cmd.color("salmon", "resn HOH and %s" % obj2)
+        cmd.color("red", f"resn HOH and {obj1}")
+        cmd.color("salmon", f"resn HOH and {obj2}")
     print(
-        """
+        f"""
              Mutations are highlighted in blue and red.
-             All mutated sidechains of %s are colored blue, the corresponding ones from %s are
+             All mutated sidechains of {obj1} are colored blue, the corresponding ones from {obj2} are
              colored on a spectrum from blue to red according to how similar the two amino acids are
              (as measured by the BLOSUM90 substitution matrix).
              Aligned regions without mutations are colored white.
              Regions not used for the alignment are gray.
              NOTE: There could be mutations in the gray regions that were not detected."""
-        % (obj1, obj2)
     )
     cmd.delete(aln)
     cmd.deselect()

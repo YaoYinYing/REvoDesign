@@ -8,7 +8,6 @@ from html import escape
 from pathlib import Path
 
 import uvicorn
-import uvicorn.server
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.security import HTTPBearer
@@ -38,7 +37,6 @@ def get_file_whitelist():
     from platformdirs import user_log_path
 
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
-    from REvoDesign.driver.ui_driver import ConfigBus
 
     bus = ConfigBus()
     logfile = bus.cfg.log.handlers.file.filename
@@ -78,8 +76,7 @@ def is_file_allowed(file_path: Path, require_editable=False):
 
     if require_editable:
         return abs_path in editable_files
-    else:
-        return abs_path in editable_files or abs_path in readonly_files
+    return abs_path in editable_files or abs_path in readonly_files
 
 
 # -----------------------

@@ -109,7 +109,7 @@ class REvoDesigner:
         df = df_ori.copy()
 
         first_idx: Union[str, int] = df.columns.tolist()[0]
-        if first_idx == 0 or first_idx == '0':
+        if first_idx in (0, '0'):
             logging.debug("Input profile is zero-indexed, convert to 1-indexed")
             df.columns = df.columns.map(lambda x: int(x) + 1)
         else:
@@ -468,7 +468,7 @@ class REvoDesigner:
         self.mutant_tree = MutantTree(mutant_tree=mutant_tree)
         logging.debug(f"MutantTree: {str(self.mutant_tree)}")
 
-        self.mutant_tree.run_mutate_parallel(
+        self.mutant_tree = self.mutant_tree.run_mutate_parallel(
             mutate_runner=self.mutate_runner, nproc=self.nproc
         )
 
@@ -684,7 +684,7 @@ class REvoDesigner:
             logging.warning("No available designs!")
             return
 
-        self.mutant_tree.run_mutate_parallel(
+        self.mutant_tree = self.mutant_tree.run_mutate_parallel(
             mutate_runner=self.mutate_runner, nproc=self.nproc
         )
 

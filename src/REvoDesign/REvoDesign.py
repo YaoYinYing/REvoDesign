@@ -15,8 +15,6 @@ from typing import Any, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
-# from pymol.Qt.utils import loadUi
-from requests.auth import HTTPBasicAuth
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
@@ -770,7 +768,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def reload_molecule_info(self):
         """Reload the molecule in current session."""
-        self.temperal_session = tempfile.mktemp(suffix=".pse")
+        self.temperal_session = tempfile.mkstemp(suffix=".pse")[1]
+        # self.temperal_session= tempfile.NamedTemporaryFile(delete=False)
 
         if not is_empty_session():
             # remove alternative comformations
@@ -800,20 +799,20 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     )
                 )
                 return
-            elif not os.path.exists(new_session_file):
+            if not os.path.exists(new_session_file):
                 warnings.warn(
                     issues.NoInputWarning(
                         f"File does not exist: {new_session_file}."
                     )
                 )
                 return
-            else:
-                cmd.reinitialize()
-                cmd.load(new_session_file)
-                # remove alternative comformations
-                cmd.remove('not alt ""+A')
-                cmd.alter("all", 'alt=""')
-                cmd.save(self.temperal_session)
+
+            cmd.reinitialize()
+            cmd.load(new_session_file)
+            # remove alternative comformations
+            cmd.remove('not alt ""+A')
+            cmd.alter("all", 'alt=""')
+            cmd.save(self.temperal_session)
 
         self.bus.set_widget_value(
             "ui.header_panel.input.molecule", find_design_molecules
@@ -1533,9 +1532,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     )
                     return
 
-                else:
-                    logging.info("Server is launching...")
-                    self.setup_ws_server()
+                logging.info("Server is launching...")
+                self.setup_ws_server()
 
             else:
                 if not self.ws_server.is_running:

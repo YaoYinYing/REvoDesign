@@ -24,8 +24,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - conftest:
     - fixed imports like `from tests.conftest import ...`
     - `MEMORY_AVAILABLE_GB` for retienving memory size
+    - `fetch_node_config_from_hint`: to handle node config accordingly
+    - `mock_rosetta_node_config`: mock node config according to node hint
+  - `sidechain_solver`: `TestSidechainSolver`
+    - known issue: `DLPacker` failed this case with **segfault** on GitHub CI (py310 & py312, Ubuntu 24.04), which causes segfault
 - Makefile: 
   - `install-dgl-linux`: for ci, linux, rfdiffusion
+- `sidechain_solver`: `MutateRelax_worker`
+- `Mutant`: 
+  - `format_as` to format mutation according to the template -> shipped to `RosettaPy==0.2.13` 
+- citation items: Rosetta-related functions
+- config:
+  - `rosetta.opts.general`: support additional options from user. default is `-ignore_unrecognized_res`
+- utils:
+  - `rosetta_utils`:
+    - `is_rosetta_runnable`: global checkers for Rosetta availability, cached as `IS_ROSETTA_RUNNABLE`
+    - `read_rosetta_config`: read rosetta options in configurations. default path is `rosetta.opts.general`
+    - `ROSETTA_COMMON_CITATION`: for main citations of Rosetta
+    - `copy_rosetta_citation`: copy the main citation and update with the given addition citation
 
 ### Changed
 - tools:
@@ -35,6 +51,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - depts: 
   - `wandb` for py312 
   - pin `torch` to `<=2.3.0`
+  - pin `RosettaPy` to `==0.2.13`
+- Rosetta related classes:
+  - adapted to API changes in `RosettaPy==0.2.13`
+  - wrappers inherit from `CitableModuleAbstract` to add citation
+- tests:
+  - added all rosetta task tests to class `TestRosettaTasks`
+  - `TestRosettaTasks`: output dirs named as `{test_case}/{job_id}/{test_node_hint}` patten
+  - reduced test batch size of `TestRosettaTasks` so that tests run faster when parallel workers are used
+  - added Rosetta tests to non-`serial` tests, as we mocked out node_hint and node config fetchings.
 
 ### Fixed
 - `phylogenetics`: 
@@ -44,10 +69,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - fixed frozen window when running `rfdiffusion`
 - tests:
   - reduce rosetta related tests to minimum nstruct and iterations
+  - default sidechain solver as `Dunbrack Rotamer Library`
 - linting:
   - fixed unnecessary comprehensions
   - fixed list as arguments
-
+  - fixed assertions and unused variables
+  - fixed string formating w/ f-strings
+  - fixed if-else block with early return branch
+  - fixed any/all calls with generator expressions instead of tuple/list comprehensions
+  - fixed `not A == B` to `A != B`
+  - fixed data type construction callings like `tuple()` and `list()` with `()` and `[]`
+  - fixed iterable `isinstance` checks by merging as `isinstance(x, (...))`
+- security vulnerabilities:
+  - fixed `tempfile.mktemp` uses with `tempfile.mkstemp` in `REvoDesignPlugin.reload_molecule_info`
+  - fixed `open` calls with out context stack
+- `MutantTree`: 
+  - fixed `self = mutate_runner.mutated_pdb_mapping(...)` with `updated_self = mutate_runner.mutated_pdb_mapping(...)`
+- ci and tests:
+  - renamed `GITHUB_CONTAINER_ROSETTA_TEST` -> `ENABLE_ROSETTA_CONTAINER_NODE_TEST`: for clarifying testing conditions
+  - renamed `no_rosetta` -> `has_native_rosetta`
+  - renamed `NO_NATIVE_ROSETTA` -> `HAS_NATIVE_ROSETTA`
 
 ### Removed
 - parser: `biolib`-wrapped `pythia-ddg`
@@ -55,6 +96,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - tools: `ModelFetchSetting`
 - shortcuts: 
   - fussy code of `ModelFetchSetting` instances from `rfdiffusion` and `esm1v`
+- client: 
+  - `InterProScaner`: not planned to be used
+- unused imports
 
 ## [1.8.2] - 2025-08-13
 ### Added

@@ -21,7 +21,7 @@ class MutateRunnerAbstract(ThirdPartyModuleAbstract):
     name: str = ""
     installed: bool = False
 
-    weights_preset: Tuple[str, ...] = tuple()
+    weights_preset: Tuple[str, ...] = ()
     default_weight_preset: str = ""
 
     def __init__(self, pdb_file: str):

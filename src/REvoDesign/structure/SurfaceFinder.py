@@ -102,8 +102,7 @@ def findSurfaceResidues(
 
     if not return_selection:
         return sorted(exposed)
-    else:
-        return selNameRes
+    return selNameRes
 
 
 cmd.extend("findSurfaceAtoms", findSurfaceAtoms)

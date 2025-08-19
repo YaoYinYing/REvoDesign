@@ -93,9 +93,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 # http://www.pymolwiki.org/index.php/rotkit
                 target = new_residue_3.upper()
                 p.cmd.wizard("mutagenesis")
-                # cmd.do("refresh_wizard")
                 p.cmd.refresh_wizard()
-                p.cmd.get_wizard().set_mode("%s" % target)
+                p.cmd.get_wizard().set_mode(f"{target}")
                 p.selection = f"/{new_obj_name}//{mut_info.chain_id}/{mut_info.position}"  # type: ignore
                 p.cmd.get_wizard().do_select(p.selection)
                 p.cmd.frame("1")

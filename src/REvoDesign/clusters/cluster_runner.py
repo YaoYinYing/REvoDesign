@@ -68,9 +68,8 @@ class ClusterRunner:
         input_fasta_file = (
             f"{self.PWD}/{self.design_molecule}_{self.design_chain_id}.fasta"
         )
-        open(input_fasta_file, "w").write(
-            f">{self.design_molecule}_{self.design_chain_id}\n{self.design_sequence}"
-        )
+        with open(input_fasta_file, "w") as f:
+            f.write(f">{self.design_molecule}_{self.design_chain_id}\n{self.design_sequence}")
         logging.info(f"Sequence file is saved as {input_fasta_file}")
 
         # output files

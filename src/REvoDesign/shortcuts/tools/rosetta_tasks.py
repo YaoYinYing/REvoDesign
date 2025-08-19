@@ -3,23 +3,154 @@ Shortcut functions on Rosetta-related tasks
 '''
 
 import os
-from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 
 from pymol import cmd
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
+from RosettaPy.app.abc import RosettaAppBase
 from RosettaPy.app.fastrelax import FastRelax
-from RosettaPy.app.pross import PROSS
-from RosettaPy.app.rosettaligand import RosettaLigand
-from RosettaPy.node import Native, NodeClassType, node_picker
+from RosettaPy.app.pross import PROSS as PROSS_Original
+from RosettaPy.app.rosettaligand import RosettaLigand as RosettaLigandOriginal
+from RosettaPy.node import NodeHintT
 
 from REvoDesign import ROOT_LOGGER
+from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.tools.rosetta_utils import read_rosetta_node_config
-from REvoDesign.tools.utils import timing
+from REvoDesign.sidechain.mutate_runner.RosettaMutateRelax import \
+    MutateRelax_worker
+from REvoDesign.tools.rosetta_utils import (copy_rosetta_citation,
+                                            read_rosetta_node_config)
+from REvoDesign.tools.utils import get_cited, timing
 
 logging = ROOT_LOGGER.getChild(__name__)
+
+
+class RosettaLigand(RosettaLigandOriginal, CitableModuleAbstract):
+
+    __bibtex__: dict[str, Union[str, tuple]] = copy_rosetta_citation({
+        "RosettaLigand": """
+@article{https://doi.org/10.1002/prot.21086,
+author = {Meiler, Jens and Baker, David},
+title = {ROSETTALIGAND: Protein–small molecule docking with full side-chain flexibility},
+journal = {Proteins: Structure, Function, and Bioinformatics},
+volume = {65},
+number = {3},
+pages = {538-548},
+keywords = {docking, protein–ligand docking, binding energy, Monte Carlo minimization, ROSETTA},
+doi = {https://doi.org/10.1002/prot.21086},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/prot.21086},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/prot.21086},
+abstract = {Abstract Protein–small molecule docking algorithms provide a means to model the structure of protein–small molecule complexes in structural detail and play an important role in drug development. In recent years the necessity of simulating protein side-chain flexibility for an accurate prediction of the protein–small molecule interfaces has become apparent, and an increasing number of docking algorithms probe different approaches to include protein flexibility. Here we describe a new method for docking small molecules into protein binding sites employing a Monte Carlo minimization procedure in which the rigid body position and orientation of the small molecule and the protein side-chain conformations are optimized simultaneously. The energy function comprises van der Waals (VDW) interactions, an implicit solvation model, an explicit orientation hydrogen bonding potential, and an electrostatics model. In an evaluation of the scoring function the computed energy correlated with experimental small molecule binding energy with a correlation coefficient of 0.63 across a diverse set of 229 protein– small molecule complexes. The docking method produced lowest energy models with a root mean square deviation (RMSD) smaller than 2 Å in 71 out of 100 protein–small molecule crystal structure complexes (self-docking). In cross-docking calculations in which both protein side-chain and small molecule internal degrees of freedom were varied the lowest energy predictions had RMSDs less than 2 Å in 14 of 20 test cases. Proteins 2006. © 2006 Wiley-Liss, Inc.},
+year = {2006}
+}
+    """,
+        'RosettaLigand XML': r"""
+@Inbook{Lemmon2012,
+author="Lemmon, Gordon
+and Meiler, Jens",
+editor="Baron, Riccardo",
+title="Rosetta Ligand Docking with Flexible XML Protocols",
+bookTitle="Computational Drug Discovery and Design",
+year="2012",
+publisher="Springer New York",
+address="New York, NY",
+pages="143--155",
+abstract="RosettaLigand is premiere software for predicting how a protein and a small molecule interact. Benchmark studies demonstrate that 70{\%} of the top scoring RosettaLigand predicted interfaces are within 2{\AA} RMSD from the crystal structure [1]. The latest release of Rosetta ligand software includes many new features, such as (1) docking of multiple ligands simultaneously, (2) representing ligands as fragments for greater flexibility, (3) redesign of the interface during docking, and (4) an XML script based interface that gives the user full control of the ligand docking protocol.",
+isbn="978-1-61779-465-0",
+doi="10.1007/978-1-61779-465-0_10",
+url="https://doi.org/10.1007/978-1-61779-465-0_10"
+}
+
+
+"""
+    })
+
+
+class PROSS(PROSS_Original, CitableModuleAbstract):
+    __bibtex__ = copy_rosetta_citation({
+        'PROSS2': """@article{10.1093/bioinformatics/btaa1071,
+author = {Weinstein, Jonathan Jacob and Goldenzweig, Adi and Hoch, ShlomoYakir and Fleishman, Sarel Jacob},
+title = {PROSS 2: a new server for the design of stable and highly expressed protein variants},
+journal = {Bioinformatics},
+volume = {37},
+number = {1},
+pages = {123-125},
+year = {2020},
+month = {12},
+abstract = {Many natural and designed proteins are only marginally stable limiting their usefulness in research and applications. Recently, we described an automated structure and sequence-based design method, called PROSS, for optimizing protein stability and heterologous expression levels that has since been validated on dozens of proteins. Here, we introduce improvements to the method, workflow and presentation, including more accurate sequence analysis, error handling and automated analysis of the quality of the sequence alignment that is used in design calculations.PROSS2 is freely available for academic use at https://pross.weizmann.ac.il. },
+issn = {1367-4803},
+doi = {10.1093/bioinformatics/btaa1071},
+url = {https://doi.org/10.1093/bioinformatics/btaa1071},
+eprint = {https://academic.oup.com/bioinformatics/article-pdf/37/1/123/50321722/btaa1071.pdf},
+}
+
+""",
+        "PROSS": """
+@article{10.1016/j.molcel.2016.06.012, author = {Goldenzweig, A. and Goldsmith, M. and Hill, S. E. and Gertman, O. and Laurino, P. and Ashani, Y. and Dym, O. and Unger, T. and Albeck, S. and Prilusky, J. and Lieberman, R. L. and Aharoni, A. and Silman, I. and Sussman, J. L. and Tawfik, D. S. and Fleishman, S. J.}, title = {Automated structure- and sequence-based design of proteins for high bacterial expression and stability}, journal = {Molecular Cell}, year = {2016}, volume = {63}, issue = {2}, pages = {337-346}, doi = {10.1016/j.molcel.2016.06.012} }"""
+    })
+
+
+class FastRelaxOpts(FastRelax, CitableModuleAbstract):
+
+    __bibtex__ = MutateRelax_worker.__bibtex__
+
+    @get_cited
+    def run(self, nstruct: int = 8, default_repeats: int = 15,
+            opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
+        """
+        Runs the fast relaxation process using the specified parameters.
+
+        Args:
+            nstruct (int, optional): The number of structures to generate. Defaults to 8.
+            default_repeats (int, optional): The default number of repeats for relaxation. Defaults to 15.
+
+        Returns:
+            RosettaEnergyUnitAnalyser: An object for analyzing the energy units of the generated structures.
+        """
+        if opts is None:
+            opts = []
+        # Configure and run Rosetta for fast relaxation
+        rosetta = Rosetta(
+            bin="relax",
+            opts=[
+                "-in:file:s",
+                os.path.abspath(self.pdb),
+                "-relax:script",
+                self.relax_script,
+                "-relax:default_repeats",
+                str(default_repeats),
+                "-out:prefix",
+                f"{self.instance}_fastrelax_",
+                "-out:file:scorefile",
+                f"{self.instance}_fastrelax.sc",
+                "-score:weights",
+                "ref2015_cart" if self.dualspace else "ref2015",
+                "-relax:dualspace",
+                "true" if self.dualspace else "false",
+            ] + list(opts),
+            save_all_together=True,
+            output_dir=os.path.join(self.save_dir, self.job_id),
+            job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
+            run_node=self.node,
+            verbose=True
+        )
+
+        with timing("FastRelax"):
+            rosetta.run(nstruct=nstruct)
+
+        analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
+        best_hit = analyser.best_decoy
+        pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
+
+        print("Analysis of the best decoy:")
+        print("-" * 79)
+        print(analyser.df.sort_values(by=analyser.score_term))
+
+        print("-" * 79)
+
+        print(f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
+        return analyser
 
 
 def shortcut_rosettaligand(
@@ -52,7 +183,6 @@ def shortcut_rosettaligand(
         start_from_xyz (Optional[Tuple[float, float, float]], optional): Coordinates to start from. Defaults to None.
 
     '''
-    bus = ConfigBus()
 
     node_config = read_rosetta_node_config()
 
@@ -67,13 +197,12 @@ def shortcut_rosettaligand(
         gridwidth=gridwidth,
         chain_id_for_dock=chain_id_for_dock,
         start_from_xyz=start_from_xyz,
-        node=node_picker(
-            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-            **node_config
-        )
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_config=node_config
     )
 
     best_pdb = app.dock(nstruct=nstruct)
+    app.cite()
 
     logging.info(f"RosettaLigand docking finished. Best pdb: {best_pdb}")
 
@@ -100,9 +229,6 @@ def shortcut_pross(
         job_id (str, optional): Job ID for the output files. Defaults to "pross_design".
 
     '''
-    bus = ConfigBus()
-
-    node_config = read_rosetta_node_config()
 
     pross = PROSS(
         pdb=pdb,
@@ -111,10 +237,8 @@ def shortcut_pross(
         res_to_restrict=res_to_restrict,
         save_dir=save_dir,
         job_id=job_id,
-        node=node_picker(
-            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-            **node_config
-        )
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_config=read_rosetta_node_config()
     )
     best_refined = pross.refine(nstruct_refine)
 
@@ -122,6 +246,8 @@ def shortcut_pross(
     best_pdb_path = pross.design(filters=filters, refined_pdb=best_refined, filterscan_dir=filterscan_dir)
 
     logging.info(f"PROSS design finished. Best pdb: {best_pdb_path}")
+
+    pross.cite()
 
 
 def shortcut_fast_relax(
@@ -133,69 +259,7 @@ def shortcut_fast_relax(
         job_id: str = 'fastrelax',
         save_dir: str = 'relaxed',
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
-
-
 ):
-    bus = ConfigBus()
-
-    node_config = read_rosetta_node_config()
-
-    class FastRelaxOpts(FastRelax):
-        def run(self, nstruct: int = 8, default_repeats: int = 15,
-                relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
-            """
-            Runs the fast relaxation process using the specified parameters.
-
-            Args:
-                nstruct (int, optional): The number of structures to generate. Defaults to 8.
-                default_repeats (int, optional): The default number of repeats for relaxation. Defaults to 15.
-
-            Returns:
-                RosettaEnergyUnitAnalyser: An object for analyzing the energy units of the generated structures.
-            """
-            if relax_opts is None:
-                relax_opts = []
-            # Configure and run Rosetta for fast relaxation
-            rosetta = Rosetta(
-                bin="relax",
-                opts=[
-                    "-in:file:s",
-                    os.path.abspath(self.pdb),
-                    "-relax:script",
-                    self.relax_script,
-                    "-relax:default_repeats",
-                    str(default_repeats),
-                    "-out:prefix",
-                    f"{self.instance}_fastrelax_",
-                    "-out:file:scorefile",
-                    f"{self.instance}_fastrelax.sc",
-                    "-score:weights",
-                    "ref2015_cart" if self.dualspace else "ref2015",
-                    "-relax:dualspace",
-                    "true" if self.dualspace else "false",
-                ] + relax_opts,
-                save_all_together=True,
-                output_dir=os.path.join(self.save_dir, self.job_id),
-                job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
-                run_node=self.node,
-                verbose=True
-            )
-
-            with timing("FastRelax"):
-                rosetta.run(nstruct=nstruct)
-
-            analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
-            best_hit = analyser.best_decoy
-            pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
-
-            print("Analysis of the best decoy:")
-            print("-" * 79)
-            print(analyser.df.sort_values(by=analyser.score_term))
-
-            print("-" * 79)
-
-            print(f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
-            return analyser
 
     fast_relax = FastRelaxOpts(
         pdb=pdb,
@@ -203,15 +267,14 @@ def shortcut_fast_relax(
         dualspace=dualspace,
         job_id=job_id,
         save_dir=save_dir,
-        node=node_picker(
-            node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-            **node_config)
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_config=read_rosetta_node_config()
     )
 
     analyser = fast_relax.run(
         nstruct=nstruct,
         default_repeats=default_repeats,
-        relax_opts=relax_opts,
+        opts=relax_opts,
     )
 
     best_relaxed_decoy = analyser.best_decoy
@@ -219,19 +282,29 @@ def shortcut_fast_relax(
     logging.info(f"FastRelax finished. Best decoy: {best_relaxed_decoy}")
 
 
-@dataclass
-class RelaxWithCaConstraints:
+class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
 
-    pdb: str
-    node: NodeClassType = field(default_factory=Native)
-    nstructs_per_round: int = 1
-    ncycles: int = 10
-    save_dir: str = "tests/outputs"
-    job_id: str = "relax_w_ca_constraints"
-    relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None
+    __bibtex__ = MutateRelax_worker.__bibtex__
 
-    def __post_init__(self):
-        self.relax_opts = self.relax_opts or []
+    def __init__(
+            self,
+            pdb: str,
+            job_id: str = "relax_w_ca_constraints",
+            save_dir: str = "tests/outputs",
+            user_opts: Optional[List[str]] = None,
+            node_hint: NodeHintT = "native",
+            node_config: Optional[Mapping[str, Any]] = None,
+            nstructs_per_round: int = 1,
+            ncycles: int = 10,
+            relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
+            **kwargs):
+        super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
+
+        self.pdb = pdb
+        self.nstructs_per_round = nstructs_per_round
+        self.ncycles = ncycles
+
+        self.relax_opts = relax_opts or []
 
     def run_a_round(self, round_id: int, newpdb: str) -> str:
         rosetta = Rosetta(
@@ -249,7 +322,7 @@ class RelaxWithCaConstraints:
                 '-flip_HNQ',
                 '-no_optH', 'false',
                 '-in:file:s', os.path.abspath(newpdb)
-            ] + self.relax_opts,  # type: ignore
+            ] + self.relax_opts,
             save_all_together=True, output_dir=os.path.join(self.save_dir, self.job_id),
             job_id=f'{self.job_id}_round_{round_id}',
             run_node=self.node,
@@ -272,6 +345,7 @@ class RelaxWithCaConstraints:
         print(f'Best Hit on this Relax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
         return pdb_path
 
+    @get_cited
     def run(self, load_to_preview: bool = False):
 
         new_pdb_path = self.pdb
@@ -294,22 +368,16 @@ def shortcut_relax_w_ca_constraints(
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
         load_to_preview=False,
 ):
-    bus = ConfigBus()
-
-    node_config = read_rosetta_node_config()
-
-    node = node_picker(
-        node_type=bus.get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-        **node_config)
 
     app = RelaxWithCaConstraints(
         pdb=pdb,
-        node=node,
         nstructs_per_round=nstructs_per_round,
         ncycles=ncycles,
         save_dir=save_dir,
         job_id=job_id,
         relax_opts=relax_opts,
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_config=read_rosetta_node_config()
     )
 
     final_pdb = app.run(load_to_preview)

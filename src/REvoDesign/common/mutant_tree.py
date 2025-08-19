@@ -486,14 +486,14 @@ class MutantTree:
         if branch_id not in self.all_mutant_branch_ids:
             print(f"Could not find a branch with the specified id {branch_id}")
             return
-        elif self.is_this_branch_empty(branch_id):
+        if self.is_this_branch_empty(branch_id):
             print(f"Branch {branch_id} is empty")
             return
-        else:
-            self.current_branch_id = branch_id
-            self.current_mutant_id = list(
-                self.mutant_tree[self.current_branch_id].keys()
-            )[0]
+
+        self.current_branch_id = branch_id
+        self.current_mutant_id = list(
+            self.mutant_tree[self.current_branch_id].keys()
+        )[0]
 
     def list_mutants(self) -> List[MutantDict]:
         if self.empty:
@@ -609,7 +609,7 @@ class MutantTree:
         self,
         mutate_runner: MutateRunner,
         nproc: int = 2,
-    ) -> None:
+    ) -> 'MutantTree':
         with joblib_progress(
             "Packing ...", total=len(self.all_mutant_objects)
         ):
@@ -617,7 +617,8 @@ class MutantTree:
                 mutants=self.all_mutant_objects, nproc=nproc
             )
 
-        self = mutate_runner.mutated_pdb_mapping(
+        updated_self = mutate_runner.mutated_pdb_mapping(
             mutant_tree=self, pdb_fps=all_mutants_pdb_fp
         )
         mutate_runner.cite()
+        return updated_self

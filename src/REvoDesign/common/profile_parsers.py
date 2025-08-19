@@ -281,11 +281,11 @@ class CSVProfileParser(ProfileParserAbstract):
             logging.debug("Profile data matches default format.")
 
             return df
-        else:
-            logging.debug(
-                f"Failed to process profile data {self.profile_input}.."
-            )
-            raise issues.InvalidInputError(f"Failed to process profile data {self.profile_input}..")
+
+        logging.debug(
+            f"Failed to process profile data {self.profile_input}.."
+        )
+        raise issues.InvalidInputError(f"Failed to process profile data {self.profile_input}..")
 
 
 # TODO this may not work

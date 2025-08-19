@@ -40,4 +40,5 @@ class ConfigStore(SingletonAbstract):
         """
         Resets the configuration store to an empty state.
         """
+        # skipcq: PYL-W0201
         self.cfg = DictConfig({})  # Reset the configuration to an empty DictConfig

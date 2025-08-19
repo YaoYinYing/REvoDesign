@@ -10,13 +10,14 @@ from Bio.Data import IUPACData
 from RosettaPy.app.cart_ddg import CartesianDDG
 from RosettaPy.common.mutation import (Mutation, RosettaPyProteinSequence,
                                        mutants2mutfile)
-from RosettaPy.node import NodeHintT, node_picker
+from RosettaPy.node import NodeHintT
 
 from REvoDesign import ConfigBus
 from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-from REvoDesign.tools.rosetta_utils import (is_run_node_available,
+from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
+                                            copy_rosetta_citation,
                                             read_rosetta_node_config)
 
 
@@ -38,7 +39,8 @@ def preprocess_ddg_values(ddg_value_df) -> Dict[str, float]:
 class ddg(ExternalDesignerAbstract):
 
     name = "Cartesian-ddG"
-    installed = True
+    # the class variable installed is set to True if rosetta is installed as any node
+    installed = IS_ROSETTA_RUNNABLE
 
     scorer_only = True
     no_need_to_score_wt = True
@@ -51,9 +53,8 @@ class ddg(ExternalDesignerAbstract):
 
         # Qt is unpickable
         bus: ConfigBus = ConfigBus()
-        self.node_hint: Optional[NodeHintT] = bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
+        self.node_hint: NodeHintT = bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
 
-        self.installed = is_run_node_available(self.node_hint)
         self.pdb_filename = None
         self.initialized = False
 
@@ -85,7 +86,8 @@ class ddg(ExternalDesignerAbstract):
             pdb=self.unrelaxed_pdb,
             save_dir="cart_ddg_results",
             job_id=self.molecule,
-            node=node_picker(self.node_hint, **self.node_config),
+            node_hint=self.node_hint,
+            node_config=self.node_config,
         )
 
         # skip relax if it has been done
@@ -157,7 +159,7 @@ class ddg(ExternalDesignerAbstract):
 
         return float(updated_mutant[0].mutant_score)
 
-    __bibtex__ = {
+    __bibtex__ = copy_rosetta_citation({
         "Cartesian-ddG": """@article{doi:10.1021/acs.jctc.6b00819,
 author = {Park, Hahnbeom and Bradley, Philip and Greisen, Per Jr. and Liu, Yuan and Mulligan, Vikram Khipple and Kim, David E. and Baker, David and DiMaio, Frank},
 title = {Simultaneous Optimization of Biomolecular Energy Functions on Features from Small Molecules and Macromolecules},
@@ -172,4 +174,4 @@ URL = {https://doi.org/10.1021/acs.jctc.6b00819},
 eprint = {https://doi.org/10.1021/acs.jctc.6b00819}
 }
 """
-    }
+    })

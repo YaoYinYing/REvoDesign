@@ -9,6 +9,7 @@ import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 from immutabledict import immutabledict
 from pymol import cmd, get_version_message
 from pymol.parsing import QuietException
@@ -211,50 +212,46 @@ def is_distal_residue_pair(
         resn == "G" for resn in [resn_1, resn_2]
     ):
         return Ca_distance > minimal_distance
-    else:
-        import numpy as np
 
-        # Construct strings representing sidechain atoms of the two residues
-        SC_atoms_1 = f"{molecule} and c. {chain_id} and i. {resi_1} and sidechain and not hydrogen"
-        SC_atoms_2 = f"{molecule} and c. {chain_id} and i. {resi_2} and sidechain and not hydrogen"
+    # Construct strings representing sidechain atoms of the two residues
+    SC_atoms_1 = f"{molecule} and c. {chain_id} and i. {resi_1} and sidechain and not hydrogen"
+    SC_atoms_2 = f"{molecule} and c. {chain_id} and i. {resi_2} and sidechain and not hydrogen"
 
-        # Get coordinates of CA and Sidechain  atoms
-        Ca_atom_1_coord = np.array(cmd.get_coords(Ca_atom_1)[0])
-        Ca_atom_2_coord = np.array(cmd.get_coords(Ca_atom_2)[0])
-        SC_COM_1 = np.array(cmd.centerofmass(SC_atoms_1))
-        SC_COM_2 = np.array(cmd.centerofmass(SC_atoms_2))
+    # Get coordinates of CA and Sidechain  atoms
+    Ca_atom_1_coord = np.array(cmd.get_coords(Ca_atom_1)[0])
+    Ca_atom_2_coord = np.array(cmd.get_coords(Ca_atom_2)[0])
+    SC_COM_1 = np.array(cmd.centerofmass(SC_atoms_1))
+    SC_COM_2 = np.array(cmd.centerofmass(SC_atoms_2))
 
-        # Calculate the orientation of the side chains
-        sidechain_orient = np.dot(
-            SC_COM_1 - Ca_atom_1_coord, SC_COM_2 - Ca_atom_2_coord
-        )
-        sidechain_com_dist = abs(np.linalg.norm(SC_COM_1 - SC_COM_2))
+    # Calculate the orientation of the side chains
+    sidechain_orient = np.dot(
+        SC_COM_1 - Ca_atom_1_coord, SC_COM_2 - Ca_atom_2_coord
+    )
+    sidechain_com_dist = abs(np.linalg.norm(SC_COM_1 - SC_COM_2))
 
-        # Check if the side chains are oriented in opposite directions
-        if sidechain_orient < 0:
-            if sidechain_com_dist >= Ca_distance:
-                # /-------------\
-                # *---Ca   Ca---*
-                logging.warning(
-                    f"Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal."
-                )
-                return True
-            else:
-                #       /--\
-                # Ca---*    *---Ca
-                logging.warning(f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, '
-                                f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
-                return sidechain_com_dist > minimal_distance
-        else:
-            logging.warning(f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, '
-                            f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
-            # Ca---*
-            #        \
-            #         \
-            #          \
-            #      Ca---*
-            # Check if sidechain distance is greater than the minimal distance
-            return sidechain_com_dist > minimal_distance
+    # Check if the side chains are oriented in opposite directions
+    if sidechain_orient < 0:
+        if sidechain_com_dist >= Ca_distance:
+            # /-------------\
+            # *---Ca   Ca---*
+            logging.warning(
+                f"Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal."
+            )
+            return True
+        #       /--\
+        # Ca---*    *---Ca
+        logging.warning(f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, '
+                        f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
+        return sidechain_com_dist > minimal_distance
+    logging.warning(f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, '
+                    f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
+    # Ca---*
+    #        \
+    #         \
+    #          \
+    #      Ca---*
+    # Check if sidechain distance is greater than the minimal distance
+    return sidechain_com_dist > minimal_distance
 
 
 def renumber_chain_ids(target_protein):
@@ -323,8 +320,7 @@ def get_molecule_sequence(molecule, chain_id, keep_missing=True):
                 offset -= 1
 
         return "".join(resn)
-    else:
-        return "".join([protein_letters_3to1_upper[atom.resn] for atom in CA])
+    return "".join([protein_letters_3to1_upper[atom.resn] for atom in CA])
 
 
 def get_atom_pair_cst(selection="sele"):
@@ -346,9 +342,8 @@ def get_atom_pair_cst(selection="sele"):
             f"Atom pair selection {selection} must contain exactly 2 atoms!"
         )
         return
-    else:
-        cst = f"AtomPair {_s[0].name} {_s[0].resi}{_s[0].chain} {_s[1].name} {_s[1].resi}{_s[1].chain} HARMONIC 3 0.5"
-        return cst
+    cst = f"AtomPair {_s[0].name} {_s[0].resi}{_s[0].chain} {_s[1].name} {_s[1].resi}{_s[1].chain} HARMONIC 3 0.5"
+    return cst
 
 
 def autogrid_flexible_residue(molecule, chain_id, selection):

@@ -160,7 +160,6 @@ class CoevolvedPair:
         all_res_pairs = {
             cc: self.res_pair(chain_pair=cc) for cc in self.homochains_dist
         }
-        # logging.debug(f'{all_res_pairs=}')
         return all_res_pairs
 
     @property
@@ -169,7 +168,6 @@ class CoevolvedPair:
             cc: self.res_pair_selection(chain_pair=cc)
             for cc in self.homochains_dist
         }
-        # logging.debug(f'{all_res_pairs_selections}')
         return all_res_pairs_selections
 
     @property
@@ -220,15 +218,14 @@ class GREMLIN_Tools(CitableModuleAbstract):
         if not self.sequence:
             raise issues.NoInputError(f"Sequence not valid: {self.sequence}")
 
-        elif not os.path.exists(mrf_path):
+        if not os.path.exists(mrf_path):
             raise issues.InvalidInputError(
                 f"Could not find GREMLIN mrf file: {mrf_path}"
             )
 
-        else:
-            logging.info("GREMLIN mrf is loading ...")
-            self.mrf = self.load_mrf(mrf_path)
-            logging.info("Done")
+        logging.info("GREMLIN mrf is loading ...")
+        self.mrf = self.load_mrf(mrf_path)
+        logging.info("Done")
 
     # Other initialization tasks can go here
     # Yinying Note here that all of these following methods are copied from the original GREMLIN with tfv1.

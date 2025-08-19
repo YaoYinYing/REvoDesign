@@ -11,7 +11,7 @@ on:
 
 env: 
   conda_env: REvoDesign
-  GITHUB_CONTAINER_ROSETTA_TEST: "YES" # Github Actions: run python against container node
+  ENABLE_ROSETTA_CONTAINER_NODE_TEST: "YES" # Github Actions: run python against container node
 
 jobs:
   BareTests:
