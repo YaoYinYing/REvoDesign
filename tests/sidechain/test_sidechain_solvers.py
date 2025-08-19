@@ -1,4 +1,3 @@
-
 import pytest
 from pymol import cmd
 
@@ -13,8 +12,9 @@ MOLECULE = '3fap_hf3_A_short'
 MUTANTS: list[Mutant] = [Mutant(**m.__dict__) for m in Mutant.from_pdb(WT_PDB, [MUT_PDB])]
 mutant_string = MUTANTS[0].full_mutant_id
 
+
 class TestSidechainSolver:
-    
+
     @pytest.fixture(autouse=True)
     def setup_pymol(self):
         """Auto-used fixture to load PDB file before each test"""
@@ -23,7 +23,7 @@ class TestSidechainSolver:
     def _run_mutate_test(self, runner, init_kwargs, mutant=MUTANTS[0]):
         """
         Common test logic for all mutate runners
-        
+
         Parameters:
             runner: The mutate runner class to test
             init_kwargs: Initialization arguments for the runner

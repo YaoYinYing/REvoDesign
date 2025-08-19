@@ -291,6 +291,7 @@ abstract = {We have recently completed a full rearchitecturing of the Rosetta mo
 @article{10.1021/acs.jctc.7b00125, author = {Alford, R. F. and Leaver‐Fay, A. and Jeliazkov, J. R. and O’Meara, M. J. and DiMaio, F. and Park, H. and Shapovalov, M. V. and Renfrew, P. D. and Mulligan, V. K. and Kappel, K. and Labonte, J. W. and Pacella, M. S. and Bonneau, R. and Bradley, P. and Dunbrack, R. L. and Das, R. and Baker, D. and Kuhlman, B. and Kortemme, T. and Gray, J. J.}, title = {The rosetta all-atom energy function for macromolecular modeling and design}, journal = {Journal of Chemical Theory and Computation}, year = {2017}, volume = {13}, issue = {6}, pages = {3031-3048}, doi = {10.1021/acs.jctc.7b00125} }"""
 }
 
+
 def copy_rosetta_citation(citetation: dict[str, Union[str, tuple]]) -> dict[str, Union[str, tuple]]:
     """
     Copy Rosetta citation information and update with custom citation content
