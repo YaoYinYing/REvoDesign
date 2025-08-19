@@ -60,10 +60,10 @@ class TestSidechainSolver:
 
         cmd.load(WT_PDB)
         from RosettaPy.node import node_picker
-        with patch('REvoDesign.sidechain.mutate_runner.RosettaMutateRelax.node_picker') as patch_node_picker, patch('REvoDesign.sidechain.mutate_runner.RosettaMutateRelax.read_rosetta_node_config') as patched_read_rosetta_node_config:
+        with patch('REvoDesign.sidechain.mutate_runner.RosettaMutateRelax.ConfigBus') as patch_bus, patch('REvoDesign.sidechain.mutate_runner.RosettaMutateRelax.read_rosetta_node_config') as patched_read_rosetta_node_config:
             patched_read_rosetta_node_config.return_value = ConfigConverter.convert(reload_config_file(
                 f'rosetta-node/{test_node_hint}')['rosetta-node']['node_config'])
-            patch_node_picker.return_value = node_picker(
+            patch_bus.get_value.return_value = node_picker(
                 test_node_hint, **patched_read_rosetta_node_config.return_value)
 
             warnings.warn(RuntimeWarning(

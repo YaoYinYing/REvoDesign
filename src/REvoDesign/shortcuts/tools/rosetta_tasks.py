@@ -91,6 +91,68 @@ eprint = {https://academic.oup.com/bioinformatics/article-pdf/37/1/123/50321722/
     })
 
 
+class FastRelaxOpts(FastRelax, CitableModuleAbstract):
+
+    __bibtex__ = MutateRelax_worker.__bibtex__
+
+    @get_cited
+    def run(self, nstruct: int = 8, default_repeats: int = 15,
+            opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
+        """
+        Runs the fast relaxation process using the specified parameters.
+
+        Args:
+            nstruct (int, optional): The number of structures to generate. Defaults to 8.
+            default_repeats (int, optional): The default number of repeats for relaxation. Defaults to 15.
+
+        Returns:
+            RosettaEnergyUnitAnalyser: An object for analyzing the energy units of the generated structures.
+        """
+        if opts is None:
+            opts = []
+        # Configure and run Rosetta for fast relaxation
+        rosetta = Rosetta(
+            bin="relax",
+            opts=[
+                "-in:file:s",
+                os.path.abspath(self.pdb),
+                "-relax:script",
+                self.relax_script,
+                "-relax:default_repeats",
+                str(default_repeats),
+                "-out:prefix",
+                f"{self.instance}_fastrelax_",
+                "-out:file:scorefile",
+                f"{self.instance}_fastrelax.sc",
+                "-score:weights",
+                "ref2015_cart" if self.dualspace else "ref2015",
+                "-relax:dualspace",
+                "true" if self.dualspace else "false",
+            ] + list(opts),
+            save_all_together=True,
+            output_dir=os.path.join(self.save_dir, self.job_id),
+            job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
+            run_node=self.node,
+            verbose=True
+        )
+
+        with timing("FastRelax"):
+            rosetta.run(nstruct=nstruct)
+
+        analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
+        best_hit = analyser.best_decoy
+        pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
+
+        print("Analysis of the best decoy:")
+        print("-" * 79)
+        print(analyser.df.sort_values(by=analyser.score_term))
+
+        print("-" * 79)
+
+        print(f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
+        return analyser
+
+
 def shortcut_rosettaligand(
         pdb: str,
         ligands: List[str],
@@ -198,67 +260,6 @@ def shortcut_fast_relax(
         save_dir: str = 'relaxed',
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
 ):
-
-    class FastRelaxOpts(FastRelax, CitableModuleAbstract):
-
-        __bibtex__ = MutateRelax_worker.__bibtex__
-
-        @get_cited
-        def run(self, nstruct: int = 8, default_repeats: int = 15,
-                opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
-            """
-            Runs the fast relaxation process using the specified parameters.
-
-            Args:
-                nstruct (int, optional): The number of structures to generate. Defaults to 8.
-                default_repeats (int, optional): The default number of repeats for relaxation. Defaults to 15.
-
-            Returns:
-                RosettaEnergyUnitAnalyser: An object for analyzing the energy units of the generated structures.
-            """
-            if opts is None:
-                opts = []
-            # Configure and run Rosetta for fast relaxation
-            rosetta = Rosetta(
-                bin="relax",
-                opts=[
-                    "-in:file:s",
-                    os.path.abspath(self.pdb),
-                    "-relax:script",
-                    self.relax_script,
-                    "-relax:default_repeats",
-                    str(default_repeats),
-                    "-out:prefix",
-                    f"{self.instance}_fastrelax_",
-                    "-out:file:scorefile",
-                    f"{self.instance}_fastrelax.sc",
-                    "-score:weights",
-                    "ref2015_cart" if self.dualspace else "ref2015",
-                    "-relax:dualspace",
-                    "true" if self.dualspace else "false",
-                ] + list(opts),
-                save_all_together=True,
-                output_dir=os.path.join(self.save_dir, self.job_id),
-                job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
-                run_node=self.node,
-                verbose=True
-            )
-
-            with timing("FastRelax"):
-                rosetta.run(nstruct=nstruct)
-
-            analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
-            best_hit = analyser.best_decoy
-            pdb_path = os.path.join(rosetta.output_pdb_dir, f'{best_hit["decoy"]}.pdb')
-
-            print("Analysis of the best decoy:")
-            print("-" * 79)
-            print(analyser.df.sort_values(by=analyser.score_term))
-
-            print("-" * 79)
-
-            print(f'Best Hit on this FastRelax run: {best_hit["decoy"]} - {best_hit["score"]}: {pdb_path}')
-            return analyser
 
     fast_relax = FastRelaxOpts(
         pdb=pdb,

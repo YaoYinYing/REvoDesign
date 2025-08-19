@@ -83,7 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - fixed `open` calls with out context stack
 - `MutantTree`: 
   - fixed `self = mutate_runner.mutated_pdb_mapping(...)` with `updated_self = mutate_runner.mutated_pdb_mapping(...)`
-
+- ci and tests:
+  - renamed `GITHUB_CONTAINER_ROSETTA_TEST` -> `ENABLE_ROSETTA_CONTAINER_NODE_TEST`: for clarifying testing conditions
+  - renamed `no_rosetta` -> `has_native_rosetta`
+  - renamed `NO_NATIVE_ROSETTA` -> `HAS_NATIVE_ROSETTA`
 
 ### Removed
 - parser: `biolib`-wrapped `pythia-ddg`
