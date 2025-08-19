@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `format_as` to format mutation according to the template -> shipped to `RosettaPy==0.2.13` 
 - citation items: Rosetta-related functions
 - config:
-  - `rosetta.opts.general`: support additional options from user
+  - `rosetta.opts.general`: support additional options from user. default is `-ignore_unrecognized_res`
 - utils:
   - `rosetta_utils`:
     - `is_rosetta_runnable`: global checkers for Rosetta availability, cached as `IS_ROSETTA_RUNNABLE`
@@ -54,7 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - adapted to API changes in `RosettaPy==0.2.13`
   - wrappers inherit from `CitableModuleAbstract` to add citation
 - tests:
-  - `test_rosetta_tasks`: output dirs named as `{test_case}/{job_id}/{test_node_hint}` patten
+  - added all rosetta task tests to class `TestRosettaTasks`
+  - `TestRosettaTasks`: output dirs named as `{test_case}/{job_id}/{test_node_hint}` patten
+  - reduced test batch size of `TestRosettaTasks` so that tests run faster when parallel workers are used
   - added Rosetta tests to non-`serial` tests, as we mocked out node_hint and node config fetchings.
 
 ### Fixed
