@@ -17,7 +17,8 @@ from RosettaPy.node import NodeHintT
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.citations import CitableModuleAbstract
 from REvoDesign.driver.ui_driver import ConfigBus
-from REvoDesign.tools.rosetta_utils import copy_rosetta_citation, read_rosetta_node_config
+from REvoDesign.tools.rosetta_utils import (copy_rosetta_citation,
+                                            read_rosetta_node_config)
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -25,7 +26,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 class RosettaLigand(RosettaLigandOriginal, CitableModuleAbstract):
 
-    __bibtex__:dict[str, Union[str, tuple]] =copy_rosetta_citation({
+    __bibtex__: dict[str, Union[str, tuple]] = copy_rosetta_citation({
         "RosettaLigand": """
 @article{https://doi.org/10.1002/prot.21086,
 author = {Meiler, Jens and Baker, David},
@@ -42,7 +43,7 @@ abstract = {Abstract Protein–small molecule docking algorithms provide a means
 year = {2006}
 }
     """,
-    'RosettaLigand XML': """
+        'RosettaLigand XML': r"""
 @Inbook{Lemmon2012,
 author="Lemmon, Gordon
 and Meiler, Jens",
@@ -65,7 +66,7 @@ url="https://doi.org/10.1007/978-1-61779-465-0_10"
 
 
 class PROSS(PROSS_Original, CitableModuleAbstract):
-    __bibtex__=copy_rosetta_citation({
+    __bibtex__ = copy_rosetta_citation({
         'PROSS2': """@article{10.1093/bioinformatics/btaa1071,
 author = {Weinstein, Jonathan Jacob and Goldenzweig, Adi and Hoch, ShlomoYakir and Fleishman, Sarel Jacob},
 title = {PROSS 2: a new server for the design of stable and highly expressed protein variants},
@@ -83,7 +84,7 @@ eprint = {https://academic.oup.com/bioinformatics/article-pdf/37/1/123/50321722/
 }
 
 """,
-    "PROSS": """
+        "PROSS": """
 @article{10.1016/j.molcel.2016.06.012, author = {Goldenzweig, A. and Goldsmith, M. and Hill, S. E. and Gertman, O. and Laurino, P. and Ashani, Y. and Dym, O. and Unger, T. and Albeck, S. and Prilusky, J. and Lieberman, R. L. and Aharoni, A. and Silman, I. and Sussman, J. L. and Tawfik, D. S. and Fleishman, S. J.}, title = {Automated structure- and sequence-based design of proteins for high bacterial expression and stability}, journal = {Molecular Cell}, year = {2016}, volume = {63}, issue = {2}, pages = {337-346}, doi = {10.1016/j.molcel.2016.06.012} }"""
     })
 
@@ -277,22 +278,22 @@ def shortcut_fast_relax(
 class RelaxWithCaConstraints(RosettaAppBase):
 
     def __init__(
-                self, 
-                pdb: str,
-                job_id: str = "relax_w_ca_constraints", 
-                save_dir: str = "tests/outputs", 
-                user_opts: Optional[List[str]] = None, 
-                node_hint: NodeHintT = "native", 
-                node_config: Optional[Mapping[str, Any]] = None, 
-                nstructs_per_round: int = 1,
-                ncycles: int = 10,
-                relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
-             **kwargs):
+            self,
+            pdb: str,
+            job_id: str = "relax_w_ca_constraints",
+            save_dir: str = "tests/outputs",
+            user_opts: Optional[List[str]] = None,
+            node_hint: NodeHintT = "native",
+            node_config: Optional[Mapping[str, Any]] = None,
+            nstructs_per_round: int = 1,
+            ncycles: int = 10,
+            relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
+            **kwargs):
         super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
         self.pdb = pdb
-        self.nstructs_per_round=nstructs_per_round
-        self.ncycles=ncycles
+        self.nstructs_per_round = nstructs_per_round
+        self.ncycles = ncycles
 
         self.relax_opts = relax_opts or []
 
@@ -365,7 +366,7 @@ def shortcut_relax_w_ca_constraints(
         save_dir=save_dir,
         job_id=job_id,
         relax_opts=relax_opts,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True), # type: ignore
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
         node_config=read_rosetta_node_config()
     )
 

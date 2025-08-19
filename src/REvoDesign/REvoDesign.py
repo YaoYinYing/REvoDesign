@@ -15,7 +15,6 @@ from typing import Any, Optional
 
 from omegaconf import OmegaConf
 from pymol import cmd
-
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 import REvoDesign
@@ -1532,7 +1531,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                         "Server is already in running state. Do nothing."
                     )
                     return
-                
+
                 logging.info("Server is launching...")
                 self.setup_ws_server()
 

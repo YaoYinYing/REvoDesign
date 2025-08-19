@@ -219,7 +219,7 @@ class MutantVisualizer:
             return pd.read_csv(
                 self.mutfile, sep="\t", names=[self.key_col]
             )
-        if self.mutfile.lower().endswith((".xlsx",".xls")):
+        if self.mutfile.lower().endswith((".xlsx", ".xls")):
             # Read mutation data from Excel file using pandas
             return pd.read_excel(self.mutfile)
         if self.mutfile.lower().endswith(".tsv"):

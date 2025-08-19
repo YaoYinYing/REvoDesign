@@ -5,7 +5,6 @@ Module for handling mutants.
 import hashlib
 import os
 from dataclasses import dataclass
-from string import Template
 from typing import TypeVar, Union
 
 from RosettaPy.common.mutation import Chain

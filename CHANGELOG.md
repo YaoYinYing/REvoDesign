@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `install-dgl-linux`: for ci, linux, rfdiffusion
 - `sidechain_solver`: `MutateRelax_worker`
 - `Mutant`: 
-  - `format_as` to format mutation according to the template
+  - `format_as` to format mutation according to the template -> shipped to `RosettaPy==0.2.13` 
 
 ### Changed
 - tools:
