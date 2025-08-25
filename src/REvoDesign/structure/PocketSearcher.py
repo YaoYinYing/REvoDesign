@@ -49,14 +49,14 @@ class PocketSearcher:
             2. Descriptive text with residue name listed and prefixed with 'r.'.
         """
         if not selection:
-            # If the input string is empty, return two empty strings.
+            
             return "", ""
         if "," not in selection:
-            # If there are no commas in the input, return the input as is and a formatted version.
+            
             return selection, f"r. {selection}"
-        # Remove spaces and split the input string by commas.
+        
         _sele = selection.replace(" ", "").split(",")
-        # Join the elements with underscores and create a descriptive string.
+        
         return "_".join([_sel for _sel in _sele]), " or ".join(
             [f"r. {_sel}" for _sel in _sele]
         )
@@ -115,12 +115,12 @@ class PocketSearcher:
             atoms = cmd.get_model(i)
             resi = list({int(atom.resi) for atom in atoms.atom})
             resi.sort()
-            # Save pocket residue records
+            
             pocket_filename = os.path.join(
                 self.save_dir, f"{self.molecule}_{i}_residues.txt"
             )
             os.makedirs(os.path.dirname(pocket_filename), exist_ok=True)
             with open(pocket_filename, "w") as f:
                 f.write(",".join(map(str, resi)))
-        # Save the session
+        
         cmd.save(self.output_pse)

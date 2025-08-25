@@ -20,9 +20,6 @@ from ...logger import ROOT_LOGGER
 from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
 logging = ROOT_LOGGER.getChild(__name__)
-# -----------------------
-# Whitelist Management
-# -----------------------
 def get_file_whitelist():
     """
     Retrieve the editable and readonly file whitelists.
@@ -42,7 +39,7 @@ def get_file_whitelist():
         notebookfile = os.path.join(
             notebookfile_dir, "REvoDesign.notebook.log"
         )
-    # Example hardcoded lists:
+    
     editable_files = (
         REVODESIGN_CONFIG_FILE,
     )
@@ -61,24 +58,18 @@ def is_file_allowed(file_path: Path, require_editable=False):
     if require_editable:
         return abs_path in editable_files
     return abs_path in editable_files or abs_path in readonly_files
-# -----------------------
-# Rate Limiting Setup
-# -----------------------
 failed_attempts = defaultdict(list)
 MAX_FAILURES = 5
-TIME_WINDOW = 60  # seconds
+TIME_WINDOW = 60  
 def record_failure(request: Request):
     ip = request.client.host if request.client else "unknown"
     now = time.time()
     failed_attempts[ip].append(now)
-    # Remove outdated entries
+    
     failed_attempts[ip] = [t for t in failed_attempts[ip] if now - t < TIME_WINDOW]
 def should_block(request: Request):
     ip = request.client.host if request.client else "unknown"
     return len(failed_attempts[ip]) >= MAX_FAILURES
-# -----------------------
-# Token Management
-# -----------------------
 def initialize_token() -> str:
     config_store = ConfigStore()
     SECRET_TOKEN = secrets.token_urlsafe(32)
@@ -91,7 +82,6 @@ def get_token() -> str:
 def distruct_token() -> None:
     config_store = ConfigStore()
     config_store.reset()
-# Token-based security
 security = HTTPBearer()
 def verify_token(token: str, request: Request):
     client_ip = request.client.host if request.client else "unknown"
@@ -104,21 +94,18 @@ def verify_token(token: str, request: Request):
     if (not no_token) and token != expected_token:
         record_failure(request)
         raise HTTPException(status_code=401, detail="Unauthorized")
-# -----------------------
-# Application Lifecycle
-# -----------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     config_store = ConfigStore()
     html_dir = config_store.get("editor.backend.html_dir")
     if not html_dir:
         warnings.warn(issues.MissingExternalTool("Monaco Editor is not ready."))
-        # ensure monaco editor is ready
+        
         ensure_monaco()
-        # re-fetch the updated value from config store
+        
         html_dir = config_store.get("editor.backend.html_dir")
     app.mount("/static", StaticFiles(directory=html_dir), name="static")
-    # Load and store whitelists at application startup
+    
     editable_files, readonly_files = get_file_whitelist()
     config_store.set("monaco.file_whitelist.editable", editable_files)
     config_store.set("monaco.file_whitelist.readonly", readonly_files)
@@ -127,9 +114,6 @@ async def lifespan(app: FastAPI):
     config_store.reset()
     print("Application shutdown complete.")
 app = FastAPI(lifespan=lifespan)
-# -----------------------
-# Routes
-# -----------------------
 @app.get("/favicon.svg", include_in_schema=False)
 async def favicon():
     this_file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -146,7 +130,7 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
     """
     verify_token(token, request)
     config_store = ConfigStore()
-    # Validate the file path and ensure it's allowed for editing
+    
     target_file = Path(file_path)
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
@@ -154,13 +138,13 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
     if not target_file.exists():
         record_failure(request)
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
-    # Serve the editor HTML
+    
     html_template_path = os.path.join(config_store.get("editor.backend.html_dir"), 'index.html')
     if not os.path.exists(html_template_path):
         raise HTTPException(status_code=500, detail=f"Editor HTML template not found: {html_template_path}.")
     with open(html_template_path) as html_file:
         editor_html = html_file.read()
-    # Escape file path before injecting to prevent XSS
+    
     safe_file_path = escape(str(target_file.resolve()))
     editor_html = editor_html.replace("{{file_path}}", safe_file_path)
     return HTMLResponse(content=editor_html)
@@ -171,7 +155,7 @@ async def load_file(
     request: Request = None
 ):
     verify_token(token, request)
-    # Validate file existence
+    
     target_file = Path(file_path)
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
@@ -179,7 +163,7 @@ async def load_file(
     if not target_file.exists():
         record_failure(request)
         return JSONResponse(content={"error": "File not found"}, status_code=404)
-    # Load file content
+    
     try:
         content = target_file.read_text()
         return {"content": content}
@@ -195,8 +179,8 @@ async def save_file(
     request: Request = None
 ):
     verify_token(token, request)
-    # Validate the file path
-    # Validate the file path for editing
+    
+    
     target_file = Path(data.file_path).resolve()
     if not is_file_allowed(target_file, require_editable=True):
         record_failure(request)
@@ -204,7 +188,7 @@ async def save_file(
     if not target_file.parent.exists():
         record_failure(request)
         return JSONResponse(content={"error": f"Directory does not exist: {target_file.parent}"}, status_code=400)
-    # Save file content
+    
     try:
         target_file.write_text(data.content)
         return {"status": "success"}
@@ -226,42 +210,42 @@ class ServerControl(ServerControlAbstract):
         The ServerMonitor will automatically start and stop the server when the actions are triggered.
     """
     def singleton_init(self):
-        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
+        self.server_thread: WorkerThread = None  
         self.is_running = False
-        self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
+        self.server: uvicorn.Server = None  
         self.config_store = ConfigStore()
     def start_server(self):
         if self.is_running:
             print("Server is already running.")
             return
-        # Check if token authentication is required
+        
         no_token = ConfigBus().get_value('editor.backend.no_token', bool, default_value=False)
         self.config_store.set('editor.backend.no_token', no_token)
         if not no_token:
             initialize_token()
         else:
-            self.config_store.set('editor.token', None)  # Ensure no token is used
+            self.config_store.set('editor.token', None)  
         HTML_DIR = self.config_store.get('editor.backend.html_dir')
         print(f'{HTML_DIR=}')
-        # Determine if SSL is enabled
+        
         use_ssl = ConfigBus().get_value('editor.backend.use_ssl', bool, default_value=False)
         self.config_store.set('editor.backend.use_ssl', use_ssl)
         ssl_certfile = None
         ssl_keyfile = None
         if use_ssl:
-            # Configure SSL
+            
             ssl_manager = SSLCertificateManager(role="server")
             ssl_manager.generate_ssl_context()
             ssl_certfile = ssl_manager.crt_path
             ssl_keyfile = ssl_manager.key_path
-            # Store SSL paths in ConfigBus
+            
             self.config_store.set('editor.backend.crt', ssl_certfile)
             self.config_store.set('editor.backend.key', ssl_keyfile)
         host = ConfigBus().get_value('editor.backend.host', str, reject_none=True)
         self.config_store.set('editor.backend.host', host)
         port = ConfigBus().get_value('editor.backend.port', int, reject_none=True)
         self.config_store.set('editor.backend.port', port)
-        # Configure Uvicorn
+        
         config = uvicorn.Config(
             app=app,
             host=self.config_store.get('editor.backend.host'),
@@ -271,7 +255,7 @@ class ServerControl(ServerControlAbstract):
             log_level="info",
         )
         self.server = uvicorn.Server(config)
-        # Start server in a WorkerThread
+        
         self.server_thread = WorkerThread(func=self._run_server)
         self.server_thread.result_signal.connect(self._on_server_result)
         self.server_thread.finished_signal.connect(self._on_server_finished)

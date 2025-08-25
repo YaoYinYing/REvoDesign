@@ -9,7 +9,6 @@ from RosettaPy.node import NodeHintT
 from REvoDesign.Qt import QtGui
 from ..basic import GroupRegistryItem as GR
 from ..tools.customized_widgets import create_cmap_icon
-# define actions
 class CallableGroupValues:
     @staticmethod
     def list_some_blanks(n=1) -> List[str]:
@@ -19,7 +18,7 @@ class CallableGroupValues:
         score_matrix = [
             mtx
             for mtx in os.listdir(
-                os.path.join(substitution_matrices.__path__[0], "data")  # type: ignore
+                os.path.join(substitution_matrices.__path__[0], "data")  
             )
         ]
         return score_matrix
@@ -65,29 +64,21 @@ class CallableGroupValues:
             n for n in node_hints if is_run_node_available(n)
         ]
         return available_run_node_hints
-# define all group mappers
-# Header
 GroupCmap = GR("comboBox_cmap", (CallableGroupValues.list_color_map,),)
-# Tab Cluster
 GroupScoreMatrix = GR("comboBox_cluster_matrix", (CallableGroupValues.list_score_matrix,),)
-# Tab Mutate
 GroupProfileTypeTabMutate = GR("comboBox_profile_type", (
     CallableGroupValues.list_all_profile_parsers,
     CallableGroupValues.list_all_designers,
 ),)
-# Tab Visualize
 GroupProfileTypeTabVisualize = GR("comboBox_profile_type_2", (
-    CallableGroupValues.list_some_blanks,  # blank for reading scores from table directly
+    CallableGroupValues.list_some_blanks,  
     CallableGroupValues.list_all_profile_parsers,
     CallableGroupValues.list_all_scorers,
 ),)
-# Tab Interact
 GroupScorerTabInteract = GR("comboBox_external_scorer", (CallableGroupValues.list_some_blanks,
                                                          CallableGroupValues.list_all_scorers,))
-# Tab Config
 GroupSidechainSolver = GR("comboBox_sidechain_solver", (CallableGroupValues.list_installed_mutate_runners,))
 GroupRosettaNodeHint = GR("comboBox_rosetta_node_hint", (CallableGroupValues.list_all_rosetta_node_hints,))
-# collect all together
 GroupRegistryCollection: Tuple[GR, ...] = (
     GroupCmap,
     GroupScoreMatrix,

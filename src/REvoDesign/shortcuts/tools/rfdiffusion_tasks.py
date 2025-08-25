@@ -25,10 +25,6 @@ from REvoDesign.tools.utils import (device_picker, get_cited,
 logging = ROOT_LOGGER.getChild(__name__)
 this_file_dir = os.path.dirname(os.path.abspath(__file__))
 RFDIFFUSION_WEIGHTS_BASE_URL = 'https://github.com/YaoYinYing/RFdiffusion/releases/download/weights/'
-# DGL Solver to solve installation of dgl(dgl==2.2.1)
-# non-cuda: `pip install dgl==2.2.1 -f https://data.dgl.ai/wheels/repo.html`
-# ge cuda-121: `pip install  dgl==2.2.1 -f https://data.dgl.ai/wheels/cu121/repo.html`
-# ge cuda-118: `pip install  dgl -f https://data.dgl.ai/wheels/cu118/repo.html`
 RFD_WEIGHTS_STR = '''
 0d9f82af03c73011c6fec060bac5b731 ActiveSite_ckpt.pt
 4aa4a27ba280d23541e01860c106c7cc Base_ckpt.pt
@@ -116,7 +112,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         model_name: str, optional
             The name of the model to use. If None, the model will be automatically picked based on the input.
         '''
-        # have one model on local
+        
         if self.config.inference.ckpt_override_path and os.path.isfile(self.config.inference.ckpt_override_path):
             logging.info(f"Using ckpt_override_path from config: {self.config.inference.ckpt_override_path}")
             return None
@@ -126,25 +122,25 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 return self._download_and_set_model(model_name)
             warnings.warn(issues.FallingBackWarning(
                 f"Model {model_name} not found. Falling back to pick one according to the input."))
-        # automatically pick the model based on the input
-        # rfdiffusion/inference/model_runners.py
+        
+        
         if self.config.contigmap.inpaint_seq is not None or self.config.contigmap.provide_seq is not None or self.config.contigmap.inpaint_str:
-            # use model trained for inpaint_seq
+            
             if self.config.contigmap.provide_seq is not None:
-                # this is only used for partial diffusion
+                
                 assert self.config.diffuser.partial_T is not None, "The provide_seq input is specifically for partial diffusion"
             if self.config.scaffoldguided.scaffoldguided:
                 model_name = 'InpaintSeq_Fold_ckpt'
             else:
                 model_name = 'InpaintSeq_ckpt'
         elif self.config.ppi.hotspot_res is not None and self.config.scaffoldguided.scaffoldguided is False:
-            # use complex trained model
+            
             model_name = 'Complex_base_ckpt'
         elif self.config.scaffoldguided.scaffoldguided is True:
-            # use complex and secondary structure-guided model
+            
             model_name = 'Complex_Fold_base_ckpt'
         else:
-            # use default model
+            
             model_name = 'Base_ckpt'
         logging.warning(f'Using Model {model_name}')
         return self._download_and_set_model(model_name)
@@ -186,7 +182,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 'To run RFDiffusion, please reset/the configuration files '
                 f'or copy the entire directory {os.path.join(this_file_dir, "../../config/rfdiffusion")}'
                 f'to {os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE))} and restart REvoDesign.') from e
-    # a copy from `https://github.com/RosettaCommons/RFdiffusion/blob/main/scripts/run_inference.py`
+    
     @get_cited
     def main(self) -> None:
         '''
@@ -199,7 +195,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             make_deterministic()
         devices = device_picker()
         gpu_devices = [d for d in devices if d.startswith(("cuda", "mps"))]
-        # Check for available GPU and print result of check
+        
         if any(d for d in gpu_devices):
             self.device = gpu_devices[0]
             logging.info(f"Found GPU with device_name {self.device}. Will run RFdiffusion on {self.device}")
@@ -208,9 +204,9 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.warning("////////////////////////////////////////////////")
             logging.warning("///// NO GPU DETECTED! Falling back to CPU /////")
             logging.warning("////////////////////////////////////////////////")
-        # Initialize sampler and target/contig.
+        
         sampler = iu.sampler_selector(self.config)
-        # Loop over number of designs to sample.
+        
         design_startnum = sampler.inf_conf.design_startnum
         if sampler.inf_conf.design_startnum == -1:
             existing = glob.glob(sampler.inf_conf.output_prefix + "*.pdb")
@@ -229,7 +225,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 make_deterministic(i_des)
             out_prefix = f"{sampler.inf_conf.output_prefix}_{i_des}"
             with timing(f'making design {out_prefix} / {sampler.inf_conf.num_designs}', unit='min'):
-                # for record time elapsed
+                
                 start_time = time.time()
                 if sampler.inf_conf.cautious and os.path.exists(out_prefix + ".pdb"):
                     logging.info(
@@ -243,7 +239,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 plddt_stack = []
                 x_t = torch.clone(x_init)
                 seq_t = torch.clone(seq_init)
-                # Loop over number of reverse diffusion time steps.
+                
                 for t in range(int(sampler.t_step_input), sampler.inf_conf.final_step - 1, -1):
                     px0, x_t, seq_t, plddt = sampler.sample_step(
                         t=t, x_t=x_t, seq_init=seq_t, final_step=sampler.inf_conf.final_step
@@ -251,8 +247,8 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     px0_xyz_stack.append(px0)
                     denoised_xyz_stack.append(x_t)
                     seq_stack.append(seq_t)
-                    plddt_stack.append(plddt[0])  # remove singleton leading dimension
-                # Flip order for better visualization in pymol
+                    plddt_stack.append(plddt[0])  
+                
                 denoised_xyz_stack = torch.stack(denoised_xyz_stack)
                 denoised_xyz_stack = torch.flip(
                     denoised_xyz_stack,
@@ -267,21 +263,21 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                         0,
                     ],
                 )
-                # For logging -- don't flip
+                
                 plddt_stack = torch.stack(plddt_stack)
-                # Save outputs
+                
                 os.makedirs(os.path.dirname(out_prefix), exist_ok=True)
                 final_seq = seq_stack[-1]
-                # Output glycines, except for motif region
+                
                 final_seq = torch.where(
                     torch.argmax(seq_init, dim=-1) == 21, 7, torch.argmax(seq_init, dim=-1)
-                )  # 7 is glycine
+                )  
                 bfacts = torch.ones_like(final_seq.squeeze())
-                # make bfact=0 for diffused coordinates
+                
                 bfacts[torch.where(torch.argmax(seq_init, dim=-1) == 21, True, False)] = 0
-                # pX0 last step
+                
                 out = f"{out_prefix}.pdb"
-                # Now don't output sidechains
+                
                 writepdb(
                     out,
                     denoised_xyz_stack[0, :, :4],
@@ -290,7 +286,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     chain_idx=sampler.chain_idx,
                     bfacts=bfacts,
                 )
-                # run metadata
+                
                 trb = dict(
                     config=OmegaConf.to_container(sampler._conf, resolve=True),
                     plddt=plddt_stack.cpu().numpy(),
@@ -303,7 +299,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 with open(f"{out_prefix}.trb", "wb") as f_out:
                     pickle.dump(trb, f_out)
                 if sampler.inf_conf.write_trajectory:
-                    # trajectory pdbs
+                    
                     traj_prefix = (
                         os.path.dirname(out_prefix) + "/traj/" + os.path.basename(out_prefix)
                     )
@@ -330,7 +326,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     )
             with timing('cleaning up...'):
                 self.cleanup()
-    # converted using https://www.bruot.org/ris2bib/
+    
     __bibtex__ = {
         'RFDiffusion': '''@Article{Watson2023,
 author={Watson, Joseph L.

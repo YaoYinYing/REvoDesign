@@ -26,7 +26,7 @@ class ProfileParserAbstract(ABC):
     - `is_valid_profile`: bool, checks if the `profile_input` file exists.
     """
     name: str
-    # whether lower scores are preferred
+    
     prefer_lower: bool = False
     def __init__(
         self,
@@ -39,8 +39,8 @@ class ProfileParserAbstract(ABC):
         self.molecule = molecule
         self.chain_id = chain_id
         self.sequence = sequence
-        # internal variables
-        self.df: pd.DataFrame = None  # type: ignore
+        
+        self.df: pd.DataFrame = None  
     @abstractmethod
     def parse(self) -> pd.DataFrame:
         """
@@ -113,7 +113,7 @@ class PSSM_Parser(ProfileParserAbstract):
         - Transposes the DataFrame and drops NaN values to clean the data before returning.
         """
         PSSM_Alphabet = "ARNDCQEGHILKMFPSTWYV"
-        # Fetch table header of PSSM
+        
         c = 0
         for line in open(input_pssm_file):
             pssm_header = line
@@ -121,18 +121,18 @@ class PSSM_Parser(ProfileParserAbstract):
             if c == 3:
                 break
         logging.info(pssm_header)
-        # Define colspecs info for parsing pssm data
-        # Guess index for PSSM file by the widths of pssm_header
+        
+        
         _idx = [pssm_header.index(ab) for ab in PSSM_Alphabet]
         logging.info(_idx)
-        # Guess colspecs for read_fwf to read the table
+        
         _width = _idx[1] - _idx[0]
         colspec = [
             (_idx[i] - _width + 1, _idx[i] + 1) for i in range(len(_idx))
         ]
         logging.info(colspec)
         df = pd.read_fwf(input_pssm_file, skiprows=2, colspecs=colspec)
-        # Remove the rest lines
+        
         df.dropna(axis=0, inplace=True)
         df = df.T
         return df
@@ -144,7 +144,7 @@ class PSSM_Parser(ProfileParserAbstract):
         df_pssm_raw = self.convert_PSSM_file_to_df(
             input_pssm_file=self.profile_input
         )
-        # Explanation: Add 1 to each column index to convert to one-indexing
+        
         df_pssm_raw.columns = [col + 1 for col in range(len(df_pssm_raw.columns))]
         csv_fp = os.path.join(
             os.path.dirname(self.profile_input), f"{self.profile_input_bn}.csv"
@@ -172,7 +172,7 @@ class CSVProfileParser(ProfileParserAbstract):
     def _parse(self):
         df = pd.read_csv(self.profile_input, index_col=0)
         df = df.astype(float)
-        # try to transpose if the shape is 20 col x N row
+        
         if len(df.columns) == 20:
             df = df.T
             logging.debug("Profile data is transposed.")
@@ -181,15 +181,15 @@ class CSVProfileParser(ProfileParserAbstract):
             df.rename(columns=column_rename_mapping, inplace=True)
         if str(df.columns[0]) != "0":
             logging.debug("Profile data does not matche default format.")
-            # Calculate the number of columns (N) in the DataFrame
+            
             len(df.columns)
             logging.debug(f"Column : {df.columns}")
-            # Create a dictionary to map old column names to new column names
+            
             column_rename_mapping = {
                 str(int(i)): str(int(i) - 1) for i in df.columns
             }
             logging.debug(f"Rename column : {column_rename_mapping}")
-            # Rename the columns using the mapping
+            
             df.rename(columns=column_rename_mapping, inplace=True)
         logging.debug(df.columns)
         if (
@@ -200,15 +200,15 @@ class CSVProfileParser(ProfileParserAbstract):
             non_missing_resi = [
                 i for i, j in enumerate(self.sequence) if j != "X"
             ]
-            # Create a dictionary to map old column names to new column names
+            
             column_rename_mapping = {
                 str(int(i)): str(int(j))
                 for i, j in zip(df.columns, non_missing_resi)
             }
-            # Rename the columns using the mapping
+            
             df.rename(columns=column_rename_mapping, inplace=True)
             logging.debug(f"Repaired: {df.columns}")
-            # Fill missing columns with zeros
+            
             logging.warning("Filling missing with zeros")
             for i, j in enumerate(self.sequence):
                 if j == "X":
@@ -223,7 +223,6 @@ class CSVProfileParser(ProfileParserAbstract):
             f"Failed to process profile data {self.profile_input}.."
         )
         raise issues.InvalidInputError(f"Failed to process profile data {self.profile_input}..")
-# TODO this may not work
 class TSVProfileParser(ProfileParserAbstract):
     name = "TSV"
     def parse(self) -> pd.DataFrame:
@@ -241,7 +240,7 @@ ALL_PARSER_CLASSES = (
 class ProfileManager:
     def __init__(self, profile_type: str):
         self.profile_type = profile_type
-        self.parser: ProfileParserAbstract = None  # type: ignore
+        self.parser: ProfileParserAbstract = None  
     def _initialize_parser(self, kwargs) -> "ProfileParserAbstract":
         try:
             parser_class = [

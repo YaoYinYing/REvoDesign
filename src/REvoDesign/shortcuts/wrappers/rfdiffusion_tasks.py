@@ -28,7 +28,7 @@ def _visualize_substrate_potentials(**kwargs):
 def _run_general_rfdiffusion_task(**kwargs):
     config_preset: str = kwargs.pop('config_preset')
     config_file: str = kwargs.pop('config_file')
-    # override config preset with user defined config file
+    
     if config_file != '' and os.path.isfile(config_file):
         target_config_file = os.path.join(RFDIFFUSION_CONFIG_DIR, os.path.basename(config_file))
         if os.path.exists(target_config_file):
@@ -47,14 +47,11 @@ def _run_general_rfdiffusion_task(**kwargs):
     else:
         kwargs['overrides'] = None
     run_general_rfdiffusion_task(**kwargs)
-# Initialize the registry for the 'rfdiffusion' category
 registry = DialogWrapperRegistry("rfdiffusion")
-# Register the Substrate Potential Visualizer
 wrapped_visualize_substrate_potentials = registry.register(
     "visualize_substrate_potentials",
     _visualize_substrate_potentials
 )
-# Register the General RFdiffusion Task
 wrapped_general_rfdiffusion_task = registry.register(
     "general_rfdiffusion_task",
     _run_general_rfdiffusion_task,

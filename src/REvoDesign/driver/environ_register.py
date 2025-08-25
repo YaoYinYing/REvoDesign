@@ -51,6 +51,6 @@ def drop_environment_variables():
                 del ev_in_cfg[key]
             if key in os.environ:
                 del os.environ[key]
-        # update the config
+        
         bus.set_value('environment.variables', ev_in_cfg)
         print('The environment variables are unbound agaist the configuration.')

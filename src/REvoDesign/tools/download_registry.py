@@ -49,7 +49,7 @@ class DownloadedFile:
             List[str]: List of extracted file names
         """
         dist_dir = self.flatten_dir
-        # Check if destination directory is empty, if so extract archive
+        
         extracted_files: List[str] = os.listdir(dist_dir)
         if not extracted_files:
             print(f'Extracting {self.downloaded} to {dist_dir}')
@@ -78,12 +78,12 @@ class FileDownloadRegistry(CitableModuleAbstract):
         self.name = name
         self.base_url = base_url
         self.version = version
-        # Preprocess registry to ensure all hash values are in correct format
+        
         self.registry = FileDownloadRegistry.preprocess_registry(registry=registry)
-        # Set download directory, use default user data directory if not provided
+        
         self.customized_directory = customized_directory or user_data_dir(
             self.name, version=self.version, ensure_exists=True)
-        # Create pooch instance for file downloading and management
+        
         self.pooch: pooch.Pooch = pooch.create(
             path=self.customized_directory,
             version=self.version,

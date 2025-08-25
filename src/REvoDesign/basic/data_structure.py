@@ -44,10 +44,10 @@ class IterableLoop(Generic[T]):
         """
         if not self.initialized:
             self.current_idx = 0
-            # [-1] -> 0
+            
             if direction:
                 return self.current_idx
-            # [-1] -> 0 -> -1
+            
             self.pick_previous()
             return self.current_idx
         if direction:

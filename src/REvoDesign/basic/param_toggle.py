@@ -36,7 +36,7 @@ class ParamChangeRegistryItem:
         """
         try:
             widget: QtWidgets.QWidget = getattr(ui, self.widget_name)
-            event = getattr(widget, self.widget_signal_name)  # type: ignore
+            event = getattr(widget, self.widget_signal_name)  
             return event
         except AttributeError as e:
             raise issues.InternalError(

@@ -20,9 +20,7 @@ from REvoDesign.tools.utils import CLASS_ARGSLICE
 from .group_register import GroupRegistryCollection
 from .widget_link import Config2WidgetIds, PushButtons
 logging = ROOT_LOGGER.getChild(__name__)
-# Define a generic type for converter
 ValueFromConfigT = TypeVar("ValueFromConfigT")
-# Define the decorator to enforce the non-headless requirement
 class StoresWidget(SingletonAbstract):
     def singleton_init(self):
         self.server_switches: Dict[str, MenuActionServerMonitor] = {}
@@ -71,14 +69,14 @@ def require_non_headless(method):
     """
     @wraps(method)
     def wrapper(*args, **kwargs):
-        # Extract the first argument which should be an instance of HeadlessProtocol
+        
         self: HeadlessProtocol = args[0]
-        # Check if the application is running in headless mode
+        
         if self.headless:
             raise RuntimeError(
                 f"The method '{method.__name__}' cannot be called when the application is running in headless mode."
             )
-        # Call the original method with the modified arguments
+        
         return method(self, *args[CLASS_ARGSLICE], **kwargs)
     return wrapper
 class ConfigBus(SingletonAbstract, CitableModuleAbstract):
@@ -121,16 +119,16 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             self.w2c = Widget2ConfigMapper(ui=self.ui)
             self.push_buttons = self.w2c.push_buttons
         self.cite()
-    # TODO: refactors needed
+    
     @require_non_headless
     def initialize_widget_with_group(self):
-        # Initializes UI widgets with their corresponding configuration settings.
+        
         for i, gr in enumerate(GroupRegistryCollection):
             group_values = []
             widget = self.get_widget_from_id(widget_id=gr.cfg_item)
             if isinstance(widget, str):
                 raise TypeError(f"widget cannot be string: {gr.cfg_item}")
-            # digest the string to values
+            
             for j, group_cfg in enumerate(gr.group_generators):
                 if callable(group_cfg):
                     values = group_cfg()
@@ -139,7 +137,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                         f"Group {j} of widget {gr.cfg_item} does not return any values"
                     )
                     continue
-                # exclude blank string, blank list, or blank tuple
+                
                 if not values:
                     logging.debug(f"Group {j} of widget {gr.cfg_item} is empty: {values}")
                     continue
@@ -163,7 +161,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             if default_cfg_item:
                 self.restore_widget_value(default_cfg_item)
     def update_cfg_item_from_widget(self, widget_id: str):
-        # Updates a configuration setting based on the value of a UI widget.
+        
         cfg_item = self.w2c.widget_id2config_dict.get(widget_id)
         widget = self.get_widget_from_id(widget_id=widget_id)
         if not cfg_item:
@@ -174,7 +172,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         return partial(self.update_cfg_item_from_widget, widget_id)
     @require_non_headless
     def register_widget_changes_to_cfg(self):
-        # Registers UI widget changes to update the configuration settings.
+        
         for widget_id in self.w2c.all_widget_ids:
             widget = self.get_widget_from_id(widget_id=widget_id)
             try:
@@ -183,13 +181,13 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 raise issues.UnknownWidgetError(f'Expect link of {widget_id} with {widget.__name__} is broken.') from e
     @require_non_headless
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
-        # Retrieves a UI widget based on its ID.
+        
         if widget_id not in self.w2c.widget_id2widget_map:
             raise KeyError(f"{widget_id} is not in the widget map")
         return self.w2c.widget_id2widget_map.get(widget_id)
     @require_non_headless
     def get_widget_from_cfg_item(self, cfg_item: str) -> QtWidgets.QWidget:
-        # Retrieves a UI widget based on its corresponding configuration item.
+        
         return self.w2c.config2widget_map.get(cfg_item)
     @require_non_headless
     def get_widget_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT]) -> ValueFromConfigT:
@@ -198,28 +196,28 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 widget=self.get_widget_from_cfg_item(cfg_item)
             )
         except ValueError as e:
-            # record error then re-raise it
+            
             logging.error(f'Error in the configuration item: {cfg_item}: {e}')
             raise ValueError(
                 f"Error in the configuration item: {cfg_item}"
             ) from e
-        # Retrieves the value of a UI widget based on its corresponding configuration item.
+        
         return converter(value)
     @require_non_headless
     def set_widget_value(self, cfg_item: str, value, hard=False):
-        # Sets the value of a UI widget based on its corresponding configuration item.
+        
         widget = self.get_widget_from_cfg_item(cfg_item)
         set_widget_value(widget=widget, value=value)
         if hard:
             self.set_value(cfg_item=cfg_item, value=value)
     @require_non_headless
     def restore_widget_value(self, cfg_item: str):
-        # Restores the value of a UI widget to its default configuration setting.
+        
         widget = self.get_widget_from_cfg_item(cfg_item)
         value = self.get_value(cfg_item)
         set_widget_value(widget=widget, value=value)
     def get_cfg_item(self, widget_id: str) -> str:
-        # Retrieves the configuration item corresponding to a UI widget ID.
+        
         cfg_item = self.w2c.widget_id2config_dict.get(widget_id)
         if cfg_item is None:
             raise ValueError(f"{widget_id} is not a valid widget ID.")
@@ -257,38 +255,38 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         Raises:
             ValueError: If `reject_none` is True and the resolved value is None.
         """
-        # Retrieve the value of a configuration item
+        
         value = OmegaConf.select(self.cfg, cfg_item)
-        # Handle None values
+        
         if value is None:
-            # Fall back to use default value
+            
             if default_value is not None:
                 value = default_value
-            # Reject to raise an error
+            
             elif reject_none:
-                # not loaded?
+                
                 if not self.get_value('ui.header_panel.input.molecule', None):
                     notify_box(
                         "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
                     )
-                # out-of-dated?
+                
                 notify_box(
                     "This configure file might be out of date. "
                     "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
                     issues.ConfigureOutofDateError
                 )
             else:
-                return None  # Return None if reject_none is False and no default is provided
-        # Apply the converter if provided
+                return None  
+        
         if converter:
             value = converter(value)
-        # Enforce reject_none post-conversion
-        # Respect to `reject_none` option
+        
+        
         if reject_none and value is None:
             raise ValueError("The configuration value is None and reject_none is True.")
         return value
     def set_value(self, cfg_item: str, value: Any, force_add: bool = False) -> None:
-        # Sets the value of a configuration item.
+        
         if value is not None:
             try:
                 OmegaConf.update(self.cfg, cfg_item, value, force_add=force_add)
@@ -302,12 +300,12 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         button_ids: tuple[str, ...],
         set_enabled: bool = False,
     ):
-        # Toggles the enabled state of a list of buttons.
+        
         buttons = self.buttons(button_ids=button_ids)
         for button in buttons:
             if not button:
                 continue
-            # Check for 'held' property, defaulting to False if the property doesn't exist
+            
             if button.property("held"):
                 continue
             button.setEnabled(set_enabled)
@@ -316,7 +314,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         cfg_fps: tuple[str, ...],
         buttons_id_to_release: tuple[str, ...],
     ):
-        # Locks or unlocks buttons based on the existence of file paths in the configuration.
+        
         self.toggle_buttons(
             button_ids=buttons_id_to_release, set_enabled=False
         )
@@ -433,7 +431,7 @@ class Widget2ConfigMapper:
                 continue
             logging.debug(f"Searching {layout_name=}: {dir(layout)=}")
             if found_widget := layout.findChild(widget_type, name):
-                # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
+                
                 logging.debug(
                     f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}"
                 )

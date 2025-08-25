@@ -1,6 +1,3 @@
-# pylint: disable=too-many-lines
-# pylint: disable=import-outside-toplevel
-# pylint: disable=unused-argument
 import difflib
 import importlib
 import importlib.util
@@ -30,21 +27,21 @@ from pymol.plugins import addmenuitemqt
 from pymol.Qt.utils import loadUi
 LOGGER_LEVEL = 0
 if TYPE_CHECKING:
-    # type checking branch
+    
     from PyQt5 import QtCore, QtGui, QtWidgets
 else:
-    # runtime branch
+    
     from pymol.Qt import QtCore, QtGui, QtWidgets
 if not __file__.endswith('package_manager.py'):
-    # PyMOL plugin branch, set docstring to describe the plugin
+    
     __doc__ = """Described at GitHub:
 https://github.com/YaoYinYing/REvoDesign
 Authors : Yinying Yao
 Program : REvoDesign
 Date    : Sept 2023
 REvoDesign -- Makes enzyme redesign tasks easier to all."""
-    # use a mocked logger to handle logging from pymol's concole instead,
-    # only if it runs as the role ofpackagemanager as a plugin from PyMOL
+    
+    
     class MockLogger:
         def debug(self, msg: str, *args, **kwargs):
             print(f'[DEBUG]: {msg}') if LOGGER_LEVEL < 10 else None
@@ -59,7 +56,7 @@ REvoDesign -- Makes enzyme redesign tasks easier to all."""
     logging = MockLogger()
     logging.info(f'Package manager is running via PyMOL: {__file__}.')
 else:
-    # REvoDesign runtime branch, set docstring to describe the module
+    
     __doc__ = '''
 Module that contains key functions of constructing the REvoDesign Package Manager
 This module also serves as standalone REvoDesign Package Manager,
@@ -67,19 +64,15 @@ meaning that any tools existed here is part of the manager.
 To make any of them importable in certain modules, import them from here
 and add to the `__all__` attributes so that they can be discoverable.
 '''
-    # enable logger from REvoDesign if it is a submodule not a script
+    
     from REvoDesign.logger import ROOT_LOGGER
     logging = ROOT_LOGGER.getChild(__name__)
     logging.info('Package manager is running via REvoDesign.')
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 GIST_BASE_URL: str = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
-# uploaded with `make upload-gists`
 UI_FILE_URL = f'{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui'
-# refer to THIS file, an installable package manager via pymol's plugin manager.
 THIS_FILE_URL = f'{GIST_BASE_URL}/REvoDesign_PyMOL.py'
-# Define the URL of the JSON file
 RICH_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTableRich.json'
-# Define the proxy protocols allowed
 ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 @dataclass
 class PlatformInfo:
@@ -192,11 +185,11 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
     Returns:
     None
     """
-    # Validate and sanitize the URL
+    
     if not ui_file_url.startswith('https'):
         raise ValueError("URL must start with 'https'")
     try:
-        # Fetch the file content and write it to the temporary file
+        
         with urllib.request.urlopen(ui_file_url) as response, open(save_to_file, 'w') as ui_handle:
             ui_data = response.read().decode('utf-8')
             ui_handle.write(ui_data)
@@ -204,7 +197,6 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
         raise URLError(f"Failed to download file: {e}") from e
     except ValueError as e:
         raise ValueError(f"Invalid URL: {e}") from e
-# Fetch and validate JSON data
 def fetch_gist_json(url: str) -> dict[str, Any]:
     """
     Fetches JSON data from the specified URL and validates its structure.
@@ -214,19 +206,18 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
     Dict[str, str]: The fetched and validated JSON data, or an empty dictionary if an error occurs.
     """
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
+        with urllib.request.urlopen(url, timeout=10) as response:  
             data = response.read().decode('utf-8')
             json_data = json.loads(data)
             logging.debug('Extras table is fetched and parsed: \n'
                           f'{json_data}')
-            # Validate the structure of the fetched data
+            
             if not isinstance(json_data, dict):
                 raise ValueError("Fetched data is not a dictionary.")
             return json_data
     except Exception as e:
         logging.error(f"Error fetching or validating the JSON data: {e}: ")
         return {}
-# Define a generic type variable for the return type of worker_function
 R = TypeVar("R")
 class UnsupportedWidgetValueTypeError(TypeError):
     """
@@ -258,7 +249,7 @@ def run_command(
     """
     if verbose:
         logging.info(f"Launching command: {' '.join(cmd)}")
-    # Clone and patch environment for macOS if needed
+    
     patched_env = os.environ.copy()
     if env:
         patched_env.update(env)
@@ -297,7 +288,6 @@ def run_command(
         stdout=stdout_text,
         stderr=stderr_text,
     )
-# Additional widget for extra selection
 class CheckableListView(QtWidgets.QWidget):
     """
     Checkable list view widget, allowing users to check items in the list.
@@ -315,27 +305,27 @@ class CheckableListView(QtWidgets.QWidget):
             parent: The parent widget, defaults to None.
         """
         super().__init__(parent)
-        # Use the existing list view
+        
         self.list_view = list_view
-        # Set up the model (use existing one if set, otherwise create a new one)
+        
         if self.list_view.model() is None:
             self.model = QtGui.QStandardItemModel(self.list_view)
             self.list_view.setModel(self.model)
         else:
             self.model = self.list_view.model()
-        # Clear the model before adding new items
+        
         self.model.clear()
         self.items = items
         self.filter = filter
         for e in self.items.entities:
-            # Add as a separator
+            
             separator_item = QtGui.QStandardItem(e.name)
-            separator_item.setEnabled(False)  # Non-interactive
-            separator_item.setSelectable(False)  # Non-selectable
-            separator_item.setCheckable(False)  # Non-checkable
+            separator_item.setEnabled(False)  
+            separator_item.setSelectable(False)  
+            separator_item.setCheckable(False)  
             separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))
-            separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))   # Different background
-            separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
+            separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))   
+            separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  
             separator_item.setToolTip(e.description or e.name)
             self.model.appendRow(separator_item)
             for _e in e.extras:
@@ -343,10 +333,10 @@ class CheckableListView(QtWidgets.QWidget):
                     if any(not getattr(filter, f'HAS_{p}') for p in _e.platform):
                         logging.debug(f"Skipping {_e.name} for {_e.platform}")
                         continue
-                # Add as a regular checkable item
+                
                 item = QtGui.QStandardItem(_e.name)
                 item.setCheckable(True)
-                item.setCheckState(QtCore.Qt.Unchecked)   # Default unchecked
+                item.setCheckState(QtCore.Qt.Unchecked)   
                 item.setToolTip(_e.description or _e.name)
                 self.model.appendRow(item)
     def _get_items_by_check_state(self, check_state) -> ExtrasGroup:
@@ -407,9 +397,9 @@ class GitSolver:
         It sets the object's properties based on whether these tools are available in the system path.
         This ensures that the object can determine if it can perform related operations before doing so.
         """
-        # subprocess.run on Windows treat conda as a excutable file and will check its existence
-        # however conda is AKA a alias in shell and does not exist as a file.
-        # shutil.which will return the real path of conda script
+        
+        
+        
         for cmd_tool in ["git", "conda", "mamba", "winget", "brew", 'choco']:
             setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
             logging.debug(f"Command tool check: {cmd_tool}: {getattr(self, f'has_{cmd_tool}')}")
@@ -427,7 +417,7 @@ class GitSolver:
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             ]
-        # Determine the installation command based on Conda's presence or the system type (Windows with Winget)
+        
         if self.has_mamba:
             return [self.has_mamba, "install", "-y", "git"]
         if self.has_conda:
@@ -445,20 +435,20 @@ class GitSolver:
         Parameters:
             env (Optional[Mapping[str, str]]): Environment variables for the installation process.
         """
-        # Check if Git is already installed
+        
         if self.has_git:
             return True, ''
-        # Execute the Git installation command in a worker thread and monitor progress
+        
         git_install_std = run_command(
             cmd=git_fetch_command,
             verbose=True,
             env=env,
         )
-        # Check if the Git installation was successful
+        
         if (git_install_std and git_install_std.returncode == 0) or shutil.which('git'):
             self.has_git = shutil.which('git')
             return True, ''
-        # If installation failed, show error information and return False
+        
         with open((file_path := os.path.abspath("error.log")), "w", encoding="utf-8") as f:
             f.write(f"STDOUT:\n{git_install_std.stdout}\n\n\n\nSTDERR:\n{git_install_std.stderr}")
         return False, file_path
@@ -475,7 +465,7 @@ class PIPInstaller:
             1~3:  Minimum - Maximum noisy
     """
     python_exe: str = ''
-    # run_command args
+    
     env: Optional[Mapping[str, str]] = None
     verbose_level: int = 0
     def ensurepip(self):
@@ -483,7 +473,7 @@ class PIPInstaller:
         Run the ensurepip command to ensure pip is installed in the current Python environment.
         If ensurepip fails, raise a RuntimeError with the command output.
         """
-        # run installation via pip
+        
         ensurepip = run_command([self.python_exe, "-m", "ensurepip"], verbose=self.verbose_level > -1, env=self.env)
         if ensurepip.returncode:
             notify_box(
@@ -537,7 +527,7 @@ class PIPInstaller:
                 git_tag = ""
             return git_dir, git_tag
         if package_name != 'REvoDesign':
-            # use package_name as package_string for other packages then 'REvoDesign'
+            
             package_string = package_name
         else:
             if source is None or source == '':
@@ -598,9 +588,9 @@ class PIPInstaller:
             env (Optional[Mapping[str, str]]): Optional environment variables for running the pip command.
             mirror (Optional[str]): The URL of the package mirror to use. Defaults to None.
         """
-        # Execute the pip installation command
+        
         result = self.install(package_string, upgrade=True, env=env, mirror=mirror)
-        # If the pip downgrade command fails, notify the user to manually execute the command
+        
         if result.returncode:
             notify_box(
                 f"Failed to ensure {package_string}. Please upgrade/downgrade manually.\n"
@@ -638,9 +628,9 @@ class REvoDesignPackageManager:
     """
     dialog: Any = None
     installer_ui: Any = None
-    extra_checkbox: CheckableListView = None  # type: ignore
-    pip_installer: PIPInstaller = None  # type: ignore
-    remote_extra_group_data: ExtrasGroups = None  # type: ignore
+    extra_checkbox: CheckableListView = None  
+    pip_installer: PIPInstaller = None  
+    remote_extra_group_data: ExtrasGroups = None  
     platform_info = PlatformInfo()
     def ensure_ui_file(self, upgrade: bool = False):
         ui_file = os.path.abspath(
@@ -650,16 +640,16 @@ class REvoDesignPackageManager:
                 'UI',
                 'REvoDesign_installer.ui'))
         os.makedirs(os.path.dirname(ui_file), exist_ok=True)
-        # if not exists,  preform the first fetch
+        
         if not os.path.isfile(ui_file):
             fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
             logging.info(f"Fetched UI file for manager: {ui_file}")
             return ui_file
-        # otherwise, if the user not requires an upgrade, return
+        
         if not upgrade:
             logging.debug(f'pre-downloaded UI file found: {ui_file}')
             return ui_file
-        # otherwise, preform the upgrade
+        
         new_ui_file = f'{ui_file}.swp'
         fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
         self.upgrade_check(
@@ -682,7 +672,7 @@ class REvoDesignPackageManager:
         - None
         """
         diff_file = f'{original_file}.diff'
-        # Open the original, new fetched, and diff files
+        
         with open(original_file) as original, open(new_file) as new_fetched:
             diffs = tuple(
                 difflib.context_diff(
@@ -699,7 +689,7 @@ class REvoDesignPackageManager:
             num_deled_lines = len([l for l in diffs if l.startswith('- ')])
             with open(diff_file, 'w') as diff:
                 diff.writelines(diffs)
-        # Prompt the user to confirm the upgrade
+        
         accept_upgraded = decide(
             title='Upgrade', description='Do you REALLY want to apply the upgrade?<p><p>'
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
@@ -711,10 +701,10 @@ class REvoDesignPackageManager:
             '</table>'
             'You must check out these changes carefully.<p>'
             f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", rich=True, details='\n'.join(diffs))
-        # Clean up the diff file
+        
         if os.path.isfile(diff_file):
             os.remove(diff_file)
-        # Handle user response
+        
         if not accept_upgraded:
             os.remove(new_file)
             return notify_box('Upgrade cancelled.')
@@ -777,16 +767,16 @@ class REvoDesignPackageManager:
         self.refresh_remote_json()
         self.pip_installer = run_worker_thread_with_progress(PIPInstaller)
         self.extra_checkbox.setGeometry(QtCore.QRect(540, 90, 141, 431))
-        # Connect the 'None' radio button to uncheck all items
+        
         self.installer_ui.radioButton_extra_none.toggled["bool"].connect(
             self.extra_checkbox.uncheck_all,
         )
-        # Connect the 'Everything' radio button to check all items
+        
         self.installer_ui.radioButton_extra_everything.toggled["bool"].connect(
             self.extra_checkbox.check_all,
         )
         self.installer_ui.pushButton_refresh_extras.clicked.connect(self.refresh_remote_json)
-        # Run a worker thread to fetch tags with a progress bar
+        
         self.fetch_tags()
         logging.debug("Package manager initialized.")
     def proxy_in_env(self, proxy: Optional[str] = None, mirror: Optional[str] = None) -> Dict[str, str]:
@@ -841,7 +831,7 @@ class REvoDesignPackageManager:
         if 'entities' not in remote_data:
             notify_box('Fetched data is not valid. The data is expected to have an `entities` key.')
         self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data or d_placeholder)
-        # Create and position the extra components checkbox list
+        
         self.extra_checkbox = CheckableListView(
             self.installer_ui.listView_extras, self.remote_extra_group_data, filter=self.platform_info
         )
@@ -853,10 +843,10 @@ class REvoDesignPackageManager:
         Returns:
             None
         """
-        # Check if input dictionary is valid and contains notification key
+        
         if not d or 'notification' not in d:
             return
-        # Iterate through all notification messages and send to notification box
+        
         for n in d['notification']:
             notify_box(message=f'[{n.get("level", "unknown")}]: {n.get("message")}')
     def collect_diagnostic_data(self, collect_dummy: bool = False, drop_sensitives=True):
@@ -879,10 +869,10 @@ class REvoDesignPackageManager:
             )
             if not confirmed:
                 return notify_box('Diagnostic information collection cancelled.')
-        # Clear the clipboard to ensure no old data is mixed in
+        
         cb = QtWidgets.QApplication.clipboard()
         cb.clear(mode=cb.Clipboard)
-        # Collect diagnostic data using a worker thread
+        
         diagnostic_data = run_worker_thread_with_progress(
             worker_function=issue_collection,
             collect_dummy=collect_dummy,
@@ -890,9 +880,9 @@ class REvoDesignPackageManager:
             progress_bar=self.installer_ui.progressBar
         )
         diagnostic_data_json = json.dumps(diagnostic_data, indent=2)
-        # Copy the collected diagnostic data to the clipboard in JSON format
+        
         cb.setText(diagnostic_data_json, mode=cb.Clipboard)
-        # Notify the user that the diagnostic data has been copied and instruct them on what to do next
+        
         notify_box(
             "Issue collection copied to clipboard. "
             "Please paste it in a new issue in the REvoDesign repository on GitHub.",
@@ -906,18 +896,18 @@ class REvoDesignPackageManager:
         This method creates a right-click menu with actions defined by the `items` parameter.
         Each item in the list is converted into a QAction, which is then added to the menu.
         """
-        # Create the right-click menu
+        
         self.menu = QtWidgets.QMenu(self.installer_ui)
         for item in items:
-            if item.func is not None:  # active item
-                # Add the item as active
+            if item.func is not None:  
+                
                 upgrade_action = QtWidgets.QAction(item.name, self.installer_ui)
                 upgrade_action.triggered.connect(partial(item.func, **item.kwargs if item.kwargs else {}))
                 upgrade_action.setEnabled(True)
                 self.menu.addAction(upgrade_action)
-            else:  # menu section
+            else:  
                 self.menu.addSection(item.name)
-        # Set the context menu policy to show the menu on right-click
+        
         self.installer_ui.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.installer_ui.customContextMenuRequested.connect(self.show_menu)
     def show_menu(self, pos):
@@ -926,7 +916,7 @@ class REvoDesignPackageManager:
         Args:
             pos (QPoint): The position where the menu should be shown, in widget coordinates.
         """
-        # Show the menu at the position of the mouse cursor
+        
         logging.debug(f'showing menu at {pos}')
         global_pos = self.installer_ui.mapToGlobal(pos)
         self.menu.exec_(global_pos)
@@ -938,12 +928,12 @@ class REvoDesignPackageManager:
         Returns:
             QtWidgets.QDialog: The configured dialog window.
         """
-        # Create a new dialog window
+        
         dialog = QtWidgets.QDialog()
         ui_file = run_worker_thread_with_progress(
             worker_function=self.ensure_ui_file
         )
-        # Set up the UI for the dialog
+        
         try:
             self.installer_ui = loadUi(ui_file, dialog)
         except Exception as e:
@@ -955,8 +945,8 @@ class REvoDesignPackageManager:
                 os.remove(ui_file)
                 return self.make_window()
             raise RuntimeError(f"Error occurs while loading UI file: {e}.")
-        # add right-click menu on `self.installer_ui.label_header`,
-        # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
+        
+        
         menuitems = [
             MenuItem('Upgrades'),
             MenuItem("Upgrade this manager", self.self_upgrade),
@@ -985,38 +975,38 @@ class REvoDesignPackageManager:
             )
         ]
         self.add_right_click_menu(menuitems)
-        # Connect the open files button to the open_files method
+        
         self.installer_ui.pushButton_open.clicked.connect(self.open_files)
-        # Connect the open cache directory button to the open_cache_dir method
+        
         self.installer_ui.pushButton_open_cache_dir.clicked.connect(self.open_cache_dir)
-        # Connect the set cache directory button to the setup_cache_dir method
+        
         self.installer_ui.pushButton_set_cache_dir.clicked.connect(self.setup_cache_dir)
-        # Connect the install button to the install method
+        
         self.installer_ui.pushButton_install.clicked.connect(self.install)
-        # Connect the remove button to the uninstall method
+        
         self.installer_ui.pushButton_remove.clicked.connect(self.uninstall)
-        # Connect the radio button for customized extra options to the resize_extra_widget method with expand=True
+        
         self.installer_ui.radioButton_extra_customized.toggled["bool"].connect(
             partial(
                 self.resize_extra_widget,
                 expand=True,
             )
         )
-        # Connect the radio button for no extra options to the resize_extra_widget method with expand=False
+        
         self.installer_ui.radioButton_extra_none.toggled["bool"].connect(
             partial(
                 self.resize_extra_widget,
                 expand=False,
             )
         )
-        # Connect the radio button for all extra options to the resize_extra_widget method with expand=False
+        
         self.installer_ui.radioButton_extra_everything.toggled["bool"].connect(
             partial(
                 self.resize_extra_widget,
                 expand=False,
             )
         )
-        # Return the configured dialog window
+        
         return dialog
     @staticmethod
     def animate_to_size(widget, target_size, duration=300):
@@ -1032,7 +1022,7 @@ class REvoDesignPackageManager:
         animation.setEndValue(QtCore.QSize(*target_size))
         animation.setEasingCurve(QtCore.QEasingCurve.OutQuad)
         animation.start()
-        # Prevent animation from being garbage collected
+        
         widget.anim = animation
     def resize_extra_widget(self, expand: bool = False):
         """
@@ -1042,11 +1032,11 @@ class REvoDesignPackageManager:
         This function animates the resizing of `self.dialog` and `self.ui.label_header` to the specified dimensions.
         """
         if expand:
-            # Expand the dialog and label to larger sizes
+            
             self.animate_to_size(self.dialog, (652, 534))
             self.animate_to_size(self.installer_ui.label_header, (611, 41))
         else:
-            # Shrink the dialog and label to smaller sizes
+            
             self.animate_to_size(self.dialog, (490, 534))
             self.animate_to_size(self.installer_ui.label_header, (451, 41))
     def fetch_tags(self):
@@ -1056,7 +1046,7 @@ class REvoDesignPackageManager:
         specified GitHub repository,
         and then sets the result as the value of the `comboBox_version` combo box in the UI.
         """
-        # Run a worker thread to fetch tags with a progress bar
+        
         tags = run_worker_thread_with_progress(
             worker_function=get_github_repo_tags,
             repo_url=REPO_URL,
@@ -1064,7 +1054,7 @@ class REvoDesignPackageManager:
         if tags and isinstance(tags, list):
             return set_widget_value(self.installer_ui.comboBox_version, tags)
         return notify_box(f'Failed to fetch version tags from GitHub repo: \n{REPO_URL}')
-    # a copy from `REvoDesign/tools/customized_widgets.py`
+    
     def get_existing_directory(self):
         """
         Opens a dialog for the user to select an existing directory.
@@ -1079,8 +1069,8 @@ class REvoDesignPackageManager:
             os.path.expanduser("~"),
             QtWidgets.QFileDialog.DontResolveSymlinks,
         )
-    # a copy from `REvoDesign/tools/customized_widgets.py`
-    # an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
+    
+    
     def get_open_file_name_with_ext(self, *args, **kwargs):
         """
         Return a file name, append extension from filter if no extension provided.
@@ -1091,7 +1081,7 @@ class REvoDesignPackageManager:
         if "." not in os.path.split(fname)[-1]:
             ext_match = re.search(r"\*(\.[\w\.]+)", ext_filter)
             if ext_match:
-                # append first extension from filter
+                
                 fname += ext_match.group(1)
         return fname
     def open_cache_dir(self):
@@ -1103,9 +1093,9 @@ class REvoDesignPackageManager:
             The method returns the result of `set_widget_value` function, which is typically None or a
             status indicating success.
         """
-        # Retrieve the existing directory path
+        
         cache_dir = self.get_existing_directory()
-        # Check if the directory exists and update the UI
+        
         if cache_dir and os.path.exists(cache_dir):
             return set_widget_value(self.installer_ui.lineEdit_customized_cache_dir, cache_dir)
     def open_files(self):
@@ -1116,26 +1106,26 @@ class REvoDesignPackageManager:
         Returns:
             None: The function updates the UI with the selected directory or file path.
         """
-        # Check if the 'from local clone' radio button is selected
+        
         from_local_clone = self.installer_ui.radioButton_from_local_clone.isChecked()
-        # Check if the 'from local file' radio button is selected
+        
         from_local_file = self.installer_ui.radioButton_from_local_file.isChecked()
         if from_local_clone:
-            # Get the existing directory path from the user
+            
             opened_dir = self.get_existing_directory()
-            # If a valid directory is selected, update the UI with the directory path
+            
             if opened_dir and os.path.exists(opened_dir):
                 return set_widget_value(self.installer_ui.lineEdit_local, opened_dir)
         if from_local_file:
-            # Define supported file extensions and their descriptions
+            
             ext = {"zip": "ZIP archive", "tar.gz": "Tarball (TAR.GZ)"}
-            # Open a file dialog to select a file with the specified extensions
+            
             file = self.get_open_file_name_with_ext(
                 self.dialog,
                 "Open",
                 filter=";;".join([f"{ext_description} ( *.{ext_} )" for ext_, ext_description in ext.items()]),
             )
-            # If a valid file is selected, update the UI with the file path
+            
             if file and os.path.exists(file):
                 return set_widget_value(self.installer_ui.lineEdit_local, file)
     def uninstall(self):
@@ -1145,22 +1135,22 @@ class REvoDesignPackageManager:
         through a separate thread, displaying the progress on the UI progress bar. After uninstallation is complete,
         it provides feedback on the operation's success or failure.
         """
-        # Check if REvoDesign is installed
+        
         installed = importlib.util.find_spec("REvoDesign") is not None
-        # If REvoDesign is not installed, notify the user and exit the function
+        
         if not installed:
             notify_box(message="REvoDesign is not installed.")
             return
-        # During the uninstallation process, hold down the remove button on the UI to prevent multiple triggers
+        
         with hold_trigger_button(self.installer_ui.pushButton_remove), self.freeze_manager():
-            # Run the uninstallation process in a separate thread and monitor its progress
+            
             ret = run_worker_thread_with_progress(
                 worker_function=self.pip_installer.uninstall,
                 package_name='REvoDesign',
                 progress_bar=self.installer_ui.progressBar,
             )
             if ret is None or ret.returncode:
-                # If the uninstallation fails, notify the user of the failure and raise an error
+                
                 return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError, details=ret.stdout)
             remove_deps = decide(
                 'Clean up warning', 'Do you want to remove all the dependencies?')
@@ -1169,7 +1159,7 @@ class REvoDesignPackageManager:
                     self.remove_depts,
                     progress_bar=self.installer_ui.progressBar
                 )
-            # If the uninstallation is successful, notify the user
+            
             return notify_box(
                 message="REvoDesign is removed successfully. Bye-bye.",
             )
@@ -1184,16 +1174,16 @@ class REvoDesignPackageManager:
         Returns:
         - None
         """
-        # Fetch the dependency package mapping table
-        # Filter out dependencies whose package ID is empty
-        # Get the list of dependencies checked by the user for uninstallation
+        
+        
+        
         checked_depts_to_uninstall = self.extra_checkbox.checked_items
-        # Iterate over the dependency table
+        
         for e in self.remote_extra_group_data.all_extras:
             if e.extras_id not in checked_depts_to_uninstall:
                 logging.debug(f'Skip unchecked item: {e.name}')
                 continue
-            # Uninstall each package associated with the checked dependency
+            
             for _p in e.depts:
                 logging.info(f"Removing {_p}...")
                 self.pip_installer.uninstall(_p)
@@ -1204,27 +1194,27 @@ class REvoDesignPackageManager:
         validates the input, and performs the installation process. It also manages network settings,
         such as proxies and mirrors, and provides feedback on the installation result.
         """
-        # sources
+        
         from_repo = self.installer_ui.radioButton_from_repo.isChecked()
         from_local_clone = self.installer_ui.radioButton_from_local_clone.isChecked()
         from_local_file = self.installer_ui.radioButton_from_local_file.isChecked()
         local_source: str = self.installer_ui.lineEdit_local.text()
-        # Determine additional components to install
+        
         extras = ",".join(self.extra_checkbox.checked_items)
         upgrade = self.installer_ui.checkBox_upgrade.isChecked()
         verbose_level = self.installer_ui.horizontalSlider_Verbose.value()
-        # version tags
+        
         use_version = self.installer_ui.checkBox_specified_version.isChecked()
         target_version = self.installer_ui.comboBox_version.currentText()
-        # git commits
+        
         use_commit = self.installer_ui.checkBox_specified_commit.isChecked()
         target_commit = self.installer_ui.lineEdit_commit.text()
-        # networking
+        
         use_proxy = self.installer_ui.checkBox_use_proxy.isChecked()
         proxy_url = self.installer_ui.lineEdit_proxy_url.text()
         use_mirror = self.installer_ui.checkBox_use_mirror.isChecked()
         mirror_url = self.installer_ui.lineEdit_mirror_url.text()
-        # Determine the installation source based on user selection
+        
         if from_repo:
             install_source = REPO_URL
             if use_version and target_version:
@@ -1233,7 +1223,7 @@ class REvoDesignPackageManager:
                 install_source += f"@{target_commit}"
         elif from_local_clone:
             install_source = local_source
-            # Validate the local directory
+            
             if not local_source:
                 notify_box(f"Empty local dir: {local_source}", ValueError)
             if not os.path.exists(local_source):
@@ -1246,7 +1236,7 @@ class REvoDesignPackageManager:
                 install_source = f"file://{install_source}@{target_commit}"
         elif from_local_file:
             install_source = local_source
-            # Validate the local file
+            
             if not os.path.exists(local_source):
                 notify_box(f"{local_source} is not found.", FileNotFoundError)
             if not os.path.isfile(local_source):
@@ -1262,19 +1252,19 @@ class REvoDesignPackageManager:
         else:
             notify_box("Installation configuration is failed. Aborded. ", ValueError)
         env: Dict[str, str] = {}
-        # Update environment variables based on proxy settings
+        
         env.update(self.proxy_in_env(
             proxy=proxy_url if (use_proxy and proxy_url) else None,
             mirror=mirror_url if (use_mirror and mirror_url) else None))
-        # pass env to installer
+        
         self.pip_installer.env = env
-        # Perform the installation process
+        
         with hold_trigger_button(self.installer_ui.pushButton_install), self.freeze_manager():
             git_solver = GitSolver()
             if not git_solver.has_git:
                 git_fetch_command = git_solver.where_to_install
                 if not git_fetch_command:
-                    # If none of package managers is present, prompt the user to install Git manually
+                    
                     notify_box(
                         message="Failed on resolving Git with package managers [winget/conda/brew]. \n"
                         "Git is required to install REvoDesign. Please install Git first.\n"
@@ -1292,7 +1282,7 @@ class REvoDesignPackageManager:
                         message=f"Git not installed. \n{git_solver_res[-1] if git_solver_res else ''}"
                     )
                     return
-                # If successful, show a notification and return True
+                
                 notify_box(message="Git installed successfully.")
             installed = run_worker_thread_with_progress(
                 worker_function=self.pip_installer.install,
@@ -1303,7 +1293,7 @@ class REvoDesignPackageManager:
                 mirror=mirror_url if (use_mirror and mirror_url) else '',
                 progress_bar=self.installer_ui.progressBar,
             )
-            # Provide feedback on the installation result
+            
             if isinstance(installed, subprocess.CompletedProcess) and installed.returncode == 0:
                 notify_box(
                     message="Installation succeeded. \nIf this is an upgrade, "
@@ -1324,27 +1314,27 @@ class REvoDesignPackageManager:
             None
         """
         try:
-            # Import necessary components from REvoDesign
+            
             from REvoDesign import ConfigBus, save_configuration
             bus = ConfigBus()
-            # Get the new cache directory from the UI input
+            
             new_cache_dir = self.installer_ui.lineEdit_customized_cache_dir.text()
-            # Check if the new cache directory is valid
+            
             if new_cache_dir and os.path.isdir(new_cache_dir):
-                # Update the cache directory settings
+                
                 bus.cfg.cache_dir.under_home_dir = False
                 bus.cfg.cache_dir.customized = new_cache_dir
-                # Save the updated configuration
+                
                 save_configuration(new_cfg=bus.cfg)
-                # Notify the user that the cache directory has been updated
+                
                 notify_box(f"The customized cache directory has been updated: \n{new_cache_dir}")
             else:
-                # Notify the user that the cache directory is invalid
+                
                 notify_box(f"The cache directory is not valid. Please check the path: \n{new_cache_dir}", UserWarning)
-            # Reset the ConfigBus instance
+            
             ConfigBus.reset_instance()
         except ImportError:
-            # Notify the user that REvoDesign is not installed
+            
             notify_box(
                 message="REvoDesign is not installed. \nPlease install it first.",
                 error_type=RuntimeError,
@@ -1378,8 +1368,8 @@ class WorkerThread(QtCore.QThread):
     worker.finished_signal.connect(handle_finished_function)
     worker.interrupt_signal.connect(handle_interrupt_function)
     worker.start()
-    # To interrupt the execution:
-    # worker.interrupt()
+    
+    
     ```
     """
     result_signal = QtCore.pyqtSignal(list)
@@ -1390,7 +1380,7 @@ class WorkerThread(QtCore.QThread):
         self.func = func
         self.args = args or ()
         self.kwargs = kwargs or {}
-        self.results = None  # Define the results attribute
+        self.results = None  
     def run(self):
         """
         Executes the task and handles the results.
@@ -1407,14 +1397,14 @@ class WorkerThread(QtCore.QThread):
             - isInterruptionRequested: A method that returns True if an interruption has been requested,
             otherwise False.
         """
-        # Check if an interruption has been requested
+        
         if not self.isInterruptionRequested():
-            # Execute the function with provided arguments and store the result
+            
             self.results = [self.func(*self.args, **self.kwargs)]
-            # Emit the result if it exists
+            
             if self.results:
                 self.result_signal.emit(self.results)
-            # Emit the finished signal
+            
             self.finished_signal.emit()
     def handle_result(self):
         """
@@ -1448,26 +1438,26 @@ def run_worker_thread_with_progress(
     Returns:
     - The result of the worker function or None if no result is available.
     """
-    # If a progress bar is provided, store its current state and set it to indeterminate progress
+    
     if progress_bar:
-        # store the progress bar state
+        
         _min = progress_bar.minimum()
         _max = progress_bar.maximum()
         _val = progress_bar.value()
         progress_bar.setRange(0, 0)
-    # Create and start a worker thread with the given function and parameters
+    
     work_thread = WorkerThread(worker_function, args=args, kwargs=kwargs)
     work_thread.start()
-    # Keep the main thread running until the worker thread finishes
+    
     while not work_thread.isFinished():
         refresh_window()
         time.sleep(0.01)
-    # If a progress bar was used, restore its state after the task is completed
+    
     if progress_bar:
-        # restore the progressbar state
+        
         progress_bar.setRange(_min, _max)
         progress_bar.setValue(_val)
-    # Obtain and return the result of the worker function
+    
     result = work_thread.handle_result()
     return result[0] if result else None
 def get_github_repo_tags(repo_url) -> list[str]:
@@ -1481,31 +1471,30 @@ def get_github_repo_tags(repo_url) -> list[str]:
     Returns:
         list: A list of tag names for the repository.
     """
-    # Extract the owner and repo name from the URL
+    
     parts = repo_url.split("/")
     owner = parts[-2]
     repo = parts[-1]
-    # GitHub API URL for listing tags
+    
     api_url = f"https://api.github.com/repos/{owner}/{repo}/tags"
     try:
-        # Send a GET request to the GitHub API
+        
         with urllib.request.urlopen(api_url) as response:
-            # Read the response and decode from bytes to string
+            
             response_data = response.read().decode()
-            # Parse JSON response data
+            
             tags = json.loads(response_data)
-            # Extract the name of each tag
+            
             tag_names = [tag["name"] for tag in tags]
             return tag_names
     except HTTPError as e:
-        # Handle HTTP errors (e.g., repository not found, rate limit exceeded)
+        
         logging.warning(f"GitHub API returned status code {e.code}")
         return []
     except URLError as e:
-        # Handle URL errors (e.g., network issues)
+        
         logging.error(f"Failed to reach the server. Reason: {e.reason}")
         return []
-# a minimum copy from `REvoDesign/tools/customized_widgets.py`
 def set_widget_value(widget, value):
     """
     Sets the value of a PyQt5 widget based on the provided value.
@@ -1521,12 +1510,12 @@ def set_widget_value(widget, value):
     - QProgressBar: Supports int, list or tuple (for setting range).
     - QCheckBox: Supports bool.
     """
-    # Preprocess values according to types
+    
     if callable(value):
-        value = value()  # Call the function to get the value if value is callable
+        value = value()  
     if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple, dict)):
-        value = list(value)  # Convert iterable (excluding strings, lists, tuples, dicts) to list
-    # Setting values
+        value = list(value)  
+    
     if isinstance(widget, QtWidgets.QComboBox):
         if isinstance(value, (list, tuple)):
             widget.clear()
@@ -1567,7 +1556,6 @@ def refresh_window():
         None
     """
     QtWidgets.QApplication.processEvents()
-# Overload #1: None or Warning => returns bool
 @overload
 def notify_box(
     message: str = "",
@@ -1575,7 +1563,6 @@ def notify_box(
     details: Optional[str] = None
 ) -> None:
     ...
-# Overload #2: Exception => NoReturn
 @overload
 def notify_box(
     message: str,
@@ -1597,7 +1584,7 @@ def notify_box(
     If `error_type` is an Exception (and not a Warning), raises => NoReturn.
     """
     refresh_window()
-    # Create an information message box
+    
     msg = QtWidgets.QMessageBox()
     if error_type is None:
         msg.setIcon(QtWidgets.QMessageBox.Information)
@@ -1609,16 +1596,16 @@ def notify_box(
     if details is not None:
         msg.setDetailedText(details)
     msg.setStandardButtons(QtWidgets.QMessageBox.Ok)
-    # Display the message box
+    
     msg.exec_()
-    # If error_type is None, end the function execution
+    
     if error_type is None:
         return
-    # error_type is a Warning => also bool
+    
     if issubclass(error_type, Warning):
         warnings.warn(error_type(message))
         return
-    # Otherwise, raise => NoReturn
+    
     raise_error(error_type, message)
 def raise_error(error_type: Type[Exception], message: str) -> NoReturn:
     """
@@ -1642,7 +1629,7 @@ def decide(title="", description="", rich: bool = False, details: Optional[str] 
     - bool: True if 'Yes' is selected, False otherwise
     """
     refresh_window()
-    # A confirmation message.
+    
     msg = QtWidgets.QMessageBox()
     msg.setIcon(QtWidgets.QMessageBox.Question)
     msg.setWindowTitle(title)
@@ -1674,7 +1661,7 @@ def filter_sensitive_data(env):
     Returns:
         dict: A new dictionary with sensitive keys removed.
     """
-    # Define the regex pattern to match sensitive keys
+    
     sensitive_pattern = re.compile(
         r"(token|passwd|password|pass|session|_id|secret|access|auth|api_key|apikey|"
         r"access_key|accesskey|secret_key|secretkey|auth_token|authtoken|"
@@ -1682,7 +1669,7 @@ def filter_sensitive_data(env):
         r"credential|authenticator|certificate|cert|identity|oauth|jwt|bearer|csrf)",
         re.IGNORECASE
     )
-    # Filter out sensitive keys
+    
     filtered_env = {
         key: value for key, value in env.items() if not sensitive_pattern.search(key)
     }
@@ -1702,9 +1689,9 @@ def issue_collection(
     - A dictionary containing detailed information about the system, environment, and installed software.
     """
     issue_dict = {}
-    # Collect platform information
+    
     platform_info = platform.uname()
-    # Platform
+    
     issue_dict.update({'Platform::Platform': sys.platform})
     issue_dict.update({'Platform::Architecture': platform.architecture()[0]})
     issue_dict.update({'Platform::OS': platform_info.system})
@@ -1740,20 +1727,20 @@ def issue_collection(
             issue_dict.update({'Platform::Windows::Chcp': run_command(['chcp']).stdout.strip()})
         except Exception as e:
             issue_dict.update({'Platform::Windows::Chcp': f"Error: {e}"})
-    # Shell
+    
     issue_dict.update({'Shell::Name': os.getenv('SHELL')})
     issue_dict.update({'Shell::Encoding': sys.stdout.encoding})
     issue_dict.update({'Shell::IsCygwin': 'CYGWIN' in os.environ.get('MSYSTEM', '')})
-    # Python
+    
     issue_dict.update({'Python::Version': sys.version})
     issue_dict.update({'Python::PythonPath': sys.executable})
     issue_dict.update({'Python::PIP': run_command([sys.executable, '-m', 'pip', '--version']).stdout.strip()})
     issue_dict.update({'Python::Compiler': platform.python_compiler()})
     issue_dict.update({'Python::Implementation': platform.python_implementation()})
-    # PyQt
+    
     issue_dict.update({'PyQt::Version': QtCore.PYQT_VERSION_STR})
     issue_dict.update({'PyQt::QtPath': QtCore.__file__})
-    # Tools
+    
     git_solver = GitSolver()
     try:
         conda_version = run_command([git_solver.has_conda, '--version']
@@ -1776,7 +1763,7 @@ def issue_collection(
     issue_dict.update({'Tools::Win-Get': git_solver.has_winget})
     issue_dict.update({'Tools::Win-Get::Version': run_command(
         [git_solver.has_winget, '--version']).stdout.strip() if git_solver.has_winget else 'Not Found'})
-    # Env Vars
+    
     issue_dict.update({'Env::CondaPath::0': os.getenv('CONDA_PREFIX')})
     issue_dict.update({'Env::CondaPath::1': os.getenv('CONDA_PREFIX_1')})
     issue_dict.update({'Env::CondaPath::2': os.getenv('CONDA_PREFIX_2')})
@@ -1787,7 +1774,7 @@ def issue_collection(
         issue_dict.update({'User::Username': os.getlogin()})
     except OSError:
         issue_dict.update({'User::Username': 'Unknown'})
-    # Network
+    
     try:
         ip = socket.gethostbyname_ex(socket.gethostname())[2]
     except Exception as e:
@@ -1799,10 +1786,10 @@ def issue_collection(
             issue_dict.update({'Network::Location': ip_location})
         else:
             issue_dict.update({'Network::Location': 'Failed to fetch client location'})
-    # PyMOL
+    
     issue_dict.update({'PyMOL::Version': cmd.get_version()[0]})
     issue_dict.update({'PyMOL::Build': get_version_message()})
-    # REvoDesign
+    
     issue_dict.update({'REvoDesign::Installer': __file__})
     if is_package_installed('REvoDesign'):
         import REvoDesign
@@ -1828,7 +1815,7 @@ def issue_collection(
         issue_dict.update({'REvoDesign::Extras::TestSuite': is_package_installed('pytest')})
     else:
         issue_dict.update({'REvoDesign::Version': 'Not Installed'})
-    # Dummy
+    
     if collect_dummy:
         if drop_sensitives:
             env_dict = filter_sensitive_data(os.environ)
@@ -1851,17 +1838,15 @@ def issue_collection(
             issue_dict.update({'Dummy::REvoDesign::Configurations': ConfigConverter().convert(
                 ConfigBus().cfg) if ConfigBus._instance is not None else 'N/A'})
     return issue_dict
-# TODO:
-# add abort button
 '''
 self.abortbutton = QtWidgets.QPushButton('Abort')
-self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
+self.abortbutton.setStyleSheet("background: 
 self.abortbutton.released.connect(cmd.interrupt)
 '''
 @contextmanager
 def hold_trigger_button(
     buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],
-    animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
+    animation_duration: int = 1000  
 ):
     """
     A context manager for holding and releasing trigger buttons with a breathing effect
@@ -1878,17 +1863,17 @@ def hold_trigger_button(
         return color
     def start_breathing_animation(button: QtWidgets.QPushButton):
         accent_color = get_accent_color()
-        base_color = accent_color.lighter(150)  # Start with a lighter shade
-        darker_color = accent_color.darker(150)  # Use a darker shade for the trough
+        base_color = accent_color.lighter(150)  
+        darker_color = accent_color.darker(150)  
         timer = QtCore.QTimer(button)
-        timer.setInterval(30)  # Update every 30 milliseconds
+        timer.setInterval(30)  
         elapsed = 0
         def update_stylesheet():
             nonlocal elapsed
             elapsed += timer.interval()
-            t = (elapsed % animation_duration) / animation_duration  # Normalized time [0, 1]
-            # Calculate intermediate intensity using sine wave
-            factor = (1 + math.sin(2 * math.pi * t)) / 2  # Normalized to [0, 1]
+            t = (elapsed % animation_duration) / animation_duration  
+            
+            factor = (1 + math.sin(2 * math.pi * t)) / 2  
             r = int(base_color.red() * factor + darker_color.red() * (1 - factor))
             g = int(base_color.green() * factor + darker_color.green() * (1 - factor))
             b = int(base_color.blue() * factor + darker_color.blue() * (1 - factor))
@@ -1897,26 +1882,26 @@ def hold_trigger_button(
         timer.start()
         timers.append(timer)
     def stop_breathing_animation(button: QtWidgets.QPushButton):
-        # Stop all timers associated with this button
+        
         for timer in timers:
             if timer.parent() == button:
                 timer.stop()
                 timers.remove(timer)
-        button.setStyleSheet("")  # Reset the button's style
+        button.setStyleSheet("")  
     try:
         for b in buttons:
             b.setEnabled(False)
-            b.setProperty("held", True)  # Mark the button as held
+            b.setProperty("held", True)  
             b.setProperty("original_style", b.styleSheet() if b.styleSheet() else "")
             start_breathing_animation(b)
             logging.debug(f"Held button: {b.text()}: ({b.objectName()})")
         yield
     finally:
         for b in buttons:
-            b.setProperty("held", False)  # Remove the held mark
+            b.setProperty("held", False)  
             stop_breathing_animation(b)
             b.setStyleSheet(b.property("original_style") if b.property("original_style") else "")
-            b.setEnabled(True)  # Re-enable the button
+            b.setEnabled(True)  
             logging.debug(f"Released button: {b.text()}: ({b.objectName()})")
 def solve_installation_config(
     source: str,
@@ -1938,27 +1923,27 @@ def solve_installation_config(
     extra_string = f'[{extras}]' if extras else ''
     package_string = f"{package_name}{extra_string}"
     logging.info(f"Installing as {package_string}...")
-    # Handle installation from a GitHub URL with a tag
+    
     if source and source.startswith("https://"):
         package_string += f' @ git+{git_url}{f"@{git_tag}" if git_tag else ""}'
         return package_string
-    # Handle installation from a local directory
+    
     if os.path.isdir(source):
-        # preprocess
+        
         if source.endswith("/"):
             source = source[:-1]
-        # # a local Git repository? # TODO: not fully implemented yet
-        # if os.path.isdir(os.path.join(source, ".git")):
-        #     package_string += f' @ git+file://{source}{f"@{git_tag}" if git_tag else ""}'
-        #     return package_string
-        # or just an unzipped code directory?
+        
+        
+        
+        
+        
         if os.path.exists(os.path.join(source, "pyproject.toml")):
             if git_tag:
                 notify_box("Ignore unzipped code directory tag!")
             package_string = f"{source}{extra_string}"
             return package_string
         notify_box(f"{source} should atleast be a Git repository or a code directory!", ValueError)
-    # Handle installation from a zipped code file
+    
     if os.path.isfile(source):
         if git_tag:
             notify_box("Ignore zipped file tag!")
@@ -1970,7 +1955,6 @@ def solve_installation_config(
             FileNotFoundError,
         )
     notify_box(f"Unknown installation source {source}({package_name})!", ValueError)
-# entrypoint of PyMOL plugin
 def __init_plugin__(app=None):
     """
     Add an entry to the PyMOL "Plugin" menu

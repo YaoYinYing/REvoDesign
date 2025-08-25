@@ -33,13 +33,13 @@ def is_polymer_protein(sele=""):
                       otherwise returns False. Returns None if the selection is empty.
     """
     if not sele:
-        return None  # Return None if the selection is empty
-    # Retrieve the atoms that belong to a protein polymer within the selection and count unique residues
+        return None  
+    
     resi_list = [
         at.resi for at in cmd.get_model(f"({sele}) and polymer.protein").atom
     ]
     unique_residues = set(resi_list)
-    # Check if the count of unique residues is greater than 10 to determine if it's a protein with at least 10 residues
+    
     return len(unique_residues) > 10
 def find_small_molecules_in_protein(sele):
     """
@@ -57,8 +57,8 @@ def find_small_molecules_in_protein(sele):
                 "Selection for small molecules is not provided."
             )
         )
-        return None  # Return None if the selection is not provided
-    # Retrieve the atoms that belong to small molecules within the selection and extract unique small molecule names
+        return None  
+    
     small_molecules = [
         at.resn
         for at in cmd.get_model(f"( {sele} ) and (not polymer.protein)").atom
@@ -73,7 +73,7 @@ def find_small_molecules_in_protein(sele):
                 "then re-load this session."
             )
         )
-        # Return a list of unique small molecule names found within the selection
+        
         return unique_small_molecules
     warnings.warn(issues.FallingBackWarning("Falling back to all `hetatm`"))
     small_molecules = [
@@ -81,7 +81,7 @@ def find_small_molecules_in_protein(sele):
         for at in cmd.get_model("hetatm and (not polymer.protein)").atom
     ]
     unique_small_molecules = list(set(small_molecules))
-    # Return a list of unique small molecule names found within the selection
+    
     return unique_small_molecules if unique_small_molecules else []
 def find_design_molecules():
     """
@@ -89,7 +89,7 @@ def find_design_molecules():
     Returns:
         list: Returns a list of design molecules that are identified as polymer proteins.
     """
-    # Retrieve all public non-group objects and filter for those identified as polymer proteins
+    
     objects = [
         object
         for object in cmd.get_names(
@@ -115,7 +115,7 @@ def find_all_protein_chain_ids_in_protein(sele) -> List[str]:
     """
     if not sele:
         return []
-    # return a list of chain IDs that assigned to a protein molecule
+    
     chain_ids = [chain_id for chain_id in cmd.get_chains(sele) if chain_id]
     all_chains = [
         chain_id
@@ -145,59 +145,59 @@ def is_distal_residue_pair(
     Returns:
     - distal (bool): True if the residues are distal, False otherwise.
     """
-    # Step 1: Get the sequence of the molecule and chain
+    
     sequence = get_molecule_sequence(molecule=molecule, chain_id=chain_id)
-    # Convert residue numbers to integers
+    
     resi_1 = int(resi_1)
     resi_2 = int(resi_2)
-    # Retrieve one-letter amino acid codes for the two residues
+    
     resn_1 = sequence[resi_1 - 1]
     resn_2 = sequence[resi_2 - 1]
-    # Construct strings representing CA atoms of the two residues
+    
     Ca_atom_1 = f"{molecule} and c. {chain_id} and i. {resi_1} and n. CA"
     Ca_atom_2 = f"{molecule} and c. {chain_id} and i. {resi_2} and n. CA"
-    # Calculate the distance between the CA atoms
+    
     Ca_distance = cmd.get_distance(atom1=Ca_atom_1, atom2=Ca_atom_2)
-    # Check if either of the residues is glycine or not using sidechain angle
+    
     if (not use_sidechain_angle) or any(
         resn == "G" for resn in [resn_1, resn_2]
     ):
         return Ca_distance > minimal_distance
-    # Construct strings representing sidechain atoms of the two residues
+    
     SC_atoms_1 = f"{molecule} and c. {chain_id} and i. {resi_1} and sidechain and not hydrogen"
     SC_atoms_2 = f"{molecule} and c. {chain_id} and i. {resi_2} and sidechain and not hydrogen"
-    # Get coordinates of CA and Sidechain  atoms
+    
     Ca_atom_1_coord = np.array(cmd.get_coords(Ca_atom_1)[0])
     Ca_atom_2_coord = np.array(cmd.get_coords(Ca_atom_2)[0])
     SC_COM_1 = np.array(cmd.centerofmass(SC_atoms_1))
     SC_COM_2 = np.array(cmd.centerofmass(SC_atoms_2))
-    # Calculate the orientation of the side chains
+    
     sidechain_orient = np.dot(
         SC_COM_1 - Ca_atom_1_coord, SC_COM_2 - Ca_atom_2_coord
     )
     sidechain_com_dist = abs(np.linalg.norm(SC_COM_1 - SC_COM_2))
-    # Check if the side chains are oriented in opposite directions
+    
     if sidechain_orient < 0:
         if sidechain_com_dist >= Ca_distance:
-            # /-------------\
-            # *---Ca   Ca---*
+            
+            
             logging.warning(
                 f"Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, distal."
             )
             return True
-        #       /--\
-        # Ca---*    *---Ca
+        
+        
         logging.warning(f'Sidechain: {resi_1}{resn_1} vs {resi_2}{resn_2}: opposite, '
                         f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
         return sidechain_com_dist > minimal_distance
     logging.warning(f'Sidechains: {resi_1}{resn_1} and {resi_2}{resn_2}: same, '
                     f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
-    # Ca---*
-    #        \
-    #         \
-    #          \
-    #      Ca---*
-    # Check if sidechain distance is greater than the minimal distance
+    
+    
+    
+    
+    
+    
     return sidechain_com_dist > minimal_distance
 def renumber_chain_ids(target_protein):
     """
@@ -425,7 +425,7 @@ def extract_smiles_from_chain(
     Returns:
     - str: The SMILES string list of the specified molecule
     """
-    # Step 1: Create a temporary input PDB file
+    
     temp_pdb = make_temperal_input_pdb(
         molecule,
         chain_id=chain_id,
@@ -436,17 +436,17 @@ def extract_smiles_from_chain(
         wd=os.path.abspath("./ligand"),
         reload=False,
     )
-    # Step 2: Use RDKit to read the PDB file
+    
     smiles = []
     with Chem.SDMolSupplier(temp_pdb, removeHs=False) as suppl:
         for mol in suppl:
             if mol is None:
                 continue
             print(mol.GetNumAtoms())
-            # Step 3: Convert the molecule to a SMILES string
+            
             smiles.append(MolToSmiles(mol))
-    # Cleanup: Optionally delete the temporary PDB file
-    # os.remove(temp_pdb)
+    
+    
     return smiles
 def any_posision_has_been_selected():
     selected_positions = [
@@ -465,18 +465,18 @@ def renumber_protein_chain(molecule: Union[str, List[str]], chain: Optional[str]
         chain (Optional[str]): Name of the chain to be renumbered. If None, applies to all chains.
         offset (int): Residue index offset to apply (default is 0, meaning no change).
     Usage:
-        # Example 1: Renumber all residues in chain A of '8X3E' by adding 32
+        
         renumber_protein_chain("8X3E", "A", 32)
-        # Example 2: Renumber all residues in '1ABC' by subtracting 10
+        
         renumber_protein_chain("1ABC", offset=-10)
     """
     if offset == 0:
-        return  # No change needed
+        return  
     if isinstance(molecule, (list, tuple)):
         molecule = f' ({" or ".join(molecule)}) '
     selection = f"{molecule}" if chain is None else f"{molecule} and chain {chain}"
     cmd.alter(selection, f"resv += {offset}")
-    cmd.rebuild()  # Ensure the visualization updates properly
+    cmd.rebuild()  
 PYMOL_SETTINGS: immutabledict[str, int] = immutabledict(index_dict)
 @dataclass
 class PyMOLSetting:

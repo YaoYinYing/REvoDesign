@@ -24,9 +24,9 @@ def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
     tmpObj = cmd.get_unused_name("_tmp")
     cmd.create(tmpObj, "(" + selection + ") and polymer", zoom=0)
     cmd.set("dot_solvent", 1, tmpObj)
-    # get per-atom surface area and store it in b-factor
+    
     cmd.get_area(selection=tmpObj, load_b=1)
-    # threshold on what one considers an "exposed" atom (in A**2):
+    
     cmd.remove(tmpObj + " and b < " + str(cutoff))
     selName = cmd.get_unused_name("exposed_atm_")
     cmd.select(selName, "(" + selection + ") in " + tmpObj)
@@ -117,7 +117,7 @@ class SurfaceFinder:
         cmd.scene("initial_scene", "store")
         os.makedirs(
             "surface_residue_records", exist_ok=True
-        )  # Create a directory for residue records
+        )  
         cmd.scene("initial_scene")
         surface_selection = findSurfaceResidues(
             selection=self.molecule, cutoff=self.cutoff, return_selection=1
@@ -146,7 +146,7 @@ class SurfaceFinder:
                 scene_id, "store", message=f"surface_cutoff: {self.cutoff:.1f}"
             )
         cmd.refresh()
-        # Save residue IDs to a text file
+        
         surface_residue_ids = list(
             {int(atom.resi) for atom in cmd.get_model(er_ca_selection).atom}
         )

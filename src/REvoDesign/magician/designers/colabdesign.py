@@ -1,7 +1,6 @@
 '''
 ProteinMPNN, driven by ColabDesign
 '''
-# pylint: disable=import-outside-toplevel
 import os
 import warnings
 from typing import List, Union
@@ -11,22 +10,21 @@ from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
-# Designer wrapper to ColabDesign MPNN
 class ColabDesigner_MPNN(ExternalDesignerAbstract):
     name: str = "ProteinMPNN"
     installed: bool = is_package_installed("colabdesign")
-    # lower score is better.
-    # https://github.com/dauparas/ProteinMPNN/issues/44#issuecomment-1475522598
+    
+    
     prefer_lower = True
     def __init__(self, molecule, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
         self.molecule = molecule
-        # internal variables
-        self.mpnn_model: mk_mpnn_model = None  # type: ignore
+        
+        self.mpnn_model: mk_mpnn_model = None  
         self.initialized = False
         self.pdb_filename = None
         self.reload = False
-    # initializing takes time so it should be sent to run_worker_thread_with_progress so UI will not be frozen.
+    
     def initialize(self, *args, **kwargs):
         """
         Initialize the ColabDesigner_MPNN class.
@@ -92,7 +90,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
             sequence: str = mutant.get_sequence_by_chain(
                 chain_id=mutant.all_chain_ids[0]
             ).replace("X", "")
-        # scorer must return a float score value given a mutant sequence.
+        
         return self.mpnn_model.score(seq=sequence)["score"]
     def parallel_scorer(self, mutants: List[Mutant], nproc: int = 2, **kwargs) -> List[Mutant]:
         scores = []
@@ -110,7 +108,7 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         Notes:
         - Executes the designer to obtain sequence and score iterables.
         """
-        # designer must return a dict containing `'seq'` and `'score'` iterables.
+        
         design_results = self.mpnn_model.sample(*args, **kwargs)
         return design_results
     __bibtex__ = {

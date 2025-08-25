@@ -16,8 +16,8 @@ class DLPacker_worker(MutateRunnerAbstract):
     Class for managing protein reconstruction and mutation using DLPacker.
     Usage:
     dlpacker = DLPacker_worker(pdb_file)
-    relaxed_pdb = dlpacker.reconstruct()  # Reconstruct the protein
-    mutant = Mutant()  # Create a Mutant object
+    relaxed_pdb = dlpacker.reconstruct()  
+    mutant = Mutant()  
     mutant_info = [
         {
             'chain_id': 'A',
@@ -25,10 +25,10 @@ class DLPacker_worker(MutateRunnerAbstract):
             'mut_res': 'G',
             'wt_res': 'A'
         },
-        # Add more mutation info as needed
+        
     ]
-    mutated_pdb = dlpacker.run_mutate(mutant, reconstruct_area_radius=5)  # Perform mutation
-    # Further usage for other functionalities
+    mutated_pdb = dlpacker.run_mutate(mutant, reconstruct_area_radius=5)  
+    
     """
     name: str = "DLPacker"
     installed: bool = is_package_installed("DLPacker")
@@ -166,7 +166,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         - List of paths to the mutated PDB files
         """
         with timing('setting up DLPacker'):
-            # call DLPacker to initialize with cache dir
+            
             from DLPacker.dlpacker import DLPacker
         if nproc is None:
             nproc = os.cpu_count()
@@ -177,7 +177,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
         gc.collect()
-        return list(results)  # type: ignore
+        return list(results)  
     __bibtex__ = {
         "DLPacker": r"""@article{https://doi.org/10.1002/prot.26311,
 author = {Misiura, Mikita and Shroff, Raghav and Thyer, Ross and Kolomeisky, Anatoly B.},

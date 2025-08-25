@@ -32,10 +32,10 @@ class FileDialog(SingletonAbstract):
         self.window = window
         self.PWD = pwd or os.getcwd()
         self.register_file_dialog_buttons()
-        # Mark the instance as initialized to prevent reinitialization
+        
         self.initialize()
-    # class public function that can be shared with each tab
-    # callback for the "Browse" button
+    
+    
     def browse_multiple_files(self, exts: Optional[tuple[FileExtensionCollection, ...]] = (file_extensions.Any,)
                               ) -> List[str]:
         return getMultipleFiles(self.window, exts)
@@ -52,42 +52,42 @@ class FileDialog(SingletonAbstract):
         """
         ext = FileExtensionCollection.squeeze(exts)
         filter_strings = ext.filter_string
-        # refer a file path to write in
+        
         if mode == "w":
             browse_title = "Save As..."
             filename = getSaveFileNameWithExt(
                 self.window, browse_title, filter=filter_strings
             )
             return filename if filename else None
-        # otherwise, open a file to read
+        
         browse_title = "Open ..."
         filename = getOpenFileNameWithExt(
             self.window, browse_title, filter=filter_strings
         )
-        # no file selected
+        
         if not filename:
             return None
-        # selected
+        
         filename_bn = os.path.basename(filename)
         filename_ext = filename_bn.split(".")[-1]
-        # Check if the selected file is a compressed archive
-        # if not, return
+        
+        
         if filename_ext not in file_extensions.Compressed:
             return filename
-        # if so, ask user whether to extract this compressed file
+        
         confirmed = decide(
             title="Extract Archive",
             description=f"The selected file '{filename_bn}'"
             " is a compressed archive. Do you want to extract it?",
         )
-        # if the answer is no
+        
         if not confirmed:
-            # Keep the previously selected filename and return it
+            
             return filename
-        # otherwise, extract the archive and browse the extracted file
+        
         flatten_compressed_files(filename, self.PWD)
         return self.browse_filename(mode, exts=exts)
-    # A universal and versatile function for input file path browsing.
+    
     def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (
             file_extensions.Any,)) -> Optional[str]:
         """Open Any File
@@ -214,18 +214,18 @@ def flatten_compressed_files(compressed_file: str, target_dir: Optional[str] = N
     Returns:
     - str: The path to the directory where the files have been extracted.
     """
-    # Set the target directory to the current working directory if not specified
+    
     if target_dir is None:
         target_dir = os.getcwd()
-    # Create a path for the extracted files
+    
     flatten_path = os.path.join(
         target_dir,
         "expanded_compressed_files",
         os.path.basename(compressed_file),
     )
-    # Create the directory if it does not exist
+    
     os.makedirs(flatten_path, exist_ok=True)
-    # Extract the archive to the specified directory
+    
     extract_archive(archive_file=compressed_file, extract_to=flatten_path)
-    # Return the path to the extracted directory
+    
     return flatten_path

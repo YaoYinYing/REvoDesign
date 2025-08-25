@@ -10,10 +10,8 @@ from REvoDesign.basic import ExternalDesignerAbstract
 from REvoDesign.basic.abc_singleton import SingletonAbstract
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
-# 1. implement and import the designer
 from .designers import ColabDesigner_MPNN, ddg
 logging = ROOT_LOGGER.getChild(__name__)
-# 2. add the designer class to this list
 ALL_DESIGNER_CLASSES: List[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,
@@ -46,11 +44,11 @@ class Magician(SingletonAbstract):
         Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick,
         and creating an instance of the assistant.
         """
-        # Initialize the configuration bus for accessing configuration information
+        
         self.bus: ConfigBus = ConfigBus()
-        # Initialize the gimmick as None, to be set up later
+        
         self.gimmick: Optional[ExternalDesignerAbstract] = None
-        # Create an instance of the assistant for helping with gimmick management
+        
         self.magician_assistant = MagicianAssistant()
     def setup(
         self,
@@ -69,27 +67,27 @@ class Magician(SingletonAbstract):
         Returns:
         - Magician: Returns the instance of the Magician for method chaining.
         """
-        # Attempt to obtain the name of the gimmick through different means
+        
         if name_badget_id:
             name = self.bus.get_widget_value(name_badget_id, str)
         elif name_cfg_term:
             name = self.bus.get_value(name_cfg_term, str, reject_none=True)
         elif gimmick_name:
             name = gimmick_name
-        # if the name is empty and the magician is initialized, cool it down
+        
         else:
             if self.gimmick is not None:
                 logging.info(f"Cooling down {self.gimmick.name} ...")
             self.gimmick = None
             return self
-        # If the current gimmick does not match the required name, pre-heat up a new gimmick
+        
         if not (
             isinstance(self.gimmick, ExternalDesignerAbstract)
             and self.gimmick.name == name
         ):
             with timing(f"Pre-heating up Magician's gimmick {name}"):
                 try:
-                    # if not ready, initialize it and return
+                    
                     logging.info("This could take a while ...")
                     self.gimmick = self.magician_assistant.get(
                         name=name, **kwargs
@@ -97,12 +95,12 @@ class Magician(SingletonAbstract):
                     self.gimmick.initialize(**kwargs)
                     return self
                 except KeyError:
-                    # not a valid class, return with cooled down.
+                    
                     return self.setup()
                 except Exception as e:
                     raise issues.DependencyError(
                         f"Failed to setup Magician's gimmick {name}"
                     ) from e
-        # If the gimmick does not need to change, log information and return
+        
         logging.info(f"Designer stays unchanged: {self.gimmick.name}")
         return self

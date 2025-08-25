@@ -21,9 +21,9 @@ class ServerControlAbstract(SingletonAbstract):
         The ServerMonitor will automatically start and stop the server when the actions are triggered.
     """
     def singleton_init(self):
-        self.server_thread: WorkerThread = None  # type: ignore # WorkerThread instance
+        self.server_thread: WorkerThread = None  
         self.is_running = False
-        self.server: uvicorn.Server = None  # type: ignore # Uvicorn Server instance
+        self.server: uvicorn.Server = None  
     @abstractmethod
     def start_server(self):
         '''
@@ -70,7 +70,7 @@ class MenuActionServerMonitor(QtCore.QObject):
         action_off: QtWidgets.QAction,
         menu_item: Optional[QtWidgets.QMenu] = None,
     ):
-        super().__init__()  # Initialize QObject
+        super().__init__()  
         try:
             self.controller = controller()
         except Exception as e:
@@ -81,10 +81,10 @@ class MenuActionServerMonitor(QtCore.QObject):
         self.action_on = action_on
         self.action_off = action_off
         self.menu_item = menu_item
-        # Set initial LED status
+        
         if self.menu_item is not None:
             self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/blue.png")))
-        # Connect actions to controller methods
+        
         self.action_on.triggered.connect(self._start_server)
         self.action_off.triggered.connect(self._stop_server)
     def _start_server(self):

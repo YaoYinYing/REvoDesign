@@ -56,14 +56,14 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         self.device = device
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
-            # Construct the save prefix and create the directory if it doesn't exist
+            
             self.save_prefix = os.path.join(save_dir, prefix)
             os.makedirs(os.path.dirname(self.save_prefix), exist_ok=True)
         else:
             self.save_prefix = ''
-        # Load the protein sequence from the PDB file
+        
         self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
-        # Initialize the ThermoMPNN application with the provided parameters
+        
         self.app = ThermoMPNN(
             pdb,
             self.save_prefix,
@@ -82,9 +82,9 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             pd.DataFrame: DataFrame containing the prediction results with columns 'ddG' and 'Mutation',
                           or 'ddG', 'Mutation', and 'dist' depending on the mode.
         """
-        # Process the protein and get the results as a DataFrame
+        
         df = self.app.process(save_csv=bool(self.save_prefix))
-        # Rename the DataFrame columns based on the mode
+        
         if self.mode == 'single':
             df.columns = ['ddG', 'Mutation']
         else:
@@ -115,7 +115,7 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             MutantTree: MutantTree object containing the mutation predictions.
         """
         mutant_tree = MutantTree()
-        # Iterate over each row in the DataFrame to create Mutant objects and add them to the MutantTree
+        
         for _, row in df.iterrows():
             score: float = row['ddG']
             mutation: str = row['Mutation']
@@ -123,7 +123,7 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             mutant = self.mutant_name2mutant(mutant_id=f'{mutation.replace(":", "_")}_{score}', sequences=self.sequence)
             mutant.mutant_score = score
             mutant.wt_score = 0
-            # Add the mutant to the appropriate branch in the MutantTree
+            
             mutant_tree.add_mutant_to_branch(
                 self.prefix
                 if sorted_by == 'prefix'

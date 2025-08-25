@@ -19,15 +19,15 @@ def check_mac_rosetta2():
     """
     if not platform.system() == "Darwin":
         return
-    # Determine if the current machine is an ARM-based Mac
+    
     is_arm_macos = "ARM64" in platform.uname().version
-    # Determine if the current machine is recognized as x86_64
+    
     is_recognized_as_x86 = platform.machine() == "x86_64"
     print(f"Does it ARMed? {is_arm_macos}")
     print(f"Does it Rosetta-ed? {is_recognized_as_x86}")
     if not (is_arm_macos and is_recognized_as_x86):
         return
-    # Issue a warning if the machine is running under Rosetta 2
+    
     warnings.warn(
         issues.AppleSiliconRosetta2Warning(
             "Oops! You are in Rosetta-translated PyMOL bundle from official channel. "

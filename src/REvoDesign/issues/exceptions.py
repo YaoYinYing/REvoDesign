@@ -5,7 +5,6 @@ class REvoDesignException(Exception):
     """Base class for all exceptions in the REvoDesign application."""
 class InternalError(REvoDesignException):
     """Exception raised for internal errors that develops during the execution of the program."""
-# Specific error classes
 class ConfigurationError(REvoDesignException):
     """Exception raised for errors in configuration."""
 class PluginError(REvoDesignException):

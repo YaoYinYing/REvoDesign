@@ -48,13 +48,13 @@ class REvoDesigner:
         self.deduplicate_designs = False
         self.randomized_sample = False
         self.randomized_sample_num = 10
-        self.mutate_runner: MutateRunnerAbstract = None  # type: ignore
+        self.mutate_runner: MutateRunnerAbstract = None  
         self.pwd = "."
         self.sequence = ""
         self.design_case = "default"
         self.preffered_substitutions = ""
         self.reject_aa = ""
-        # use PSSM alphabet as default
+        
         self.profile_alphabet = "ARNDCQEGHILKMFPSTWYV"
         self.cmap = "bwr_r"
         self.results = []
@@ -105,14 +105,14 @@ class REvoDesigner:
         logging.info(custom_indices)
         if custom_indices == []:
             custom_indices = list(range(1, len(self.sequence) + 1))
-        # pick out the columns selected by custom indices input
-        # one-indexed
+        
+        
         logging.debug(f'Apply custom indices to df: {custom_indices}')
         logging.debug(f'Column names: {df.columns}')
         df_trunc = df.loc[:, custom_indices]
         logging.debug(f'Trucated Dataframe: \n {df_trunc.head()}')
         sequence = list(self.sequence)
-        # truncate sequence for labels
+        
         sequence_trunc = "".join([sequence[i - 1] for i in custom_indices])
         logging.debug(f'Trucated sequence: {sequence_trunc}')
         max_abs_value = np.max((np.abs(df_trunc.values.min()), df_trunc.values.max()))
@@ -144,7 +144,7 @@ class REvoDesigner:
         }
         mutations = []
         for idx, resid in enumerate(custom_indices):
-            # fetch wt aa from untruncated sequence
+            
             wt_aa = sequence[resid - 1]
             profile_scores = df_trunc.loc[:, resid]
             mutation_candidates["mutations"][resid] = {
@@ -258,7 +258,7 @@ class REvoDesigner:
         - Initializes the external designer with specified parameters.
         - Handles different types of external designers.
         """
-        # expand design residue index
+        
         expanded_custom_indices = expand_range(
             shortened_str=custom_indices_str, connector="-", seperator=","
         )
@@ -269,7 +269,7 @@ class REvoDesigner:
             logging.info(
                 f"Generated random sample indices: {expanded_custom_indices}"
             )
-        # setup parameters for external designer
+        
         self.setup_parameters_for_magician()
         if not (self.magician_temperature and self.magician_num_samples):
             logging.error(
@@ -368,7 +368,7 @@ class REvoDesigner:
             if counter_2.get(seq) > 1:
                 logging.warning(
                     f"Design {mutant_obj.raw_mutant_id} has multiple scores!\n"
-                    "See: https://github.com/dauparas/ProteinMPNN/issues/19#issuecomment-1283072787\n"
+                    "See: https://github.com/dauparas/ProteinMPNN/issues/19
                     "Check `De-duplicated` for picking a random unique one."
                 )
             mutant_obj.mutant_score = score
@@ -398,7 +398,7 @@ class REvoDesigner:
             group_id=self.design_case
         )
         logging.warning(f"Saving at {external_design_session}")
-        # call MutantVisualizer for merge sessions
+        
         session_merger = MutantVisualizer(molecule="", chain_id="")
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
@@ -440,7 +440,7 @@ class REvoDesigner:
             raise issues.NoResultsError(
                 f"Error occurs while parsing profile {self.input_profile} with format {self.input_profile_format}"
             )
-        # refresh profile alphabet based on profile reading
+        
         self.profile_alphabet = "".join(df.T.columns.to_list())
         logging.debug(df.head())
         if self.preffered_substitutions:
@@ -530,7 +530,7 @@ class REvoDesigner:
         for position, wt_res, wt_score, candidates in mutations:
             if not candidates:
                 continue
-            # reject wt if required.
+            
             if self.reject_aa and wt_res in self.reject_aa:
                 continue
             candidates = {
@@ -573,7 +573,7 @@ class REvoDesigner:
                 group_id=branch_id,
             )
             self.results.append(result_session)
-        # call MutantVisualizer for merge sessions
+        
         session_merger = MutantVisualizer(molecule="", chain_id="")
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse

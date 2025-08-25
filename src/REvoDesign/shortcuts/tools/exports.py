@@ -49,17 +49,17 @@ def shortcut_dump_sidechains(
     if hide_mesh:
         cmd.hide("mesh")
     all_groups = get_all_groups(enabled_only=enabled_only)
-    # disable all groups
+    
     cmd.disable(' or '.join(all_groups))
     cmd.refresh()
     for sel in sele:
-        # ensure the current group selection is enabled
+        
         cmd.enable(sel)
-        # get all model names of selected group
+        
         all_models = cmd.get_names("objects", int(enabled_only), sel)
         print(f'Selected group: {sel}: {all_models}')
         cmd.disable(' or '.join(all_models))
-        # orient to get pose in the right orientation
+        
         if reorient and neighborhood and neighborhood > 0:
             cmd.orient(f'{sel} or byres {sel} around {neighborhood}')
         for m in all_models:
@@ -121,7 +121,7 @@ def shortcut_dump_fasta_from_struct(
     except Bio.StreamModeError as e:
         logging.warning(f"Error occurs while dumping sequence: {e} Retry with binary mode.")
         with open(output_path, 'wb') as f:
-            SeqIO.write(all_seq_records, f, format)  # type: ignore
+            SeqIO.write(all_seq_records, f, format)  
     except ValueError as e:
         os.remove(output_path)
         logging.error(f"Error occurs while dumping sequence: {e} Clean up the output file.")

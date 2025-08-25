@@ -42,13 +42,13 @@ class ClusterRunner:
         self.shuffle_variant = bus.get_value("ui.cluster.shuffle")
         self.run_mutate_relax = bus.get_value("ui.cluster.mutate_relax")
         self.nproc = bus.get_value("ui.header_panel.nproc", int)
-    # combination and clustering
+    
     def run_clustering(self):
-        # lazy module loading to fasten plugin initializing
+        
         from .cluster_sequence import Clustering
         from .combine_positions import Combinations
         bus: ConfigBus = ConfigBus()
-        # output space
+        
         self.plot_space = bus.ui.stackedWidget
         progressbar = bus.ui.progressBar
         input_fasta_file = (
@@ -57,10 +57,10 @@ class ClusterRunner:
         with open(input_fasta_file, "w") as f:
             f.write(f">{self.design_molecule}_{self.design_chain_id}\n{self.design_sequence}")
         logging.info(f"Sequence file is saved as {input_fasta_file}")
-        # output files
+        
         cluster_outputs = {}
         for num_mut in range(self.min_mut_num, self.max_mut_num + 1):
-            # combination
+            
             combinations = Combinations()
             combinations.fastasequence = self.design_sequence
             combinations.chain_id = self.design_chain_id
@@ -69,10 +69,10 @@ class ClusterRunner:
             combinations.combi = num_mut
             combinations.path = self.PWD
             combinations.processors = self.nproc
-            # expected design combination file
+            
             combinations.run_combinations()
             expected_design_combinations = combinations.expected_output_fasta
-            # clustering
+            
             clustering = Clustering(fastafile=expected_design_combinations)
             clustering.batch_size = self.cluster_batch_size
             clustering.num_proc = self.nproc
@@ -91,7 +91,7 @@ class ClusterRunner:
                     reload=False,
                 )
                 node_hint: Optional[NodeHintT] = bus.get_value(
-                    "rosetta.node_hint", default_value="native")  # type: ignore
+                    "rosetta.node_hint", default_value="native")  
                 run_worker_thread_with_progress(
                     worker_function=score_clusters,
                     pdb=pdb_file,

@@ -21,7 +21,7 @@ class ExternalDesignerAbstract(ThirdPartyModuleAbstract):
     installed: bool = False
     scorer_only: bool = False
     no_need_to_score_wt: bool = False
-    # whether lower scores are preferred
+    
     prefer_lower: bool = False
     def __init__(self, molecule):
         """
@@ -82,7 +82,7 @@ class ExternalDesignerAbstract(ThirdPartyModuleAbstract):
         res = Parallel(n_jobs=nproc)(
             delayed(self.scorer)(mutant) for mutant in mutants
         )
-        scores: List[float] = list(res)  # type: ignore
+        scores: List[float] = list(res)  
         return self.score_mutant_mapping(mutants, scores)
     @staticmethod
     def score_mutant_mapping(

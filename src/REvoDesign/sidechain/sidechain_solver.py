@@ -8,21 +8,18 @@ from RosettaPy.utils.escape import print_diff
 from REvoDesign import ConfigBus, SingletonAbstract, issues
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.logger import ROOT_LOGGER
-# 1. implement the mutate runner and import then here
 from REvoDesign.sidechain.mutate_runner import (DLPacker_worker,
                                                 MutateRelax_worker,
                                                 PIPPack_worker, PyMOL_mutate)
 from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 from REvoDesign.tools.utils import timing
 logging = ROOT_LOGGER.getChild(__name__)
-# 2. collect all the runners here
 ALL_RUNNER_CLASSES: List[type[MutateRunnerAbstract]] = [
     PyMOL_mutate,
     DLPacker_worker,
     PIPPack_worker,
     MutateRelax_worker
 ]
-# create table of implemented runners
 IMPLEMENTED_RUNNER: Mapping[str, type[MutateRunnerAbstract]] = (
     MappingProxyType({c.name: c for c in ALL_RUNNER_CLASSES})
 )
@@ -37,7 +34,7 @@ __all__ = [
 ]
 @dataclass(frozen=True)
 class MutateRunnerManager:
-    # create list of installed runners here
+    
     installed_worker: List[str] = field(
         default_factory=lambda: [c.name for c in ALL_RUNNER_CLASSES if c.installed]
     )
@@ -65,9 +62,9 @@ class SidechainSolverConfig:
         return reconfigured
 class SidechainSolver(SingletonAbstract):
     def singleton_init(self):
-        # If not, set the instance attributes
+        
         self.bus: ConfigBus = ConfigBus()
-        self.mutate_runner: MutateRunnerAbstract = None  # type: ignore
+        self.mutate_runner: MutateRunnerAbstract = None  
         self.runner_manager = MutateRunnerManager()
         self.cfg: SidechainSolverConfig = self.get_config()
     def setup(self):
@@ -113,7 +110,7 @@ class SidechainSolver(SingletonAbstract):
             )
         if reconfigured or not self.mutate_runner:
             logging.warning(f"Reconfiguring SC solver with {latest_cfg=}...")
-            # return a updated
+            
             self.cfg = latest_cfg
             self.setup()
         return self

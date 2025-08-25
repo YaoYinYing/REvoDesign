@@ -18,7 +18,7 @@ from REvoDesign.logger import ROOT_LOGGER
 from ..bootstrap.set_config import is_package_installed
 from .package_manager import run_command, run_worker_thread_with_progress
 try:
-    from itertools import pairwise as _pairwise  # type: ignore
+    from itertools import pairwise as _pairwise  
 except ImportError:
     def _pairwise(iterable: Iterable):
         """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
@@ -39,12 +39,12 @@ def pairwise_loop(iterable: Iterable):
     list - A list of tuples, each containing a pair of consecutive elements.
             The last element is paired with the first element.
     """
-    # Convert iterable to a list to support indexing and concatenation
+    
     seq = list(iterable)
-    # Handle empty iterable case
+    
     if not seq:
         return []
-    # Add the first element to the end of the list to form a loop structure and generate pairwise combinations
+    
     return pairwise(seq + [seq[0]])
 CLASS_ARGSLICE = slice(1, None)
 def require_not_none(
@@ -63,31 +63,31 @@ def require_not_none(
     def decorator(method):
         @wraps(method)
         def wrapper(self, *args, **kwargs):
-            # Check if the attribute exists and is not None
+            
             if not hasattr(self, attribute_name) or getattr(self, attribute_name) is None:
-                # no fallback setup, raise error
+                
                 if callable(fallback_setup):
                     logging.warning(
                         f"Method called {method.__name__}' with None attribute, "
                         f"falling back to setup by {fallback_setup.__name__}")
                     fallback_setup()
-                # fallback setup is a string, try call the method with the same name
+                
                 elif isinstance(fallback_setup, str):
                     if not hasattr(self, fallback_setup):
                         raise AttributeError(f"Attribute '{fallback_setup}' not found in {self}")
                     fallback_setup_: Optional[Callable[[], Any]] = getattr(self, fallback_setup)
-                    # not a callable, raise error
+                    
                     if not callable(fallback_setup_):
                         raise AttributeError(f"Attribute '{fallback_setup}' is not callable in {self}")
                     logging.warning(f"Method called {method.__name__}' with None attribute, "
                                     f"falling back to setup by {fallback_setup}")
                     fallback_setup_()
                 else:
-                    # no fallback setup, raise error
+                    
                     raise error_type(
                         f"The method '{method.__name__}' cannot be called because '{attribute_name}' is None."
                     )
-            # Call the original method
+            
             return method(self, *args, **kwargs)
         return wrapper
     return decorator
@@ -164,12 +164,12 @@ def minibatches_generator(inputs_data_generator, batch_size):
     """
     current_batch = []
     for data_point in inputs_data_generator:
-        # print(f"Send data {data_point}")
+        
         current_batch.append(data_point)
         if len(current_batch) == batch_size:
             yield current_batch
             current_batch = []
-    # Yield any remaining data as a final batch
+    
     if current_batch:
         yield current_batch
 def extract_archive(archive_file: str, extract_to: str):
@@ -258,12 +258,12 @@ def rescale_number(
     Raises:
     - ValueError: If min_value is greater than or equal to max_value.
     """
-    # Ensure that min_value and max_value are valid.
+    
     if min_value >= max_value:
         raise ArithmeticError("min_value must be less than max_value")
-    # Calculate the rescaled value.
+    
     rescaled_value = (number - min_value) / (max_value - min_value)
-    # Ensure the result is within the [0, 1] range.
+    
     return max(0, min(1, rescaled_value))
 def count_and_sort_characters(input_string: str, characters):
     """
@@ -316,16 +316,15 @@ def generate_strong_password(length=16):
         raise ValueError(
             "Password length should be between 16 and 64 characters."
         )
-    # Define the characters to use for generating the password
+    
     password_characters = (
-        string.ascii_letters + string.digits + '!#$%&*+-./:?@^_~'
+        string.ascii_letters + string.digits + '!
     )
-    # Generate the password using random characters from the defined set
+    
     generated_password = "".join(
         random.choice(password_characters) for _ in range(length)
     )
     return generated_password
-# modified from AlphaFold
 @contextlib.contextmanager
 def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
     logging.info(f"Started {msg}")
@@ -351,30 +350,30 @@ def device_picker() -> List[str]:
         List[str]: A list of available device strings (e.g., ['cuda:0', 'mps', 'gpu', 'cpu']).
     """
     device_list = ['cpu']
-    # Check if PyTorch is installed and configure devices accordingly
+    
     if is_package_installed('torch'):
         import torch
         try:
-            # Add CUDA devices if available
+            
             if torch.cuda.is_available():
                 cuda_device_count = torch.cuda.device_count()
                 if cuda_device_count >= 1:
                     device_list.extend([f'cuda:{i}' for i in range(cuda_device_count)])
-            # Add MPS device if available and built into PyTorch
+            
             if torch.backends.mps.is_available() and torch.backends.mps.is_built():
                 device_list.append('mps')
         except Exception as e:
             print(f"Error checking PyTorch devices: {e}")
-    # Check if TensorFlow is installed and configure devices accordingly
+    
     elif is_package_installed('tensorflow'):
         import tensorflow as tf
         try:
-            # Add GPU device if available
+            
             if tf.config.list_physical_devices('GPU'):
                 device_list.append('gpu')
         except Exception as e:
             print(f"Error checking TensorFlow devices: {e}")
-    # Default to CPU if no other devices are available
+    
     if not device_list:
         device_list.append('cpu')
     return device_list

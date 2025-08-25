@@ -16,7 +16,6 @@ from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 from ..logger import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
-# Typing selection dictionary for safe type handling
 asked_value_typing_dict: immutabledict[str, type] = immutabledict({
     "int": int,
     "str": str,
@@ -74,7 +73,7 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     module = importlib.import_module(module_path)
     if "." not in func_name:
         return getattr(module, func_name)
-    # maybe a class method?
+    
     _class_name, _func_name = func_name.rsplit(".")
     logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
     _class = getattr(module, _class_name)
@@ -104,7 +103,7 @@ def resolve_choice_from(input_str: str):
         issues.InvalidInputError: If the input format for 'range:' or 'CFG:' is invalid.
         issues.ConfigurationError: If the input doesn't match any known pattern or expected type.
     """
-    if input_str.startswith('range:'):  # range:1,10 or range:1,10,2
+    if input_str.startswith('range:'):  
         try:
             return range(*map(int, input_str.removeprefix('range:').split(",")))
         except TypeError as e:
@@ -116,7 +115,7 @@ def resolve_choice_from(input_str: str):
         resolved_callable = resolve_dotted_function(input_str)
         if not isinstance(resolved_callable, Callable):
             raise issues.ConfigurationError(f"Expected as a callable: {input_str}: {resolved_callable}")
-        return resolved_callable()  # Get callable dynamically
+        return resolved_callable()  
     elif input_str.startswith("CFG:"):
         from REvoDesign.driver.ui_driver import ConfigBus
         if '.' not in input_str:
@@ -154,18 +153,18 @@ def _build_asked_value(entry: dict) -> AskedValue:
     Returns:
         AskedValue: A fully constructed `AskedValue` object ready for use in a dialog.
     Raises:
-        ValueError: If there's an error resolving dynamic choices via [resolve_choice_from](file:///Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/shortcuts/utils.py#L106-L159).
+        ValueError: If there's an error resolving dynamic choices via [resolve_choice_from](file:///Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/shortcuts/utils.py
         Any exceptions raised during callable execution will propagate up.
     """
-    # Get type
-    typing_func = asked_value_typing_dict.get(entry["type"], str)  # Default to `str` if no match
-    # Handle default value from a callable (e.g., using a function name from dotted string)
+    
+    typing_func = asked_value_typing_dict.get(entry["type"], str)  
+    
     val = entry.get("default")
     if "default_from" in entry:
         val = resolve_dotted_function(entry["default_from"])
         if isinstance(val, Callable):
             val = val()
-    # Handle choices dynamically
+    
     choices = entry.get("choices")
     if "choices_from" in entry:
         choices_from: str = entry["choices_from"]

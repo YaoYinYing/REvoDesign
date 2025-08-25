@@ -8,7 +8,6 @@ from typing import Any, Tuple
 from REvoDesign.Qt import QtWidgets
 from ...driver.ui_driver import ConfigBus
 self_dir = os.path.dirname(__file__)
-# stores all translation files with Qt's Linguist format
 language_dir = os.path.join(self_dir, "..", "..", "UI", "language")
 @dataclass(frozen=True)
 class LanguageItem:
@@ -49,7 +48,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         """
         self.bus: ConfigBus = ConfigBus()
         self.window = window
-        # language mapping
+        
         self.language_settings: dict[str, dict[str, str]] = {
             "eng-eng": {
                 "name": "English",

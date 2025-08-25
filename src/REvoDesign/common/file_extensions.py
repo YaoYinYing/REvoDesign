@@ -71,7 +71,6 @@ TXT = ExtColl(
         Ext("txt", "Text file"),
     )
 )
-# a hack of file extension filter, to enable those without explicit extension
 Any = ExtColl(
     (
         Ext("* *", "Any file"),

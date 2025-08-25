@@ -92,7 +92,7 @@ class FastRelaxOpts(FastRelax, CitableModuleAbstract):
         """
         if opts is None:
             opts = []
-        # Configure and run Rosetta for fast relaxation
+        
         rosetta = Rosetta(
             bin="relax",
             opts=[
@@ -168,7 +168,7 @@ def shortcut_rosettaligand(
         gridwidth=gridwidth,
         chain_id_for_dock=chain_id_for_dock,
         start_from_xyz=start_from_xyz,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  
         node_config=node_config
     )
     best_pdb = app.dock(nstruct=nstruct)
@@ -201,7 +201,7 @@ def shortcut_pross(
         res_to_restrict=res_to_restrict,
         save_dir=save_dir,
         job_id=job_id,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  
         node_config=read_rosetta_node_config()
     )
     best_refined = pross.refine(nstruct_refine)
@@ -225,7 +225,7 @@ def shortcut_fast_relax(
         dualspace=dualspace,
         job_id=job_id,
         save_dir=save_dir,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  
         node_config=read_rosetta_node_config()
     )
     analyser = fast_relax.run(
@@ -276,7 +276,7 @@ class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
             run_node=self.node,
             verbose=True
         )
-        with timing(f'relaxing with Ca Constrains (round #{round_id})'):
+        with timing(f'relaxing with Ca Constrains (round 
             rosetta.run(nstruct=self.nstructs_per_round)
         analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
         best_hit = analyser.best_decoy
@@ -291,7 +291,7 @@ class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
     def run(self, load_to_preview: bool = False):
         new_pdb_path = self.pdb
         if load_to_preview:
-            # state starts from 1
+            
             cmd.load(new_pdb_path, self.job_id, 1)
         for round_id in range(self.ncycles):
             new_pdb_path = self.run_a_round(round_id, new_pdb_path)
@@ -314,7 +314,7 @@ def shortcut_relax_w_ca_constraints(
         save_dir=save_dir,
         job_id=job_id,
         relax_opts=relax_opts,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
+        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  
         node_config=read_rosetta_node_config()
     )
     final_pdb = app.run(load_to_preview)

@@ -14,7 +14,6 @@ from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
 from ..basic import SingletonAbstract
 logging = ROOT_LOGGER.getChild(__name__)
-# Color escape sequences
 GREEN = "\033[0;32m"
 RED = "\033[0;31m"
 YELLOW = "\033[0;33m"
@@ -29,11 +28,11 @@ class CitationManager(SingletonAbstract):
     ensuring that only one instance of the citation manager exists throughout the application's lifecycle.
     """
     def singleton_init(self):
-        # Dictionary to store citation information
+        
         self.called_citations: dict[str, Any] = {}
-        # List to store names of modules for which citations have been silenced
+        
         self.silenced_citation_modules: list[str] = []
-        # Mark the instance as initialized to prevent reinitialization
+        
         self.initialize()
     @property
     def collected_citations(self) -> list[str]:
@@ -111,46 +110,46 @@ class CitableModuleAbstract(ABC):
     An abstract base class for modules that require citation.
     This class provides methods to handle the citation notice and citation information in a standardized way.
     """
-    # A dictionary containing citation information, where the key is the
-    # citation name and the value is the citation content or a tuple of
-    # multiple citation contents.
+    
+    
+    
     __bibtex__: dict[str, Union[str, tuple]]
     def notice(self):
         """
         Display the citation notice.
         This method checks if there are citations to be displayed, and if the current module's citations have not been silenced, it logs the citation information.
         """
-        # If the __bibtex__ dictionary is empty, log a debug message and return.
+        
         if not self.__bibtex__:
             logging.debug("Nothing has to be cited with this module.")
             return
-        # If all citation items of the current module have been silenced, return directly.
+        
         if all(
             k in CitationManager().silenced_citation_modules
             for k in self.__bibtex__
         ):
             return
-        # Log the citation notice header.
+        
         logging.info(
             f"{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n"
         )
-        # Iterate through the citation items of the current module.
+        
         for i, citation_item in self.__bibtex__.items():
-            # If the current citation item has been silenced, skip it.
+            
             if i in CitationManager().silenced_citation_modules:
                 continue
-            # If the citation item is a single string, log it directly.
+            
             if isinstance(citation_item, str):
                 logging.info(
                     f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{citation_item}{RESET}\n"
                 )
-            # If the citation item is a tuple or list, log each citation content.
+            
             elif isinstance(citation_item, (tuple, list)):
                 for j, _c in enumerate(citation_item):
                     logging.info(
                         f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n"
                     )
-            # Dismiss the current citation item to avoid displaying it again.
+            
             CitationManager().dismiss(i)
     def cite(self):
         """
@@ -158,10 +157,10 @@ class CitableModuleAbstract(ABC):
         This method adds the current module's citation information to the citation manager and then displays the citation notice.
         """
         citations = self.__bibtex__
-        # Check if the citation information is a dictionary.
+        
         if not isinstance(citations, Mapping):
             raise TypeError("citation must be a dict.")
-        # Update the citation manager with the current module's citation information.
+        
         CitationManager().update(new_citations=dict(citations))
-        # Display the citation notice.
+        
         self.notice()

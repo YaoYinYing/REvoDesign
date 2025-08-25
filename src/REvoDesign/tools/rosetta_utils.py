@@ -19,7 +19,6 @@ from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.bootstrap.set_config import ConfigConverter, reload_config_file
 from REvoDesign.driver.ui_driver import ConfigBus
 logging = ROOT_LOGGER.getChild(__name__)
-# aligned with NodeHintT
 ALL_NODES: Sequence[NodeHintT] = ("docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native")
 def setup_minimal_rosetta_db(subdirectory_to_clone: str):
     """
@@ -29,12 +28,12 @@ def setup_minimal_rosetta_db(subdirectory_to_clone: str):
     Returns:
     str: The path to the Rosetta database after cloning.
     """
-    # Get the ROSETTA3_DB environment variable
+    
     rosetta3_db_path = os.environ.get("ROSETTA3_DB")
-    # If the environment variable exists, return its value directly
+    
     if rosetta3_db_path:
         return rosetta3_db_path
-    # Partially clone the Rosetta database
+    
     rosetta3_db_path = partial_clone(
         repo_url="https://github.com/RosettaCommons/rosetta",
         target_dir=user_cache_dir('rosetta_db_clone', ensure_exists=True),
@@ -42,7 +41,7 @@ def setup_minimal_rosetta_db(subdirectory_to_clone: str):
         subdirectory_to_clone=subdirectory_to_clone,
         env_variable="ROSETTA3_DB",
     )
-    # Output the value of the ROSETTA3_DB environment variable
+    
     print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
     return rosetta3_db_path
 def list_fastrelax_scripts() -> List[str]:
@@ -51,11 +50,11 @@ def list_fastrelax_scripts() -> List[str]:
     Returns:
     List[str]: A list of names of the fast relax scripts.
     """
-    # Specify the subdirectory containing the relax scripts
+    
     subdirectory = "sampling/relax_scripts"
-    # Set up the Rosetta database and get the database path
+    
     rosetta3_db_path = setup_minimal_rosetta_db(f"database/{subdirectory}")
-    # List all the relax scripts in the specified subdirectory and remove the .txt extension
+    
     all_relax_scripts = [
         f[:-4] for f in os.listdir(
             os.path.join(
@@ -92,18 +91,18 @@ def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
     Returns:
     - bool: True if the specified runtime environment is available, False otherwise.
     """
-    # Check for "native" or unspecified environment by verifying the ROSETTA_BIN environment variable
+    
     if node_hint is None or node_hint == "native":
         return os.environ.get("ROSETTA_BIN", "") != ""
-    # Check for WSL environment availability on Windows systems
+    
     if node_hint.startswith("wsl"):
         if platform.system() != "Windows":
             return False
         return is_wsl_available()
-    # Check for Docker environment availability
+    
     if node_hint.startswith("docker"):
         return is_docker_available()
-    # Check for MPI environment availability by checking if mpirun is in PATH
+    
     if node_hint == "mpi":
         return shutil.which("mpirun") is not None
     return False
@@ -116,18 +115,18 @@ def is_wsl_available():
         bool: Returns True if WSL is available, otherwise returns False.
     """
     try:
-        # Attempt to get the path of the WSL binary
+        
         wsl_bin = which_wsl()
-        # If the WSL binary is found, return True
+        
         return wsl_bin is not None
     except RuntimeError:
-        # If an error occurs, it indicates that WSL may not be available
+        
         warnings.warn(
             issues.PlatformNotSupportedWarning(
                 "WSL is not available on this machine."
             )
         )
-        # Return False, indicating that WSL is not available
+        
         return False
 def is_docker_available() -> bool:
     """
@@ -140,12 +139,12 @@ def is_docker_available() -> bool:
         bool: True if Docker is available, otherwise False.
     """
     try:
-        # Attempt to create a Docker client and then release the reference to test Docker's availability.
+        
         client = docker.from_env()
         del client
         return True
     except docker.errors.DockerException as e:
-        # If Docker is not available, issue a warning and return False.
+        
         warnings.warn(issues.PlatformNotSupportedWarning(
             f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"))
         return False
@@ -157,7 +156,7 @@ def is_rosetta_runnable() -> bool:
     Returns:
         bool: True if at least one run node is available, False otherwise
     """
-    # Check if any node is available for running Rosetta tasks
+    
     return any(is_run_node_available(node_hint) for node_hint in ALL_NODES)
 IS_ROSETTA_RUNNABLE: bool = is_rosetta_runnable()
 def read_rosetta_config(key_path: str = "rosetta.opts.general") -> List[str]:
@@ -168,12 +167,12 @@ def read_rosetta_config(key_path: str = "rosetta.opts.general") -> List[str]:
     Returns:
         List[str]: Parsed Rosetta configuration options as a list of strings
     """
-    # Get configuration value from ConfigBus at the specified path
+    
     opts = ConfigBus().get_value(key_path, str)
     logging.warning(f"Got Rosetta opts: {opts}")
-    # Split the configuration string by spaces into a list of options
+    
     rosetta_general_opts: List[str] = opts.split(" ")
-    # Handle empty configuration case, ensuring an empty list is returned instead of a list containing an empty string
+    
     if rosetta_general_opts == [''] or not rosetta_general_opts:
         rosetta_general_opts = []
     logging.warning(f"Using Rosetta opts: {rosetta_general_opts}")
@@ -245,8 +244,8 @@ def copy_rosetta_citation(citetation: dict[str, Union[str, tuple]]) -> dict[str,
     Returns:
         dict[str, Union[str, tuple]]: Updated complete citation information dictionary
     """
-    # Copy common citation information (shallow copy is sufficient since there are no nested objects to modify)
-    cc = copy.copy(ROSETTA_COMMON_CITATION)  # no need to get a deepcopy
-    # Update common citation with custom citation information
+    
+    cc = copy.copy(ROSETTA_COMMON_CITATION)  
+    
     cc.update(citetation)
     return cc

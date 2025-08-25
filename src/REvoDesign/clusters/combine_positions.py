@@ -37,14 +37,14 @@ class GenerateVariantsinFastafile:
         :param newfasta:
         :return: fastafile with mutation inserted
         """
-        # print "Input to method: ", position, native, newmutation, newfasta
+        
         for aa_idx, aa in enumerate(self.fastaseq):
-            # print aa, position-1
+            
             if aa_idx == position - 1:
-                # print self.fastaseq[0:position-1]
-                # print newmutation
-                # print self.fastaseq[position:]
-                # print("WT,POS,AA: ",self.fastaseq[aa],aa,native,self.fastaseq[aa] == native)
+                
+                
+                
+                
                 assert aa == native
                 newfasta = (
                     newfasta[0: position - 1]
@@ -65,7 +65,7 @@ class GenerateVariantsinFastafile:
         newfasta = fastasequence
         for aa_idx, aa in enumerate(fastasequence):
             if aa_idx == position - 1:
-                # print("Native,Pos,Design",native,position,fastasequence[aa],fastasequence[aa] == native)
+                
                 assert aa == native
                 newfasta = (
                     newfasta[0: position - 1]
@@ -75,11 +75,11 @@ class GenerateVariantsinFastafile:
         return newfasta
     def write2file(self, filename):
         filename = filename.replace("__", "_")
-        # print filename
-        # print self.name
+        
+        
         if self.name != "-1":
             filename = self.name + self.group + ".fasta"
-            # print filename
+            
         with open(filename + self.filename_id, "w") as f:
             f.write(">" + filename.split(".")[0] + "\n")
             f.write(self.newfasta)
@@ -91,22 +91,22 @@ class GenerateVariantsinFastafile:
         :param position: positions to mutate
         :return: fasta sequence with new mutations
         """
-        # self.fastaseq
+        
         self.getdata(fastafile)
         mutations = mutation.split(",")
         positions = position.split(",")
         natives = native.split(",")
         for i, j, k in zip(positions, natives, mutations):
-            # print "Debug from method 2: ", i,j,k
+            
             self.fastaseq = self.insert_mutations(int(i), j, k, self.fastaseq)
         return self.fastaseq
 class Combinations:
     def __init__(self):
-        # contain mutations
+        
         self.list_of_mutations = []
         self.path = "./"
         self.sequence_variants = {}
-        # number of combinations
+        
         self.debug = 0
         self.chain_id = "A"
         self.init_name = ""
@@ -115,15 +115,15 @@ class Combinations:
         self.processors = 8
         self.gvf = GenerateVariantsinFastafile()
         self.dummy_count = False
-        # input mut.txt
+        
         self.inputfile = ""
-        # the number of desired combination
+        
         self.combi = 1
-        # target fasta file
+        
         self.fastafile = ""
     def combinations(self, iterable, r):
-        # combinations('ABCD', 2) --> AB AC AD BC BD CD
-        # combinations(range(4), 3) --> 012 013 023 123
+        
+        
         pool = tuple(iterable)
         n = len(pool)
         if r > n:
@@ -205,8 +205,8 @@ class Combinations:
         self.setdata(inputfile)
         b = self.combinations(self.list_of_mutations, self.combi)
         mutations = []
-        # self.fastasequence = self.gvf.get_fastasequence_from_file( fastafile)
-        # insert method here to evaluate the WT AA with the given fasta
+        
+        
         self.evalute_fasta_file()
         for j in b:
             eval = self.getUniquePositions(list(j))
@@ -214,12 +214,12 @@ class Combinations:
                 print(j)
             if eval:
                 mutations.append(j)
-        # rewrite to parallel
+        
         dummy = list(range(len(mutations)))
-        # print("length of designs:: ",dummy)
+        
         with ThreadPoolExecutor(self.processors) as p:
             name_seq = p.map(self.generate_fasta_in_parallel, mutations, dummy)
-        # expected design combination file
+        
         fastafile_stem = pathlib.Path(fastafile).resolve().stem
         inputfile_stem = pathlib.Path(inputfile).resolve().stem
         self.expected_output_fasta = (
@@ -235,7 +235,7 @@ class Combinations:
                 f.write(i[1] + "\n")
     def evalute_fasta_file(self):
         for eval_wt in self.list_of_mutations:
-            # count from 0 in python
+            
             pos = int(eval_wt[1:-1]) - 1
             aa = eval_wt[0]
             assert aa == self.fastasequence[pos], (

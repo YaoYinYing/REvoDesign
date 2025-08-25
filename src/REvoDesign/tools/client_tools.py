@@ -15,15 +15,15 @@ def check_response_code(response, successfull_opt="Submitted"):
         None
     """
     if response.status_code == 200:
-        # Log successful response with content if status code is 200
+        
         logging.info(f"{successfull_opt}.\n {response.content}")
     elif response.status_code == 401:
-        # Log a warning for unauthorized access if status code is 401
+        
         raise issues.UnauthorizedError(
             "Unauthorized.\n please retry with available username and password."
         )
     else:
-        # Log a warning with status code and content for other status codes
+        
         logging.warning(f"{response.status_code}: {response.content}")
     return
 class UUIDGenerator:

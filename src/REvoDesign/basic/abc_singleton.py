@@ -172,10 +172,10 @@ class SingletonAbstract(ABC):
             **kwargs: Keyword arguments for initialization or updating.
         """
         if not cls._instance:
-            # Create the instance using __new__ and initialize it
+            
             cls(*args, **kwargs)
         else:
-            # Update existing instance with new variables
+            
             for key, value in kwargs.items():
                 setattr(cls._instance, key, value)
     @classmethod
@@ -193,7 +193,7 @@ class SingletonAbstract(ABC):
             """
             A dynamically created derived singleton class.
             """
-            _instance = None  # Independent instance tracking for the derived class
+            _instance = None  
             def __init__(self, *args, **kwargs):
                 """
                 Initializes the derived singleton instance.
@@ -222,9 +222,9 @@ def reset_singletons():
     and if the subclass has an '_instance' attribute and it is not None, it calls the reset_instance method of that class.
     Note: This function does not accept parameters and does not return any value.
     """
-    # gracefully reset all singleton classes
+    
     for cls in SingletonAbstract.__subclasses__():
-        # check if the singleton class instance exists
+        
         if hasattr(cls, '_instance') and cls._instance is not None:
-            # reset the instance of the singleton class
+            
             cls.reset_instance()

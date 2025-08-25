@@ -32,7 +32,7 @@ class SSLCertificateManager:
         ValueError: If an unknown role is provided.
         FileNotFoundError: If client certificate is not found.
         """
-        # Generate SSL context and certificate if needed
+        
         self.get_certificate()
         if self.role == "server":
             context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -52,7 +52,7 @@ class SSLCertificateManager:
         Returns:
         - None
         """
-        # Check if the existing certificate exists
+        
         if not os.path.exists(self.crt_path):
             logging.info(
                 "Certificate does not exist. Generating a new certificate."
@@ -64,11 +64,11 @@ class SSLCertificateManager:
             existing_cert = crypto.load_certificate(
                 crypto.FILETYPE_PEM, existing_cert_data
             )
-            # Get the expiration date of the existing certificate
+            
             expiration_date = datetime.datetime.strptime(
                 existing_cert.get_notAfter().decode("utf-8"), "%Y%m%d%H%M%SZ"
             )
-        # Check if the certificate has expired
+        
         if expiration_date < datetime.datetime.now():
             logging.warning(
                 "Certificate has expired. Generating a new certificate."
@@ -85,32 +85,32 @@ class SSLCertificateManager:
         - None
         """
         role = self.role
-        # Get node information from OS or set to 'Unknown' if not available
+        
         node = platform.node()
         try:
             user = os.getlogin()
         except OSError:
             user = "Unknown"
-        # Generate RSA key
+        
         k = crypto.PKey()
         k.generate_key(crypto.TYPE_RSA, 2048)
-        # Create an X.509 certificate
+        
         cert = crypto.X509()
-        # Set subject information
+        
         cert.get_subject().C = "CN"
         cert.get_subject().ST = "Yunnan"
         cert.get_subject().L = "Kunming"
         cert.get_subject().O = "JAPS"
         cert.get_subject().OU = "Yunnan Very Normal University"
         cert.get_subject().CN = f"{user}.{node}.{role}.REvoDesign"
-        # Set serial number, validity period, issuer, public key, and sign the certificate
+        
         cert.set_serial_number(1000)
         cert.gmtime_adj_notBefore(0)
         cert.gmtime_adj_notAfter(7 * 24 * 60 * 60)
         cert.set_issuer(cert.get_subject())
         cert.set_pubkey(k)
         cert.sign(k, "sha256")
-        # Write the certificate and private key to files in PEM format
+        
         with open(self.crt_path, "wb") as f:
             f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
         with open(self.key_path, "wb") as f:

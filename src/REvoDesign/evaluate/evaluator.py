@@ -80,7 +80,7 @@ class Evalutator:
         for group_id in other_opened_group:
             cmd.disable(group_id)
             cmd.group(group_id, action="close")
-        # expand group object if activated
+        
         if self.mutant_tree_candidates.current_branch_id:
             cmd.enable(self.mutant_tree_candidates.current_branch_id)
             cmd.group(
@@ -147,7 +147,7 @@ class Evalutator:
                 current_mutant_id
             ),
         )
-        # feedback on two comboboxes
+        
         if get_widget_value(comboBox_group_ids) != current_branch_id:
             set_widget_value(comboBox_group_ids, current_branch_id)
             set_widget_value(
@@ -186,7 +186,7 @@ class Evalutator:
             f"Progressbar set to {progress}: {self.mutant_tree_candidates.current_mutant_id}"
         )
         set_widget_value(progressBar_mutant_choosing, progress)
-        # Setting mutant ids to candidates box
+        
         set_widget_value(
             comboBox_mutant_ids,
             list(
@@ -200,7 +200,7 @@ class Evalutator:
             self.mutant_tree_candidates.current_mutant_id,
         )
         return
-    # end of mutant switching machanism. This step will do focusing, centering, progress bar updating.
+    
     def jump_to_a_mutant(self):
         comboBox_group_ids = self.bus.ui.comboBox_group_ids
         comboBox_mutant_ids = self.bus.ui.comboBox_mutant_ids
@@ -225,7 +225,7 @@ class Evalutator:
         logging.info(f"Jump to {mutant_id} as required.")
         self.mutant_tree_candidates.current_mutant_id = mutant_id
         self.activate_focused()
-        # update progress bar
+        
         progress = self.mutant_tree_candidates.get_mutant_index_in_all_mutants(
             self.mutant_tree_candidates.current_mutant_id
         )
@@ -259,7 +259,7 @@ class Evalutator:
             return
         if not self.mutant_tree_pssm_selected.empty:
             logging.warning("Your current mutant selection will be overrided!")
-            # Ask whether to overide
+            
             confirmed = decide(
                 title="Override existed mutant table choices?",
                 description="You currently have existed mutant table choices, which shall be overriden by using `I'm lucky`. \n \
@@ -290,11 +290,11 @@ class Evalutator:
             logging.info(
                 f"Best hit of {self.mutant_tree_candidates.current_mutant_id} accepted."
             )
-        # set back orignal values befor clicking this button
+        
         set_widget_value(comboBox_group_ids, original_branch_id)
         set_widget_value(comboBox_mutant_ids, original_mutant_id)
         logging.info("Done.")
-    # basic function that works for mutant_tree instantiation
+    
     def is_this_pymol_object_a_mutant(self, mutant):
         _mutant_obj = extract_mutant_from_pymol_object(
             pymol_object=mutant, sequences=self.designable_sequences
@@ -357,7 +357,7 @@ class Evalutator:
             logging.error("This sesion may not contain an mutant tree.")
             return None
         self.mutant_tree_pssm_selected = MutantTree({})
-        # if mutant tree is available, disable the input box for saving.
+        
         lineEdit_output_mut_txt.setEnabled(
             not self.mutant_tree_candidates.empty
         )
@@ -366,7 +366,7 @@ class Evalutator:
                 "Could not initialize mutant tree! This session may not be a REvoDesign session!"
             )
             return
-        # clean the view
+        
         cmd.disable(
             " or ".join(self.mutant_tree_candidates.all_mutant_branch_ids)
         )
@@ -387,7 +387,7 @@ class Evalutator:
             self.mutant_tree_candidates.all_mutant_branch_ids[0],
         )
         self.activate_focused()
-        # show the current branch and mutant
+        
         cmd.enable(self.mutant_tree_candidates.current_mutant_id)
         cmd.enable(self.mutant_tree_candidates.current_branch_id)
         set_widget_value(
@@ -398,8 +398,8 @@ class Evalutator:
             lcdNumber_selected_mutant,
             len(self.mutant_tree_pssm_selected.all_mutant_ids),
         )
-        # initialize mutant walking
-        # set state changes to pushbuttons accroding to the mutant tree
+        
+        
         for pushButton in [
             pushButton_previous_mutant,
             pushButton_next_mutant,

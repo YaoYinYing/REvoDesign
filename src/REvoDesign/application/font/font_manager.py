@@ -25,7 +25,7 @@ class FlavoredFonts:
         {
             "Windows": ("Microsoft YaHei", "Century Gothic"),
             "Linux": ("Nimbus Sans", "DejaVu Sans"),
-            # 'Darwin': ['Chalkboard']
+            
         }
     )
 class FontSetter:
@@ -60,9 +60,9 @@ class FontSetter:
             return
         for font_str in self.flavored_fonts[os_type]:
             if font_str in self.font_families:
-                # Create a QFont object and set its family to the found font string
+                
                 font = QtGui.QFont()
                 font.setFamily(font_str)
-                # Set the main window's font to the created font
+                
                 self.main_window.setFont(font)
                 return

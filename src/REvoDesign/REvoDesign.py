@@ -8,7 +8,6 @@ import shutil
 import tempfile
 import traceback
 import warnings
-# using partial module to reduce duplicate code.
 from functools import partial
 from typing import Any, Optional
 from omegaconf import OmegaConf
@@ -68,31 +67,30 @@ from REvoDesign.tools.utils import (generate_strong_password, require_not_none,
                                     run_worker_thread_with_progress, timing)
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
-# only when the window is activated by user can this logger be initialized.
-logging: LoggerT = None  # type: ignore
+logging: LoggerT = None  
 class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
         self,
     ):
         super().__init__()
-        # global reference to avoid garbage collection of our dialog
+        
         self.window = None
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
         self.PWD = os.getcwd()
-        self.bus: ConfigBus = None  # type: ignore
-        self.file_dialog: FileDialog = None  # type: ignore
-        self.designable_sequences: RosettaPyProteinSequence = None  # type: ignore
+        self.bus: ConfigBus = None  
+        self.file_dialog: FileDialog = None  
+        self.designable_sequences: RosettaPyProteinSequence = None  
         self.design_molecule = ""
         self.design_chain_id = ""
         self.design_sequence = ""
-        self.gremlin_worker: GremlinAnalyser = None  # type: ignore
-        self.evaluator: Evalutator = None  # type: ignore
+        self.gremlin_worker: GremlinAnalyser = None  
+        self.evaluator: Evalutator = None  
         global logging
         logging = ROOT_LOGGER.getChild(self.__class__.__name__)
-        self.multi_designer: MultiMutantDesigner = None  # type: ignore
+        self.multi_designer: MultiMutantDesigner = None  
         try:
-            # if QtWebsockets is available, teamwork is activated.
-            from PyQt5 import QtWebSockets  # type: ignore
+            
+            from PyQt5 import QtWebSockets  
             logging.info(f"Find QtWebSockets in {QtWebSockets.__file__}")
             self.teamwork_enabled = True
         except ImportError:
@@ -110,8 +108,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             if not is_empty_session()
             else None
         )
-        # set session file's path if the rest is HOME,
-        # usually when a pse or pdb is opened to call PyMOL
+        
+        
         if pwd_2 and all(
             [
                 os.path.abspath(pwd)
@@ -121,9 +119,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         ):
             self.set_working_directory(pwd_2)
             return
-        # otherwise, use the wd from PyMOL lauching,
-        # usually when PyMOL is called from command line with
-        # an emtpy session or pdb/pse loading
+        
+        
+        
         for pwd in [pwd_0]:
             if pwd and os.path.exists(pwd):
                 self.set_working_directory(pwd)
@@ -134,7 +132,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             new_dir (str, optional): new directory to set as CWD.
                 Defaults to None.
         """
-        # if dir is specified yet same as the PWD, return silently.
+        
         if new_dir and os.path.abspath(new_dir) == os.path.abspath(self.PWD):
             self.bus.set_value("work_dir", os.path.abspath(self.PWD))
             return
@@ -181,11 +179,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
     def __del__(self):
         """Shutting down."""
-        # self.reinitialize()
+        
         logging.warning("REvoDesign is shutting down.")
         if self.window:
             self.window = None
-    # main function that makes the plugin window
+    
     def make_window(self):
         """make new window
         Returns:
@@ -194,22 +192,22 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         installed_dir = os.path.dirname(__file__)
         logging.debug(f"REvoDesign is installed in {installed_dir}")
         check_mac_rosetta2()
-        main_window = QtWidgets.QMainWindow()  # type: ignore
-        # loadUi fails on translations so we have to compile the form as `Ui_REvoDesignPyMOL_UI`
-        # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')
-        # self.ui=loadUi(ui_file, main_window)
+        main_window = QtWidgets.QMainWindow()  
+        
+        
+        
         self.ui = Ui_REvoDesignPyMOL_UI()
         self.ui.setupUi(main_window)
         IconSetter(main_window=main_window)
-        # create a bus btw cfg<---> ui
+        
         self.reload_configurations()
-        # all ConfigBus related method calls must follow this
-        # since the bus is initialized here
+        
+        
         FontSetter(main_window=main_window)
-        # language switch for ui
+        
         self.bus.ui.trans = QtCore.QTranslator(self)
         LanguageSwitch(window=main_window)
-        # Set up Menu
+        
         MenuCollection(
             (
                 MenuItem(
@@ -389,24 +387,24 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         else:
             self.ws_server = None
             self.ws_client = None
-            # hide tab_socket if websockets is not available.
+            
             self.bus.ui.tabWidget.setTabVisible(7, False)
-        # read session from PyMOL. If it is empty, load one.
+        
         self.bus.ui.actionCheck_PyMOL_session.triggered.connect(
             self.reload_molecule_info,
         )
-        # Update chain id
+        
         self.bus.ui.comboBox_design_molecule.currentIndexChanged.connect(
             self.update_chain_id,
         )
-        # set up nproc
+        
         max_proc = os.cpu_count()
         if max_proc is None:
-            max_proc = 4  # fallback to use default nproc
+            max_proc = 4  
         self.bus.set_widget_value("ui.header_panel.nproc", (1, max_proc))
         self.bus.set_widget_value("ui.header_panel.nproc", max_proc, hard=True)
-        # Set up general arguments
-        # Tab `Prepare`
+        
+        
         self.bus.button("open_output_pse_pocket").clicked.connect(
             partial(self.save_as_a_session, "ui.prepare.input.pocket.to_pse")
         )
@@ -433,7 +431,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.ui.comboBox_design_molecule.currentIndexChanged.connect(
             self.reload_determine_tab_setup,
         )
-        # Connect run buttons
+        
         self.bus.button("dump_interfaces").clicked.connect(
             self.run_chain_interface_detection
         )
@@ -443,7 +441,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.button("run_pocket_detection").clicked.connect(
             self.run_pocket_detection
         )
-        # Tab `Mutate`
+        
         self.bus.button("open_output_pse_mutate").clicked.connect(
             partial(self.save_as_a_session, "ui.mutate.input.to_pse")
         )
@@ -464,7 +462,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.button("run_PSSM_to_pse").clicked.connect(
             self.run_mutant_loading_from_profile
         )
-        # Tab `Evaluate`
+        
         self.bus.ui.lineEdit_output_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
@@ -495,7 +493,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.button("choose_lucky_mutant").clicked.connect(
             self.find_all_best_mutants,
         )
-        # Tab `Cluster`
+        
         self.bus.ui.lineEdit_input_mut_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
@@ -504,7 +502,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         )
         self.bus.button("run_cluster").clicked.connect(self.run_clustering)
-        # Tab Visualize
+        
         self.bus.ui.lineEdit_output_pse_visualize.textChanged.connect(
             partial(
                 self.bus.fp_lock,
@@ -560,7 +558,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 overwrite=False,
             )
         )
-        # Multi-Design
+        
         self.bus.ui.lineEdit_multi_design_mutant_table.textChanged.connect(
             partial(
                 self.bus.fp_lock,
@@ -622,7 +620,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 progress_bar=self.bus.ui.progressBar,
             )
         )
-        # Tab Interact
+        
         self.bus.button("reinitialize_interact").clicked.connect(
             self.load_gremlin_mrf
         )
@@ -635,7 +633,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.button("interact_accept").clicked.connect(
             partial(self.coevoled_mutant_decision, True)
         )
-        # Tab socket
+        
         self.generate_ws_server_key()
         self.bus.button("ws_generate_randomized_key").clicked.connect(
             self.generate_ws_server_key
@@ -643,7 +641,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.bus.get_widget_from_cfg_item(
             "ui.socket.use_key"
         ).stateChanged.connect(self.generate_ws_server_key)
-        # Connect the partial function to the stateChanged signal
+        
         self.bus.ui.checkBox_ws_server_mode.stateChanged.connect(
             self.toggle_ws_server_mode
         )
@@ -666,9 +664,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def reload_molecule_info(self):
         """Reload the molecule in current session."""
         self.temperal_session = tempfile.mkstemp(suffix=".pse")[1]
-        # self.temperal_session= tempfile.NamedTemporaryFile(delete=False)
+        
         if not is_empty_session():
-            # remove alternative comformations
+            
             cmd.remove('not alt ""+A')
             cmd.alter("all", 'alt=""')
             cmd.save(self.temperal_session)
@@ -704,7 +702,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 return
             cmd.reinitialize()
             cmd.load(new_session_file)
-            # remove alternative comformations
+            
             cmd.remove('not alt ""+A')
             cmd.alter("all", 'alt=""')
             cmd.save(self.temperal_session)
@@ -798,7 +796,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     """
     Private functions used only in a specific tab.
     """
-    # Tab `Determine`
+    
     def reload_determine_tab_setup(self):
         """Setup pocket determination"""
         molecule = self.bus.get_widget_value(
@@ -852,7 +850,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             input_pse=self.temperal_session,
             save_dir=f"{self.PWD}/pockets/",
         ).search_pockets()
-    # Tab `Mutate`
+    
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
     ):
@@ -938,21 +936,21 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         then calls a method to find all the best mutants.
         """
         self.evaluator.find_all_best_mutants()
-    # combination and clustering
+    
     def run_clustering(self):
         """
         The function `run_clustering` initializes a `ClusterRunner`
         object and runs the clustering process upon triggering a button press.
         """
         trigger_button = self.bus.button("run_cluster")
-        # lazy module loading to fasten plugin initializing
+        
         worker = ClusterRunner(
             PWD=self.PWD,
         )
         with hold_trigger_button(trigger_button), timing("Clustering"):
             worker.run_clustering()
         del worker
-    # Tab Visualize
+    
     def update_mutant_table_columns(self):
         """Retrieves mutant table columns from a file, validates them,
         and sets them as values in combo boxes.
@@ -975,7 +973,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     f"Mutant Table path is not valid: {mut_table_fp}"
                 )
             )
-            # reset cols to combo boxes to empty
+            
             for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
                 set_widget_value(comboBox, [''])
             set_widget_value(comboBox_group_name, ['default'])
@@ -988,11 +986,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 )
             )
             return
-        # set cols to combo boxes
+        
         for comboBox in [comboBox_best_leaf, comboBox_totalscore]:
             set_widget_value(comboBox, mut_table_cols)
         set_widget_value(comboBox_group_name, [""] + mut_table_cols)
-        # set default col value
+        
         if len(mut_table_cols) > 1:
             set_widget_value(comboBox_best_leaf, mut_table_cols[0])
             set_widget_value(comboBox_totalscore, mut_table_cols[-1])
@@ -1089,7 +1087,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     cmd.refresh()
         if session is not None and os.path.exists(session):
             if not overwrite:
-                # Ask whether to overide
+                
                 confirmed = decide(
                     title="Override current session?",
                     description="Your current session will be overriden. \n \
@@ -1102,7 +1100,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 if not session:
                     return
         cmd.save(filename=session)
-    # TODO: drop(mostly liked)/refact(hated) this part
+    
     def multi_mutagenesis_design_initialize(self):
         """
         The function initializes a MultiMutantDesigner object.
@@ -1120,7 +1118,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 logging.warning(
                     "Your current mutant multi-mutagenesis will be discarded!"
                 )
-                # Ask whether to overide
+                
                 confirmed = decide(
                     title="Discard in-design mutant choice?",
                     description="You currently have uncompleted mutant choice, "
@@ -1179,7 +1177,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         Automates the process of designing multiple mutagenesis variants.
         """
         trigger_button = self.bus.button("run_multi_design")
-        # initialize
+        
         self.multi_mutagenesis_design_initialize()
         if not self.multi_designer:
             raise issues.UnexpectedWorkflowError(
@@ -1196,7 +1194,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 for i in range(max_num_multi_design_cases):
                     logging.info(f"Starting {i}-th mutagenesis variant case")
                     self.multi_mutagenesis_design_start()
-                    # pick mutant until it reaches the required number
+                    
                     for j in range(maximal_mutant_num):
                         logging.info(f"Picking {j}-th mutagenesis")
                         self.multi_mutagenesis_design_pick_next_mut()
@@ -1204,7 +1202,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.multi_mutagenesis_design_save_design()
             except Exception:
                 traceback.print_exc()
-    # Tab Interact via GREMLIN
+    
     def load_gremlin_mrf(self):
         """
         Loads a GREMLIN MRF for interaction analysis.
@@ -1252,18 +1250,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         """
         Updates the options for broadcasting view changes in a WebSocket server.
         """
-        # not instantialized or not running
+        
         if not self.ws_server or not self.ws_server.is_running:
             logging.warning("Server is not in service.")
             return
-        # do changes
+        
         self.ws_server.view_broadcast_enabled = self.bus.get_widget_value(
             "ui.socket.broadcast.view", bool
         )
         self.ws_server.view_broadcast_interval = self.bus.get_widget_value(
             "ui.socket.broadcast.interval", float
         )
-        # disabled
+        
         if not self.ws_server.view_broadcast_enabled:
             if self.ws_server.view_broadcast_on_air:
                 self.ws_server.view_broadcast_worker.interrupt()
@@ -1274,18 +1272,18 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 "Server is not broadcasting view changes. Do nothing."
             )
             return
-        # no clients
+        
         if not self.ws_server.meetingroom:
             logging.warning(
                 "Server has no client, ignore view updating. Do nothing."
             )
             self.ws_server.view_broadcast_on_air = False
             return
-        # already on air
+        
         if self.ws_server.view_broadcast_on_air:
             logging.warning("Server is broadcasting view changes! Do nothing.")
             return
-        # start broadcaster
+        
         if not self.ws_server.view_broadcast_on_air:
             self.ws_server.view_broadcast_worker = WorkerThread(
                 func=self.ws_server.broadcast_view
@@ -1294,8 +1292,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.ws_server.view_broadcast_worker.run()
         logging.warning("Start broadcasting view.")
         return
-    # Assuming toggle_ws_server_mode gets triggered on
-    # checkBox_ws_server_mode state change
+    
+    
     def toggle_ws_server_mode(self):
         """
         Toggles the WebSocket server mode based on the value of a widget
@@ -1404,19 +1402,19 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             logging.warning("Configuration initialized.")
             reconfigure = False
         if not reconfigure:
-            # while booting
-            # create a bus btw cfg<---> ui
+            
+            
             ConfigBus.initialize(ui=self.ui)
             self.bus = ConfigBus()
-            # Regster all environment variables from config file
+            
             register_environment_variables()
-            # Tab Config
+            
             ParamChangeCollections.register_all(ui=self.bus.ui)
             self.bus.initialize_widget_with_group()
-            # register widget change events to update cfg items
+            
             self.bus.register_widget_changes_to_cfg()
         elif experiment:
-            # while loading experiment
+            
             expected_experiment_config = f"{experiment}.yaml"
             if os.path.exists(
                 os.path.join(
@@ -1427,7 +1425,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     config_name=f"experiments/{experiment}"
                 )["experiments"]
         else:
-            # simply reload from default config, discard unsaved.
+            
             self.bus.cfg = reload_config_file()
         self.refresh_ui_from_new_configuration()
     def refresh_ui_from_new_configuration(self):
@@ -1472,7 +1470,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             EXPERIMENTS_CONFIG_DIR, new_cfg_base_name
         )
         if mode == "r":
-            # copy cfg to experiment dir so that hydra can access it
+            
             shutil.copy(new_cfg_file, experiment_file)
             self.reload_configurations(experiment=new_cfg_prefix)
             logging.warning(
@@ -1482,7 +1480,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.save_configuration_from_ui(
                 experiment=f"experiments/{new_cfg_prefix}"
             )
-            # hydra has already saved config into EXPERIMENTS_CONFIG_DIR, copy to user defined config file path
+            
             shutil.copy(experiment_file, new_cfg_file)
             logging.warning(
                 f"saved config at {new_cfg_file}, backup at {experiment_file}"

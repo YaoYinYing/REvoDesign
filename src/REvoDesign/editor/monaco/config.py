@@ -6,7 +6,7 @@ class ConfigStore(SingletonAbstract):
     A centralized configuration store using SingletonAbstract and DictConfig for thread-safe configuration management.
     """
     def singleton_init(self):
-        self.cfg = DictConfig({})  # Initialize the configuration store with an empty DictConfig
+        self.cfg = DictConfig({})  
     def set(self, key: str, value: Any) -> None:
         """
         Sets a configuration value.
@@ -29,5 +29,5 @@ class ConfigStore(SingletonAbstract):
         """
         Resets the configuration store to an empty state.
         """
-        # skipcq: PYL-W0201
+        
         self.cfg = DictConfig({})  # Reset the configuration to an empty DictConfig

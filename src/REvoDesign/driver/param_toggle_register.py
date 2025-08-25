@@ -8,7 +8,6 @@ from ..common.profile_parsers import ALL_PARSER_CLASSES
 from ..magician import ALL_DESIGNER_CLASSES
 from ..sidechain.sidechain_solver import ALL_RUNNER_CLASSES
 from ..tools.customized_widgets import refresh_widget_while_another_changed
-# write all connected cases
 ParamChangeSidechainSolverWeights = PCRI(
     "comboBox_sidechain_solver",
     "currentIndexChanged",
@@ -49,7 +48,6 @@ ParamChangePreferLowerScoreTabVisualize = PCRI(
     "ui.header_panel.cmap.reverse_score",
     profile_or_designer_vs_is_prefer_lower_score
 )
-# collect all of these cases
 ParamChangeCollections = PCR(
     register_func=refresh_widget_while_another_changed,
     registry=(

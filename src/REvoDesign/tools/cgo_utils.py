@@ -1,7 +1,6 @@
 '''
 Utilities for pymol.cgo, partially modified from `pymol.cgobuilder`
 This module is aimed at building programable application protocol for CGO creating via pymol.cgo module
-# docs of cgo:
 Lowercase names below should be replaced with floating-point numbers. Generally, the TRIANGLE primitive should only be used only as a last restore since it is much less effective to render than using a series of vertices with a BEGIN/END group.
 BEGIN, { POINTS | LINES | LINE_LOOP | LINE_STRIP | TRIANGLES | TRIANGLE_STRIP | TRIANGLE_FAN },
 VERTEX, x,  y,  z,
@@ -9,8 +8,8 @@ COLOR,  red, green, blue,
 NORMAL, normal-x, normal-y,  normal-z,
 END,
 LINEWIDTH, line-width,
-WIDTHSCALE, width-scale,   # for ray-tracing
-SPHERE, x, y, z,  radius    # uses the current color
+WIDTHSCALE, width-scale,   
+SPHERE, x, y, z,  radius    
 [[Category:CGO]]
 CYLINDER, x1, y1, z1, x2, y2, z2, radius,
           red1, green1, blue1, red2, green2, blue2,
@@ -28,7 +27,7 @@ CONE,      x1, y1, z1,
            r1, r2,
            red1, green1, blue1,
            red2, green2, blue2,
-           cap1, cap2   # should the ends be solid (1) or open (0)?
+           cap1, cap2   
 '''
 import itertools
 import math
@@ -48,15 +47,13 @@ from pymol import cgo, cmd
 from pymol.vfont import plain
 from REvoDesign.tools.utils import pairwise, pairwise_loop, timing
 DEBUG = True
-# name: hsv imutable dicts
 BASE_COLORS: immutabledict[str, str] = immutabledict({name: webcolors.rgb_to_hex(
-    tuple(map(lambda x: int(255 * x), value))) for name, value in _cdata.BASE_COLORS.items()})  # type: ignore
+    tuple(map(lambda x: int(255 * x), value))) for name, value in _cdata.BASE_COLORS.items()})  
 TABLEAU_COLORS: immutabledict[str, str] = immutabledict(
     {name.lstrip('tab:'): value for name, value in _cdata.TABLEAU_COLORS.items()})
 CSS4_COLORS: immutabledict[str, str] = immutabledict(_cdata.CSS4_COLORS)
 XKCD_COLORS: immutabledict[str, str] = immutabledict(
     {name.lstrip('xkcd:').replace(' ', '_'): value for name, value in _cdata.XKCD_COLORS.items()})
-# color tables
 COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
 def not_none_float(*args: Optional[float]):
     """
@@ -69,18 +66,18 @@ def not_none_float(*args: Optional[float]):
     Returns:
     float - The first non-None float value, or 0.0 if none can be found.
     """
-    # Iterate over all input arguments
+    
     for idx, float_in in enumerate(args):
-        # Skip the current argument if it is None
+        
         if float_in is None:
             continue
         try:
-            # Attempt to convert the current argument to float and return it
+            
             return float(float_in)
         except Exception as e:
-            # Print an error message if conversion fails and continue to the next argument
+            
             print(f'Skip {idx} ({float_in}): {e}')
-    # Return the default value 0.0 if no valid float can be found
+    
     return 0.0
 @dataclass(frozen=True)
 class Point:
@@ -217,21 +214,21 @@ class Color:
         Raises:
             ValueError: If the color name is not valid.
         """
-        # Standardize the color name for lookup
+        
         name = self.name.lower().replace(" ", "_")
-        # Iterate through the color tables to find a match
+        
         for cdict in COLOR_TABLES:
             if name not in cdict:
                 continue
             if DEBUG:
                 print(f'[DEBUG] {name}: {cdict[name]}')
-            # Convert the found hexadecimal color value to an RGB array
-            return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  # type: ignore
+            
+            return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  
         try:
-            # Try to convert the color name to an RGB array using webcolors
+            
             return np.array(webcolors.name_to_rgb(self.name), dtype=float) / 255
         except ValueError as e:
-            # Raise a ValueError if the color name is not valid
+            
             raise ValueError(f"{self.name} is not a valid color name from matplotlib or webcolors") from e
     @cached_property
     def array_alpha(self) -> np.ndarray:
@@ -240,7 +237,7 @@ class Color:
         Returns:
             np.ndarray: An RGBA array representing the color.
         """
-        # Append the alpha value to the RGB array
+        
         return np.append(self.array, self.alpha)
     @staticmethod
     def as_arrays(colors: Iterable['Color']):
@@ -251,7 +248,7 @@ class Color:
         Returns:
             np.ndarray: An array consisting of the RGB arrays of all colors.
         """
-        # Concatenate the RGB arrays of all colors
+        
         return np.concatenate(tuple(color.array for color in colors))
     @staticmethod
     def as_cgos(colors: Iterable['Color']):
@@ -262,7 +259,7 @@ class Color:
         Returns:
             np.ndarray: An array consisting of the CGO representations of all colors.
         """
-        # Concatenate the CGO representations of all colors
+        
         return np.concatenate(tuple(color.as_cgo for color in colors))
     @cached_property
     def as_cgo(self):
@@ -288,7 +285,7 @@ class GraphicObject:
         If an object with the same name already exists, it is deleted.
         Ensures the data types of attributes are as expected.
         """
-        # Delete existing object with the same name to avoid conflicts
+        
         self.rebuild()
     @property
     def data(self):
@@ -309,9 +306,6 @@ class GraphicObject:
         if DEBUG:
             print(f'[DEBUG]: {self.__class__.__name__}: \n{self.data}')
         cmd.load_cgo(self.data, name, *args, **kwargs)
-# ------------------------------------------------------------------
-# Pseudocurve Base Class
-# ------------------------------------------------------------------
 @dataclass
 class PseudoCurve(GraphicObject):
     '''
@@ -359,15 +353,12 @@ class PseudoCurve(GraphicObject):
         Finally, the CGO object is assigned to the _data attribute of the instance, for subsequent
         processing or rendering.
         '''
-        vertices_points = self.sample()  # Call the sample method to get a list of sampling points
+        vertices_points = self.sample()  
         cgo_obj = []
         if self.color is not None:
-            cgo_obj.extend(Color(self.color).as_cgo)  # Add color information if available
-        cgo_obj.extend(Point.as_vertexes(vertices_points))  # Convert sampling points to CGO vertex format
+            cgo_obj.extend(Color(self.color).as_cgo)  
+        cgo_obj.extend(Point.as_vertexes(vertices_points))  
         self._data = cgo_obj
-# ------------------------------------------------------------------
-# PseudoBezier Implementation
-# ------------------------------------------------------------------
 @dataclass
 class PseudoBezier(PseudoCurve):
     '''
@@ -378,7 +369,7 @@ class PseudoBezier(PseudoCurve):
         control_points = self.control_points
         n = len(control_points) - 1
         points = []
-        # Use numpy linspace for t values in [0, 1]
+        
         t_values = np.linspace(0, 1, self.steps + 1)
         for t in t_values:
             x = y = z = 0.0
@@ -389,9 +380,6 @@ class PseudoBezier(PseudoCurve):
                 z += cp.z * bernstein
             points.append(Point(x, y, z))
         return points
-# ------------------------------------------------------------------
-# PseudoCatmullRom Implementation
-# ------------------------------------------------------------------
 @dataclass
 class PseudoCatmullRom(PseudoCurve):
     '''
@@ -401,7 +389,7 @@ class PseudoCatmullRom(PseudoCurve):
     def sample(self) -> List[Point]:
         self.check_control_points(num_min=4)
         points = []
-        # Iterate through segments defined by 4 consecutive control points
+        
         for i in range(1, len(self.control_points) - 2):
             P0 = self.control_points[i - 1]
             P1 = self.control_points[i]
@@ -424,12 +412,9 @@ class PseudoCatmullRom(PseudoCurve):
                            (2 * P0.z - 5 * P1.z + 4 * P2.z - P3.z) * t2 +
                            (-P0.z + 3 * P1.z - 3 * P2.z + P3.z) * t3)
                 points.append(Point(x, y, z))
-        # Append the second-to-last control point to ensure correct termination.
+        
         points.append(self.control_points[-2])
         return points
-# ------------------------------------------------------------------
-# PseudoBSpline Implementation
-# ------------------------------------------------------------------
 @dataclass
 class PseudoBSpline(PseudoCurve):
     '''
@@ -444,10 +429,10 @@ class PseudoBSpline(PseudoCurve):
         from scipy.interpolate import BSpline
         n = len(self.control_points) - 1
         p = self.degree
-        # Generate a uniform clamped knot vector if not provided.
+        
         if self.knots is None:
             self.knots = [0.0] * (p + 1) + list(range(1, n - p + 1)) + [n - p + 1] * (p + 1)
-        # Convert control points to a NumPy array of shape (n+1, 3)
+        
         ctrl_pts = np.array([[pt.x, pt.y, pt.z] for pt in self.control_points])
         u_start = self.knots[p]
         u_end = self.knots[n + 1]
@@ -455,9 +440,6 @@ class PseudoBSpline(PseudoCurve):
         bspline = BSpline(self.knots, ctrl_pts, p)
         spline_pts = bspline(u_vals)
         return [Point(x, y, z) for x, y, z in spline_pts]
-# ------------------------------------------------------------------
-# PseudoHermite Implementation
-# ------------------------------------------------------------------
 @dataclass
 class PseudoHermite(PseudoCurve):
     '''
@@ -488,9 +470,6 @@ class PseudoHermite(PseudoCurve):
             z = h00 * A.z + h10 * T0.z + h01 * B.z + h11 * T1.z
             points.append(Point(x, y, z))
         return points
-# ------------------------------------------------------------------
-# PseudoArc Implementation
-# ------------------------------------------------------------------
 @dataclass
 class PseudoArc(PseudoCurve):
     '''
@@ -515,9 +494,6 @@ class PseudoArc(PseudoCurve):
             z = center.z
             points.append(Point(x, y, z))
         return points
-# ------------------------------------------------------------------
-# PseudoNURBS Implementation
-# ------------------------------------------------------------------
 @dataclass
 class PseudoNURBS(PseudoCurve):
     '''
@@ -562,7 +538,7 @@ class PseudoNURBS(PseudoCurve):
         if p == 0:
             if knots[i] <= u < knots[i + 1]:
                 return 1.0
-            # Handle special case when u equals the last knot
+            
             if u == knots[-1] and knots[i + 1] == knots[-1]:
                 return 1.0
             return 0.0
@@ -593,21 +569,21 @@ class LineVertex(GraphicObject):
         Rebuilds the line vertex data.
         This method initializes the internal data list, and rebuilds the line vertex data based on the width, color, and point type.
         """
-        # Initialize the data list
+        
         self._data = []
-        # If the width is provided, add the LINEWIDTH command and width value to the data list
+        
         if self.width:
             self._data.extend([cgo.LINEWIDTH, self.width])
-        # If the color is provided, convert the color to a format compatible with CGO and add it to the data list
+        
         if self.color:
             self._data.extend(Color(self.color).as_cgo)
-        # If the point type is Point, add the point's vertex data to the data list
+        
         if isinstance(self.point, Point):
             self._data.extend(self.point.as_vertex)
         elif isinstance(self.point, PseudoCurve):
             self._data.extend(self.point.data)
         else:
-            # Currently, only Point type is supported. If another type is encountered, raise an exception
+            
             raise NotImplementedError('this curve is not currently supported')
     @classmethod
     def from_points(cls, points: Iterable[Union[Point, Iterable[float]]], width: Optional[float]
@@ -631,10 +607,10 @@ class Sphere(GraphicObject):
         This method constructs the sphere's data by combining the color information and the sphere's geometric properties.
         """
         self._data = [
-            *Color(self.color).as_cgo,  # Convert color to CGO format and unpack it into the data list
-            cgo.SPHERE,                 # Specify the CGO object type as SPHERE
-            *self.center.array,         # Unpack the center coordinates into the data list
-            self.radius,                # Add the radius to the data list
+            *Color(self.color).as_cgo,  
+            cgo.SPHERE,                 
+            *self.center.array,         
+            self.radius,                
         ]
 @dataclass
 class Cylinder(GraphicObject):
@@ -696,7 +672,7 @@ class Sausage(GraphicObject):
             *Color(self.color_2).array
         ]
 @dataclass
-class Doughnut(GraphicObject):  # Torus
+class Doughnut(GraphicObject):  
     center: Point = Point(0.0, 0.0, 0.0)
     normal: Point = Point(0.0, 0.0, 1.0)
     radius: float = 1.0
@@ -704,7 +680,7 @@ class Doughnut(GraphicObject):  # Torus
     cradius: float = 0.25
     samples: int = 20
     csamples: int = 20
-    # from pymol.cgobuilder.Torus
+    
     def rebuild(self) -> None:
         """
         Rebuilds torus
@@ -778,7 +754,7 @@ class Cone(GraphicObject):
     radius_base: float
     color_tip: str = 'w'
     color_base: str = 'g'
-    # whether to add caps to tip and/or base. 1 for True, 0 for False
+    
     caps: tuple[float, float] = (1, 0)
     def rebuild(self) -> None:
         """
@@ -853,13 +829,13 @@ class TriangleSimple(GraphicObject):
         """
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
-            # Add the color and vertex data for the first point
+            
             *Color(self.color_a).as_cgo,
             *self.vertex_a.as_vertex,
-            # Add the color and vertex data for the second point
+            
             *Color(self.color_b).as_cgo,
             *self.vertex_b.as_vertex,
-            # Add the color and vertex data for the third point
+            
             *Color(self.color_c).as_cgo,
             *self.vertex_c.as_vertex,
             cgo.END
@@ -898,11 +874,11 @@ class Cube(GraphicObject):
         """
         用 6 个 Square，合并出一个立方体(或长方体)外表。
         """
-        # 简易函数：构造一个纯色的 Square（四个角都用 self.color）
+        
         def make_face(a: Point, b: Point, c: Point, d: Point) -> List[float]:
             face = Square(
                 corner_a=a, corner_b=b, corner_c=c, corner_d=d,
-                # 给四个角都指定同一个颜色 => 整个面都是 uniform color
+                
                 color_a=self.color_w,
                 color_b=self.color_x,
                 color_c=self.color_y,
@@ -910,40 +886,40 @@ class Cube(GraphicObject):
             )
             face.rebuild()
             return face.data
-        # 获取 8 个顶点的 (x,y,z) 各种组合
+        
         x1, y1, z1 = self.p1.x, self.p1.y, self.p1.z
         x2, y2, z2 = self.p2.x, self.p2.y, self.p2.z
-        # 面 1: x = x1
-        #   A=(x1,y1,z1), B=(x1,y1,z2), C=(x1,y2,z2), D=(x1,y2,z1)
+        
+        
         face1_data = make_face(
             Point(x1, y1, z1), Point(x1, y1, z2), Point(x1, y2, z2), Point(x1, y2, z1)
         )
-        # 面 2: x = x2
-        #   A=(x2,y1,z1), B=(x2,y2,z1), C=(x2,y2,z2), D=(x2,y1,z2)
+        
+        
         face2_data = make_face(
             Point(x2, y1, z1), Point(x2, y2, z1), Point(x2, y2, z2), Point(x2, y1, z2)
         )
-        # 面 3: y = y1
-        #   A=(x1,y1,z1), B=(x2,y1,z1), C=(x2,y1,z2), D=(x1,y1,z2)
+        
+        
         face3_data = make_face(
             Point(x1, y1, z1), Point(x2, y1, z1), Point(x2, y1, z2), Point(x1, y1, z2)
         )
-        # 面 4: y = y2
-        #   A=(x1,y2,z1), B=(x1,y2,z2), C=(x2,y2,z2), D=(x2,y2,z1)
+        
+        
         face4_data = make_face(
             Point(x1, y2, z1), Point(x1, y2, z2), Point(x2, y2, z2), Point(x2, y2, z1)
         )
-        # 面 5: z = z1
-        #   A=(x1,y1,z1), B=(x1,y2,z1), C=(x2,y2,z1), D=(x2,y1,z1)
+        
+        
         face5_data = make_face(
             Point(x1, y1, z1), Point(x1, y2, z1), Point(x2, y2, z1), Point(x2, y1, z1)
         )
-        # 面 6: z = z2
-        #   A=(x1,y1,z2), B=(x2,y1,z2), C=(x2,y2,z2), D=(x1,y2,z2)
+        
+        
         face6_data = make_face(
             Point(x1, y1, z2), Point(x2, y1, z2), Point(x2, y2, z2), Point(x1, y2, z2)
         )
-        # 将 6 个面的 CGO 数据合并
+        
         self._data = face1_data + face2_data + face3_data + \
             face4_data + face5_data + face6_data
     def rebuild(self):
@@ -973,24 +949,24 @@ class Square(GraphicObject):
         This method initializes a graphic object drawing data (_data) by defining the vertices and colors of the triangles that make up the square.
         It uses the Color utility class to handle color conversion and the Point class for vertex coordinates.
         """
-        # Start drawing, defining the drawing mode as triangles
+        
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
-            # Define the first triangle, including the color and vertex of each corner
+            
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
             *Color(self.color_b).as_cgo,
             *self.corner_b.as_vertex,
             *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
-            # Define the second triangle, including the color and vertex of each corner
+            
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
             *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
             *Color(self.color_d).as_cgo,
             *self.corner_d.as_vertex,
-            # End drawing
+            
             cgo.END
         ]
 @dataclass
@@ -1004,7 +980,7 @@ class PolyLines(GraphicObject):
         points (Iterable[LineVertex]): A collection of line vertices.
         line_type (Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']): The drawing mode of the line, defaulting to 'LINE_STRIP'.
     """
-    # global
+    
     width: float
     color: str
     points: Iterable[LineVertex]
@@ -1014,13 +990,13 @@ class PolyLines(GraphicObject):
         Rebuilds the line data.
         This method initializes the line drawing data, including setting the line width, color, and type, and updates the data for each vertex.
         """
-        # Initialize the line drawing data, including line width and color
+        
         self._data = [
             cgo.LINEWIDTH, self.width,
             *Color(self.color).as_cgo,
             cgo.BEGIN, getattr(cgo, self.line_type),
         ]
-        # Update the data for each vertex
+        
         for pv in self.points:
             self._data.extend([*pv.data])
         self._data.append(cgo.END)
@@ -1029,12 +1005,12 @@ class Arrow(GraphicObject):
     """
     Represents an arrow object for visualization in PyMOL, with properties for start and end points, line width, and color.
     """
-    start: Point  # the start point of the arrow
-    point_to: Point  # the tip of the arrow
-    radius: float = 0.1  # cylinder width
+    start: Point  
+    point_to: Point  
+    radius: float = 0.1  
     header_height: float = 0.25
     header_ratio: float = 1.618
-    # colors
+    
     color_header: str = 'red'
     color_tail: str = 'white'
     @property
@@ -1044,7 +1020,7 @@ class Arrow(GraphicObject):
         Returns:
             float: The diameter of the cone base.
         """
-        return self.radius * self.header_ratio  # cone base diameter
+        return self.radius * self.header_ratio  
     @property
     def cyl_length(self) -> float:
         """
@@ -1075,7 +1051,6 @@ class Arrow(GraphicObject):
         )
         go.rebuild()
         self._data = go.data
-# --- RoundedRectangle3D Implementation ---
 @dataclass
 class RoundedRectangle(GraphicObject):
     """
@@ -1110,12 +1085,12 @@ class RoundedRectangle(GraphicObject):
         return Point(global_coord[0], global_coord[1], global_coord[2])
     def rebuild(self) -> None:
         self.radius = min(self.width / 2, self.radius)
-        # Half dimensions
+        
         half_w = self.width / 2
         half_h = self.height / 2
         r = self.radius
-        k = 0.5522847498  # constant for approximating a quarter circle with a cubic Bezier
-        # Define local 2D coordinates (in the rectangle's plane) for the four edges (after corner inset)
+        k = 0.5522847498  
+        
         edge_bottom_start = (-half_w + r, -half_h)
         edge_bottom_end = (half_w - r, -half_h)
         edge_right_start = (half_w, -half_h + r)
@@ -1124,20 +1099,20 @@ class RoundedRectangle(GraphicObject):
         edge_top_end = (-half_w + r, half_h)
         edge_left_start = (-half_w, half_h - r)
         edge_left_end = (-half_w, -half_h + r)
-        # Define control points for rounded corners (using cubic Bezier approximation)
-        # Bottom-right corner (from edge_bottom_end to edge_right_start)
+        
+        
         cp1_br = (edge_bottom_end[0] + k * r, edge_bottom_end[1])
         cp2_br = (edge_right_start[0], edge_right_start[1] - k * r)
-        # Top-right corner (from edge_right_end to edge_top_start)
+        
         cp1_tr = (edge_right_end[0], edge_right_end[1] + k * r)
         cp2_tr = (edge_top_start[0] + k * r, edge_top_start[1])
-        # Top-left corner (from edge_top_end to edge_left_start)
+        
         cp1_tl = (edge_top_end[0] - k * r, edge_top_end[1])
         cp2_tl = (edge_left_start[0], edge_left_start[1] + k * r)
-        # Bottom-left corner (from edge_left_end to edge_bottom_start)
+        
         cp1_bl = (edge_left_end[0], edge_left_end[1] - k * r)
         cp2_bl = (edge_bottom_start[0] - k * r, edge_bottom_start[1])
-        # Create PseudoBezier objects for each corner (convert local coords to global)
+        
         bottom_right_corner = PseudoBezier(
             control_points=[
                 self.local_to_global(*edge_bottom_end),
@@ -1178,19 +1153,19 @@ class RoundedRectangle(GraphicObject):
             color=self.color,
             steps=self.steps
         )
-        # Assemble the vertices in order (using LineVertex to wrap both Points and PseudoBezier objects)
+        
         vertices = [
-            LineVertex(self.local_to_global(*edge_bottom_start)),   # start of bottom edge
-            LineVertex(self.local_to_global(*edge_bottom_end)),     # end of bottom edge
-            LineVertex(bottom_right_corner),                        # bottom-right corner arc
-            LineVertex(self.local_to_global(*edge_right_end)),      # end of right edge
-            LineVertex(top_right_corner),                           # top-right corner arc
-            LineVertex(self.local_to_global(*edge_top_end)),        # end of top edge
-            LineVertex(top_left_corner),                            # top-left corner arc
-            LineVertex(self.local_to_global(*edge_left_end)),       # end of left edge
-            LineVertex(bottom_left_corner)                          # bottom-left corner arc
+            LineVertex(self.local_to_global(*edge_bottom_start)),   
+            LineVertex(self.local_to_global(*edge_bottom_end)),     
+            LineVertex(bottom_right_corner),                        
+            LineVertex(self.local_to_global(*edge_right_end)),      
+            LineVertex(top_right_corner),                           
+            LineVertex(self.local_to_global(*edge_top_end)),        
+            LineVertex(top_left_corner),                            
+            LineVertex(self.local_to_global(*edge_left_end)),       
+            LineVertex(bottom_left_corner)                          
         ]
-        # Build a closed polyline (LINE_LOOP) from these vertices.
+        
         poly = PolyLines(
             width=self.line_width,
             color=self.color,
@@ -1232,17 +1207,17 @@ class Ellipse(GraphicObject):
         Rebuilds the ellipse object by sampling points along the ellipse's circumference and
         assembling them into a closed polyline.
         """
-        # Sample angles from 0 to 2π
+        
         t_values = np.linspace(0, 2 * math.pi, self.steps + 1)
         points = []
-        # Parametric equation of an ellipse: (major_radius * cos(t), minor_radius * sin(t))
+        
         for t in t_values:
             u = self.major_radius * math.cos(t)
             v = self.minor_radius * math.sin(t)
             points.append(self.local_to_global(u, v))
-        # Wrap the points in LineVertex objects
+        
         vertices = [LineVertex(pt) for pt in points]
-        # Build a closed polyline (LINE_LOOP) for the ellipse
+        
         poly = PolyLines(
             width=self.line_width,
             color=self.color,
@@ -1251,7 +1226,6 @@ class Ellipse(GraphicObject):
         )
         poly.rebuild()
         self._data = poly.data
-# --- Ellipsoid Implementation ---
 @dataclass
 class Ellipsoid(GraphicObject):
     """
@@ -1277,42 +1251,41 @@ class Ellipsoid(GraphicObject):
         Rebuilds the ellipsoid by generating a triangle mesh using its parametric equations.
         The resulting CGO data is stored in self._data.
         """
-        # Generate parameter grids using numpy (vectorized)
-        theta = np.linspace(0, math.pi, self.steps_theta + 1)  # polar angle
-        phi = np.linspace(0, 2 * math.pi, self.steps_phi + 1)    # azimuthal angle
-        # Create meshgrid (theta: rows, phi: columns)
+        
+        theta = np.linspace(0, math.pi, self.steps_theta + 1)  
+        phi = np.linspace(0, 2 * math.pi, self.steps_phi + 1)    
+        
         theta_grid, phi_grid = np.meshgrid(theta, phi, indexing='ij')
-        # Compute x, y, z coordinates using vectorized operations
+        
         x = self.center.x + self.radius_x * np.sin(theta_grid) * np.cos(phi_grid)
         y = self.center.y + self.radius_y * np.sin(theta_grid) * np.sin(phi_grid)
         z = self.center.z + self.radius_z * np.cos(theta_grid)
-        # Stack to form an array of points with shape (steps_theta+1, steps_phi+1, 3)
+        
         vertices_grid = np.stack((x, y, z), axis=-1)
-        # Build triangle mesh from the vertex grid
+        
         triangles = []
         for i in range(self.steps_theta):
             for j in range(self.steps_phi):
-                # Each quad is formed by 4 vertices:
+                
                 p0 = Point(*vertices_grid[i, j])
                 p1 = Point(*vertices_grid[i + 1, j])
                 p2 = Point(*vertices_grid[i + 1, j + 1])
                 p3 = Point(*vertices_grid[i, j + 1])
-                # Split the quad into two triangles:
+                
                 triangles.append([p0, p1, p2])
                 triangles.append([p0, p2, p3])
-        # Assemble CGO object
+        
         cgo_obj = []
-        # Add color information if specified
+        
         cgo_obj.extend(Color(self.color).as_cgo)
-        # Begin triangle drawing mode
+        
         cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLES])
-        # Add all triangle vertices to the CGO object
+        
         for tri in triangles:
             for vertex in tri:
                 cgo_obj.extend(vertex.as_vertex)
         cgo_obj.append(cgo.END)
         self._data = cgo_obj
-# --- Polygon Implementation ---
 @dataclass
 class Polygon(GraphicObject):
     """
@@ -1328,17 +1301,16 @@ class Polygon(GraphicObject):
         Rebuilds the polygon object by creating a CGO triangle fan from the vertices.
         """
         cgo_obj = []
-        # Add color information if available.
+        
         cgo_obj.extend(Color(self.color).as_cgo)
-        # Begin triangle fan drawing mode.
+        
         cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLE_FAN])
-        # Add each vertex to the CGO object.
+        
         for vertex in self.vertices:
             cgo_obj.extend(vertex.as_vertex)
-        # End the drawing.
+        
         cgo_obj.append(cgo.END)
         self._data = cgo_obj
-# --- Polyhedron Implementation ---
 @dataclass
 class Polyhedron(GraphicObject):
     """
@@ -1357,14 +1329,14 @@ class Polyhedron(GraphicObject):
         Each face is drawn as a triangle fan to fill the polygon.
         """
         cgo_obj = []
-        # Add color info
+        
         cgo_obj.extend(Color(self.color).as_cgo)
-        # For each face, generate a triangle fan
+        
         for face in self.faces:
             if len(face) < 3:
-                continue  # Skip degenerate faces
+                continue  
             cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLE_FAN])
-            # Add vertices from the face
+            
             for idx in face:
                 vertex = self.vertices[idx]
                 cgo_obj.extend(vertex.as_vertex)
@@ -1404,7 +1376,6 @@ def sample_quadratic_bezier(p0, p1, p2, num=10):
         pt = (1 - t)**2 * p0 + 2 * (1 - t) * t * p1 + t**2 * p2
         pts.append(tuple(pt))
     return pts
-# --- Custom Pen for Collecting Glyph Outlines ---
 class PolygonPen:
     """
     A custom pen that collects glyph outlines as contours (lists of Points).
@@ -1415,37 +1386,36 @@ class PolygonPen:
         self.current_contour: List[Point] = []
         self.sample_num = sample_num
     def moveTo(self, pt):
-        # pt is a tuple (x, y) or (x, y, z)
+        
         p = Point(*to3d(pt))
         self.current_contour = [p]
     def lineTo(self, pt):
         p = Point(*to3d(pt))
         self.current_contour.append(p)
     def qCurveTo(self, *points):
-        # points: a sequence of points (tuples). The last may be None.
+        
         pts = list(points)
         if pts[-1] is None:
             pts = pts[:-1]
         start = self.current_contour[-1]
-        # For each quadratic segment, sample points along the curve.
-        # For simplicity, assume pairs of (control, end). If multiple controls, chain them.
+        
+        
         for i in range(0, len(pts) - 1, 2):
             control = pts[i]
             end = pts[i + 1]
             sampled = sample_quadratic_bezier(start.array, control, end, num=self.sample_num)
-            # Append sampled points (skip the first to avoid duplication)
+            
             for coord in sampled[1:]:
                 self.current_contour.append(Point(coord[0], coord[1], coord[2]))
-            # Update start for potential chaining using to3d helper
+            
             start = Point(*to3d(end))
-        # Optionally, do nothing else here.
+        
     def closePath(self):
         if self.current_contour:
             self.contours.append(self.current_contour)
             self.current_contour = []
     def endPath(self):
         self.closePath()
-# --- TextCharPolygon: Convert a Character to Polygonal Outlines ---
 @dataclass
 class TextCharPolygon(GraphicObject):
     """
@@ -1471,20 +1441,20 @@ class TextCharPolygon(GraphicObject):
     format: Literal['LINE_LOOP', 'SAUSAGE', 'TRIANGLE_FAN'] = 'LINE_LOOP'
     sample_num: int = 10
     def rebuild(self) -> None:
-        # Open the font and get the glyph for the character.
+        
         font = TTFont(self.font_path)
-        cmap = font['cmap'].getBestCmap()  # type: ignore # Map from Unicode codepoints to glyph names
+        cmap = font['cmap'].getBestCmap()  
         glyph_name = cmap.get(ord(self.char))
         if glyph_name is None:
             raise ValueError(f"Glyph for character '{self.char}' not found in {self.font_path}")
         glyph_set = font.getGlyphSet()
         glyph = glyph_set[glyph_name]
-        # Use our custom pen to collect the outline.
+        
         pen = PolygonPen(sample_num=self.sample_num)
         glyph.draw(pen)
-        # Get the raw contours (each a list of Points)
+        
         polygons = pen.contours
-        # Apply scale and offset
+        
         scaled_polygons: List[List[Point]] = []
         for contour in polygons:
             scaled_contour: List[Point] = []
@@ -1498,12 +1468,12 @@ class TextCharPolygon(GraphicObject):
                     z += self.offset.z
                 scaled_contour.append(Point(x, y, z))
             scaled_polygons.append(scaled_contour)
-        # Build a CGO object: for simplicity, we'll output each contour as a closed polyline.
+        
         cgo_obj = []
         cgo_obj.extend(Color(self.color).as_cgo)
         if self.format == 'LINE_LOOP':
             for contour in scaled_polygons:
-                # Ensure the contour is closed.
+                
                 if contour[0].array.tolist() != contour[-1].array.tolist():
                     contour.append(contour[0])
                 poly = PolyLines(
@@ -1570,172 +1540,6 @@ class TextBoard(GraphicObject):
             ))
         goc.rebuild()
         self._data = goc.data
-# # --- Helper functions to build specific Platonic solids ---
-# def build_tetrahedron(center: Point, size: float):
-#     """
-#     Builds a tetrahedron (4 faces, all triangular).
-#     Uses vertices (1,1,1), (1,-1,-1), (-1,1,-1), (-1,-1,1) scaled so that edge length equals size.
-#     """
-#     # For the tetrahedron defined by these 4 vertices, the edge length is 2√2.
-#     scale = size / (2 * math.sqrt(2))
-#     verts = [
-#         Point(center.x + scale *  1, center.y + scale *  1, center.z + scale *  1),
-#         Point(center.x + scale *  1, center.y + scale * -1, center.z + scale * -1),
-#         Point(center.x + scale * -1, center.y + scale *  1, center.z + scale * -1),
-#         Point(center.x + scale * -1, center.y + scale * -1, center.z + scale *  1)
-#     ]
-#     faces = [
-#         [0, 1, 2],
-#         [0, 3, 1],
-#         [0, 2, 3],
-#         [1, 3, 2]
-#     ]
-#     return verts, faces
-# def build_cube(center: Point, size: float):
-#     """
-#     Builds a cube (6 faces, each a square).
-#     The cube edge length is 'size'.
-#     """
-#     s = size / 2
-#     verts = [
-#         Point(center.x - s, center.y - s, center.z - s),  # 0
-#         Point(center.x + s, center.y - s, center.z - s),  # 1
-#         Point(center.x - s, center.y + s, center.z - s),  # 2
-#         Point(center.x + s, center.y + s, center.z - s),  # 3
-#         Point(center.x - s, center.y - s, center.z + s),  # 4
-#         Point(center.x + s, center.y - s, center.z + s),  # 5
-#         Point(center.x - s, center.y + s, center.z + s),  # 6
-#         Point(center.x + s, center.y + s, center.z + s)   # 7
-#     ]
-#     faces = [
-#         [0, 1, 3, 2],  # bottom
-#         [4, 5, 7, 6],  # top
-#         [0, 1, 5, 4],  # front
-#         [1, 3, 7, 5],  # right
-#         [3, 2, 6, 7],  # back
-#         [2, 0, 4, 6]   # left
-#     ]
-#     return verts, faces
-# def build_octahedron(center: Point, size: float):
-#     """
-#     Builds an octahedron (8 faces, all triangular).
-#     Standard vertices are (±1,0,0), (0,±1,0), (0,0,±1). For these, the edge length is √2.
-#     """
-#     scale = size / math.sqrt(2)
-#     verts = [
-#         Point(center.x + scale, center.y, center.z),    # 0
-#         Point(center.x - scale, center.y, center.z),    # 1
-#         Point(center.x, center.y + scale, center.z),    # 2
-#         Point(center.x, center.y - scale, center.z),    # 3
-#         Point(center.x, center.y, center.z + scale),    # 4
-#         Point(center.x, center.y, center.z - scale)     # 5
-#     ]
-#     faces = [
-#         [0, 2, 4],
-#         [2, 1, 4],
-#         [1, 3, 4],
-#         [3, 0, 4],
-#         [0, 2, 5],
-#         [2, 1, 5],
-#         [1, 3, 5],
-#         [3, 0, 5]
-#     ]
-#     return verts, faces
-# def build_icosahedron(center: Point, size: float):
-#     """
-#     Builds an icosahedron (20 faces, all triangular).
-#     Standard coordinates (before scaling) for an icosahedron:
-#       (0, ±1, ±phi), (±1, ±phi, 0), (±phi, 0, ±1)
-#     For these coordinates the edge length is 2, so we scale by size/2.
-#     """
-#     phi = (1 + math.sqrt(5)) / 2
-#     verts_raw = [
-#         (0,  1,  phi),
-#         (0,  1, -phi),
-#         (0, -1,  phi),
-#         (0, -1, -phi),
-#         (1,  phi, 0),
-#         (1, -phi, 0),
-#         (-1,  phi, 0),
-#         (-1, -phi, 0),
-#         (phi, 0,  1),
-#         (phi, 0, -1),
-#         (-phi, 0,  1),
-#         (-phi, 0, -1)
-#     ]
-#     scale = size / 2  # since standard edge length is 2
-#     verts = [Point(center.x + scale * x, center.y + scale * y, center.z + scale * z) for (x, y, z) in verts_raw]
-#     faces = [
-#         [0, 8, 4],
-#         [0, 4, 6],
-#         [0, 6, 10],
-#         [0, 10, 2],
-#         [0, 2, 8],
-#         [8, 2, 5],
-#         [8, 5, 9],
-#         [8, 9, 4],
-#         [4, 9, 1],
-#         [4, 1, 6],
-#         [6, 1, 11],
-#         [6, 11, 10],
-#         [10, 11, 3],
-#         [10, 3, 2],
-#         [2, 3, 5],
-#         [5, 3, 7],
-#         [5, 7, 9],
-#         [9, 7, 1],
-#         [1, 7, 11],
-#         [11, 7, 3]
-#     ]
-#     return verts, faces
-# def build_dodecahedron(center: Point, size: float):
-#     """
-#     Builds a dodecahedron (12 faces, each a regular pentagon).
-#     Its construction is more involved. Here, we provide a placeholder indicating that
-#     a robust dodecahedron implementation is not provided.
-#     """
-#     raise NotImplementedError("Dodecahedron construction is not implemented in this example.")
-# # --- RegularPolyhedron Class ---
-# @dataclass
-# class RegularPolyhedron(GraphicObject):
-#     """
-#     Represents a regular polyhedron with parametric input.
-#     Parameters:
-#         n (int): Number of faces (allowed: 4, 6, 8, 12, or 20).
-#         center (Point): The center of the polyhedron.
-#         size (float): The edge length (size of each face).
-#         color (str): The color of the polyhedron.
-#     """
-#     n: int
-#     center: Point
-#     size: float
-#     color: str = "white"
-#     _vertices: List[Point] = None
-#     _faces: List[List[int]] = None
-#     def rebuild(self) -> None:
-#         if self.n == 4:
-#             self._vertices, self._faces = build_tetrahedron(self.center, self.size)
-#         elif self.n == 6:
-#             self._vertices, self._faces = build_cube(self.center, self.size)
-#         elif self.n == 8:
-#             self._vertices, self._faces = build_octahedron(self.center, self.size)
-#         elif self.n == 20:
-#             self._vertices, self._faces = build_icosahedron(self.center, self.size)
-#         elif self.n == 12:
-#             self._vertices, self._faces = build_dodecahedron(self.center, self.size)
-#         else:
-#             raise ValueError("Regular polyhedron with n faces not supported. Allowed values: 4, 6, 8, 12, 20.")
-#         # Build CGO object by triangulating each face (using a triangle fan)
-#         cgo_obj = []
-#         cgo_obj.extend(Color(self.color).as_cgo)
-#         for face in self._faces:
-#             if len(face) < 3:
-#                 continue
-#             cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLE_FAN])
-#             for idx in face:
-#                 cgo_obj.extend(self._vertices[idx].as_vertex)
-#             cgo_obj.append(cgo.END)
-#         self._data = cgo_obj
 @dataclass
 class GraphicObjectCollection(GraphicObject):
     """
@@ -1753,307 +1557,27 @@ class GraphicObjectCollection(GraphicObject):
         If the force_to_rebuild flag is set to True, it calls the rebuild method on each graphic object.
         Finally, it adds the data of each graphic object to the collection's _data list.
         """
-        # Reset the collection's data
+        
         self._data = []
         for go_idx, go in enumerate(self.objects):
-            # Print the addition information of the graphic object
-            print(f"Adding: #{go_idx} ({go.__class__.__name__})")
-            # If forced to rebuild, call the rebuild method on the graphic object
+            
+            print(f"Adding: 
+            
             if self.force_to_rebuild:
                 go.rebuild()
-        # Iterate through each graphic object in the collection
+        
         self._data.extend(tree.flatten([go.data for go in self.objects]))
-# TEST CASES that can be run from pymol
-# `run src/REvoDesign/tools/cgo_utils.py`
-# sphere=Sphere(center=Point(0,0,0),radius=10, color='cyan')
-# sphere.load_as('mysphere')
-# cyl=Cylinder()
-# cyl.load_as('my_cyl')
-# Doughnut(samples=100).load_as('my_treasure')
-# for i, j in itertools.product(range(2), repeat=2):
-#     Cone(tip=Point(0, 0, 1.4),
-#          base_center=Point(0,0, 0),
-#          radius_tip=0.5,
-#          radius_base=1.5,
-#         color_base='golden', color_tip='sand_brown', caps=(i,j,)).load_as(f'dyamond_{i},{j}')
-# Triangle(
-#         vertex_a=Point(3, 0, 0),      # 顶点A
-#         vertex_b=Point(0, 3, 0),      # 顶点B
-#         vertex_c=Point(0, 0, 3),      # 顶点C
-#         normal_a=Point(0, 0, 1),      # A顶点的法向量
-#         normal_b=Point(0, 1, 0),      # B顶点的法向量
-#         normal_c=Point(1, 0, 0),      # C顶点的法向量
-#         color_a='red',         # A的颜色：红色
-#         color_b='green',       # B的颜色：绿色
-#         color_c='blue',        # C的颜色：蓝色
-#     ).load_as('my_triangle')
-# TriangleSimple(
-#     vertex_a=Point(1, 0, 0),
-#     vertex_b=Point(0, 1, 0),
-#     vertex_c=Point(0, 0, 1),
-#     color_a='cyan',
-#     color_b='yellow',
-#     color_c='magenta',
-#     ).load_as('my_triangle_simple')
-# Cube(wire_frame=True).load_as('a_colorful_cube')
-# Cube(wire_frame=False).load_as('a_colorful_solid_cube')
-# Cube(
-#     wire_frame=True,
-#     color_w='yellow',
-#     color_x='yellow',
-#     color_y='yellow',
-#     color_z='yellow'
-# ).load_as('a_yellow_box')
-# Cube(wire_frame=True,
-#     color_w='white',
-#     color_x='white',
-#     color_y='white',
-#     color_z='white'
-# ).load_as('solid_box')
-# Cube(
-#     wire_frame=True,
-#     color_w='black',
-#     color_x='black',
-#     color_y='black',
-#     color_z='black'
-#     ).load_as('a_black_box')
-# Square().load_as('a_square')
-# PolyLines(
-#     2.0, 'yellow',
-#     [LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 0, 1) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-#      LineVertex(Point(1, 1, 2) )]
-# ).load_as('yellow_line_strip')
-# PolyLines(
-#     2.0, 'red',
-#     [LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 0, 1) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-#      LineVertex(Point(1, 1, 2) )],
-#      line_type='LINE_LOOP'
-# ).load_as('red_line_loop')
-# PolyLines(
-#     2.0, 'cyan',
-#     [LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 0, 1) ),
-#      LineVertex(Point(0, 1, 0) ),
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('cyan_trangle_shape')
-# PolyLines(
-#     2.0, 'violet',
-#     [
-#      LineVertex(Point(0, 0, 0) ),
-#      LineVertex(Point(0, 1, 0) ),
-#      LineVertex(Point(1, 0, 0) ),
-#      LineVertex(Point(1, 1, 0) ),
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('violet_square_shape')
-# PolyLines(
-#     2.0, 'pink',
-#     [                             # continous triangles
-#      LineVertex(Point(0, 0, 0) ), # -\  triangle # 1
-#      LineVertex(Point(0, 1, 0) ), #   |-'  -\  triangle # 2
-#      LineVertex(Point(1, 1, 0) ), # -/       |-'  -\  triangle # 3
-#      LineVertex(Point(1, 0, 0) ), #        -/       |-'
-#      LineVertex(Point(1, 1, 1) ), #               -/
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('pink_3_tri_shape')
-# PolyLines(
-#     2.0, 'white',
-#     LineVertex.from_points(
-#         (
-#             Point(0, 1, 0),
-#             Point(1, 2, 0),
-#             Point(2, 3, 0),
-#             Point(0, 0.5, 0),
-#             Point(-0.3, 0.5, 0),
-#             Point(0, 0, 0)
-#         )
-#     ),
-#     line_type='TRIANGLE_FAN'
-# ).load_as('white_square_fan')
-# Sausage(
-#     p1=Point(0, 0, 1),
-#     p2=Point(0, 0, 2),
-#     radius=0.5,
-#     color_1='red',
-#     color_2='white'
-# ).load_as('tasty_sausage')
-# PolyLines(
-#     2.0, 'white',
-#     LineVertex.from_points(
-#         (
-#             Point(0, 1, 0),
-#             Point(1, 1, 0),
-#             Point(1, 0, 0),
-#             Point(0, 0, 0)
-#         )
-#     ),
-#     line_type='LINE_LOOP'
-# ).load_as('white_square')
-# PolyLines(
-#     2.0, 'golden',
-#     [
-#      LineVertex(Point(-1,1, 0) ), # left top
-#      LineVertex(Point(0, 0, 1.4) ), # tip
-#      LineVertex(Point(1, 1, 0) ), # right top
-#      LineVertex(Point(1, -1, 0) ), # right bottom
-#      LineVertex(Point(0, 0, 1.4) ), # tip again
-#      LineVertex(Point(-1, -1, 0) ), # left bottom
-#      LineVertex(Point(-1,1, 0) ), # left top back
-#     ],
-#      line_type='TRIANGLE_STRIP'
-# ).load_as('pyramid')
-# PolyLines(
-#     4.0, 'white',
-#     [
-#      LineVertex(Point(-1,1, 0) ),
-#      LineVertex(Point(0, 0, 1.4) ),
-#      LineVertex(Point(1, 1, 0) ),
-#      LineVertex(Point(1, -1, 0) ),
-#      LineVertex(Point(0, 0, 1.4) ),
-#      LineVertex(Point(-1, -1, 0) ),
-#      LineVertex(Point(-1,1, 0) ),
-#     ],
-#      line_type='LINE_LOOP'
-# ).load_as('pyramid_curve')
-# Arrow(
-#     Point(1, 2, 3),
-#     Point(4,5, 7),
-#     .5,2
-# ).load_as('my_arrow')
-# Arrow(
-#     Point(0, 0, 0),
-#     Point(4,5, 7),
-#     .5,2
-# ).load_as('my_zero_arrow')
-# Arrow(
-#     Point(4,5,7),
-#     Point(10,2, 3),
-#     .5,4,2
-# ).load_as('my_spike')
-# Define the center and the local axes (unit vectors in the rectangle's plane)
-# # Create a 3D rounded rectangle with specified parameters
-# rounded_rect = RoundedRectangle(
-#     center=Point(0, 0, 0),
-#     axis1=Point(1, 0, 0),  # Local X-axis,
-#     axis2=Point(0, 1, 0),  # Local Y-axis,
-#     width=5,
-#     height=5,
-#     radius=3,
-#     color='green',
-#     line_width=3,
-#     steps=20  # Increase for smoother rounded corners
-# )
-# # Rebuild the object to compute its CGO data
-# rounded_rect.rebuild()
-# rounded_rect.load_as('rounded_rect_rounder')
-# # Create an Ellipse3D: major_radius = 5, minor_radius = 3, with blue outline and line width of 2.
-# ellipse = Ellipse(
-#     center=Point(0, 0, 0),
-#     axis1=Point(1, 2, 3), # Local X-axis (major axis direction)
-#     axis2=Point(3, 1, -1),  # Local Y-axis,
-#     major_radius=5,
-#     minor_radius=2,
-#     color='blue',
-#     line_width=2,
-#     steps=50  # More steps for smoother ellipse
-# )
-# ellipse.load_as('my_ellipse')
-# ellipsoid = Ellipsoid(
-#     center=Point(0, 0, 0),
-#     radius_x=1,
-#     radius_y=1,
-#     radius_z=1,
-#     color='green',
-#     steps_theta=20,
-#     steps_phi=30
-# )
-# ellipsoid.load_as('my_ellispsoid')
-# vertices = [
-#     Point(0, 0, 0),
-#     Point(1, 0, 0),
-#     Point(1.5, 1, 0),
-#     Point(0.5, 1.5, 0),
-#     Point(-0.5, 1, 0)
-# ]
-# poly = Polygon(vertices=vertices, color='red')
-# poly.rebuild()
-# poly.load_as('my_polygon')
-# # Define the vertices of a cube.
-# vertices = [
-#     Point(-1, -1, -1),  # 0
-#     Point( 1, -1, -1),  # 1
-#     Point( 1,  1, -1),  # 2
-#     Point(-1,  1, -1),  # 3
-#     Point(-1, -1,  1),  # 4
-#     Point( 1, -1,  1),  # 5
-#     Point( 1,  1,  1),  # 6
-#     Point(-1,  1,  1)   # 7
-# ]
-# Define the faces of the cube (each face as a list of vertex indices).
-# faces = [
-#     [0, 1, 2, 3],  # bottom face
-#     [4, 5, 6, 7],  # top face
-#     [0, 1, 5, 4],  # front face
-#     [1, 2, 6, 5],  # right face
-#     [2, 3, 7, 6],  # back face
-#     [3, 0, 4, 7]   # left face
-# ]
-# # Create the polyhedron with a cyan color.
-# cube = Polyhedron(vertices=vertices, faces=faces, color='cyan')
-# cube.rebuild()
-# cube.load_as('my_polyhedron')
-# for (_,n), (_,c) in zip(enumerate([4, 6, 8, 20]), enumerate('rgby')):
-#     center = Point(0, 0, 0)
-#     cube = RegularPolyhedron(n=n, center=center, size=2, color=c)
-#     cube.load_as(f'my_{n}_{c}_polyhedron')
-# def test_text():
-#     import random
-#     # Specify a TTF font file path (update this path to one available on your system)
-# font_path = "/Library/Fonts/Microsoft/Microsoft Yahei.ttf"  # e.g.,
-# "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-#     for (idx, c ), (_, color)in zip(enumerate('APTX-4869'), enumerate(random.sample(list(CSS4_COLORS.keys()),100))):
-#         text_char = TextCharPolygon(
-#             char=c,
-#             font_path=font_path,
-#             color=color,
-#             scale=0.1,
-#             offset=Point(0+idx*150, 0, 0),
-#             width=5,
-#             format='SAUSAGE',
-#             sample_num=5
-#         )
-#         text_char.rebuild()
-#         text_char.load_as(f"my_text_char_{idx}")
-#     cmd.zoom()
-# with timing('writing'):
-#     test_text()
-# font_path = "/Users/yyy/Downloads/simhei.ttf"
-# text='Silver Bullet\n\nCool Kid'
-# TextBoard(
-#     text=text,
-#     font_path=font_path,
-#     width=1.5, space=10
-# ).load_as('silver_bullet')
-# also a quick demo to construct complicated cgo object
 def __easter_egg():
     '''
     There is always only one truth!
     真しん実じつはいつもひとつ!
     '''
     if any(not n.startswith('_') for n in cmd.get_names()):
-        # silently do nothing if the session is currently in use
+        
         return
     poision = GraphicObjectCollection([
-        # the APTX-4869 capsule
-        # white part
+        
+        
         Sphere(
             center=Point(-2, 0, 0),
             radius=1,
@@ -2066,7 +1590,7 @@ def __easter_egg():
             color1='white',
             color2='white'
         ),
-        # red part that covers the white part
+        
         Cylinder(
             Point(0, 0, 0),
             Point(2, 0, 0),
@@ -2079,31 +1603,31 @@ def __easter_egg():
             radius=1.015,
             color='red'
         ),
-        # printed curves (text container) on the surface
+        
         PolyLines(
             5, 'black',
             [
-                LineVertex(Point(-1.6, 0.5, 0.9)),  # left top
-                LineVertex(Point(1.6, 0.5, 0.9)),  # right top
+                LineVertex(Point(-1.6, 0.5, 0.9)),  
+                LineVertex(Point(1.6, 0.5, 0.9)),  
                 LineVertex(PseudoBezier(
-                    [Point(1.6, 0.5, 0.9),  # right top
-                     Point(2.2, 0.5, 1.08),  # control point to make Bezier curve
-                     Point(2.2, -0.5, 1.08),  # control point to make Bezier curve
-                     Point(1.6, -0.5, 0.9)]  # right bottom
+                    [Point(1.6, 0.5, 0.9),  
+                     Point(2.2, 0.5, 1.08),  
+                     Point(2.2, -0.5, 1.08),  
+                     Point(1.6, -0.5, 0.9)]  
                 )),
-                LineVertex(Point(1.6, -0.5, 0.9)),  # right bottom
-                LineVertex(Point(-1.6, -0.5, 0.9)),  # left bottom
+                LineVertex(Point(1.6, -0.5, 0.9)),  
+                LineVertex(Point(-1.6, -0.5, 0.9)),  
                 LineVertex(PseudoBezier(
-                    [Point(-1.6, -0.5, 0.9),  # left bottom
-                     Point(-2.2, -0.5, 1.05),  # control point to make Bezier curve
-                     Point(-2.2, 0.5, 1.05),  # control point to make Bezier curve
-                     Point(-1.6, 0.5, 0.9)]  # left top
+                    [Point(-1.6, -0.5, 0.9),  
+                     Point(-2.2, -0.5, 1.05),  
+                     Point(-2.2, 0.5, 1.05),  
+                     Point(-1.6, 0.5, 0.9)]  
                 )),
             ], line_type='LINE_LOOP'
         )
     ]
     )
-    # Printed text on the capsule
+    
     cgo.cyl_text(
         poision.data,
         plain,
@@ -2112,8 +1636,8 @@ def __easter_egg():
         0.03,
         axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
         color=Color('black').array)
-    # from ..shortcuts.tools.vina_tools import showaxes
-    # showaxes()
+    
+    
     poision.load_as('APTX-4869')
     cmd.turn('z', 16)
     cmd.zoom('APTX-4869', 0)

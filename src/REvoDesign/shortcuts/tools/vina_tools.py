@@ -15,29 +15,6 @@ from ...tools.cgo_utils import Cone, Cube, Cylinder, GraphicObject
 from ...tools.cgo_utils import GraphicObjectCollection as GOC
 from ...tools.cgo_utils import LineVertex, Point, PolyLines, Sphere
 logging = ROOT_LOGGER.getChild(__name__)
-##############################################################################
-# GetBox Plugin.py --  Draws a box surrounding a selection and gets box information
-# This script is used to get box information for LeDock, Autodock Vina and AutoDock Vina.
-# Copyright (C) 2014 by Mengwu Xiao (Hunan University)
-#
-# USAGES:  See function GetBoxHelp()
-# REFERENCE:  drawBoundingBox.py  written by  Jason Vertrees
-# EMAIL: mwxiao AT hnu DOT edu DOT cn
-# Changes:
-# 2014-07-30 first version was uploaded to BioMS http://bioms.org/forum.php?mod=viewthread&tid=1234
-# 2018-02-04 uploaded to GitHub https://github.com/MengwuXiao/Getbox-PyMOL-Plugin
-#            fixed some bugs: python 2/3 and PyMOL 1.x are supported;
-#            added support to AutoDock;
-#            added tutorials in English;
-# NOTES:
-# This program is free software; you can redistribute it and/or modify it under the terms of the GNU
-# General Public License as published by the Free Software Foundation version 3 of the License.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
-# even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
-# the GNU General Public License for more details.
-##############################################################################
-# ref: https://pymolwiki.org/index.php/Axes
 class PutCenterCallback:
     """
     A class to dynamically adjust the position of an object in PyMOL to keep it centered in the view.
@@ -67,7 +44,7 @@ class PutCenterCallback:
         it removes the callback. It also applies an offset based on the specified corner.
         """
         if self.name not in cmd.get_names('objects'):
-            # Remove the callback if the object no longer exists
+            
             import threading
             threading.Thread(None, cmd.delete, args=(self.cb_name,)).start()
             return
@@ -77,7 +54,7 @@ class PutCenterCallback:
         self.prev_v = v
         t = v[12:15]
         if self.corner:
-            # Calculate offset based on the viewport and corner
+            
             vp = cmd.get_viewport()
             R_mc = [v[0:3], v[3:6], v[6:9]]
             off_c = [0.15 * v[11] * vp[0] / vp[1], 0.15 * v[11], 0.0]
@@ -90,7 +67,6 @@ class PutCenterCallback:
         z = -v[11] / 30.0
         m = [z, 0, 0, 0, 0, z, 0, 0, 0, 0, z, 0, t[0] / z, t[1] / z, t[2] / z, 1]
         cmd.set_object_ttt(self.name, m)
-# ref: https://pymolwiki.org/index.php/Axes
 @dataclass
 class CgoAxes(GraphicObject):
     """
@@ -105,11 +81,11 @@ class CgoAxes(GraphicObject):
         label_weight (float): The thickness of the labels.
         label_size (float): The size of the labels.
     """
-    # Default attribute values
+    
     name: str = "axes"
-    w: float = 0.06  # cylinder width
-    l: float = 0.75  # cylinder length
-    h: float = 0.25  # cone hight
+    w: float = 0.06  
+    l: float = 0.75  
+    h: float = 0.25  
     always_left_corner: bool = True
     show_labels: bool = True
     label_weight: float = 0.05
@@ -120,7 +96,7 @@ class CgoAxes(GraphicObject):
         If an object with the same name already exists, it is deleted.
         Ensures the data types of attributes are as expected.
         """
-        # Ensure attributes are of the correct type
+        
         self.w = float(self.w)
         self.l = float(self.l)
         self.h = float(self.h)
@@ -130,8 +106,8 @@ class CgoAxes(GraphicObject):
             p2_kwargs = {i: 0.0 for i in 'xyz' if i != axis}
             self._data.extend(
                 Cylinder(
-                    Point(0.0, 0.0, 0.0),  # p1
-                    Point(**p2_kwargs, **{axis: self.l}),  # p2
+                    Point(0.0, 0.0, 0.0),  
+                    Point(**p2_kwargs, **{axis: self.l}),  
                     self.w,
                     colorname, colorname
                 ).data,
@@ -151,14 +127,14 @@ class CgoAxes(GraphicObject):
         Returns:
             float: The diameter of the cone base.
         """
-        return self.w * 1.618  # cone base diameter
+        return self.w * 1.618  
     def set_label(self):
         """
         Sets labels on the axes if show_labels is True.
         """
         obj = self.data
         label_axis = [[self.label_size, 0, 0], [0, self.label_size, 0], [0, 0, self.label_size]]
-        # Add labels to the axes
+        
         cgo.cyl_text(obj, plain, [self.l + self.h, 0, - self.w], 'X', self.label_weight, axes=label_axis)
         cgo.cyl_text(obj, plain, [-self.w, self.l + self.h, 0], 'Y', self.label_weight, axes=label_axis)
         cgo.cyl_text(obj, plain, [-self.w, 0, self.l + self.h], 'Z', self.label_weight, axes=label_axis)
@@ -167,21 +143,19 @@ class CgoAxes(GraphicObject):
         Displays the axes in the visualization environment.
         Adjusts settings based on the values of always_left_corner and show_labels.
         """
-        # Disable auto zoom to maintain a fixed view
+        
         cmd.set('auto_zoom', 0)
-        # Position the axes in the corner if always_left_corner is True
+        
         if self.always_left_corner:
             PutCenterCallback(self.name, 1).load()
-        # Display labels if show_labels is True
+        
         if self.show_labels:
             self.set_label()
-        # Load the CGO object into the visualization environment
+        
         cmd.load_cgo(self.data, self.name)
 def showaxes():
     axes = CgoAxes()
     axes.show()
-# ref: https://github.com/MengwuXiao/GetBox-PyMOL-Plugin/blob/master/GetBox%20Plugin.py
-# Problem: the class draw the box with edges align to axes
 @dataclass
 class CgoBox(GraphicObject):
     """
@@ -224,9 +198,9 @@ class CgoBox(GraphicObject):
         Generates a string of parameters for configuring a grid in AutoGrid.
         """
         npts_xyz = np.array(self.size_xyz) / 0.375
-        npts = f"npts {npts_xyz[0]} {npts_xyz[1]} {npts_xyz[2]} # num. grid points in xyz"
-        spacing = 'spacing 0.375 # spacing (A)'
-        center = f"gridcenter {self.cen_xyz[0]:.3f} {self.cen_xyz[1]:.3f} {self.cen_xyz[2]:.3f} # xyz-coordinates"
+        npts = f"npts {npts_xyz[0]} {npts_xyz[1]} {npts_xyz[2]} 
+        spacing = 'spacing 0.375 
+        center = f"gridcenter {self.cen_xyz[0]:.3f} {self.cen_xyz[1]:.3f} {self.cen_xyz[2]:.3f} 
         return f"{npts}\n{spacing}\n{center}"
     @property
     def to_ledock(self):
@@ -275,15 +249,15 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
                 ```
             2. to regenerate a moved for an existing box:
                 ```python
-                new_box = CgoBox.from_selection("box", "box", 0, (1, 0, 0)) # move the box on the x axis by 1 Angstrom
+                new_box = CgoBox.from_selection("box", "box", 0, (1, 0, 0)) 
                 new_box.load_to_pymol()
                 ```
             3. to increase or decrease the box size:
                 ```python
                 newbox = CgoBox.from_selection("box", "box", 0)
-                # increase the box size by 10 Angstrom on the x axis without changing the center of the box
+                
                 newbox.p1=newbox.p1.move(x=newbox.p1.x+x_offset)
-                # regenerate the box
+                
                 new_box.rebuild()
                 new_box.load_to_pymol()
         """
@@ -352,15 +326,15 @@ def showbox(
     Returns:
         CgoBox: The created or modified CgoBox object.
     """
-    # Display axes in PyMOL
+    
     showaxes()
     if isinstance(box, str):
-        # Validate that all required coordinates are provided when box is a string
+        
         if any(x is None for x in [minX, maxX, minY, maxY, minZ, maxZ]):
             raise ValueError(
                 "To make a box, you must specify minX, maxX, minY, maxY, minZ, maxZ as valid floats or float-like strings."
             )
-        # Create a new CgoBox object from provided parameters
+        
         box = CgoBox(
             name=box,
             p1=Point(
@@ -373,11 +347,11 @@ def showbox(
                 float(maxZ)
             )
         )
-    # Print box details in different formats
+    
     print('*' * 45, 'AutoDock Vina', '*' * 45, '\n', box.to_vina, '\n\n')
     print('*' * 45, 'AutoGrid', '*' * 45, '\n', box.to_autogrid, '\n\n')
     print('*' * 45, 'LeDock', '*' * 45, '\n', box.to_ledock, '\n\n')
-    # Load the box into PyMOL
+    
     box.load_to_pymol()
     return box
 def movebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
@@ -392,13 +366,13 @@ def movebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
     if all(i == 0 for i in [x, y, z]):
         print("No movement specified")
         return
-    # Create a new box with the specified offsets
+    
     new_box = CgoBox.from_selection(
         selection=box_name,
         box_name=box_name,
         extending=0,
         offset=(float(x), float(y), float(z)))
-    # Load the new box into PyMOL
+    
     new_box.load_to_pymol()
 def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
     """
@@ -412,12 +386,12 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
     if all(i == 0 for i in [x, y, z]):
         print("No enlargement/truncation specified")
         return
-    # Create a new box without extending
+    
     new_box = CgoBox.from_selection(
         selection=box_name,
         box_name=box_name,
         extending=0)
-    # Modify the box dimensions based on the specified amounts
+    
     new_box.p1 = new_box.p1.move(
         new_box.p1.x - float(x) / 2 if x is not None else None,
         new_box.p1.y - float(y) / 2 if y is not None else None,
@@ -428,9 +402,9 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
         new_box.p2.y + float(y) / 2 if y is not None else None,
         new_box.p2.z + float(z) / 2 if z is not None else None,
     )
-    # a rebuild calling is necessary for changes taking effects.
+    
     new_box.rebuild()
-    # Load the modified box into PyMOL
+    
     new_box.load_to_pymol()
 def getbox(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
     """
@@ -443,15 +417,14 @@ def getbox(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0
     cmd.hide("spheres")
     cmd.show("spheres", selection)
     showaxes()
-    # Create a new box from the selection
+    
     box = CgoBox.from_selection(selection=selection, box_name=new_box_name, extending=extending)
-    # Display the box
+    
     showbox(box)
     boxName = box.name
     print(f'{boxName=}')
     cmd.zoom(boxName)
     return
-# remove ions
 def removeions():
     """
     Remove specified ions from the molecular model.
@@ -469,12 +442,11 @@ def rmhet():
     Returns:
     None
     """
-    # Select all heteroatoms in the molecular structure
+    
     cmd.select("rmhet", "hetatm")
-    # Remove the selected heteroatoms
+    
     cmd.remove("rmhet")
     return
-# getbox from cavity residues that reported in papers
 def get_oriented_bounding_box(selection, padding=5.0):
     """
     Computes the oriented bounding box for all atoms in 'selection'
@@ -483,25 +455,25 @@ def get_oriented_bounding_box(selection, padding=5.0):
     Returns:
         A numpy array (8x3) of vertex coordinates of the bounding box.
     """
-    # 1. Collect coordinates from the selection using get_model.
+    
     model = cmd.get_model(selection)
     coords = np.array([atom.coord for atom in model.atom])
-    # 2. Compute the centroid and center the coordinates.
+    
     centroid = np.mean(coords, axis=0)
     centered = coords - centroid
-    # 3. Perform PCA: compute the covariance matrix and its eigenvectors.
+    
     cov = np.cov(centered, rowvar=False)
     eigvals, eigvecs = np.linalg.eigh(cov)
-    # The columns of eigvecs are the principal axes.
-    # 4. Transform coordinates into the PCA (rotated) space.
+    
+    
     transformed = centered.dot(eigvecs)
-    # 5. Find the minimum and maximum along each principal axis.
+    
     min_vals = np.min(transformed, axis=0)
     max_vals = np.max(transformed, axis=0)
-    # 6. Apply padding in the PCA space.
+    
     min_vals -= padding
     max_vals += padding
-    # 7. Generate all 8 corners of the box in PCA space.
+    
     vertices = []
     for i in [0, 1]:
         for j in [0, 1]:
@@ -513,13 +485,13 @@ def get_oriented_bounding_box(selection, padding=5.0):
                 ])
                 vertices.append(vertex)
     vertices = np.array(vertices)
-    # 8. Transform the vertices back to the original coordinate system.
+    
     orig_vertices = vertices.dot(eigvecs.T) + centroid
-    # PolyLines(
-    #     2.0, 'white',
-    #     [*LineVertex.from_points(orig_vertices)],
-    #     line_type='TRIANGLE_FAN'
-    # ).load_as('white_square')
+    
+    
+    
+    
+    
     return orig_vertices
 def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
     """
@@ -531,23 +503,23 @@ def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
     - orig_vertices: List of original vertices of the box.
     - new_box_name: The name to load the plotted box as. Defaults to 'pca_box'.
     """
-    # Define each face of the box using vertex indices
+    
     faces = [
-        # Front face (PCA1 min)
+        
         [0, 1, 3, 2],
-        # Back face (PCA1 max)
+        
         [4, 5, 7, 6],
-        # Top face (PCA3 max)
+        
         [1, 3, 7, 5],
-        # Bottom face (PCA3 min)
+        
         [0, 2, 6, 4],
-        # Left face (PCA2 min)
+        
         [0, 4, 5, 1],
-        # Right face (PCA2 max)
+        
         [2, 6, 7, 3]
     ]
     goc = GOC([])
-    # Create a PolyLines object for each face
+    
     for i, face_indices in enumerate(faces):
         face_vertices = [orig_vertices[idx] for idx in face_indices]
         goc.objects.append(PolyLines(
@@ -556,8 +528,8 @@ def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
             points=LineVertex.from_points(face_vertices),
             line_type='LINE_LOOP'
         ))
-    # Optional: Create edges along PCA axes
-    for _idx, axis_edges in enumerate([[0, 4], [1, 5], [2, 6], [3, 7]]):  # PCA1 axis connections
+    
+    for _idx, axis_edges in enumerate([[0, 4], [1, 5], [2, 6], [3, 7]]):  
         edge_vertices = [orig_vertices[idx] for idx in axis_edges]
         PolyLines(
             width=1.5,
@@ -565,10 +537,10 @@ def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
             points=LineVertex.from_points(edge_vertices),
             line_type='LINE_STRIP'
         ).load_as(f'pca_axes_{_idx}')
-    # Plot each vertex as a sphere
+    
     for i, v in enumerate(orig_vertices):
         goc.objects.append(Sphere(Point(*v), radius=1))
-    # Rebuild the GOC object and load the new box
+    
     goc.rebuild()
     goc.load_as(new_box_name)
 def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
@@ -582,20 +554,20 @@ def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extendin
     - None
     """
     if not new_box_name:
-        # Generate a unique box name if none is provided
+        
         boxName = "pca_box_" + str(randint(0, 10000))
         while boxName in cmd.get_names():
-            # Ensure the generated box name is unique
+            
             boxName = "pca_box_" + str(randint(0, 10000))
     else:
-        # Use the provided box name
+        
         boxName = new_box_name
-    # Get the oriented bounding box with the specified padding
+    
     orig_vertices = get_oriented_bounding_box(
         selection=selection,
         padding=extending,
     )
-    # Plot the PCA box using the calculated vertices and the box name
+    
     plot_pca_box(
         orig_vertices=orig_vertices,
         new_box_name=boxName
@@ -610,10 +582,10 @@ def box_helper(box_name: str):
     """
     from REvoDesign import ConfigBus
     bus = ConfigBus()
-    # Default direction is set to 'x', with a default distance of 1.0.
+    
     direction: Literal['x', 'y', 'z'] = 'x'
     delta_distance: float = 1.0
-    # Default action is 'move_coords' with its corresponding method.
+    
     action: Literal['move_coords', 'change_size'] = 'move_coords'
     action_method = movebox
     class MyDoubleSpinBox(QtWidgets.QDoubleSpinBox):
@@ -630,7 +602,7 @@ def box_helper(box_name: str):
             if event.key() in (QtCore.Qt.Key_Left, QtCore.Qt.Key_A,
                                QtCore.Qt.Key_Down, QtCore.Qt.Key_S, QtCore.Qt.Key_Right, QtCore.Qt.Key_D,
                                QtCore.Qt.Key_Up, QtCore.Qt.Key_W):
-                event.ignore()  # Let the parent widget handle the arrow keys.
+                event.ignore()  
             else:
                 super().keyPressEvent(event)
     def set_action(new_action: Literal['move_coords', 'change_size']):
@@ -716,10 +688,10 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
             action_wrapper({direction: delta_distance})
         else:
             print('Ignored')
-    # Create a new standalone widget as the main window.
+    
     window = REvoDesignWidget("MoveOrChangeBox")
     main_layout = QtWidgets.QVBoxLayout(window)
-    # A label to display the current instructions or banner text.
+    
     banner_label = QtWidgets.QLabel('Pick action to start')
     banner_label.setWordWrap(True)
     banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -727,19 +699,19 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
         """
         font-size: 14px;
         font-weight: bold;
-        color: #333;
+        color: 
         padding: 10px;
-        background-color: #f9f9f9;
-        border: 1px solid #ccc;
+        background-color: 
+        border: 1px solid 
         border-radius: 5px;
         """
     )
     main_layout.addWidget(banner_label)
-    # Layout for the distance label and spin box.
+    
     distance_layout = QtWidgets.QHBoxLayout()
     distance_label = QtWidgets.QLabel("Distance to alter: ")
     distance_layout.addWidget(distance_label)
-    # Use our custom spin box that ignores arrow keys.
+    
     distance_spinbox = MyDoubleSpinBox()
     distance_spinbox.setRange(0, 10)
     distance_spinbox.setValue(1.0)
@@ -747,19 +719,19 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
     distance_spinbox.valueChanged.connect(set_distance_delta)
     distance_layout.addWidget(distance_spinbox)
     main_layout.addLayout(distance_layout)
-    # A group box to select the action (move or resize).
+    
     action_group_box = QtWidgets.QGroupBox("Actions to take")
     action_layout = QtWidgets.QHBoxLayout()
     move_action_radio_button = QtWidgets.QRadioButton("Move Box")
     move_action_radio_button.toggled.connect(lambda: set_action('move_coords'))
-    move_action_radio_button.setChecked(True)  # Default action
+    move_action_radio_button.setChecked(True)  
     action_layout.addWidget(move_action_radio_button)
     resize_action_radio_button = QtWidgets.QRadioButton("Resize Box")
     resize_action_radio_button.toggled.connect(lambda: set_action('change_size'))
     action_layout.addWidget(resize_action_radio_button)
     action_group_box.setLayout(action_layout)
     main_layout.addWidget(action_group_box)
-    # A group box to select direction (X, Y, or Z).
+    
     group_box = QtWidgets.QGroupBox("Select the direction to alter the box")
     group_layout = QtWidgets.QHBoxLayout()
     x_radio_button = QtWidgets.QRadioButton("X axis")
@@ -773,21 +745,21 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
     group_layout.addWidget(z_radio_button)
     group_box.setLayout(group_layout)
     main_layout.addWidget(group_box)
-    # A text area to display current box information (coordinates, size, etc.).
+    
     banner_info = QtWidgets.QTextEdit("")
     banner_info.setStyleSheet(
         """
         font-size: 14px;
         font-weight: bold;
-        color: #333;
+        color: 
         padding: 10px;
-        background-color: #f9f9f9;
-        border: 1px solid #ccc;
+        background-color: 
+        border: 1px solid 
         border-radius: 5px;
         """
     )
     banner_info.setReadOnly(True)
     main_layout.addWidget(banner_info)
-    # Bind our custom keyboard event handler to the window.
+    
     window.keyPressEvent = keyboard_event_handler
     window.show()

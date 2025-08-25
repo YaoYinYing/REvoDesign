@@ -24,12 +24,12 @@ class MultiMutantDesigner:
         This method initializes the MultiMutantDesigner with the given parameters,
         sets up necessary attributes, and initializes the mutant tree for design.
         """
-        # get the bus
+        
         self.bus = ConfigBus()
         self.refresh_options()
         self.get_input_and_initialize()
     def refresh_options(self):
-        # bootstrap options
+        
         self.molecule = str(
             self.bus.get_value("ui.header_panel.input.molecule")
         )
@@ -80,7 +80,7 @@ class MultiMutantDesigner:
             chain=self.chain_id,
         )
     def get_input_and_initialize(self):
-        # Initialize mutant tree for design
+        
         self.design_pool_tree = existed_mutant_tree(
             sequences=self.designable_sequences, enabled_only=0
         )
@@ -90,10 +90,10 @@ class MultiMutantDesigner:
             raise issues.InvalidInputError(
                 "At least two groups of mutants should be included."
             )
-        # get inputs
+        
         self.in_design_multi_design_case: MutantTree = MutantTree()
         self.all_design_multi_design_cases: list[MutantTree] = []
-        # save variants as Mutant
+        
         self.all_design_multi_design_mutant_object: list[Mutant] = []
         self.design_case_variant_objects: list[str] = []
         self.design_pool_tree_copy = None
@@ -118,7 +118,7 @@ class MultiMutantDesigner:
         _total_num_design_cases = max(
             self.total_design_cases, len(self.design_case_variant_objects)
         )
-        # color via magician
+        
         if self.color_by_scores and self.magician.gimmick is not None:
             for mut_obj in self.all_design_multi_design_mutant_object:
                 mut_obj.wt_protein_sequence = self.designable_sequences
@@ -146,7 +146,7 @@ class MultiMutantDesigner:
                     max_value=max(all_scores),
                 )
                 self.recolor_pymol_obj(i=i_obj, color=color, item=obj)
-        # if magician is not specified, color them one after another
+        
         else:
             for i, item in enumerate(self.design_case_variant_objects):
                 color = get_color(
@@ -232,12 +232,12 @@ class MultiMutantDesigner:
             mutant_obj.mutant_description = mutant_id
             if not self._is_compatible_mutant(mutant_obj):
                 logging.warning(f"Skip {branch}: {mutant_id}.")
-                # label this mutant deleted in this design.
+                
                 self.design_pool_tree_copy.remove_mutant_from_branch(
                     branch=branch, mutant=mutant_id
                 )
                 continue
-            # add picked mutant to as a new branch
+            
             self.in_design_multi_design_case.add_mutant_to_branch(
                 branch=self.in_design_multi_design_case.branch_num,
                 mutant=mutant_id,
@@ -246,7 +246,7 @@ class MultiMutantDesigner:
             self.design_pool_tree_copy.remove_mutant_from_branch(
                 branch=branch, mutant=mutant_id
             )
-            # a successful picking and return.
+            
             return
     def pick_next_mutant(self):
         """
@@ -267,21 +267,21 @@ class MultiMutantDesigner:
             )
             self.start_new_design()
             return
-        # run a normal picking
+        
         num_mut_before_picking = self.in_design_multi_design_case.mutant_num
         self._auto_pick_tryout()
         if (
             num_mut_before_picking
             == self.in_design_multi_design_case.mutant_num
         ):
-            # failed picking
+            
             warnings.warn(
                 issues.NoResultsWarning(
                     "Failed auto picking. Please take anther try."
                 )
             )
             return
-        # last mutant
+        
         mutant_id = self.in_design_multi_design_case.all_mutant_ids[-1]
         mutant_obj = self.in_design_multi_design_case.all_mutant_objects[-1]
         resi_last_mutant = mutant_obj.mutations[0].position
@@ -295,7 +295,7 @@ class MultiMutantDesigner:
             f"{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA",
         )
         if self.bond_CA:
-            # bond to the last previous design
+            
             if self.in_design_multi_design_case.mutant_num >= 2:
                 second_mutant_to_the_last: Mutant = (
                     self.in_design_multi_design_case.all_mutant_objects[-2]
@@ -307,7 +307,7 @@ class MultiMutantDesigner:
                          f"i. {resi_second_mutant_to_the_last} and n. CA",
                          atom2=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and "
                          f"i. {resi_last_mutant} and n. CA")
-            # bond internal CAs in a multi-design mutant.
+            
             current_mutant_info = mutant_obj.mutations
             if len(current_mutant_info) > 1:
                 positions_pairwise = [
@@ -346,9 +346,9 @@ class MultiMutantDesigner:
             self.in_design_multi_design_case.empty
             and self.all_design_multi_design_cases
         ):
-            # discard the last design mutant object
+            
             self.all_design_multi_design_mutant_object.pop()
-            # omit
+            
             self.in_design_multi_design_case = (
                 self.all_design_multi_design_cases.pop()
             )
@@ -363,7 +363,7 @@ class MultiMutantDesigner:
             undo_mutant_id,
             undo_mutant_obj,
         ) = self.in_design_multi_design_case.pop()
-        # recover the whole mutant tree, as the deleted branch might be used in the future.
+        
         self.design_pool_tree_copy = self.design_pool_tree.__deepcopy__
         resi_undo_mutant = undo_mutant_obj.mutations[0].position
         cmd.hide(
@@ -371,7 +371,7 @@ class MultiMutantDesigner:
             f"{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_undo_mutant} and n. CA",
         )
         if self.bond_CA:
-            # unbond to the last previous design
+            
             if self.in_design_multi_design_case.mutant_num >= 1:
                 last_mutant = (
                     self.in_design_multi_design_case.all_mutant_objects[-1]
@@ -381,7 +381,7 @@ class MultiMutantDesigner:
                     atom1=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_last_mutant} and n. CA",
                     atom2=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_undo_mutant} and n. CA",
                 )
-            # bond internal CA in a multi-design mutant.
+            
             current_mutant_info = undo_mutant_obj.mutations
             if len(current_mutant_info) > 1:
                 positions_pairwise = [
@@ -397,7 +397,7 @@ class MultiMutantDesigner:
                         atom2=f"{self.design_case_id_in_pymol} and c. {self.chain_id} and i. {resi_b} and n. CA",
                     )
             logging.info(f"Undo: {undo_mutant_id} ")
-        # remove the object if it is already empty
+        
         if self.in_design_multi_design_case.empty:
             cmd.delete(self.design_case_id_in_pymol)
     def terminate_picking(self, continue_design=True):
@@ -420,7 +420,7 @@ class MultiMutantDesigner:
             self.in_design_multi_design_case
         )
         self.evaluate_design()
-        # evaluate mutant design after design case is closed.
+        
         self.all_design_multi_design_mutant_object.append(
             self.in_design_multi_design_case.asOneMutant
         )
@@ -485,7 +485,7 @@ class MultiMutantDesigner:
         based on distance and sidechain angle criteria.
         """
         if self.in_design_multi_design_case.empty:
-            # early return for initial design.
+            
             return True
         existed_mutant_obj = self.in_design_multi_design_case.asOneMutant
         mutant_id = mutant.mutant_description
