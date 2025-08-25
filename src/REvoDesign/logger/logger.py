@@ -83,7 +83,6 @@ class NonErrorFilter(python_logging.Filter):
 def setup_logging_from_dictconfig(
     log_config: DictConfig,
 ) -> python_logging.Logger:
-    
     file_filename = log_config.handlers.file.filename
     file_maxBytes = log_config.handlers.file.maxBytes
     file_backupCount = log_config.handlers.file.backupCount
@@ -91,20 +90,13 @@ def setup_logging_from_dictconfig(
     notebook_maxBytes = log_config.handlers.notebook.maxBytes
     notebook_backupCount = log_config.handlers.notebook.backupCount
     log_handlers = []
-    
     log_queue = queue.Queue(10_000)
-    
     stdout_handler = python_logging.StreamHandler()
     stdout_handler.setLevel(log_config.handlers.stdout.level)
     stdout_handler.setFormatter(
         python_logging.Formatter(log_config.formatters.simple.format)
     )
     log_handlers.append(stdout_handler)
-    
-    
-    
-    
-    
     if file_filename is not None:
         file_handler = python_logging_handlers.RotatingFileHandler(
             filename=file_filename,
@@ -112,7 +104,6 @@ def setup_logging_from_dictconfig(
             backupCount=file_backupCount,
         )
         file_handler.setLevel(log_config.handlers.file.level)
-        
         file_handler.setFormatter(
             REvoDesignLogFormatter(
                 fmt_keys=dict(log_config.formatters.json.fmt_keys)
@@ -126,30 +117,24 @@ def setup_logging_from_dictconfig(
             backupCount=notebook_backupCount,
         )
         notebook_handler.setLevel(log_config.handlers.notebook.level)
-        
         notebook_handler.setFormatter(
             REvoDesignLogFormatter(
                 fmt_keys=dict(log_config.formatters.json.fmt_keys)
             )
         )
         log_handlers.append(notebook_handler)
-    
     queue_handler = python_logging_handlers.QueueHandler(log_queue)
     queue_handler.setLevel(log_config.loggers.root.level)  
-    
     listener = python_logging_handlers.QueueListener(
         log_queue,
         *log_handlers,
         respect_handler_level=True,
     )
-    
     python_logging.basicConfig(
         level=log_config.loggers.root.level,
         handlers=[queue_handler],
     )  
-    
     listener.start()
-    
     atexit.register(listener.stop)
     return python_logging.getLogger()
 def setup_logging() -> python_logging.Logger:
@@ -187,15 +172,11 @@ def logger_level_setter(
     from REvoDesign.driver.ui_driver import ConfigBus
     from REvoDesign.logger import ROOT_LOGGER
     if channel:
-        
         ConfigBus().set_value(f'log.handlers.{channel}.level', level.upper())
-        
         for handler in ROOT_LOGGER.handlers:
             if handler.name == channel:
                 handler.setLevel(level)
                 break
     if apply_to_root_logger:
-        
         ConfigBus().set_value('log.loggers.root.level', level.upper())
-        
         ROOT_LOGGER.setLevel(level=level)

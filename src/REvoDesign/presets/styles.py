@@ -21,21 +21,17 @@ def visualize_hydrophobic_hydrophilic(
     if remove_hoh:
         cmd.select("water", "resn HOH")
         cmd.remove("water")
-    
     hydrophobic_residues = "ala+gly+val+ile+leu+phe+met"
     cmd.select("hydrophobic", f"resn {hydrophobic_residues}")
     cmd.show("sticks", "hydrophobic and (!name c+n+o)")
     cmd.color("yelloworange", "hydrophobic")
-    
     cmd.select("hydrophilic", "!hydrophobic and (!name c+n+o)")
     cmd.show("sticks", "hydrophilic")
     cmd.color("lightblue", "hydrophilic")
-    
     cmd.color("white", "bb.")
     cmd.color("oxygen", "elem o")
     cmd.color("nitrogen", "elem N")
     cmd.color("sulfur", "elem S")
-    
     cmd.set("ray_trace_mode", 3)
     cmd.set("stick_radius", 0.4)
     cmd.set("cartoon_loop_radius", 0.4)
@@ -45,7 +41,6 @@ def visualize_hydrophobic_hydrophilic(
     cmd.bg_color("white")
     cmd.set("valence", 0)
     cmd.set("ray_shadow", 0)
-    
     if rezoom:
         cmd.zoom()
     if reorient:
@@ -71,27 +66,21 @@ def visualize_cartoon_settings(
     if remove_hoh:
         cmd.select("water", "resn HOH")
         cmd.remove("water")
-    
     cmd.set("cartoon_loop_radius", 0.2)
     cmd.set("cartoon_oval_width", 0.2)
     cmd.set("cartoon_rect_width", 0.2)
-    
     cmd.set("specular", "off")
     cmd.set("ray_trace_mode", 1)
     cmd.set("ray_trace_disco_factor", 1.0)
     cmd.set("ray_trace_gain", 0.0)
     cmd.set("ambient", 0.66)
     cmd.set("ray_shadow", 0)
-    
     cmd.select("alpha_carbons", "name ca")
     cmd.show("spheres", "alpha_carbons")
     cmd.set("sphere_scale", 0)
-    
     cmd.set("cartoon_side_chain_helper", 1)
-    
     cmd.bg_color("white")
     cmd.color("gray80")
-    
     if rezoom:
         cmd.zoom()
     if reorient:
@@ -117,18 +106,14 @@ def visualize_cartoon_loops(
     if remove_hoh:
         cmd.select("water", "resn HOH")
         cmd.remove("water")
-    
     cmd.cartoon("loop")
     cmd.set("cartoon_loop_radius", 1.5)
-    
     cmd.spectrum()
-    
     cmd.set("fog", 0)
     cmd.bg_color("white")
     cmd.set("valence", 0)
     cmd.set("ray_shadow", 0)
     cmd.set("ray_trace_mode", 3)
-    
     if rezoom:
         cmd.zoom()
     if reorient:

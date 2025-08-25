@@ -184,7 +184,6 @@ class Broadcaster:
         obj: Union[Any, List[Any]] = None,
         final=True,
     ) -> None:
-        
         if isinstance(meetingroom, QtWebSockets.QWebSocket):
             all_clients = [meetingroom]
         elif isinstance(meetingroom, Client):
@@ -392,7 +391,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     def messageDispatcher(
         self, client: QtWebSockets.QWebSocket, msg_type: str, msg_content: Any
     ):
-        
         if msg_type == "ClientInfo":
             if client in self.meetingroom.current_clients:
                 logging.warning(
@@ -433,7 +431,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         None
         """
         message: bytes = message.data()
-        
         username, node, user_id = self.client_name_and_node(client=client)
         try:
             msg_type, msg_content = self.bc_worker.received(packed_msg=message)
@@ -453,7 +450,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
                 )
             )
             return
-        
         if msg_type in self.bc_worker.readble_type:
             logging.info(
                 f">>> {username}@{node}({user_id}): [{str(msg_type)}] {str(msg_content)}"
@@ -475,7 +471,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         client,
         message: dict,
     ):
-        
         username, node, user_id = self.client_name_and_node(client=client)
         if client not in self.meetingroom.current_clients:
             from REvoDesign.tools.client_tools import UUIDGenerator
@@ -519,7 +514,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             self.bc_worker.wisper(
                 obj=uuid, obj_type="UUID", client=client, final=True
             )
-            
             self.waiting_room.remove(client)
             logging.debug(self.meetingroom)
             self.synchronize_usertable()
@@ -649,8 +643,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             )
             view_data = cmd.get_view()
             if view_data == last_view:
-                
-                
                 continue
             if not self.check_broadcast_enabled_flag():
                 return
@@ -674,7 +666,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         return not can_listen
 class REvoDesignWebSocketClient(SingletonAbstract):
     def singleton_init(self):
-        
         self.bus: ConfigBus = ConfigBus()
         self.server_url = "localhost"
         self.server_port = 7890
@@ -754,7 +745,6 @@ class REvoDesignWebSocketClient(SingletonAbstract):
     @property
     def server_is_reachable(self):
         try:
-            
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(3)  
                 s.connect((self.server_url, self.server_port))
@@ -795,7 +785,6 @@ class REvoDesignWebSocketClient(SingletonAbstract):
         if not self.receive_view_broadcast:
             logging.warning("View update is disabled.")
             return
-        
         cmd.set_view(view)
         return
     def handleTextMessage(self, message):
@@ -856,7 +845,6 @@ class REvoDesignWebSocketClient(SingletonAbstract):
                 )
             return
         ...
-        
         logging.warning(f"Unknow data in type {msg_type}: {msg_content}")
         return
     def handleBinaryMessage(self, message: QtCore.QByteArray):

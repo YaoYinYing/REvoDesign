@@ -28,11 +28,8 @@ class CitationManager(SingletonAbstract):
     ensuring that only one instance of the citation manager exists throughout the application's lifecycle.
     """
     def singleton_init(self):
-        
         self.called_citations: dict[str, Any] = {}
-        
         self.silenced_citation_modules: list[str] = []
-        
         self.initialize()
     @property
     def collected_citations(self) -> list[str]:
@@ -110,46 +107,35 @@ class CitableModuleAbstract(ABC):
     An abstract base class for modules that require citation.
     This class provides methods to handle the citation notice and citation information in a standardized way.
     """
-    
-    
-    
     __bibtex__: dict[str, Union[str, tuple]]
     def notice(self):
         """
         Display the citation notice.
         This method checks if there are citations to be displayed, and if the current module's citations have not been silenced, it logs the citation information.
         """
-        
         if not self.__bibtex__:
             logging.debug("Nothing has to be cited with this module.")
             return
-        
         if all(
             k in CitationManager().silenced_citation_modules
             for k in self.__bibtex__
         ):
             return
-        
         logging.info(
             f"{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n"
         )
-        
         for i, citation_item in self.__bibtex__.items():
-            
             if i in CitationManager().silenced_citation_modules:
                 continue
-            
             if isinstance(citation_item, str):
                 logging.info(
                     f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{citation_item}{RESET}\n"
                 )
-            
             elif isinstance(citation_item, (tuple, list)):
                 for j, _c in enumerate(citation_item):
                     logging.info(
                         f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n"
                     )
-            
             CitationManager().dismiss(i)
     def cite(self):
         """
@@ -157,10 +143,7 @@ class CitableModuleAbstract(ABC):
         This method adds the current module's citation information to the citation manager and then displays the citation notice.
         """
         citations = self.__bibtex__
-        
         if not isinstance(citations, Mapping):
             raise TypeError("citation must be a dict.")
-        
         CitationManager().update(new_citations=dict(citations))
-        
         self.notice()

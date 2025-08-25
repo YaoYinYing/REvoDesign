@@ -39,7 +39,6 @@ def get_file_whitelist():
         notebookfile = os.path.join(
             notebookfile_dir, "REvoDesign.notebook.log"
         )
-    
     editable_files = (
         REVODESIGN_CONFIG_FILE,
     )
@@ -65,7 +64,6 @@ def record_failure(request: Request):
     ip = request.client.host if request.client else "unknown"
     now = time.time()
     failed_attempts[ip].append(now)
-    
     failed_attempts[ip] = [t for t in failed_attempts[ip] if now - t < TIME_WINDOW]
 def should_block(request: Request):
     ip = request.client.host if request.client else "unknown"
@@ -100,12 +98,9 @@ async def lifespan(app: FastAPI):
     html_dir = config_store.get("editor.backend.html_dir")
     if not html_dir:
         warnings.warn(issues.MissingExternalTool("Monaco Editor is not ready."))
-        
         ensure_monaco()
-        
         html_dir = config_store.get("editor.backend.html_dir")
     app.mount("/static", StaticFiles(directory=html_dir), name="static")
-    
     editable_files, readonly_files = get_file_whitelist()
     config_store.set("monaco.file_whitelist.editable", editable_files)
     config_store.set("monaco.file_whitelist.readonly", readonly_files)
@@ -130,7 +125,6 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
     """
     verify_token(token, request)
     config_store = ConfigStore()
-    
     target_file = Path(file_path)
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
@@ -138,13 +132,11 @@ async def serve_editor(file_path: str, token: str = None, request: Request = Non
     if not target_file.exists():
         record_failure(request)
         raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
-    
     html_template_path = os.path.join(config_store.get("editor.backend.html_dir"), 'index.html')
     if not os.path.exists(html_template_path):
         raise HTTPException(status_code=500, detail=f"Editor HTML template not found: {html_template_path}.")
     with open(html_template_path) as html_file:
         editor_html = html_file.read()
-    
     safe_file_path = escape(str(target_file.resolve()))
     editor_html = editor_html.replace("{{file_path}}", safe_file_path)
     return HTMLResponse(content=editor_html)
@@ -155,7 +147,6 @@ async def load_file(
     request: Request = None
 ):
     verify_token(token, request)
-    
     target_file = Path(file_path)
     if not is_file_allowed(target_file, require_editable=False):
         record_failure(request)
@@ -163,7 +154,6 @@ async def load_file(
     if not target_file.exists():
         record_failure(request)
         return JSONResponse(content={"error": "File not found"}, status_code=404)
-    
     try:
         content = target_file.read_text()
         return {"content": content}
@@ -179,8 +169,6 @@ async def save_file(
     request: Request = None
 ):
     verify_token(token, request)
-    
-    
     target_file = Path(data.file_path).resolve()
     if not is_file_allowed(target_file, require_editable=True):
         record_failure(request)
@@ -188,7 +176,6 @@ async def save_file(
     if not target_file.parent.exists():
         record_failure(request)
         return JSONResponse(content={"error": f"Directory does not exist: {target_file.parent}"}, status_code=400)
-    
     try:
         target_file.write_text(data.content)
         return {"status": "success"}
@@ -218,7 +205,6 @@ class ServerControl(ServerControlAbstract):
         if self.is_running:
             print("Server is already running.")
             return
-        
         no_token = ConfigBus().get_value('editor.backend.no_token', bool, default_value=False)
         self.config_store.set('editor.backend.no_token', no_token)
         if not no_token:
@@ -227,25 +213,21 @@ class ServerControl(ServerControlAbstract):
             self.config_store.set('editor.token', None)  
         HTML_DIR = self.config_store.get('editor.backend.html_dir')
         print(f'{HTML_DIR=}')
-        
         use_ssl = ConfigBus().get_value('editor.backend.use_ssl', bool, default_value=False)
         self.config_store.set('editor.backend.use_ssl', use_ssl)
         ssl_certfile = None
         ssl_keyfile = None
         if use_ssl:
-            
             ssl_manager = SSLCertificateManager(role="server")
             ssl_manager.generate_ssl_context()
             ssl_certfile = ssl_manager.crt_path
             ssl_keyfile = ssl_manager.key_path
-            
             self.config_store.set('editor.backend.crt', ssl_certfile)
             self.config_store.set('editor.backend.key', ssl_keyfile)
         host = ConfigBus().get_value('editor.backend.host', str, reject_none=True)
         self.config_store.set('editor.backend.host', host)
         port = ConfigBus().get_value('editor.backend.port', int, reject_none=True)
         self.config_store.set('editor.backend.port', port)
-        
         config = uvicorn.Config(
             app=app,
             host=self.config_store.get('editor.backend.host'),
@@ -255,7 +237,6 @@ class ServerControl(ServerControlAbstract):
             log_level="info",
         )
         self.server = uvicorn.Server(config)
-        
         self.server_thread = WorkerThread(func=self._run_server)
         self.server_thread.result_signal.connect(self._on_server_result)
         self.server_thread.finished_signal.connect(self._on_server_finished)

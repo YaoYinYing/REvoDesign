@@ -28,7 +28,6 @@ def _visualize_substrate_potentials(**kwargs):
 def _run_general_rfdiffusion_task(**kwargs):
     config_preset: str = kwargs.pop('config_preset')
     config_file: str = kwargs.pop('config_file')
-    
     if config_file != '' and os.path.isfile(config_file):
         target_config_file = os.path.join(RFDIFFUSION_CONFIG_DIR, os.path.basename(config_file))
         if os.path.exists(target_config_file):

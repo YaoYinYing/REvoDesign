@@ -22,7 +22,6 @@ from .utils import cmap_reverser, get_color, timing
 logging = ROOT_LOGGER.getChild(__name__)
 protein_letters_3to1 = {
     v.upper(): k.upper()  
-    
     for k, v in IUPACData.protein_letters_1to3.items()
 }
 NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
@@ -50,11 +49,9 @@ def extract_mutants_from_mutant_id(
     logging.debug(f"Parsing {mutant_string}")
     if isinstance(sequences, Mapping):
         sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
-    
     mutants = re.findall(r"([A-Z]{0,2}\d+[A-Z]{1})", mutant_string)
     mutations = []
     for mut in mutants:
-        
         if re.match(r"[A-Z]{2}\d+[A-Z]{1}", mut):
             logging.debug(f"full description: {mut}")
             _mut = re.match(r"([A-Z]{1})([A-Z]{1})(\d+)([A-Z]{1})", mut)
@@ -66,7 +63,6 @@ def extract_mutants_from_mutant_id(
                 _chain_id = _mut.group(2)
             _position = _mut.group(3)
             _mut_res = _mut.group(4)
-        
         elif re.match(r"[A-Z]{1}\d+[A-Z]{1}", mut):
             logging.debug(f"reduced description: {mut}")
             _mut = re.match(r"([A-Z]{1})(\d+)([A-Z]{1})", mut)
@@ -76,7 +72,6 @@ def extract_mutants_from_mutant_id(
             _position = int(_mut.group(2))
             _wt_res = _mut.group(1)
             _mut_res = _mut.group(3)
-        
         elif re.match(r"\d+[A-Z]{1}", mut):
             logging.debug(f"fuzzy description: {mut}")
             _mut = re.match(r"(\d+)([A-Z]{1})", mut)
@@ -108,14 +103,12 @@ def extract_mutants_from_mutant_id(
             f"No valid mutations found in `{mutant_string}`"
         )
     mutant_obj = Mutant(mutations, sequences)
-    
     mutant_score = extract_mutant_score_from_string(
         mutant_string=mutant_string
     )
     if mutant_score:
         mutant_obj.mutant_score = mutant_score
     logging.debug(mutant_obj)
-    
     return mutant_obj
 def extract_mutant_score_from_string(mutant_string: str) -> Optional[float]:
     """
@@ -218,7 +211,6 @@ def shorter_range(
     >>> print(result)
     "395-401+403-409"
     """
-    
     input_list = sorted([item for item in input_list if isinstance(item, int)])
     if not input_list:
         raise issues.NoInputError("Input list is empty.")
@@ -233,7 +225,6 @@ def shorter_range(
             else:
                 range_pairs.append(f"{start}{connector}{end}")
             start, end = item, item
-    
     if start == end:
         range_pairs.append(str(start))
     else:
@@ -323,10 +314,8 @@ def read_customized_indice(custom_indices_from_input="") -> str:
         with open(custom_indices_from_input) as f:
             custom_indices_str = f.read().strip()
         return custom_indices_str
-    
     if custom_indices_from_input.isdigit():
         return custom_indices_from_input
-    
     if any(custom_indices_from_input.count(x) >= 1 for x in "-:,;+ "):
         from REvoDesign.tools.utils import count_and_sort_characters
         _guessed_connector = count_and_sort_characters(
@@ -398,7 +387,6 @@ def existed_mutant_tree(
     group_ids: list[str] = cmd.get_names(
         type="group_objects", enabled_only=enabled_only
     )
-    
     filtered_group_ids = filter(
         lambda group_id: not any(
             group_id.startswith(p) for p in NOT_ALLOWED_GROUP_ID_PREFIX
@@ -443,7 +431,6 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
         visualizer.designable_sequences = designable_sequences
         visualizer.nproc = nproc
         visualizer.input_session = input_pdb
-        
         visualizer.full = cfg.ui.visualize.full_pdb
         visualizer.cmap = cmap_reverser(
             bus.get_value('ui.header_panel.cmap.default'),
@@ -452,7 +439,6 @@ def quick_mutagenesis(mutant_tree: MutantTree) -> None:
         visualizer.mutate_runner = sidechain_solver.mutate_runner
         visualizer.min_score = min(score_list)
         visualizer.max_score = max(score_list)
-        
         mutant_tree = mutant_tree.run_mutate_parallel(
             mutate_runner=sidechain_solver.mutate_runner,
             nproc=visualizer.nproc,
@@ -489,13 +475,11 @@ def save_mutant_choices(output_mut_txt_fn: str, mutant_tree: MutantTree):
         return
     mutants_to_save = mutant_tree.all_mutant_ids
     logging.info(f"saving: {mutants_to_save}")
-    
     output_mut_txt_dir = os.path.dirname(output_mut_txt_fn)
     if not os.path.exists(output_mut_txt_dir):
         logging.warning(
             f"Parent dir for mutant table does NOT exist! {output_mut_txt_dir}"
         )
-        
         logging.warning("Skip saving mutant file.")
         return
     if os.path.exists(output_mut_txt_fn):
@@ -594,14 +578,12 @@ def pick_design_from_profile(
     if not keep_missing:
         sequence = sequence.replace("X", "")
     print(sequence)
-    
     custom_indices_str: str = residue_range if residue_range else shorter_range(
         [i for i, aa in enumerate(sequence) if aa != 'X'])
     custom_indices_str = read_customized_indice(custom_indices_from_input=custom_indices_str.strip())
     logging.debug(f"Read:  {custom_indices_str=}")
     custom_indices_str = ','.join([str(int(resi)) for resi in custom_indices_str.split(',')])
     logging.debug(f"Fixed: {custom_indices_str=}")
-    
     profile_parser = MutantVisualizer(molecule=molecule, chain_id=chain_id)
     profile_parser.designable_sequences = designable_sequences
     profile_parser.sequence = sequence
@@ -620,7 +602,6 @@ def pick_design_from_profile(
         )
     profile_alphabet = "".join(df.T.columns.to_list())
     logging.info(df.head())
-    
     designer = REvoDesigner(profile)
     designer.molecule = molecule
     designer.chain_id = chain_id
@@ -660,7 +641,6 @@ def pick_design_from_profile(
         nonlocal button_matrix
         nonlocal designed_tree
         resn: str = button_matrix.alphabet_row[row]
-        
         resi: int = int(button_matrix.alphabet_col[col])
         wt_res = sequence[resi - 1]
         wt_score = df.loc[wt_res, resi]
@@ -671,7 +651,6 @@ def pick_design_from_profile(
                             wt_protein_sequence=designable_sequences)
             mutant.mutant_score = mut_score
             visualizer.group_name = group_id
-            
             if designed_tree.has(mutant.full_mutant_id):
                 logging.info(f'{mutant} already exists in the tree')
             else:
@@ -707,7 +686,6 @@ def pick_design_from_profile(
             highlight_method(f'byres {mutant.full_mutant_id} around {view_highlight_nbr}', animate=1)
         else:
             highlight_method(mutant.full_mutant_id, animate=1)
-    
     print(df_button_matrix.head())
     pix_per_block = 25
     button_matrix = QButtonMatrix(
@@ -722,18 +700,14 @@ def pick_design_from_profile(
     button_matrix.sequence = sequence
     button_matrix.init_ui()
     button_matrix.active_func = mutate_with_gridbuttons
-    
     window = REvoDesignWidget("ProfileDesignButtonMatrixWindow", allow_repeat=True)  
     window.setWindowTitle(f"Mutant Profile Matrix: {profile_type} ({profile})")
     screen_width = QtWidgets.QApplication.primaryScreen().availableGeometry().width()  
     screen_height = QtWidgets.QApplication.primaryScreen().availableGeometry().height()  
     num_cols = button_matrix.df_matrix.shape[1]  
-    
-    
     fixed_height = pix_per_block * 21 + 110  
     calculated_width = pix_per_block * (num_cols + 1)
     max_width = min(calculated_width, screen_width - 20)
-    
     dynamic_width = min(max_width, screen_width)
     dynamic_height = min(fixed_height, screen_height)
     window.setMinimumSize(dynamic_width, dynamic_height)
@@ -751,21 +725,16 @@ View Highlight: {view_highlight}
 View Highlight Nbr: {view_highlight_nbr}
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-'''
     )
-    
     scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidget(button_matrix)
     scroll_area.setWidgetResizable(True)
     scroll_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
     scroll_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)  
-    
     button_matrix.setContentsMargins(0, 0, 0, 0)
-    
     for button in button_matrix.findChildren(QtWidgets.QPushButton):
         button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         button.setFixedSize(pix_per_block, pix_per_block)
-    
     main_layout = QtWidgets.QVBoxLayout()
-    
     header_widget = QtWidgets.QWidget()
     header_layout = QtWidgets.QHBoxLayout()
     header_widget.setLayout(header_layout)
@@ -788,11 +757,8 @@ View Highlight Nbr: {view_highlight_nbr}
     header_layout.addWidget(banner_label)
     main_layout.addWidget(header_widget)
     main_layout.addWidget(scroll_area)
-    
     window.setLayout(main_layout)
-    
     geometry = window.frameGeometry()
     geometry.moveCenter(QtWidgets.QApplication.primaryScreen().availableGeometry().center())  
     window.move(geometry.topLeft())
-    
     window.show()

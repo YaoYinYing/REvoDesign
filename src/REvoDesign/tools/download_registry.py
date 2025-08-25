@@ -49,7 +49,6 @@ class DownloadedFile:
             List[str]: List of extracted file names
         """
         dist_dir = self.flatten_dir
-        
         extracted_files: List[str] = os.listdir(dist_dir)
         if not extracted_files:
             print(f'Extracting {self.downloaded} to {dist_dir}')
@@ -78,12 +77,9 @@ class FileDownloadRegistry(CitableModuleAbstract):
         self.name = name
         self.base_url = base_url
         self.version = version
-        
         self.registry = FileDownloadRegistry.preprocess_registry(registry=registry)
-        
         self.customized_directory = customized_directory or user_data_dir(
             self.name, version=self.version, ensure_exists=True)
-        
         self.pooch: pooch.Pooch = pooch.create(
             path=self.customized_directory,
             version=self.version,

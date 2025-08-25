@@ -13,18 +13,14 @@ from REvoDesign.tools.pymol_utils import make_temperal_input_pdb
 class ColabDesigner_MPNN(ExternalDesignerAbstract):
     name: str = "ProteinMPNN"
     installed: bool = is_package_installed("colabdesign")
-    
-    
     prefer_lower = True
     def __init__(self, molecule, *args, **kwargs):
         from colabdesign.mpnn import mk_mpnn_model
         self.molecule = molecule
-        
         self.mpnn_model: mk_mpnn_model = None  
         self.initialized = False
         self.pdb_filename = None
         self.reload = False
-    
     def initialize(self, *args, **kwargs):
         """
         Initialize the ColabDesigner_MPNN class.
@@ -90,7 +86,6 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
             sequence: str = mutant.get_sequence_by_chain(
                 chain_id=mutant.all_chain_ids[0]
             ).replace("X", "")
-        
         return self.mpnn_model.score(seq=sequence)["score"]
     def parallel_scorer(self, mutants: List[Mutant], nproc: int = 2, **kwargs) -> List[Mutant]:
         scores = []
@@ -108,7 +103,6 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         Notes:
         - Executes the designer to obtain sequence and score iterables.
         """
-        
         design_results = self.mpnn_model.sample(*args, **kwargs)
         return design_results
     __bibtex__ = {

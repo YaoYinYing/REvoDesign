@@ -56,14 +56,11 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         self.device = device
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
-            
             self.save_prefix = os.path.join(save_dir, prefix)
             os.makedirs(os.path.dirname(self.save_prefix), exist_ok=True)
         else:
             self.save_prefix = ''
-        
         self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
-        
         self.app = ThermoMPNN(
             pdb,
             self.save_prefix,
@@ -82,9 +79,7 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             pd.DataFrame: DataFrame containing the prediction results with columns 'ddG' and 'Mutation',
                           or 'ddG', 'Mutation', and 'dist' depending on the mode.
         """
-        
         df = self.app.process(save_csv=bool(self.save_prefix))
-        
         if self.mode == 'single':
             df.columns = ['ddG', 'Mutation']
         else:
@@ -115,7 +110,6 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             MutantTree: MutantTree object containing the mutation predictions.
         """
         mutant_tree = MutantTree()
-        
         for _, row in df.iterrows():
             score: float = row['ddG']
             mutation: str = row['Mutation']
@@ -123,7 +117,6 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             mutant = self.mutant_name2mutant(mutant_id=f'{mutation.replace(":", "_")}_{score}', sequences=self.sequence)
             mutant.mutant_score = score
             mutant.wt_score = 0
-            
             mutant_tree.add_mutant_to_branch(
                 self.prefix
                 if sorted_by == 'prefix'

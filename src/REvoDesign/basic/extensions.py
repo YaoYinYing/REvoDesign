@@ -41,10 +41,8 @@ class FileExtensionCollection:
         Returns:
         - bool: True if the extension is found in the current object's list of extensions, False otherwise.
         """
-        
         if isinstance(extension, FileExtension):
             return extension in self.extensions
-        
         return extension in [e.ext for e in self.extensions]
     @property
     def list_all(self) -> list[str]:
@@ -60,7 +58,6 @@ class FileExtensionCollection:
         Returns:
             list[str]: A list of string extensions, each prefixed with a dot.
         """
-        
         return [f".{e.ext}" for e in self.extensions]
     def match(self, ext: Union[FileExtension, str]) -> bool:
         """
@@ -70,13 +67,10 @@ class FileExtensionCollection:
         Returns:
         bool: True if the extension matches, False otherwise.
         """
-        
         if isinstance(ext, FileExtension):
             return ext in self.extensions
-        
         if not ext.startswith('.'):
             return ext in self.list_all
-        
         return ext in self.list_dot_ext
     @classmethod
     def squeeze(cls, exts: tuple['FileExtensionCollection', ...]) -> 'FileExtensionCollection':
@@ -91,7 +85,6 @@ class FileExtensionCollection:
         FileExtensionCollection: A new FileExtensionCollection instance containing all unique extensions
                                 from the input instances.
         """
-        
         ec = []
         for e in exts:
             for _e in e.extensions:
@@ -120,10 +113,8 @@ class FileExtensionCollection:
         if len(matched) == 1:
             return fname[:-len(matched[0])]
         if len(matched) > 1:
-            
             matched_ext = sorted(matched, key=lambda x: len(x), reverse=True)[0]
             return fname[:-len(matched_ext[0])]
-        
         raise issues.InternalError(
             f'Unexpect error in file extension collection: {fname} does not match any extension of {self.list_dot_ext}')
     @classmethod

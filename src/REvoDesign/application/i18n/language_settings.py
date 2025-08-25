@@ -48,7 +48,6 @@ class LanguageSwitch(QtWidgets.QWidget):
         """
         self.bus: ConfigBus = ConfigBus()
         self.window = window
-        
         self.language_settings: dict[str, dict[str, str]] = {
             "eng-eng": {
                 "name": "English",

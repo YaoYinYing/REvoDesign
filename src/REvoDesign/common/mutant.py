@@ -25,7 +25,6 @@ class Mutant(RpMutant):
         Returns:
             bool: Returns True if the object is empty; False otherwise.
         """
-        
         return not bool(self.mutations)
     @property
     def mutant_description(self) -> str:
@@ -68,7 +67,6 @@ class Mutant(RpMutant):
         Returns:
         None
         """
-        
         if not os.path.exists(new_pdb_fp):
             raise FileNotFoundError(new_pdb_fp)
         self._pdb_fp = new_pdb_fp
@@ -105,7 +103,6 @@ class Mutant(RpMutant):
             str: Shortened mutant ID in the format "<short_id>_<mutant_score>".
         """
         full_id = self.raw_mutant_id  
-        
         if len(full_id) > 15:
             hashed_id = hashlib.sha256(full_id.encode()).hexdigest()
             short_id = hashed_id[:15]

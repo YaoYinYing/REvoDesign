@@ -66,18 +66,13 @@ def not_none_float(*args: Optional[float]):
     Returns:
     float - The first non-None float value, or 0.0 if none can be found.
     """
-    
     for idx, float_in in enumerate(args):
-        
         if float_in is None:
             continue
         try:
-            
             return float(float_in)
         except Exception as e:
-            
             print(f'Skip {idx} ({float_in}): {e}')
-    
     return 0.0
 @dataclass(frozen=True)
 class Point:
@@ -214,21 +209,16 @@ class Color:
         Raises:
             ValueError: If the color name is not valid.
         """
-        
         name = self.name.lower().replace(" ", "_")
-        
         for cdict in COLOR_TABLES:
             if name not in cdict:
                 continue
             if DEBUG:
                 print(f'[DEBUG] {name}: {cdict[name]}')
-            
             return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  
         try:
-            
             return np.array(webcolors.name_to_rgb(self.name), dtype=float) / 255
         except ValueError as e:
-            
             raise ValueError(f"{self.name} is not a valid color name from matplotlib or webcolors") from e
     @cached_property
     def array_alpha(self) -> np.ndarray:
@@ -237,7 +227,6 @@ class Color:
         Returns:
             np.ndarray: An RGBA array representing the color.
         """
-        
         return np.append(self.array, self.alpha)
     @staticmethod
     def as_arrays(colors: Iterable['Color']):
@@ -248,7 +237,6 @@ class Color:
         Returns:
             np.ndarray: An array consisting of the RGB arrays of all colors.
         """
-        
         return np.concatenate(tuple(color.array for color in colors))
     @staticmethod
     def as_cgos(colors: Iterable['Color']):
@@ -259,7 +247,6 @@ class Color:
         Returns:
             np.ndarray: An array consisting of the CGO representations of all colors.
         """
-        
         return np.concatenate(tuple(color.as_cgo for color in colors))
     @cached_property
     def as_cgo(self):
@@ -285,7 +272,6 @@ class GraphicObject:
         If an object with the same name already exists, it is deleted.
         Ensures the data types of attributes are as expected.
         """
-        
         self.rebuild()
     @property
     def data(self):
@@ -369,7 +355,6 @@ class PseudoBezier(PseudoCurve):
         control_points = self.control_points
         n = len(control_points) - 1
         points = []
-        
         t_values = np.linspace(0, 1, self.steps + 1)
         for t in t_values:
             x = y = z = 0.0
@@ -389,7 +374,6 @@ class PseudoCatmullRom(PseudoCurve):
     def sample(self) -> List[Point]:
         self.check_control_points(num_min=4)
         points = []
-        
         for i in range(1, len(self.control_points) - 2):
             P0 = self.control_points[i - 1]
             P1 = self.control_points[i]
@@ -412,7 +396,6 @@ class PseudoCatmullRom(PseudoCurve):
                            (2 * P0.z - 5 * P1.z + 4 * P2.z - P3.z) * t2 +
                            (-P0.z + 3 * P1.z - 3 * P2.z + P3.z) * t3)
                 points.append(Point(x, y, z))
-        
         points.append(self.control_points[-2])
         return points
 @dataclass
@@ -429,10 +412,8 @@ class PseudoBSpline(PseudoCurve):
         from scipy.interpolate import BSpline
         n = len(self.control_points) - 1
         p = self.degree
-        
         if self.knots is None:
             self.knots = [0.0] * (p + 1) + list(range(1, n - p + 1)) + [n - p + 1] * (p + 1)
-        
         ctrl_pts = np.array([[pt.x, pt.y, pt.z] for pt in self.control_points])
         u_start = self.knots[p]
         u_end = self.knots[n + 1]
@@ -538,7 +519,6 @@ class PseudoNURBS(PseudoCurve):
         if p == 0:
             if knots[i] <= u < knots[i + 1]:
                 return 1.0
-            
             if u == knots[-1] and knots[i + 1] == knots[-1]:
                 return 1.0
             return 0.0
@@ -569,21 +549,16 @@ class LineVertex(GraphicObject):
         Rebuilds the line vertex data.
         This method initializes the internal data list, and rebuilds the line vertex data based on the width, color, and point type.
         """
-        
         self._data = []
-        
         if self.width:
             self._data.extend([cgo.LINEWIDTH, self.width])
-        
         if self.color:
             self._data.extend(Color(self.color).as_cgo)
-        
         if isinstance(self.point, Point):
             self._data.extend(self.point.as_vertex)
         elif isinstance(self.point, PseudoCurve):
             self._data.extend(self.point.data)
         else:
-            
             raise NotImplementedError('this curve is not currently supported')
     @classmethod
     def from_points(cls, points: Iterable[Union[Point, Iterable[float]]], width: Optional[float]
@@ -680,7 +655,6 @@ class Doughnut(GraphicObject):
     cradius: float = 0.25
     samples: int = 20
     csamples: int = 20
-    
     def rebuild(self) -> None:
         """
         Rebuilds torus
@@ -754,7 +728,6 @@ class Cone(GraphicObject):
     radius_base: float
     color_tip: str = 'w'
     color_base: str = 'g'
-    
     caps: tuple[float, float] = (1, 0)
     def rebuild(self) -> None:
         """
@@ -829,13 +802,10 @@ class TriangleSimple(GraphicObject):
         """
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
-            
             *Color(self.color_a).as_cgo,
             *self.vertex_a.as_vertex,
-            
             *Color(self.color_b).as_cgo,
             *self.vertex_b.as_vertex,
-            
             *Color(self.color_c).as_cgo,
             *self.vertex_c.as_vertex,
             cgo.END
@@ -874,11 +844,9 @@ class Cube(GraphicObject):
         """
         用 6 个 Square，合并出一个立方体(或长方体)外表。
         """
-        
         def make_face(a: Point, b: Point, c: Point, d: Point) -> List[float]:
             face = Square(
                 corner_a=a, corner_b=b, corner_c=c, corner_d=d,
-                
                 color_a=self.color_w,
                 color_b=self.color_x,
                 color_c=self.color_y,
@@ -886,40 +854,26 @@ class Cube(GraphicObject):
             )
             face.rebuild()
             return face.data
-        
         x1, y1, z1 = self.p1.x, self.p1.y, self.p1.z
         x2, y2, z2 = self.p2.x, self.p2.y, self.p2.z
-        
-        
         face1_data = make_face(
             Point(x1, y1, z1), Point(x1, y1, z2), Point(x1, y2, z2), Point(x1, y2, z1)
         )
-        
-        
         face2_data = make_face(
             Point(x2, y1, z1), Point(x2, y2, z1), Point(x2, y2, z2), Point(x2, y1, z2)
         )
-        
-        
         face3_data = make_face(
             Point(x1, y1, z1), Point(x2, y1, z1), Point(x2, y1, z2), Point(x1, y1, z2)
         )
-        
-        
         face4_data = make_face(
             Point(x1, y2, z1), Point(x1, y2, z2), Point(x2, y2, z2), Point(x2, y2, z1)
         )
-        
-        
         face5_data = make_face(
             Point(x1, y1, z1), Point(x1, y2, z1), Point(x2, y2, z1), Point(x2, y1, z1)
         )
-        
-        
         face6_data = make_face(
             Point(x1, y1, z2), Point(x2, y1, z2), Point(x2, y2, z2), Point(x1, y2, z2)
         )
-        
         self._data = face1_data + face2_data + face3_data + \
             face4_data + face5_data + face6_data
     def rebuild(self):
@@ -949,24 +903,20 @@ class Square(GraphicObject):
         This method initializes a graphic object drawing data (_data) by defining the vertices and colors of the triangles that make up the square.
         It uses the Color utility class to handle color conversion and the Point class for vertex coordinates.
         """
-        
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
-            
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
             *Color(self.color_b).as_cgo,
             *self.corner_b.as_vertex,
             *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
-            
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
             *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
             *Color(self.color_d).as_cgo,
             *self.corner_d.as_vertex,
-            
             cgo.END
         ]
 @dataclass
@@ -980,7 +930,6 @@ class PolyLines(GraphicObject):
         points (Iterable[LineVertex]): A collection of line vertices.
         line_type (Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']): The drawing mode of the line, defaulting to 'LINE_STRIP'.
     """
-    
     width: float
     color: str
     points: Iterable[LineVertex]
@@ -990,13 +939,11 @@ class PolyLines(GraphicObject):
         Rebuilds the line data.
         This method initializes the line drawing data, including setting the line width, color, and type, and updates the data for each vertex.
         """
-        
         self._data = [
             cgo.LINEWIDTH, self.width,
             *Color(self.color).as_cgo,
             cgo.BEGIN, getattr(cgo, self.line_type),
         ]
-        
         for pv in self.points:
             self._data.extend([*pv.data])
         self._data.append(cgo.END)
@@ -1010,7 +957,6 @@ class Arrow(GraphicObject):
     radius: float = 0.1  
     header_height: float = 0.25
     header_ratio: float = 1.618
-    
     color_header: str = 'red'
     color_tail: str = 'white'
     @property
@@ -1085,12 +1031,10 @@ class RoundedRectangle(GraphicObject):
         return Point(global_coord[0], global_coord[1], global_coord[2])
     def rebuild(self) -> None:
         self.radius = min(self.width / 2, self.radius)
-        
         half_w = self.width / 2
         half_h = self.height / 2
         r = self.radius
         k = 0.5522847498  
-        
         edge_bottom_start = (-half_w + r, -half_h)
         edge_bottom_end = (half_w - r, -half_h)
         edge_right_start = (half_w, -half_h + r)
@@ -1099,20 +1043,14 @@ class RoundedRectangle(GraphicObject):
         edge_top_end = (-half_w + r, half_h)
         edge_left_start = (-half_w, half_h - r)
         edge_left_end = (-half_w, -half_h + r)
-        
-        
         cp1_br = (edge_bottom_end[0] + k * r, edge_bottom_end[1])
         cp2_br = (edge_right_start[0], edge_right_start[1] - k * r)
-        
         cp1_tr = (edge_right_end[0], edge_right_end[1] + k * r)
         cp2_tr = (edge_top_start[0] + k * r, edge_top_start[1])
-        
         cp1_tl = (edge_top_end[0] - k * r, edge_top_end[1])
         cp2_tl = (edge_left_start[0], edge_left_start[1] + k * r)
-        
         cp1_bl = (edge_left_end[0], edge_left_end[1] - k * r)
         cp2_bl = (edge_bottom_start[0] - k * r, edge_bottom_start[1])
-        
         bottom_right_corner = PseudoBezier(
             control_points=[
                 self.local_to_global(*edge_bottom_end),
@@ -1153,7 +1091,6 @@ class RoundedRectangle(GraphicObject):
             color=self.color,
             steps=self.steps
         )
-        
         vertices = [
             LineVertex(self.local_to_global(*edge_bottom_start)),   
             LineVertex(self.local_to_global(*edge_bottom_end)),     
@@ -1165,7 +1102,6 @@ class RoundedRectangle(GraphicObject):
             LineVertex(self.local_to_global(*edge_left_end)),       
             LineVertex(bottom_left_corner)                          
         ]
-        
         poly = PolyLines(
             width=self.line_width,
             color=self.color,
@@ -1207,17 +1143,13 @@ class Ellipse(GraphicObject):
         Rebuilds the ellipse object by sampling points along the ellipse's circumference and
         assembling them into a closed polyline.
         """
-        
         t_values = np.linspace(0, 2 * math.pi, self.steps + 1)
         points = []
-        
         for t in t_values:
             u = self.major_radius * math.cos(t)
             v = self.minor_radius * math.sin(t)
             points.append(self.local_to_global(u, v))
-        
         vertices = [LineVertex(pt) for pt in points]
-        
         poly = PolyLines(
             width=self.line_width,
             color=self.color,
@@ -1251,36 +1183,25 @@ class Ellipsoid(GraphicObject):
         Rebuilds the ellipsoid by generating a triangle mesh using its parametric equations.
         The resulting CGO data is stored in self._data.
         """
-        
         theta = np.linspace(0, math.pi, self.steps_theta + 1)  
         phi = np.linspace(0, 2 * math.pi, self.steps_phi + 1)    
-        
         theta_grid, phi_grid = np.meshgrid(theta, phi, indexing='ij')
-        
         x = self.center.x + self.radius_x * np.sin(theta_grid) * np.cos(phi_grid)
         y = self.center.y + self.radius_y * np.sin(theta_grid) * np.sin(phi_grid)
         z = self.center.z + self.radius_z * np.cos(theta_grid)
-        
         vertices_grid = np.stack((x, y, z), axis=-1)
-        
         triangles = []
         for i in range(self.steps_theta):
             for j in range(self.steps_phi):
-                
                 p0 = Point(*vertices_grid[i, j])
                 p1 = Point(*vertices_grid[i + 1, j])
                 p2 = Point(*vertices_grid[i + 1, j + 1])
                 p3 = Point(*vertices_grid[i, j + 1])
-                
                 triangles.append([p0, p1, p2])
                 triangles.append([p0, p2, p3])
-        
         cgo_obj = []
-        
         cgo_obj.extend(Color(self.color).as_cgo)
-        
         cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLES])
-        
         for tri in triangles:
             for vertex in tri:
                 cgo_obj.extend(vertex.as_vertex)
@@ -1301,14 +1222,10 @@ class Polygon(GraphicObject):
         Rebuilds the polygon object by creating a CGO triangle fan from the vertices.
         """
         cgo_obj = []
-        
         cgo_obj.extend(Color(self.color).as_cgo)
-        
         cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLE_FAN])
-        
         for vertex in self.vertices:
             cgo_obj.extend(vertex.as_vertex)
-        
         cgo_obj.append(cgo.END)
         self._data = cgo_obj
 @dataclass
@@ -1329,14 +1246,11 @@ class Polyhedron(GraphicObject):
         Each face is drawn as a triangle fan to fill the polygon.
         """
         cgo_obj = []
-        
         cgo_obj.extend(Color(self.color).as_cgo)
-        
         for face in self.faces:
             if len(face) < 3:
                 continue  
             cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLE_FAN])
-            
             for idx in face:
                 vertex = self.vertices[idx]
                 cgo_obj.extend(vertex.as_vertex)
@@ -1386,30 +1300,23 @@ class PolygonPen:
         self.current_contour: List[Point] = []
         self.sample_num = sample_num
     def moveTo(self, pt):
-        
         p = Point(*to3d(pt))
         self.current_contour = [p]
     def lineTo(self, pt):
         p = Point(*to3d(pt))
         self.current_contour.append(p)
     def qCurveTo(self, *points):
-        
         pts = list(points)
         if pts[-1] is None:
             pts = pts[:-1]
         start = self.current_contour[-1]
-        
-        
         for i in range(0, len(pts) - 1, 2):
             control = pts[i]
             end = pts[i + 1]
             sampled = sample_quadratic_bezier(start.array, control, end, num=self.sample_num)
-            
             for coord in sampled[1:]:
                 self.current_contour.append(Point(coord[0], coord[1], coord[2]))
-            
             start = Point(*to3d(end))
-        
     def closePath(self):
         if self.current_contour:
             self.contours.append(self.current_contour)
@@ -1441,7 +1348,6 @@ class TextCharPolygon(GraphicObject):
     format: Literal['LINE_LOOP', 'SAUSAGE', 'TRIANGLE_FAN'] = 'LINE_LOOP'
     sample_num: int = 10
     def rebuild(self) -> None:
-        
         font = TTFont(self.font_path)
         cmap = font['cmap'].getBestCmap()  
         glyph_name = cmap.get(ord(self.char))
@@ -1449,12 +1355,9 @@ class TextCharPolygon(GraphicObject):
             raise ValueError(f"Glyph for character '{self.char}' not found in {self.font_path}")
         glyph_set = font.getGlyphSet()
         glyph = glyph_set[glyph_name]
-        
         pen = PolygonPen(sample_num=self.sample_num)
         glyph.draw(pen)
-        
         polygons = pen.contours
-        
         scaled_polygons: List[List[Point]] = []
         for contour in polygons:
             scaled_contour: List[Point] = []
@@ -1468,12 +1371,10 @@ class TextCharPolygon(GraphicObject):
                     z += self.offset.z
                 scaled_contour.append(Point(x, y, z))
             scaled_polygons.append(scaled_contour)
-        
         cgo_obj = []
         cgo_obj.extend(Color(self.color).as_cgo)
         if self.format == 'LINE_LOOP':
             for contour in scaled_polygons:
-                
                 if contour[0].array.tolist() != contour[-1].array.tolist():
                     contour.append(contour[0])
                 poly = PolyLines(
@@ -1557,15 +1458,11 @@ class GraphicObjectCollection(GraphicObject):
         If the force_to_rebuild flag is set to True, it calls the rebuild method on each graphic object.
         Finally, it adds the data of each graphic object to the collection's _data list.
         """
-        
         self._data = []
         for go_idx, go in enumerate(self.objects):
-            
             print(f"Adding: 
-            
             if self.force_to_rebuild:
                 go.rebuild()
-        
         self._data.extend(tree.flatten([go.data for go in self.objects]))
 def __easter_egg():
     '''
@@ -1573,11 +1470,8 @@ def __easter_egg():
     真しん実じつはいつもひとつ!
     '''
     if any(not n.startswith('_') for n in cmd.get_names()):
-        
         return
     poision = GraphicObjectCollection([
-        
-        
         Sphere(
             center=Point(-2, 0, 0),
             radius=1,
@@ -1590,7 +1484,6 @@ def __easter_egg():
             color1='white',
             color2='white'
         ),
-        
         Cylinder(
             Point(0, 0, 0),
             Point(2, 0, 0),
@@ -1603,7 +1496,6 @@ def __easter_egg():
             radius=1.015,
             color='red'
         ),
-        
         PolyLines(
             5, 'black',
             [
@@ -1627,7 +1519,6 @@ def __easter_egg():
         )
     ]
     )
-    
     cgo.cyl_text(
         poision.data,
         plain,
@@ -1636,8 +1527,6 @@ def __easter_egg():
         0.03,
         axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
         color=Color('black').array)
-    
-    
     poision.load_as('APTX-4869')
     cmd.turn('z', 16)
     cmd.zoom('APTX-4869', 0)

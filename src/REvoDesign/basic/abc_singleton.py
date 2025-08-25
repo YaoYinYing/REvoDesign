@@ -172,10 +172,8 @@ class SingletonAbstract(ABC):
             **kwargs: Keyword arguments for initialization or updating.
         """
         if not cls._instance:
-            
             cls(*args, **kwargs)
         else:
-            
             for key, value in kwargs.items():
                 setattr(cls._instance, key, value)
     @classmethod
@@ -222,9 +220,6 @@ def reset_singletons():
     and if the subclass has an '_instance' attribute and it is not None, it calls the reset_instance method of that class.
     Note: This function does not accept parameters and does not return any value.
     """
-    
     for cls in SingletonAbstract.__subclasses__():
-        
         if hasattr(cls, '_instance') and cls._instance is not None:
-            
             cls.reset_instance()

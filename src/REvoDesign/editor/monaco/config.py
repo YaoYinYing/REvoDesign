@@ -29,5 +29,4 @@ class ConfigStore(SingletonAbstract):
         """
         Resets the configuration store to an empty state.
         """
-        
         self.cfg = DictConfig({})  # Reset the configuration to an empty DictConfig

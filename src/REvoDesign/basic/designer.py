@@ -21,7 +21,6 @@ class ExternalDesignerAbstract(ThirdPartyModuleAbstract):
     installed: bool = False
     scorer_only: bool = False
     no_need_to_score_wt: bool = False
-    
     prefer_lower: bool = False
     def __init__(self, molecule):
         """

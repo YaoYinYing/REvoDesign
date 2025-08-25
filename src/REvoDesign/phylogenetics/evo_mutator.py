@@ -447,7 +447,6 @@ class ChainBinder:
         return pair
 class GremlinAnalyser:
     def __init__(self):
-        
         self.bus: ConfigBus = ConfigBus()
         self.alphabet: str = None  
         self.PWD: str = self.bus.get_value("work_dir", str)
@@ -497,7 +496,6 @@ class GremlinAnalyser:
             )
         pushButton_run_interact_scan = self.bus.button("run_interact_scan")
         gridLayout_interact_pairs = self.bus.ui.gridLayout_interact_pairs
-        
         lineEdit_current_pair_wt_score = (
             self.bus.ui.lineEdit_current_pair_wt_score
         )
@@ -513,7 +511,6 @@ class GremlinAnalyser:
             lineEdit_current_pair_mut_score,
         ]:
             set_widget_value(lineEdit, "")
-        
         self.mutant_tree_coevolved = MutantTree({})
         self.gremlin_tool = GREMLIN_Tools(molecule=self.design_molecule)
         self.gremlin_tool.sequence = self.design_sequence
@@ -556,7 +553,6 @@ class GremlinAnalyser:
         self.max_interact_dist: float = self.bus.get_value(
             "ui.interact.max_interact_dist", float
         )
-        
         chains = "".join(self.chains_to_bind)
         if self.chain_binding_enabled and self.chains_to_bind:
             subdir = (
@@ -607,7 +603,6 @@ class GremlinAnalyser:
                     "No Available co-evolutionary signal in global"
                 )
             )
-            
             return
         logging.info(f"Found {len(coevolved_pairs)} pairs")
         logging.debug(coevolved_pairs)
@@ -656,7 +651,6 @@ class GremlinAnalyser:
         self.bus.button("next").clicked.connect(
             partial(self.load_co_evolving_pairs, True)
         )
-        
         set_widget_value(
             self.bus.ui.progressBar, [0, len(self.coevolved_pairs.iterable)]
         )
@@ -671,7 +665,6 @@ class GremlinAnalyser:
             return False
         return True
     def plot_coevolved_pair_in_pymol(self):
-        
         min_gremlin_score = min(
             [
                 min([p.zscore for p in self.coevolved_pairs.iterable]),
@@ -754,8 +747,6 @@ class GremlinAnalyser:
                     f"Grouping {pair.selection_string=} to {self.ce_object_group_valid=}"
                 )
                 cmd.group(self.ce_object_group_valid, pair.selection_string)
-            
-            
             for cc, res_pair in pair.all_res_pairs.items():
                 refresh_window()
                 if pair.is_out_of_range(cc):
@@ -783,7 +774,6 @@ class GremlinAnalyser:
             pairs=tuple(p for p in i_out_of_range),
             state="out_of_range",
         )
-        
         self.coevolved_pairs = IterableLoop(
             iterable=tuple(
                 filter(
@@ -860,13 +850,10 @@ class GremlinAnalyser:
                     )
                 ]
             )
-            
             wt_i = pair.wt("i")  
             wt_j = pair.wt("j")  
-            
             mut_i = self.alphabet[col]
             mut_j = self.alphabet[row]
-            
             _mutant: List[Mutation] = []
             for chain_id_pair in pair.homochains:
                 for chain_id, mut, idx, wt in zip(
@@ -897,7 +884,6 @@ class GremlinAnalyser:
                     logging.debug(f"Adding mutagenesis {expected_mutant}")
                     _mutant.append(expected_mutant)
             logging.debug(_mutant)
-            
             if not _mutant:
                 logging.info(
                     "No mutagenesis will be performed since the picked pair is a wt-wt pair"
@@ -907,7 +893,6 @@ class GremlinAnalyser:
                 mutations=_mutant, wt_protein_sequence=self.designable_sequences
             )
             self.refresh_magician()
-            
             if not self.magician.gimmick:
                 wt_score = matrix.loc[wt_i, wt_j]
                 mut_score = matrix.loc[mut_i, mut_j]
@@ -928,14 +913,12 @@ class GremlinAnalyser:
             mutant_obj.wt_score = wt_score
             mutant_obj.mutant_score = mut_score
             self.picked_gremlin_mutant = mutant_obj
-            
             if self.explored_mutant_tree.has(mutant_obj.full_mutant_id):
                 logging.info(f"Picked mutant: {mutant_obj.short_mutant_id} ({mutant_obj.full_mutant_id}) "
                              f"already exists. Do nothing.")
                 self.activate_focused_interaction()
                 return
             with timing(f"Visualizing {mutant_obj.short_mutant_id}"):
-                
                 logging.info(
                     f"Picked mutant:{(mutant := mutant_obj.short_mutant_id)} "
                     f"{(full_mutant_id := mutant_obj.full_mutant_id)} "
@@ -966,7 +949,6 @@ class GremlinAnalyser:
                 )
                 cmd.hide("everything", "hydrogens and polymer.protein")
                 cmd.hide("cartoon", mutant)
-                
                 self.explored_mutant_tree.add_mutant_to_branch(
                     branch=visualizer.group_name,
                     mutant=mutant,
@@ -974,7 +956,6 @@ class GremlinAnalyser:
                 )
             self.activate_focused_interaction()
             del visualizer
-            
             mutant_tree = MutantTree(
                 {self.picked_gremlin_group_id: {mutant: mutant_obj}}
             )
@@ -990,7 +971,6 @@ class GremlinAnalyser:
             if not self.design_chain_id or not self.design_molecule:
                 logging.error("No available molecule or chain id.")
                 return
-            
             self.mark_pair_state(
                 pairs=(p := self.coevolved_pairs.current_item),
                 state=(
@@ -1002,14 +982,12 @@ class GremlinAnalyser:
                 self.bus.ui.progressBar, self.coevolved_pairs.current_idx
             )
             pair = self.coevolved_pairs.current_item
-            
             for i in reversed(
                 range(self.bus.ui.gridLayout_interact_pairs.count())
             ):
                 widget = self.bus.ui.gridLayout_interact_pairs.itemAt(i).widget()
                 if widget is not None:
                     widget.deleteLater()
-            
             self.mark_pair_state(pairs=pair, state="in_design")
             button_matrix = QButtonMatrixGremlin(
                 df_matrix=pair.df,
@@ -1038,7 +1016,6 @@ class GremlinAnalyser:
                 logging.warning(f"Resi {pair.i_1} ({pair.i_aa}) is {pair.min_dist:.2f} Å away "
                                 f"from {pair.j_1} {pair.j_aa}, out of distance {pair.dist_cutoff} Å")
                 set_widget_value(lineEdit_current_pair, "Out of range.")
-            
             button_matrix.setEnabled(not pair.all_out_of_range)
     def coevoled_mutant_decision(self, accept: bool):
         if self.explored_mutant_tree.empty or not self.picked_gremlin_mutant:
@@ -1085,7 +1062,6 @@ class GremlinAnalyser:
         )
         cmd.hide("cartoon", f"{mutant_id}")
         cmd.center(mutant_id)
-        
         if group_id:
             cmd.enable(group_id)
             cmd.group(group_id, action="open")
@@ -1106,7 +1082,6 @@ class GremlinAnalyser:
             mutant_id=self.picked_gremlin_mutant.short_mutant_id,
             group_id=self.picked_gremlin_group_id,
         )
-        
         lineEdit_current_pair_wt_score = (
             self.bus.ui.lineEdit_current_pair_wt_score
         )

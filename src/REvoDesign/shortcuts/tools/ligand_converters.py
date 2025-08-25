@@ -24,7 +24,6 @@ def shortcut_smiles_conformer_single(
     """
     Runs the smiles_conformer_single function with parameters collected from the dialog.
     """
-    
     with timing("Get SMILES Conformer"):
         run_worker_thread_with_progress(
             smiles_conformer_single,

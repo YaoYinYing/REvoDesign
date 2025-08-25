@@ -22,14 +22,12 @@ def get_ddg_mut_id(mutations: List[Mutation]) -> str:
         for _m in mutations
     )
 def preprocess_ddg_values(ddg_value_df) -> Dict[str, float]:
-    
     ddg_dict = {
         row["Baseline"]: row["ddG_cart"] for _, row in ddg_value_df.iterrows()
     }
     return ddg_dict
 class ddg(ExternalDesignerAbstract):
     name = "Cartesian-ddG"
-    
     installed = IS_ROSETTA_RUNNABLE
     scorer_only = True
     no_need_to_score_wt = True
@@ -37,7 +35,6 @@ class ddg(ExternalDesignerAbstract):
     def __init__(self, molecule: str, **kwargs):
         self.molecule = molecule
         self.reload = False
-        
         bus: ConfigBus = ConfigBus()
         self.node_hint: NodeHintT = bus.get_value("rosetta.node_hint", default_value="native")  
         self.pdb_filename = None
@@ -66,7 +63,6 @@ class ddg(ExternalDesignerAbstract):
             node_hint=self.node_hint,
             node_config=self.node_config,
         )
-        
         if (
             isinstance(self.relaxed_pdb, str)
             and os.path.isfile(self.relaxed_pdb)
@@ -101,7 +97,6 @@ class ddg(ExternalDesignerAbstract):
             use_legacy=self.use_legacy,
             ddg_iteration=self.ddg_iterations,
         )
-        
         ddg_dict = preprocess_ddg_values(ddg_value_df)
         for nx_m, m in zip(non_xtal_mutants, mutants):
             ddg_mut_id = get_ddg_mut_id(nx_m.mutations)

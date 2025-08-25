@@ -35,13 +35,11 @@ class MutateRelax(ScoreClusters):
         Returns:
         Rosetta: An object containing the analysis of the scoring results.
         """
-        
         if not opts:
             opts = []
         score_dir = self.save_dir
         pdb_bn = os.path.basename(self.pdb)
         os.makedirs(score_dir, exist_ok=True)
-        
         rosetta = Rosetta(
             bin="rosetta_scripts",
             flags=[os.path.join(script_dir, "deps/mutate_relax/flags/cluster_scoring.flags")],
@@ -57,9 +55,7 @@ class MutateRelax(ScoreClusters):
             run_node=self.node,
             enable_progressbar=False,  
         )
-        
         variant_names = [v.format_as("${wt_res}${position}${mut_res}") for v in variants]
-        
         branch_tasks = [
             {
                 "rsv": RosettaScriptsVariableGroup.from_dict(
@@ -74,10 +70,8 @@ class MutateRelax(ScoreClusters):
             }
             for variant_name, variant in zip(variant_names, variants)
         ]
-        
         with timing("Mutate Relax"):
             rosetta.run(inputs=branch_tasks)
-        
         logging.info("Renaming pdb files")
         for m in variants:
             os.rename(
@@ -124,16 +118,12 @@ class MutateRelax_worker(MutateRunnerAbstract):
         super().__init__(pdb_file)
         self.pdb_file = pdb_file
         self.temp_dir = self.new_cache_dir
-        
         self.pdb_bn = os.path.basename(pdb_file)
-        
         bus = ConfigBus()
         self.node_hint: NodeHintT = bus.get_value(
             "rosetta.node_hint", default_value="native")  
-        
         self.installed = is_run_node_available(self.node_hint)
         self.rosetta_general_opts: List[str] = read_rosetta_config()
-        
         self.mutate_relax_instance = MutateRelax(
             pdb_file,
             chain_id=bus.get_value("ui.header_panel.input.chain_id"),
@@ -152,7 +142,6 @@ class MutateRelax_worker(MutateRunnerAbstract):
         Returns:
             str: Path to the output PDB file.
         """
-        
         self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
         self.mutate_relax_instance.run([mutant], opts=list(self.rosetta_general_opts))
         return os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb')
@@ -169,7 +158,6 @@ class MutateRelax_worker(MutateRunnerAbstract):
         Returns:
             List[str]: List of output PDB file paths for all mutants.
         """
-        
         self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
         self.mutate_relax_instance.run(mutants, opts=list(self.rosetta_general_opts))
         return [os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb') for mutant in mutants]

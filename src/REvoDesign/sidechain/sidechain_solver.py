@@ -34,7 +34,6 @@ __all__ = [
 ]
 @dataclass(frozen=True)
 class MutateRunnerManager:
-    
     installed_worker: List[str] = field(
         default_factory=lambda: [c.name for c in ALL_RUNNER_CLASSES if c.installed]
     )
@@ -62,7 +61,6 @@ class SidechainSolverConfig:
         return reconfigured
 class SidechainSolver(SingletonAbstract):
     def singleton_init(self):
-        
         self.bus: ConfigBus = ConfigBus()
         self.mutate_runner: MutateRunnerAbstract = None  
         self.runner_manager = MutateRunnerManager()
@@ -110,7 +108,6 @@ class SidechainSolver(SingletonAbstract):
             )
         if reconfigured or not self.mutate_runner:
             logging.warning(f"Reconfiguring SC solver with {latest_cfg=}...")
-            
             self.cfg = latest_cfg
             self.setup()
         return self

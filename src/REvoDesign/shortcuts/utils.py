@@ -73,7 +73,6 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     module = importlib.import_module(module_path)
     if "." not in func_name:
         return getattr(module, func_name)
-    
     _class_name, _func_name = func_name.rsplit(".")
     logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
     _class = getattr(module, _class_name)
@@ -156,15 +155,12 @@ def _build_asked_value(entry: dict) -> AskedValue:
         ValueError: If there's an error resolving dynamic choices via [resolve_choice_from](file:///Users/yyy/Documents/protein_design/REvoDesign/src/REvoDesign/shortcuts/utils.py
         Any exceptions raised during callable execution will propagate up.
     """
-    
     typing_func = asked_value_typing_dict.get(entry["type"], str)  
-    
     val = entry.get("default")
     if "default_from" in entry:
         val = resolve_dotted_function(entry["default_from"])
         if isinstance(val, Callable):
             val = val()
-    
     choices = entry.get("choices")
     if "choices_from" in entry:
         choices_from: str = entry["choices_from"]

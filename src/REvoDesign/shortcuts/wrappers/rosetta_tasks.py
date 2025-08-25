@@ -16,11 +16,9 @@ def rosettaligand(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     logging.info(kwargs)
-    
     ligand_params: str = kwargs.pop('ligand_params')
     ligands = ligand_params.split('|')
     kwargs['ligands'] = ligands
-    
     start_from_xyz_sele = kwargs.pop('start_from_xyz_sele')
     if not start_from_xyz_sele:
         kwargs['start_from_xyz'] = None

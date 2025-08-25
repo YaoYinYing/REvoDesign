@@ -30,7 +30,6 @@ class MonacoEditorManager:
         """
         if not os.path.exists(self.editor_path):
             os.makedirs(self.editor_path)
-        
         installed_monaco = [
             dirname
             for dirname in os.listdir(self.editor_path)
@@ -42,7 +41,6 @@ class MonacoEditorManager:
             self.copy_html_template(version_dir)
             self.config_store.set("editor.backend.html_dir", version_dir)
             return
-        
         tags = get_github_repo_tags("https://github.com/microsoft/monaco-editor")
         tags = [tag for tag in tags if not ("rc" in tag or 'dev' in tag)]
         logging.info(f"Available Monaco Editor tags: {tags}")
@@ -57,7 +55,6 @@ class MonacoEditorManager:
             self.copy_html_template(version_dir)
             self.config_store.set("editor.backend.html_dir", version_dir)
             return
-        
         logging.info(f"Downloading Monaco Editor v{self.version}...")
         try:
             self.download_monaco_editor(version=self.version)
@@ -75,7 +72,6 @@ class MonacoEditorManager:
         tarball_url = f"{cdn_base_url}{version}.tgz"
         tarball_path = os.path.join(self.editor_path, f"monaco-editor-{version}.tgz")
         extract_path = os.path.join(self.editor_path, f"monaco-editor-{version}")
-        
         try:
             logging.info(f"Downloading tarball from {tarball_url}")
             urllib.request.urlretrieve(tarball_url, tarball_path)
@@ -86,13 +82,10 @@ class MonacoEditorManager:
             logging.error(f"Error downloading tarball: {e}, cleaning up...")
             os.remove(tarball_path)
             raise issues.NetworkError from e
-        
         logging.info(f"Extracting tarball to {extract_path}")
         with tarfile.open(tarball_path, "r:gz") as tar_ref:
             tar_ref.extractall(extract_path)
-        
         shutil.move(os.path.join(extract_path, "package", "min", "vs"), os.path.join(extract_path, "vs"))
-        
         os.remove(tarball_path)
         logging.info("Monaco Editor downloaded and extracted successfully.")
     def copy_html_template(self, version_dir):
@@ -112,15 +105,12 @@ def ensure_monaco() -> bool:
     Returns:
         bool: True if the Monaco Editor is successfully set up, False otherwise.
     """
-    
     monaco_manager = MonacoEditorManager(app_name="REvoDesign.MonacoEditor", app_author="REvoDesignUser")
     try:
-        
         logging.info("Ensuring Monaco Editor is set up...")
         monaco_manager.ensure_editor_downloaded()
         return True
     except issues.NetworkError as e:
-        
         logging.error("Network error occurred while setting up Monaco Editor. Please check your network connection.")
         return False
 def edit_file_with_monaco(file_path: str):
@@ -135,30 +125,25 @@ def edit_file_with_monaco(file_path: str):
     import webbrowser
     from pathlib import Path
     config_store = ConfigStore()
-    
     server_monitor = StoresWidget().server_switches['Editor_Backend']
     logging.info(f"Server launch status: {server_monitor.controller.is_running}")
     if not server_monitor.controller.is_running:
         server_monitor._start_server()
-    
     target_file = Path(file_path)
     if not target_file.exists():
         raise FileNotFoundError(f"The file '{file_path}' does not exist.")
     logging.info(f"Validated file path: {file_path}")
-    
     use_ssl = config_store.get('editor.backend.use_ssl', default=False)
     protocol = "https" if use_ssl else "http"
     host = config_store.get('editor.backend.host')
     port = config_store.get('editor.backend.port')
     token = config_store.get('editor.token', default=None)
     no_token = config_store.get('editor.backend.no_token', default=False)
-    
     base_url = f"{protocol}://{host}:{port}"
     editor_url = f"{base_url}/editor?file_path={file_path}"
     if not no_token and token:
         editor_url += f"&token={token}"
     logging.info(f"Editor URL constructed: {editor_url}")
-    
     logging.info(f"Opening Monaco Editor for file: {file_path}")
     webbrowser.open(editor_url)
 def menu_edit_file(file_path):
@@ -169,7 +154,6 @@ def menu_edit_file(file_path):
     Returns:
         None
     """
-    
     has_monaco = run_worker_thread_with_progress(
         worker_function=ensure_monaco,
         progress_bar=ConfigBus().ui.progressBar,
@@ -180,7 +164,6 @@ def menu_edit_file(file_path):
             'or set `https_proxy` as environment variables (Menu->Edit->Environment Variables->Add) and try again.',
             error_type=issues.DependencyError
         )
-    
     run_worker_thread_with_progress(
         worker_function=edit_file_with_monaco,
         file_path=file_path,

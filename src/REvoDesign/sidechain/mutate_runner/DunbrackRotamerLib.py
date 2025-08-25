@@ -15,7 +15,6 @@ class PyMOL_mutate(MutateRunnerAbstract):
     Usage:
     pymol_mutator = PyMOL_mutate(molecule, input_session)
     mutated_pdb = pymol_mutator.run_mutate(mutant_obj)  
-    
     """
     name: str = "Dunbrack Rotamer Library"
     installed: bool = True
@@ -63,8 +62,6 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 new_residue_3 = IUPACData.protein_letters_1to3[
                     mut_info.mut_res
                 ].upper()
-                
-                
                 target = new_residue_3.upper()
                 p.cmd.wizard("mutagenesis")
                 p.cmd.refresh_wizard()
@@ -92,7 +89,6 @@ class PyMOL_mutate(MutateRunnerAbstract):
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
         return list(results)  
-    
     __bibtex__ = {
         "Dunbrack Rotamer Library": """@Article{Shapovalov2011,
 author={Shapovalov, Maxim V.

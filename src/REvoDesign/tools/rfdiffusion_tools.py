@@ -145,7 +145,6 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
                 dgram = torch.tensor([d_min]).float().unsqueeze(0)
                 energy = sum(fn(dgram).sum().item() for fn in self.potential_calculator.energies)
                 potential_field[i, j] = -self.weight * energy
-        
         if self.blur:
             potential_field = gaussian_filter(potential_field, sigma=5)
         return X, Y, potential_field
@@ -164,34 +163,27 @@ class SubstratePotentialVisualizer(ThirdPartyModuleAbstract):
         X, Y, P = self.compute_potential_field(grid_size=grid_size, margin=margin)
         plt.figure(figsize=(8, 6))
         cp = plt.imshow(P, extent=[X.min(), X.max(), Y.min(), Y.max()], origin='lower', cmap="bwr_r", alpha=0.8)
-        
         color_map = {
             "C": "orange", "N": "cyan", "O": "white", "H": "white",
             "S": "yellow", "P": "orange", "F": "lime", "Cl": "lime",
             "Br": "lime", "I": "lime"
         }
         default_color = "black"
-        
         size_map = {"H": 20, "C": 60, "N": 50, "O": 50, "S": 50}
         default_size = 90
-        
         for idx, (coord, element) in enumerate(zip(self.ligand_coords, self.ligand_elements)):
             color = color_map.get(element, default_color)
             size = size_map.get(element, default_size)
             plt.scatter(coord[0], coord[1], c=color, s=size, edgecolors="black", linewidth=1.5, zorder=3)
-        
         for bond in self.ligand_bonds.as_array():
             atom1, atom2, bond_type = bond[:3]
             coord1 = self.ligand_coords[atom1]
             coord2 = self.ligand_coords[atom2]
             plt.plot([coord1[0], coord2[0]], [coord1[1], coord2[1]], color='black', linewidth=bond_type * 2, zorder=2)
-        
         plt.xticks([])
         plt.yticks([])
-        
         cbar = plt.colorbar(cp, orientation='horizontal', pad=0.1)
         cbar.set_label("Potential", fontsize=12)
         cbar.set_ticks([-9, -6, -3, 0, 3])
-        
         plt.savefig(save_to, dpi=300, bbox_inches='tight')
 # visualizer.plot_potential_field(save_to='HEM.png')

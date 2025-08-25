@@ -92,7 +92,6 @@ class FastRelaxOpts(FastRelax, CitableModuleAbstract):
         """
         if opts is None:
             opts = []
-        
         rosetta = Rosetta(
             bin="relax",
             opts=[
@@ -291,7 +290,6 @@ class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
     def run(self, load_to_preview: bool = False):
         new_pdb_path = self.pdb
         if load_to_preview:
-            
             cmd.load(new_pdb_path, self.job_id, 1)
         for round_id in range(self.ncycles):
             new_pdb_path = self.run_a_round(round_id, new_pdb_path)

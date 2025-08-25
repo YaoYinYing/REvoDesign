@@ -26,9 +26,7 @@ def get_pymol_plugin_paths():
         AttributeError: Caught when PyMOL is running in headless mode
     """
     try:
-        
         return [p for p in pymol.plugins.get_startup_path()]
     except AttributeError as e:
-        
         logging.error(f'PyMOL is running in headless mode. {e}')
         return []

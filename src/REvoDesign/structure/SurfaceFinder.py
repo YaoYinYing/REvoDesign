@@ -24,9 +24,7 @@ def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
     tmpObj = cmd.get_unused_name("_tmp")
     cmd.create(tmpObj, "(" + selection + ") and polymer", zoom=0)
     cmd.set("dot_solvent", 1, tmpObj)
-    
     cmd.get_area(selection=tmpObj, load_b=1)
-    
     cmd.remove(tmpObj + " and b < " + str(cutoff))
     selName = cmd.get_unused_name("exposed_atm_")
     cmd.select(selName, "(" + selection + ") in " + tmpObj)
@@ -146,7 +144,6 @@ class SurfaceFinder:
                 scene_id, "store", message=f"surface_cutoff: {self.cutoff:.1f}"
             )
         cmd.refresh()
-        
         surface_residue_ids = list(
             {int(atom.resi) for atom in cmd.get_model(er_ca_selection).atom}
         )

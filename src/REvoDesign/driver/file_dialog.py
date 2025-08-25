@@ -32,10 +32,7 @@ class FileDialog(SingletonAbstract):
         self.window = window
         self.PWD = pwd or os.getcwd()
         self.register_file_dialog_buttons()
-        
         self.initialize()
-    
-    
     def browse_multiple_files(self, exts: Optional[tuple[FileExtensionCollection, ...]] = (file_extensions.Any,)
                               ) -> List[str]:
         return getMultipleFiles(self.window, exts)
@@ -52,42 +49,31 @@ class FileDialog(SingletonAbstract):
         """
         ext = FileExtensionCollection.squeeze(exts)
         filter_strings = ext.filter_string
-        
         if mode == "w":
             browse_title = "Save As..."
             filename = getSaveFileNameWithExt(
                 self.window, browse_title, filter=filter_strings
             )
             return filename if filename else None
-        
         browse_title = "Open ..."
         filename = getOpenFileNameWithExt(
             self.window, browse_title, filter=filter_strings
         )
-        
         if not filename:
             return None
-        
         filename_bn = os.path.basename(filename)
         filename_ext = filename_bn.split(".")[-1]
-        
-        
         if filename_ext not in file_extensions.Compressed:
             return filename
-        
         confirmed = decide(
             title="Extract Archive",
             description=f"The selected file '{filename_bn}'"
             " is a compressed archive. Do you want to extract it?",
         )
-        
         if not confirmed:
-            
             return filename
-        
         flatten_compressed_files(filename, self.PWD)
         return self.browse_filename(mode, exts=exts)
-    
     def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (
             file_extensions.Any,)) -> Optional[str]:
         """Open Any File
@@ -214,18 +200,13 @@ def flatten_compressed_files(compressed_file: str, target_dir: Optional[str] = N
     Returns:
     - str: The path to the directory where the files have been extracted.
     """
-    
     if target_dir is None:
         target_dir = os.getcwd()
-    
     flatten_path = os.path.join(
         target_dir,
         "expanded_compressed_files",
         os.path.basename(compressed_file),
     )
-    
     os.makedirs(flatten_path, exist_ok=True)
-    
     extract_archive(archive_file=compressed_file, extract_to=flatten_path)
-    
     return flatten_path

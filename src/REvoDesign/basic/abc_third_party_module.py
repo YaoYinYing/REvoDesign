@@ -35,7 +35,6 @@ class TorchModuleAbstract:
         It prints a confirmation message after cleaning up the memory.
         """
         import torch
-        
         if self.device.startswith("cuda"):
             torch.cuda.empty_cache()
         elif self.device.startswith("mps"):

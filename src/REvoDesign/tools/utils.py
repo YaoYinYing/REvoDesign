@@ -39,12 +39,9 @@ def pairwise_loop(iterable: Iterable):
     list - A list of tuples, each containing a pair of consecutive elements.
             The last element is paired with the first element.
     """
-    
     seq = list(iterable)
-    
     if not seq:
         return []
-    
     return pairwise(seq + [seq[0]])
 CLASS_ARGSLICE = slice(1, None)
 def require_not_none(
@@ -63,31 +60,25 @@ def require_not_none(
     def decorator(method):
         @wraps(method)
         def wrapper(self, *args, **kwargs):
-            
             if not hasattr(self, attribute_name) or getattr(self, attribute_name) is None:
-                
                 if callable(fallback_setup):
                     logging.warning(
                         f"Method called {method.__name__}' with None attribute, "
                         f"falling back to setup by {fallback_setup.__name__}")
                     fallback_setup()
-                
                 elif isinstance(fallback_setup, str):
                     if not hasattr(self, fallback_setup):
                         raise AttributeError(f"Attribute '{fallback_setup}' not found in {self}")
                     fallback_setup_: Optional[Callable[[], Any]] = getattr(self, fallback_setup)
-                    
                     if not callable(fallback_setup_):
                         raise AttributeError(f"Attribute '{fallback_setup}' is not callable in {self}")
                     logging.warning(f"Method called {method.__name__}' with None attribute, "
                                     f"falling back to setup by {fallback_setup}")
                     fallback_setup_()
                 else:
-                    
                     raise error_type(
                         f"The method '{method.__name__}' cannot be called because '{attribute_name}' is None."
                     )
-            
             return method(self, *args, **kwargs)
         return wrapper
     return decorator
@@ -164,12 +155,10 @@ def minibatches_generator(inputs_data_generator, batch_size):
     """
     current_batch = []
     for data_point in inputs_data_generator:
-        
         current_batch.append(data_point)
         if len(current_batch) == batch_size:
             yield current_batch
             current_batch = []
-    
     if current_batch:
         yield current_batch
 def extract_archive(archive_file: str, extract_to: str):
@@ -258,12 +247,9 @@ def rescale_number(
     Raises:
     - ValueError: If min_value is greater than or equal to max_value.
     """
-    
     if min_value >= max_value:
         raise ArithmeticError("min_value must be less than max_value")
-    
     rescaled_value = (number - min_value) / (max_value - min_value)
-    
     return max(0, min(1, rescaled_value))
 def count_and_sort_characters(input_string: str, characters):
     """
@@ -316,11 +302,9 @@ def generate_strong_password(length=16):
         raise ValueError(
             "Password length should be between 16 and 64 characters."
         )
-    
     password_characters = (
         string.ascii_letters + string.digits + '!
     )
-    
     generated_password = "".join(
         random.choice(password_characters) for _ in range(length)
     )
@@ -350,30 +334,24 @@ def device_picker() -> List[str]:
         List[str]: A list of available device strings (e.g., ['cuda:0', 'mps', 'gpu', 'cpu']).
     """
     device_list = ['cpu']
-    
     if is_package_installed('torch'):
         import torch
         try:
-            
             if torch.cuda.is_available():
                 cuda_device_count = torch.cuda.device_count()
                 if cuda_device_count >= 1:
                     device_list.extend([f'cuda:{i}' for i in range(cuda_device_count)])
-            
             if torch.backends.mps.is_available() and torch.backends.mps.is_built():
                 device_list.append('mps')
         except Exception as e:
             print(f"Error checking PyTorch devices: {e}")
-    
     elif is_package_installed('tensorflow'):
         import tensorflow as tf
         try:
-            
             if tf.config.list_physical_devices('GPU'):
                 device_list.append('gpu')
         except Exception as e:
             print(f"Error checking TensorFlow devices: {e}")
-    
     if not device_list:
         device_list.append('cpu')
     return device_list

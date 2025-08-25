@@ -39,7 +39,6 @@ class Clustering(CitableModuleAbstract):
         self.records_seqs = []
         self.cluster_output_fp = {}
     def initialize_aligner(self):
-        
         self.aligner = PairwiseAligner(
             mode="global",
             substitution_matrix=substitution_matrices.load(
@@ -78,7 +77,6 @@ class Clustering(CitableModuleAbstract):
         self.cluster_output_fp["score"] = img_fp
         plt.close()
     def handle_calculation_result(self, results):
-        
         logging.debug(f"Recieving results in length: {len(results)}")
         return results  
     def set_and_write_clusters(self, progressbar):
@@ -89,29 +87,19 @@ class Clustering(CitableModuleAbstract):
         handle = open(self.fastafile)
         self.records = list(SeqIO.parse(handle, "fasta"))
         if self.shuffle_variant:
-            
-            
             self.records = random.sample(self.records, len(self.records))
-        
-        
-        
         nm_seqs = len(self.records)
         self.records_seqs = [r.seq for r in self.records]
         self.scores = [[0 for i in range(nm_seqs)] for j in range(nm_seqs)]
-        
         seq_num = list(range(nm_seqs))
-        
         paramlist = itertools.combinations_with_replacement(
             self.records_seqs, 2
         )
         indexlist = itertools.combinations_with_replacement(seq_num, 2)
-        
         logging.info(f"Number of cpus used: {self.num_proc}")
         self.buffer_file = f"{self.save_dir}/buffer.csv"
         workload = int((len(seq_num) + 1) * len(seq_num) / 2)
         def processing(paramlist, indexlist, batch_size, mode="w"):
-            
-            
             logging.info(f"Job Number: {workload}")
             logging.info(f"Size of minibatch used: {batch_size}")
             batch_number = (
@@ -140,7 +128,6 @@ class Clustering(CitableModuleAbstract):
                             sub_paramlist, sub_indexlist
                         )
                     ]
-                    
                     parallel_executor = QtParallelExecutor(
                         self.global_alignment, args_list, self.num_proc - 1
                     )
@@ -163,14 +150,12 @@ class Clustering(CitableModuleAbstract):
                         ",".join([str(x) for x in list(item)])
                         for item in sub_res
                     ]
-                    
                     bw.write("\n".join(res_b))
                     bw.write("\n")
                     res_b = []
                 progressbar.setValue(workload)
         logging.info("Calculating...")
         processing(paramlist, indexlist, self.batch_size, "w")
-        
         logging.info("reading buffer ...")
         df = pd.read_csv(self.buffer_file)
         df.astype(

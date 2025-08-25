@@ -54,7 +54,6 @@ class REvoDesigner:
         self.design_case = "default"
         self.preffered_substitutions = ""
         self.reject_aa = ""
-        
         self.profile_alphabet = "ARNDCQEGHILKMFPSTWYV"
         self.cmap = "bwr_r"
         self.results = []
@@ -105,14 +104,11 @@ class REvoDesigner:
         logging.info(custom_indices)
         if custom_indices == []:
             custom_indices = list(range(1, len(self.sequence) + 1))
-        
-        
         logging.debug(f'Apply custom indices to df: {custom_indices}')
         logging.debug(f'Column names: {df.columns}')
         df_trunc = df.loc[:, custom_indices]
         logging.debug(f'Trucated Dataframe: \n {df_trunc.head()}')
         sequence = list(self.sequence)
-        
         sequence_trunc = "".join([sequence[i - 1] for i in custom_indices])
         logging.debug(f'Trucated sequence: {sequence_trunc}')
         max_abs_value = np.max((np.abs(df_trunc.values.min()), df_trunc.values.max()))
@@ -144,7 +140,6 @@ class REvoDesigner:
         }
         mutations = []
         for idx, resid in enumerate(custom_indices):
-            
             wt_aa = sequence[resid - 1]
             profile_scores = df_trunc.loc[:, resid]
             mutation_candidates["mutations"][resid] = {
@@ -258,7 +253,6 @@ class REvoDesigner:
         - Initializes the external designer with specified parameters.
         - Handles different types of external designers.
         """
-        
         expanded_custom_indices = expand_range(
             shortened_str=custom_indices_str, connector="-", seperator=","
         )
@@ -269,7 +263,6 @@ class REvoDesigner:
             logging.info(
                 f"Generated random sample indices: {expanded_custom_indices}"
             )
-        
         self.setup_parameters_for_magician()
         if not (self.magician_temperature and self.magician_num_samples):
             logging.error(
@@ -398,7 +391,6 @@ class REvoDesigner:
             group_id=self.design_case
         )
         logging.warning(f"Saving at {external_design_session}")
-        
         session_merger = MutantVisualizer(molecule="", chain_id="")
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse
@@ -440,7 +432,6 @@ class REvoDesigner:
             raise issues.NoResultsError(
                 f"Error occurs while parsing profile {self.input_profile} with format {self.input_profile_format}"
             )
-        
         self.profile_alphabet = "".join(df.T.columns.to_list())
         logging.debug(df.head())
         if self.preffered_substitutions:
@@ -530,7 +521,6 @@ class REvoDesigner:
         for position, wt_res, wt_score, candidates in mutations:
             if not candidates:
                 continue
-            
             if self.reject_aa and wt_res in self.reject_aa:
                 continue
             candidates = {
@@ -573,7 +563,6 @@ class REvoDesigner:
                 group_id=branch_id,
             )
             self.results.append(result_session)
-        
         session_merger = MutantVisualizer(molecule="", chain_id="")
         session_merger.input_session = self.input_pse
         session_merger.save_session = self.output_pse

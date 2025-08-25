@@ -11,27 +11,20 @@ from REvoDesign.tools.package_manager import (WorkerThread,
 from REvoDesign.tools.utils import require_installed
 @require_installed
 class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
-    
     name: str = 'openmmsetup'
-    
     installed: bool = is_package_installed(name)
     def singleton_init(self):
         """
         Initialize the singleton instance.
         This method initializes the server thread, running status, and server instance.
         """
-        
         self.server_thread: WorkerThread = None  
-        
         self.is_running = False
-        
         self.server: uvicorn.Server = None  
     def open_url(self, url):
-        
         run_worker_thread_with_progress(
             webbrowser.open, url
         )
-        
         self.cite()
     def start_server(self):
         """
@@ -41,43 +34,28 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         '''
         Behavior of the server start action.
         '''
-        
         bus = ConfigBus()
-        
         host = bus.get_value('openmmsetup.host', str)
         port = bus.get_value('openmmsetup.port', int)
-        
         url = f'http://{host}:{port}'
         if self.is_running:
             print("Server is already running.")
             return self.open_url(url=url)
-        
-        
         from asgiref.wsgi import WsgiToAsgi  
-        
         from openmmsetup.openmmsetup import app
-        
         asgi_app = WsgiToAsgi(app)
-        
         config = uvicorn.Config(
             app=asgi_app,
             host=host,
             port=port,
             log_level="info",
         )
-        
         self.server = uvicorn.Server(config)
-        
         self.server_thread = WorkerThread(func=self._run_server)
-        
         self.server_thread.result_signal.connect(self._on_server_result)
-        
         self.server_thread.finished_signal.connect(self._on_server_finished)
-        
         self.server_thread.start()
-        
         self.is_running = True
-        
         print(f"Server started in {url}")
         return self.open_url(url=url)
     __bibtex__ = {

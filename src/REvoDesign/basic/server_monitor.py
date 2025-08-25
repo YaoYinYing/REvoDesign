@@ -81,10 +81,8 @@ class MenuActionServerMonitor(QtCore.QObject):
         self.action_on = action_on
         self.action_off = action_off
         self.menu_item = menu_item
-        
         if self.menu_item is not None:
             self.menu_item.setIcon(QtGui.QIcon(os.path.join(this_dir, "../meta/icons/leds/blue.png")))
-        
         self.action_on.triggered.connect(self._start_server)
         self.action_off.triggered.connect(self._stop_server)
     def _start_server(self):

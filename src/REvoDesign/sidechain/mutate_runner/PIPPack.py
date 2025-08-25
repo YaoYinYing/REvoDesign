@@ -12,7 +12,6 @@ logging = ROOT_LOGGER.getChild(__name__)
 class PIPPack_worker(MutateRunnerAbstract):
     """
     Class for managing protein reconstruction and mutation using PIPPack.
-    
     """
     name: str = "PIPPack"
     installed: bool = is_package_installed("pippack")

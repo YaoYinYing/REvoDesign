@@ -44,11 +44,8 @@ class Magician(SingletonAbstract):
         Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick,
         and creating an instance of the assistant.
         """
-        
         self.bus: ConfigBus = ConfigBus()
-        
         self.gimmick: Optional[ExternalDesignerAbstract] = None
-        
         self.magician_assistant = MagicianAssistant()
     def setup(
         self,
@@ -67,27 +64,23 @@ class Magician(SingletonAbstract):
         Returns:
         - Magician: Returns the instance of the Magician for method chaining.
         """
-        
         if name_badget_id:
             name = self.bus.get_widget_value(name_badget_id, str)
         elif name_cfg_term:
             name = self.bus.get_value(name_cfg_term, str, reject_none=True)
         elif gimmick_name:
             name = gimmick_name
-        
         else:
             if self.gimmick is not None:
                 logging.info(f"Cooling down {self.gimmick.name} ...")
             self.gimmick = None
             return self
-        
         if not (
             isinstance(self.gimmick, ExternalDesignerAbstract)
             and self.gimmick.name == name
         ):
             with timing(f"Pre-heating up Magician's gimmick {name}"):
                 try:
-                    
                     logging.info("This could take a while ...")
                     self.gimmick = self.magician_assistant.get(
                         name=name, **kwargs
@@ -95,12 +88,10 @@ class Magician(SingletonAbstract):
                     self.gimmick.initialize(**kwargs)
                     return self
                 except KeyError:
-                    
                     return self.setup()
                 except Exception as e:
                     raise issues.DependencyError(
                         f"Failed to setup Magician's gimmick {name}"
                     ) from e
-        
         logging.info(f"Designer stays unchanged: {self.gimmick.name}")
         return self

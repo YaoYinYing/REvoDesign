@@ -25,10 +25,8 @@ class DLPacker_worker(MutateRunnerAbstract):
             'mut_res': 'G',
             'wt_res': 'A'
         },
-        
     ]
     mutated_pdb = dlpacker.run_mutate(mutant, reconstruct_area_radius=5)  
-    
     """
     name: str = "DLPacker"
     installed: bool = is_package_installed("DLPacker")
@@ -166,7 +164,6 @@ class DLPacker_worker(MutateRunnerAbstract):
         - List of paths to the mutated PDB files
         """
         with timing('setting up DLPacker'):
-            
             from DLPacker.dlpacker import DLPacker
         if nproc is None:
             nproc = os.cpu_count()

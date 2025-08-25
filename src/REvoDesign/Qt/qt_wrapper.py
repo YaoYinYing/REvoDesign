@@ -3,16 +3,13 @@ Custom Qt Wrapper: Uses pymol.Qt when available, supports typing checks
 """
 from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
-    
     from PyQt5 import QtCore as _QtCore
     from PyQt5 import QtGui as _QtGui
     from PyQt5 import QtWidgets as _QtWidgets
     QtSource: str = "PyQt5"
 else:
-    
     _QtCore = _QtGui = _QtWidgets = None  
     QtSource: Optional[str] = None  
-    
     try:
         from pymol.Qt import QtCore as _QtCore
         from pymol.Qt import QtGui as _QtGui

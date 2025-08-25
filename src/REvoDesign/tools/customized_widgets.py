@@ -53,12 +53,9 @@ class REvoDesignWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName(object_name or 'AnonymousWidget')
         self.allow_repeat = allow_repeat
-        
         self.destroyed.connect(self.detach)
-        
         if self.allow_repeat:
             return
-        
         try:
             self.check_repeat()
         except RuntimeError as e:
@@ -100,16 +97,13 @@ class REvoDesignWidget(QtWidgets.QWidget):
             return
         if not hasattr(bus.ui, 'open_windows'):
             return
-        
         the_windows = [
             w for w in bus.ui.open_windows if hasattr(
                 w, 'objectName') and getattr(
                 w, 'objectName')() == self.objectName()]
         if any(the_windows):
-            
             this_window: REvoDesignWidget = the_windows[0]
             this_window.raise_()
-            
             raise RuntimeError(f"a window named {self.objectName()} is already open.")
     def attach(self):
         """
@@ -120,7 +114,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
         if bus.headless:
             return
         logging.debug(f"Window {self.objectName()} attaching...")
-        
         if not hasattr(bus.ui, 'open_windows'):
             bus.ui.open_windows = []
         bus.ui.open_windows.append(self)
@@ -134,7 +127,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
         if bus.headless:
             return
         logging.debug(f"Window {self.objectName()} detaching...")
-        
         if hasattr(bus.ui, 'open_windows') and self in bus.ui.open_windows:
             bus.ui.open_windows.remove(self)
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
@@ -242,11 +234,9 @@ class QHoverCross(QtWidgets.QWidget):
             parent: Parent widget.
         """
         super().__init__(parent)
-        
         self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        
         self.button_size = button_size
         self.hover_position = None  
         self.edge_width = 2  
@@ -276,24 +266,19 @@ class QHoverCross(QtWidgets.QWidget):
             return  
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        
         pen = QtGui.QPen(QtGui.QColor("red"), self.edge_width)  
         painter.setPen(pen)
         painter.setBrush(QtCore.Qt.NoBrush)  
         button_width = self.button_size
         button_height = self.button_size
-        
         center_x = self.hover_position.center().x()
         center_y = self.hover_position.center().y()
-        
         horizontal_rect = QtCore.QRect(
             0, center_y - button_height // 2, self.width(), button_height
         )
-        
         vertical_rect = QtCore.QRect(
             center_x - button_width // 2, 0, button_width, self.height()
         )
-        
         painter.drawRect(horizontal_rect)
         painter.drawRect(vertical_rect)
 class QButtonMatrix(QtWidgets.QWidget):
@@ -311,35 +296,28 @@ class QButtonMatrix(QtWidgets.QWidget):
         signal_process: Handles button click events.
     Usage Example:
         ```python
-        
         data = {
             'A': [1.0, 2.0, 3.0],
             'B': [4.0, 5.0, 6.0],
             'C': [7.0, 8.0, 9.0]
         }
         df_button_matrix = pd.DataFrame(data, index=['X', 'Y', 'Z'])
-        
         sequence = "XYZ"
-        
         def mutate_with_gridbuttons(row, col, matrix, ignore_wt):
             print(f"Mutation grid button action executed at row {row}, col {col}.")
-        
         app = QApplication([])
-        
         button_matrix = QButtonMatrix(
             df_matrix=df_button_matrix,
             sequence=sequence,
             cmap='bwr',
             flip_cmap=False,
         )
-        
         button_matrix.sequence = sequence
         button_matrix.init_ui()
         button_matrix.active_func = partial(
             mutate_with_gridbuttons,
             **kwargs,
         )
-        
         button_matrix.report_axes_signal.connect(
             lambda row, col: mutate_with_gridbuttons(
                 row,
@@ -348,9 +326,7 @@ class QButtonMatrix(QtWidgets.QWidget):
                 **kwargs,
             )
         )
-        
         button_matrix.show()
-        
         app.exec_()
         ```
     Notes:
@@ -364,7 +340,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         handled externally.
     """
     label_size: Optional[List[int]] = [18, 12]
-    
     report_axes_signal = QtCore.pyqtSignal(int, int)
     def __init__(
         self,
@@ -392,16 +367,12 @@ class QButtonMatrix(QtWidgets.QWidget):
         """
         from REvoDesign.tools.utils import cmap_reverser
         super().__init__(parent)
-        
         self.main_layout = QtWidgets.QStackedLayout(self)
         self.main_layout.setStackingMode(QtWidgets.QStackedLayout.StackAll)
-        
         self.matrix_widget = QtWidgets.QWidget()
         self.button_layout = QtWidgets.QGridLayout()
         self.matrix_widget.setLayout(self.button_layout)
-        
         self.hover_cross = QHoverCross(button_size, self)
-        
         self.main_layout.addWidget(self.matrix_widget)  
         self.main_layout.addWidget(self.hover_cross)    
         self.button_size = button_size
@@ -518,7 +489,6 @@ class QButtonMatrix(QtWidgets.QWidget):
                     row_name=row_name,
                     value=value,
                     is_wt_pair=is_wt_button)
-                
                 button = QButtonBrick(
                     coords=ButtonCoords(row, row_name, col, col_name),
                     color=self._map_value_to_color(value),
@@ -527,17 +497,13 @@ class QButtonMatrix(QtWidgets.QWidget):
                     is_wt=is_wt_button,
                     size_policy=size_policy,
                 )
-                
                 bfont = QtGui.QFont()
                 bfont.setPointSizeF(self.button_size * .9)
                 bfont.setBold(True)
                 button.setFont(bfont)
-                
                 button.hover_signal.connect(self.on_hover)
                 button.leave_signal.connect(self.on_leave)
-                
                 button.clicked.connect(lambda checked, r=row, c=col: self.signal_process(r, c))
-                
                 self.button_layout.addWidget(button, row, col + 1)
         for col, col_name in enumerate(self.alphabet_col):
             if self.zero_index_offset:
@@ -655,7 +621,6 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         super().__init__(parent)
         self.choices = choices
         self.checked_items = set()
-        
         self.setModel(QtGui.QStandardItemModel(self))
         for choice in self.choices:
             self._add_checkable_item(choice)
@@ -711,16 +676,12 @@ def getExistingDirectory():
         QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,  
     )
 def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol, ...]] = None):
-    
     dialog = QtWidgets.QFileDialog(parent, "Select file(s)")  
-    
     dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)  
     if exts:
         ext = FExCol.squeeze(exts)
         dialog.setNameFilter(ext.filter_string)
-    
     if dialog.exec() == QtWidgets.QDialog.Accepted:  
-        
         return dialog.selectedFiles()
     return []
 def getOpenFileNameWithExt(*args, **kwargs):
@@ -734,7 +695,6 @@ def getOpenFileNameWithExt(*args, **kwargs):
     if "." not in os.path.split(fname)[-1]:
         m = re.search(r"\*(\.[\w\.]+)", filter)
         if m:
-            
             fname += m.group(1)
     return fname
 @overload
@@ -777,12 +737,10 @@ def set_widget_value(widget, value):
     """
     def set_value_error(widget: QtWidgets.QWidget, value: Any):
         logging.warning(f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}")
-    
     if callable(value):
         value = value()  
     if isinstance(value, Iterable) and not isinstance(value, (str, list, tuple, dict)):
         value = list(value)  
-    
     if isinstance(widget, QtWidgets.QDoubleSpinBox):
         if isinstance(value, (int, float)):
             widget.setValue(float(value))
@@ -793,12 +751,9 @@ def set_widget_value(widget, value):
             widget.setValue(int(value))
         elif isinstance(value, (list, tuple)) and len(value) > 1:
             widget.setRange(int(value[0]), int(value[1]))
-    
-    
     elif isinstance(widget, MultiCheckableComboBox):
         if not isinstance(value, (list, tuple)):
             value = [value]
-        
         widget.unselect_all()
         widget.set_checked_items([str(x) for x in value])
     elif isinstance(widget, QtWidgets.QComboBox):
@@ -833,7 +788,6 @@ def set_widget_value(widget, value):
                 widget.setCurrentIndex(0)
     elif isinstance(widget, QtWidgets.QGridLayout):
         if isinstance(value, str) and os.path.exists(value):
-            
             for i in reversed(range(widget.count())):
                 widget = widget.itemAt(i).widget()
                 if widget is not None:
@@ -903,7 +857,6 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event):
     Raises:
     - NotImplementedError: If the widget type is not supported by this function.
     """
-    
     if isinstance(
         widget,
         (
@@ -913,18 +866,14 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event):
         ),
     ):
         widget.valueChanged.connect(event)
-    
     elif isinstance(widget, QtWidgets.QComboBox):
         widget.currentTextChanged.connect(event)
         widget.editTextChanged.connect(event)
-    
     elif isinstance(widget, QtWidgets.QLineEdit):
         widget.textChanged.connect(event)
         widget.textEdited.connect(event)
-    
     elif isinstance(widget, QtWidgets.QCheckBox):
         widget.stateChanged.connect(event)
-    
     else:
         raise NotImplementedError(
             f"{widget} {type(widget)} is not supported yet"
@@ -955,7 +904,6 @@ class ParallelExecutor:
         self.args = args
         self.kwargs = kwargs
         self.n_jobs = n_jobs
-        
         if not backend == "auto":
             self.backend = backend
         else:
@@ -977,27 +925,16 @@ class ParallelExecutor:
 class QtParallelExecutor(QtCore.QThread):
     """
     USAGE:
-        
         progress_bar.setRange(0, 0)
-        
-        
         self.parallel_executor = ParallelExecutor(self.process_position, mutagenesis_tasks, n_jobs=nproc)
-        
         self.parallel_executor.progress_signal.connect(progress_bar.setValue)
-        
         self.parallel_executor.start()
-        
-        
         while not self.parallel_executor.isFinished():
-            
             refresh_window()
             time.sleep(0.001)
-        
         progress_bar.setRange(0, len(mutagenesis_tasks))
         progress_bar.setValue(len(mutagenesis_tasks))
-        
         self.results=self.parallel_executor.handle_result()
-        
         self.merging_sessions()
     """
     progress_signal = QtCore.pyqtSignal(int)
@@ -1037,7 +974,6 @@ def create_cmap_icon(cmap: str):
     ```python
     from REvoDesign.Qt import QtWidgets
     import matplotlib.pyplot as plt
-    
     icon = create_cmap_icon('my_colormap')
     label = QtWidgets.QLabel()
     label.setPixmap(icon)
@@ -1045,11 +981,9 @@ def create_cmap_icon(cmap: str):
     plt.show()
     ```
     """
-    
     color_map = matplotlib.colormaps[cmap]
     pixmap = QtGui.QPixmap(100, 100)  
     pixmap.fill(QtGui.QColor(0, 0, 0, 0))  
-    
     painter = QtGui.QPainter(pixmap)
     gradient = QtGui.QLinearGradient(0, 0, 100, 100)  
     for i in range(100):
@@ -1068,7 +1002,6 @@ def refresh_tree_widget(user_tree: Dict[str, Dict], treeWidget_ws_peers):
     Returns:
     - None
     """
-    
     treeWidget_ws_peers.clear()
     if not user_tree:
         return
@@ -1080,13 +1013,11 @@ def refresh_tree_widget(user_tree: Dict[str, Dict], treeWidget_ws_peers):
         child.setText(0, f"{key}: {value}")
     if not user_tree:
         return
-    
     sorted_users = sorted(
         user_tree.items(),
         key=lambda x: x[1]["joined_time_stamp"],
         reverse=True,
     )
-    
     for uuid, user_info in sorted_users:
         user_node = QtWidgets.QTreeWidgetItem(treeWidget_ws_peers)
         user_node.setText(0, f"{user_info['user']}@{user_info['node']}")
@@ -1147,7 +1078,6 @@ def real_bool(val: Any):
         bool: True if the value matches one of the predefined true values.
              False if the value matches one of the predefined false values.
     """
-    
     if any(
         val == ans
         for ans in (
@@ -1162,7 +1092,6 @@ def real_bool(val: Any):
         )
     ):
         return True
-    
     if any(
         val == ans
         for ans in (
@@ -1245,11 +1174,8 @@ class ValueDialog(REvoDesignWidget):
         self.key_dict = key_dict.asked_values
         self.updated_values = []
         self.setAcceptDrops(True)
-        
         self.need_action = key_dict.need_action
-        
         self.layout = QtWidgets.QVBoxLayout()
-        
         if key_dict.banner:
             banner_label = QtWidgets.QLabel(key_dict.banner)
             banner_label.setWordWrap(True)
@@ -1266,7 +1192,6 @@ class ValueDialog(REvoDesignWidget):
             """
             )
             self.layout.addWidget(banner_label)
-        
         if self.need_action:
             self.table = QtWidgets.QTableWidget(len(self.key_dict), 4)
             self.table.setHorizontalHeaderLabels(["Field", "Type", "Input", "Action"])
@@ -1274,7 +1199,6 @@ class ValueDialog(REvoDesignWidget):
             self.table = QtWidgets.QTableWidget(len(self.key_dict), 3)
             self.table.setHorizontalHeaderLabels(["Field", "Type", "Input"])
         self.table.horizontalHeader().setStretchLastSection(True)
-        
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)  
         header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)  
@@ -1288,7 +1212,6 @@ class ValueDialog(REvoDesignWidget):
         self.table.verticalHeader().setVisible(False)  
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)  
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)  
-        
         max_visible_rows = 8
         row_height = self.table.verticalHeader().defaultSectionSize()
         if len(self.key_dict) > max_visible_rows:
@@ -1299,11 +1222,9 @@ class ValueDialog(REvoDesignWidget):
             self.table.setMinimumHeight(len(self.key_dict) * row_height)
         self.input_fields: Dict[str, Any] = {}
         self.input_fields_data_pair: Dict[str, AskedValue] = {}
-        
         for row, item in enumerate(key_dict.asked_values):
             self._add_field_to_table(row, item)
         self.layout.addWidget(self.table)
-        
         load_save_layout = QtWidgets.QHBoxLayout()
         load_button = QtWidgets.QPushButton("Load")
         load_button.clicked.connect(self._on_load_clicked)
@@ -1318,7 +1239,6 @@ class ValueDialog(REvoDesignWidget):
         load_save_layout.addWidget(load_button)
         load_save_layout.addWidget(save_button)
         self.layout.addLayout(load_save_layout)
-        
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
         ok_button.setObjectName("OK")
@@ -1337,16 +1257,13 @@ class ValueDialog(REvoDesignWidget):
             row (int): The row number to add the field.
             asked_value (AskedValue): The field details.
         """
-        
         required_star = '<span style=" font-weight:600; color:
         key_label = QtWidgets.QLabel(f"{required_star if asked_value.required else ''}{asked_value.key}")
         key_label.setToolTip(f"{'[REQUIRED] ' if asked_value.required else ''}{asked_value.reason}" or "")
         self.table.setCellWidget(row, 0, key_label)
-        
         type_label = QtWidgets.QLabel(asked_value.typing.__name__)
         type_label.setToolTip(f"Expected type: {asked_value.typing.__name__}")
         self.table.setCellWidget(row, 1, type_label)
-        
         choices = asked_value.choices
         if callable(choices):
             try:
@@ -1356,20 +1273,16 @@ class ValueDialog(REvoDesignWidget):
                     self, "Error", f"Failed to fetch dynamic choices for '{asked_value.key}': {str(e)}"
                 )
                 choices = None
-        
         if asked_value.multiple_choices:
             if not choices:
                 raise issues.InternalError(f"Multi-choice field must have a valid choices, not {choices}")
-            
             widget = MultiCheckableComboBox(choices=list(choices))
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
         elif asked_value.typing == bool:
             widget = QtWidgets.QCheckBox()
             widget.setChecked(bool(asked_value.val))
-        
         elif isinstance(choices, range):
-            
             if asked_value.typing == float:
                 widget = QtWidgets.QDoubleSpinBox()
                 widget.setRange(choices.start, choices.stop)
@@ -1377,29 +1290,22 @@ class ValueDialog(REvoDesignWidget):
             else:
                 widget = QtWidgets.QSpinBox()
                 widget.setRange(choices.start, choices.stop)
-            
             if asked_value.val is not None:
                 widget.setValue(asked_value.typing(asked_value.val))
             else:
                 widget.setValue(choices.start)
-        
         elif isinstance(choices, (tuple, list, filter)):
-            
-            
             choices = tuple(choices) if not isinstance(choices, filter) else tuple(deepcopy(choices))
             if not choices:
                 raise issues.InternalError(f"Drop-down field must have a valid choices, not {choices}")
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
-        
         else:
-            
             widget = QtWidgets.QLineEdit()
             widget.setText(str(asked_value.val) or "")
             if asked_value.required:
                 widget.setPlaceholderText("Required")
-        
         widget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         widget.setToolTip(asked_value.reason or "")
         self.input_fields[asked_value.key] = widget
@@ -1408,7 +1314,6 @@ class ValueDialog(REvoDesignWidget):
         action_button_size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum,
             QtWidgets.QSizePolicy.Policy.Fixed)
-        
         if asked_value.source in ("File", 'FileO'):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a file")
@@ -1429,29 +1334,21 @@ class ValueDialog(REvoDesignWidget):
             action_button.clicked.connect(lambda: widget.setText(getExistingDirectory()))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "JsonInput":
-            
             container_widget = QtWidgets.QWidget()
             button_layout = QtWidgets.QHBoxLayout(container_widget)
             button_layout.setContentsMargins(0, 0, 0, 0)  
-            
             input_action_button = QtWidgets.QPushButton("Input")
             input_action_button.setToolTip("Browse for an input JSON file")
             input_action_button.clicked.connect(lambda: widget.setText(ask_for_multiple_values_as_json()))
-            
             input_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(input_action_button)
-            
             load_action_button = QtWidgets.QPushButton("Load")
             load_action_button.setToolTip("Load a auto-savedJSON file($PWD/json_multi_input/***.json)")
             load_action_button.clicked.connect(lambda: self._browse_file(widget, Fext.JSON))
-            
             load_action_button.setSizePolicy(action_button_size_policy)
             button_layout.addWidget(load_action_button)
-            
             self.table.setCellWidget(row, 3, container_widget)
-        
         elif asked_value.multiple_choices:
-            
             container_widget = QtWidgets.QWidget()
             button_layout = QtWidgets.QHBoxLayout(container_widget)
             button_layout.setContentsMargins(0, 0, 0, 0)  
@@ -1478,7 +1375,6 @@ class ValueDialog(REvoDesignWidget):
         Args:
             widget (QWidget): The input widget to update with the selected file path.
         """
-        
         from REvoDesign.driver.file_dialog import FileDialog
         ext = (exts, Fext.Any,) if exts else (Fext.Any,)
         file_dialog = FileDialog(None, os.getcwd())
@@ -1536,9 +1432,6 @@ class ValueDialog(REvoDesignWidget):
         )
         if not selected_file:
             return
-        
-        
-        
         contents_to_save = {
             'metadata': {
                 '__window__': self.windowTitle(),
@@ -1556,7 +1449,6 @@ class ValueDialog(REvoDesignWidget):
             raise ValueError(f"Error loading json file {selected_file}: {e}") from e
     def _load_json_file(self, selected_file):
         from REvoDesign import __version__
-        
         contents_to_load: Dict[str, Dict[str, Any]] = json.load(open(selected_file))
         if contents_to_load['metadata']['__window__'] != self.windowTitle():
             logging.error(f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
@@ -1622,10 +1514,8 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.setWindowTitle("Dynamic Key-Value Pairs")
         self.setMinimumWidth(400)
         self.setMinimumHeight(200)
-        
         self.layout = QtWidgets.QVBoxLayout()
         self.row_widgets = []  
-        
         self.scroll_area = QtWidgets.QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_widget = QtWidgets.QWidget()
@@ -1635,13 +1525,10 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.scroll_widget.setLayout(self.scroll_layout)
         self.scroll_area.setWidget(self.scroll_widget)
         self.layout.addWidget(self.scroll_area)
-        
         self._add_row()
-        
         add_button = QtWidgets.QPushButton("+ Add Row")
         add_button.clicked.connect(self._add_row)
         self.layout.addWidget(add_button)
-        
         button_layout = QtWidgets.QHBoxLayout()
         ok_button = QtWidgets.QPushButton("OK")
         ok_button.setObjectName("OK")
@@ -1661,25 +1548,19 @@ class AppendableValueDialog(QtWidgets.QDialog):
             val (str): The default text for the value field.
         """
         row_layout = QtWidgets.QHBoxLayout()
-        
         key_edit = QtWidgets.QLineEdit()
         key_edit.setPlaceholderText("Key")
         key_edit.setText(key or "")
-        
         val_edit = QtWidgets.QLineEdit()
         val_edit.setPlaceholderText("Value")
         val_edit.setText(val or "")
-        
         remove_button = QtWidgets.QPushButton("-")
         remove_button.clicked.connect(lambda: self._remove_row(row_layout))
-        
         row_layout.addWidget(key_edit)
         row_layout.addWidget(val_edit)
         row_layout.addWidget(remove_button)
-        
         self.scroll_layout.addLayout(row_layout)
         self.row_widgets.append((row_layout, key_edit, val_edit))
-        
         self._adjust_dialog_height()
     def _remove_row(self, row_layout):
         """
@@ -1689,17 +1570,13 @@ class AppendableValueDialog(QtWidgets.QDialog):
         """
         for i, (layout, key_edit, val_edit) in enumerate(self.row_widgets):
             if layout == row_layout:
-                
                 for j in reversed(range(layout.count())):
                     widget = layout.itemAt(j).widget()
                     if widget:
                         widget.deleteLater()
-                
                 self.scroll_layout.removeItem(layout)
-                
                 del self.row_widgets[i]
                 break
-        
         self._adjust_dialog_height()
     def _adjust_dialog_height(self):
         """
@@ -1771,10 +1648,8 @@ def dialog_wrapper(
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
-            
             dynamic_values_with_index: List[AskedValueDynamic] = kwargs.pop("dynamic_values", [])
             dynamic_values_with_index = sorted(dynamic_values_with_index, key=lambda x: x.get("index", len(options)))
-            
             all_options = list(options)
             for dynamic_value in dynamic_values_with_index:
                 index = dynamic_value.get("index", len(all_options))
@@ -1788,7 +1663,6 @@ def dialog_wrapper(
                 func(**values.typing_fixed.asdict)
             dialog.ok_signal.connect(set_values)
             dialog.show()
-            
         return wrapper
     return decorator
 __all__ = [

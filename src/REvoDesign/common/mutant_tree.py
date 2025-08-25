@@ -118,10 +118,8 @@ class MutantTree:
         Returns:
         - bool: True if the object is found in the instance, False otherwise.
         """
-        
         if isinstance(obj, str):
             return obj in self.all_mutant_ids
-        
         return any(obj == m for m in self.all_mutant_objects)
     def get_a_branch(self, branch_id: str) -> dict[str, Mutant]:
         """
@@ -260,17 +258,13 @@ class MutantTree:
         new_tree = tree.create_mutant_tree_from_list(['mutant_id_1', 'mutant_id_2'])
         """
         new_mutant_tree = {}
-        
         for branch_id in self.mutant_tree.keys():
             new_branch = {}
-            
             for mutant_id, mutant_obj in self.mutant_tree[branch_id].items():
                 if mutant_id in mutant_id_list:
                     new_branch[mutant_id] = mutant_obj
-            
             if new_branch:
                 new_mutant_tree[branch_id] = new_branch
-        
         new_tree_instance = MutantTree(new_mutant_tree)
         return new_tree_instance
     def jump_to_the_best_mutant_in_branch(
@@ -288,7 +282,6 @@ class MutantTree:
         self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(
             branch_id, ascending_order
         )
-    
     def _jump_to_the_best_mutant_in_branch(
         self, branch_id: str, ascending_order: bool = False
     ):
@@ -303,7 +296,6 @@ class MutantTree:
         )
         return sorted_mutants_scores[0][0]
     def walk_the_mutants(self, walf_forward: bool = True):
-        
         """
         Walks through mutants in the MutantTree object.
         Parameters:
@@ -318,9 +310,7 @@ class MutantTree:
             self.current_branch_id,
             self.current_mutant_id,
         ) = self._walk_the_mutants(walk_forward=walf_forward)
-    
     def _walk_the_mutants(self, walk_forward: bool = True) -> Tuple[int, int]:
-        
         last_branch_id = self.current_branch_id
         last_mutant_id = self.current_mutant_id
         branch_index = self.get_branch_index(last_branch_id)
@@ -331,14 +321,12 @@ class MutantTree:
             if not self.is_the_mutant_the_last_in_branch(
                 last_branch_id, last_mutant_id
             ):
-                
                 current_branch_id = last_branch_id
                 current_mutant_id = list(
                     self.mutant_tree[last_branch_id].keys()
                 )[mutant_index + 1]
             else:
                 if branch_index < len(self.all_mutant_branch_ids) - 1:
-                    
                     current_branch_id = self.all_mutant_branch_ids[
                         branch_index + 1
                     ]
@@ -346,21 +334,18 @@ class MutantTree:
                         self.mutant_tree[last_branch_id].keys()
                     )[0]
                 else:
-                    
                     current_branch_id = self.all_mutant_branch_ids[0]
                     current_mutant_id = list(
                         self.mutant_tree[current_branch_id].keys()
                     )[0]
         else:
             if mutant_index > 0:
-                
                 current_branch_id = last_branch_id
                 current_mutant_id = list(
                     self.mutant_tree[last_branch_id].keys()
                 )[mutant_index - 1]
             else:
                 if branch_index > 0:
-                    
                     current_branch_id = self.all_mutant_branch_ids[
                         branch_index - 1
                     ]
@@ -368,7 +353,6 @@ class MutantTree:
                         self.mutant_tree[current_branch_id].keys()
                     )[-1]
                 else:
-                    
                     current_branch_id = self.all_mutant_branch_ids[-1]
                     current_mutant_id = list(
                         self.mutant_tree[current_branch_id].keys()
@@ -425,15 +409,12 @@ class MutantTree:
         if not isinstance(incoming_tree, MutantTree):
             raise ValueError("Input must be a MutantTree object.")
         diff_tree = MutantTree({})
-        
         for branch_id in self.all_mutant_branch_ids:
             if branch_id not in incoming_tree.all_mutant_branch_ids:
-                
                 diff_tree.update_tree_with_new_branches(
                     {branch_id: self.get_a_branch(branch_id)}
                 )
             else:
-                
                 self_branch = self.get_a_branch(branch_id)
                 incoming_tree_branch = incoming_tree.get_a_branch(branch_id)
                 diff_branch_contents = {
@@ -456,15 +437,11 @@ class MutantTree:
         """
         if self.empty:
             return None
-        
         last_branch_id = self.all_mutant_branch_ids[-1]
-        
         last_mutant_id, last_mutant = list(
             self.mutant_tree[last_branch_id].items()
         )[-1]
-        
         self.remove_mutant_from_branch(last_branch_id, last_mutant_id)
-        
         self.refresh_mutants()
         return last_branch_id, last_mutant_id, last_mutant
     @property
