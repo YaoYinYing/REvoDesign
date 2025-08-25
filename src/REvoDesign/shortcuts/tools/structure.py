@@ -1,6 +1,3 @@
-'''
-Shortcut functions of structure manipulation
-'''
 import itertools
 from pymol import cmd
 from REvoDesign import ROOT_LOGGER
@@ -10,20 +7,6 @@ def shortcut_find_interface(
     selection="all",
     interact_dist=4,
 ):
-    """
-    AUTHOR
-                    Yinying Yao
-    DESCRIPTION
-                    Find interface of specified interaction distance
-    USAGE
-                    find_interface selection [, interact_dist ]
-    ARGUMENTS
-                    selection: object or selection
-                    interact_dist: int. the maximum distance of interface (angstrom).
-                                default: 4 .
-    EXAMPLE
-                    find_interface protein_ranked_*, 4
-    """
     print("Searching interface ...")
     for x in cmd.get_names(selection=f"({selection})"):
         chains_in_this_obj = cmd.get_chains(x)

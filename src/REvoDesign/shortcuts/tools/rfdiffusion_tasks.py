@@ -35,71 +35,6 @@ RFD_WEIGHTS_STR = '''
 1e9245a486262dff3cb3286f22a3014d InpaintSeq_Fold_ckpt.pt
 a6f8652938bb45c332ffa683d8ad3509 InpaintSeq_ckpt.pt
 6f4d00394d34f6a9072d70976f6c8777 RF_structure_prediction_weights.pt
-'''
-@dataclass
-class DglSolver:
-    installed: bool = is_package_installed('dgl')
-    cuda_version: str = ''
-    which_nvcc = shutil.which('nvcc')
-    def fetch_cuda_version_before_install(self):
-        if not self.which_nvcc:
-            return
-        nvcc_version = run_command(['nvcc', '--version']).stdout.split('\n')[3]
-        nvcc_version_match = re.search(r'release (\d+\.\d+)', nvcc_version)
-        if not nvcc_version_match:
-            return
-        cuda_version = nvcc_version_match.group(1)
-        if cuda_version >= '12.1':
-            self.cuda_version = 'cu121'
-        elif cuda_version >= '11.8':
-            self.cuda_version = 'cu118'
-        else:
-            self.cuda_version = ''
-            warnings.warn(
-                issues.PlatformNotSupportedWarning(
-                    f"CUDA version {cuda_version} is not supported by DGL. Please install CUDA version >= 11.8 if you need to use DGL with CUDA support."
-                ))
-    def install(self):
-        self.fetch_cuda_version_before_install()
-        if self.cuda_version:
-            index_link = f'https://data.dgl.ai/wheels/{self.cuda_version}/repo.html'
-        else:
-            index_link = 'https://data.dgl.ai/wheels/repo.html'
-        c = run_command([sys.executable, '-m', 'pip', 'install', 'dgl==2.2.1', '-f', index_link])
-        if c.returncode != 0:
-            logging.error(f"Failed to install DGL: {c.stderr}")
-            raise RuntimeError(f"Failed to install DGL: {c.stderr}")
-        self.installed = True
-RFD_WEIGHTS = FileDownloadRegistry(
-    name='RFdiffusion',
-    base_url=RFDIFFUSION_WEIGHTS_BASE_URL,
-    registry=FileDownloadRegistry.prepare_registry_from_md5(RFD_WEIGHTS_STR)
-)
-RFDIFFUSION_CONFIG_DIR = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), 'rfdiffusion')
-def list_all_rfd_models() -> List[str]:
-    return RFD_WEIGHTS.list_all_files
-def list_all_config_preset() -> List[str]:
-    return [f[:-5] for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith('.yaml')]
-def make_deterministic(seed=0):
-    import torch
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-@require_installed
-class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
-    name: str = 'RFDiffusion'
-    installed: bool = is_package_installed('rfdiffusion')
-    all_models = RFD_WEIGHTS.list_all_files
-    def _download_and_set_model(self, model_name: str):
-        if not model_name.endswith('.pt'):
-            model_name += '.pt'
-        with timing(f"Downloading {model_name} weights"):
-            ckpt_path = RFD_WEIGHTS.setup(model_name).downloaded
-            self.config.inference.ckpt_override_path = ckpt_path
-            logging.info(f"Using ckpt_override_path from model name ({model_name}): {ckpt_path}")
-            return
-    def pick_model(self, model_name: Optional[str] = None) -> None:
-        '''
         Pick a model.
         Override Priority:
             1. If ckpt_override_path is set in config, use it.
@@ -111,49 +46,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
         ----------
         model_name: str, optional
             The name of the model to use. If None, the model will be automatically picked based on the input.
-        '''
-        if self.config.inference.ckpt_override_path and os.path.isfile(self.config.inference.ckpt_override_path):
-            logging.info(f"Using ckpt_override_path from config: {self.config.inference.ckpt_override_path}")
-            return None
-        model_name = model_name or self.config.inference.model_name
-        if model_name:
-            if RFD_WEIGHTS.has(model_name):
-                return self._download_and_set_model(model_name)
-            warnings.warn(issues.FallingBackWarning(
-                f"Model {model_name} not found. Falling back to pick one according to the input."))
-        if self.config.contigmap.inpaint_seq is not None or self.config.contigmap.provide_seq is not None or self.config.contigmap.inpaint_str:
-            if self.config.contigmap.provide_seq is not None:
-                assert self.config.diffuser.partial_T is not None, "The provide_seq input is specifically for partial diffusion"
-            if self.config.scaffoldguided.scaffoldguided:
-                model_name = 'InpaintSeq_Fold_ckpt'
-            else:
-                model_name = 'InpaintSeq_ckpt'
-        elif self.config.ppi.hotspot_res is not None and self.config.scaffoldguided.scaffoldguided is False:
-            model_name = 'Complex_base_ckpt'
-        elif self.config.scaffoldguided.scaffoldguided is True:
-            model_name = 'Complex_Fold_base_ckpt'
-        else:
-            model_name = 'Base_ckpt'
-        logging.warning(f'Using Model {model_name}')
-        return self._download_and_set_model(model_name)
-    @staticmethod
-    def ensure_dgl():
-        '''
         Ensure DGL is installed. If not, try to install it.
-        '''
-        if (dgl_solver := DglSolver()).installed:
-            return
-        warnings.warn(issues.MissingExternalTool(
-            "DGL is not installed. Now try to install it."))
-        dgl_solver.install()
-        if not dgl_solver.installed:
-            raise issues.MissingExternalToolError(
-                'DGL may not be installed. Please install it manually or take a restart to take effect.')
-    def __init__(self,
-                 config_preset: str = 'base',
-                 model_name: Optional[str] = None,
-                 overrides: Optional[List[str]] = None):
-        '''
         Instantiate RFDiffusion app with config preset and overrides.
         Args:
             config_preset: str, optional
@@ -162,21 +55,6 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 The model name to use. Defaults to None.
             overrides: Optional[List[str]], optional
                 The overrides to use. Defaults to None.
-        '''
-        self.ensure_dgl()
-        try:
-            config: DictConfig = reload_config_file(f"rfdiffusion/{config_preset}", overrides=overrides)["rfdiffusion"]
-            self.config = config
-            print(self.config)
-            self.pick_model(model_name)
-        except hydra_errors.MissingConfigException as e:
-            raise issues.ConfigureOutofDateError(
-                'To run RFDiffusion, please reset/the configuration files '
-                f'or copy the entire directory {os.path.join(this_file_dir, "../../config/rfdiffusion")}'
-                f'to {os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE))} and restart REvoDesign.') from e
-    @get_cited
-    def main(self) -> None:
-        '''
         Run RFdifussion inference.
         '''
         import torch

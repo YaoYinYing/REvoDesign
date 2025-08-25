@@ -1,6 +1,3 @@
-'''
-Cluster sequence
-'''
 import decimal
 import itertools
 import os
@@ -66,7 +63,6 @@ class Clustering(CitableModuleAbstract):
                 f.write(">" + line + "\n")
                 f.write(str(self.seqs[line]) + "\n")
     def plot_score_mtx(self, mtx, vmin=1, vmax=3):
-        """plot the mtx"""
         plt.figure(figsize=(5, 5))
         plt.imshow(
             mtx, cmap="Blues", interpolation="none", vmin=vmin, vmax=vmax

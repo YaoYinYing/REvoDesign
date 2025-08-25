@@ -1,6 +1,3 @@
-"""
-Custom widgets for REvoDesign.
-"""
 import gc
 import json
 import os
@@ -35,21 +32,7 @@ class ImageWidget(QtWidgets.QWidget):
         image = QtGui.QImage(self.image_path)
         painter.drawImage(self.rect(), image)
 class REvoDesignWidget(QtWidgets.QWidget):
-    '''
-    REvoDesign Widget Window Class
-    This Widget class represents a custom widget in the REvoDesign application.
-    It inherits from QtWidgets.QWidget, manages its lifecycle by attaching and
-    detaching from a central UI bus, and ensures no duplicate windows are opened
-    unless explicitly allowed.
-    '''
     def __init__(self, object_name: Optional[str] = None, allow_repeat: bool = False, parent=None):
-        """
-        Initializes the REvoDesignWidget.
-        Args:
-            object_name (Optional[str]): The name of the widget. If not provided, defaults to 'AnonymousWidget'.
-            allow_repeat (bool): If True, allows multiple instances of the widget with the same name. Defaults to False.
-            parent (Optional[QWidget]): The parent widget. Defaults to None.
-        """
         super().__init__(parent)
         self.setObjectName(object_name or 'AnonymousWidget')
         self.allow_repeat = allow_repeat
@@ -63,34 +46,18 @@ class REvoDesignWidget(QtWidgets.QWidget):
             self.destroy()
             raise RuntimeError(f"a window named {self.objectName()} is already open.") from e
     def closeEvent(self, a0):
-        """
-        Handles the close event triggered when the user closes the window.
-        Args:
-            a0 (QCloseEvent): The close event object.
-        """
         try:
             self.detach()
         except Exception as e:
             logging.warning(e)
         return super().closeEvent(a0)
     def show(self):
-        """
-        Shows the widget and attaches it to the UI bus.
-        """
         super().show()
         self.attach()
     def close(self):
-        """
-        Closes the widget and detaches it from the UI bus.
-        Returns:
-            bool: True if the widget was closed successfully, False otherwise.
-        """
         self.detach()
         return super().close()
     def check_repeat(self):
-        """
-        Checks if a window with the same name is already open. If found, raises it to the front and raises a RuntimeError.
-        """
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
@@ -106,9 +73,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
             this_window.raise_()
             raise RuntimeError(f"a window named {self.objectName()} is already open.")
     def attach(self):
-        """
-        Attaches the widget to the UI bus by adding it to the list of open windows.
-        """
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
@@ -119,9 +83,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
         bus.ui.open_windows.append(self)
         logging.debug(f'Window {self.objectName()} attached.')
     def detach(self):
-        """
-        Detaches the widget from the UI bus by removing it from the list of open windows.
-        """
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
@@ -132,29 +93,11 @@ class REvoDesignWidget(QtWidgets.QWidget):
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
 @dataclass(frozen=True)
 class ButtonCoords:
-    """
-    Immutable data class representing the coordinates and names of a button.
-    Attributes:
-        row (int): The row index of the button.
-        row_name (str): The name of the row.
-        col (int): The column index of the button.
-        col_name (str): The name of the column.
-    """
     row: int
     row_name: str
     col: int
     col_name: str
 class QButtonBrick(QtWidgets.QPushButton):  
-    """
-    Custom QPushButton subclass representing a button in a matrix.
-    Attributes:
-        coords (ButtonCoords): Coordinates and names associated with the button.
-        color (QtGui.QColor): The background color of the button.
-        is_wt (bool): Flag indicating if the button represents a wild type (WT) pair.
-    Methods:
-        button_name: Constructs the unique object name for the button.
-        style_sheet: Generates the CSS styling for the button.
-    """
     hover_signal = QtCore.pyqtSignal(int, int)
     leave_signal = QtCore.pyqtSignal()
     def __init__(
@@ -167,17 +110,6 @@ class QButtonBrick(QtWidgets.QPushButton):
         size_policy: Optional[QtWidgets.QSizePolicy] = None,  
         parent=None,
     ):
-        """
-        Initializes the QButtonBrick instance.
-        Args:
-            coords (ButtonCoords): Coordinates and metadata for the button.
-            color (QtGui.QColor): Background color of the button.
-            label (Optional[str]): Text to display on the button.
-            tooltip_text (Optional[str]): Tooltip text for the button.
-            is_wt (Optional[bool]): Whether the button is a wild type button.
-            size_policy (Optional[QtWidgets.QSizePolicy]): Size policy for the button.
-            parent: Parent widget for the button.
-        """
         super().__init__(parent)
         self.coords = coords
         self.color = color
@@ -189,28 +121,16 @@ class QButtonBrick(QtWidgets.QPushButton):
         self.setSizePolicy(size_policy)
         self.setMouseTracking(True)  
     def enterEvent(self, event):
-        """Trigger when mouse enters the button."""
         self.hover_signal.emit(self.coords.row, self.coords.col)
         super().enterEvent(event)
     def leaveEvent(self, event):
-        """Trigger when mouse leaves the button."""
         self.leave_signal.emit()
         super().leaveEvent(event)
     @property
     def button_name(self) -> str:
-        """
-        Constructs the unique object name for the button based on its coordinates.
-        Returns:
-            str: The unique name of the button.
-        """
         return f"matrixButton_{self.coords.row}_vs_{self.coords.col}"
     @property
     def style_sheet(self) -> str:
-        """
-        Generates the CSS style for the button, including background color and text color.
-        Returns:
-            str: The CSS style for the button.
-        """
         return f"""
     QPushButton {{
         background-color: {self.color.name()};
@@ -221,47 +141,18 @@ class QButtonBrick(QtWidgets.QPushButton):
         color: white;
         border: 1px solid white;
     }}
-"""
-class QHoverCross(QtWidgets.QWidget):
-    """
     Floating hover cross widget that visually appears over the buttons as empty rectangular boxes.
-    """
-    def __init__(self, button_size: int, parent=None):
-        """
         Initializes the hover cross.
         Args:
             button_size (int): Size of the button (width and height).
             parent: Parent widget.
-        """
-        super().__init__(parent)
-        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        self.button_size = button_size
-        self.hover_position = None  
-        self.edge_width = 2  
-    def update_position(self, button_rect: QtCore.QRect):
-        """
         Updates the hover rectangles' position based on the hovered button.
         Args:
             button_rect (QRect): Geometry of the hovered button.
-        """
-        self.hover_position = button_rect
-        self.raise_()  
-        self.update()
-        self.show()
-    def hide_hover(self):
-        """Hides the hover rectangles."""
         self.hover_position = None
         self.update()
         self.hide()
     def paintEvent(self, event):
-        """
-        Paints empty rectangular boxes as hover indicators for row and column.
-        Rectangles:
-            - Horizontal rectangle: spans horizontally across the widget.
-            - Vertical rectangle: spans vertically across the widget.
-        """
         if not self.hover_position:
             return  
         painter = QtGui.QPainter(self)
@@ -282,63 +173,6 @@ class QHoverCross(QtWidgets.QWidget):
         painter.drawRect(horizontal_rect)
         painter.drawRect(vertical_rect)
 class QButtonMatrix(QtWidgets.QWidget):
-    """
-    A custom widget for displaying a matrix of buttons.
-    Attributes:
-        label_size (Optional[List[int]]): Fixed size of row/column labels.
-        report_axes_signal (pyqtSignal): Signal emitted with row and column indices.
-    Methods:
-        _map_value_to_color: Maps a matrix value to a QColor.
-        _set_label_size: Sets the fixed size of a label.
-        is_wt_button: Determines if a button is a wild type button.
-        _make_button_tip: Constructs a tooltip for a button.
-        init_ui: Initializes the matrix UI with buttons and labels.
-        signal_process: Handles button click events.
-    Usage Example:
-        ```python
-        data = {
-            'A': [1.0, 2.0, 3.0],
-            'B': [4.0, 5.0, 6.0],
-            'C': [7.0, 8.0, 9.0]
-        }
-        df_button_matrix = pd.DataFrame(data, index=['X', 'Y', 'Z'])
-        sequence = "XYZ"
-        def mutate_with_gridbuttons(row, col, matrix, ignore_wt):
-            print(f"Mutation grid button action executed at row {row}, col {col}.")
-        app = QApplication([])
-        button_matrix = QButtonMatrix(
-            df_matrix=df_button_matrix,
-            sequence=sequence,
-            cmap='bwr',
-            flip_cmap=False,
-        )
-        button_matrix.sequence = sequence
-        button_matrix.init_ui()
-        button_matrix.active_func = partial(
-            mutate_with_gridbuttons,
-            **kwargs,
-        )
-        button_matrix.report_axes_signal.connect(
-            lambda row, col: mutate_with_gridbuttons(
-                row,
-                col,
-                *args,
-                **kwargs,
-            )
-        )
-        button_matrix.show()
-        app.exec_()
-        ```
-    Notes:
-    - Method 1 (internal calls with `active_func`): Aligns with Pythonic principles
-        by encapsulating logic within the widget. It ensures centralized management
-        of button actions and allows for features like holding or freezing the trigger
-        button during execution.
-    - Method 2 (external signal connection): Aligns with PyQt-idiomatic practices,
-        leveraging the signal-slot mechanism to decouple button actions from widget
-        logic. Ideal for integrating into larger PyQt applications where events are
-        handled externally.
-    """
     label_size: Optional[List[int]] = [18, 12]
     report_axes_signal = QtCore.pyqtSignal(int, int)
     def __init__(
@@ -353,18 +187,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         zero_index_offset=0,
         scroll_x: bool = False,
     ):
-        """
-        Initializes the QButtonMatrix widget.
-        Args:
-            df_matrix (pd.DataFrame): Dataframe representing the matrix.
-            sequence (str): Full sequence of residues.
-            func (Optional[Callable[[int, int], None]]): Function called on button click.
-            parent: Parent widget.
-            cmap (str): Colormap name for button colors.
-            flip_cmap (bool): Whether to reverse the colormap.
-            button_size (int): Size of the buttons.
-            zero_index_offset (int): Offset for zero-based indexing. Default is 0.
-        """
         from REvoDesign.tools.utils import cmap_reverser
         super().__init__(parent)
         self.main_layout = QtWidgets.QStackedLayout(self)
@@ -390,50 +212,22 @@ class QButtonMatrix(QtWidgets.QWidget):
         )
         self.colormap = plt.get_cmap(cmap)
     def on_hover(self, row: int, col: int):
-        """
-        Update the hover cross position when hovering over a button.
-        """
         button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
         if button:
             self.hover_cross.update_position(button.geometry())
     def on_leave(self):
-        """
-        Hide the hover cross when the mouse leaves a button.
-        """
         self.hover_cross.hide_hover()
     def _map_value_to_color(self, value):
-        """
-        Maps a value to a QColor based on the colormap.
-        Args:
-            value (float): Value to be mapped.
-        Returns:
-            QtGui.QColor: Color corresponding to the value.
-        """
         normalized_value = 1 - (value - self.min_value) / (self.max_value - self.min_value)
         rgba_color = self.colormap(normalized_value)
         return QtGui.QColor.fromRgbF(rgba_color[0], rgba_color[1], rgba_color[2], rgba_color[3])
     def _set_label_size(self, label: Any):
-        """
-        Sets the fixed size for a label if the class attribute `label_size` is defined.
-        Args:
-            label (QtWidgets.QLabel): The label to resize.
-        """
         if not (hasattr(self, 'label_size') and self.label_size):
             return
         if len(self.label_size) != 2:
             raise ValueError("label size must be a list of length 2")
         label.setFixedSize(*self.label_size)
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
-        """
-        Determines if a button corresponds to a wild type (WT) pair.
-        Args:
-            row_name (str): Name of the row.
-            col_name (str): Name of the column.
-            row (int): Row index.
-            col (int): Column index.
-        Returns:
-            bool: True if the button represents a WT pair, False otherwise.
-        """
         return row_name == self.sequence[int(col_name) - 1 + self.zero_index_offset]
     def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
         return row_name
@@ -448,27 +242,12 @@ class QButtonMatrix(QtWidgets.QWidget):
             row: Optional[int] = None,
             col: Optional[int] = None,
             is_wt_pair: bool = False):
-        """
-        Constructs a tooltip for a button.
-        Args:
-            row_name (str): Name of the row.
-            col_name (str): Name of the column.
-            value (float): Value associated with the button.
-            row (Optional[int]): Row index.
-            col (Optional[int]): Column index.
-            is_wt_pair (bool): Whether the button is a WT pair.
-        Returns:
-            str: Tooltip text for the button.
-        """
         _WT = self.sequence[int(col_name) - 1 + self.zero_index_offset]
         _IDX = str(int(col_name) + self.zero_index_offset)
         _SUB = row_name
         _IS_WT_NOTE = ', WT' if is_wt_pair else ''
         return f"{_WT}{_IDX}{_SUB} ({value:.3f}){_IS_WT_NOTE}"
     def init_ui(self):
-        """
-        Initializes the user interface by creating buttons and labels based on the matrix and sequence.
-        """
         font = QtGui.QFont()
         font.setPointSizeF(self.button_size * 0.8)
         font.setBold(True)
@@ -520,12 +299,6 @@ class QButtonMatrix(QtWidgets.QWidget):
             self.button_layout.addWidget(label, len(self.alphabet_col), col + 1,
                                          QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
     def signal_process(self, row, col):
-        """
-        Handles button click events and processes signals.
-        Args:
-            row (int): Row index of the clicked button.
-            col (int): Column index of the clicked button.
-        """
         logging.debug(f"Button at ({row}, {col}) clicked.")
         if self.active_func is not None:
             trigger_button = self.findChild(QButtonBrick, f"matrixButton_{row}_vs_{col}")
@@ -535,15 +308,6 @@ class QButtonMatrix(QtWidgets.QWidget):
         else:
             self.report_axes_signal.emit(row, col)
 class QButtonMatrixGremlin(QButtonMatrix):
-    """
-    A specialized variant of QButtonMatrix for Gremlin.
-    Attributes:
-        pair_i (int): Index of the first pair.
-        pair_j (int): Index of the second pair.
-    Methods:
-        is_wt_button: Redefines wild type button criteria for Gremlin.
-        _make_button_tip: Custom tooltip generation for Gremlin.
-    """
     label_size: Optional[List[int]] = [12, 12]
     def __init__(
             self,
@@ -555,34 +319,12 @@ class QButtonMatrixGremlin(QButtonMatrix):
             func: Optional[Callable] = None,
             cmap='bwr',
             button_size=12):
-        """
-        Initializes the QButtonMatrixGremlin widget.
-        Args:
-            df_matrix (pd.DataFrame): Dataframe representing the matrix.
-            sequence (str): Full sequence of residues.
-            pair_i (int): Index of the first pair.
-            pair_j (int): Index of the second pair.
-            parent: Parent widget.
-            func (Optional[Callable]): Function called on button click.
-            cmap (str): Colormap name for button colors.
-            button_size (int): Size of the buttons.
-        """
         super().__init__(df_matrix, sequence, func, parent, cmap, True, button_size)
         self.pair_i = pair_i
         self.pair_j = pair_j
     def get_WT_label(self, row_name: str, col_name: str, row: int, col: int) -> str:
         return 'WT'
     def is_wt_button(self, row_name: str, col_name: str, row: int, col: int):
-        """
-        Determines if a button corresponds to a wild type (WT) pair for Gremlin.
-        Args:
-            row_name (str): Name of the row.
-            col_name (str): Name of the column.
-            row (int): Row index.
-            col (int): Column index.
-        Returns:
-            bool: True if the button represents a WT pair, False otherwise.
-        """
         return row_name == self.sequence[self.pair_i] and self.alphabet_col[col] == self.sequence[self.pair_j]
     def _make_button_tip(
             self,
@@ -592,18 +334,6 @@ class QButtonMatrixGremlin(QButtonMatrix):
             row: Optional[int] = None,
             col: Optional[int] = None,
             is_wt_pair: bool = False):
-        """
-        Constructs a tooltip for a button in Gremlin.
-        Args:
-            row_name (str): Name of the row.
-            col_name (str): Name of the column.
-            value (float): Value associated with the button.
-            row (Optional[int]): Row index.
-            col (Optional[int]): Column index.
-            is_wt_pair (bool): Whether the button is a WT pair.
-        Returns:
-            str: Tooltip text for the button.
-        """
         button_tip_i = (
             f"{self.sequence[self.pair_i]}{str(self.pair_i + 1)}{row_name}"
             if self.sequence[self.pair_i] != row_name
@@ -625,30 +355,25 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
         for choice in self.choices:
             self._add_checkable_item(choice)
     def _add_checkable_item(self, text):
-        """Add a checkable item to the combo box."""
         item = QtGui.QStandardItem(text)
         item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
         item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
         self.model().appendRow(item)
     def select_all(self):
-        """Check all items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
     def unselect_all(self):
-        """Uncheck all items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             item.setData(QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
     def invert_selection(self):
-        """Reverse the selection of all items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             current_state = item.data(QtCore.Qt.CheckStateRole)
             item.setData(QtCore.Qt.Checked if current_state ==
                          QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
     def get_checked_items(self) -> List[str]:
-        """Retrieve all checked items."""
         checked = []
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
@@ -656,17 +381,14 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
                 checked.append(item.text())
         return checked
     def set_checked_items(self, items: List[str]):
-        """Set initial checked items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
             if item.text() in items:
                 item.setData(QtCore.Qt.Checked, QtCore.Qt.CheckStateRole)
     def hidePopup(self):
-        """Override to update selected items on close."""
         self.checked_items = set(self.get_checked_items())
         super().hidePopup()
     def currentText(self) -> str:
-        """Override to show a comma-separated list of selected items."""
         return ", ".join(sorted(self.checked_items))
 def getExistingDirectory():
     return QtWidgets.QFileDialog.getExistingDirectory(  
@@ -685,9 +407,6 @@ def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol, ...]] = None):
         return dialog.selectedFiles()
     return []
 def getOpenFileNameWithExt(*args, **kwargs):
-    """
-    Return a file name, append extension from filter if no extension provided.
-    """
     import re
     fname, filter = QtWidgets.QFileDialog.getOpenFileName(*args, **kwargs)  
     if not fname:
@@ -719,22 +438,6 @@ def set_widget_value(widget: Union[
     QtWidgets.QCheckBox
 ], value: Any): ...
 def set_widget_value(widget, value):
-    """
-    Sets the value of a PyQt5 widget based on the provided value.
-    Args:
-    - widget: The PyQt5 widget whose value needs to be set.
-    - value: The value to be set on the widget.
-    Supported Widgets and Value Types:
-    - QDoubleSpinBox: Supports int, float, list or tuple (for setting range).
-    - QSpinBox: Supports int, float, list or tuple (for setting range).
-    - QComboBox: Supports str, list, tuple, dict.
-    - QLineEdit: Supports str.
-    - QProgressBar: Supports int, list or tuple (for setting range).
-    - QLCDNumber: Supports any value (converted to string for display).
-    - QCheckBox: Supports bool.
-    - QStackedWidget: Supports list of image paths (adds ImageWidget widgets).
-    - QGridLayout: Supports a string (image path) to add an ImageWidget widget.
-    """
     def set_value_error(widget: QtWidgets.QWidget, value: Any):
         logging.warning(f"FIX ME: Value {value} is not currently supported on widget {type(widget).__name__}")
     if callable(value):
@@ -814,22 +517,6 @@ def get_widget_value(widget: Union[
 @overload
 def get_widget_value(widget: MultiCheckableComboBox) -> list[str]: ...  
 def get_widget_value(widget: QtWidgets.QWidget) -> Any:
-    """
-    Retrieves the value from a PyQt5 widget.
-    Args:
-    - widget: The PyQt5 widget from which the value needs to be retrieved.
-    Returns:
-    The current value of the widget.
-    Supported Widgets:
-    - QDoubleSpinBox, QSpinBox: Returns the current value as float or int.
-    - QComboBox: Returns the current text or the userData of the current item if any.
-    - QLineEdit: Returns the current text as str.
-    - QProgressBar: Returns the current value as int.
-    - QLCDNumber: Returns the current value as float.
-    - QCheckBox: Returns the checked state as bool.
-    Raises:
-    - ValueError: If the widget type is not supported for value retrieval.
-    """
     if isinstance(widget, (QtWidgets.QDoubleSpinBox, QtWidgets.QSpinBox)):
         return widget.value()
     if isinstance(widget, MultiCheckableComboBox):
@@ -846,17 +533,6 @@ def get_widget_value(widget: QtWidgets.QWidget) -> Any:
         return widget.isChecked()
     raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 def widget_signal_tape(widget: QtWidgets.QWidget, event):
-    """
-    Connects the appropriate signal of a QWidget to the specified event handler.
-    This function connects specific signals from different types of QWidgets to a unified event handler.
-    It handles several common Qt widget types such as QDoubleSpinBox, QSpinBox, QProgressBar,
-    QComboBox, QLineEdit, and QCheckBox, binding their respective signals to the provided event handler.
-    Parameters:
-    - widget (QtWidgets.QWidget): The widget instance whose signal will be connected.
-    - event (callable): The event handler function that will be called when the widget's signal is emitted.
-    Raises:
-    - NotImplementedError: If the widget type is not supported by this function.
-    """
     if isinstance(
         widget,
         (
@@ -923,20 +599,6 @@ class ParallelExecutor:
             delayed(self.func)(*arg, **kwarg) for arg, kwarg in zip(self.args, self.kwargs)
         )
 class QtParallelExecutor(QtCore.QThread):
-    """
-    USAGE:
-        progress_bar.setRange(0, 0)
-        self.parallel_executor = ParallelExecutor(self.process_position, mutagenesis_tasks, n_jobs=nproc)
-        self.parallel_executor.progress_signal.connect(progress_bar.setValue)
-        self.parallel_executor.start()
-        while not self.parallel_executor.isFinished():
-            refresh_window()
-            time.sleep(0.001)
-        progress_bar.setRange(0, len(mutagenesis_tasks))
-        progress_bar.setValue(len(mutagenesis_tasks))
-        self.results=self.parallel_executor.handle_result()
-        self.merging_sessions()
-    """
     progress_signal = QtCore.pyqtSignal(int)
     result_signal = QtCore.pyqtSignal(list)
     finished_signal = QtCore.pyqtSignal()
@@ -961,26 +623,6 @@ class QtParallelExecutor(QtCore.QThread):
         logging.debug("Sending results ...")
         return self.results
 def create_cmap_icon(cmap: str):
-    """
-    Creates a square pixmap representing the color pattern of a specified colormap.
-    Args:
-    - cmap (str): Name of the colormap.
-    Returns:
-    - QtGui.QPixmap: Pixmap representing the color gradient of the colormap.
-    Note:
-    This function uses Matplotlib's colormap to generate a color gradient and creates a square pixmap
-    with the color gradient to represent the colormap visually.
-    Example Usage:
-    ```python
-    from REvoDesign.Qt import QtWidgets
-    import matplotlib.pyplot as plt
-    icon = create_cmap_icon('my_colormap')
-    label = QtWidgets.QLabel()
-    label.setPixmap(icon)
-    label.show()
-    plt.show()
-    ```
-    """
     color_map = matplotlib.colormaps[cmap]
     pixmap = QtGui.QPixmap(100, 100)  
     pixmap.fill(QtGui.QColor(0, 0, 0, 0))  
@@ -994,14 +636,6 @@ def create_cmap_icon(cmap: str):
     painter.end()
     return pixmap
 def refresh_tree_widget(user_tree: Dict[str, Dict], treeWidget_ws_peers):
-    """
-    Refreshes a given tree widget with user data.
-    Args:
-    - user_tree (dict): Dictionary containing user information.
-    - treeWidget_ws_peers (QtWidgets.QTreeWidget): Tree widget to be refreshed.
-    Returns:
-    - None
-    """
     treeWidget_ws_peers.clear()
     if not user_tree:
         return
@@ -1029,37 +663,6 @@ def refresh_tree_widget(user_tree: Dict[str, Dict], treeWidget_ws_peers):
     return
 @dataclass
 class AskedValue:
-    """
-    Represents a single input field in the ValueDialog.
-    Attributes:
-        key (str): The unique identifier or label for the input field.
-        val (Optional[Any]): The default or current value of the field.
-        typing (type): The expected data type for the field's value.
-            Specifies available typing for the field.
-            Used as item typing if the val is iterable container like list or tuple
-        reason (Optional[str]): Additional description or reason for the field.
-        required (bool): Indicates whether the field is mandatory.
-        choices (Optional[Union[Iterable, Callable[[], Iterable]]]):
-            Specifies available iterable choices for the field. Can be:
-            - Iterable:
-                - List[Any]: A list of options used as single choice.
-                - Tuple[Any]: A tuple of options used as single choice.
-                - range: A range of values useed as integer options.
-                - filter: A filter of values used as string options.
-                - KeysView: A view of keys used as string options.
-                - ValuesView: A view of values used as string options.
-            - Callable[[], Iterable]: A function to dynamically generate those iterable options.
-        source (Literal['None', 'File', 'Directory', 'JsonInput']):
-            Specifies the source of the input field. Can be:
-            - 'None': No specific source.
-            - 'File': Input is expected to be a file path.
-            - 'Files': Input is expected to be a list of file paths, which will be converted
-                as a string of '|' separated file paths.
-            - 'Directory': Input is expected to be a directory path.
-            - 'JsonInput': Input is expected to be a JSON file input.
-        ext (Optional[FExCol]): File extension filters for file and directory inputs.
-        multiple_choices (bool): Whether the multiple choices mode is enabled.
-    """
     key: str
     val: Optional[Any] = None
     typing: type = str
@@ -1070,14 +673,6 @@ class AskedValue:
     ext: Optional[FExCol] = None
     multiple_choices: bool = False
 def real_bool(val: Any):
-    """
-    Convert the given value to its most likely boolean equivalent.
-    Args:
-        val: The value to be converted. Can be a string or an integer.
-    Returns:
-        bool: True if the value matches one of the predefined true values.
-             False if the value matches one of the predefined false values.
-    """
     if any(
         val == ans
         for ans in (
@@ -1108,12 +703,6 @@ def real_bool(val: Any):
         return False
 @dataclass
 class AskedValueCollection:
-    """
-    Represents a collection of AskedValue objects, along with a banner message.
-    Attributes:
-        asked_values (List[AskedValue]): List of input fields for the dialog.
-        banner (Optional[str]): A message to be displayed at the top of the dialog.
-    """
     asked_values: List[AskedValue] = field(default_factory=list)
     banner: Optional[str] = None  
     @property
@@ -1122,14 +711,6 @@ class AskedValueCollection:
             asked.typing is list for asked in self.asked_values)
     @property
     def typing_fixed(self) -> 'AskedValueCollection':
-        """
-        Returns a new object with the `asked_values` field where each element's `val` attribute has been type-converted.
-        This method creates a deep copy of the current object to avoid modifying the original data.
-        It then iterates over the `asked_values` list and applies the `typing` function to each `val` attribute.
-        If the `typing` attribute is `bool`, a special `real_bool` function is used for conversion.
-        Returns:
-            AskedValueCollection: A new object with the type-converted `asked_values`.
-        """
         self_mirror = deepcopy(self)
         for asked in self_mirror.asked_values:
             if not asked.multiple_choices:
@@ -1141,19 +722,8 @@ class AskedValueCollection:
         return self_mirror
     @property
     def asdict(self) -> Dict[str, Any]:
-        """
-        Converts the collection into a dictionary where the keys are the field labels
-        and the values are their corresponding inputs.
-        Returns:
-            Dict[str, Any]: A dictionary representation of the collection.
-        """
         return {asked.key: asked.val for asked in self.asked_values}
     def __bool__(self):
-        """
-        Evaluates the truthiness of the collection.
-        Returns:
-            bool: True if the collection contains at least one AskedValue.
-        """
         return bool(self.asked_values)
     @classmethod
     def from_list(cls, list_of_asked_value: List[AskedValue]):
@@ -1162,13 +732,6 @@ class ValueDialog(REvoDesignWidget):
     ok_signal = QtCore.pyqtSignal(list)
     cancel_signal = QtCore.pyqtSignal()
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
-        """
-        Initializes the ValueDialog with specified size policies to ensure a compact and clear layout.
-        Args:
-            title (str): The title of the dialog box.
-            key_dict (AskedValueCollection): The collection of fields to display in the dialog.
-            parent (Optional[QWidget]): The parent widget of the dialog.
-        """
         super().__init__(f"ValueDialog - {title}", allow_repeat=False, parent=parent)
         self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
@@ -1181,15 +744,6 @@ class ValueDialog(REvoDesignWidget):
             banner_label.setWordWrap(True)
             banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
             banner_label.setStyleSheet(
-                """
-                font-size: 14px;
-                font-weight: bold;
-                color: 
-                padding: 10px;
-                background-color: 
-                border: 1px solid 
-                border-radius: 5px;
-            """
             )
             self.layout.addWidget(banner_label)
         if self.need_action:
@@ -1251,12 +805,6 @@ class ValueDialog(REvoDesignWidget):
         self.layout.addLayout(button_layout)
         self.setLayout(self.layout)
     def _add_field_to_table(self, row: int, asked_value: AskedValue):
-        """
-        Adds a key-value pair to the table as a row.
-        Args:
-            row (int): The row number to add the field.
-            asked_value (AskedValue): The field details.
-        """
         required_star = '<span style=" font-weight:600; color:
         key_label = QtWidgets.QLabel(f"{required_star if asked_value.required else ''}{asked_value.key}")
         key_label.setToolTip(f"{'[REQUIRED] ' if asked_value.required else ''}{asked_value.reason}" or "")
@@ -1370,11 +918,6 @@ class ValueDialog(REvoDesignWidget):
             self.table.setCellWidget(row, 3, container_widget)
     def _browse_file(self, widget, exts: Optional[FExCol] = None,
                      multiple: bool = False, mode: Literal['r', 'w'] = 'r'):
-        """
-        Opens a file dialog to select a file and updates the input field.
-        Args:
-            widget (QWidget): The input widget to update with the selected file path.
-        """
         from REvoDesign.driver.file_dialog import FileDialog
         ext = (exts, Fext.Any,) if exts else (Fext.Any,)
         file_dialog = FileDialog(None, os.getcwd())
@@ -1389,9 +932,6 @@ class ValueDialog(REvoDesignWidget):
         if selected_file:
             widget.setText(selected_file)
     def _on_ok_clicked(self):
-        """
-        Handles the OK button click. Collects user inputs and validates required fields.
-        """
         self.updated_values: List[AskedValue] = []
         for key, widget in self.input_fields.items():
             try:
@@ -1417,9 +957,6 @@ class ValueDialog(REvoDesignWidget):
                 )
         self.ok_signal.emit(self.updated_values)
     def _on_cancel_clicked(self):
-        """
-        Handles the Cancel button click. Closes the dialog without saving changes.
-        """
         self.cancel_signal.emit()
         self.close()
         gc.collect()
@@ -1497,19 +1034,7 @@ class ValueDialog(REvoDesignWidget):
             a0.ignore()
         return super().dropEvent(a0)
 class AppendableValueDialog(QtWidgets.QDialog):
-    """
-    A dialog box that allows users to dynamically add, edit, and remove key-value pairs.
-    This dialog supports appending new rows with key-value pairs, where users can
-    manage their entries interactively. The interface is scrollable to handle large numbers of rows.
-    Attributes:
-        row_widgets (List[Tuple[QHBoxLayout, QLineEdit, QLineEdit]]): Keeps track of all rows in the dialog.
-    """
     def __init__(self, parent=None):
-        """
-        Initializes the AppendableValueDialog.
-        Args:
-            parent (Optional[QWidget]): The parent widget of the dialog.
-        """
         super().__init__(parent)
         self.setWindowTitle("Dynamic Key-Value Pairs")
         self.setMinimumWidth(400)
@@ -1541,12 +1066,6 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.layout.addLayout(button_layout)
         self.setLayout(self.layout)
     def _add_row(self, key: str = "", val: str = ""):
-        """
-        Adds a new row for entering a key-value pair.
-        Args:
-            key (str): The default text for the key field.
-            val (str): The default text for the value field.
-        """
         row_layout = QtWidgets.QHBoxLayout()
         key_edit = QtWidgets.QLineEdit()
         key_edit.setPlaceholderText("Key")
@@ -1563,11 +1082,6 @@ class AppendableValueDialog(QtWidgets.QDialog):
         self.row_widgets.append((row_layout, key_edit, val_edit))
         self._adjust_dialog_height()
     def _remove_row(self, row_layout):
-        """
-        Removes a specific row from the dialog.
-        Args:
-            row_layout (QHBoxLayout): The row layout to be removed.
-        """
         for i, (layout, key_edit, val_edit) in enumerate(self.row_widgets):
             if layout == row_layout:
                 for j in reversed(range(layout.count())):
@@ -1579,18 +1093,11 @@ class AppendableValueDialog(QtWidgets.QDialog):
                 break
         self._adjust_dialog_height()
     def _adjust_dialog_height(self):
-        """
-        Dynamically adjusts the height of the dialog based on the number of rows.
-        """
         row_height = 30  
         max_height = 600  
         new_height = min(max_height, 150 + len(self.row_widgets) * row_height)
         self.resize(self.width(), new_height)
     def _on_ok_clicked(self):
-        """
-        Handles the OK button click. Collects all key-value pairs and validates input.
-        Discards rows with empty keys and processes valid rows.
-        """
         self.updated_values = []
         for _, key_edit, val_edit in self.row_widgets:
             key = key_edit.text().strip()
@@ -1599,11 +1106,6 @@ class AppendableValueDialog(QtWidgets.QDialog):
                 self.updated_values.append(AskedValue(key=key, val=val))
         self.accept()
     def get_values(self) -> AskedValueCollection:
-        """
-        Retrieves the user-provided key-value pairs as an AskedValueCollection.
-        Returns:
-            AskedValueCollection: A collection of the key-value pairs entered by the user.
-        """
         return AskedValueCollection(getattr(self, "updated_values", []))
 def ask_for_appendable_values() -> Optional[AskedValueCollection]:
     dialog = AppendableValueDialog()
@@ -1623,12 +1125,6 @@ def ask_for_multiple_values_as_json() -> str:
     )
     return json_fp
 class AskedValueDynamic(TypedDict):
-    '''
-    Dynamic value to be passed to the dialog window.
-    It is a dictionary with two keys:
-    - value (AskedValue): the value to be passed to the dialog window
-    - index (int): the index of the value to be inserted in the list of values
-    '''
     value: AskedValue
     index: int
 def dialog_wrapper(
@@ -1636,15 +1132,6 @@ def dialog_wrapper(
     banner: str,
     options: Tuple[AskedValue, ...],
 ) -> Callable:
-    """
-    A decorator to wrap a function and generate a dialog for user input.
-    Args:
-        title (str): The title of the dialog.
-        banner (str): A banner message to display at the top of the dialog.
-        options (Tuple[AskedValue, ...]): The static list of AskedValue objects to include in the dialog.
-    Returns:
-        Callable: The wrapped function that collects input from a dialog before execution.
-    """
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):

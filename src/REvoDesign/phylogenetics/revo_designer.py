@@ -1,7 +1,3 @@
-'''
-Work horse of generating mutant from profile or designer
-TODO: need refactor
-'''
 import collections
 import hashlib
 import json
@@ -73,19 +69,6 @@ class REvoDesigner:
         preferred_substitutions=None,
         dpi=600,
     ):
-        """
-        Plot custom indices segments on a heatmap.
-        Args:
-        - df_ori: Original DataFrame.
-        - custom_indices_str: String representing custom indices.
-        - cutoff: List representing cutoff values.
-        - preferred_substitutions: Dictionary of preferred substitutions.
-        Returns:
-        - Tuple: File paths for JSON and PNG representations of mutations.
-        Notes:
-        - Generates a heatmap representing custom indices and mutations.
-        - Saves JSON and PNG files for visualization.
-        """
         df = df_ori.copy()
         first_idx: Union[str, int] = df.columns.tolist()[0]
         if first_idx in (0, '0'):
@@ -189,26 +172,12 @@ class REvoDesigner:
         self,
         preffered_mutation_string,
     ):
-        """
-        Validate the format of the preferred mutation string.
-        Args:
-        - preferred_mutation_string: Preferred mutation string.
-        Returns:
-        - bool: True if the format is valid, False otherwise.
-        """
         pattern = f'^[{"".join(self.profile_alphabet)}]:[{"".join(self.profile_alphabet)}]+$'
         preffered_mutation_string = preffered_mutation_string.replace(
             "[", ""
         ).replace("]", "")
         return bool(re.match(pattern, preffered_mutation_string))
     def parse_preffered_mutation_string(self, preffered_str):
-        """
-        Parse the preferred mutation string into a dictionary.
-        Args:
-        - preferred_str: Preferred mutation string.
-        Returns:
-        - dict: Dictionary representation of preferred mutations.
-        """
         preffered_dict = {
             _preffered_sub[0]: _preffered_sub[2:]
             for _preffered_sub in preffered_str.split(" ")
@@ -216,12 +185,6 @@ class REvoDesigner:
         }
         return preffered_dict
     def setup_parameters_for_magician(self):
-        """
-        Set up parameters for the external designer based on molecule and chain ID.
-        Notes:
-        - Determines the design chain ID based on the molecule and sequence.
-        - Sets up parameters required for the external designer.
-        """
         all_chains = find_all_protein_chain_ids_in_protein(sele=self.molecule)
         if len(all_chains) == 1 or (not self.homooligomeric):
             design_chain_id = [self.chain_id]
@@ -245,14 +208,6 @@ class REvoDesigner:
         self,
         custom_indices_str="",
     ):
-        """
-        Set up the external designer for protein design.
-        Args:
-        - custom_indices_str: String representing custom indices.
-        Notes:
-        - Initializes the external designer with specified parameters.
-        - Handles different types of external designers.
-        """
         expanded_custom_indices = expand_range(
             shortened_str=custom_indices_str, connector="-", seperator=","
         )
@@ -289,14 +244,6 @@ class REvoDesigner:
             ignore_missing=bool("X" in self.sequence),
         )
     def design_protein_via_magician(self, custom_indices_fp):
-        """
-        Design protein using an external designer.
-        Args:
-        - custom_indices_fp: File path to custom indices.
-        Notes:
-        - Initiates the protein design process using an external designer.
-        - Sets up parameters and executes the design process.
-        """
         custom_indices_str = read_customized_indice(
             custom_indices_from_input=custom_indices_fp
         )
@@ -402,17 +349,6 @@ class REvoDesigner:
         custom_indices_fp="",
         cutoff=(-100, 100,),
     ):
-        """
-        Set up profile design based on specified parameters.
-        Args:
-        - custom_indices_fp: File path to custom indices.
-        - cutoff: Tuple representing cutoff values.
-        Returns:
-        - Tuple: File paths for JSON and PNG representations of mutations.
-        Notes:
-        - Parses profile data and generates a heatmap of design segments.
-        - Saves JSON and PNG files for visualization.
-        """
         custom_indices_str = read_customized_indice(
             custom_indices_from_input=custom_indices_fp
         )
@@ -477,21 +413,6 @@ class REvoDesigner:
             self.visualizer.max_score = self.max_abs_profile
     @require_not_none("visualizer", fallback_setup='setup_visualizer')
     def run_mutagenesis_via_mutant_visualizer(self, group_id):
-        """
-        Runs mutagenesis using MutantVisualizer based on specified parameters.
-        Args:
-        - self: Instance of the class containing the method.
-        - group_id: Identifier for the group of mutations.
-        Returns:
-        - str: File path of the saved session after mutagenesis.
-        Notes:
-        - This method utilizes MutantVisualizer to perform mutagenesis based on the provided parameters.
-        - Initializes MutantVisualizer with specific molecule, chain_id, sequence, group_name, and other properties.
-        - Sets visualization parameters like cmap, min_score, max_score based on self parameters.
-        - Determines mutagenesis parameters based on magician and mutant_tree's branch_id.
-        - Sets nproc and parallel_run based on the number of processors available.
-        - Saves the resulting session file and returns the file path.
-        """
         self.visualizer.group_name = group_id
         self.visualizer.save_session = os.path.join(
             os.path.dirname(self.output_pse),
@@ -506,14 +427,6 @@ class REvoDesigner:
         self,
         mutant_json,
     ):
-        """
-        Load mutants to PyMOL session for visualization.
-        Args:
-        - mutant_json: JSON file containing mutant information.
-        Notes:
-        - Loads mutants into PyMOL session for visualization.
-        - Handles mutations and creates visualization sessions.
-        """
         mutations = read_profile_design_mutations(mutant_json)
         self.mutagenesis_tasks = []
         new_residue_scores = []

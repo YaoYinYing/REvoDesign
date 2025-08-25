@@ -1,6 +1,3 @@
-'''
-ProteinMPNN, driven by ColabDesign
-'''
 import os
 import warnings
 from typing import List, Union
@@ -22,13 +19,6 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         self.pdb_filename = None
         self.reload = False
     def initialize(self, *args, **kwargs):
-        """
-        Initialize the ColabDesigner_MPNN class.
-        Args:
-        - molecule: Molecule for design.
-        Notes:
-        - Initializes attributes required for the ColabDesigner_MPNN class.
-        """
         from colabdesign.mpnn import mk_mpnn_model
         self.pdb_filename = make_temperal_input_pdb(
             molecule=self.molecule, reload=self.reload
@@ -43,28 +33,12 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
         self.initialized = True
         self.cite()
     def preffer_substitutions(self, aa=""):
-        """
-        Set preferred substitutions for the model.
-        Args:
-        - aa: Amino acids for preferred substitutions.
-        Notes:
-        - Modifies model inputs to set preferred substitutions.
-        """
         from colabdesign.mpnn.model import aa_order
         for k in aa:
             self.mpnn_model._inputs["bias"][:, aa_order[k]] += 0.5
     def scorer(
         self, mutant: Union[Mutant, RosettaPyProteinSequence], **kwargs
     ) -> float:
-        """
-        Compute the score for a given sequence.
-        Args:
-        - mutant: Mutant object.
-        Returns:
-        - float: Score value for the given mutant sequence.
-        Notes:
-        - Computes the score using the MPNN model.
-        """
         if isinstance(mutant, Mutant):
             if len(mutant.wt_protein_sequence.all_chain_ids) > 1:
                 warnings.warn(
@@ -93,16 +67,6 @@ class ColabDesigner_MPNN(ExternalDesignerAbstract):
             scores.append(self.scorer(mutant))
         return self.score_mutant_mapping(mutants, scores)
     def designer(self, *args, **kwargs):
-        """
-        Run the designer to obtain design results.
-        Args:
-        - *args: Variable length argument list.
-        - **kwargs: Arbitrary keyword arguments.
-        Returns:
-        - dict: Dictionary containing sequences and scores.
-        Notes:
-        - Executes the designer to obtain sequence and score iterables.
-        """
         design_results = self.mpnn_model.sample(*args, **kwargs)
         return design_results
     __bibtex__ = {

@@ -6,15 +6,6 @@ def visualize_hydrophobic_hydrophilic(
     rezoom: bool = True,
     reorient: bool = True
 ):
-    """
-    Visualize the hydrophobic and hydrophilic regions of a protein structure in PyMOL.
-    Args:
-        pdb_id (Optional[str]): PDB ID of the protein structure to fetch and visualize.
-                                If None, assumes a protein model is already loaded.
-        remove_hoh (bool): Whether to remove water molecules (resn HOH). Default is True.
-        rezoom (bool): Whether to zoom in on the protein after processing. Default is True.
-        reorient (bool): Whether to orient the protein after processing. Default is True.
-    """
     if pdb_id is not None:
         cmd.reinitialize()
         cmd.fetch(pdb_id)
@@ -51,15 +42,6 @@ def visualize_cartoon_settings(
     rezoom: bool = True,
     reorient: bool = True
 ):
-    """
-    Visualize protein structure with enhanced cartoon settings and rendering options in PyMOL.
-    Args:
-        pdb_id (Optional[str]): PDB ID of the protein structure to fetch and visualize.
-                                If None, assumes a protein model is already loaded.
-        remove_hoh (bool): Whether to remove water molecules (resn HOH). Default is True.
-        rezoom (bool): Whether to zoom in on the protein after processing. Default is True.
-        reorient (bool): Whether to orient the protein after processing. Default is True.
-    """
     if pdb_id is not None:
         cmd.reinitialize()
         cmd.fetch(pdb_id)
@@ -91,15 +73,6 @@ def visualize_cartoon_loops(
     rezoom: bool = True,
     reorient: bool = True
 ):
-    """
-    Visualize protein cartoon loops with enhanced settings and spectrum coloring in PyMOL.
-    Args:
-        pdb_id (Optional[str]): PDB ID of the protein structure to fetch and visualize.
-                                If None, assumes a protein model is already loaded.
-        remove_hoh (bool): Whether to remove water molecules (resn HOH). Default is True.
-        rezoom (bool): Whether to zoom in on the protein after processing. Default is True.
-        reorient (bool): Whether to orient the protein after processing. Default is True.
-    """
     if pdb_id is not None:
         cmd.reinitialize()
         cmd.fetch(pdb_id)

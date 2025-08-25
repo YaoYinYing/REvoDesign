@@ -1,6 +1,3 @@
-'''
-Module to initialize REvoDesign Configurating system with Hydra and OmegaConf.
-'''
 import os
 import hydra
 from .. import Qt

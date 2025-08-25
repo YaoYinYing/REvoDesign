@@ -1,6 +1,3 @@
-'''
-Shortcut functions of third-party mutant effect predictors
-'''
 import os
 from typing import List, Literal, Optional
 import pandas as pd
@@ -17,13 +14,6 @@ logging = ROOT_LOGGER.getChild(__name__)
 RUN_MODE_T = Literal["single", "additive", "epistatic"]
 @require_installed
 class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
-    """
-    ThermoMpnnPredictor class for predicting the thermodynamic stability effects of protein mutations.
-    It utilizes the ThermoMPNN model to analyze protein structure and sequence to predict stability changes due to mutations.
-    Attributes:
-        name (str): Name of the predictor, set to 'ThermoMPNN'.
-        installed (bool): Indicates if the 'thermompnn' package is installed.
-    """
     name: str = 'ThermoMPNN'
     installed: bool = is_package_installed('thermompnn')
     def __init__(self,
@@ -37,20 +27,6 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
                  distance: float = 5.0,
                  ss_penalty: bool = False,
                  device: str = 'cpu'):
-        """
-        Initializes the ThermoMpnnPredictor with the given parameters.
-        Parameters:
-            pdb (str): Path to the PDB file of the protein.
-            save_dir (Optional[str]): Directory to save the output files. Defaults to None.
-            prefix (str): Prefix for the output files. Defaults to 'thermompnn_ssm'.
-            chains (Optional[List[str]]): List of chains to consider. Defaults to None.
-            mode (RUN_MODE_T): Mode of operation, either 'single' or 'batch'. Defaults to 'single'.
-            batch_size (int): Batch size for processing. Defaults to 256.
-            threshold (float): Threshold for some processing criteria. Defaults to -0.5.
-            distance (float): Distance threshold for some calculations. Defaults to 5.0.
-            ss_penalty (bool): Whether to apply secondary structure penalty. Defaults to False.
-            device (str): Device to run the model on, either 'cpu' or 'gpu'. Defaults to 'cpu'.
-        """
         self.prefix = prefix
         self.mode = mode
         self.device = device
@@ -73,12 +49,6 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             self.device)
     @get_cited
     def run(self) -> pd.DataFrame:
-        """
-        Runs the ThermoMPNN prediction and returns the results as a DataFrame.
-        Returns:
-            pd.DataFrame: DataFrame containing the prediction results with columns 'ddG' and 'Mutation',
-                          or 'ddG', 'Mutation', and 'dist' depending on the mode.
-        """
         df = self.app.process(save_csv=bool(self.save_prefix))
         if self.mode == 'single':
             df.columns = ['ddG', 'Mutation']
@@ -87,28 +57,12 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         return df
     @staticmethod
     def mutant_name2mutant(mutant_id: str, sequences: RosettaPyProteinSequence) -> Mutant:
-        """
-        Converts a mutant ID string into a Mutant object.
-        Parameters:
-            mutant_id (str): String representation of the mutant.
-            sequences (RosettaPyProteinSequence): Protein sequence object.
-        Returns:
-            Mutant: Mutant object created from the mutant ID.
-        """
         return extract_mutants_from_mutant_id(
             mutant_string=mutant_id,
             sequences=sequences,
             wt_before_chain=True
         )
     def df2mutant_tree(self, df: pd.DataFrame, sorted_by: Literal['prefix', 'positions'] = 'prefix') -> MutantTree:
-        """
-        Converts a DataFrame of mutation predictions into a MutantTree object.
-        Parameters:
-            df (pd.DataFrame): DataFrame containing mutation predictions.
-            sorted_by (Literal['prefix', 'positions']): Sorting criterion for the mutant tree. Defaults to 'prefix'.
-        Returns:
-            MutantTree: MutantTree object containing the mutation predictions.
-        """
         mutant_tree = MutantTree()
         for _, row in df.iterrows():
             score: float = row['ddG']

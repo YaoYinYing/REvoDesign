@@ -1,6 +1,3 @@
-'''
-File extensions used in REvoDesign
-'''
 from ..basic import FileExtension as Ext
 from ..basic import FileExtensionCollection as ExtColl
 Session = ExtColl(

@@ -1,6 +1,3 @@
-'''
-Wrapper for MutateRelax Sidechain Builder
-'''
 import os
 from typing import List, Optional, Union
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup
@@ -18,23 +15,12 @@ from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
 from REvoDesign.tools.utils import timing
 logging = ROOT_LOGGER.getChild(__name__)
 class MutateRelax(ScoreClusters):
-    '''
-    A wrapper around RosettaPy's ScoreClusters class to sample the sidechains
-    '''
     def score(  
             self,
             branch: str,
             variants: List[Mutant],
             opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None
     ) -> Rosetta:
-        """
-        Scores the provided variants within a specific branch.
-        Parameters:
-        branch (str): Identifier of the branch.
-        variants (List[Mutant]): List of variants to be scored.
-        Returns:
-        Rosetta: An object containing the analysis of the scoring results.
-        """
         if not opts:
             opts = []
         score_dir = self.save_dir
@@ -80,41 +66,11 @@ class MutateRelax(ScoreClusters):
             )
         return rosetta
     def run(self, mutants: List[Mutant], opts: Optional[List[str | RosettaScriptsVariableGroup]] = None):  
-        """
-        Execute the mutant scoring process
-        This function calls the score method to evaluate the given list of mutants using the 'mutate_relax'
-        branch strategy
-        Parameters:
-            mutants (List[Mutant]): List of mutants to be scored
-        Returns:
-            Scoring results, the specific type depends on the implementation of the score method
-        """
         return self.score(branch='mutate_relax', variants=mutants, opts=opts)
 class MutateRelax_worker(MutateRunnerAbstract):
-    """
-    MutateRelax_worker class for executing Rosetta's MutateRelax operations, supporting single
-    or parallel protein mutation and structure optimization.
-    Attributes:
-        name (str): Worker name, identified as "Rosetta-MutateRelax".
-        installed (bool): Indicates whether the node is available.
-    """
     name: str = "Rosetta-MutateRelax"
     installed: bool = IS_ROSETTA_RUNNABLE
     def __init__(self, pdb_file: str, **kwargs):
-        """
-        Initialize MutateRelax_worker instance.
-        Parameters:
-            pdb_file (str): Path to the input PDB file.
-            **kwargs: Additional optional parameters passed to the parent class initialization method.
-        Attributes:
-            pdb_file (str): Path to the input PDB file.
-            temp_dir (str): Temporary cache directory path.
-            pdb_bn (str): Base name of the PDB file (without path).
-            node_hint (NodeHintT): Node hint information retrieved from the configuration bus.
-            installed (bool): Check if the run node is available.
-            mutate_relax_instance (MutateRelax): MutateRelax instance used to actually perform mutation
-            and optimization operations.
-        """
         super().__init__(pdb_file)
         self.pdb_file = pdb_file
         self.temp_dir = self.new_cache_dir
@@ -135,13 +91,6 @@ class MutateRelax_worker(MutateRunnerAbstract):
         self,
         mutant: Mutant,
     ):
-        """
-        Execute MutateRelax operation on a single mutant.
-        Parameters:
-            mutant (Mutant): The mutant object to be processed.
-        Returns:
-            str: Path to the output PDB file.
-        """
         self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
         self.mutate_relax_instance.run([mutant], opts=list(self.rosetta_general_opts))
         return os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb')
@@ -150,14 +99,6 @@ class MutateRelax_worker(MutateRunnerAbstract):
         mutants: List[Mutant],
         nproc: int = 2,
     ) -> List[str]:
-        """
-        Process multiple mutants' MutateRelax operations in parallel.
-        Parameters:
-            mutants (List[Mutant]): List of mutant objects.
-            nproc (int): Number of parallel processes, default is 2.
-        Returns:
-            List[str]: List of output PDB file paths for all mutants.
-        """
         self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
         self.mutate_relax_instance.run(mutants, opts=list(self.rosetta_general_opts))
         return [os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb') for mutant in mutants]

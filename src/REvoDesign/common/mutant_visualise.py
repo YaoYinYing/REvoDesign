@@ -1,6 +1,3 @@
-'''
-Workhorse of the mutant visualization process.
-'''
 import gc
 import os
 import sys
@@ -47,17 +44,6 @@ class MutantVisualizer:
         self.consider_global_score_from_profile = False
         self.magician = Magician()
     def process_mutant(self, mutant_obj: Mutant):
-        """
-        Process a specific position based on the information in the Mutant object.
-        Args:
-        - self: Instance of the class containing the method.
-        - mutant_obj (Mutant): Mutant object containing information about the position.
-        Returns:
-        - temp_session_path (str): Filepath to the temporary session containing processed data.
-        Notes:
-        - Loads the input session, hides surface, visualizes the mutant, and creates mutagenesis objects.
-        - Saves the processed session data to a temporary file and returns the file path.
-        """
         score = mutant_obj.mutant_score
         color = get_color(self.cmap, score, self.min_score, self.max_score)
         logging.info(f"Visualizing {mutant_obj.short_mutant_id} ({mutant_obj.raw_mutant_id}) : "
@@ -69,19 +55,6 @@ class MutantVisualizer:
     def create_mutagenesis_objects(
         self, mutant_obj: Mutant, color, in_place=True
     ):
-        """
-        Creates mutagenesis objects in PyMOL based on explicit mutagenesis descriptions.
-        Args:
-        - self: Instance of the class containing the method.
-        - mutant_obj (Mutant): Mutant object containing explicit mutagenesis description.
-        - color: Color to assign to the mutagenesis objects.
-        - inplace: ask PyMOL mutate runner to not stay in place after mutate is done
-        Returns:
-        - None
-        Notes:
-        - Creates mutagenesis objects in PyMOL based on the provided Mutant object.
-        - Handles explicit mutagenesis descriptions by applying mutations and assigning colors.
-        """
         from pymol import cmd, util
         new_obj_name = mutant_obj.short_mutant_id
         score = mutant_obj.mutant_score
@@ -134,20 +107,6 @@ class MutantVisualizer:
             cmd.reinitialize()
         return temp_mutant_path
     def parse_profile(self, profile_fp, profile_format) -> pd.DataFrame:
-        """
-        Parse the profile data based on the specified format and return the processed DataFrame.
-        Args:
-        - profile_fp (str): File path of the profile data.
-        - profile_format (str): Format of the profile data (e.g., 'PSSM', 'CSV', 'TSV').
-        Returns:
-        - DataFrame: Processed DataFrame based on the profile format.
-        Notes:
-        - Parses the profile data based on the specified format and returns a processed DataFrame.
-        - Handles different formats (PSSM, CSV, TSV) and processes the data accordingly.
-        - Initializes and uses external designers if available for specific profile formats.
-        - Logs debug information during the processing for easier debugging.
-        - Returns the processed DataFrame or None based on the profile format.
-        """
         args = {
             "profile_input": profile_fp,
             "molecule": self.molecule,
@@ -195,15 +154,6 @@ class MutantVisualizer:
             "Invalid file format. Only CSV, TSV, Microsoft Excel Table, FASTA and TXT formats are supported."
         )
     def run(self):
-        """
-        Runs mutation tasks.
-        Reads mutation data from different file formats (CSV, TXT, FASTA) and performs mutation-related operations.
-        Calculates scores for mutants and adds them to the mutant tree.
-        Determines the range for the color bar based on mutant scores.
-        Adjusts score ranges based on certain conditions.
-        Raises:
-        - ValueError: If an invalid file format is encountered or if required columns are missing in the data.
-        """
         mutation_data = self._get_mutation_data()
         if self.key_col not in mutation_data.columns:
             raise issues.InvalidInputError(
@@ -298,21 +248,6 @@ class MutantVisualizer:
         self.run_mutagenesis_tasks()
     @require_not_none("mutate_runner")
     def run_mutagenesis_tasks(self):
-        """
-        Runs mutagenesis tasks based on the MutantTree.
-        Args:
-        - self: Instance of the class containing the method.
-        Notes:
-        - This method initiates and manages the execution of mutagenesis tasks using parallel processing
-        if self.parallel_run is True.
-        - The method uses multiprocessing for parallel execution of tasks.
-        - If parallel_run is True:
-            - It initializes a ParallelExecutor with specified parameters and starts the execution.
-            - Handles the results obtained from parallel execution.
-        - If parallel_run is False:
-            - Executes mutagenesis tasks sequentially without parallel processing.
-        - After executing mutagenesis tasks, it performs merging sessions via command line.
-        """
         if any(
             not (m.pdb_fp and os.path.isfile(m.pdb_fp))
             for m in self.mutant_tree.all_mutant_objects
@@ -331,14 +266,6 @@ class MutantVisualizer:
             gc.collect()
         self.merge_sessions_via_commandline()
     def merge_sessions_via_commandline(self):
-        """
-        To call this commandline interface of session merger:
-        session_merger=MutantVisualizer(molecule=self.molecule, chain_id=self.chain_id)
-        session_merger.input_session=self.input_pse
-        session_merger.save_session=self.output_pse
-        session_merger.mutagenesis_sessions=self.results
-        session_merger.merge_sessions_via_commandline()
-        """
         from REvoDesign.tools import SessionMerger
         logging.debug(f"mutangesis_sessions: {self.mutagenesis_sessions}")
         merged_temp_session = os.path.join(

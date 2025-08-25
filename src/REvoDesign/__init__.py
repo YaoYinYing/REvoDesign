@@ -1,6 +1,3 @@
-'''
-Importing stack for REvoDesign
-'''
 import gc
 from REvoDesign.basic import SingletonAbstract
 from REvoDesign.bootstrap import (REVODESIGN_CONFIG_FILE, experiment_config,

@@ -1,6 +1,3 @@
-'''
-This module contains all grouped values from widgets for the GUI.
-'''
 import os
 from typing import Dict, List, Tuple
 import matplotlib

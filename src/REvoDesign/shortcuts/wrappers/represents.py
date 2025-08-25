@@ -1,6 +1,3 @@
-'''
-Shortcut wrappers of structure representation
-'''
 from REvoDesign import issues
 from REvoDesign.shortcuts.tools.represents import (shortcut_color_by_mutation,
                                                    shortcut_color_by_plddt,
@@ -9,11 +6,6 @@ from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from REvoDesign.tools.package_manager import notify_box
 registry = DialogWrapperRegistry("represents")
 def _color_by_mutation(**kwargs):
-    """
-    Runs the color_by_mutation function with parameters collected from the dialog.
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
     if kwargs["obj1"] == kwargs["obj2"]:
         notify_box(
             "The two objects cannot be the same.",

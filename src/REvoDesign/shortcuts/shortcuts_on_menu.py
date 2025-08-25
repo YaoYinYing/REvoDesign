@@ -1,6 +1,3 @@
-'''
-This module contains the menu shortcuts for REvoDesign.
-'''
 from REvoDesign.shortcuts.wrappers.designs import (wrapped_profile_pick_design,
                                                    wrapped_pssm2csv)
 from REvoDesign.shortcuts.wrappers.esm2 import wrapped_esm1v
@@ -27,11 +24,6 @@ from REvoDesign.shortcuts.wrappers.vina_tools import (wrapped_alter_box,
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
 def menu_dump_sidechains(dump_all=False):
-    """
-    Prepares and launches the sidechain dumping menu.
-    Args:
-        dump_all (bool): If True, preselects all groups for sidechain dumping.
-    """
     dynamic_value = {
         "value": AskedValue(
             "sele",

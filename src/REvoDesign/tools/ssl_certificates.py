@@ -1,6 +1,3 @@
-'''
-This module contains functions and classes related to managing SSL certificates and generating unique identifiers (UUIDs).
-'''
 import datetime
 import os
 import platform
@@ -22,16 +19,6 @@ class SSLCertificateManager:
         self.crt_path = os.path.join(self.crt_dir, f"{self.role}.crt")
         self.key_path = os.path.join(self.crt_dir, f"{self.role}.key")
     def generate_ssl_context(self):
-        """
-        Generate an SSL context based on the specified role for server or client.
-        Args:
-        role (str): Role for which the SSL context is generated ('server' or 'client').
-        Returns:
-        ssl.SSLContext: Generated SSL context.
-        Raises:
-        ValueError: If an unknown role is provided.
-        FileNotFoundError: If client certificate is not found.
-        """
         self.get_certificate()
         if self.role == "server":
             context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -44,13 +31,6 @@ class SSLCertificateManager:
             raise ValueError(f"Unknown role of ssl context: {self.role}")
         return context
     def get_certificate(self):
-        """
-        Function: get_certificate
-        Usage: get_certificate()
-        This function checks for the existence of an SSL certificate and generates a new one if it doesn't exist or has expired.
-        Returns:
-        - None
-        """
         if not os.path.exists(self.crt_path):
             logging.info(
                 "Certificate does not exist. Generating a new certificate."
@@ -73,13 +53,6 @@ class SSLCertificateManager:
         else:
             logging.info("Certificate is still valid.")
     def create_new_certificate(self):
-        """
-        Function: create_new_certificate
-        Usage: create_new_certificate()
-        This function creates a new SSL certificate and private key if they do not exist or if the certificate has expired.
-        Returns:
-        - None
-        """
         role = self.role
         node = platform.node()
         try:

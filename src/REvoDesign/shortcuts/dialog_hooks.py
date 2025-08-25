@@ -1,6 +1,3 @@
-'''
-Utility functions for dialogs hook functions
-'''
 import pymol
 import pymol.plugins
 from Bio import SeqIO
@@ -18,13 +15,6 @@ get_all_object_names = lambda: cmd.get_names("objects")
 get_all_selections = lambda: cmd.get_names("selections")
 get_all_objects = lambda: cmd.get_names("objects")
 def get_pymol_plugin_paths():
-    """
-    Retrieve the list of PyMOL plugin startup paths
-    Returns:
-        list: A list of PyMOL plugin startup paths, or an empty list if PyMOL is running in headless mode
-    Raises:
-        AttributeError: Caught when PyMOL is running in headless mode
-    """
     try:
         return [p for p in pymol.plugins.get_startup_path()]
     except AttributeError as e:

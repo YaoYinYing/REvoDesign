@@ -1,6 +1,3 @@
-'''
-Logger for REvoDesign
-'''
 import atexit
 import datetime as dt
 import json
@@ -165,10 +162,6 @@ def logger_level_setter(
         level: str = 'info',
         channel: Optional[Literal['stdout', 'stderr', 'file', 'notebook']] = None,
         apply_to_root_logger: bool = False) -> None:
-    """Set the logger level to the given value.
-    Args:
-        level (int): The level to set the logger to.
-    """
     from REvoDesign.driver.ui_driver import ConfigBus
     from REvoDesign.logger import ROOT_LOGGER
     if channel:

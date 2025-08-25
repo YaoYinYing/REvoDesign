@@ -1,6 +1,3 @@
-'''
-Utils for Rosetta
-'''
 import copy
 import os
 import platform
@@ -21,13 +18,6 @@ from REvoDesign.driver.ui_driver import ConfigBus
 logging = ROOT_LOGGER.getChild(__name__)
 ALL_NODES: Sequence[NodeHintT] = ("docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native")
 def setup_minimal_rosetta_db(subdirectory_to_clone: str):
-    """
-    Sets up the minimal Rosetta database required by cloning a specific subdirectory from the Rosetta repository.
-    Args:
-    subdirectory_to_clone (str): The subdirectory in the Rosetta database to clone.
-    Returns:
-    str: The path to the Rosetta database after cloning.
-    """
     rosetta3_db_path = os.environ.get("ROSETTA3_DB")
     if rosetta3_db_path:
         return rosetta3_db_path
@@ -41,11 +31,6 @@ def setup_minimal_rosetta_db(subdirectory_to_clone: str):
     print(f'ROSETTA3_DB={os.environ.get("ROSETTA3_DB")}')
     return rosetta3_db_path
 def list_fastrelax_scripts() -> List[str]:
-    """
-    Lists the fast relax scripts in the Rosetta database.
-    Returns:
-    List[str]: A list of names of the fast relax scripts.
-    """
     subdirectory = "sampling/relax_scripts"
     rosetta3_db_path = setup_minimal_rosetta_db(f"database/{subdirectory}")
     all_relax_scripts = [
@@ -55,13 +40,6 @@ def list_fastrelax_scripts() -> List[str]:
                 subdirectory)) if f.endswith('.txt') and not f.startswith('README') and '.dualspace' not in f]
     return all_relax_scripts
 def extra_res_to_opts(ligands_params: Union[List[str], str]) -> List[str]:
-    """
-    Generates options for ligand parameters.
-    Parameters:
-        ligands_params (Union[List[str], str]): List of ligand parameters or a single parameter.
-    Returns:
-        List[str]: List of command-line options for ligand parameters.
-    """
     if not ligands_params:
         return []
     if isinstance(ligands_params, str):
@@ -77,13 +55,6 @@ def extra_res_to_opts(ligands_params: Union[List[str], str]) -> List[str]:
         ligands.extend(["-extra_res_fa" if l.endswith("fa.params") else "-extra_res_cen", os.path.abspath(l)])
     return ligands
 def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
-    """
-    Determine if the specified runtime environment indicated by `node_hint` is available.
-    Parameters:
-    - node_hint (Optional[NodeHintT]): A hint that specifies the desired runtime environment.
-    Returns:
-    - bool: True if the specified runtime environment is available, False otherwise.
-    """
     if node_hint is None or node_hint == "native":
         return os.environ.get("ROSETTA_BIN", "") != ""
     if node_hint.startswith("wsl"):
@@ -96,13 +67,6 @@ def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
         return shutil.which("mpirun") is not None
     return False
 def is_wsl_available():
-    """
-    Check if Windows Subsystem for Linux (WSL) is available on the current machine.
-    This function attempts to determine if WSL is available by trying to locate the WSL binary.
-    If the WSL binary is found, it indicates that WSL is available.
-    Returns:
-        bool: Returns True if WSL is available, otherwise returns False.
-    """
     try:
         wsl_bin = which_wsl()
         return wsl_bin is not None
@@ -114,15 +78,6 @@ def is_wsl_available():
         )
         return False
 def is_docker_available() -> bool:
-    """
-    Checks if Docker is available on the current machine.
-    This function attempts to connect to Docker using the Docker client from the environment.
-    If the connection is successful, it indicates that Docker is available, and the function returns True.
-    If a DockerException is raised during the connection attempt, it indicates that Docker is not available,
-    and a warning is issued before returning False.
-    Returns:
-        bool: True if Docker is available, otherwise False.
-    """
     try:
         client = docker.from_env()
         del client
@@ -132,23 +87,9 @@ def is_docker_available() -> bool:
             f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"))
         return False
 def is_rosetta_runnable() -> bool:
-    """
-    Check if there are available run nodes to execute Rosetta tasks
-    This function iterates through all nodes and checks if at least one run node is available.
-    It verifies the availability of each node by calling the is_run_node_available function.
-    Returns:
-        bool: True if at least one run node is available, False otherwise
-    """
     return any(is_run_node_available(node_hint) for node_hint in ALL_NODES)
 IS_ROSETTA_RUNNABLE: bool = is_rosetta_runnable()
 def read_rosetta_config(key_path: str = "rosetta.opts.general") -> List[str]:
-    """
-    Read Rosetta configuration options and parse them into a list of strings
-    Args:
-        key_path (str): Path to the configuration key, defaults to "rosetta.opts.general"
-    Returns:
-        List[str]: Parsed Rosetta configuration options as a list of strings
-    """
     opts = ConfigBus().get_value(key_path, str)
     logging.warning(f"Got Rosetta opts: {opts}")
     rosetta_general_opts: List[str] = opts.split(" ")
@@ -157,12 +98,6 @@ def read_rosetta_config(key_path: str = "rosetta.opts.general") -> List[str]:
     logging.warning(f"Using Rosetta opts: {rosetta_general_opts}")
     return rosetta_general_opts
 def read_rosetta_node_config() -> Dict[str, Any]:
-    '''
-    Read the Rosetta node configuration from the configuration bus.
-    Returns:
-        Dict[str, str]: Dictionary containing the Rosetta node configuration.
-            If no node config is found, it returns an empty dictionary.
-    '''
     bus = ConfigBus()
     rosetta_node_hint = bus.get_value('rosetta.node_hint', str)
     logging.info(f"Using Rosetta node: {rosetta_node_hint}")
@@ -212,17 +147,6 @@ abstract = {We have recently completed a full rearchitecturing of the Rosetta mo
 @article{10.1021/acs.jctc.7b00125, author = {Alford, R. F. and Leaver‐Fay, A. and Jeliazkov, J. R. and O’Meara, M. J. and DiMaio, F. and Park, H. and Shapovalov, M. V. and Renfrew, P. D. and Mulligan, V. K. and Kappel, K. and Labonte, J. W. and Pacella, M. S. and Bonneau, R. and Bradley, P. and Dunbrack, R. L. and Das, R. and Baker, D. and Kuhlman, B. and Kortemme, T. and Gray, J. J.}, title = {The rosetta all-atom energy function for macromolecular modeling and design}, journal = {Journal of Chemical Theory and Computation}, year = {2017}, volume = {13}, issue = {6}, pages = {3031-3048}, doi = {10.1021/acs.jctc.7b00125} }"""
 }
 def copy_rosetta_citation(citetation: dict[str, Union[str, tuple]]) -> dict[str, Union[str, tuple]]:
-    """
-    Copy Rosetta citation information and update with custom citation content
-    This function creates a copy of the Rosetta common citation information and updates it
-    with the provided custom citation information. It is mainly used to generate complete
-    citation information by combining common and specific parts.
-    Parameters:
-        citetation (dict[str, Union[str, tuple]]): Custom citation information dictionary
-                                                  used to update the common citation information
-    Returns:
-        dict[str, Union[str, tuple]]: Updated complete citation information dictionary
-    """
     cc = copy.copy(ROSETTA_COMMON_CITATION)  
     cc.update(citetation)
     return cc

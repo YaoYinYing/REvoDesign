@@ -21,9 +21,6 @@ from ...tools.package_manager import WorkerThread
 from .config import ConfigStore
 logging = ROOT_LOGGER.getChild(__name__)
 def get_file_whitelist():
-    """
-    Retrieve the editable and readonly file whitelists.
-    """
     from platformdirs import user_log_path
     from REvoDesign.bootstrap import REVODESIGN_CONFIG_FILE
     bus = ConfigBus()
@@ -115,14 +112,6 @@ async def favicon():
     return FileResponse(os.path.join(this_file_dir, '..', '..', 'meta/images/logo.svg'), media_type="image/svg+xml")
 @app.get("/editor", response_class=HTMLResponse)
 async def serve_editor(file_path: str, token: str = None, request: Request = None):
-    """
-    Serve the Monaco Editor HTML, allowing for file-based editing.
-    Args:
-        file_path (str): The path of the file to be edited.
-        token (str): Optional token for authentication.
-    Returns:
-        HTMLResponse: The Monaco Editor HTML page.
-    """
     verify_token(token, request)
     config_store = ConfigStore()
     target_file = Path(file_path)
@@ -182,20 +171,6 @@ async def save_file(
     except Exception as e:
         return JSONResponse(content={"error": f"Failed to save file: {str(e)}"}, status_code=500)
 class ServerControl(ServerControlAbstract):
-    """
-    A singleton class that manages the Monaco backend server lifecycle.
-    Attributes:
-        server_thread (WorkerThread): The worker thread that runs the Uvicorn server.
-        is_running (bool): Indicates whether the server is running.
-        server (Uvicorn Server): The Uvicorn server instance.
-        config_store (ConfigStore): The configuration store for the server.
-    Usage:
-        Register the server control actions in the application's menu actions:
-        ```python
-        MenuActionServerMonitor(ServerControl, ui.actionStartEditor, ui.actionStopEditor)
-        ```
-        The ServerMonitor will automatically start and stop the server when the actions are triggered.
-    """
     def singleton_init(self):
         self.server_thread: WorkerThread = None  
         self.is_running = False

@@ -1,6 +1,3 @@
-"""
-This module is used to search pocket residues for a given molecule.
-"""
 import os
 from typing import Tuple
 from pymol import cmd
@@ -35,19 +32,6 @@ class PocketSearcher:
         self.save_dir = save_dir
     @staticmethod
     def process_multiple_resn(selection: str) -> Tuple[str, str]:
-        """
-        Processes a selection string to generate formatted outputs.
-        This function takes a string that may contain one or more comma-separated elements.
-        It processes the input and returns two strings:
-        - The first string is a concatenation of the elements separated by underscores.
-        - The second string provides a PyMOL property selection syntax description of the elements.
-        Parameters:
-        - selection (str): A string containing one or more residue names, possibly separated by commas.
-        Returns:
-        - Tuple[str, str]: A tuple containing two strings:
-            1. Elements joined by underscores.
-            2. Descriptive text with residue name listed and prefixed with 'r.'.
-        """
         if not selection:
             return "", ""
         if "," not in selection:

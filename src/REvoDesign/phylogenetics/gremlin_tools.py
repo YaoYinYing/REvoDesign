@@ -1,17 +1,3 @@
-'''
-GREMLIN utils: Everything but GREMLIN function
-Original License:
-------------------------------------------------------------
-"THE BEERWARE LICENSE" (Revision 42):
- and  wrote this code.
-As long as you retain this notice, you can do whatever you want
-with this stuff. If we meet someday, and you think this stuff
-is worth it, you can buy us a beer in return.
---Sergey Ovchinnikov and Peter Koo
-------------------------------------------------------------
-from:
-    https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
-'''
 import os
 import pickle
 import traceback
@@ -31,8 +17,6 @@ logging = ROOT_LOGGER.getChild(__name__)
 matplotlib.use("Agg")
 @dataclass
 class CoevolvedPair:
-    """A data class that represents a coevolved pair of amino acids.
-    """
     i: int
     j: int
     i_aa: str
@@ -179,7 +163,6 @@ class GREMLIN_Tools(CitableModuleAbstract):
         x_std = np.std(x)
         return (x - x_mean) / x_std
     def get_mtx(self):
-        """get mtx given mrf"""
         raw = np.sqrt(np.sum(np.square(self.mrf["w"][:, :-1, :-1]), (1, 2)))
         raw_sq = squareform(raw)
         ap_sq = (
@@ -197,7 +180,6 @@ class GREMLIN_Tools(CitableModuleAbstract):
         }
         return mtx
     def plot_mtx(self, key="zscore", vmin=1, vmax=3):
-        """plot the mtx"""
         plt.figure(figsize=(5, 5))
         plt.imshow(
             squareform(self.mtx[key]),

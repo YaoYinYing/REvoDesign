@@ -1,6 +1,3 @@
-'''
-System info collector
-'''
 import platform
 import warnings
 from dataclasses import dataclass, field
@@ -9,14 +6,6 @@ from .. import issues
 from ..basic import SingletonAbstract
 from .package_manager import issue_collection
 def check_mac_rosetta2():
-    """
-    Check if the current environment is running on an Apple Silicon Mac with Rosetta 2.
-    This function first checks if the current operating system is macOS. If not, it returns immediately.
-    It then determines if the machine is an ARM-based Mac and whether it is recognized as an x86_64 architecture.
-    If both conditions are met, a warning is issued indicating that the environment is using Rosetta 2, which may impact performance.
-    Returns:
-        None
-    """
     if not platform.system() == "Darwin":
         return
     is_arm_macos = "ARM64" in platform.uname().version
@@ -32,17 +21,11 @@ def check_mac_rosetta2():
         )
     )
 class SystemInfoReduced(SingletonAbstract):
-    """
-    A singleton class that provides system information.
-    """
     def singleton_init(self):
         self.info: immutabledict = immutabledict(issue_collection(network=False))
         self.initialized = True
 @dataclass
 class CLIENT_INFO:
-    '''
-    A reduced client information class.
-    '''
     node: str = ''
     user: str = ''
     os: str = ''

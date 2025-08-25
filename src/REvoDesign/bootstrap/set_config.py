@@ -1,6 +1,3 @@
-'''
-Module for bootstrapping REvoDesign with Hydra and OmegaConf.
-'''
 import glob
 import importlib.util
 import os
@@ -70,30 +67,13 @@ def set_cache_dir() -> str:
         cache_dir = os.path.expanduser(cfg.cache_dir.customized)
     return cache_dir
 class ConfigConverter:
-    """
-    A utility class to convert omegaconf.DictConfig objects to standard Python dictionaries.
-    This conversion is done recursively to handle nested DictConfig objects.
-    """
     @staticmethod
     def convert(config: DictConfig) -> dict:
-        """
-        Converts an omegaconf.DictConfig object to a standard Python dictionary.
-        Usage:
-            converted_dict = ConfigConverter.convert(dict_config)
-        :param config: The DictConfig object to convert.
-        :return: A standard Python dictionary representation of the input DictConfig.
-        """
         if isinstance(config, DictConfig):
             return ConfigConverter._recursive_convert(config)
         raise ValueError("Input must be an instance of omegaconf.DictConfig")
     @staticmethod
     def _recursive_convert(config: Any) -> Any:
-        """
-        Recursively converts an omegaconf.DictConfig object or its nested structures
-        to a standard Python dictionary. This method handles the recursion.
-        :param config: The DictConfig object or its nested structure.
-        :return: A standard Python dictionary or the original type if not DictConfig.
-        """
         if isinstance(config, DictConfig):
             return {
                 key: ConfigConverter._recursive_convert(value)
@@ -105,14 +85,5 @@ class ConfigConverter:
             ]
         return config
 def is_package_installed(package):
-    """
-    Function: is_package_installed
-    Usage: is_installed = is_package_installed(package)
-    This function checks if a specified package is installed in the current Python environment.
-    Args:
-    - package (str): Name of the package to check
-    Returns:
-    - bool: True if the package is installed, False otherwise
-    """
     package_loader = importlib.util.find_spec(package)
     return package_loader is not None

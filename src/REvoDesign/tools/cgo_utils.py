@@ -1,34 +1,3 @@
-'''
-Utilities for pymol.cgo, partially modified from `pymol.cgobuilder`
-This module is aimed at building programable application protocol for CGO creating via pymol.cgo module
-Lowercase names below should be replaced with floating-point numbers. Generally, the TRIANGLE primitive should only be used only as a last restore since it is much less effective to render than using a series of vertices with a BEGIN/END group.
-BEGIN, { POINTS | LINES | LINE_LOOP | LINE_STRIP | TRIANGLES | TRIANGLE_STRIP | TRIANGLE_FAN },
-VERTEX, x,  y,  z,
-COLOR,  red, green, blue,
-NORMAL, normal-x, normal-y,  normal-z,
-END,
-LINEWIDTH, line-width,
-WIDTHSCALE, width-scale,   
-SPHERE, x, y, z,  radius    
-[[Category:CGO]]
-CYLINDER, x1, y1, z1, x2, y2, z2, radius,
-          red1, green1, blue1, red2, green2, blue2,
-TRIANGLE,  x1, y1, z1,
-           x2, y2, z2,
-           x3, y3, z3,
-           normal-x1, normal-y1, normal-z1,
-           normal-x2, normal-y2, normal-z2,
-           normal-x3, normal-y3, normal-z3,
-           red1, green1, blue1,
-           red2, green2, blue2,
-           red3, green3, blue3,
-CONE,      x1, y1, z1,
-           x2, y2, z2,
-           r1, r2,
-           red1, green1, blue1,
-           red2, green2, blue2,
-           cap1, cap2   
-'''
 import itertools
 import math
 import string
@@ -56,16 +25,6 @@ XKCD_COLORS: immutabledict[str, str] = immutabledict(
     {name.lstrip('xkcd:').replace(' ', '_'): value for name, value in _cdata.XKCD_COLORS.items()})
 COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
 def not_none_float(*args: Optional[float]):
-    """
-    Returns the first non-None float value from the given arguments.
-    If all arguments are None or cannot be converted to float, it returns 0.0.
-    This function is designed to simplify the extraction and conversion of float values,
-    especially when dealing with input data that may contain None values.
-    Parameters:
-    *args: Optional[float] - One or more optional float type arguments.
-    Returns:
-    float - The first non-None float value, or 0.0 if none can be found.
-    """
     for idx, float_in in enumerate(args):
         if float_in is None:
             continue
@@ -76,36 +35,19 @@ def not_none_float(*args: Optional[float]):
     return 0.0
 @dataclass(frozen=True)
 class Point:
-    '''
-    A Point vector object in PyMOL's coordinate system
-    This class represents a point in 3D space with coordinates (x, y, z).
-    It provides methods to convert the point to a numpy array, and to generate CGO commands for vertices and normals.
-    '''
     x: float
     y: float
     z: float
     def __add__(self, other: 'Point') -> 'Point':
-        '''
-        Add two points together.
-        '''
         return Point.from_array(self.array + other.array)
     def __sub__(self, other: 'Point'):
         return Point.from_array(self.array - other.array)
     def __truediv__(self, other: float) -> 'Point':
-        '''
-        Divide a point by a scalar.
-        '''
         return Point.from_array(self.array / other)
     def __mul__(self, other: float) -> 'Point':
-        '''
-        Multiply a point by a scalar.
-        '''
         return Point.from_array(self.array * other)
     @property
     def copy(self):
-        '''
-        Return a copy of the point.
-        '''
         return Point.from_array(self.array)
     @classmethod
     def dot(cls, point1: 'Point', point2: 'Point') -> float:
@@ -115,100 +57,39 @@ class Point:
         return cls.from_array(np.cross(point1.array, point2.array))
     @cached_property
     def array(self) -> np.ndarray:
-        '''
-        Convert the point to a numpy array
-        This method converts the point's coordinates into a numpy array, facilitating subsequent vector operations.
-        '''
         return np.array([self.x, self.y, self.z])
     @cached_property
     def as_vertex(self):
-        '''
-        Generate a CGO vertex command for the point
-        This method inserts the point's coordinates into a CGO vertex command, used for rendering in PyMOL.
-        '''
         return np.insert(cgo.VERTEX, 1, self.array)
     @cached_property
     def as_normal(self):
-        '''
-        Generate a CGO normal command for the point
-        This method inserts the point's coordinates into a CGO normal command, used for specifying normals in PyMOL.
-        '''
         return np.insert(cgo.NORMAL, 1, self.array)
     def move(self, x: Optional[float] = None, y: Optional[float] = None, z: Optional[float] = None) -> 'Point':
-        '''
-        Move the point
-        This method allows the point to be moved along the x, y, and z axes. If a coordinate is not provided, the original value is used.
-        Parameters:
-        - x: Optional[float] = None, the new x-coordinate, if not provided, the original x-coordinate is used
-        - y: Optional[float] = None, the new y-coordinate, if not provided, the original y-coordinate is used
-        - z: Optional[float] = None, the new z-coordinate, if not provided, the original z-coordinate is used
-        Returns:
-        - Point: The new point after moving
-        '''
         return Point(
             not_none_float(x, self.x),
             not_none_float(y, self.y),
             not_none_float(z, self.z))
     @staticmethod
     def as_arrays(points: Iterable['Point']):
-        '''
-        Convert a collection of points to a numpy array
-        This static method converts a collection of Point objects into a single numpy array, facilitating batch processing.
-        Parameters:
-        - points: Iterable['Point'], a collection of Point objects
-        Returns:
-        - np.ndarray: A numpy array containing the coordinates of all points
-        '''
         return np.concatenate(tuple(point.array for point in points))
     @staticmethod
     def as_vertexes(points: Iterable['Point']):
-        '''
-        Convert a collection of points to CGO vertex commands
-        This static method converts a collection of Point objects into CGO vertex commands, used for batch rendering in PyMOL.
-        Parameters:
-        - points: Iterable['Point'], a collection of Point objects
-        Returns:
-        - np.ndarray: A numpy array containing the CGO vertex commands for all points
-        '''
         return np.concatenate(tuple(point.as_vertex for point in points))
     def delta_xyz(self, point: 'Point') -> np.ndarray:
         return point.array - self.array
     def center_xyz(self, point: 'Point') -> np.ndarray:
         return (point.array - self.array) / 2
     def distance_to(self, point: 'Point') -> float:
-        '''
-        Euclidean distance from a point to this Point.
-        Parameters:
-        - point: Point, a target point object.
-        Returns:
-        - float: The Euclidean distance
-        '''
         return np.linalg.norm(point.array - self.array).astype(float)
     @classmethod
     def from_array(cls, array: np.ndarray) -> 'Point':
-        '''
-        Create a Point object from a NumPy array.
-        '''
         return cls(*array)
 @dataclass(frozen=True)
 class Color:
-    """
-    Represents a color, including its name and alpha value.
-    Attributes:
-        name (str): The name of the color.
-        alpha (float): The alpha value of the color, default is 1.0 for full opacity.
-    """
     name: str
     alpha: float = 1.0
     @cached_property
     def array(self) -> np.ndarray:
-        """
-        Converts the color to an RGB array.
-        Returns:
-            np.ndarray: An RGB array representing the color.
-        Raises:
-            ValueError: If the color name is not valid.
-        """
         name = self.name.lower().replace(" ", "_")
         for cdict in COLOR_TABLES:
             if name not in cdict:
@@ -222,71 +103,26 @@ class Color:
             raise ValueError(f"{self.name} is not a valid color name from matplotlib or webcolors") from e
     @cached_property
     def array_alpha(self) -> np.ndarray:
-        """
-        Adds the alpha value to the RGB array to create an RGBA array.
-        Returns:
-            np.ndarray: An RGBA array representing the color.
-        """
         return np.append(self.array, self.alpha)
     @staticmethod
     def as_arrays(colors: Iterable['Color']):
-        """
-        Converts a series of colors to an array of RGB arrays.
-        Args:
-            colors (Iterable['Color']): A series of Color objects.
-        Returns:
-            np.ndarray: An array consisting of the RGB arrays of all colors.
-        """
         return np.concatenate(tuple(color.array for color in colors))
     @staticmethod
     def as_cgos(colors: Iterable['Color']):
-        """
-        Converts a series of colors to an array suitable for CGO (Color Graphics Operations).
-        Args:
-            colors (Iterable['Color']): A series of Color objects.
-        Returns:
-            np.ndarray: An array consisting of the CGO representations of all colors.
-        """
         return np.concatenate(tuple(color.as_cgo for color in colors))
     @cached_property
     def as_cgo(self):
-        """
-        Converts the color to a CGO (Color Graphics Operations) representation.
-        Returns:
-            np.ndarray: The CGO representation of the color.
-        """
         return np.concatenate((np.array([cgo.ALPHA, self.alpha, cgo.COLOR]), self.array))
 @dataclass
 class GraphicObject:
-    """
-    A base class representing a graphic object, providing methods to rebuild and load graphic data.
-    """
     def rebuild(self):
-        """
-        Rebuild the CGO data.
-        """
         self._data: List[float] = []
     def __post_init__(self):
-        """
-        Post-initialization processing.
-        If an object with the same name already exists, it is deleted.
-        Ensures the data types of attributes are as expected.
-        """
         self.rebuild()
     @property
     def data(self):
-        """
-        Get the CGO data.
-        """
         return self._data
     def load_as(self, name: str, *args, **kwargs):
-        """
-        Load the graphic object as a specified name. If the name is occupied, delete it to regenerate.
-        Parameters:
-        name (str): The name of the object, used for loading the object data into the software.
-        If an object with the same name already exists, it is deleted before loading the new object.
-        This prevents loading errors due to duplicate names.
-        """
         if name in cmd.get_names():
             cmd.delete(name)
         if DEBUG:
@@ -294,15 +130,6 @@ class GraphicObject:
         cmd.load_cgo(self.data, name, *args, **kwargs)
 @dataclass
 class PseudoCurve(GraphicObject):
-    '''
-    Pseudocurve base class, from which all pseudocurves (Bezier, Catmull-Rom,
-    B-Spline, Hermite, Arc, NURBS) inherit. Implements the sample method to
-    calculate discrete sampling points of the curve.
-    Attributes:
-        control_points (List[Point]): A list of control points used to define the curve.
-        color (Optional[str]): The color of the curve (optional).
-        steps (int): The number of segments the curve is divided into for drawing (default is 50).
-    '''
     control_points: List[Point]
     color: Optional[str] = None
     steps: int = 50
@@ -311,13 +138,6 @@ class PseudoCurve(GraphicObject):
             num_min: Optional[int] = None,
             num_max: Optional[int] = None,
             attr_name: str = 'control_points'):
-        '''
-        Check if the number of control points meets the minimum and maximum requirements.
-        Arguments:
-            num_min (int): The minimum number of control points required.
-            num_max (int): The maximum number of control points allowed.
-            attr_name (str): The name of the attribute containing the control points.
-        '''
         len_cp = len(getattr(self, attr_name))
         if num_min and len_cp < num_min:
             raise ValueError(f'Number of Control Points mismatch. Required {num_min} as minimum but got {len_cp}')
@@ -325,20 +145,7 @@ class PseudoCurve(GraphicObject):
             raise ValueError(f'Number of Control Points mismatch. Required {num_max} as maximum but got {len_cp}')
     @abstractmethod
     def sample(self) -> List["Point"]:
-        '''
-        Abstract method sample, used to calculate the discrete sampling points of the curve.
-        Returns:
-            List["Point"]: A list of sampling points, containing a series of points that make up the curve.
-        '''
     def rebuild(self) -> None:
-        '''
-        Rebuild method, used to rebuild the curve object based on sampling points.
-        This method first calls the sample method to get a list of sampling points, then builds
-        a CGO (Crystallographic Object) list based on these points.
-        If the color attribute exists, the color information is added to the CGO object.
-        Finally, the CGO object is assigned to the _data attribute of the instance, for subsequent
-        processing or rendering.
-        '''
         vertices_points = self.sample()  
         cgo_obj = []
         if self.color is not None:
@@ -347,9 +154,6 @@ class PseudoCurve(GraphicObject):
         self._data = cgo_obj
 @dataclass
 class PseudoBezier(PseudoCurve):
-    '''
-    PseudoBezier pseudocurve implementation using the Bezier curve formula with four control points.
-    '''
     def sample(self) -> List[Point]:
         self.check_control_points(4, 4)
         control_points = self.control_points
@@ -367,10 +171,6 @@ class PseudoBezier(PseudoCurve):
         return points
 @dataclass
 class PseudoCatmullRom(PseudoCurve):
-    '''
-    PseudoCatmullRom pseudocurve implementation using the Catmull-Rom spline formula.
-    This curve passes through all the control points and requires at least 4 control points.
-    '''
     def sample(self) -> List[Point]:
         self.check_control_points(num_min=4)
         points = []
@@ -400,12 +200,6 @@ class PseudoCatmullRom(PseudoCurve):
         return points
 @dataclass
 class PseudoBSpline(PseudoCurve):
-    '''
-    PseudoBSpline pseudocurve implementation using a B-Spline algorithm.
-    Attributes:
-        degree (int): Degree of the B-Spline curve (default is 3).
-        knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
-    '''
     degree: int = 3
     knots: Optional[List[float]] = None
     def sample(self) -> List[Point]:
@@ -423,12 +217,6 @@ class PseudoBSpline(PseudoCurve):
         return [Point(x, y, z) for x, y, z in spline_pts]
 @dataclass
 class PseudoHermite(PseudoCurve):
-    '''
-    PseudoHermite pseudocurve implementation using Hermite interpolation.
-    Attributes:
-        control_points (List[Point]): Exactly 2 control points (start and end).
-        tangents (List[Point]): Two tangent vectors corresponding to the control points.
-    '''
     tangents: List[Point] = field(default_factory=list)
     def sample(self) -> List[Point]:
         self.check_control_points(2, 2)
@@ -453,13 +241,6 @@ class PseudoHermite(PseudoCurve):
         return points
 @dataclass
 class PseudoArc(PseudoCurve):
-    '''
-    PseudoArc pseudocurve implementation for drawing an arc.
-    Attributes:
-        control_points (List[Point]): Expects a single control point representing the center.
-        radius (float): The radius of the arc.
-        angles (List[float]): A list with two elements [start_angle, end_angle] in radians.
-    '''
     radius: float = 0.0
     angles: List[float] = field(default_factory=lambda: [0.0, 0.0])
     def sample(self) -> List[Point]:
@@ -477,13 +258,6 @@ class PseudoArc(PseudoCurve):
         return points
 @dataclass
 class PseudoNURBS(PseudoCurve):
-    '''
-    PseudoNURBS pseudocurve implementation using Non-Uniform Rational B-Splines.
-    Attributes:
-        weights (List[float]): Weights corresponding to each control point.
-        degree (int): Degree of the NURBS curve (default is 3).
-        knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
-    '''
     weights: List[float] = field(default_factory=list)
     degree: int = 3
     knots: Optional[List[float]] = None
@@ -513,9 +287,6 @@ class PseudoNURBS(PseudoCurve):
             points.append(Point(pt[0], pt[1], pt[2]))
         return points
     def basis(self, i: int, p: int, u: float, knots: List[float]) -> float:
-        '''
-        Recursive Cox-de Boor basis function.
-        '''
         if p == 0:
             if knots[i] <= u < knots[i + 1]:
                 return 1.0
@@ -533,22 +304,10 @@ class PseudoNURBS(PseudoCurve):
         return term1 + term2
 @dataclass
 class LineVertex(GraphicObject):
-    """
-    Represents a line vertex, inheriting from GraphicObject.
-    This class is used to define a line drawing element, which can be a point or a Bezier curve, and can include line width and color attributes.
-    Attributes:
-    - point: A Point or Bezier instance, representing the starting point or control point of the line.
-    - width: An optional float, representing the line width. If not provided, the default is None.
-    - color: An optional string, representing the line color. If not provided, the default is None.
-    """
     point: Union[Point, PseudoCurve]
     width: Optional[float] = None
     color: Optional[str] = None
     def rebuild(self):
-        """
-        Rebuilds the line vertex data.
-        This method initializes the internal data list, and rebuilds the line vertex data based on the width, color, and point type.
-        """
         self._data = []
         if self.width:
             self._data.extend([cgo.LINEWIDTH, self.width])
@@ -566,21 +325,10 @@ class LineVertex(GraphicObject):
         return tuple(cls(p if isinstance(p, Point) else Point(*p), width=width, color=color) for p in points)
 @dataclass
 class Sphere(GraphicObject):
-    """
-    Represents a sphere in 3D space, inheriting from GraphicObject.
-    Attributes:
-        center (Point): The center point of the sphere, default is the origin (0, 0, 0).
-        radius (float): The radius of the sphere, default is 0.0.
-        color (str): The color of the sphere, default is 'w' (white).
-    """
     center: Point = Point(0, 0, 0)
     radius: float = 0.0
     color: str = 'w'
     def rebuild(self):
-        """
-        Rebuilds the sphere's data representation using CGO (Chimera Graphics Object) format.
-        This method constructs the sphere's data by combining the color information and the sphere's geometric properties.
-        """
         self._data = [
             *Color(self.color).as_cgo,  
             cgo.SPHERE,                 
@@ -589,25 +337,12 @@ class Sphere(GraphicObject):
         ]
 @dataclass
 class Cylinder(GraphicObject):
-    """
-    Represents a cylindrical graphic object.
-    Attributes:
-    - point1 (Point): The first endpoint of the cylinder, defaulting to Point(0, 0, 0).
-    - point2 (Point): The second endpoint of the cylinder, defaulting to Point(1, 1, 1).
-    - radius (float): The radius of the cylinder, defaulting to 1.0.
-    - color1 (str): The color of the first end of the cylinder, defaulting to 'violet'.
-    - color2 (str): The color of the second end of the cylinder, defaulting to 'cyan'.
-    """
     point1: Point = Point(0, 0, 0)
     point2: Point = Point(1, 1, 1)
     radius: float = 1.0
     color1: str = 'violet'
     color2: str = 'cyan'
     def rebuild(self):
-        """
-        Rebuilds the cylinder's data representation.
-        This method constructs the data array for the cylinder using the specified attributes.
-        """
         self._data = [
             cgo.CYLINDER,
             *self.point1.array,
@@ -618,26 +353,12 @@ class Cylinder(GraphicObject):
         ]
 @dataclass
 class Sausage(GraphicObject):
-    """
-    Represents a sausage-shaped graphic object with two endpoints, a radius, and two colors.
-    Attributes:
-        p1 (Point): The starting point of the sausage.
-        p2 (Point): The ending point of the sausage.
-        radius (float): The radius of the sausage.
-        color_1 (str): The color at the start of the sausage.
-        color_2 (str): The color at the end of the sausage.
-    """
     p1: Point
     p2: Point
     radius: float
     color_1: str
     color_2: str
     def rebuild(self):
-        """
-        Rebuilds the internal data representation of the sausage object.
-        This method constructs a list that includes the sausage identifier and the coordinates,
-        radius, and colors of the sausage.
-        """
         self._data = [
             cgo.SAUSAGE,
             *self.p1.array,
@@ -656,9 +377,6 @@ class Doughnut(GraphicObject):
     samples: int = 20
     csamples: int = 20
     def rebuild(self) -> None:
-        """
-        Rebuilds torus
-        """
         obj = []
         axis = cpv.cross_product(self.normal.array, (0., 0., 1.))
         angle = -cpv.get_angle(self.normal.array, (0., 0., 1.))
@@ -711,17 +429,6 @@ class Doughnut(GraphicObject):
         self._data = obj
 @dataclass
 class Cone(GraphicObject):
-    """
-    Represents a cone graphic object.
-    Attributes:
-        tip: The position of the cone's tip.
-        base_center: The position of the cone's base center.
-        radius_tip: The radius of the cone at the tip.
-        radius_base: The radius of the cone at the base.
-        color_tip: The color of the cone's tip. Default is 'w' for white.
-        color_base: The color of the cone's base. Default is 'g' for green.
-        caps: A tuple indicating whether to add caps to the tip and/or base. 1 for True, 0 for False. Default is (1, 0), meaning the tip has a cap and the base does not.
-    """
     tip: Point
     base_center: Point
     radius_tip: float
@@ -730,10 +437,6 @@ class Cone(GraphicObject):
     color_base: str = 'g'
     caps: tuple[float, float] = (1, 0)
     def rebuild(self) -> None:
-        """
-        Rebuilds cone
-        This method rebuilds the cone based on its attributes, including position, size, color, and whether to add caps.
-        """
         self._data = [
             cgo.CONE,
             *self.tip.array,
@@ -745,20 +448,6 @@ class Cone(GraphicObject):
         ]
 @dataclass
 class Triangle(GraphicObject):
-    """
-    Represents a triangle in 3D space, inheriting from GraphicObject.
-    It defines the vertices, normals, and colors of the triangle.
-    Attributes:
-        vertex_a (Point): The first vertex of the triangle, default is Point(1, 0, 0).
-        vertex_b (Point): The second vertex of the triangle, default is Point(0, 1, 0).
-        vertex_c (Point): The third vertex of the triangle, default is Point(0, 0, 1).
-        normal_a (Point): The normal vector at the first vertex, default is Point(1, 0, 0).
-        normal_b (Point): The normal vector at the second vertex, default is Point(0, 1, 0).
-        normal_c (Point): The normal vector at the third vertex, default is Point(0, 0, 1).
-        color_a (str): The color of the first vertex, default is 'r' (red).
-        color_b (str): The color of the second vertex, default is 'g' (green).
-        color_c (str): The color of the third vertex, default is 'b' (blue).
-    """
     vertex_a: Point = Point(1, 0, 0)
     vertex_b: Point = Point(0, 1, 0)
     vertex_c: Point = Point(0, 0, 1)
@@ -769,10 +458,6 @@ class Triangle(GraphicObject):
     color_b: str = 'g'
     color_c: str = 'b'
     def rebuild(self):
-        """
-        Rebuilds the internal data representation of the triangle by combining
-        the arrays of vertices, normals, and colors.
-        """
         self._data = [
             *Point.as_arrays((self.vertex_a, self.vertex_b, self.vertex_c)),
             *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
@@ -780,16 +465,6 @@ class Triangle(GraphicObject):
         ]
 @dataclass
 class TriangleSimple(GraphicObject):
-    """
-    Represents a simple triangle graphic object with three vertices and corresponding colors.
-    Attributes:
-    - vertex_a (Point): The first vertex of the triangle, defaulting to Point(1, 0, 0).
-    - vertex_b (Point): The second vertex of the triangle, defaulting to Point(0, 1, 0).
-    - vertex_c (Point): The third vertex of the triangle, defaulting to Point(0, 0, 1).
-    - color_a (str): The color of the first vertex, defaulting to 'r' (red).
-    - color_b (str): The color of the second vertex, defaulting to 'g' (green).
-    - color_c (str): The color of the third vertex, defaulting to 'b' (blue).
-    """
     vertex_a: Point = Point(1, 0, 0)
     vertex_b: Point = Point(0, 1, 0)
     vertex_c: Point = Point(0, 0, 1)
@@ -797,9 +472,6 @@ class TriangleSimple(GraphicObject):
     color_b: str = 'g'
     color_c: str = 'b'
     def rebuild(self):
-        """
-        Rebuilds the triangle's data representation using the specified vertices and colors.
-        """
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
             *Color(self.color_a).as_cgo,
@@ -812,9 +484,6 @@ class TriangleSimple(GraphicObject):
         ]
 @dataclass
 class Cube(GraphicObject):
-    '''
-    Cubic box with edges aligned with axes
-    '''
     p1: Point = Point(0, 0, 0)
     p2: Point = Point(1, 1, 1)
     color_w: str = 'yellow'
@@ -841,9 +510,6 @@ class Cube(GraphicObject):
                 ])
         self._data.append(cgo.END)
     def _rebuild_solid(self):
-        """
-        用 6 个 Square，合并出一个立方体(或长方体)外表。
-        """
         def make_face(a: Point, b: Point, c: Point, d: Point) -> List[float]:
             face = Square(
                 corner_a=a, corner_b=b, corner_c=c, corner_d=d,
@@ -883,12 +549,6 @@ class Cube(GraphicObject):
             self._rebuild_solid()
 @dataclass
 class Square(GraphicObject):
-    """
-    Represents a square graphic object, inheriting from GraphicObject.
-    Attributes:
-        corner_a, corner_b, corner_c, corner_d: Define the four corners of the square using Point objects.
-        color_a, color_b, color_c, color_d: Define the colors for each corner of the square.
-    """
     corner_a: Point = Point(0, 0, 0)
     corner_b: Point = Point(1, 0, 0)
     corner_c: Point = Point(1, 1, 0)
@@ -898,11 +558,6 @@ class Square(GraphicObject):
     color_c: str = 'b'
     color_d: str = 'y'
     def rebuild(self):
-        """
-        Rebuilds the square object's drawing data.
-        This method initializes a graphic object drawing data (_data) by defining the vertices and colors of the triangles that make up the square.
-        It uses the Color utility class to handle color conversion and the Point class for vertex coordinates.
-        """
         self._data = [
             cgo.BEGIN, cgo.TRIANGLES,
             *Color(self.color_a).as_cgo,
@@ -921,24 +576,11 @@ class Square(GraphicObject):
         ]
 @dataclass
 class PolyLines(GraphicObject):
-    """
-    Represents a collection of polylines, inheriting from GraphicObject.
-    This class is used to define a series of lines connected in a specific way, with common attributes such as width and color.
-    Attributes:
-        width (float): The line width.
-        color (str): The line color, represented as a string.
-        points (Iterable[LineVertex]): A collection of line vertices.
-        line_type (Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']): The drawing mode of the line, defaulting to 'LINE_STRIP'.
-    """
     width: float
     color: str
     points: Iterable[LineVertex]
     line_type: Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN'] = 'LINE_STRIP'
     def rebuild(self):
-        """
-        Rebuilds the line data.
-        This method initializes the line drawing data, including setting the line width, color, and type, and updates the data for each vertex.
-        """
         self._data = [
             cgo.LINEWIDTH, self.width,
             *Color(self.color).as_cgo,
@@ -949,9 +591,6 @@ class PolyLines(GraphicObject):
         self._data.append(cgo.END)
 @dataclass
 class Arrow(GraphicObject):
-    """
-    Represents an arrow object for visualization in PyMOL, with properties for start and end points, line width, and color.
-    """
     start: Point  
     point_to: Point  
     radius: float = 0.1  
@@ -961,17 +600,9 @@ class Arrow(GraphicObject):
     color_tail: str = 'white'
     @property
     def cone_base_r(self):
-        """
-        Calculates and returns the diameter of the cone base.
-        Returns:
-            float: The diameter of the cone base.
-        """
         return self.radius * self.header_ratio  
     @property
     def cyl_length(self) -> float:
-        """
-        Calculates the length of the arrow's cylinder.
-        """
         return max(self.point_to.distance_to(self.start) - self.header_height, 0)
     @cached_property
     def joint(self):
@@ -999,21 +630,6 @@ class Arrow(GraphicObject):
         self._data = go.data
 @dataclass
 class RoundedRectangle(GraphicObject):
-    """
-    Represents a rounded rectangle in 3D space using a combination of straight edges
-    and cubic Bezier curves for the rounded corners.
-    The rectangle is defined in a plane specified by a center point and two orthonormal axes.
-    Attributes:
-        center (Point): The center of the rectangle.
-        axis1 (Point): A unit vector representing the rectangle's local X-axis.
-        axis2 (Point): A unit vector representing the rectangle's local Y-axis.
-        width (float): The full width of the rectangle.
-        height (float): The full height of the rectangle.
-        radius (float): The radius of the rounded corners.
-        color (str): The outline color.
-        line_width (float): The width of the outline.
-        steps (int): Number of segments used to approximate each corner.
-    """
     center: Point
     axis1: Point
     axis2: Point
@@ -1024,9 +640,6 @@ class RoundedRectangle(GraphicObject):
     line_width: float
     steps: int = 50
     def local_to_global(self, u: float, v: float) -> Point:
-        """
-        Convert local (u, v) coordinates to global 3D coordinates.
-        """
         global_coord = self.center.array + u * self.axis1.array + v * self.axis2.array
         return Point(global_coord[0], global_coord[1], global_coord[2])
     def rebuild(self) -> None:
@@ -1112,18 +725,6 @@ class RoundedRectangle(GraphicObject):
         self._data = poly._data
 @dataclass
 class Ellipse(GraphicObject):
-    """
-    Represents an ellipse in 3D space.
-    Attributes:
-        center (Point): The center of the ellipse.
-        axis1 (Point): A unit vector representing the ellipse's local X-axis (direction of the major axis).
-        axis2 (Point): A unit vector representing the ellipse's local Y-axis.
-        major_radius (float): The radius along the major axis.
-        minor_radius (float): The radius along the minor axis.
-        color (str): The outline color.
-        line_width (float): The width of the outline.
-        steps (int): The number of segments used to approximate the ellipse (default is 50).
-    """
     center: Point
     axis1: Point
     axis2: Point
@@ -1133,16 +734,9 @@ class Ellipse(GraphicObject):
     line_width: float
     steps: int = 50
     def local_to_global(self, u: float, v: float) -> Point:
-        """
-        Convert local (u, v) coordinates (in the ellipse's plane) to global 3D coordinates.
-        """
         global_coord = self.center.array + u * self.axis1.array + v * self.axis2.array
         return Point(global_coord[0], global_coord[1], global_coord[2])
     def rebuild(self) -> None:
-        """
-        Rebuilds the ellipse object by sampling points along the ellipse's circumference and
-        assembling them into a closed polyline.
-        """
         t_values = np.linspace(0, 2 * math.pi, self.steps + 1)
         points = []
         for t in t_values:
@@ -1160,17 +754,6 @@ class Ellipse(GraphicObject):
         self._data = poly.data
 @dataclass
 class Ellipsoid(GraphicObject):
-    """
-    Represents an ellipsoid in 3D space as a triangle mesh.
-    Attributes:
-        center (Point): The center of the ellipsoid.
-        radius_x (float): Radius along the x-axis.
-        radius_y (float): Radius along the y-axis.
-        radius_z (float): Radius along the z-axis.
-        color (str): The color of the ellipsoid.
-        steps_theta (int): Number of subdivisions along the polar angle (theta).
-        steps_phi (int): Number of subdivisions along the azimuthal angle (phi).
-    """
     center: Point
     radius_x: float
     radius_y: float
@@ -1179,10 +762,6 @@ class Ellipsoid(GraphicObject):
     steps_theta: int = 50
     steps_phi: int = 50
     def rebuild(self) -> None:
-        """
-        Rebuilds the ellipsoid by generating a triangle mesh using its parametric equations.
-        The resulting CGO data is stored in self._data.
-        """
         theta = np.linspace(0, math.pi, self.steps_theta + 1)  
         phi = np.linspace(0, 2 * math.pi, self.steps_phi + 1)    
         theta_grid, phi_grid = np.meshgrid(theta, phi, indexing='ij')
@@ -1209,18 +788,9 @@ class Ellipsoid(GraphicObject):
         self._data = cgo_obj
 @dataclass
 class Polygon(GraphicObject):
-    """
-    Represents a filled polygon in 3D space.
-    Attributes:
-        vertices (List[Point]): A list of points that define the polygon's perimeter (in order).
-        color (str): The fill color of the polygon.
-    """
     vertices: List[Point]
     color: str
     def rebuild(self) -> None:
-        """
-        Rebuilds the polygon object by creating a CGO triangle fan from the vertices.
-        """
         cgo_obj = []
         cgo_obj.extend(Color(self.color).as_cgo)
         cgo_obj.extend([cgo.BEGIN, cgo.TRIANGLE_FAN])
@@ -1230,21 +800,10 @@ class Polygon(GraphicObject):
         self._data = cgo_obj
 @dataclass
 class Polyhedron(GraphicObject):
-    """
-    Represents a polyhedron in 3D space defined by vertices and faces.
-    Attributes:
-        vertices (List[Point]): A list of vertices of the polyhedron.
-        faces (List[List[int]]): A list of faces, each face is a list of indices (into the vertices list).
-        color (str): The fill color of the polyhedron.
-    """
     vertices: List[Point]
     faces: List[List[int]]
     color: str
     def rebuild(self) -> None:
-        """
-        Rebuilds the polyhedron by creating a CGO object.
-        Each face is drawn as a triangle fan to fill the polygon.
-        """
         cgo_obj = []
         cgo_obj.extend(Color(self.color).as_cgo)
         for face in self.faces:
@@ -1257,26 +816,11 @@ class Polyhedron(GraphicObject):
             cgo_obj.append(cgo.END)
         self._data = cgo_obj
 def to3d(pt):
-    """
-    Ensures that the given point (tuple or list) has three components.
-    If it only has two, append 0.0 for the z-coordinate.
-    """
     pt = tuple(pt)
     if len(pt) == 2:
         return pt + (0.0,)
     return pt
 def sample_quadratic_bezier(p0, p1, p2, num=10):
-    """
-    Samples a quadratic Bézier curve defined by p0, p1, and p2.
-    Ensures that each point is represented as a 3D coordinate (z=0 if not provided).
-    Args:
-        p0: Starting point (iterable of 2 or 3 floats).
-        p1: Control point (iterable of 2 or 3 floats).
-        p2: Ending point (iterable of 2 or 3 floats).
-        num (int): Number of samples.
-    Returns:
-        List of (x, y, z) tuples representing sampled points along the curve.
-    """
     def ensure3d(pt):
         pt = np.array(pt, dtype=float)
         if pt.shape[0] == 2:
@@ -1291,10 +835,6 @@ def sample_quadratic_bezier(p0, p1, p2, num=10):
         pts.append(tuple(pt))
     return pts
 class PolygonPen:
-    """
-    A custom pen that collects glyph outlines as contours (lists of Points).
-    Implements the FontTools pen interface.
-    """
     def __init__(self, sample_num: int = 10):
         self.contours: List[List[Point]] = []
         self.current_contour: List[Point] = []
@@ -1325,20 +865,6 @@ class PolygonPen:
         self.closePath()
 @dataclass
 class TextCharPolygon(GraphicObject):
-    """
-    Represents a character as polygon outlines extracted from a font file.
-    Attributes:
-        char (str): The character to render.
-        font_path (str): Path to a TrueType (or similar) font file.
-        color (str): The outline color.
-        scale (float): Scaling factor for the glyph.
-        offset (Optional[Point]): An optional offset to apply.
-        width (float): The width of the character.
-        format (str): the implementation format of the polygon data.
-            - 'LINE_LOOP': use line loop to draw the wireframe
-            - 'SAUSAGE': use sausage to draw the wireframe
-        sample_num: The number of samples to use for the polygon approximation in Bezeir sampling
-    """
     char: str
     font_path: str
     color: str
@@ -1443,21 +969,9 @@ class TextBoard(GraphicObject):
         self._data = goc.data
 @dataclass
 class GraphicObjectCollection(GraphicObject):
-    """
-    A collection class for GraphicObject, which contains multiple graphic objects.
-    Attributes:
-        objects (List[GraphicObject]): A list of GraphicObject instances.
-        force_to_rebuild (bool): Whether to rebuild everything before merging data.
-    """
     objects: List[GraphicObject]
     force_to_rebuild: bool = False
     def rebuild(self):
-        """
-        Rebuilds the data for all graphic objects in the collection.
-        This method empties the existing graphic object data, then iterates through each graphic object in the collection.
-        If the force_to_rebuild flag is set to True, it calls the rebuild method on each graphic object.
-        Finally, it adds the data of each graphic object to the collection's _data list.
-        """
         self._data = []
         for go_idx, go in enumerate(self.objects):
             print(f"Adding: 
@@ -1465,10 +979,6 @@ class GraphicObjectCollection(GraphicObject):
                 go.rebuild()
         self._data.extend(tree.flatten([go.data for go in self.objects]))
 def __easter_egg():
-    '''
-    There is always only one truth!
-    真しん実じつはいつもひとつ!
-    '''
     if any(not n.startswith('_') for n in cmd.get_names()):
         return
     poision = GraphicObjectCollection([

@@ -1,17 +1,9 @@
-'''
-This module contains the definitions of the push button IDs and configuration-widget mapping used in the application.
-'''
 from dataclasses import dataclass
 from typing import Tuple
 from immutabledict import immutabledict
 from REvoDesign.Qt import QtWidgets
 @dataclass(frozen=True)
 class PushButtons:
-    """
-    A class to define the IDs of push buttons used in the application.
-    Attributes:
-        button_ids (list[str]): A list of button IDs.
-    """
     button_ids: Tuple = (
         "open_output_pse_pocket",
         "open_output_pse_surface",
@@ -62,14 +54,6 @@ class PushButtons:
     )
 @dataclass(frozen=True)
 class Config2WidgetIds:
-    """
-    This class defines the mappings between configuration items and widget IDs, as well as the widget types.
-    Attributes:
-        wi_types (immutabledict): A mapping of widget type names to their corresponding Qt widget classes.
-        c2wi (immutabledict[str, str]): A mapping of configuration item keys to widget IDs.
-    Methods:
-        get_widget_typing(widget_id: str): Returns the Qt widget class corresponding to the given widget ID.
-    """
     wi_types: immutabledict[str, QtWidgets.QWidget] = immutabledict(
         {
             "pushButton": QtWidgets.QPushButton,
@@ -161,13 +145,6 @@ class Config2WidgetIds:
         }
     )
     def get_widget_typing(self, widget_id: str):
-        """
-        Returns the Qt widget class corresponding to the given widget ID.
-        Args:
-            widget_id (str): The ID of the widget.
-        Returns:
-            QtWidgets.QWidget: The corresponding Qt widget class.
-        """
         widget_type = widget_id.split("_")[0]
         if widget_type not in self.wi_types:
             raise NotImplementedError(

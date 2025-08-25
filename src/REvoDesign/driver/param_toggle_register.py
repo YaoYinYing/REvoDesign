@@ -1,6 +1,3 @@
-'''
-Module to register all parameter changes that should be reflected in the UI.
-'''
 from typing import Protocol
 from ..basic import ParamChangeRegister as PCR
 from ..basic import ParamChangeRegistryItem as PCRI
@@ -20,13 +17,6 @@ ParamChangeSidechainSolverWeights = PCRI(
     },
 )
 class ParserOrDesigner(Protocol):
-    """
-    Protocol class to define the structure for a parser or designer type.
-    This class inherits from Protocol and specifies the attributes that any instance conforming to this protocol must have.
-    Attributes:
-        name (str): The name of the parser or designer.
-        prefer_lower (bool): A flag indicating whether the parser or designer prefers lowercase values.
-    """
     name: str
     prefer_lower: bool
 ALL_PROFILE_OR_DESIGNERS: tuple[type[ParserOrDesigner], ...] = ALL_PARSER_CLASSES + tuple(ALL_DESIGNER_CLASSES)

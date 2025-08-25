@@ -1,6 +1,3 @@
-'''
-Orphaneous functions for REvoDesign
-'''
 import contextlib
 import itertools
 import random
@@ -21,24 +18,12 @@ try:
     from itertools import pairwise as _pairwise  
 except ImportError:
     def _pairwise(iterable: Iterable):
-        """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
         a, b = itertools.tee(iterable)
         next(b, None)
         return zip(a, b)
 pairwise: Callable[[Iterable], Iterable[Tuple]] = _pairwise
 logging = ROOT_LOGGER.getChild(__name__)
 def pairwise_loop(iterable: Iterable):
-    """
-    Generate a looped pairwise iterable from the input iterable.
-    This function takes an iterable as input and returns a list of tuples,
-    where each tuple contains a pair of consecutive elements from the iterable.
-    The last element is paired with the first element to form a loop structure.
-    Parameters:
-    iterable: Iterable - The input iterable used to generate the looped pairwise iterable.
-    Returns:
-    list - A list of tuples, each containing a pair of consecutive elements.
-            The last element is paired with the first element.
-    """
     seq = list(iterable)
     if not seq:
         return []
@@ -49,14 +34,6 @@ def require_not_none(
     fallback_setup: Optional[Union[Callable[[], Any], str]] = None,
     error_type: type[Exception] = issues.UnexpectedWorkflowError
 ):
-    """
-    Decorator factory to ensure a specific attribute of the instance is not None before the method is called.
-    Args:
-        attribute_name (str): Name of the attribute to check.
-        fallback_setup (callable): Function to call if the attribute is None. Defaults to None.
-        error_type (type): Exception type to raise if the attribute is None and no fallback.
-            Defaults to issues.UnexpectedWorkflowError.
-    """
     def decorator(method):
         @wraps(method)
         def wrapper(self, *args, **kwargs):
@@ -83,10 +60,6 @@ def require_not_none(
         return wrapper
     return decorator
 def require_installed(cls):
-    """
-    Decorator to enforce that the `installed` attribute of a class is True.
-    Raises an error if an instance is created with `installed` set to False.
-    """
     orig_init = cls.__init__
     def __init__(self, *args, **kwargs):
         if not getattr(cls, 'installed', False):
@@ -95,9 +68,6 @@ def require_installed(cls):
     cls.__init__ = __init__
     return cls
 def get_cited(method):
-    """
-    Decorator to call `self.cite()` after executing `self.process()`.
-    """
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         result = method(self, *args, **kwargs)
@@ -106,24 +76,6 @@ def get_cited(method):
         return result
     return wrapper
 def minibatches(inputs_data, batch_size):
-    """
-    Generates minibatches from input data with a specified batch size.
-    Args:
-    - inputs_data (list or iterable): Input data to be divided into minibatches.
-    - batch_size (int): Size of each minibatch.
-    Yields:
-    - list: Minibatches of data based on the specified batch size.
-    Note:
-    If the length of the inputs_data is not perfectly divisible by the batch_size,
-    the last batch may have fewer elements.
-    Example Usage:
-    ```python
-    data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    batch_size = 3
-    for batch in minibatches(data, batch_size):
-        print(batch)
-    ```
-    """
     for start_idx in range(0, len(inputs_data), batch_size):
         if len(inputs_data[start_idx:]) > batch_size:
             excerpt = slice(start_idx, start_idx + batch_size)
@@ -133,26 +85,6 @@ def minibatches(inputs_data, batch_size):
             print(f"Send final data in length: {len(inputs_data[start_idx:])}")
             yield inputs_data[start_idx:]
 def minibatches_generator(inputs_data_generator, batch_size):
-    """
-    Generates minibatches from a generator of input data with a specified batch size.
-    Args:
-    - inputs_data_generator (generator): Generator yielding input data.
-    - batch_size (int): Size of each minibatch.
-    Yields:
-    - list: Minibatches of data based on the specified batch size.
-    Note:
-    If the length of the inputs_data is not perfectly divisible by the batch_size,
-    the last batch may have fewer elements.
-    Example Usage:
-    ```python
-    def data_generator():
-        for i in range(10):
-            yield i
-    batch_size = 3
-    for batch in minibatches_generator(data_generator(), batch_size):
-        print(batch)
-    ```
-    """
     current_batch = []
     for data_point in inputs_data_generator:
         current_batch.append(data_point)
@@ -162,12 +94,6 @@ def minibatches_generator(inputs_data_generator, batch_size):
     if current_batch:
         yield current_batch
 def extract_archive(archive_file: str, extract_to: str):
-    """
-    Extracts the contents of an archive file (zip, tar.gz, tar.bz2, tar.xz, or rar) to a specified directory.
-    Args:
-        archive_file (str): Path to the archive file.
-        extract_to (str): Directory where the contents will be extracted.
-    """
     try:
         with timing(f'extracting {archive_file} to {extract_to}'):
             if archive_file.endswith(".zip"):
@@ -196,19 +122,6 @@ def get_color(
     min_value: Union[int, float],
     max_value: Union[int, float],
 ) -> tuple[float, float, float]:
-    """
-    Get color value from a colormap based on given data.
-    Args:
-    - cmap: Colormap name or object.
-    - data: Value to map to a color.
-    - min_value: Minimum value of the data range.
-    - max_value: Maximum value of the data range.
-    Returns:
-    - list: RGB color value based on the colormap and data.
-    Notes:
-    - Uses a specified colormap to map data values to color.
-    - Returns a RGB color value in the range [0, 1].
-    """
     if min_value == max_value:
         return (0.5, 0.5, 0.5)
     _cmap = matplotlib.colormaps[cmap]
@@ -217,14 +130,6 @@ def get_color(
     color = _cmap(int(num_color * scaled_value))[:3]
     return color
 def cmap_reverser(cmap: str, reverse: bool = False) -> str:
-    """
-    Reverses a colormap name if the 'reverse' flag is set to True.
-    Args:
-    - cmap (str): Name of the colormap.
-    - reverse (bool): Flag indicating whether to reverse the colormap (default is False).
-    Returns:
-    - str: Reversed colormap name if 'reverse' is True, otherwise returns the original colormap name.
-    """
     if reverse:
         if cmap.endswith("_r"):
             cmap = cmap.replace("_r", "")
@@ -236,30 +141,11 @@ def rescale_number(
     min_value: Union[int, float],
     max_value: Union[int, float],
 ) -> float:
-    """
-    Rescales a number within a specified range to a value between 0 and 1.
-    Args:
-    - number (float): The number to be rescaled.
-    - min_value (float): The minimum value of the range.
-    - max_value (float): The maximum value of the range.
-    Returns:
-    - float: The rescaled value between 0 and 1.
-    Raises:
-    - ValueError: If min_value is greater than or equal to max_value.
-    """
     if min_value >= max_value:
         raise ArithmeticError("min_value must be less than max_value")
     rescaled_value = (number - min_value) / (max_value - min_value)
     return max(0, min(1, rescaled_value))
 def count_and_sort_characters(input_string: str, characters):
-    """
-    Counts occurrences of specified characters in a string and sorts them based on counts.
-    Args:
-    - input_string (str): The input string to count characters from.
-    - characters (list): List of characters to count in the input string.
-    Returns:
-    - dict: Dictionary containing character counts sorted in descending order.
-    """
     char_count = {
         char: input_string.lower().count(char) for char in characters
     }
@@ -271,33 +157,12 @@ def count_and_sort_characters(input_string: str, characters):
     }
     return sorted_count
 def random_deduplicate(seq, score):
-    """
-    Deduplicates a sequence while preserving random scores for unique items.
-    Args:
-    - seq (numpy.array): Sequence array to deduplicate.
-    - score (numpy.array): Array of scores corresponding to items in seq.
-    Returns:
-    - numpy.array: Unique items from seq.
-    - numpy.array: Randomly chosen scores corresponding to unique items.
-    """
     unique_items = np.unique(seq)
     unique_scores = [
         np.random.choice(score[seq == item]) for item in unique_items
     ]
     return np.array(unique_items), np.array(unique_scores)
 def generate_strong_password(length=16):
-    """
-    Generate a strong random password.
-    Args:
-    - length (int): Length of the password (default is 16).
-    Returns:
-    - str: Strong password of the specified length.
-    Raises:
-    - ValueError: If the password length is not within the range of 16 to 64 characters.
-    Notes:
-    - Generates a strong password using a mix of ASCII letters, digits, and punctuation.
-    - The password length should be between 16 and 64 characters.
-    """
     if length < 16 or length > 64:
         raise ValueError(
             "Password length should be between 16 and 64 characters."
@@ -325,14 +190,6 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
     elif unit == 'ms':
         logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
 def device_picker() -> List[str]:
-    """
-    Detects and returns a list of available devices for deep learning frameworks.
-    This function checks for the availability of GPU or specialized hardware
-    (like MPS on macOS) using PyTorch or TensorFlow. If no compatible devices are found,
-    it defaults to 'cpu'.
-    Returns:
-        List[str]: A list of available device strings (e.g., ['cuda:0', 'mps', 'gpu', 'cpu']).
-    """
     device_list = ['cpu']
     if is_package_installed('torch'):
         import torch

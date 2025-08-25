@@ -1,6 +1,3 @@
-'''
-Shortcut wrappers of Rosetta-related tasks
-'''
 from pymol import cmd
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from REvoDesign.tools.rosetta_utils import extra_res_to_opts
@@ -10,11 +7,6 @@ from ..tools.rosetta_tasks import (shortcut_fast_relax, shortcut_pross,
                                    shortcut_rosettaligand)
 logging = ROOT_LOGGER.getChild(__name__)
 def rosettaligand(**kwargs):
-    """
-    Runs the RosettaLigand docking.
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
     logging.info(kwargs)
     ligand_params: str = kwargs.pop('ligand_params')
     ligands = ligand_params.split('|')
@@ -26,11 +18,6 @@ def rosettaligand(**kwargs):
         kwargs['start_from_xyz'] = tuple(cmd.centerofmass(start_from_xyz_sele))
     shortcut_rosettaligand(**kwargs)
 def fast_relax(**kwargs):
-    """
-    Runs the FastRelax.
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
     logging.info(kwargs)
     ligand_params: str = kwargs.pop('ligand_params')
     opts: str = kwargs.pop('opts')
@@ -40,11 +27,6 @@ def fast_relax(**kwargs):
     kwargs['relax_opts'] = [op for op in relax_opts if op]
     shortcut_fast_relax(**kwargs)
 def relax_w_ca_constraints(**kwargs):
-    """
-    Runs the FastRelax.
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
     logging.info(kwargs)
     ligand_params: str = kwargs.pop('ligand_params')
     opts: str = kwargs.pop('opts')

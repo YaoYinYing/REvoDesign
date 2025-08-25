@@ -1,6 +1,3 @@
-'''
-Shortcut wrappers of mutation effect predictors
-'''
 from REvoDesign.shortcuts.tools.mutation_effect_predictors import \
     shortcut_thermompnn
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry

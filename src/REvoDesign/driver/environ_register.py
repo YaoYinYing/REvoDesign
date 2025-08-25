@@ -16,9 +16,6 @@ def register_environment_variables():
             if v is not None:
                 os.environ[k] = v
 def add_new_environment_variables():
-    """
-    Adds new environment variables to the system.
-    """
     if ConfigBus._instance is None:
         raise issues.UnexpectedWorkflowError('ConfigBus must be initialized.')
     bus = ConfigBus()
@@ -34,9 +31,6 @@ def add_new_environment_variables():
     print(f'Environment variables are updated to configuration.\n {AskedEnvironBindItemCollection.asdict}')
     print('To apply these changes, a restart of the application may be required.')
 def drop_environment_variables():
-    """
-    Drop all environment variables that are bound to the configuration.
-    """
     if ConfigBus._instance is None:
         raise issues.UnexpectedWorkflowError('ConfigBus must be initialized.')
     bus = ConfigBus()

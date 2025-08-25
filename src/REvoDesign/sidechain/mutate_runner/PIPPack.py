@@ -1,6 +1,3 @@
-'''
-Wrapper of PIPPack
-'''
 import os
 from typing import List, Tuple
 from REvoDesign import reload_config_file, set_cache_dir
@@ -10,9 +7,6 @@ from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
 class PIPPack_worker(MutateRunnerAbstract):
-    """
-    Class for managing protein reconstruction and mutation using PIPPack.
-    """
     name: str = "PIPPack"
     installed: bool = is_package_installed("pippack")
     weights_preset: Tuple[str, ...] = (
@@ -23,11 +17,6 @@ class PIPPack_worker(MutateRunnerAbstract):
     )
     default_weight_preset: str = "ensemble"
     def __init__(self, pdb_file: str, use_model="ensemble", **kwargs):
-        """
-        Initialize PIPPack with a PDB file.
-        Args:
-        - pdb_file: Path to the PDB file
-        """
         super().__init__(pdb_file)
         self.use_model = use_model
         from pippack import PIPPack

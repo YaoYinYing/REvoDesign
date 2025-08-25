@@ -1,6 +1,3 @@
-'''
-OpenMM Setup Server Control
-'''
 import webbrowser
 import uvicorn
 from REvoDesign.basic import ServerControlAbstract, ThirdPartyModuleAbstract
@@ -14,10 +11,6 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
     name: str = 'openmmsetup'
     installed: bool = is_package_installed(name)
     def singleton_init(self):
-        """
-        Initialize the singleton instance.
-        This method initializes the server thread, running status, and server instance.
-        """
         self.server_thread: WorkerThread = None  
         self.is_running = False
         self.server: uvicorn.Server = None  
@@ -27,13 +20,6 @@ class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
         )
         self.cite()
     def start_server(self):
-        """
-        Start the OpenMMSetup server.
-        This method extends the start_server method of the parent class, configures and starts the Uvicorn server in a separate thread, and attempts to open the server URL in the default browser.
-        """
-        '''
-        Behavior of the server start action.
-        '''
         bus = ConfigBus()
         host = bus.get_value('openmmsetup.host', str)
         port = bus.get_value('openmmsetup.port', int)

@@ -1,6 +1,3 @@
-'''
-Wrapper for PyMOL-buildin Dunbrack Rotamer Library and mutagenesis wizard.
-'''
 import os
 from typing import List
 from Bio.Data import IUPACData
@@ -10,41 +7,14 @@ from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
 class PyMOL_mutate(MutateRunnerAbstract):
-    """
-    Class for performing mutations in PyMOL.
-    Usage:
-    pymol_mutator = PyMOL_mutate(molecule, input_session)
-    mutated_pdb = pymol_mutator.run_mutate(mutant_obj)  
-    """
     name: str = "Dunbrack Rotamer Library"
     installed: bool = True
     def __init__(self, pdb_file, molecule="", **kwargs):
-        """
-        Initialize PyMOL_mutate with a molecule and input session.
-        Args:
-        - molecule: Molecule object
-        - input_session: Input session information
-        """
         super().__init__(pdb_file)
         self.input_session = pdb_file
         self.molecule = molecule
         self.temp_dir = self.new_cache_dir
     def run_mutate(self, mutant: Mutant) -> str:
-        """
-        Run mutation on the molecule using PyMOL.
-        Args:
-        - mutant: Object containing mutation information
-        A standalone instance of PyMOL will perform a series of work:
-        1. reinitialize workspace (session)
-        2. load the input PDB
-        3. create a new object in the name of mutant.short_mutant_id
-        4. delete original object naming as input molecule
-        5. run mutates against this object.
-        6. save the mutated object as a new PDB file.
-        7. return the PDB file path
-        Returns:
-        - Path to the mutated PDB file
-        """
         import pymol2
         new_obj_name = mutant.short_mutant_id
         logging.debug(f"Mutating {mutant=}")
@@ -76,15 +46,6 @@ class PyMOL_mutate(MutateRunnerAbstract):
     def run_mutate_parallel(
         self, mutants: List[Mutant], nproc: int = 2
     ) -> List[str]:
-        """
-        Perform mutation on the protein in parallel.
-        Args:
-        - mutants: List of Mutant objects containing mutation information
-        - nproc: Number of parallel jobs to run (default: -1, which means using all available cores)
-        - **kwargs: Additional keyword arguments to pass to the run_mutate method
-        Returns:
-        - List of paths to the mutated PDB files
-        """
         results = Parallel(n_jobs=nproc, return_as="list")(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )

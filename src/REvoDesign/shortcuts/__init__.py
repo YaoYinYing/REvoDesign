@@ -1,6 +1,3 @@
-'''
-Collect all the shortcuts and extend them to pymol
-'''
 from pymol import cmd
 from .tools.designs import shortcut_pssm2csv
 from .tools.exports import shortcut_dump_sidechains

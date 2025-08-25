@@ -1,7 +1,3 @@
-'''
-Molecule utilities with PyMOL
-TODO: deprecate this module with biotite or biopython
-'''
 import os
 import warnings
 from dataclasses import dataclass
@@ -24,14 +20,6 @@ def is_hidden_object(selection="(all)"):
 def fetch_exclusion_expressions():
     return [""] + [sel for sel in refresh_all_selections()]
 def is_polymer_protein(sele=""):
-    """
-    Check if the selection represents a protein polymer with at least 10 residues.
-    Args:
-        sele (str): Selection string. Defaults to an empty string.
-    Returns:
-        bool or None: Returns True if the selection represents a protein polymer with at least 10 residues,
-                      otherwise returns False. Returns None if the selection is empty.
-    """
     if not sele:
         return None  
     resi_list = [
@@ -40,15 +28,6 @@ def is_polymer_protein(sele=""):
     unique_residues = set(resi_list)
     return len(unique_residues) > 10
 def find_small_molecules_in_protein(sele):
-    """
-    Find small molecules within a protein selection.
-    Args:
-        sele (str): Selection string.
-    Returns:
-        list or None: Returns a list of unique small molecule names found within the selection.
-                      Returns an empty list if no small molecules are found or if the selection is empty.
-                      Returns None if the selection is not provided.
-    """
     if not sele:
         warnings.warn(
             issues.NoInputWarning(
@@ -79,11 +58,6 @@ def find_small_molecules_in_protein(sele):
     unique_small_molecules = list(set(small_molecules))
     return unique_small_molecules if unique_small_molecules else []
 def find_design_molecules():
-    """
-    Find design molecules that are polymer proteins.
-    Returns:
-        list: Returns a list of design molecules that are identified as polymer proteins.
-    """
     objects = [
         object
         for object in cmd.get_names(
@@ -97,16 +71,6 @@ def find_design_molecules():
         )
     return objects
 def find_all_protein_chain_ids_in_protein(sele) -> List[str]:
-    """
-    Function: find_all_protein_chain_ids_in_protein
-    Usage: chain_ids = find_all_protein_chain_ids_in_protein(selection)
-    This function finds all chain IDs assigned to a protein molecule within the given selection.
-    Args:
-    - sele (str): PyMOL selection string
-    Returns:
-    - list: List of chain IDs assigned to a protein molecule within the selection.
-            Returns None if the selection is empty or no protein chains are found.
-    """
     if not sele:
         return []
     chain_ids = [chain_id for chain_id in cmd.get_chains(sele) if chain_id]
@@ -126,18 +90,6 @@ def is_distal_residue_pair(
     minimal_distance=20,
     use_sidechain_angle=False,
 ):
-    """
-    Check if a pair of amino acid residues are distal based on certain conditions.
-    Parameters:
-    - molecule (str): The name of the molecule.
-    - chain_id (str): The chain identifier.
-    - resi_1 (int): The residue number of the first amino acid.
-    - resi_2 (int): The residue number of the second amino acid.
-    - minimal_distance (float, optional): The minimum distance threshold for residues to be considered distal. Default is 20.
-    - use_sidechain_angle (bool, optional): Whether to consider the orientation of side chains. Default is False.
-    Returns:
-    - distal (bool): True if the residues are distal, False otherwise.
-    """
     sequence = get_molecule_sequence(molecule=molecule, chain_id=chain_id)
     resi_1 = int(resi_1)
     resi_2 = int(resi_2)
@@ -173,16 +125,6 @@ def is_distal_residue_pair(
                     f'{"distal" if sidechain_com_dist > minimal_distance else "closed"}.')
     return sidechain_com_dist > minimal_distance
 def renumber_chain_ids(target_protein):
-    """
-    Function: renumber_chain_ids
-    Usage: renumber_chain_ids(target_protein)
-    This function renumbers chain IDs of a given protein molecule using alphabets A-Z.
-    It alters the chain IDs of the protein structure in PyMOL.
-    Args:
-    - target_protein (str): PyMOL selection string of the target protein
-    Returns:
-    - None
-    """
     chain_ids = cmd.get_chains(target_protein)
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     for chain_id, _alphabet in zip(chain_ids, alphabet):
@@ -191,17 +133,6 @@ def renumber_chain_ids(target_protein):
             f"{target_protein} and c. {chain_id}", f"chain='{_alphabet}'"
         )
 def get_molecule_sequence(molecule, chain_id, keep_missing=True):
-    """
-    Function: get_molecule_sequence
-    Usage: sequence = get_molecule_sequence(molecule, chain_id)
-    This function retrieves the amino acid sequence of a molecule (protein) specified by a given chain ID.
-    Args:
-    - molecule (str): PyMOL selection string of the molecule
-    - chain_id (str): Chain ID of the molecule
-    - keep_missing (bool): Keep missing residues in structure as 'X'
-    Returns:
-    - str: Amino acid sequence of the specified molecule and chain
-    """
     from Bio.Data import IUPACData
     protein_letters_3to1_upper = {
         key.upper(): val.upper()
@@ -228,15 +159,6 @@ def get_molecule_sequence(molecule, chain_id, keep_missing=True):
         return "".join(resn)
     return "".join([protein_letters_3to1_upper[atom.resn] for atom in CA])
 def get_atom_pair_cst(selection="sele"):
-    """
-    Function: get_atom_pair_cst
-    Usage: cst = get_atom_pair_cst(selection='sele')
-    This function generates a distance constraint (cst) in CHARMM format for a pair of atoms selected in PyMOL.
-    Args:
-    - selection (str): PyMOL selection string for the atom pair (default is 'sele')
-    Returns:
-    - str or None: Distance constraint in CHARMM format if exactly 2 atoms are selected; otherwise, returns None
-    """
     _s = cmd.get_model(selection=selection).atom
     if len(_s) != 2:
         logging.error(
@@ -246,18 +168,6 @@ def get_atom_pair_cst(selection="sele"):
     cst = f"AtomPair {_s[0].name} {_s[0].resi}{_s[0].chain} {_s[1].name} {_s[1].resi}{_s[1].chain} HARMONIC 3 0.5"
     return cst
 def autogrid_flexible_residue(molecule, chain_id, selection):
-    """
-    Function: autogrid_flexible_residue
-    Usage: flex_residues = autogrid_flexible_residue(molecule, chain_id, selection)
-    This function generates a string specifying flexible residues for AutoGrid in AutoDock.
-    Args:
-    - molecule (str): PyMOL selection string of the molecule
-    - chain_id (str): Chain ID of the molecule
-    - selection (str): PyMOL selection string for residue selection
-    Returns:
-    - str or None: String specifying flexible residues for AutoGrid in AutoDock.
-                   Returns None if any of the input parameters (molecule, chain_id, selection) are invalid.
-    """
     if not molecule or not chain_id or not selection:
         logging.warning(
             f"Invalid parameters: \nmolecule - {molecule}\n chain_id - {chain_id} \n selection - {selection}"
@@ -277,13 +187,6 @@ def autogrid_flexible_residue(molecule, chain_id, selection):
     )
     return autodock_flexible_residues
 def refresh_all_selections():
-    """
-    Function: refresh_all_selections
-    Usage: selections = refresh_all_selections()
-    This function refreshes and logs information about all PyMOL selections except 'sele' and those starting with '_align'.
-    Returns:
-    - list: List of all non-'sele' selections (excluding those starting with '_align')
-    """
     from REvoDesign.tools.mutant_tools import shorter_range
     selections = [
         sel
@@ -295,15 +198,6 @@ def refresh_all_selections():
         logging.info(f"{sel}: i. {shorter_range([int(x) for x in _resi])}")
     return selections
 def is_a_REvoDesign_session():
-    """
-    Function: is_a_REvoDesign_session
-    Usage: result = is_a_REvoDesign_session()
-    This function checks if it's a REvoDesign session by verifying the
-    existence of public group objects.
-    Returns:
-    - bool: True if it's a REvoDesign session (public group objects exist),
-        False otherwise.
-    """
     if check := bool(cmd.get_names(type="public_group_objects")):
         warnings.warn(
             issues.REvoDesignSessionsWarning(
@@ -325,24 +219,6 @@ def make_temperal_input_pdb(
     wd=os.getcwd(),
     reload=True,
 ):
-    """
-        Function: make_temperal_input_pdb
-        Usage: input_file = make_temperal_input_pdb(molecule, chain_id=None, segment_id=None, format='pdb', wd=os.getcwd(), reload=True)
-    exi
-        This function generates a temporary input PDB file from the specified molecule selection.
-        It supports selection by chain ID, segment ID, or both.
-        Args:
-        - molecule (str): PyMOL selection string of the molecule
-        - chain_id (str): Chain id of the molecule (default is None)
-        - segment_id (str): Segment id of the molecule (default is None)
-        - resn (str): Residue name of the molecule (useful for small-molecule ligand)
-        - selection (str): Customized selection in PyMOL syntax.
-        - format (str): File format for the generated PDB file (default is 'pdb')
-        - wd (str): Working directory path where the file will be saved (default is current working directory)
-        - reload (bool): Whether to reload the PyMOL session after generating the file (default is True)
-        Returns:
-        - str: Path to the generated temporary input PDB file
-    """
     os.makedirs(wd, exist_ok=True)
     input_file = os.path.join(
         wd,
@@ -378,26 +254,6 @@ def extract_smiles_from_chain(
 ) -> list[str]:
     from rdkit import Chem
     from rdkit.Chem import MolToSmiles
-    """
-    Function: extract_smiles_from_chain
-    Usage: smiles_string = extract_smiles_from_chain(molecule, chain_id=None, segment_id=None)
-    This function extracts the SMILES string of a small molecule from a given chain and/or segment identifier
-    in a PyMOL session.
-    Usage:
-    `
-        python
-        from REvoDesign.tools.pymol_utils import extract_smiles_from_chain
-        print(extract_smiles_from_chain(molecule='1hx9', chain_id='A', segment_id='D', resn='FHP', selection=''))
-        python end
-    `
-    Args:
-    - molecule (str): PyMOL selection string of the molecule
-    - chain_id (str): Chain identifier from which SMILES will be extracted (default is None)
-    - segment_id (str): Segment identifier from which SMILES will be extracted (default is None)
-    - resn (str): Residue from which SMILES will be extracted (default is None)
-    Returns:
-    - str: The SMILES string list of the specified molecule
-    """
     temp_pdb = make_temperal_input_pdb(
         molecule,
         chain_id=chain_id,
@@ -426,16 +282,6 @@ def any_posision_has_been_selected():
 def get_all_groups(enabled_only: bool = False) -> List[str]:
     return cmd.get_names("group_objects", int(enabled_only))
 def renumber_protein_chain(molecule: Union[str, List[str]], chain: Optional[str] = None, offset: int = 0) -> None:
-    """
-    Renumbers a protein chain in PyMOL by applying an offset to residue indices.
-    Args:
-        molecule (str|List[str]): Name of the PyMOL molecule object.
-        chain (Optional[str]): Name of the chain to be renumbered. If None, applies to all chains.
-        offset (int): Residue index offset to apply (default is 0, meaning no change).
-    Usage:
-        renumber_protein_chain("8X3E", "A", 32)
-        renumber_protein_chain("1ABC", offset=-10)
-    """
     if offset == 0:
         return  
     if isinstance(molecule, (list, tuple)):

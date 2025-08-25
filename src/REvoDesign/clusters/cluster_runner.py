@@ -1,6 +1,3 @@
-'''
-Clustering workflow
-'''
 from typing import Optional
 from RosettaPy.node import NodeHintT
 from REvoDesign import ConfigBus

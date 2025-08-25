@@ -1,6 +1,3 @@
-'''
-Main Module for REvoDesign
-'''
 import asyncio
 import gc
 import os
@@ -120,11 +117,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.set_working_directory(pwd)
                 return
     def set_working_directory(self, new_dir: Optional[str] = None):
-        """Set working directory for the current REvoDesign Session
-        Args:
-            new_dir (str, optional): new directory to set as CWD.
-                Defaults to None.
-        """
         if new_dir and os.path.abspath(new_dir) == os.path.abspath(self.PWD):
             self.bus.set_value("work_dir", os.path.abspath(self.PWD))
             return
@@ -138,18 +130,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         os.chdir(self.PWD)
         self.bus.set_value("work_dir", os.path.abspath(self.PWD))
     def run_plugin_gui(self):
-        """PyMOL entry for running the plugin"""
         if self.window is None:
             self.window = self.make_window()
         self.window.show()
         self.fix_wd()
         self.file_dialog = FileDialog(self.window, self.PWD)
     def reinitialize(self, delete: bool = False):
-        """_summary_
-        Args:
-            delete (bool, optional): Delete user configurations.
-                Defaults to False.
-        """
         self.multi_designer = None
         self.gremlin_worker = None
         self.evaluator = None
@@ -170,15 +156,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     )
                 )
     def __del__(self):
-        """Shutting down."""
         logging.warning("REvoDesign is shutting down.")
         if self.window:
             self.window = None
     def make_window(self):
-        """make new window
-        Returns:
-            QtWidgets.QMainWindow: new main window object
-        """
         installed_dir = os.path.dirname(__file__)
         logging.debug(f"REvoDesign is installed in {installed_dir}")
         check_mac_rosetta2()
@@ -629,7 +610,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
         return main_window
     def reload_molecule_info(self):
-        """Reload the molecule in current session."""
         self.temperal_session = tempfile.mkstemp(suffix=".pse")[1]
         if not is_empty_session():
             cmd.remove('not alt ""+A')
@@ -674,10 +654,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             "ui.header_panel.input.molecule", find_design_molecules
         )
     def save_as_a_session(self, cfg_to_pse: str):
-        """Save current session to a file.
-        Args:
-            cfg_to_pse (str): Config item in ConfigBus
-        """
         output_pse_fn = self.file_dialog.browse_filename(
             mode="w",
             exts=(file_extensions.Session, file_extensions.Any),
@@ -690,7 +666,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 issues.NoInputWarning(f"Invalid output path: {output_pse_fn}.")
             )
     def update_chain_id(self):
-        """Update chain ids for picked molecule."""
         molecule = self.bus.get_widget_value(
             "ui.header_panel.input.molecule", str
         )
@@ -721,10 +696,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 "designable_sequences", self.designable_sequences.as_dict, force_add=True
             )
     def find_session_path(self) -> Optional[str]:
-        """Find and validate if current session is saved as a session file.
-        Returns:
-            str: session path.
-        """
         session_path: str = cmd.get("session_file")
         if not session_path:
             warnings.warn(
@@ -757,11 +728,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 mode="w", exts=(file_extensions.Session,)
             )
         return session_path
-    """
-    Private functions used only in a specific tab.
-    """
     def reload_determine_tab_setup(self):
-        """Setup pocket determination"""
         molecule = self.bus.get_widget_value(
             "ui.header_panel.input.molecule", str
         )
@@ -781,7 +748,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             "ui.prepare.input.pocket.cofactor", small_molecules
         )
     def update_surface_exclusion(self):
-        """Setup surface determination"""
         exclusion_list = fetch_exclusion_expressions()
         self.bus.set_widget_value(
             "ui.prepare.input.surface.exclusion", exclusion_list
@@ -791,7 +757,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 "ui.prepare.input.surface.exclusion"
             ).setCurrentIndex(0)
     def run_chain_interface_detection(self):
-        """Setup chain-chain interface determination"""
         molecule = self.bus.get_value("ui.header_panel.input.molecule")
         radius = self.bus.get_value("ui.prepare.chain_dist", float)
         chain_ids = find_all_protein_chain_ids_in_protein(molecule)
@@ -805,10 +770,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 f"around {radius} and polymer.protein",
             )
     def run_surface_detection(self):
-        """Run surface determination"""
         SurfaceFinder(input_pse=self.temperal_session).process_surface_residues()
     def run_pocket_detection(self):
-        """Run pocket determination"""
         PocketSearcher(
             input_pse=self.temperal_session,
             save_dir=f"{self.PWD}/pockets/",
@@ -816,11 +779,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def determine_profile_format(
         self, cfg_input_profile: str, cfg_profile_format: str
     ):
-        """Determine the format of input profile
-        Args:
-            cfg_input_profile (str): config item of input profile
-            cfg_profile_format (str): config item of output profile format
-        """
         _fp = self.bus.get_widget_value(cfg_input_profile, str)
         if _fp == "None" or not _fp:
             return
@@ -832,7 +790,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
         self.bus.set_widget_value(cfg_profile_format, profile_format)
     def run_mutant_loading_from_profile(self):
-        """Run mutant loading from profile to session"""
         trigger_button = self.bus.button("run_PSSM_to_pse")
         with (
             hold_trigger_button(trigger_button),
@@ -854,15 +811,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             )
         del worker
     def initialize_design_candidates(self):
-        """Initialize Evaluator for human checks"""
         self.evaluator = Evalutator()
         self.evaluator.initialize_design_candidates()
     @require_not_none("evaluator")
     def recover_mutant_choices_from_checkpoint(self, *args, **kwargs):
-        """
-        This function recovers mutant choices from a checkpoint file
-        using an evaluator.
-        """
         mutant_choice_checkpoint_fn = self.file_dialog.browse_filename(
             mode="r",
             exts=(file_extensions.Mutable, file_extensions.Any),
@@ -872,37 +824,17 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         )
     @require_not_none("evaluator")
     def jump_to_the_best_mutant(self, *args, **kwargs):
-        """
-        This function checks if the evaluator is initialized
-        and then jumps to the best mutant.
-        """
         self.evaluator.jump_to_the_best_mutant()
     @require_not_none("evaluator")
     def jump_to_branch(self, *args, **kwargs):
-        """
-        This function checks if the evaluator is initialized
-        and then jumps to a branch.
-        """
         self.evaluator.jump_to_branch()
     @require_not_none("evaluator")
     def jump_to_a_mutant(self, *args, **kwargs):
-        """
-        This function checks if the evaluator is initialized
-        and then jumps to a mutant.
-        """
         self.evaluator.jump_to_a_mutant()
     @require_not_none("evaluator")
     def find_all_best_mutants(self, *args, **kwargs):
-        """
-        This function checks if the evaluator is initialized and
-        then calls a method to find all the best mutants.
-        """
         self.evaluator.find_all_best_mutants()
     def run_clustering(self):
-        """
-        The function `run_clustering` initializes a `ClusterRunner`
-        object and runs the clustering process upon triggering a button press.
-        """
         trigger_button = self.bus.button("run_cluster")
         worker = ClusterRunner(
             PWD=self.PWD,
@@ -911,9 +843,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             worker.run_clustering()
         del worker
     def update_mutant_table_columns(self):
-        """Retrieves mutant table columns from a file, validates them,
-        and sets them as values in combo boxes.
-        """
         mut_table_fp = self.bus.get_widget_value(
             "ui.visualize.input.from_mutant_txt", str
         )
@@ -954,21 +883,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def save_visualizing_mutant_tree(
         self, cfg_mutant_table_fp, cfg_group_name
     ):
-        """
-        This function saves a mutant tree visualization based on specified
-        configuration parameters.
-        :param cfg_mutant_table_fp: `cfg_mutant_table_fp` is a configuration
-            parameter that represents the file path where the mutant table
-            will be saved
-        :param cfg_group_name: The `cfg_group_name` parameter is a
-            configuration key that specifies the name of a group.
-            In the `save_visualizing_mutant_tree` method, this parameter
-            is used to retrieve the group name from the configuration
-            settings using
-        `self.bus.get_value(cfg_group_name)`. This group name is then
-        :return: nothing explicitly, as there is no return statement provided
-            in the code snippet.
-        """
         group_name = self.bus.get_value(cfg_group_name)
         mutant_table_fp = self.bus.get_value(cfg_mutant_table_fp)
         if not os.path.exists(mutant_table_fp):
@@ -993,10 +907,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.visualizing_mutant_tree,
         )
     def visualize_mutants(self):
-        """
-        The `visualize_mutants` function triggers visualization of
-        mutants and broadcasts the mutant tree data if conditions are met.
-        """
         trigger_button = self.bus.button("run_visualizing")
         with hold_trigger_button(trigger_button), timing("Visualizng Mutants"):
             worker = VisualizingWorker()
@@ -1020,15 +930,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         reduce_disabled: bool = False,
         overwrite: bool = False,
     ):
-        """Reduce the current session by disabling certain items
-        and potentially overwriting the session file.
-        Args:
-            session (str, optional): Path to given session. Defaults to None.
-            reduce_disabled (bool, optional): Whether to reduce disabled object
-                in current session. Defaults to False.
-            overwrite (bool, optional): Whether to override existing file.
-                Defaults to False.
-        """
         if not session:
             session = self.find_session_path()
         if reduce_disabled:
@@ -1056,14 +957,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                     return
         cmd.save(filename=session)
     def multi_mutagenesis_design_initialize(self):
-        """
-        The function initializes a MultiMutantDesigner object.
-        """
         with hold_trigger_button(self.bus.button("multi_design_initialize")):
             self.multi_designer = MultiMutantDesigner()
     @require_not_none("multi_designer")
     def multi_mutagenesis_design_start(self, *args, **kwargs):
-        """Start a new multi design."""
         with hold_trigger_button(
             self.bus.button("multi_design_start_new_design")
         ):
@@ -1083,9 +980,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.start_new_design()
     @require_not_none("multi_designer")
     def multi_mutagenesis_design_pick_next_mut(self, *args, **kwargs):
-        """
-        Picking the next mutant in a multi mutagenesis design process.
-        """
         with hold_trigger_button(
             buttons=self.bus.buttons(
                 button_ids=("multi_design_left", "multi_design_right")
@@ -1095,9 +989,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.pick_next_mutant()
     @require_not_none("multi_designer")
     def multi_mutagenesis_design_undo_picking(self, *args, **kwargs):
-        """
-        Undo a single step of operation in multi mutagenesis design.
-        """
         with hold_trigger_button(
             buttons=self.bus.buttons(
                 ("multi_design_left", "multi_design_right")
@@ -1107,9 +998,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.multi_designer.undo_previous_mutant()
     @require_not_none("multi_designer")
     def multi_mutagenesis_design_stop_design(self, *args, **kwargs):
-        """
-        Terminates the picking process if in a multi design case.
-        """
         with hold_trigger_button(
             self.bus.button("multi_design_end_this_design")
         ):
@@ -1118,17 +1006,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.multi_designer.terminate_picking(continue_design=False)
     @require_not_none("multi_designer")
     def multi_mutagenesis_design_save_design(self, *args, **kwargs):
-        """
-        Exports designed variants.
-        """
         with hold_trigger_button(
             self.bus.button("multi_design_export_mutants_from_table")
         ):
             self.multi_designer.export_designed_variant()
     def multi_mutagenesis_design_auto(self):
-        """
-        Automates the process of designing multiple mutagenesis variants.
-        """
         trigger_button = self.bus.button("run_multi_design")
         self.multi_mutagenesis_design_initialize()
         if not self.multi_designer:
@@ -1154,18 +1036,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             except Exception:
                 traceback.print_exc()
     def load_gremlin_mrf(self):
-        """
-        Loads a GREMLIN MRF for interaction analysis.
-        """
         trigger_button = self.bus.button("reinitialize_interact")
         with hold_trigger_button(trigger_button), timing("Load GREMLIN mrf"):
             self.gremlin_worker = GremlinAnalyser()
             self.gremlin_worker.load_gremlin_mrf()
     @require_not_none("gremlin_worker")
     def run_gremlin_tool(self, *args, **kwargs):
-        """
-        Runs Gremlin tool if a Gremlin worker is available.
-        """
         trigger_button = self.bus.button("run_interact_scan")
         with (
             hold_trigger_button(trigger_button),
@@ -1173,16 +1049,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         ):
             self.gremlin_worker.run_gremlin_tool()
     def coevoled_mutant_decision(self, decision_to_accept: bool):
-        """Makes a decision on accepting a mutant.
-        Args:
-            decision_to_accept (bool): whether to accept or
-                reject a coevolved mutant.
-        """
         self.gremlin_worker.coevoled_mutant_decision(accept=decision_to_accept)
     def generate_ws_server_key(self):
-        """
-        Generates a strong password key for a WebSocket server.
-        """
         use_key = self.bus.get_widget_value("ui.socket.use_key", str)
         if not use_key:
             return
@@ -1190,16 +1058,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             "ui.socket.input.key", generate_strong_password(length=32)
         )
     def setup_ws_server(self):
-        """
-        Generates a WebSocket server key and sets up the WebSocket
-        server.
-        """
         self.generate_ws_server_key()
         self.ws_server.setup_ws_server()
     def update_ws_server_view_update_options(self):
-        """
-        Updates the options for broadcasting view changes in a WebSocket server.
-        """
         if not self.ws_server or not self.ws_server.is_running:
             logging.warning("Server is not in service.")
             return
@@ -1237,10 +1098,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         logging.warning("Start broadcasting view.")
         return
     def toggle_ws_server_mode(self):
-        """
-        Toggles the WebSocket server mode based on the value of a widget
-        and logs the server status.
-        """
         toggled = self.bus.get_widget_value("ui.socket.server_mode", bool)
         try:
             if not self.ws_server.initialized:
@@ -1265,23 +1122,10 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             f'Server status: {"ON" if self.ws_server.is_running else "OFF"}'
         )
     async def ws_broadcast_from_server(self, data: Any, data_type: str):
-        """Broadcasts data of a specified type from the server to connected
-        WebSocket clients.
-        Args:
-            data (Any): data object
-            data_type (str): data type lable
-        """
         await self.ws_server.broadcast_object(data, data_type)
     def setup_ws_client(self):
-        """
-        Set up a WebSocket client.
-        """
         self.ws_client.setup_ws_client()
     def update_ws_client_view_update_options(self):
-        """
-        Updates the view broadcast option for a WebSocket client if it is
-        connected.
-        """
         if not self.ws_client or not self.ws_client.connected:
             logging.warning("Client is not connected")
             return
@@ -1289,12 +1133,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             "ui.socket.receive.view", bool
         )
     def toggle_ws_client_connection(self, connect: bool = True):
-        """Connect or disconnect a WebSocket client from a
-        server and logs the client status.
-        Args:
-            connect (bool, optional): whether to connect or disconnect
-            the WebSocket client. Defaults to True.
-        """
         try:
             if connect:
                 self.ws_client_connect_to_server()
@@ -1307,20 +1145,12 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             f'Client status: {"ON" if self.ws_client.connected else "OFF"}'
         )
     def ws_client_connect_to_server(self):
-        """
-        Set up a WebSocket client and connects it to the
-        server if it is not already connected.
-        """
         self.setup_ws_client()
         if self.ws_client.connected:
             logging.warning("Client has already connected. Do noting.")
             return
         self.ws_client.connect_to_server()
     def ws_client_disconnect_from_server(self):
-        """
-        Checks if the WebSocket client is initialized and connected before
-        closing the connection.
-        """
         if not self.ws_client.initialized:
             logging.warning("Client is not initialized. Do noting.")
             return
@@ -1329,14 +1159,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
         self.ws_client.close_connection()
     def reload_configurations(self, experiment: Optional[str] = None):
-        """Reloading configurations based on different scenarios such as
-        reconfiguring with changes, initializing configurations, loading
-        specific experiment configurations, or reloading from default
-        configurations.
-        Args:
-            experiment (str, optional): the name of the experiment for which
-            configurations need to be reloaded. Defaults to None.
-        """
         if self.bus:
             logging.warning("Reconfiguring with changes...")
             reconfigure = True
@@ -1364,9 +1186,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             self.bus.cfg = reload_config_file()
         self.refresh_ui_from_new_configuration()
     def refresh_ui_from_new_configuration(self):
-        """
-        Updates the UI widgets based on a new configuration.
-        """
         for (
             widget_id,
             config_item,
@@ -1376,23 +1195,9 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 widget, OmegaConf.select(self.bus.cfg, config_item)
             )
     def save_configuration_from_ui(self, experiment: str = "global_config"):
-        """Saves a configuration from the user interface with an optional
-        experiment name.
-        Args:
-            experiment (str, optional): the name of the configuration or
-            experiment being saved. It is an optional parameter, meaning
-            it can be None if not provided. Defaults to None.
-        """
         logging.warning(f"Saving configuration as {experiment}")
         save_configuration(new_cfg=self.bus.cfg, config_name=experiment)
     def load_and_save_experiment(self, mode: IO_MODE = "r"):
-        """Loads and saves experiment configurations, copying files
-        between directories based on the specified mode.
-        Args:
-            mode (IO_MODE, optional): Specify the input/output mode
-            for loading and saving the experiment configuration.
-            Defaults to 'r'.
-        """
         new_cfg_file = self.file_dialog.browse_filename(
             mode=mode,
             exts=(file_extensions.YAML, file_extensions.Any),

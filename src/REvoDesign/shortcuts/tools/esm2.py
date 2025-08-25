@@ -1,6 +1,3 @@
-'''
-ESM-1v variant predict
-'''
 import itertools
 import os
 import string
@@ -35,23 +32,14 @@ ESM1V_WEIGHTS = FileDownloadRegistry(
     registry={f'{v}.pt': None for v in ESM1V_MODEL_DICT.values()}
 )
 def list_all_esm_variant_predict_model_names() -> list[str]:
-    '''
-    List all ESM-1v variant predict model names.
-    Returns:
-        list[str]: List of ESM-1v variant predict model names
-    '''
     return ESM1V_WEIGHTS.list_all_files
 def remove_insertions(sequence: str) -> str:
-    """ Removes any insertions into the sequence. Needed to load aligned sequences in an MSA. """
     deletekeys = dict.fromkeys(string.ascii_lowercase)
     deletekeys["."] = None
     deletekeys["*"] = None
     translation = str.maketrans(deletekeys)
     return sequence.translate(translation)
 def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
-    """ Reads the first nseq sequences from an MSA file, automatically removes insertions.
-    The input file must be in a3m format (although we use the SeqIO fasta parser)
-    for remove_insertions to work properly."""
     msa = [
         (record.description, remove_insertions(str(record.seq)))
         for record in itertools.islice(SeqIO.parse(filename, "fasta"), nseq)
@@ -82,19 +70,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             msa_samples: int = 400,
             device: str = 'cpu',
     ):
-        '''
-        Initialize Deep Mutation Scan for ESM-1v
-        Args:
-            model_location: PyTorch model file OR name of pretrained model to download (see README for models)
-            sequence: Base sequence to which mutations were applied
-            dms_output: CSV file containing the deep mutational scan
-            skip_wt: Skip the wild type sequence in the deep mutational scan
-            mutation_col: column in the deep mutational scan labeling the mutation as 'AiB'
-            offset_idx: Offset of the mutation positions in `--mutation-col`
-            scoring_strategy: Scoring strategy for the deep mutational scan
-            msa_path: path to MSA in a3m format (required for MSA Transformer)
-            msa_samples: number of sequences to select from the start of the MSA
-        '''
         self.model_names = model_names
         self.checkpoint_dir = checkpoint_dir
         self.sequence = sequence
@@ -108,11 +83,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         self.device = device
         os.makedirs(os.path.dirname(self.dms_output), exist_ok=True)
     def generate_dms_list(self) -> pd.DataFrame:
-        '''
-        Generate Deep Mutation Scan list for ESM-1v.
-        Returns:
-            pd.DataFrame: Deep Mutation Scan list for ESM-1v
-        '''
         alphabet = "ARNDCQEGHILKMFPSTWYV"
         if self.skip_wt:
             df_dms = pd.DataFrame(
@@ -129,18 +99,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 ], columns=[self.mutation_col])
         return df_dms
     def _resolve_model_weight(self, model_name: str):
-        """
-        Resolve and get the model weight file path
-        This function decides whether to load the model from a local checkpoint directory or download
-        it from a remote server based on the configuration. If a checkpoint directory is configured,
-        it will load from local first; otherwise it downloads from the default ESM1V weight server.
-        Args:
-            model_name (str): Model name used to construct the model file path
-        Returns:
-            str: Full path to the model weight file
-        Raises:
-            issues.ConfigureError: When the checkpoint directory is misconfigured or the model file does not exist
-        """
         if self.checkpoint_dir:
             expected_model_path = os.path.join(self.checkpoint_dir, model_name)
             if not (os.path.isdir(self.checkpoint_dir) and os.path.isfile(expected_model_path)):

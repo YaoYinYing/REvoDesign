@@ -1,6 +1,3 @@
-'''
-Shortcut functions of structure representation
-'''
 from Bio.Align import substitution_matrices
 from Bio.Data import IUPACData
 from immutabledict import immutabledict
@@ -8,23 +5,6 @@ from pymol import cmd, util
 from REvoDesign import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
 def shortcut_real_sc(selection="(all)", representation="lines", hydrogen=False):
-    """
-    DESCRIPTION
-        Set the representation of a molecular structure focusing on the sidechain or alpha carbon.
-    USAGE
-        real_sc [selection], [representation], [hydrogen]
-    PARAMETERS
-        selection (str, optional): Atom selection to apply the representation to. Default is '(all)'.
-        representation (str, optional): Representation style ('lines', 'sticks', 'spheres', 'dots'). Default is 'lines'.
-        hydrogen (bool, optional): Include hydrogens in the representation if True. Default is False.
-    EXAMPLES
-        real_sc      
-        real_sc prot 
-        real_sc sticks, hydrogen=True 
-    NOTES
-        - The selection is modified to include sidechain or alpha carbon and exclude hydrogens if hydrogen is False.
-        - Available representations: 'lines', 'sticks', 'spheres', 'dots'.
-    """
     if representation not in ["lines", "sticks", "spheres", "dots"]:
         return
     if not selection:
@@ -34,21 +14,6 @@ def shortcut_real_sc(selection="(all)", representation="lines", hydrogen=False):
         f'{selection} and (sidechain or n. CA) {"and not hydrogens" if not hydrogen else ""}',
     )
 def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A"):
-    """
-    AUTHOR
-            Yinying Yao
-        DESCRIPTION
-                        Color Predicted Protein structure by pLDDT value recorded in
-                        b-factor column of PDB file.
-        USAGE
-                        color_by_plddt selection [, align_target [, chain_to_align]]
-        ARGUMENTS
-                        selection: object or selection
-                        align_target: int. the rank order of target in selections
-                        chain_to_align: the chain id that you want to align selection to.
-        EXAMPLE
-                        color_by_plddt protein_ranked_*, 1, B
-    """
     cmd.set_color("high_lddt_c", [0, 0.325490196078431, 0.843137254901961])
     cmd.set_color(
         "normal_lddt_c",
@@ -110,14 +75,6 @@ def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A")
         util.mass_align("align_temp", 1, _self=cmd)
         cmd.enable("not_aligned_but_enabled")
         cmd.delete("not_aligned_but_enabled")
-"""
-created by Christoph Malisi.
-Creates an alignment of two proteins and superimposes them.
-Aligned residues that are different in the two (i.e. mutations) are highlighted and
-colored according to their difference in the BLOSUM90 matrix.
-Is meant to be used for similar proteins, e.g. close homologs or point mutants,
-to visualize their differences.
-"""
 blosum90 = substitution_matrices.load("BLOSUM90")
 aa_3l = {}
 for i, x in enumerate(blosum90.alphabet):  
@@ -127,9 +84,6 @@ for i, x in enumerate(blosum90.alphabet):
         aa_3l[x] = i
 aa_3l = immutabledict(aa_3l)
 def getBlosum90ColorName(aa1, aa2):
-    """returns a rgb color name of a color that represents the similarity of the two residues according to
-    the BLOSUM90 matrix. the color is on a spectrum from blue to red, where blue is very similar, and
-    red very disimilar."""
     if aa1 not in aa_3l or aa2 not in aa_3l:
         return "red"
     if aa1 == aa2:
@@ -143,29 +97,6 @@ def getBlosum90ColorName(aa1, aa2):
     col_name = "0x%02x%02x%02x" % tuple(int(b * 0xFF) for b in bcolor)
     return col_name
 def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
-    """
-    DESCRIPTION
-                    Creates an alignment of two proteins and superimposes them.
-                    Aligned residues that are different in the two (i.e. mutations) are highlighted and
-                    colored according to their difference in the BLOSUM90 matrix.
-                    Is meant to be used for similar proteins, e.g. close homologs or point mutants,
-                    to visualize their differences.
-    USAGE
-                    color_by_mutation selection1, selection2 [,waters [,labels ]]
-    ARGUMENTS
-                    obj1: object or selection
-                    obj2: object or selection
-                    waters: bool (0 or 1). If 1, waters are included in the view, colored
-                                                    differently for the both input structures.
-                                                    default = 0
-                    labels: bool (0 or 1). If 1, the possibly mutated sidechains are
-                                                    labeled by their chain, name and id
-                                                    default = 0
-    EXAMPLE
-                    color_by_mutation protein1, protein2
-    SEE ALSO
-                    super
-    """
     from pymol import CmdException, stored  
     if cmd.count_atoms(obj1) == 0:
         print(f"{obj1} is empty")

@@ -1,6 +1,3 @@
-'''
-Shortcut functions of results exporting
-'''
 import os
 from typing import List, Mapping, Optional, Union
 import Bio
@@ -25,24 +22,6 @@ def shortcut_dump_sidechains(
     reorient: bool = True,
     recenter: bool = False,
 ):
-    """
-    Dumps sidechain images of selected group to a directory.
-    Parameters:
-      sele (str|List[str]): Selection string or list of strings to choose the models.
-      enabled_only (bool, optional): If True, only dumps enabled models. Defaults to False.
-      save_dir (str, optional): Directory path to save the images. Defaults to 'png/sidechain_dump/'.
-      height (int, optional): Height of the image in pixels. Defaults to 1280.
-      width (int, optional): Width of the image in pixels. Defaults to 1280.
-      dpi (int, optional): DPI of the image. Defaults to 150.
-      ray (bool, optional): If True, uses ray tracing. Defaults to True.
-      hide_mesh (bool, optional): If True, hides the mesh. Defaults to True.
-      neighborhood (int, optional): Zoom with neighborhood. Defaults to 3.
-      reorient (bool, optional): If True, re-orients the residue. Defaults to True to prevent automatic orientation.
-        Useful when user wants to dump the residue they just focused on.
-      recenter (bool, optional): If True, re-centers the resiude. Defaults to False.
-    Returns:
-      None
-    """
     os.makedirs(save_dir, exist_ok=True)
     if isinstance(sele, str):
         sele = [sele]
@@ -78,15 +57,6 @@ def shortcut_dump_fasta_from_struct(
         drop_missing_residue: bool = False,
         suffix: str = '',
 ):
-    """
-    Runs the dump_fasta_from_struct function with parameters collected from the dialog.
-    Args:
-        format (str): Format of the output file. Defaults to "fasta".
-        chain_ids (list[str]): List of chain IDs to dump. Defaults to [].
-        output_dir (str): Directory path to save the output file. Defaults to 'dumped_sequences'.
-        drop_missing_residue (bool): Whether to drop missing residues. Defaults to False.
-        suffix (str): Suffix to add to the output file name. Defaults to ''.
-    """
     bus = ConfigBus()
     molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
     if not chain_ids:

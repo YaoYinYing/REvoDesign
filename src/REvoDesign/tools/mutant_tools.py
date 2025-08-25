@@ -1,6 +1,3 @@
-'''
-This module contains functions for handling mutants.
-'''
 import json
 import os
 import re
@@ -35,17 +32,6 @@ def extract_mutants_from_mutant_id(
     sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
     wt_before_chain: bool = False
 ) -> Mutant:
-    """
-    Extract mutant info from an mutant id string. This mutant can be virtual from PyMOL session.
-    Parameters:
-    mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
-                        <chain_id><wt_res><resi><mut_res>_...._<score>
-    sequences (dict): Wild-type chain: sequence of design molecule
-    wt_before_chain (bool): Some people write WT residue before chain_id. This helps to correct recognizing of this pattern
-    Returns:
-    tuple:
-        Mutant : Mutant object.
-    """
     logging.debug(f"Parsing {mutant_string}")
     if isinstance(sequences, Mapping):
         sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
@@ -111,14 +97,6 @@ def extract_mutants_from_mutant_id(
     logging.debug(mutant_obj)
     return mutant_obj
 def extract_mutant_score_from_string(mutant_string: str) -> Optional[float]:
-    """
-    Extract mutant score from an mutant string
-    Parameters:
-    mutant_string (str): Underscore-seperated mutant string that contains the mutations and score (if possible).
-                        <chain_id><wt_res><resi><mut_res>_...._<score>
-    Returns:
-    float: Mutant score.
-    """
     if re.match(r"[\d+\w]+_[-\d\.e]+", mutant_string):
         matched_mutant_id = re.match(
             r"[\w\d\-]+_(\-?\d+\.?\d*e?\-?\d*)$", mutant_string
@@ -133,16 +111,6 @@ def extract_mutant_from_sequences(
     chain_id: str = "A",
     fix_missing: bool = False,
 ) -> Optional[Mutant]:
-    """
-    Extract mutant from mutant sequence.
-    Parameters:
-    mutant_sequence (str): Mutant sequence.
-    wt_sequence (str): Wild-type sequence.
-    chain_id (str): Chain id
-    fix_missing (bool): Fix missing residue ('X') in mutant according to the WT sequence.
-    Returns:
-    Mutant: Mutant object
-    """
     wt_sequence = wt_sequences.get_sequence_by_chain(chain_id=chain_id)
     _wt_sequence = wt_sequence.replace("X", "")
     _mutant_sequence = mutant_sequence.replace("X", "")
@@ -192,25 +160,6 @@ def shorter_range(
     connector: str = "-",
     seperator: str = "+",
 ) -> str:
-    """
-    Shorten a list of integers by representing consecutive ranges with hyphens,
-    and non-consecutive integers with plus signs.
-    Parameters:
-    input_list (list): A list of integers to be shortened.
-    connector (str): A string for connecting consecutive ranges
-    seperator (str): A string for separating non-consecutive ranges
-    Returns:
-    str: A string expression representing the shortened integer list.
-    Example:
-    >>> input_list = [395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409]
-    >>> result = shorter_range(input_list)
-    >>> print(result)
-    "395-409"
-    >>> input_list = [395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
-    >>> result = shorter_range(input_list)
-    >>> print(result)
-    "395-401+403-409"
-    """
     input_list = sorted([item for item in input_list if isinstance(item, int)])
     if not input_list:
         raise issues.NoInputError("Input list is empty.")
@@ -233,20 +182,6 @@ def shorter_range(
 def expand_range(
     shortened_str: str, connector: str = "-", seperator: str = "+"
 ) -> List[int]:
-    """
-    Expand a shortened string expression representing a list of integers to the original list.
-    Parameters:
-    shortened_str (str): A shortened string expression representing a list of integers.
-    connector (str): A string for connecting consecutive ranges
-    seperator (str): A string for separating non-consecutive ranges
-    Returns:
-    list: A list of integers corresponding to the original input.
-    Example:
-    >>> shortened_str = "395-401+403-409"
-    >>> result = expand_range(shortened_str)
-    >>> print(result)
-    [395, 396, 397, 398, 399, 400, 401, 403, 404, 405, 406, 407, 408, 409]
-    """
     expanded_list = []
     if shortened_str.isdigit():
         return [int(shortened_str)]
@@ -265,14 +200,6 @@ def expand_range(
 def extract_mutant_from_pymol_object(
     pymol_object: str, sequences: RosettaPyProteinSequence
 ) -> Mutant:
-    """
-    Extract mutant info from an existing pymol object.
-    Parameters:
-    pymol_object (str): object to extract from.
-    sequences (dict[str]): Wild-type sequence of design molecule and chain
-    Returns:
-    Mutant : Mutant object.
-    """
     mutant_info = []
     for _, chain in enumerate(sequences.chains):
         sequence = chain.sequence
@@ -301,13 +228,6 @@ def extract_mutant_from_pymol_object(
         mutant_obj.mutant_score = mutant_score
     return mutant_obj
 def read_customized_indice(custom_indices_from_input="") -> str:
-    """
-    Reads and processes customized indices based on the provided input.
-    Args:
-    - custom_indices_from_input (str): String containing customized indices.
-    Returns:
-    - str: Processed customized indices string.
-    """
     if not custom_indices_from_input:
         return ""
     if os.path.isfile(custom_indices_from_input):
@@ -340,20 +260,6 @@ def read_customized_indice(custom_indices_from_input="") -> str:
         f"Failed in parsing customized indice file/string: {custom_indices_from_input}"
     )
 def process_mutations(data):
-    """
-    Process mutations based on provided data.
-    Args:
-    - data (dict): Dictionary containing 'indices' and 'mutations' keys.
-                   'indices': List of positions.
-                   'mutations': Dictionary of mutations with positions as keys.
-    Returns:
-    - list: List containing tuples of processed mutation data.
-            Each tuple contains:
-                - Position
-                - Wild-type residue
-                - Wild-type profile score
-                - Candidates
-    """
     positions = data["indices"]
     mutations = data["mutations"]
     result = []
@@ -372,16 +278,6 @@ def existed_mutant_tree(
     sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
     enabled_only: Union[int, bool] = 1,
 ) -> MutantTree:
-    """
-    Creates a tree structure of existing mutants based on PyMOL objects.
-    Parameters:
-    - sequences: dict[str,str]
-        A dict of strings representing the designable sequences.
-        eg. {'A': 'MANGHFDTYE', 'B': 'MCSAKLPIQWE'}
-    Returns:
-    - MutantTree
-        An instance of MutantTree class containing the mutant tree structure.
-    """
     if isinstance(sequences, Mapping):
         sequences = RosettaPyProteinSequence.from_dict(dict(sequences))
     group_ids: list[str] = cmd.get_names(
@@ -405,11 +301,6 @@ def existed_mutant_tree(
     }
     return MutantTree(_mutant_tree)
 def quick_mutagenesis(mutant_tree: MutantTree) -> None:
-    """run quick mutagenesis on a given mutation tree.
-        Everything else is read from local config bus.
-    Args:
-        mutant_tree (MutantTree): input mutant tree object.
-    """
     from REvoDesign.common.mutant_visualise import MutantVisualizer
     from .pymol_utils import make_temperal_input_pdb
     from .utils import timing
@@ -744,15 +635,6 @@ View Highlight Nbr: {view_highlight_nbr}
     banner_label.setWordWrap(True)
     banner_label.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)  
     banner_label.setStyleSheet(
-        """
-        font-size: 14px;
-        font-weight: bold;
-        color: 
-        padding: 10px;
-        background-color: 
-        border: 1px solid 
-        border-radius: 5px;
-        """
     )
     header_layout.addWidget(banner_label)
     main_layout.addWidget(header_widget)

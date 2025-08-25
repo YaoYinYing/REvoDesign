@@ -1,6 +1,3 @@
-'''
-Generate all possible combinations of mutations
-'''
 import os
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
@@ -30,13 +27,6 @@ class GenerateVariantsinFastafile:
                     fasta_seq += line.strip()
         return fasta_seq
     def insert_mutations(self, position, native, newmutation, newfasta):
-        """
-        :param position:
-        :param native:
-        :param newmutation:
-        :param newfasta:
-        :return: fastafile with mutation inserted
-        """
         for aa_idx, aa in enumerate(self.fastaseq):
             if aa_idx == position - 1:
                 assert aa == native
@@ -49,13 +39,6 @@ class GenerateVariantsinFastafile:
     def get_mutated_fasta_string(
         self, position, native, newmutation, fastasequence
     ):
-        """
-        :param position:
-        :param native:
-        :param newmutation:
-        :param newfasta:
-        :return: fastafile with mutation inserted
-        """
         newfasta = fastasequence
         for aa_idx, aa in enumerate(fastasequence):
             if aa_idx == position - 1:
@@ -74,13 +57,6 @@ class GenerateVariantsinFastafile:
             f.write(">" + filename.split(".")[0] + "\n")
             f.write(self.newfasta)
     def run_analysis(self, fastafile, mutation, native, position):
-        """
-        :param fastafile: native fastafile - i think need to be a sequnce
-        :param mutations: mutations string separated with comma
-        :param native: native amino acids
-        :param position: positions to mutate
-        :return: fasta sequence with new mutations
-        """
         self.getdata(fastafile)
         mutations = mutation.split(",")
         positions = position.split(",")
@@ -122,9 +98,6 @@ class Combinations:
                 indices[j] = indices[j - 1] + 1
             yield tuple(pool[i] for i in indices)
     def setdata(self, datafile):
-        """
-        Make sure that there are no redundant mutations in the input
-        """
         with open(datafile) as f:
             for line in f:
                 _line = line.strip()
@@ -177,11 +150,6 @@ class Combinations:
         b = self.combinations(self.list_of_mutations, self.combi)
         return b
     def setup(self, inputfile, combinations, fastafile):
-        """
-        :param inputfile:
-        :param combinations:
-        :return:
-        """
         self.combi = int(combinations)
         self.setdata(inputfile)
         b = self.combinations(self.list_of_mutations, self.combi)

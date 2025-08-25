@@ -1,6 +1,3 @@
-'''
-Shortcut wrappers of rfdiffusion tasks
-'''
 import os
 import shutil
 from REvoDesign.common import file_extensions as Fext
@@ -11,11 +8,6 @@ from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from ...logger import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
 def _visualize_substrate_potentials(**kwargs):
-    """
-    Runs the visualize_substrate_potentials function with parameters collected from the dialog.
-    Args:
-        **kwargs: Parameters collected from the dialog.
-    """
     pdb_path = kwargs.pop('pdb_path')
     kwargs['pdb_path'] = os.path.abspath(pdb_path)
     grid_size = kwargs.pop('grid_size')

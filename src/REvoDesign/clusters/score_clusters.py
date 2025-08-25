@@ -1,6 +1,3 @@
-'''
-Score the clustered sequences with Rosetta
-'''
 import os
 from typing import List
 import pandas as pd

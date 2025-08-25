@@ -1,6 +1,3 @@
-'''
-Shortcut functions of ligand file converting
-'''
 import json
 import os
 import sys
@@ -21,9 +18,6 @@ def shortcut_smiles_conformer_single(
         num_conformer: int = 100,
         save_dir: str = './ligands/',
         show_conformer: Literal['None', 'Current Window', 'New Window'] = 'New Window'):
-    """
-    Runs the smiles_conformer_single function with parameters collected from the dialog.
-    """
     with timing("Get SMILES Conformer"):
         run_worker_thread_with_progress(
             smiles_conformer_single,
@@ -46,9 +40,6 @@ def shortcut_smiles_conformer_batch(
         show_conformer: Literal['None', 'Current Window', 'New Window'] = 'None',
         n_jobs: int = 1,
 ):
-    """
-    Runs the smiles_conformer_batch function with parameters collected from the dialog.
-    """
     smi = json.load(open(smiles))
     with timing("Get SMILES Conformers (Many)"):
         run_worker_thread_with_progress(
@@ -70,10 +61,6 @@ def shortcut_sdf2rosetta_params(
         charge: int = 0,
         save_dir: str = './ligands_sdf/',
 ):
-    '''
-    Runs the sdf2rosetta_params function with parameters collected from the dialog.
-    Args:
-        '''
     converter = SmallMoleculeParamsGenerator(save_dir=save_dir)
     if not os.path.isfile(sdf_path):
         raise issues.InvalidInputError(f"No found ligand: {ligand_name}. Expected file: {sdf_path}")

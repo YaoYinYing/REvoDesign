@@ -1,6 +1,3 @@
-'''
-Wrapper for DLPacker
-'''
 import gc
 import os
 from typing import List
@@ -12,30 +9,9 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.tools.utils import timing
 logging = ROOT_LOGGER.getChild(__name__)
 class DLPacker_worker(MutateRunnerAbstract):
-    """
-    Class for managing protein reconstruction and mutation using DLPacker.
-    Usage:
-    dlpacker = DLPacker_worker(pdb_file)
-    relaxed_pdb = dlpacker.reconstruct()  
-    mutant = Mutant()  
-    mutant_info = [
-        {
-            'chain_id': 'A',
-            'position': 10,
-            'mut_res': 'G',
-            'wt_res': 'A'
-        },
-    ]
-    mutated_pdb = dlpacker.run_mutate(mutant, reconstruct_area_radius=5)  
-    """
     name: str = "DLPacker"
     installed: bool = is_package_installed("DLPacker")
     def __init__(self, pdb_file: str, radius: float = 0.0, **kwargs):
-        """
-        Initialize DLPacker_worker with a PDB file.
-        Args:
-        - pdb_file: Path to the PDB file
-        """
         super().__init__(pdb_file)
         from REvoDesign.bootstrap import set_cache_dir
         cache_dir = set_cache_dir()
@@ -49,11 +25,6 @@ class DLPacker_worker(MutateRunnerAbstract):
         self.reconstruct_area_radius = radius
         self.temp_dir = self.new_cache_dir
     def reconstruct(self):
-        """
-        Reconstruct the protein using DLPacker.
-        Returns:
-        - Path to the temporally relaxed PDB file
-        """
         from DLPacker.dlpacker import DLPacker
         dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
         temperal_relaxed_pdb = os.path.join(
@@ -69,15 +40,6 @@ class DLPacker_worker(MutateRunnerAbstract):
         self,
         mutant: Mutant,
     ):
-        """
-        Run mutation on the protein using DLPacker.
-        Args:
-        - mutant: Object containing mutation information
-        - reconstruct_area_radius: Radius for reconstructing mutated area (default: -1)
-        - relax_order: Order for relaxation (default: 'sequence')
-        Returns:
-        - Path to the mutated PDB file
-        """
         from Bio.Data import IUPACData
         from DLPacker.dlpacker import DLPacker
         dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
@@ -112,14 +74,6 @@ class DLPacker_worker(MutateRunnerAbstract):
     def _get_reconstruct_area(
         self, mutant_obj: Mutant, reconstruct_area_radius: float = -1
     ):
-        """
-        Get the area for reconstruction based on mutation information.
-        Args:
-        - mutant_obj: Object containing mutation information
-        - reconstruct_area_radius: Radius for reconstruction (default: -1)
-        Returns:
-        - List of targets for reconstruction
-        """
         from Bio.Data import IUPACData
         from DLPacker.dlpacker import DLPacker
         dlpacker_worker = DLPacker(str_pdb=self.pdb_file)
@@ -155,14 +109,6 @@ class DLPacker_worker(MutateRunnerAbstract):
         mutants: List[Mutant],
         nproc: int = 2,
     ) -> List[str]:
-        """
-        Perform mutation on the protein in parallel.
-        Args:
-        - mutants: List of Mutant objects containing mutation information
-        - nproc: Number of parallel jobs to run (default: -1, which means using all available cores)
-        Returns:
-        - List of paths to the mutated PDB files
-        """
         with timing('setting up DLPacker'):
             from DLPacker.dlpacker import DLPacker
         if nproc is None:

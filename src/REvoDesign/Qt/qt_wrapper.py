@@ -1,6 +1,3 @@
-"""
-Custom Qt Wrapper: Uses pymol.Qt when available, supports typing checks
-"""
 from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from PyQt5 import QtCore as _QtCore

@@ -1,6 +1,3 @@
-'''
-Shortcut functions on Rosetta-related tasks
-'''
 import os
 from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
 from pymol import cmd
@@ -37,8 +34,6 @@ eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/prot.21086},
 abstract = {Abstract Protein–small molecule docking algorithms provide a means to model the structure of protein–small molecule complexes in structural detail and play an important role in drug development. In recent years the necessity of simulating protein side-chain flexibility for an accurate prediction of the protein–small molecule interfaces has become apparent, and an increasing number of docking algorithms probe different approaches to include protein flexibility. Here we describe a new method for docking small molecules into protein binding sites employing a Monte Carlo minimization procedure in which the rigid body position and orientation of the small molecule and the protein side-chain conformations are optimized simultaneously. The energy function comprises van der Waals (VDW) interactions, an implicit solvation model, an explicit orientation hydrogen bonding potential, and an electrostatics model. In an evaluation of the scoring function the computed energy correlated with experimental small molecule binding energy with a correlation coefficient of 0.63 across a diverse set of 229 protein– small molecule complexes. The docking method produced lowest energy models with a root mean square deviation (RMSD) smaller than 2 Å in 71 out of 100 protein–small molecule crystal structure complexes (self-docking). In cross-docking calculations in which both protein side-chain and small molecule internal degrees of freedom were varied the lowest energy predictions had RMSDs less than 2 Å in 14 of 20 test cases. Proteins 2006. © 2006 Wiley-Liss, Inc.},
 year = {2006}
 }
-    """,
-        'RosettaLigand XML': r"""
 @Inbook{Lemmon2012,
 author="Lemmon, Gordon
 and Meiler, Jens",
@@ -54,27 +49,6 @@ isbn="978-1-61779-465-0",
 doi="10.1007/978-1-61779-465-0_10",
 url="https://doi.org/10.1007/978-1-61779-465-0_10"
 }
-"""
-    })
-class PROSS(PROSS_Original, CitableModuleAbstract):
-    __bibtex__ = copy_rosetta_citation({
-        'PROSS2': """@article{10.1093/bioinformatics/btaa1071,
-author = {Weinstein, Jonathan Jacob and Goldenzweig, Adi and Hoch, ShlomoYakir and Fleishman, Sarel Jacob},
-title = {PROSS 2: a new server for the design of stable and highly expressed protein variants},
-journal = {Bioinformatics},
-volume = {37},
-number = {1},
-pages = {123-125},
-year = {2020},
-month = {12},
-abstract = {Many natural and designed proteins are only marginally stable limiting their usefulness in research and applications. Recently, we described an automated structure and sequence-based design method, called PROSS, for optimizing protein stability and heterologous expression levels that has since been validated on dozens of proteins. Here, we introduce improvements to the method, workflow and presentation, including more accurate sequence analysis, error handling and automated analysis of the quality of the sequence alignment that is used in design calculations.PROSS2 is freely available for academic use at https://pross.weizmann.ac.il. },
-issn = {1367-4803},
-doi = {10.1093/bioinformatics/btaa1071},
-url = {https://doi.org/10.1093/bioinformatics/btaa1071},
-eprint = {https://academic.oup.com/bioinformatics/article-pdf/37/1/123/50321722/btaa1071.pdf},
-}
-""",
-        "PROSS": """
 @article{10.1016/j.molcel.2016.06.012, author = {Goldenzweig, A. and Goldsmith, M. and Hill, S. E. and Gertman, O. and Laurino, P. and Ashani, Y. and Dym, O. and Unger, T. and Albeck, S. and Prilusky, J. and Lieberman, R. L. and Aharoni, A. and Silman, I. and Sussman, J. L. and Tawfik, D. S. and Fleishman, S. J.}, title = {Automated structure- and sequence-based design of proteins for high bacterial expression and stability}, journal = {Molecular Cell}, year = {2016}, volume = {63}, issue = {2}, pages = {337-346}, doi = {10.1016/j.molcel.2016.06.012} }"""
     })
 class FastRelaxOpts(FastRelax, CitableModuleAbstract):
@@ -82,14 +56,6 @@ class FastRelaxOpts(FastRelax, CitableModuleAbstract):
     @get_cited
     def run(self, nstruct: int = 8, default_repeats: int = 15,
             opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
-        """
-        Runs the fast relaxation process using the specified parameters.
-        Args:
-            nstruct (int, optional): The number of structures to generate. Defaults to 8.
-            default_repeats (int, optional): The default number of repeats for relaxation. Defaults to 15.
-        Returns:
-            RosettaEnergyUnitAnalyser: An object for analyzing the energy units of the generated structures.
-        """
         if opts is None:
             opts = []
         rosetta = Rosetta(
@@ -140,21 +106,6 @@ def shortcut_rosettaligand(
         chain_id_for_dock="B",
         start_from_xyz: Optional[Tuple[float, float, float]] = None,
 ):
-    '''
-    Runs the rosettaligand function with parameters collected from the dialog.
-    Args:
-        pdb (str): Path to the input PDB file.
-        ligands (List[str]): List of ligand SMILES strings.
-        nstruct (int, optional): Number of structures to generate. Defaults to 10.
-        save_dir (str, optional): Directory to save the output files. Defaults to "tests/outputs".
-        job_id (str, optional): Job ID for the output files. Defaults to "rosettaligand".
-        cst (Optional[str], optional): Path to the constraint file. Defaults to None.
-        box_size (int, optional): Size of the box for docking. Defaults to 30.
-        move_distance (float, optional): Distance to move the ligand during docking. Defaults to 0.5.
-        gridwidth (int, optional): Width of the grid for docking. Defaults to 45.
-        chain_id_for_dock (str, optional): Chain ID for docking. Defaults to "B".
-        start_from_xyz (Optional[Tuple[float, float, float]], optional): Coordinates to start from. Defaults to None.
-    '''
     node_config = read_rosetta_node_config()
     app = RosettaLigand(
         pdb=pdb,
@@ -182,17 +133,6 @@ def shortcut_pross(
         save_dir: str = "design/pross",
         job_id: str = "pross_design",
 ):
-    '''
-    Runs the pross function with parameters collected from the dialog.
-    Args:
-        pdb (str): Path to the input PDB file.
-        pssm (str): Path to the PSSM file.
-        res_to_fix (str): Residues to fix.
-        res_to_restrict (str): Residues to restrict.
-        nstruct_refine (int, optional): Number of structures to refine. Defaults to 4.
-        save_dir (str, optional): Directory to save the output files. Defaults to "design/pross".
-        job_id (str, optional): Job ID for the output files. Defaults to "pross_design".
-    '''
     pross = PROSS(
         pdb=pdb,
         pssm=pssm,

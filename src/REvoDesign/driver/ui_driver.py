@@ -1,6 +1,3 @@
-'''
-The heart of REvoDesign. A UI-Configuration Bus
-'''
 import os
 from functools import partial, wraps
 from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar,
@@ -26,9 +23,6 @@ class StoresWidget(SingletonAbstract):
         self.server_switches: Dict[str, MenuActionServerMonitor] = {}
     @classmethod
     def reset_instance(cls):
-        '''
-        Reset the instance of the class and clear all server switches dictionaries.
-        '''
         myinstance = cls()
         for attr in myinstance.__dict__:
             if attr.startswith('_'):
@@ -49,24 +43,9 @@ class StoresWidget(SingletonAbstract):
             del attr_dict
         super().reset_instance()
 class HeadlessProtocol(Protocol):
-    """
-    Defines a protocol for objects that can run in headless mode.
-    This class inherits from Protocol and is primarily used for type annotations and type checking.
-    It includes an attribute `headless` of type bool, which indicates whether the object runs in headless mode.
-    Attributes:
-    headless: bool -- A boolean attribute indicating whether the object runs in headless mode.
-    """
     headless: bool
 ConfigBusT = TypeVar("ConfigBusT", bound=HeadlessProtocol)
 def require_non_headless(method):
-    """
-    A decorator to ensure that certain methods are only called when the application is not running in headless mode.
-    It also prevents the method from being used with `partial`.
-    Parameters:
-    - method (Callable[..., Any]): The method to be decorated.
-    Returns:
-    - Callable[..., Any]: The wrapped method.
-    """
     @wraps(method)
     def wrapper(*args, **kwargs):
         self: HeadlessProtocol = args[0]
@@ -77,36 +56,6 @@ def require_non_headless(method):
         return method(self, *args[CLASS_ARGSLICE], **kwargs)
     return wrapper
 class ConfigBus(SingletonAbstract, CitableModuleAbstract):
-    """
-    This class is responsible for handling the configuration and interaction between the UI widgets
-    and the application's configuration settings.
-    Attributes:
-        headless (bool): Indicates whether the application is running in headless mode.
-        ui (QtWidgets.QWidget): The main UI widget of the application.
-        cfg (OmegaConf): The application's configuration settings.
-        w2c (Widget2ConfigMapper): A mapper object that maps UI widgets to configuration settings.
-        push_buttons (dict): A dictionary of UI buttons.
-    Methods:
-        Non-headless Methods:
-            initialize_widget_with_cfg_group(): Initializes UI widgets with their corresponding configuration settings.
-            update_cfg_item_from_widget(widget_id: str): Updates a configuration setting based on the value of a UI widget.
-            register_widget_changes_to_cfg(): Registers UI widget changes to update the configuration settings.
-            get_widget_from_id(widget_id: str): Retrieves a UI widget based on its ID.
-            get_widget_from_cfg_item(cfg_item: str): Retrieves a UI widget based on its corresponding configuration item.
-            get_widget_value(cfg_item: str): Retrieves the value of a UI widget based on its corresponding
-                configuration item.
-            set_widget_value(cfg_item: str, value): Sets the value of a UI widget based on its corresponding
-                configuration item.
-            restore_widget_value(cfg_item: str): Restores the value of a UI widget to its default configuration setting.
-            get_cfg_item(widget_id: str): Retrieves the configuration item corresponding to a UI widget ID.
-            button(id: str): Retrieves a button widget based on its ID.
-            toggle_buttons(buttons: Iterable, set_enabled: bool = False): Toggles the enabled state of a list of buttons.
-        Headless Only Methods:
-            get_value(cfg_item: str, typing=None): Retrieves the value of a configuration item, with optional type casting.
-            set_value(cfg_item: str, value): Sets the value of a configuration item.
-        fp_lock(cfg_fps: Union[list, tuple, str], buttons_id_to_release: Union[list, tuple, str]): Locks or unlocks
-            buttons based on the existence of file paths in the configuration.
-    """
     headless: bool = True
     def singleton_init(self, ui=None):
         self.cfg: DictConfig = reload_config_file()
@@ -227,18 +176,6 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         reject_none: bool = False,
         default_value: Optional[ValueFromConfigT] = None,
     ) -> Optional[ValueFromConfigT]:
-        """
-        Retrieves the value of a configuration item with optional type casting.
-        Args:
-            cfg_item: Name of the configuration item.
-            converter: Callable to convert the value from the configuration item to a desired type.
-            reject_none: If True, raises an exception if the value is None.
-            default_value: Default value to return if the value is None.
-        Returns:
-            The converted value, the default value if provided, or None if allowed.
-        Raises:
-            ValueError: If `reject_none` is True and the resolved value is None.
-        """
         value = OmegaConf.select(self.cfg, cfg_item)
         if value is None:
             if default_value is not None:
@@ -301,23 +238,10 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=True)
     @require_non_headless
     def button(self, button_id: str) -> QtWidgets.QPushButton:
-        """Retrieves a button widget based on its ID.
-        Args:
-            button_id (str): Button ID.
-        Returns:
-            QtWidgets.QPushButton: Button object
-        """
         assert button_id in self.w2c.run_button_ids
         return self.w2c.push_buttons.get(button_id)
     @require_non_headless
     def buttons(self, button_ids: tuple[str, ...]) -> tuple[QtWidgets.QPushButton, ...]:
-        """Retrieves all button widgets based on its ID.
-        Args:
-            button_ids (tuple[str]): Button IDs.
-        Returns:
-            tuple[QtWidgets.QPushButton]: Button objects in the same order as
-                the given IDs.
-        """
         assert all(
             button_id in self.w2c.run_button_ids for button_id in button_ids
         )
@@ -334,22 +258,6 @@ url =          {https://github.com/facebookresearch/hydra}
 }"""
     }
 class Widget2ConfigMapper:
-    """
-    This class maps UI widgets to configuration settings and provides methods to interact with these mappings.
-    Attributes:
-        ui (QtWidgets.QWidget): The main UI widget of the application.
-        run_button_ids (tuple[str]): A tuple of IDs for buttons that trigger actions.
-        push_buttons (immutabledict): A mapping of button IDs to button widgets.
-        c2wi (Config2WidgetIds): An instance of the Config2WidgetIds class.
-        config_widget_id_map (immutabledict): A mapping of configuration items to widget IDs.
-        config2widget_map (immutabledict): A mapping of configuration items to widget widgets.
-        widget_id2widget_map (immutabledict): A mapping of widget IDs to widget widgets.
-    Methods:
-        get_button_from_id(button_id): Retrieves a button widget based on its ID.
-        get_widget_from_id(widget_id): Retrieves a widget based on its ID.
-        _find_config_item(widget_id): Finds the configuration item corresponding to a widget ID.
-        _find_widget_id(config_item): Finds the widget ID corresponding to a configuration item.
-    """
     def __init__(self, ui):
         self.ui = ui
         self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
@@ -376,14 +284,6 @@ class Widget2ConfigMapper:
             }
         )
     def find_child(self, widget_type, name):
-        """
-        Find a child widget in a UI object.
-        Args:
-            widget_type: The type of the widget (e.g., QtWidgets.QLabel).
-            name: The name of the widget.
-        Returns:
-            The found widget, or None if not found.
-        """
         for attr in dir(self.ui):
             if (
                 isinstance(found_widget := getattr(self.ui, attr), widget_type)

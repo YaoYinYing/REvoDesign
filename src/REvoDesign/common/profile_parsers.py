@@ -1,30 +1,9 @@
-'''
-Module for DataFrame parsers.
-'''
 import os
 from abc import ABC, abstractmethod
 import pandas as pd
 from REvoDesign import ROOT_LOGGER, issues
 logging = ROOT_LOGGER.getChild(__name__)
 class ProfileParserAbstract(ABC):
-    """
-    `ProfileParserAbstract` is an abstract base class designed to parse profile data associated with
-    molecular structures.
-    Attributes:
-    - `profile_input`: str, the path to the input profile file.
-    - `molecule`: str, the name of the molecule.
-    - `chain_id`: str, identifier for a specific chain within the molecule's structure.
-    - `sequence`: str, the amino acid or nucleotide sequence related to the profile.
-    - `df`: pd.DataFrame, optional, stores parsed data; default is None.
-    Abstract Methods:
-    - `parse()`: Must be implemented by subclasses to parse the profile data into a DataFrame.
-    Properties:
-    - `score_max_abs`: float, computes the maximum absolute value from the parsed DataFrame's min and max values.
-    - `min_score_profile`: float, derived from `score_max_abs`, represents the minimum possible score for the profile.
-    - `max_score_profile`: float, derived from `score_max_abs`, represents the maximum possible score for the profile.
-    - `profile_input_bn`: str, returns the basename of `profile_input` if it exists as a file.
-    - `is_valid_profile`: bool, checks if the `profile_input` file exists.
-    """
     name: str
     prefer_lower: bool = False
     def __init__(
@@ -41,75 +20,30 @@ class ProfileParserAbstract(ABC):
         self.df: pd.DataFrame = None  
     @abstractmethod
     def parse(self) -> pd.DataFrame:
-        """
-        Abstract method to be implemented by subclasses that parses the profile data and returns it as a DataFrame.
-        Returns:
-        - pd.DataFrame, containing the parsed profile data.
-        """
         ...
     @property
     def score_max_abs(self) -> float:
-        """
-        Computes the maximum absolute value between the minimum and maximum values of the DataFrame.
-        Returns:
-        - float, maximum absolute value found in the DataFrame.
-        Raises:
-        - UnexpectedWorkflowError: If the DataFrame is not properly initialized or empty.
-        """
         if not isinstance(self.df, pd.DataFrame) or self.df.empty:
             raise issues.UnexpectedWorkflowError("dataframe is not parsed!")
         return max(abs(self.df.min().min()), abs(self.df.max().max()))
     @property
     def min_score_profile(self) -> float:
-        """
-        Calculates the minimum possible score for the profile based on `score_max_abs`.
-        Returns:
-        - float, representing the minimum score.
-        """
         return -self.score_max_abs
     @property
     def max_score_profile(self) -> float:
-        """
-        Calculates the maximum possible score for the profile based on `score_max_abs`.
-        Returns:
-        - float, representing the maximum score.
-        """
         return self.score_max_abs
     @property
     def profile_input_bn(self) -> str:
-        """
-        Retrieves the basename of the `profile_input` file if it exists.
-        Returns:
-        - str, the basename of the input file.
-        Raises:
-        - InvalidInputError: If `profile_input` does not point to an existing file.
-        """
         if self.profile_input and os.path.exists(self.profile_input):
             return os.path.basename(self.profile_input)
         raise issues.InvalidInputError(f"Not a file: {self.profile_input=}")
     @property
     def is_valid_profile(self) -> bool:
-        """
-        Validates whether the `profile_input` file exists.
-        Returns:
-        - bool, True if the file exists, False otherwise.
-        """
         return os.path.exists(self.profile_input)
 class PSSM_Parser(ProfileParserAbstract):
     name = "PSSM"
     @staticmethod
     def convert_PSSM_file_to_df(input_pssm_file):
-        """
-        Converts a PSSM file to a pandas DataFrame.
-        Args:
-        - self: Instance of the class containing the method.
-        - input_pssm_file (str): Path to the input PSSM file.
-        Returns:
-        - df (DataFrame): Pandas DataFrame containing the parsed PSSM data.
-        Notes:
-        - Reads the PSSM file, parses the table header, defines column specifications, and reads the table data.
-        - Transposes the DataFrame and drops NaN values to clean the data before returning.
-        """
         PSSM_Alphabet = "ARNDCQEGHILKMFPSTWYV"
         c = 0
         for line in open(input_pssm_file):

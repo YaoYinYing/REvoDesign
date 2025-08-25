@@ -1,6 +1,3 @@
-'''
-Module for managing mutant trees.
-'''
 from typing import List, Mapping, Optional, Protocol, Tuple, TypedDict, Union
 from joblib_progress import joblib_progress
 from RosettaPy.utils.tools import squeeze
@@ -19,17 +16,7 @@ class MutateRunner(Protocol):
     ) -> "MutantTree": ...
     def cite(self) -> None: ...
 class MutantTree:
-    """
-    A class representing a mutant tree.
-    """
     def __init__(self, mutant_tree: dict[str, dict[str, Mutant]] = {}):
-        """
-        Initialize MutantTree object with a mutant tree dictionary.
-        Parameters:
-        - mutant_tree (dict): Dictionary representing the mutant tree.
-        Usage:
-        tree = MutantTree(mutant_tree_dict)
-        """
         self.current_branch_id = ""
         self.current_mutant_id = ""
         self.mutant_tree = mutant_tree
@@ -63,19 +50,9 @@ class MutantTree:
     def mutant_num(self) -> int:
         return len(self.all_mutant_objects)
     def refresh_mutants(self):
-        """
-        Refreshes mutant-related attributes in the MutantTree object.
-        Usage:
-        tree.refresh_mutants()
-        """
         if not self.current_branch_id:
             self.initialize_current_branch()
     def __str__(self) -> str:
-        """
-        Returns a string representation of the MutantTree object.
-        Usage:
-        print(tree)
-        """
         tree_str = "Mutant Tree:\n"
         for branch_id in self.mutant_tree.keys():
             tree_str += f"Branch: {branch_id}\n"
@@ -85,50 +62,18 @@ class MutantTree:
         return tree_str
     @property
     def __copy__(self) -> "MutantTree":
-        """
-        Returns a shallow copy of the MutantTree object.
-        Usage:
-        copied_tree = tree.__copy__()
-        """
         return MutantTree(self.mutant_tree.copy())
     @property
     def __deepcopy__(self) -> "MutantTree":
-        """
-        Returns a deep copy of the MutantTree object.
-        Usage:
-        deep_copied_tree = tree.__deepcopy__()
-        """
         import copy
         return MutantTree(copy.deepcopy(self.mutant_tree))
     def get_branch_index(self, branch_id) -> int:
-        """
-        Gets the index of a branch ID in the MutantTree object.
-        Parameters:
-        - branch_id (str): ID of the branch.
-        Usage:
-        index = tree.get_branch_index('branch_id')
-        """
         return self.all_mutant_branch_ids.index(branch_id)
     def has(self, obj: Union[str, Mutant]) -> bool:
-        """
-        Check if the given object exists in the instance.
-        This function accepts an object of type string or Mutant and determines whether the object is present in the instance's mutant collection.
-        Parameters:
-        - obj (Union[str, Mutant]): The object to check. It can be a string representing a mutant ID or a Mutant object.
-        Returns:
-        - bool: True if the object is found in the instance, False otherwise.
-        """
         if isinstance(obj, str):
             return obj in self.all_mutant_ids
         return any(obj == m for m in self.all_mutant_objects)
     def get_a_branch(self, branch_id: str) -> dict[str, Mutant]:
-        """
-        Gets a specific branch from the MutantTree object.
-        Parameters:
-        - branch_id (str): ID of the branch.
-        Usage:
-        branch = tree.get_a_branch('branch_id')
-        """
         try:
             return self.mutant_tree[branch_id]
         except KeyError as e:
@@ -136,42 +81,12 @@ class MutantTree:
                 f"Branch ID {branch_id} not found in the tree."
             ) from e
     def search_a_branch(self, branch_kw) -> list:
-        """
-        Searches for branches containing a specific keyword in the MutantTree object.
-        Parameters:
-        - branch_kw (str): Keyword to search for in branch IDs.
-        Usage:
-        matching_branches = tree.search_a_branch('keyword')
-        """
         return [x for x in self.all_mutant_branch_ids if branch_kw in x]
     def get_mutant_index_in_branch(self, branch_id, mutant_id) -> int:
-        """
-        Gets the index of a mutant in a specific branch of the MutantTree object.
-        Parameters:
-        - branch_id (str): ID of the branch.
-        - mutant_id (str): ID of the mutant.
-        Usage:
-        index = tree.get_mutant_index_in_branch('branch_id', 'mutant_id')
-        """
         return list(self.mutant_tree[branch_id].keys()).index(mutant_id)
     def get_mutant_index_in_all_mutants(self, mutant_id) -> int:
-        """
-        Gets the index of a mutant in all mutants of the MutantTree object.
-        Parameters:
-        - mutant_id (str): ID of the mutant.
-        Usage:
-        index = tree.get_mutant_index_in_all_mutants('mutant_id')
-        """
         return self.all_mutant_ids.index(mutant_id)
     def is_the_mutant_the_last_in_branch(self, branch_id, mutant_id) -> bool:
-        """
-        Checks if the specified mutant is the last in a branch.
-        Parameters:
-        - branch_id (str): ID of the branch.
-        - mutant_id (str): ID of the mutant.
-        Usage:
-        result = tree.is_the_mutant_the_last_in_branch('branch_id', 'mutant_id')
-        """
         return (
             list(self.mutant_tree[branch_id].keys())[
                 self.get_mutant_index_in_branch(branch_id, mutant_id)
@@ -179,13 +94,6 @@ class MutantTree:
             == list(self.mutant_tree[branch_id].keys())[-1]
         )
     def is_this_branch_empty(self, branch_id) -> bool:
-        """
-        Checks if a specific branch in the MutantTree object is empty.
-        Parameters:
-        - branch_id (str): ID of the branch.
-        Usage:
-        result = tree.is_this_branch_empty('branch_id')
-        """
         return len(list(self.mutant_tree[branch_id].keys())) == 0
     def initialize_current_branch(self) -> None:
         for branch in self.all_mutant_branch_ids:
@@ -198,13 +106,6 @@ class MutantTree:
     def update_tree_with_new_branches(
         self, new_branches: Union[dict[str, dict[str, Mutant]], "MutantTree"]
     ) -> None:
-        """
-        Update the MutantTree object with new branches.
-        Parameters:
-        - new_branches (dict): Dictionary of new branches and their mutants.
-        Usage:
-        tree.update_tree_with_new_branches({'new_branch': {'mutant1': info1, 'mutant2': info2}})
-        """
         if isinstance(new_branches, Mapping):
             for branch, leaves in new_branches.items():
                 if branch not in self.all_mutant_branch_ids:
@@ -215,15 +116,6 @@ class MutantTree:
     def add_mutant_to_branch(
         self, branch: str, mutant: str, mutant_obj: Mutant
     ) -> None:
-        """
-        Adds a mutant to a specific branch in the MutantTree object.
-        Parameters:
-        - branch (str): ID of the branch.
-        - mutant (str): ID of the mutant.
-        - mutant_info (object): Information about the mutant.
-        Usage:
-        tree.add_mutant_to_branch('branch_id', 'mutant_id', mutant_info)
-        """
         if branch not in self.all_mutant_branch_ids:
             self.mutant_tree[branch] = {}
         if mutant in self.get_a_branch(branch_id=branch):
@@ -231,14 +123,6 @@ class MutantTree:
         self.mutant_tree[branch].update({mutant: mutant_obj})
         self.refresh_mutants()
     def remove_mutant_from_branch(self, branch: str, mutant: str) -> None:
-        """
-        Removes a mutant from a specific branch in the MutantTree object.
-        Parameters:
-        - branch (str): ID of the branch.
-        - mutant (str): ID of the mutant.
-        Usage:
-        tree.remove_mutant_from_branch('branch_id', 'mutant_id')
-        """
         if mutant in self.mutant_tree[branch].keys():
             self.mutant_tree[branch].pop(mutant)
         else:
@@ -250,13 +134,6 @@ class MutantTree:
             print(f"Branch {branch} is empty and has been removed.")
         self.refresh_mutants()
     def create_mutant_tree_from_list(self, mutant_id_list) -> "MutantTree":
-        """
-        Creates a new MutantTree instance from a filtered list of mutant IDs.
-        Parameters:
-        - mutant_id_list (list): List of mutant IDs.
-        Usage:
-        new_tree = tree.create_mutant_tree_from_list(['mutant_id_1', 'mutant_id_2'])
-        """
         new_mutant_tree = {}
         for branch_id in self.mutant_tree.keys():
             new_branch = {}
@@ -270,15 +147,6 @@ class MutantTree:
     def jump_to_the_best_mutant_in_branch(
         self, branch_id: str, ascending_order: bool = False
     ):
-        """
-        Jumps to the best mutant in a specific branch based on scores.
-        Parameters:
-        - branch_id (str): ID of the branch.
-        - ascending_order (bool): Optional - Set to True to reverse sorting
-            by sorting with assending order (from smaller to larger).
-        Usage:
-        tree.jump_to_the_best_mutant_in_branch('branch_id')
-        """
         self.current_mutant_id = self._jump_to_the_best_mutant_in_branch(
             branch_id, ascending_order
         )
@@ -296,13 +164,6 @@ class MutantTree:
         )
         return sorted_mutants_scores[0][0]
     def walk_the_mutants(self, walf_forward: bool = True):
-        """
-        Walks through mutants in the MutantTree object.
-        Parameters:
-        - walf_forward (bool): Optional - Set to False to walk backward.
-        Usage:
-        tree.walk_the_mutants()
-        """
         if not self.current_branch_id:
             self.initialize_current_branch()
             return
@@ -362,13 +223,6 @@ class MutantTree:
             current_mutant_id,
         )
     def jump_to_branch(self, branch_id: str) -> None:
-        """
-        Jumps to a specified branch in the MutantTree object.
-        Parameters:
-        - branch_id (str): ID of the branch to jump to.
-        Usage:
-        tree.jump_to_branch('branch_id')
-        """
         if branch_id not in self.all_mutant_branch_ids:
             print(f"Could not find a branch with the specified id {branch_id}")
             return
@@ -396,16 +250,6 @@ class MutantTree:
     def diff_tree_from(
         self, incoming_tree: "MutantTree"
     ) -> Optional["MutantTree"]:
-        """
-        Compares two MutantTree objects and returns the differences as a new MutantTree.
-        Args:
-        - incoming_tree (MutantTree): The incoming MutantTree object to compare with.
-        Returns:
-        - MutantTree or None: A MutantTree object containing the differences between self and other_tree,
-        or None if there are no differences.
-        Raises:
-        - ValueError: If the input other_tree is not a MutantTree object.
-        """
         if not isinstance(incoming_tree, MutantTree):
             raise ValueError("Input must be a MutantTree object.")
         diff_tree = MutantTree({})
@@ -428,13 +272,6 @@ class MutantTree:
                     )
         return diff_tree if not diff_tree.empty else None
     def pop(self) -> Optional[tuple[str, str, Mutant]]:
-        """
-        Pops out the last mutant from the last branch of the MutantTree object.
-        Returns:
-        - Mutant or None: The last mutant in the last branch if it exists, otherwise None.
-        Usage:
-        last_mutant = tree.pop()
-        """
         if self.empty:
             return None
         last_branch_id = self.all_mutant_branch_ids[-1]
@@ -446,10 +283,6 @@ class MutantTree:
         return last_branch_id, last_mutant_id, last_mutant
     @property
     def asOneMutant(self) -> Mutant:
-        """
-        This property method is used to create a single Mutant object from all the
-        mutants in the tree. It combines the mutant info of all mutants into one.
-        """
         tmp_mutant_obj = Mutant(
             mutations=squeeze(
                 [

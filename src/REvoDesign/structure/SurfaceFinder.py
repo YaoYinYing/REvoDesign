@@ -1,25 +1,9 @@
-'''
-This module contains functions for finding surface residues
-'''
 import os
 from pymol import cmd
 from REvoDesign import ConfigBus
 from REvoDesign.logger import ROOT_LOGGER
 logging = ROOT_LOGGER.getChild(__name__)
-"""
-This is a slightly modified version of the code on:
-http://pymolwiki.org/index.php/FindSurfaceResidues
-"""
 def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
-    """
-    DESCRIPTION
-        Finds those atoms on the surface of a protein
-        that have at least 'cutoff' exposed A**2 surface area.
-    USAGE
-        findSurfaceAtoms [ selection, [ cutoff ]]
-    SEE ALSO
-        findSurfaceResidues
-    """
     cutoff, quiet = float(cutoff), int(quiet)
     tmpObj = cmd.get_unused_name("_tmp")
     cmd.create(tmpObj, "(" + selection + ") and polymer", zoom=0)
@@ -35,21 +19,6 @@ def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
 def findSurfaceResidues(
     selection="all", cutoff=2.5, doShow=0, quiet=1, return_selection=1
 ):
-    """
-    DESCRIPTION
-        Finds those residues on the surface of a protein
-        that have at least 'cutoff' exposed A**2 surface area.
-    USAGE
-        findSurfaceResidues [ selection, [ cutoff, [ doShow ]]]
-    ARGUMENTS
-        selection = string: object or selection in which to find exposed
-        residues {default: all}
-        cutoff = float: cutoff of what is exposed or not {default: 2.5 Ang**2}
-    RETURNS
-        (list: (chain, resv ) )
-            A Python list of residue numbers corresponding
-            to those residues w/more exposure than the cutoff.
-    """
     cutoff, doShow, quiet = float(cutoff), int(doShow), int(quiet)
     selName = findSurfaceAtoms(selection, cutoff, quiet)
     exposed = set()

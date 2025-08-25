@@ -18,11 +18,6 @@ from REvoDesign.tools.customized_widgets import refresh_tree_widget
 from REvoDesign.tools.ssl_certificates import SSLCertificateManager
 from REvoDesign.tools.utils import run_worker_thread_with_progress
 logging = ROOT_LOGGER.getChild(__name__)
-"""
-helpful:
-https://stackoverflow.com/questions/15092076/pyqt-and-websocket-client-listen-websocket-in-background
-https://stackoverflow.com/questions/26270681/can-an-asyncio-event-loop-run-in-the-background-without-suspending-the-python-in
-"""
 @dataclass
 class Client:
     uuid: str
@@ -267,32 +262,6 @@ class Broadcaster:
             "Nested MessageStack is not allowd."
         )
 class REvoDesignWebSocketServer(SingletonAbstract):
-    """
-    Class for managing a WebSocket server in REvoDesign.
-    Attributes:
-    - clients: Dictionary to store connected clients.
-    - waiting_room: Set to hold clients waiting for authentication.
-    - server: WebSocket server object.
-    - server_url: URL for the server (default: 'localhost').
-    - port: Port number for the server (default: 7890).
-    Methods:
-    - onAcceptError: Handles accept errors.
-    - onNewConnection: Manages new client connections.
-    - askUserAuthentication: Asks client for authentication.
-    - processTextMessage: Processes incoming text messages from clients.
-    - processBinaryMessage: Processes incoming binary messages from clients.
-    - socketDisconnected: Handles client disconnection.
-    - stop_server: Stops the WebSocket server.
-    - authenticate_client: Authenticates clients based on a key.
-    - broadcast_object: Broadcasts serialized objects to connected clients.
-    - serialize_object: Serializes objects for broadcasting.
-    - encode_object: Encodes objects for serialization.
-    - setup_ws_server: Sets up the WebSocket server with specified settings.
-    - check_broadcast_interval: Checks the broadcast interval.
-    - check_broadcast_enabled_flag: Checks if broadcast is enabled.
-    - broadcast_view: Broadcasts view updates to clients.
-    - is_port_available: Checks if a port is available for use.
-    """
     def singleton_init(self):
         self.bus: ConfigBus = ConfigBus()
         self.meetingroom: MeetingRoom = None
@@ -328,20 +297,8 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     def is_running(self):
         return self.server is not None and self.server.isListening()
     def onAcceptError(self, accept_error):
-        """
-        Handles accept errors when setting up the server.
-        Args:
-        - accept_error: Error encountered during accept.
-        Returns:
-        None
-        """
         logging.error(f"Accept Error: {accept_error}")
     def onNewConnection(self):
-        """
-        Manages new client connections.
-        Returns:
-        None
-        """
         client_connection = self.server.nextPendingConnection()
         client_connection.textMessageReceived.connect(
             lambda message, client=client_connection: self.processTextMessage(
@@ -357,13 +314,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             lambda client=client_connection: self.socketDisconnected(client)
         )
     def askUserAuthentication(self, client):
-        """
-        Asks the client for authentication.
-        Args:
-        - client: Client connection object.
-        Returns:
-        None
-        """
         logging.info(f"Asking {client} for authentication...")
         self.bc_worker.wisper(
             obj_type="RequireKey", obj="Key please.", client=client
@@ -375,14 +325,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
     def processTextMessage(
         self, client: QtWebSockets.QWebSocket, message: Union[str, Any]
     ):
-        """
-        Processes incoming text messages from clients.
-        Args:
-        - client: Client connection object.
-        - message: Incoming text message.
-        Returns:
-        None
-        """
         username, node, user_id = self.client_name_and_node(client=client)
         logging.info(
             f">>> {username}@{node}({user_id}): [TextMessage] {str(message)}"
@@ -422,14 +364,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             return
         ...
     def processBinaryMessage(self, client, message: QtCore.QByteArray):
-        """
-        Processes incoming binary messages from clients.
-        Args:
-        - client: Client connection object.
-        - message: Incoming binary message.
-        Returns:
-        None
-        """
         message: bytes = message.data()
         username, node, user_id = self.client_name_and_node(client=client)
         try:
@@ -532,13 +466,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             user_tree=peer_table, treeWidget_ws_peers=self.treeWidget_ws_peers
         )
     def socketDisconnected(self, client):
-        """
-        Handles client disconnection.
-        Args:
-        - client: Client connection object.
-        Returns:
-        None
-        """
         logging.info("Socket Disconnected")
         if client in self.meetingroom.current_clients:
             uuid = self.get_client_uuid(client=client)
@@ -546,11 +473,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             client.deleteLater()
         self.synchronize_usertable()
     def stop_server(self):
-        """
-        Stops the WebSocket server and closes client connections.
-        Returns:
-        None
-        """
         self.bc_worker.broadcast(
             self.meetingroom, obj="Host is shutting down, bye-bye."
         )
@@ -563,14 +485,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             self.meetingroom = None
         self.synchronize_usertable()
     async def broadcast_object(self, obj, data_type):
-        """
-        Broadcasts serialized objects to connected clients.
-        Args:
-        - obj: Object to be serialized and broadcasted.
-        - data_type: Type of the data.
-        Returns:
-        None
-        """
         if not self.is_running:
             warnings.warn(issues.SocketWarning("Host is not running"))
             return
@@ -615,25 +529,10 @@ class REvoDesignWebSocketServer(SingletonAbstract):
             self.server.newConnection.connect(self.onNewConnection)
         self.treeWidget_ws_peers = self.bus.ui.treeWidget_ws_peers
     def check_broadcast_interval(self) -> float:
-        """
-        Checks the broadcast interval.
-        Returns:
-        float: Broadcast interval value.
-        """
         return self.view_broadcast_interval
     def check_broadcast_enabled_flag(self) -> bool:
-        """
-        Checks if broadcast is enabled.
-        Returns:
-        bool: True if broadcast is enabled, False otherwise.
-        """
         return self.view_broadcast_enabled
     def broadcast_view(self):
-        """
-        Broadcasts view updates to clients.
-        Returns:
-        None
-        """
         last_view = cmd.get_view()
         while True:
             run_worker_thread_with_progress(
@@ -650,13 +549,6 @@ class REvoDesignWebSocketServer(SingletonAbstract):
                 self.meetingroom, obj_type="ViewUpdate", obj=view_data
             )
     def is_port_available(self, port):
-        """
-        Check if the specified port is available for use.
-        Args:
-        port (int): The port number to check.
-        Returns:
-        bool: True if the port is available, False otherwise.
-        """
         sock = QtNetwork.QTcpSocket()
         sock.bind(QtNetwork.QHostAddress.LocalHost, port)
         can_listen = sock.waitForConnected(

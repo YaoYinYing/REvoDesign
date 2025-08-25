@@ -1,10 +1,3 @@
-'''
-Module for citation management.
-CitationManager:
-    A singleton class that manages citation information.
-CitableModules:
-    A base class for modules that can be cited, which should contain a `__bibtex__` attribute.
-'''
 import os
 import time
 import warnings
@@ -23,21 +16,12 @@ CYAN_BG = "\033[0;44m"
 RED_BG = "\033[0;41m"
 MAGENTA_BG = "\033[0;45m"
 class CitationManager(SingletonAbstract):
-    """
-    CitationManager is responsible for managing citations in a singleton pattern,
-    ensuring that only one instance of the citation manager exists throughout the application's lifecycle.
-    """
     def singleton_init(self):
         self.called_citations: dict[str, Any] = {}
         self.silenced_citation_modules: list[str] = []
         self.initialize()
     @property
     def collected_citations(self) -> list[str]:
-        """
-        Collect all citations and return them as a list of strings.
-        Returns:
-            list[str]: A list containing all collected citations.
-        """
         _ = []
         for c in self.called_citations.items():
             if isinstance(c, str):
@@ -50,11 +34,6 @@ class CitationManager(SingletonAbstract):
                 )
         return _
     def update(self, new_citations: dict):
-        """
-        Update the citation manager with new citations.
-        Args:
-            new_citations (dict): A dictionary containing new citations.
-        """
         if not (new_citations and isinstance(new_citations, dict)):
             warnings.warn(
                 issues.NoInputWarning(
@@ -64,16 +43,8 @@ class CitationManager(SingletonAbstract):
             return
         self.called_citations.update(new_citations)
     def clear(self):
-        """
-        Clear all citations from the citation manager.
-        """
         self.called_citations.clear()
     def output(self, cwd: str = "."):
-        """
-        Output the citations to a .bib file in the specified directory.
-        Args:
-            cwd (str): The directory where the citations should be output. Defaults to the current directory.
-        """
         import bibtexparser
         library = bibtexparser.parse_string(
             "\n".join(self.collected_citations)
@@ -95,24 +66,11 @@ class CitationManager(SingletonAbstract):
         )
         logging.info(f"Citation is created at {citation_output}")
     def dismiss(self, modulename: str):
-        """
-        Dismiss the citation for a specific module, preventing it from being included in the output.
-        Args:
-            modulename (str): The name of the module whose citation is to be dismissed.
-        """
         if modulename not in self.silenced_citation_modules:
             self.silenced_citation_modules.append(modulename)
 class CitableModuleAbstract(ABC):
-    """
-    An abstract base class for modules that require citation.
-    This class provides methods to handle the citation notice and citation information in a standardized way.
-    """
     __bibtex__: dict[str, Union[str, tuple]]
     def notice(self):
-        """
-        Display the citation notice.
-        This method checks if there are citations to be displayed, and if the current module's citations have not been silenced, it logs the citation information.
-        """
         if not self.__bibtex__:
             logging.debug("Nothing has to be cited with this module.")
             return
@@ -138,10 +96,6 @@ class CitableModuleAbstract(ABC):
                     )
             CitationManager().dismiss(i)
     def cite(self):
-        """
-        Add citation to the citation manager.
-        This method adds the current module's citation information to the citation manager and then displays the citation notice.
-        """
         citations = self.__bibtex__
         if not isinstance(citations, Mapping):
             raise TypeError("citation must be a dict.")

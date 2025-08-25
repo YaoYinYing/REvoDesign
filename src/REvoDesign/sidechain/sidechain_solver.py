@@ -1,6 +1,3 @@
-'''
-Module for sidechain solvers manipulation and management.
-'''
 from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
 from typing import List, Mapping, Optional

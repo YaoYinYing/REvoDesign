@@ -1,7 +1,3 @@
-'''
-Module to manage external design tools.
-Collect, Register, Heat up and Cool down.
-'''
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import List, Mapping, Optional
@@ -22,9 +18,6 @@ IMPLEMENTED_DESIGNERS: Mapping[str, type[ExternalDesignerAbstract]] = (
 __all__ = ["ExternalDesignerAbstract", "ColabDesigner_MPNN"]
 @dataclass(frozen=True)
 class MagicianAssistant:
-    """
-    A class to manage the installation and usage of external design tools.
-    """
     installed_worker: List[str] = field(
         default_factory=lambda: [
             c.name for c in ALL_DESIGNER_CLASSES if c.installed
@@ -34,16 +27,7 @@ class MagicianAssistant:
         designer_class = IMPLEMENTED_DESIGNERS[name]
         return designer_class(**kwargs)
 class Magician(SingletonAbstract):
-    """
-    The Magician class inherits from SingletonAbstract, ensuring that there is only one instance of Magician.
-    This class is responsible for setting up and managing the magician's gimmicks, including initializing
-    and cooling down gimmicks based on different configurations.
-    """
     def singleton_init(self):
-        """
-        Initializes the Magician instance, including setting up the configuration bus, initializing the gimmick,
-        and creating an instance of the assistant.
-        """
         self.bus: ConfigBus = ConfigBus()
         self.gimmick: Optional[ExternalDesignerAbstract] = None
         self.magician_assistant = MagicianAssistant()
@@ -54,16 +38,6 @@ class Magician(SingletonAbstract):
         gimmick_name: Optional[str] = "",
         **kwargs,
     ) -> "Magician":
-        """
-        Sets up the magician's gimmick based on different methods.
-        Parameters:
-        - name_badget_id: Optional[str] - The ID badge for obtaining the name.
-        - name_cfg_term: Optional[str] - The configuration term for obtaining the name.
-        - gimmick_name: Optional[str] - The directly provided name of the gimmick.
-        - **kwargs: Additional parameters for setting up the gimmick.
-        Returns:
-        - Magician: Returns the instance of the Magician for method chaining.
-        """
         if name_badget_id:
             name = self.bus.get_widget_value(name_badget_id, str)
         elif name_cfg_term:
