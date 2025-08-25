@@ -1,16 +1,12 @@
 '''
 Data classes for Group Registry.
 '''
-
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Union
-
-
 @dataclass(frozen=True)
 class GroupRegistryItem:
     """
     A data class representing an item in a group registry.
-
     Attributes:
         cfg_item (str): The configuration item associated with this registry entry.
         group_generators (tuple[Callable[[], Union[List[str], Dict[str, Any]]], ...]):

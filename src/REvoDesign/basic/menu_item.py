@@ -1,23 +1,17 @@
 '''
 Data classes for menu items and menu collections.
 '''
-
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable, Mapping, Optional, Tuple
-
 from REvoDesign.Qt import QtWidgets
-
-
 @dataclass(frozen=True)
 class MenuItem:
     """
     A data class representing a menu item.
-
     This class is used to define the properties of a menu item, including its name, associated function, and optional arguments.
     The use of the @dataclass decorator automatically generates special methods such as __init__(), __repr__(), and __eq__().
     The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
-
     Attributes:
         name (str): The name of the menu item, used for display and identification.
         action (QtWidgets.QAction): The action associated with the menu item.
@@ -29,8 +23,6 @@ class MenuItem:
     func: Callable
     args: Optional[Tuple] = None
     kwargs: Optional[Mapping] = None
-
-
 @dataclass(frozen=True)
 class MenuCollection:
     """
@@ -38,7 +30,6 @@ class MenuCollection:
     This class registers the menu items and their associated functions while instantiating the class.
     """
     menu_items: tuple[MenuItem, ...]
-
     def __post_init__(self):
         """
         Post-initialization method.
@@ -46,13 +37,11 @@ class MenuCollection:
         It checks if the menu items are valid, raising an error if they are not.
         """
         self.bind()
-
     def bind(self):
         """
         Binds the menu items to their respective functions.
         This method iterates over the menu items and binds their functions to the associated actions.
         """
-
         for m in self.menu_items:
             try:
                 m.action.triggered.connect(partial(m.func, *m.args if m.args else (), **m.kwargs if m.kwargs else {}))

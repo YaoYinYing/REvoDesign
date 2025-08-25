@@ -1,39 +1,27 @@
 '''
 Wrapper for PyMOL-buildin Dunbrack Rotamer Library and mutagenesis wizard.
-
 '''
-
 import os
 from typing import List
-
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
-
 from REvoDesign.basic import MutateRunnerAbstract
 from REvoDesign.common.mutant import Mutant
 from REvoDesign.logger import ROOT_LOGGER
-
 logging = ROOT_LOGGER.getChild(__name__)
-
-
 class PyMOL_mutate(MutateRunnerAbstract):
     """
     Class for performing mutations in PyMOL.
-
     Usage:
     pymol_mutator = PyMOL_mutate(molecule, input_session)
     mutated_pdb = pymol_mutator.run_mutate(mutant_obj)  # Perform mutation
-
     # Further usage for other functionalities
     """
-
     name: str = "Dunbrack Rotamer Library"
     installed: bool = True
-
     def __init__(self, pdb_file, molecule="", **kwargs):
         """
         Initialize PyMOL_mutate with a molecule and input session.
-
         Args:
         - molecule: Molecule object
         - input_session: Input session information
@@ -41,16 +29,12 @@ class PyMOL_mutate(MutateRunnerAbstract):
         super().__init__(pdb_file)
         self.input_session = pdb_file
         self.molecule = molecule
-
         self.temp_dir = self.new_cache_dir
-
     def run_mutate(self, mutant: Mutant) -> str:
         """
         Run mutation on the molecule using PyMOL.
-
         Args:
         - mutant: Object containing mutation information
-
         A standalone instance of PyMOL will perform a series of work:
         1. reinitialize workspace (session)
         2. load the input PDB
@@ -59,18 +43,13 @@ class PyMOL_mutate(MutateRunnerAbstract):
         5. run mutates against this object.
         6. save the mutated object as a new PDB file.
         7. return the PDB file path
-
         Returns:
         - Path to the mutated PDB file
         """
-
         import pymol2
-
         new_obj_name = mutant.short_mutant_id
         logging.debug(f"Mutating {mutant=}")
-
         temp_mutant_path = os.path.join(self.temp_dir, f"{new_obj_name}.pdb")
-
         with pymol2.PyMOL() as p:
             p.cmd.reinitialize()
             p.cmd.load(self.input_session, object=self.molecule)
@@ -78,17 +57,12 @@ class PyMOL_mutate(MutateRunnerAbstract):
             logging.debug(
                 f"creating {new_obj_name=} copyed from  {self.molecule=}: {p.cmd.get_names()=}"
             )
-
             p.cmd.create(new_obj_name, self.molecule, quiet=0)
-
             p.cmd.delete(self.molecule)
-
             for mut_info in mutant.mutations:
-
                 new_residue_3 = IUPACData.protein_letters_1to3[
                     mut_info.mut_res
                 ].upper()
-
                 # a variant from rotkit mutate function that uses pymol2 context manager
                 # http://www.pymolwiki.org/index.php/rotkit
                 target = new_residue_3.upper()
@@ -100,31 +74,24 @@ class PyMOL_mutate(MutateRunnerAbstract):
                 p.cmd.frame("1")
                 p.cmd.get_wizard().apply()
                 p.cmd.set_wizard()
-
             p.cmd.save(temp_mutant_path, new_obj_name)
-
         return temp_mutant_path
-
     def run_mutate_parallel(
         self, mutants: List[Mutant], nproc: int = 2
     ) -> List[str]:
         """
         Perform mutation on the protein in parallel.
-
         Args:
         - mutants: List of Mutant objects containing mutation information
         - nproc: Number of parallel jobs to run (default: -1, which means using all available cores)
         - **kwargs: Additional keyword arguments to pass to the run_mutate method
-
         Returns:
         - List of paths to the mutated PDB files
         """
-
         results = Parallel(n_jobs=nproc, return_as="list")(
             delayed(self.run_mutate)(mutant) for mutant in mutants
         )
         return list(results)  # type: ignore
-
     # https://www.bruot.org/ris2bib/
     __bibtex__ = {
         "Dunbrack Rotamer Library": """@Article{Shapovalov2011,
@@ -144,6 +111,5 @@ issn={0969-2126},
 doi={10.1016/j.str.2011.03.019},
 url={https://doi.org/10.1016/j.str.2011.03.019}
 }
-
 """
     }

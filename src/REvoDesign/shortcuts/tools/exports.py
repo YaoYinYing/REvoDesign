@@ -1,24 +1,17 @@
 '''
 Shortcut functions of results exporting
 '''
-
-
 import os
 from typing import List, Mapping, Optional, Union
-
 import Bio
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from pymol import cmd
-
 from REvoDesign import ROOT_LOGGER, issues
 from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.tools.pymol_utils import get_all_groups
-
 logging = ROOT_LOGGER.getChild(__name__)
-
-
 def shortcut_dump_sidechains(
     sele: Union[str, List[str]],
     enabled_only: bool = False,
@@ -50,35 +43,25 @@ def shortcut_dump_sidechains(
     Returns:
       None
     """
-
     os.makedirs(save_dir, exist_ok=True)
-
     if isinstance(sele, str):
         sele = [sele]
-
     if hide_mesh:
         cmd.hide("mesh")
-
     all_groups = get_all_groups(enabled_only=enabled_only)
-
     # disable all groups
     cmd.disable(' or '.join(all_groups))
     cmd.refresh()
-
     for sel in sele:
         # ensure the current group selection is enabled
         cmd.enable(sel)
-
         # get all model names of selected group
         all_models = cmd.get_names("objects", int(enabled_only), sel)
         print(f'Selected group: {sel}: {all_models}')
-
         cmd.disable(' or '.join(all_models))
-
         # orient to get pose in the right orientation
         if reorient and neighborhood and neighborhood > 0:
             cmd.orient(f'{sel} or byres {sel} around {neighborhood}')
-
         for m in all_models:
             cmd.refresh()
             print(f"Dumping PNG for {m} ...")
@@ -91,10 +74,7 @@ def shortcut_dump_sidechains(
             p = os.path.join(save_dir, f"{m}.png")
             cmd.png(p, height, width, dpi, int(ray))
             cmd.disable(m)
-
         cmd.disable(sel)
-
-
 def shortcut_dump_fasta_from_struct(
         format: str = "fasta",
         chain_ids: list[str] = [],
@@ -111,14 +91,12 @@ def shortcut_dump_fasta_from_struct(
         drop_missing_residue (bool): Whether to drop missing residues. Defaults to False.
         suffix (str): Suffix to add to the output file name. Defaults to ''.
     """
-
     bus = ConfigBus()
     molecule = bus.get_value('ui.header_panel.input.molecule', str, reject_none=True)
     if not chain_ids:
         logging.warning("No chain selected. Dumping the chain picked on UI.")
         chain_ids = [bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)]
     designable_sequences: Optional[Mapping] = bus.get_value("designable_sequences", dict, reject_none=True)
-
     os.makedirs(output_dir, exist_ok=True)
     if suffix:
         suffix = f"_{suffix}"
@@ -133,12 +111,10 @@ def shortcut_dump_fasta_from_struct(
         logging.debug(
             f"Molecule: {molecule}\nchain_id: {chain_id}\nsequence: {sequence}"
         )
-
         all_seq_records.append(
             SeqRecord(
                 Seq(sequence),
                 id=f"{molecule}_{chain_id}", description=f"{suffix.lstrip('_')}"))
-
     try:
         with open(output_path, 'w', encoding='utf-8') as f:
             SeqIO.write(all_seq_records, f, format)
@@ -150,5 +126,4 @@ def shortcut_dump_fasta_from_struct(
         os.remove(output_path)
         logging.error(f"Error occurs while dumping sequence: {e} Clean up the output file.")
         raise issues.InternalError(f"Error occurs while dumping sequence: {e}.") from e
-
     logging.info(f"Sequence dumped to {output_path}")

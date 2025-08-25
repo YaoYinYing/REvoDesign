@@ -3,27 +3,20 @@ This module contains the definition of the IterableLoop class, which manages an 
 '''
 from dataclasses import dataclass
 from typing import Generic, Tuple, TypeVar
-
 T = TypeVar("T")
-
-
 @dataclass
 class IterableLoop(Generic[T]):
     """
     A class for managing an iterable with looping behavior.
     """
-
     iterable: Tuple[T]
     current_idx: int = -1
-
     @property
     def empty(self):
         return not bool(self.iterable)
-
     @property
     def initialized(self):
         return self.current_idx >= 0
-
     def pick_next(self) -> int:
         """
         Moves to the next item in the iterable, wrapping around to the beginning if necessary.
@@ -32,9 +25,7 @@ class IterableLoop(Generic[T]):
             self.current_idx = 0
         else:
             self.current_idx += 1
-
         return self.current_idx
-
     def pick_previous(self) -> int:
         """
         Moves to the previous item in the iterable, wrapping around to the end if necessary.
@@ -43,13 +34,10 @@ class IterableLoop(Generic[T]):
             self.current_idx = len(self.iterable) - 1
         else:
             self.current_idx -= 1
-
         return self.current_idx
-
     def walker(self, direction: bool) -> int:
         """
         Moves to the next or previous item in the iterable based on the given direction.
-
         Args:
             direction: A boolean value indicating the direction of movement.
                        True for next, False for previous.
@@ -61,20 +49,16 @@ class IterableLoop(Generic[T]):
                 return self.current_idx
             # [-1] -> 0 -> -1
             self.pick_previous()
-
             return self.current_idx
-
         if direction:
             return self.pick_next()
         return self.pick_previous()
-
     @property
     def current_item(self) -> T:
         """
         Returns the current item in the iterable.
         """
         return self.iterable[self.current_idx]
-
     def reset(self) -> int:
         """
         Resets the current index to -1, indicating an uninitialized state.

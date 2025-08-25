@@ -1,34 +1,27 @@
 '''
 Module for bootstrapping REvoDesign with Hydra and OmegaConf.
 '''
-
 import glob
 import importlib.util
 import os
 import shutil
 from typing import Any, List, Optional
-
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from platformdirs import user_cache_dir, user_data_dir
-
-
 def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     template_config_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "..",
         "config",
     )
-
     default_storage_path = user_data_dir(appname="REvoDesign")
     config_dir = os.path.join(default_storage_path, "config")
-
     if delete_user_config_tree and os.path.exists(config_dir):
         print(
             "WARNING: The configuration directory will be deleted as required"
         )
         shutil.rmtree(config_dir)
-
     if not glob.glob(os.path.join(config_dir, "*.yaml")):
         print(
             f"Copied configuratiosn from {template_config_dir} to {config_dir}"
@@ -38,12 +31,9 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
         )
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
-
     main_config_file = os.path.join(config_dir, "global_config.yaml")
     print(f"Main config: {main_config_file}")
     return main_config_file
-
-
 def reload_config_file(config_name: str = "global_config",
                        overrides: Optional[List[str]] = None,
                        return_hydra_config: bool = False) -> DictConfig:
@@ -52,72 +42,55 @@ def reload_config_file(config_name: str = "global_config",
         overrides=overrides,
         return_hydra_config=return_hydra_config,
     )
-
-
 def save_configuration(
     new_cfg: DictConfig, config_name: str = "global_config"
 ):
     from . import REVODESIGN_CONFIG_FILE
-
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
     cfg_save_fp = os.path.join(cfg_save_dir, f"{config_name}.yaml")
     OmegaConf.save(new_cfg, cfg_save_fp)
     print(f"Saved configuration: {cfg_save_fp}")
     return
-
-
 def experiment_config():
     from . import REVODESIGN_CONFIG_FILE
-
     experiments_dir = os.path.join(
         os.path.dirname(REVODESIGN_CONFIG_FILE), "experiments"
     )
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
-
-
 def set_cache_dir() -> str:
     from REvoDesign.driver.ui_driver import ConfigBus
-
     bus: ConfigBus = ConfigBus()
     cfg: DictConfig = bus.cfg
     if not cfg.cache_dir.under_home_dir and not cfg.cache_dir.customized:
         raise ValueError("You must specify a custom cache directory!")
-
     if cfg.cache_dir.under_home_dir:
         cache_dir = user_cache_dir(appname="REvoDesign", ensure_exists=True)
     else:
         cache_dir = os.path.expanduser(cfg.cache_dir.customized)
     return cache_dir
-
-
 class ConfigConverter:
     """
     A utility class to convert omegaconf.DictConfig objects to standard Python dictionaries.
     This conversion is done recursively to handle nested DictConfig objects.
     """
-
     @staticmethod
     def convert(config: DictConfig) -> dict:
         """
         Converts an omegaconf.DictConfig object to a standard Python dictionary.
-
         Usage:
             converted_dict = ConfigConverter.convert(dict_config)
-
         :param config: The DictConfig object to convert.
         :return: A standard Python dictionary representation of the input DictConfig.
         """
         if isinstance(config, DictConfig):
             return ConfigConverter._recursive_convert(config)
         raise ValueError("Input must be an instance of omegaconf.DictConfig")
-
     @staticmethod
     def _recursive_convert(config: Any) -> Any:
         """
         Recursively converts an omegaconf.DictConfig object or its nested structures
         to a standard Python dictionary. This method handles the recursion.
-
         :param config: The DictConfig object or its nested structure.
         :return: A standard Python dictionary or the original type if not DictConfig.
         """
@@ -131,18 +104,13 @@ class ConfigConverter:
                 ConfigConverter._recursive_convert(item) for item in config
             ]
         return config
-
-
 def is_package_installed(package):
     """
     Function: is_package_installed
     Usage: is_installed = is_package_installed(package)
-
     This function checks if a specified package is installed in the current Python environment.
-
     Args:
     - package (str): Name of the package to check
-
     Returns:
     - bool: True if the package is installed, False otherwise
     """

@@ -1,14 +1,10 @@
 '''
 Shortcut functions of third-party mutant effect predictors
 '''
-
-
 import os
 from typing import List, Literal, Optional
-
 import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
-
 from REvoDesign import ROOT_LOGGER
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
@@ -17,25 +13,19 @@ from REvoDesign.common.mutant_tree import MutantTree
 from REvoDesign.tools.mutant_tools import (extract_mutants_from_mutant_id,
                                            quick_mutagenesis)
 from REvoDesign.tools.utils import get_cited, require_installed, timing
-
 logging = ROOT_LOGGER.getChild(__name__)
-
 RUN_MODE_T = Literal["single", "additive", "epistatic"]
-
-
 @require_installed
 class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
     """
     ThermoMpnnPredictor class for predicting the thermodynamic stability effects of protein mutations.
     It utilizes the ThermoMPNN model to analyze protein structure and sequence to predict stability changes due to mutations.
-
     Attributes:
         name (str): Name of the predictor, set to 'ThermoMPNN'.
         installed (bool): Indicates if the 'thermompnn' package is installed.
     """
     name: str = 'ThermoMPNN'
     installed: bool = is_package_installed('thermompnn')
-
     def __init__(self,
                  pdb: str,
                  save_dir: Optional[str] = None,
@@ -49,7 +39,6 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
                  device: str = 'cpu'):
         """
         Initializes the ThermoMpnnPredictor with the given parameters.
-
         Parameters:
             pdb (str): Path to the PDB file of the protein.
             save_dir (Optional[str]): Directory to save the output files. Defaults to None.
@@ -65,7 +54,6 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         self.prefix = prefix
         self.mode = mode
         self.device = device
-
         from thermompnn import ThermoMPNN
         if save_dir and prefix:
             # Construct the save prefix and create the directory if it doesn't exist
@@ -73,7 +61,6 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             os.makedirs(os.path.dirname(self.save_prefix), exist_ok=True)
         else:
             self.save_prefix = ''
-
         # Load the protein sequence from the PDB file
         self.sequence = RosettaPyProteinSequence.from_pdb(pdb)
         # Initialize the ThermoMPNN application with the provided parameters
@@ -87,12 +74,10 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             distance,
             ss_penalty,
             self.device)
-
     @get_cited
     def run(self) -> pd.DataFrame:
         """
         Runs the ThermoMPNN prediction and returns the results as a DataFrame.
-
         Returns:
             pd.DataFrame: DataFrame containing the prediction results with columns 'ddG' and 'Mutation',
                           or 'ddG', 'Mutation', and 'dist' depending on the mode.
@@ -105,16 +90,13 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
         else:
             df.columns = ['ddG', 'Mutation', 'dist']
         return df
-
     @staticmethod
     def mutant_name2mutant(mutant_id: str, sequences: RosettaPyProteinSequence) -> Mutant:
         """
         Converts a mutant ID string into a Mutant object.
-
         Parameters:
             mutant_id (str): String representation of the mutant.
             sequences (RosettaPyProteinSequence): Protein sequence object.
-
         Returns:
             Mutant: Mutant object created from the mutant ID.
         """
@@ -123,15 +105,12 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             sequences=sequences,
             wt_before_chain=True
         )
-
     def df2mutant_tree(self, df: pd.DataFrame, sorted_by: Literal['prefix', 'positions'] = 'prefix') -> MutantTree:
         """
         Converts a DataFrame of mutation predictions into a MutantTree object.
-
         Parameters:
             df (pd.DataFrame): DataFrame containing mutation predictions.
             sorted_by (Literal['prefix', 'positions']): Sorting criterion for the mutant tree. Defaults to 'prefix'.
-
         Returns:
             MutantTree: MutantTree object containing the mutation predictions.
         """
@@ -144,15 +123,12 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
             mutant = self.mutant_name2mutant(mutant_id=f'{mutation.replace(":", "_")}_{score}', sequences=self.sequence)
             mutant.mutant_score = score
             mutant.wt_score = 0
-
             # Add the mutant to the appropriate branch in the MutantTree
             mutant_tree.add_mutant_to_branch(
                 self.prefix
                 if sorted_by == 'prefix'
                 else 'TMPNN_' + '_vs_'.join(str(m.position) for m in mutant.mutations), mutant.full_mutant_id, mutant)
-
         return mutant_tree
-
     __bibtex__ = {
         'ThermoMPNN': """@article{
 doi:10.1073/pnas.2314853121,
@@ -179,8 +155,6 @@ url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/pro.70003},
 eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/pro.70003},
 year = {2025}
 }"""}
-
-
 def shortcut_thermompnn(
     pdb: str,
     save_dir: Optional[str] = './thermompnn/predicts',
@@ -196,25 +170,18 @@ def shortcut_thermompnn(
     top_ranked: Optional[int] = 100,
 ):
     app = ThermoMpnnPredictor(pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
-
     df = app.run()
-
     if top_ranked and top_ranked > 1:
         df.sort_values(by=['ddG'], inplace=True)
         logging.info(f'Selecting top {top_ranked} mutants...')
         df = df.head(top_ranked)
-
     with timing('parsing dataframe from ThermoMPNN'):
         mutant_tree = app.df2mutant_tree(df, sorted_by='positions')
-
     logging.info(f'ThermoMPNN produced {len(mutant_tree.all_mutant_objects)} Mutants.')
     logging.debug(f"{mutant_tree=}")
-
     if load_to_preview:
         logging.info('Perform visualising...')
         quick_mutagenesis(mutant_tree)
-
     app.cleanup()
-
     import gc
     gc.collect()

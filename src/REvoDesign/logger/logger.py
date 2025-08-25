@@ -1,7 +1,6 @@
 '''
 Logger for REvoDesign
 '''
-
 import atexit
 import datetime as dt
 import json
@@ -10,13 +9,10 @@ import logging.handlers as python_logging_handlers
 import os
 import queue
 from typing import Literal, Optional, Union
-
 from omegaconf import DictConfig
 from platformdirs import user_log_path
 from typing_extensions import override
-
 from ..bootstrap import reload_config_file
-
 LOG_RECORD_BUILTIN_ATTRS = {
     "args",
     "asctime",
@@ -42,8 +38,6 @@ LOG_RECORD_BUILTIN_ATTRS = {
     "threadName",
     "taskName",
 }
-
-
 class REvoDesignLogFormatter(python_logging.Formatter):
     def __init__(
         self,
@@ -52,12 +46,10 @@ class REvoDesignLogFormatter(python_logging.Formatter):
     ):
         super().__init__()
         self.fmt_keys = fmt_keys or {}
-
     @override
     def format(self, record: python_logging.LogRecord) -> str:
         message = self._prepare_log_dict(record)
         return json.dumps(message, default=str)
-
     def _prepare_log_dict(self, record: python_logging.LogRecord):
         always_fields = {
             "message": record.getMessage(),
@@ -67,10 +59,8 @@ class REvoDesignLogFormatter(python_logging.Formatter):
         }
         if record.exc_info is not None:
             always_fields["exc_info"] = self.formatException(record.exc_info)
-
         if record.stack_info is not None:
             always_fields["stack_info"] = self.formatStack(record.stack_info)
-
         message = {
             key: (
                 msg_val
@@ -80,22 +70,16 @@ class REvoDesignLogFormatter(python_logging.Formatter):
             for key, val in self.fmt_keys.items()
         }
         message.update(always_fields)
-
         for key, val in record.__dict__.items():
             if key not in LOG_RECORD_BUILTIN_ATTRS:
                 message[key] = val
-
         return message
-
-
 class NonErrorFilter(python_logging.Filter):
     @override
     def filter(
         self, record: python_logging.LogRecord
     ) -> Union[bool, python_logging.LogRecord]:
         return record.levelno <= python_logging.INFO
-
-
 def setup_logging_from_dictconfig(
     log_config: DictConfig,
 ) -> python_logging.Logger:
@@ -106,12 +90,9 @@ def setup_logging_from_dictconfig(
     notebook_filename = log_config.handlers.notebook.filename
     notebook_maxBytes = log_config.handlers.notebook.maxBytes
     notebook_backupCount = log_config.handlers.notebook.backupCount
-
     log_handlers = []
-
     # Create a queue for the QueueHandler
     log_queue = queue.Queue(10_000)
-
     # Initialize handlers
     stdout_handler = python_logging.StreamHandler()
     stdout_handler.setLevel(log_config.handlers.stdout.level)
@@ -119,13 +100,11 @@ def setup_logging_from_dictconfig(
         python_logging.Formatter(log_config.formatters.simple.format)
     )
     log_handlers.append(stdout_handler)
-
     # stderr_handler = python_logging.StreamHandler()
     # stderr_handler.setLevel(log_config.handlers.stderr.level)
     # stderr_handler.setFormatter(
     #     python_logging.Formatter(log_config.formatters.simple.format)
     # )
-
     if file_filename is not None:
         file_handler = python_logging_handlers.RotatingFileHandler(
             filename=file_filename,
@@ -140,7 +119,6 @@ def setup_logging_from_dictconfig(
             )
         )
         log_handlers.append(file_handler)
-
     if notebook_filename is not None:
         notebook_handler = python_logging_handlers.RotatingFileHandler(
             filename=notebook_filename,
@@ -155,18 +133,15 @@ def setup_logging_from_dictconfig(
             )
         )
         log_handlers.append(notebook_handler)
-
     # Set up the QueueHandler
     queue_handler = python_logging_handlers.QueueHandler(log_queue)
     queue_handler.setLevel(log_config.loggers.root.level)  # Capture all logs
-
     # Initialize the QueueListener with the handlers
     listener = python_logging_handlers.QueueListener(
         log_queue,
         *log_handlers,
         respect_handler_level=True,
     )
-
     # Configure the root logger
     python_logging.basicConfig(
         level=log_config.loggers.root.level,
@@ -174,61 +149,44 @@ def setup_logging_from_dictconfig(
     )  # Adjust as needed
     # Start the listener
     listener.start()
-
     # Ensure the listener is stopped gracefully on program exit
     atexit.register(listener.stop)
-
     return python_logging.getLogger()
-
-
 def setup_logging() -> python_logging.Logger:
     cfg: DictConfig = reload_config_file()
-
     logfile = cfg.log.handlers.file.filename
     notebookfile = cfg.log.handlers.notebook.filename
-
     if logfile == "AUTO":
         logfile = user_log_path("REvoDesign", ensure_exists=True)
         cfg.log.handlers.file.filename = os.path.join(
             logfile, "REvoDesign.runtime.log"
         )
-
     if notebookfile == "AUTO":
         notebookfile = user_log_path("REvoDesign", ensure_exists=True)
         cfg.log.handlers.notebook.filename = os.path.join(
             notebookfile, "REvoDesign.notebook.log"
         )
-
     if logfile is not None:
         logging_dir = os.path.dirname(os.path.abspath(logfile))
         os.makedirs(logging_dir, exist_ok=True)
-
     if notebookfile is not None:
         notebook_dir = os.path.dirname(os.path.abspath(notebookfile))
-
         os.makedirs(notebook_dir, exist_ok=True)
     logger = setup_logging_from_dictconfig(log_config=cfg.log)
     return logger
-
-
 # 3. initialize logging config and root logger, depending on config
 ROOT_LOGGER = setup_logging()
-
 LoggerT = python_logging.Logger
-
-
 def logger_level_setter(
         level: str = 'info',
         channel: Optional[Literal['stdout', 'stderr', 'file', 'notebook']] = None,
         apply_to_root_logger: bool = False) -> None:
     """Set the logger level to the given value.
-
     Args:
         level (int): The level to set the logger to.
     """
     from REvoDesign.driver.ui_driver import ConfigBus
     from REvoDesign.logger import ROOT_LOGGER
-
     if channel:
         # apply to the config
         ConfigBus().set_value(f'log.handlers.{channel}.level', level.upper())

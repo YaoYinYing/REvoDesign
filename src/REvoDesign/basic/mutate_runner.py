@@ -4,42 +4,32 @@ Module for abstract base class for mutation runners.
 import os
 from abc import abstractmethod
 from typing import List, Tuple
-
 from ..basic.abc_third_party_module import ThirdPartyModuleAbstract
 from ..common.mutant import Mutant
 from ..common.mutant_tree import MutantTree
-
-
 class MutateRunnerAbstract(ThirdPartyModuleAbstract):
     """
     Abstract base class for running mutation tools.
-
     Subclasses should implement the specific methods for protein mutation,
     and optionally, reconstruction.
     """
-
     name: str = ""
     installed: bool = False
-
     weights_preset: Tuple[str, ...] = ()
     default_weight_preset: str = ""
-
     def __init__(self, pdb_file: str):
         """
         Initialize the mutation runner with a PDB file path.
-
         Args:
             pdb_file (str): Path to the PDB file.
         """
         self.pdb_file = pdb_file
-
     @property
     def new_cache_dir(self):
         mutant_dir = os.path.abspath("mutant_pdbs")
         temp_dir = os.path.join(mutant_dir, self.__class__.__name__)
         os.makedirs(temp_dir, exist_ok=True)
         return temp_dir
-
     @staticmethod
     def mutated_pdb_mapping(
         mutant_tree: MutantTree, pdb_fps: List[str]
@@ -48,35 +38,27 @@ class MutateRunnerAbstract(ThirdPartyModuleAbstract):
             raise RuntimeError(
                 f"Mutant number does not match pdb_fps: {mutant_tree.mutant_num=} != {len(pdb_fps)=}"
             )
-
         for m, fp in zip(mutant_tree.all_mutant_objects, pdb_fps):
             if not (fp and os.path.exists(fp)):
                 raise ValueError(f"pdb for mutant is not valid. {fp=} {m=}")
             m.pdb_fp = fp
-
         return mutant_tree
-
     def reconstruct(self):
         """
         Reconstruct the protein structure.
-
         This method can be overridden by subclasses that support reconstruction.
         By default, it raises a NotImplementedError.
         """
         raise NotImplementedError("This tool does not support reconstruction.")
-
     @abstractmethod
     def run_mutate(self, mutant: Mutant) -> str:
         """
         Perform mutation on the protein and return the PDB path
-
         Args:
             mutant: An object or data structure representing the mutation.
-
         This method should be implemented by subclasses to provide the specific
         mutation functionality.
         """
-
     @abstractmethod
     def run_mutate_parallel(
         self,
@@ -85,13 +67,10 @@ class MutateRunnerAbstract(ThirdPartyModuleAbstract):
     ) -> List[str]:
         """
         Perform mutation on the protein in parallel and return the PDB paths
-
         Args:
             nproc: Nproc
             mutants: An list object or data structure representing the mutation.
-
         This method should be implemented by subclasses to provide the specific
         mutation functionality.
         """
-
     # Add any other common methods or properties that should be shared by all subclasses.

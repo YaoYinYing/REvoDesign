@@ -5,33 +5,23 @@ ESM-1v variant predict
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
-
 import itertools
 import os
 import string
 from typing import List, Literal, Optional, Tuple
-
 import pandas as pd
 from Bio import SeqIO
 from immutabledict import immutabledict
 from tqdm import tqdm
-
 from REvoDesign import issues
 from REvoDesign.basic import ThirdPartyModuleAbstract, TorchModuleAbstract
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.tools.download_registry import FileDownloadRegistry
 from REvoDesign.tools.utils import get_cited, require_installed
-
 from ...logger import ROOT_LOGGER
-
 logging = ROOT_LOGGER.getChild(__name__)
-
-
 ESM1V_SCORING_STRATEGY_T = Literal["wt-marginals", "pseudo-ppl", "masked-marginals"]
-
 ESM_MODEL_BASE_URL = 'https://dl.fbaipublicfiles.com/fair-esm/models'
-
 ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
     {
         "esm-1v_1": "esm1v_t33_650M_UR90S_1",
@@ -43,65 +33,47 @@ ESM1V_MODEL_DICT: immutabledict[str, str] = immutabledict(
         "esm-2": "esm2_t36_3B_UR50D"
     }
 )
-
 ESM1V_WEIGHTS = FileDownloadRegistry(
     name="ESM2",
     base_url=ESM_MODEL_BASE_URL,
     registry={f'{v}.pt': None for v in ESM1V_MODEL_DICT.values()}
 )
-
-
 def list_all_esm_variant_predict_model_names() -> list[str]:
     '''
     List all ESM-1v variant predict model names.
-
     Returns:
         list[str]: List of ESM-1v variant predict model names
     '''
     return ESM1V_WEIGHTS.list_all_files
-
-
 def remove_insertions(sequence: str) -> str:
     """ Removes any insertions into the sequence. Needed to load aligned sequences in an MSA. """
     # This is an efficient way to delete lowercase characters and insertion characters from a string
     deletekeys = dict.fromkeys(string.ascii_lowercase)
     deletekeys["."] = None
     deletekeys["*"] = None
-
     translation = str.maketrans(deletekeys)
     return sequence.translate(translation)
-
-
 def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
     """ Reads the first nseq sequences from an MSA file, automatically removes insertions.
-
     The input file must be in a3m format (although we use the SeqIO fasta parser)
     for remove_insertions to work properly."""
-
     msa = [
         (record.description, remove_insertions(str(record.seq)))
         for record in itertools.islice(SeqIO.parse(filename, "fasta"), nseq)
     ]
     return msa
-
-
 def label_row(row, sequence, token_probs, alphabet, offset_idx):
     wt, idx, mt = row[0], int(row[1:-1]) - offset_idx, row[-1]
     if sequence[idx] != wt:
         raise ValueError("The listed wildtype does not match the provided sequence")
-
     wt_encoded, mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
-
     # add 1 for BOS
     score = token_probs[0, 1 + idx, mt_encoded] - token_probs[0, 1 + idx, wt_encoded]
     return score.item()
-
-
 @require_installed
 class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
     name: str = "esm1v"
     installed: bool = is_package_installed('esm2')
-
     # skipcq: PYL-W0231
     def __init__(
             self,
@@ -129,7 +101,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             scoring_strategy: Scoring strategy for the deep mutational scan
             msa_path: path to MSA in a3m format (required for MSA Transformer)
             msa_samples: number of sequences to select from the start of the MSA
-
         '''
         self.model_names = model_names
         self.checkpoint_dir = checkpoint_dir
@@ -142,17 +113,13 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
         self.msa_path = msa_path
         self.msa_samples = msa_samples
         self.device = device
-
         os.makedirs(os.path.dirname(self.dms_output), exist_ok=True)
-
     def generate_dms_list(self) -> pd.DataFrame:
         '''
         Generate Deep Mutation Scan list for ESM-1v.
-
         Returns:
             pd.DataFrame: Deep Mutation Scan list for ESM-1v
         '''
-
         alphabet = "ARNDCQEGHILKMFPSTWYV"
         if self.skip_wt:
             df_dms = pd.DataFrame(
@@ -168,21 +135,16 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     for idx, mut in itertools.product(range(0, len(self.sequence)), alphabet)
                 ], columns=[self.mutation_col])
         return df_dms
-
     def _resolve_model_weight(self, model_name: str):
         """
         Resolve and get the model weight file path
-
         This function decides whether to load the model from a local checkpoint directory or download
         it from a remote server based on the configuration. If a checkpoint directory is configured,
         it will load from local first; otherwise it downloads from the default ESM1V weight server.
-
         Args:
             model_name (str): Model name used to construct the model file path
-
         Returns:
             str: Full path to the model weight file
-
         Raises:
             issues.ConfigureError: When the checkpoint directory is misconfigured or the model file does not exist
         """
@@ -194,22 +156,17 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 raise issues.ConfigureError(
                     'Checkpoint directory is expected to be existing and containing model checkpoint file.'
                     'If you dont have model checkpoint file, please keep it as blank.')
-
             logging.info(f"Loading model from {expected_model_path=}")
             return expected_model_path
-
         # Download model from remote server
         logging.info(f'Fetching model {model_name=} from {ESM1V_WEIGHTS.base_url}')
         return ESM1V_WEIGHTS.setup(model_name).downloaded
-
     @get_cited
     def predict(self):
         import torch
         from esm2 import MSATransformer, pretrained  # type: ignore
-
         # Load the deep mutational scan
         df = self.generate_dms_list()
-
         # inference for each model
         for model_name in self.model_names:
             model_path = self._resolve_model_weight(model_name)
@@ -218,18 +175,14 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
             if self.device != "cpu":
                 model = model.to(self.device)
                 logging.info(f"Transferred model to {self.device}")
-
             batch_converter = alphabet.get_batch_converter()
-
             if isinstance(model, MSATransformer):
                 if self.msa_path is None:
                     raise ValueError("MSA Transformer requires an MSA file")
                 data = [read_msa(self.msa_path, self.msa_samples)]
                 if self.scoring_strategy != "masked-marginals":
                     raise NotImplementedError("MSA Transformer only supports masked marginal strategy")
-
                 _unused_batch_labels, _unused_batch_strs, batch_tokens = batch_converter(data)
-
                 all_token_probs = []
                 for i in tqdm(range(batch_tokens.size(2))):
                     batch_tokens_masked = batch_tokens.clone()
@@ -246,13 +199,11 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                     ),
                     axis=1,
                 )
-
             else:
                 data = [
                     ("protein1", self.sequence),
                 ]
                 _unused_batch_labels, _unused_batch_strs, batch_tokens = batch_converter(data)
-
                 if self.scoring_strategy == "wt-marginals":
                     with torch.no_grad():
                         token_probs = torch.log_softmax(model(batch_tokens.to(self.device))["logits"], dim=-1)
@@ -295,30 +246,21 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                         ),
                         axis=1,
                     )  # type: ignore
-
         df.to_csv(self.dms_output)
-
     def compute_pppl(self, row, sequence, model, alphabet, offset_idx):
         import torch
-
         wt, idx, mt = row[0], int(row[1:-1]) - offset_idx, row[-1]
         if sequence[idx] != wt:
             raise ValueError("The listed wildtype does not match the provided sequence")
-
         # modify the sequence
         sequence = sequence[:idx] + mt + sequence[(idx + 1):]
-
         # encode the sequence
         data = [
             ("protein1", sequence),
         ]
-
         batch_converter = alphabet.get_batch_converter()
-
         _unused_batch_labels, _unused_batch_strs, batch_tokens = batch_converter(data)
-
         _unused_wt_encoded, _unused_mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
-
         # compute probabilities at each position
         log_probs = []
         for i in range(1, len(sequence) - 1):
@@ -328,7 +270,6 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
                 token_probs = torch.log_softmax(model(batch_tokens_masked.to(self.device))["logits"], dim=-1)
             log_probs.append(token_probs[0, i, alphabet.get_idx(sequence[i])].item())  # vocab size
         return sum(log_probs)
-
     __bibtex__ = {
         'ESM': """@article{rives2019biological,
   author={Rives, Alexander and Meier, Joshua and Sercu, Tom and Goyal, Siddharth and Lin, Zeming and Liu, Jason and Guo, Demi and Ott, Myle and Zitnick, C. Lawrence and Ma, Jerry and Fergus, Rob},
@@ -361,10 +302,7 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
   year={2022},
   publisher={Cold Spring Harbor Laboratory}
 }"""
-
     }
-
-
 def shortcut_esm1v(
         model_names: List[str],
         sequence: str,

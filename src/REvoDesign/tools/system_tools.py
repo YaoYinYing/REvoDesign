@@ -1,44 +1,32 @@
 '''
 System info collector
 '''
-
 import platform
 import warnings
 from dataclasses import dataclass, field
-
 from immutabledict import immutabledict
-
 from .. import issues
 from ..basic import SingletonAbstract
 from .package_manager import issue_collection
-
-
 def check_mac_rosetta2():
     """
     Check if the current environment is running on an Apple Silicon Mac with Rosetta 2.
-
     This function first checks if the current operating system is macOS. If not, it returns immediately.
     It then determines if the machine is an ARM-based Mac and whether it is recognized as an x86_64 architecture.
     If both conditions are met, a warning is issued indicating that the environment is using Rosetta 2, which may impact performance.
-
     Returns:
         None
     """
-
     if not platform.system() == "Darwin":
         return
-
     # Determine if the current machine is an ARM-based Mac
     is_arm_macos = "ARM64" in platform.uname().version
     # Determine if the current machine is recognized as x86_64
     is_recognized_as_x86 = platform.machine() == "x86_64"
-
     print(f"Does it ARMed? {is_arm_macos}")
     print(f"Does it Rosetta-ed? {is_recognized_as_x86}")
-
     if not (is_arm_macos and is_recognized_as_x86):
         return
-
     # Issue a warning if the machine is running under Rosetta 2
     warnings.warn(
         issues.AppleSiliconRosetta2Warning(
@@ -46,24 +34,18 @@ def check_mac_rosetta2():
             "This might limit the performance of joblib, causing MutantVisualizer slower."
         )
     )
-
-
 class SystemInfoReduced(SingletonAbstract):
     """
     A singleton class that provides system information.
     """
-
     def singleton_init(self):
         self.info: immutabledict = immutabledict(issue_collection(network=False))
         self.initialized = True
-
-
 @dataclass
 class CLIENT_INFO:
     '''
     A reduced client information class.
     '''
-
     node: str = ''
     user: str = ''
     os: str = ''
@@ -78,10 +60,8 @@ class CLIENT_INFO:
     OS_TYPE: str = ''
     is_translated_arm_mac: bool = False
     nproc: int = 4
-
     def __post_init__(self):
         self.SYSTEM_INFO_DICT = SystemInfoReduced().info
-
         self.node: str = self.SYSTEM_INFO_DICT['Platform::Hostname']
         self.user: str = self.SYSTEM_INFO_DICT['User::Username']
         self.os: str = self.SYSTEM_INFO_DICT['Platform::OS']

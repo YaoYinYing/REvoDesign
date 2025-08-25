@@ -1,23 +1,16 @@
 '''
 This module contains functions and classes related to generating unique identifiers (UUIDs).
 '''
-
 import uuid
-
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
-
 logging = ROOT_LOGGER.getChild(__name__)
-
-
 def check_response_code(response, successfull_opt="Submitted"):
     """
     Check the HTTP response code and log information based on different status codes.
-
     Args:
         response (requests.Response): HTTP response object.
         successfull_opt (str): Text indicating a successful response. Defaults to 'Submitted'.
-
     Returns:
         None
     """
@@ -33,17 +26,13 @@ def check_response_code(response, successfull_opt="Submitted"):
         # Log a warning with status code and content for other status codes
         logging.warning(f"{response.status_code}: {response.content}")
     return
-
-
 class UUIDGenerator:
     """
     This class implements a UUID generator using Python's built-in 'uuid' module.
     """
-
     def generate_uuid(self):
         """
         Generates a UUID using the uuid4 method.
-
         Returns:
         - str: A string representation of the generated UUID.
         """

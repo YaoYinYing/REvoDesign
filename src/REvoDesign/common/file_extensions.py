@@ -3,7 +3,6 @@ File extensions used in REvoDesign
 '''
 from ..basic import FileExtension as Ext
 from ..basic import FileExtensionCollection as ExtColl
-
 Session = ExtColl(
     (
         Ext("pze", "Compressed PyMOL Session"),
@@ -19,7 +18,6 @@ Mutable = ExtColl(
         Ext("xlsx", "Microsoft Excel (modern) file"),
         Ext("xls", "Microsoft Excel (legacy) file"),
     )
-
 )
 PDB = ExtColl(
     (
@@ -40,13 +38,11 @@ MOL = ExtColl(
         Ext("sdf", "SDF file"),
     )
 )
-
 SDF = ExtColl(
     (
         Ext("sdf", "SDF file"),
     )
 )
-
 PSSM = ExtColl(
     (
         Ext("csv", "CSV file"),
@@ -75,7 +71,6 @@ TXT = ExtColl(
         Ext("txt", "Text file"),
     )
 )
-
 # a hack of file extension filter, to enable those without explicit extension
 Any = ExtColl(
     (
@@ -96,7 +91,6 @@ Compressed = ExtColl(
         Ext("bz2", "Compressed (BZ2)"),
         Ext("xz", "Compressed (XZ)"),
         Ext("rar", "RAR archive"),
-
     )
 )
 PickledObject = ExtColl(
@@ -109,19 +103,16 @@ YAML = ExtColl(
         Ext("yaml", "Config file in YAML"),
     )
 )
-
 JSON = ExtColl(
     (
         Ext("json", "JSON file"),
     )
 )
-
 RosettaParams = ExtColl(
     (
         Ext("params", "Rosetta Parameter file"),
     )
 )
-
 Pictures = ExtColl(
     (
         Ext("png", "PNG image"),

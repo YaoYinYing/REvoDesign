@@ -1,5 +1,4 @@
 from immutabledict import immutabledict
-
 rAA = immutabledict(
     {
         "PAQ": "Y",
