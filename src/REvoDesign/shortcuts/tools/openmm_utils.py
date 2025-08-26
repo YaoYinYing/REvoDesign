@@ -13,7 +13,7 @@ from REvoDesign.tools.package_manager import (WorkerThread,
 from REvoDesign.tools.utils import require_installed
 
 
-# Decorator to check if the required package is installed
+# TODO: OpenMM with espaloma/TorchMD
 @require_installed
 class OpenmmSetupServerControl(ThirdPartyModuleAbstract, ServerControlAbstract):
     # Module name

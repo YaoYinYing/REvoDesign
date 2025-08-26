@@ -42,6 +42,8 @@ from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
+# TODO: dynamic created menu item tree system
+# TODO: dont import first, use abs <module-path>.<func> to register.
 from REvoDesign.shortcuts.shortcuts_on_menu import (
     menu_alterbox, menu_color_by_mutation, menu_color_by_plddt,
     menu_dump_fasta_from_struct, menu_dump_sidechains, menu_esm1v,
@@ -69,7 +71,7 @@ from REvoDesign.tools.pymol_utils import (
 from REvoDesign.tools.system_tools import check_mac_rosetta2
 from REvoDesign.tools.utils import (generate_strong_password, require_not_none,
                                     run_worker_thread_with_progress, timing)
-from REvoDesign.UI import Ui_REvoDesignPyMOL_UI
+from REvoDesign.UI import Ui_REvoDesignPyMOL_UI as REvoDesignMainUI
 
 REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
 
@@ -86,6 +88,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         self.window = None
 
         self.RUN_DIR = os.path.abspath(os.path.dirname(__file__))
+        # TODO: rename as `curdir`
         self.PWD = os.getcwd()
 
         self.bus: ConfigBus = None  # type: ignore
@@ -105,7 +108,8 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         try:
             # if QtWebsockets is available, teamwork is activated.
-            from PyQt5 import QtWebSockets  # type: ignore
+            # TODO: move this import trial to REvoDesign.Qt
+            from PyQt5 import QtWebSockets
 
             logging.info(f"Find QtWebSockets in {QtWebSockets.__file__}")
 
@@ -119,6 +123,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             traceback.print_exc()
             self.teamwork_enabled = False
 
+    # TODO: deprecate
     def fix_wd(self):
         pwd_0 = os.getcwd()
         pwd_2 = (
@@ -191,6 +196,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         self.gremlin_worker = None
         self.evaluator = None
+        # TODO: deprecate from main window
         self.ws_server = None
         self.ws_client = None
 
@@ -231,11 +237,13 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
         main_window = QtWidgets.QMainWindow()  # type: ignore
 
-        # loadUi fails on translations so we have to compile the form as `Ui_REvoDesignPyMOL_UI`
+        # loadUi fails on translations so we have to precompile the form as `REvoDesignMainUI`
         # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')
         # self.ui=loadUi(ui_file, main_window)
 
-        self.ui = Ui_REvoDesignPyMOL_UI()
+
+        # TODO: move tab config as a standalone setting ui widget
+        self.ui = REvoDesignMainUI()
         self.ui.setupUi(main_window)
 
         IconSetter(main_window=main_window)
@@ -252,6 +260,11 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         LanguageSwitch(window=main_window)
 
         # Set up Menu
+        # TODO: skip register if headless
+        # TODO: move this to somewhere else
+        # TODO: need to be managed in menu tree system
+        # TODO: issue: menu system translations
+
         MenuCollection(
             (
                 MenuItem(
@@ -411,8 +424,15 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
 
+        # TODO: refactor needed
+        # TODO: skip register if headless
+        # TODO: atexit register
+        # TODO: store to bus if not headless
+        # TODO: move this to somewhere else
+        
         stores = StoresWidget()
 
+        # TODO: need to be managed in menu tree system
         stores.server_switches.update(
             {
                 'Editor_Backend': MenuActionServerMonitor(

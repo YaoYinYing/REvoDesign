@@ -57,7 +57,7 @@ class SystemInfoReduced(SingletonAbstract):
         self.info: immutabledict = immutabledict(issue_collection(network=False))
         self.initialized = True
 
-
+# TODO: refactor needed
 @dataclass
 class CLIENT_INFO:
     '''

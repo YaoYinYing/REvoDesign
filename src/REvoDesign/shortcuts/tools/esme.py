@@ -10,7 +10,7 @@ from .esm2 import Esm1v
 
 ESME_MODELS = Literal['esmc', 'esm1b', 'esm1v', 'esm2', 'esm2_8m']
 
-
+# TODO: add testable case on ubuntu w/ cuda
 @require_installed
 class ESM1vEfficient(ThirdPartyModuleAbstract):
     name: str = "esm1v/esm-efficient"
@@ -31,7 +31,7 @@ class ESM1vEfficient(ThirdPartyModuleAbstract):
     @get_cited
     def predict(self) -> pd.DataFrame:
         from esme import ESM2, variant
-
+        # TODO: handle weights downloadings
         model = ESM2.from_pretrained(self.model_name)
         return variant.predict_mask_margin(model=model, seq=self.sequence)
 

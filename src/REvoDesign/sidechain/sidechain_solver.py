@@ -20,6 +20,7 @@ from REvoDesign.tools.utils import timing
 logging = ROOT_LOGGER.getChild(__name__)
 
 # 2. collect all the runners here
+# TODO: automatically register the runner class 
 ALL_RUNNER_CLASSES: List[type[MutateRunnerAbstract]] = [
     PyMOL_mutate,
     DLPacker_worker,

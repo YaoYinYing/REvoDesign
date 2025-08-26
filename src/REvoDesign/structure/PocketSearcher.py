@@ -15,6 +15,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 class PocketSearcher:
     def __init__(self, input_pse, save_dir="./pockets/") -> None:
+        # TODO: remove bus from instance variables, as heres no need for it
         self.bus = ConfigBus()
         self.input_pse = input_pse
         self.molecule = self.bus.get_value(
