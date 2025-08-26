@@ -51,6 +51,8 @@ CONE,      x1, y1, z1,
 
 '''
 
+# TODO: move as a standalone package, maybe `pymol-cgo-utils`? 
+# i dont want to maintain such code w/i this package
 import itertools
 import math
 import string

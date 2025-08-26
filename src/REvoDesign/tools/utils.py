@@ -8,6 +8,7 @@ import random
 import string
 import tarfile
 import time
+import warnings
 import zipfile
 from functools import wraps
 from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
@@ -61,7 +62,7 @@ def pairwise_loop(iterable: Iterable):
     # Add the first element to the end of the list to form a loop structure and generate pairwise combinations
     return pairwise(seq + [seq[0]])
 
-
+# a slice of arguments to be passed to a class
 CLASS_ARGSLICE = slice(1, None)
 
 
@@ -433,7 +434,7 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
     elif unit == 'ms':
         logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
 
-
+# TODO: support JAX and TensorFlow; need refactor
 def device_picker() -> List[str]:
     """
     Detects and returns a list of available devices for deep learning frameworks.

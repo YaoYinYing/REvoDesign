@@ -146,7 +146,7 @@ editor:
     html_dir: 
   token:
 
-# TODO
+# TODO: config setting triggers
 config_settings:
   auto_save: False
   save_on_exit: False
@@ -164,6 +164,7 @@ rosetta:
       nstruct: 4
     iterations: 3
 
+# TODO: move to a separate config file
 openmmsetup:
   host: '127.0.0.1'
   port: 5050
@@ -176,7 +177,7 @@ environment:
   variables:
     # ROSETTA_BIN: /Users/yyy/rosetta/rosetta_binary/rosetta.source.release-371/main/source/bin/
 
-
+# TODO: move to a separate config file
 log:
   version: 1
   disable_existing_loggers: true

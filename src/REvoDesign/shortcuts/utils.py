@@ -233,7 +233,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
         multiple_choices=entry.get('multiple_choices', False)
     )
 
-
+# TODO: skip registry if headless
 class DialogWrapperRegistry:
     """
     Loads YAML config and dynamically builds & calls dialog-wrapped functions.

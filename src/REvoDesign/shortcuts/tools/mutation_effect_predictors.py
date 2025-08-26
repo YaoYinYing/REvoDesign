@@ -199,6 +199,7 @@ def shortcut_thermompnn(
 
     df = app.run()
 
+    # TODO: add resource usage warnings if top_ranked is not set (<=0 for unlimited)
     if top_ranked and top_ranked > 1:
         df.sort_values(by=['ddG'], inplace=True)
         logging.info(f'Selecting top {top_ranked} mutants...')

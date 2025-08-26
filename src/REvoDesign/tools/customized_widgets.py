@@ -98,6 +98,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         Args:
             a0 (QCloseEvent): The close event object.
         """
+        logging.debug(f"[closeEvent] Window {self.objectName()} closing...")
         try:
             self.detach()
         except Exception as e:
@@ -118,6 +119,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         Returns:
             bool: True if the widget was closed successfully, False otherwise.
         """
+        logging.debug(f"[close] Window {self.objectName()} closing...")
         self.detach()
         return super().close()
 
@@ -858,37 +860,38 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
 
 
 def getExistingDirectory():
-    return QtWidgets.QFileDialog.getExistingDirectory(  # type: ignore
+    return QtWidgets.QFileDialog.getExistingDirectory( 
         None,
         "Open Directory",
         os.path.expanduser("~"),
-        QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,  # type: ignore
+        QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,
     )
 
 
 def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol, ...]] = None):
     # Create the dialog instance
-    dialog = QtWidgets.QFileDialog(parent, "Select file(s)")  # type: ignore
+    dialog = QtWidgets.QFileDialog(parent, "Select file(s)")
 
     # For multiple file selection
-    dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)  # type: ignore
+    dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
 
     if exts:
         ext = FExCol.squeeze(exts)
         dialog.setNameFilter(ext.filter_string)
 
     # Show the dialog and check if user pressed "Open" (Accepted)
-    if dialog.exec() == QtWidgets.QDialog.Accepted:  # type: ignore
+    if dialog.exec() == QtWidgets.QDialog.Accepted:
         # Now call `selectedFiles()` on the dialog instance
         return dialog.selectedFiles()
 
     return []
-# an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
 
 
 def getOpenFileNameWithExt(*args, **kwargs):
     """
     Return a file name, append extension from filter if no extension provided.
+
+    an open file version of pymol.Qt.utils.getSaveFileNameWithExt ;-)
     """
     import re
 
@@ -1172,7 +1175,7 @@ class ParallelExecutor:
         args: Iterable[Any],
         n_jobs: int,
         backend: str = "auto",
-        verbose: bool = 0,
+        verbose: bool = False,
         kwargs: Union[tuple[dict], list[dict], None] = None,
     ):
 
@@ -1253,7 +1256,7 @@ class QtParallelExecutor(QtCore.QThread):
         args,
         n_jobs,
         backend="auto",
-        verbose=0,
+        verbose:bool=False,
     ):
         super().__init__()
         self.func = func

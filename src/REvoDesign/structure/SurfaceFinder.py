@@ -111,6 +111,7 @@ cmd.extend("findSurfaceResidues", findSurfaceResidues)
 
 class SurfaceFinder:
     def __init__(self, input_pse):
+        # TODO: remove bus from instance variables, as heres no need for it
         self.bus = ConfigBus()
         self.input_pse = input_pse
         self.output_pse = self.bus.get_value(

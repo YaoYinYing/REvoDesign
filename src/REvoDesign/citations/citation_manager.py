@@ -19,6 +19,7 @@ from ..basic import SingletonAbstract
 
 logging = ROOT_LOGGER.getChild(__name__)
 
+# TODO: use color escapes from RosettaPy instead
 # Color escape sequences
 GREEN = "\033[0;32m"
 RED = "\033[0;31m"
@@ -140,7 +141,7 @@ class CitableModuleAbstract(ABC):
     # A dictionary containing citation information, where the key is the
     # citation name and the value is the citation content or a tuple of
     # multiple citation contents.
-    __bibtex__: dict[str, Union[str, tuple]]
+    __bibtex__: dict[str, Union[str, tuple]] = {}
 
     def notice(self):
         """

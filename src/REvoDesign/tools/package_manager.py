@@ -1688,8 +1688,21 @@ class REvoDesignPackageManager:
         from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
         set_REvoDesign_config_file(delete_user_config_tree=True)
 
-# TODO: 1. add disruption signals
-# TODO: 2. add dynamic abort button 
+# TODO: 1. add interrupt signal and slot
+# TODO: 2. bind trigger button(s) and interact w/ abort buttons:
+#    when running: 
+#      a. prepare red abort buttons, connect them to interrupt signal;
+#      b. when mouse cursor is on it, show abort button, hide trigger buttons; do the reverse while mouse cursor is out of it;
+#    when finished or aborted:
+#      a. cleanup abord buttons
+#      b. recover trigger buttons
+# TODO: 3. register to thread pool and show on thread dashboard 
+# TODO: 4. add notification slot
+# TODO: 5. add progress bar setting slot
+# TODO: add abort button
+# self.abortbutton = QtWidgets.QPushButton('Abort')
+# self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
+# self.abortbutton.released.connect(cmd.interrupt)
 class WorkerThread(QtCore.QThread):
     """
     Custom worker thread for executing a function in a separate thread.
@@ -1803,6 +1816,7 @@ def run_worker_thread_with_progress(
     Returns:
     - The result of the worker function or None if no result is available.
     """
+
     # If a progress bar is provided, store its current state and set it to indeterminate progress
     if progress_bar:
         # store the progress bar state
@@ -2303,12 +2317,7 @@ def issue_collection(
     return issue_dict
 
 
-# TODO: add abort button
-'''
-self.abortbutton = QtWidgets.QPushButton('Abort')
-self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
-self.abortbutton.released.connect(cmd.interrupt)
-'''
+
 
 
 @contextmanager
@@ -2381,7 +2390,7 @@ def hold_trigger_button(
             b.setEnabled(True)  # Re-enable the button
             logging.debug(f"Released button: {b.text()}: ({b.objectName()})")
 
-
+# TODO: cleanups
 def solve_installation_config(
     source: str,
     git_url: str,
