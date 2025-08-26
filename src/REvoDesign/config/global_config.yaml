@@ -134,6 +134,7 @@ ui:
       use: "Dunbrack Rotamer Library"
       model: ''
       repack_radius: 0.0
+
 editor:
   backend:
     host: '127.0.0.1'
@@ -144,6 +145,12 @@ editor:
     key:
     html_dir: 
   token:
+
+# TODO
+config_settings:
+  auto_save: False
+  save_on_exit: False
+  save_interval: 100 # in seconds
 
 rosetta: 
   node_hint: native # Literal["docker", "docker_mpi", "mpi", "wsl", "wsl_mpi", "native"]
@@ -163,6 +170,8 @@ openmmsetup:
 
 
 # register all variables here
+# TODO: dynamic variables loading and saving
+# TODO: load preset variables on bootstrap
 environment:
   variables:
     # ROSETTA_BIN: /Users/yyy/rosetta/rosetta_binary/rosetta.source.release-371/main/source/bin/

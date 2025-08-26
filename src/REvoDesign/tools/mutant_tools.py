@@ -41,7 +41,7 @@ NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
     "invalid_cep",
 )
 
-
+# TODO: static method of mutant class
 def extract_mutants_from_mutant_id(
     mutant_string: str,
     sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
@@ -148,7 +148,7 @@ def extract_mutants_from_mutant_id(
     # Join the mutants into a single string separated by underscores and instantialized Mutant obj
     return mutant_obj
 
-
+# TODO: static method of mutant class
 def extract_mutant_score_from_string(mutant_string: str) -> Optional[float]:
     """
     Extract mutant score from an mutant string
@@ -169,7 +169,7 @@ def extract_mutant_score_from_string(mutant_string: str) -> Optional[float]:
         return mutant_score
     return None
 
-
+# TODO: static method of mutant class
 def extract_mutant_from_sequences(
     mutant_sequence: str,
     wt_sequences: RosettaPyProteinSequence,
@@ -341,7 +341,7 @@ def expand_range(
 
     return expanded_list
 
-
+# TODO: static method of mutant class
 def extract_mutant_from_pymol_object(
     pymol_object: str, sequences: RosettaPyProteinSequence
 ) -> Mutant:
@@ -443,7 +443,7 @@ def read_customized_indice(custom_indices_from_input="") -> str:
         f"Failed in parsing customized indice file/string: {custom_indices_from_input}"
     )
 
-
+# TODO: rename for clearity
 def process_mutations(data):
     """
     Process mutations based on provided data.
@@ -473,12 +473,12 @@ def process_mutations(data):
             result.append((position, wt_residue, wt_profile_score, candidates))
     return result
 
-
+# TODO: rename for clearity
 def read_profile_design_mutations(filename):
     data = json.load(open(filename))
     return process_mutations(data)
 
-
+# TODO: static method of mutant tree class
 def existed_mutant_tree(
     sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
     enabled_only: Union[int, bool] = 1,
@@ -710,7 +710,7 @@ def get_mutant_table_columns(mutfile: str):
 
     return list(mutation_data.columns)
 
-
+# TODO: performance issue
 def pick_design_from_profile(
         profile: str,
         profile_type: str,

@@ -1,3 +1,10 @@
+'''
+Team work module
+
+# TODO: need to refactor
+# TODO: rename the parent module name as `teamwork`
+# TODO: split-ui: move to a standalone window
+'''
 import base64
 import pickle
 import socket
@@ -589,7 +596,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
                 self.waiting_room.remove(client)
                 return
 
-            uuid = UUIDGenerator().generate_uuid()
+            uuid = UUIDGenerator.generate_uuid()
 
             joined_time_stamp = time.time()
             joined_time_str = time.strftime(

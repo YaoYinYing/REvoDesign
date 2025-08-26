@@ -19,6 +19,7 @@ from .designers import ColabDesigner_MPNN, ddg
 logging = ROOT_LOGGER.getChild(__name__)
 
 # 2. add the designer class to this list
+# TODO: automatically register the designer class 
 ALL_DESIGNER_CLASSES: List[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,

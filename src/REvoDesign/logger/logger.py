@@ -114,7 +114,8 @@ def setup_logging_from_dictconfig(
 
     # Initialize handlers
     stdout_handler = python_logging.StreamHandler()
-    stdout_handler.setLevel(log_config.handlers.stdout.level)
+    # TODO: if pytest is installed, use DEBUG level instead
+    stdout_handler.setLevel(log_config.handlers.stdout.level) 
     stdout_handler.setFormatter(
         python_logging.Formatter(log_config.formatters.simple.format)
     )

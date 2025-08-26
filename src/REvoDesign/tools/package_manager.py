@@ -109,7 +109,7 @@ RICH_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTableRich.json'
 # Define the proxy protocols allowed
 ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 
-
+# TODO: native filter on extra groups
 @dataclass
 class PlatformInfo:
     """
@@ -307,7 +307,7 @@ class UnsupportedWidgetValueTypeError(TypeError):
     assigned to a Widget instance is not supported.
     """
 
-
+# TODO: real time replay with relative time stamps
 class LiveProcessResult(subprocess.CompletedProcess):
     """
     A CompletedProcess-compatible result object with real-time captured output.
@@ -499,7 +499,7 @@ class CheckableListView(QtWidgets.QWidget):
             if item.isCheckable():
                 item.setCheckState(QtCore.Qt.Unchecked)
 
-
+# #TODO: simplification needed
 @dataclass
 class GitSolver:
     """
@@ -591,6 +591,7 @@ class GitSolver:
         return False, file_path
 
 
+# TODO: switch to uv maybe
 @dataclass
 class PIPInstaller:
     """
@@ -1687,7 +1688,8 @@ class REvoDesignPackageManager:
         from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
         set_REvoDesign_config_file(delete_user_config_tree=True)
 
-
+# TODO: 1. add disruption signals
+# TODO: 2. add dynamic abort button 
 class WorkerThread(QtCore.QThread):
     """
     Custom worker thread for executing a function in a separate thread.
@@ -2103,7 +2105,7 @@ def filter_sensitive_data(env):
 
     return filtered_env
 
-
+# TODO: dynamically collections of based on extra groups object
 def issue_collection(
         collect_dummy: bool = False,
         network: bool = True,
@@ -2301,8 +2303,7 @@ def issue_collection(
     return issue_dict
 
 
-# TODO:
-# add abort button
+# TODO: add abort button
 '''
 self.abortbutton = QtWidgets.QPushButton('Abort')
 self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
