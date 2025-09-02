@@ -356,7 +356,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         if func_id not in self.config:
             raise ValueError(f"No dialog config for: {func_id}")
 
-        conf = self.config[func_id]
+        conf: Dict[str, Any] = self.config[func_id]
         asked_values = [_build_asked_value(opt) for opt in conf["options"]] if conf.get("options") else []
         logging.debug(f"Asked values: {asked_values}")
         wrapped_func = dialog_wrapper(
