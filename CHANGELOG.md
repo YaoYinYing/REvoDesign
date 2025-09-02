@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ```
 ## [Unreleased]
+### Added
+- Customized widget: 
+  - `pick_color`: Color picker
+  - `AskedValue`: attribute `source` now supports `ColorPicker` with the last value memorized
+- test data:
+  - caver for future uses.
+
+### Changed
+
+### Fixed
+
+### Removed
 
 ## [1.8.3] - 2025-08-19
 ### Added

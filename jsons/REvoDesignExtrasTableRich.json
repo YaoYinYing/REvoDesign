@@ -5,6 +5,30 @@
     ],
     "entities": [
         {
+            "name" : "Basic Dependencies",
+            "description": "Basic Dependencies",
+            "extras": [
+                {
+                    "name": "OpenMPI",
+                    "extras_id":"openmpi",
+                    "description": "OpenMPI is a Message Passing Interface implementation",
+                    "depts": ["openmpi"]
+                },
+                {
+                    "name": "mpich",
+                    "extras_id":"mpich",
+                    "description": "MPICH is a Message Passing Interface implementation",
+                    "depts": ["mpich"]
+                },
+                {
+                    "name": "DGL",
+                    "extras_id":"dgl",
+                    "description": "DGL is a graph neural network library",
+                    "depts": ["dgl"]
+                }
+            ]
+        },
+        {
             "name" : "Sidechain Solvers",
             "description": "Third Party Sidechain Solvers",
             "extras": [
@@ -79,6 +103,14 @@
                     "name": "OpenMM",
                     "extras_id":"openmm",
                     "depts": ["openmm","asgiref","pdbfixer","openmm-setup"]
+                },
+                {
+                    "name": "Gromacs-Copilot",
+                    "extras_id":"gromacs_copilot",
+                    "depts": ["gromacs-copilot","acpype","gmx_MMPBSA","seaborn", "mpi4py", "openmpi", "mcp"],
+                    "recipe": [
+                        {"conda": ["ambertools", "gromacs", "pocl"]}
+                    ]
                 }
             ]
         },
@@ -98,7 +130,10 @@
                     "extras_id":"rfdiffusion_mps",
                     "description": "RFdiffusion on MacOS, Apple Silicon",
                     "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock","wandb"],
-                    "platform": ["MPS"]
+                    "platform": ["MPS"],
+                    "recipe": [
+                        {"pip": ["dgl -f https://data.dgl.ai/wheels/repo.html"]}
+                    ]
                 },
                 {
                     "name": "RFdiffusion",
@@ -110,6 +145,9 @@
                         "se3-transformer",
                         "nvtx-mock",
                         "wandb"
+                    ],
+                    "recipe": [
+                        {"pip": ["dgl -f https://data.dgl.ai/wheels/repo.html"]}
                     ]
                 }
             ]

@@ -76,12 +76,26 @@ dlpacker_mps = [
     "tensorflow-metal",
 ]
 
+
 thermompnn = [
     "thermompnn @ git+https://github.com/YaoYinYing/ThermoMPNN-D#egg=thermompnn",
 ]
 
 esm2=[
     "fair-esm2 @ git+https://github.com/YaoYinYing/esm2.git#egg=fair-esm2",
+]
+
+gromacs_copilot = [
+    "gromacs-copilot @ git+https://github.com/ChatMol/gromacs_copilot.git",
+    "acpype", 
+    "gmx_MMPBSA",
+    "seaborn",
+    "mpi4py",
+    "openmpi",
+    "mcp>=1.4.1"
+    # ambertools from conda
+    # gromacs from conda
+    # also `brew install pocl` or `conda install pocl(-cuda)`
 ]
 
 openmm=[

@@ -57,7 +57,7 @@ Refactor the repository into a **pip-installable** package using **src layout** 
      build/
      *.egg-info/
      ```
-   - mMake another git commit to save the changes on `.gitignore`
+   - Make another git commit to save the changes on `.gitignore`
 ---
 
 ## 1) Packaging & Layout

@@ -44,6 +44,25 @@ class ImageWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         image = QtGui.QImage(self.image_path)
         painter.drawImage(self.rect(), image)
+
+def pick_color(
+        parent: QtWidgets.QWidget, 
+        init_color: Optional[str]="", 
+        disable_native_picker:bool=False,
+        alpha:bool=False) -> Optional[str]:
+    
+    opts= QtWidgets.QColorDialog.ColorDialogOption()
+    if disable_native_picker:
+        opts |= QtWidgets.QColorDialog.ColorDialogOption.DontUseNativeDialog
+    if alpha:
+        opts |= QtWidgets.QColorDialog.ColorDialogOption.ShowAlphaChannel
+
+    color = QtWidgets.QColorDialog.getColor(QtGui.QColor(init_color or "#2f6e36"), parent, options=opts) # type: ignore
+
+    if color.isValid():
+        print(f"Selected Color: {color.name()}")
+        return color.name()
+
 # Class REvoDesignWidget
 # This class represents a custom widget in the REvoDesign application. It inherits from QtWidgets.QWidget.
 # The widget can be named and optionally allows multiple instances with the same name.
@@ -1410,7 +1429,7 @@ class AskedValue:
     reason: Optional[str] = None
     required: bool = False
     choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
-    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
+    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"] = "None"
     ext: Optional[FExCol] = None
     multiple_choices: bool = False
 
@@ -1756,6 +1775,11 @@ class ValueDialog(REvoDesignWidget):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a directory")
             action_button.clicked.connect(lambda: widget.setText(getExistingDirectory()))
+            self.table.setCellWidget(row, 3, action_button)
+        elif asked_value.source == "ColorPicker":
+            action_button = QtWidgets.QPushButton("Pick Color")
+            action_button.setToolTip("Pick a color and return it as a hexadecimal string")
+            action_button.clicked.connect(lambda: widget.setText(pick_color(widget, widget.text() or "") or widget.text() or ""))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "JsonInput":
             # Create a container widget for the layout
