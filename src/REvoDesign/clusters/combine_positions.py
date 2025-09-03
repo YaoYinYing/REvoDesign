@@ -4,6 +4,7 @@ Generate all possible combinations of mutations
 import os
 import pathlib
 from concurrent.futures import ThreadPoolExecutor
+from itertools import combinations
 
 from REvoDesign.tools.mutant_tools import extract_mutants_from_mutant_id
 
@@ -141,26 +142,6 @@ class Combinations:
         # target fasta file
         self.fastafile = ""
 
-    def combinations(self, iterable, r):
-        # combinations('ABCD', 2) --> AB AC AD BC BD CD
-        # combinations(range(4), 3) --> 012 013 023 123
-        pool = tuple(iterable)
-        n = len(pool)
-        if r > n:
-            return
-        indices = list(range(r))
-        yield tuple(pool[i] for i in indices)
-        while True:
-            for i in reversed(list(range(r))):
-                if indices[i] != i + n - r:
-                    break
-            else:
-                return
-            indices[i] += 1
-            for j in list(range(i + 1, r)):
-                indices[j] = indices[j - 1] + 1
-            yield tuple(pool[i] for i in indices)
-
     def setdata(self, datafile):
         """
         Make sure that there are no redundant mutations in the input
@@ -182,25 +163,18 @@ class Combinations:
         self.list_of_mutations = list(set(self.list_of_mutations))
 
     def getUniquePositions(self, list_w_mutations):
-        unique = True
-        for i in list_w_mutations:
-            mut_obj_i = extract_mutants_from_mutant_id(
-                i.strip(), sequences={self.chain_id: self.fastasequence}
+        positions = {}
+        for item in list_w_mutations:
+            mut_obj = extract_mutants_from_mutant_id(
+                item.strip(), sequences={self.chain_id: self.fastasequence}
             )
-            position = mut_obj_i.mutations[0].position
-            for j in list_w_mutations:
-                if i != j:
-                    mut_obj_j = extract_mutants_from_mutant_id(
-                        j.strip(),
-                        sequences={self.chain_id: self.fastasequence},
-                    )
-                    position2 = mut_obj_j.mutations[0].position
-                    if position == position2:
-                        print(f"skip {i} - {j} : {position} == {position2}")
-                        return False
-                    continue
+            position = mut_obj.mutations[0].position
+            if position in positions:
+                print(f"skip {positions[position]} - {item} : {position} == {position}")
+                return False
+            positions[position] = item
 
-        return unique
+        return True
 
     def generate_fasta_in_parallel(self, mutationalstr, groupnr):
         name = self.init_name
@@ -220,8 +194,7 @@ class Combinations:
         return name[0:-1], newfastasequence
 
     def get_generator_of_combinations(self):
-        b = self.combinations(self.list_of_mutations, self.combi)
-        return b
+        return combinations(self.list_of_mutations, self.combi)
 
     def setup(self, inputfile, combinations, fastafile):
         """
@@ -231,7 +204,7 @@ class Combinations:
         """
         self.combi = int(combinations)
         self.setdata(inputfile)
-        b = self.combinations(self.list_of_mutations, self.combi)
+        b = combinations(self.list_of_mutations, self.combi)
 
         mutations = []
         # self.fastasequence = self.gvf.get_fastasequence_from_file( fastafile)
