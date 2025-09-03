@@ -196,13 +196,13 @@ class Combinations:
     def get_generator_of_combinations(self):
         return combinations(self.list_of_mutations, self.combi)
 
-    def setup(self, inputfile, combinations, fastafile):
+    def setup(self, inputfile, combination_size, fastafile):
         """
         :param inputfile:
-        :param combinations:
+        :param combination_size:
         :return:
         """
-        self.combi = int(combinations)
+        self.combi = int(combination_size)
         self.setdata(inputfile)
         b = combinations(self.list_of_mutations, self.combi)
 
