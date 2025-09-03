@@ -5,15 +5,13 @@ Module for handling mutants.
 import hashlib
 import os
 from dataclasses import dataclass
-from typing import TypeVar, Union
+from typing import Union
 
 from RosettaPy.common.mutation import Chain
 from RosettaPy.common.mutation import Mutant as RpMutant
 from RosettaPy.common.mutation import RosettaPyProteinSequence
 
 from REvoDesign import issues
-
-T = TypeVar("T")
 
 
 @dataclass
@@ -223,10 +221,7 @@ class Mutant(RpMutant):
             sequence[pos - 1] = mutant.mut_res
 
         if ignore_missing:
-            while True:
-                if "X" not in sequence:
-                    break
-                sequence.remove("X")
+            sequence = [res for res in sequence if res != "X"]
 
         return Chain(chain_id=chain_id, sequence="".join(sequence))
 
