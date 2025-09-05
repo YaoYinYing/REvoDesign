@@ -118,7 +118,7 @@ rfdiffusion_cuda=[
     "dllogger @ git+https://github.com/NVIDIA/dllogger#egg=dllogger",
     "pydantic",
     "se3-transformer @ git+https://github.com/YaoYinYing/SE3Transformer.git@rfdiffusion-cuda",
-    "rfdiffusion @ git++https://github.com/YaoYinYing/RFdiffusion.git@cuda"
+    "rfdiffusion @ git+https://github.com/YaoYinYing/RFdiffusion.git@cuda"
 
 ]
 

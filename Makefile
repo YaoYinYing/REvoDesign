@@ -34,9 +34,7 @@ help:
 	@echo "Commands:"
 	@echo ""
 	@echo "  help                   Print this message and exit"
-	@echo "  build                  Build source and wheel distributions"
 	@echo "  setup-display-gha      Setup ubuntu display for GitHub Actions and CircleCI"
-	@echo "  setup-display          Setup ubuntu display for CircleCI, retired"
 	@echo "  upload-gists           Upload Gist files"
 	@echo "  install                Install from pip "
 	@echo "  install-no-dept        Install from pip, no dependencies"
@@ -52,7 +50,6 @@ help:
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
 	@echo "  memray                 Memoray profile for leakage, saved as html file"
 	@echo "  memray-live            Memoray profile for leakage in live mode"
-	@echo "  format                 Automatically format the code"
 	@echo "  tag                    Bump a new tag from package version to github tag"
 	@echo "  black                  Reformat the code with pre-commit hook"
 	@echo "  reverse                Run pyreverse for package and methods and create SVGs"
@@ -61,18 +58,10 @@ help:
 	@echo "  clean                  Clean up build and generated files" 
 	@echo ""
 
-build:
-	python -m build .
 
 setup-display-gha:
 	sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
 	/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
-
-# old setup for circleci
-setup-display:
-	Xvfb :99 -screen 0 1280x1024x24 &
-	fluxbox &
-	sleep 3
 
 upload-gists:
 	# installer
@@ -197,17 +186,12 @@ memray-live:
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/tabs/;
 
-format: license-update black
 
 tag:
 	bash tools/release_tag.sh
 
 black:
 	pre-commit run --all-files
-
-reverse-class:
-	mkdir -p $(PYREVERSE_DIR)
-	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) $(PYREVERSE_CLASS_OPT) --class $(class); dot $(PYREVERSE_DOT_OPTS) -Tsvg $(class).dot > $(class).svg
 
 reverse:
 	mkdir -p $(PYREVERSE_DIR)
@@ -219,10 +203,6 @@ license-update:
 
 license-check:
 	python tools/license_notice.py --check
-
-
-
-
 
 clean:
 	find . -name "*.pyc" -exec rm -v {} \;

@@ -818,6 +818,7 @@ class REvoDesignPackageManager:
 
         # if not exists,  preform the first fetch
         if not os.path.isfile(ui_file):
+            logging.info(f"Fetching UI: {UI_FILE_URL} -> {ui_file}")
             fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=ui_file)
             logging.info(f"Fetched UI file for manager: {ui_file}")
             return ui_file
@@ -1177,7 +1178,7 @@ class REvoDesignPackageManager:
         """
         # Create a new dialog window
         dialog = QtWidgets.QDialog()
-
+        
         ui_file = run_worker_thread_with_progress(
             worker_function=self.ensure_ui_file
         )

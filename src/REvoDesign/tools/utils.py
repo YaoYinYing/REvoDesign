@@ -8,7 +8,6 @@ import random
 import string
 import tarfile
 import time
-import warnings
 import zipfile
 from functools import wraps
 from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
@@ -300,14 +299,10 @@ def cmap_reverser(cmap: str, reverse: bool = False) -> str:
     Returns:
     - str: Reversed colormap name if 'reverse' is True, otherwise returns the original colormap name.
     """
-    if reverse:
-        if cmap.endswith("_r"):
-            cmap = cmap.replace("_r", "")
-        else:
-            cmap += "_r"
+    if not reverse:
+        return cmap
 
-    return cmap
-
+    return  cmap.replace("_r", "") if cmap.endswith("_r") else cmap+ "_r"
 
 def rescale_number(
     number: Union[int, float],

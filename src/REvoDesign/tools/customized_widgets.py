@@ -26,8 +26,7 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
-                              notify_box, refresh_window,
-                              run_worker_thread_with_progress)
+                              notify_box, refresh_window)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
