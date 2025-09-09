@@ -34,8 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `_color_by_mutation`: disable `notify_box` uses in wrapper function 
 - test worker:
   - create sub dir of screenshots if not exists
+- `REvoDesignWidget`: 
+  - now explicitly raise `UnexpectedWorkflowError` when attaching/detaching window under headless mode
+  - clean up `bus.ui.open_windows` if its empty
 
 ### Removed
+- `REvoDesignWidget`: 
+  - removed repetative calls of `detach` and `close`.
 
 ## [1.8.3] - 2025-08-19
 ### Added

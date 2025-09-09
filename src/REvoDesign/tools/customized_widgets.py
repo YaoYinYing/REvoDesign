@@ -118,10 +118,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
             a0 (QCloseEvent): The close event object.
         """
         logging.debug(f"[closeEvent] Window {self.objectName()} closing...")
-        try:
-            self.detach()
-        except Exception as e:
-            logging.warning(e)
+        self.detach()
         return super().closeEvent(a0)
 
     def show(self):
@@ -130,17 +127,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
         """
         super().show()
         self.attach()
-
-    def close(self):
-        """
-        Closes the widget and detaches it from the UI bus.
-
-        Returns:
-            bool: True if the widget was closed successfully, False otherwise.
-        """
-        logging.debug(f"[close] Window {self.objectName()} closing...")
-        self.detach()
-        return super().close()
 
     def check_repeat(self):
         """
@@ -172,8 +158,8 @@ class REvoDesignWidget(QtWidgets.QWidget):
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
-            logging.debug(f'Skipping Attaching {self.objectName()} in headless mode.')
-            return
+            raise issues.UnexpectedWorkflowError("Attaching window in headless mode is not allowed.")
+        
         logging.debug(f"Window {self.objectName()} attaching...")
 
         # Ensure the open_windows list exists and add this widget to it
@@ -190,16 +176,16 @@ class REvoDesignWidget(QtWidgets.QWidget):
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
-            logging.debug(f'Skipping Detaching {self.objectName()} in headless mode.')
-            return
+            raise issues.UnexpectedWorkflowError("Detaching window in headless mode is not allowed.")
+
         logging.debug(f"Window {self.objectName()} detaching...")
 
         # Remove this widget from the open_windows list if it exists
         if hasattr(bus.ui, 'open_windows') and self in bus.ui.open_windows:
             bus.ui.open_windows.remove(self)
-        if getattr(bus.ui, 'open_windows') == []:
-            delattr(bus.ui, 'open_windows')
-            logging.debug('Empty open_windows list from ui is deleted.')
+            if bus.ui.open_windows == []:
+                delattr(bus.ui, 'open_windows')
+                logging.debug('Empty open_windows list from ui is deleted.')
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
 
 
