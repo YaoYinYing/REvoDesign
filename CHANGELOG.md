@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - caver for future uses.
 - test cases:
   - `test_window_pops` for all window pop wrappers
+- prompts:
+  - codex review
+  - codex plugin migration
 
 ### Changed
 
@@ -37,10 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `REvoDesignWidget`: 
   - now explicitly raise `UnexpectedWorkflowError` when attaching/detaching window under headless mode
   - clean up `bus.ui.open_windows` if its empty
+- utils:
+  - refactored `cmap_reverser`
 
 ### Removed
 - `REvoDesignWidget`: 
   - removed repetative calls of `detach` and `close`.
+- `Makefile`: 
+  - unused shortcuts
 
 ## [1.8.3] - 2025-08-19
 ### Added
