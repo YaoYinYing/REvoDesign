@@ -12,7 +12,8 @@ from immutabledict import immutabledict
 
 from REvoDesign import issues
 from REvoDesign.common import file_extensions as Fext
-from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic, dialog_wrapper)
+from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
+                                                 dialog_wrapper)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 

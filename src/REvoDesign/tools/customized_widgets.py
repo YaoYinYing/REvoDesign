@@ -159,7 +159,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
         bus = ConfigBus()
         if bus.headless:
             raise issues.UnexpectedWorkflowError("Attaching window in headless mode is not allowed.")
-        
+
         logging.debug(f"Window {self.objectName()} attaching...")
 
         # Ensure the open_windows list exists and add this widget to it
