@@ -171,12 +171,14 @@ class REvoDesignWidget(QtWidgets.QWidget):
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
+            logging.debug(f'Skipping Attaching {self.objectName()} in headless mode.')
             return
         logging.debug(f"Window {self.objectName()} attaching...")
 
         # Ensure the open_windows list exists and add this widget to it
         if not hasattr(bus.ui, 'open_windows'):
-            bus.ui.open_windows = []
+            logging.debug(f"Creating open_windows list under ui for {self.objectName()}")
+            setattr(bus.ui, 'open_windows', [])
         bus.ui.open_windows.append(self)
         logging.debug(f'Window {self.objectName()} attached.')
 
@@ -187,12 +189,16 @@ class REvoDesignWidget(QtWidgets.QWidget):
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
+            logging.debug(f'Skipping Detaching {self.objectName()} in headless mode.')
             return
         logging.debug(f"Window {self.objectName()} detaching...")
 
         # Remove this widget from the open_windows list if it exists
         if hasattr(bus.ui, 'open_windows') and self in bus.ui.open_windows:
             bus.ui.open_windows.remove(self)
+        if getattr(bus.ui, 'open_windows') == []:
+            delattr(bus.ui, 'open_windows')
+            logging.debug('Empty open_windows list from ui is deleted.')
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
 
 
@@ -1731,7 +1737,7 @@ class ValueDialog(REvoDesignWidget):
             # filter and generator should be deepcopied to avoid side effects
             choices = tuple(choices) if not isinstance(choices, filter) else tuple(deepcopy(choices))
             if not choices:
-                raise issues.InternalError(f"Drop-down field must have a valid choices, not {choices}")
+                raise issues.InternalError(f"Drop-down field must have a valid choices, not {choices}. Asked by: {asked_value}")
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
@@ -2219,6 +2225,7 @@ def dialog_wrapper(
                 func(**values.typing_fixed.asdict)
 
             dialog.ok_signal.connect(set_values)
+            logging.debug(f"Dialog is ready: {dialog}")
 
             dialog.show()
 

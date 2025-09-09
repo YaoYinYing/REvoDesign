@@ -12,17 +12,23 @@ registry = DialogWrapperRegistry("ligand")
 # Register the SMILES Conformer (Single)
 wrapped_smiles_conformer_single = registry.register(
     "smiles_conformer_single",
-    shortcut_smiles_conformer_single
+    shortcut_smiles_conformer_single,
+    use_thread=True,
+    use_progressbar=True,
 )
 
 # Register the SMILES Conformer (Batch)
 wrapped_smiles_conformer_batch = registry.register(
     "smiles_conformer_batch",
-    shortcut_smiles_conformer_batch
+    shortcut_smiles_conformer_batch,
+    use_thread=True,
+    use_progressbar=True,
 )
 
 # Register the SDF to Rosetta Parameter Conversion
 wrapper_sdf2rosetta_params = registry.register(
     "sdf2rosetta_params",
-    shortcut_sdf2rosetta_params
+    shortcut_sdf2rosetta_params,
+    use_thread=True,
+    use_progressbar=True,
 )

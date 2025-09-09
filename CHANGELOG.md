@@ -22,10 +22,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `AskedValue`: attribute `source` now supports `ColorPicker` with the last value memorized
 - test data:
   - caver for future uses.
+- test cases:
+  - `test_window_pops` for all window pop wrappers
 
 ### Changed
 
 ### Fixed
+- shortcuts:
+  - `rosetta_tasks`: `choices_from` values
+  - `ligand_converters`: now use threading in dialog registry scope 
+  - `_color_by_mutation`: disable `notify_box` uses in wrapper function 
+- test worker:
+  - create sub dir of screenshots if not exists
 
 ### Removed
 

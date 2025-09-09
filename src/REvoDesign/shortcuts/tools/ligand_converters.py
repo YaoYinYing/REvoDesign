@@ -12,11 +12,9 @@ from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
 from RosettaPy.utils.task import RosettaCmdTask, execute
 
 from REvoDesign import ROOT_LOGGER, issues
-from REvoDesign.driver.ui_driver import ConfigBus
 from REvoDesign.shortcuts.function_utils import (smiles_conformer_batch,
                                                  smiles_conformer_single,
                                                  visualize_conformer_sdf)
-from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 
 logging = ROOT_LOGGER.getChild(__name__)
@@ -33,13 +31,11 @@ def shortcut_smiles_conformer_single(
     """
     # take out the show_conformer option and handle it separately
     with timing("Get SMILES Conformer"):
-        run_worker_thread_with_progress(
-            smiles_conformer_single,
+        smiles_conformer_single(
             ligand_name=ligand_name,
             smiles=smiles,
             num_conformer=num_conformer,
             save_dir=save_dir,
-            progress_bar=ConfigBus().ui.progressBar
         )
     if show_conformer == 'None':
         return
@@ -65,13 +61,11 @@ def shortcut_smiles_conformer_batch(
 
     smi = json.load(open(smiles))
     with timing("Get SMILES Conformers (Many)"):
-        run_worker_thread_with_progress(
-            smiles_conformer_batch,
+        smiles_conformer_batch(
             smi=smi,
             num_conformer=num_conformer,
             save_dir=save_dir,
             n_jobs=n_jobs,
-            progress_bar=ConfigBus().ui.progressBar
         )
     if show_conformer == 'None':
         return

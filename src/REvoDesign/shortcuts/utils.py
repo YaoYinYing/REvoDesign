@@ -13,7 +13,7 @@ from immutabledict import immutabledict
 from REvoDesign import issues
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
-                                                 dialog_wrapper)
+                                                 dialog_wrapper, ValueDialog)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 
@@ -359,13 +359,16 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         conf: Dict[str, Any] = self.config[func_id]
         asked_values = [_build_asked_value(opt) for opt in conf["options"]] if conf.get("options") else []
         logging.debug(f"Asked values: {asked_values}")
-        wrapped_func = dialog_wrapper(
+        logging.debug(f"Preparing dialog for {func_id}")
+        wrapped_func_window= dialog_wrapper(
             title=conf.get("title", func_id),
             banner=conf.get("banner", ""),
             options=tuple(asked_values),
         )(self.funcs[func_id])
+        logging.debug(f"Dialog is ready: {wrapped_func_window}")
 
-        wrapped_func(dynamic_values=dynamic_values or [])
+
+        wrapped_func_window(dynamic_values=dynamic_values or [])
 
 
 def run_wrapped_func_in_thread(func, use_progressbar: bool = True, **kwargs):

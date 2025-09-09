@@ -56,7 +56,7 @@ def test_dialog_wrapper_registry_register_with_thread(mock_partial, mock_load_ya
 
 @patch("REvoDesign.shortcuts.utils.Path.exists", return_value=True)
 @patch("REvoDesign.shortcuts.utils.DialogWrapperRegistry._load_yaml")
-def ttest_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_exists, mock_yaml_content):
+def test_dialog_wrapper_registry_register_without_thread(mock_load_yaml, mock_exists, mock_yaml_content):
     mock_load_yaml.return_value = mock_yaml_content
 
     def dummy_function(**kwargs):
