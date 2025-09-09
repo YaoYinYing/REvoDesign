@@ -178,13 +178,13 @@ macos-rosetta-test:
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/tabs/;  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
+	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH);  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
 
 
 memray-live:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/tabs/;
+	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --live -m pytest  $(PYTEST_CASES_PATH)/;
 
 
 tag:
