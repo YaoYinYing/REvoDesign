@@ -241,7 +241,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')
         # self.ui=loadUi(ui_file, main_window)
 
-
         # TODO: move tab config as a standalone setting ui widget
         self.ui = REvoDesignMainUI()
         self.ui.setupUi(main_window)
@@ -429,7 +428,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # TODO: atexit register
         # TODO: store to bus if not headless
         # TODO: move this to somewhere else
-        
+
         stores = StoresWidget()
 
         # TODO: need to be managed in menu tree system

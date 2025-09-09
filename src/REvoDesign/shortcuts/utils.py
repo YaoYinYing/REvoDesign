@@ -13,7 +13,7 @@ from immutabledict import immutabledict
 from REvoDesign import issues
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
-                                                 dialog_wrapper, ValueDialog)
+                                                 ValueDialog, dialog_wrapper)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
 from REvoDesign.tools.utils import timing
 
@@ -234,6 +234,8 @@ def _build_asked_value(entry: dict) -> AskedValue:
     )
 
 # TODO: skip registry if headless
+
+
 class DialogWrapperRegistry:
     """
     Loads YAML config and dynamically builds & calls dialog-wrapped functions.
@@ -360,13 +362,12 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         asked_values = [_build_asked_value(opt) for opt in conf["options"]] if conf.get("options") else []
         logging.debug(f"Asked values: {asked_values}")
         logging.debug(f"Preparing dialog for {func_id}")
-        wrapped_func_window= dialog_wrapper(
+        wrapped_func_window = dialog_wrapper(
             title=conf.get("title", func_id),
             banner=conf.get("banner", ""),
             options=tuple(asked_values),
         )(self.funcs[func_id])
         logging.debug(f"Dialog is ready: {wrapped_func_window}")
-
 
         wrapped_func_window(dynamic_values=dynamic_values or [])
 

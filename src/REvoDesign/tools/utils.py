@@ -61,6 +61,7 @@ def pairwise_loop(iterable: Iterable):
     # Add the first element to the end of the list to form a loop structure and generate pairwise combinations
     return pairwise(seq + [seq[0]])
 
+
 # a slice of arguments to be passed to a class
 CLASS_ARGSLICE = slice(1, None)
 
@@ -302,7 +303,8 @@ def cmap_reverser(cmap: str, reverse: bool = False) -> str:
     if not reverse:
         return cmap
 
-    return  cmap.replace("_r", "") if cmap.endswith("_r") else cmap+ "_r"
+    return cmap.replace("_r", "") if cmap.endswith("_r") else cmap + "_r"
+
 
 def rescale_number(
     number: Union[int, float],
@@ -430,6 +432,8 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
         logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
 
 # TODO: support JAX and TensorFlow; need refactor
+
+
 def device_picker() -> List[str]:
     """
     Detects and returns a list of available devices for deep learning frameworks.

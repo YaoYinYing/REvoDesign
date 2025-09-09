@@ -110,6 +110,8 @@ RICH_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTableRich.json'
 ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
 
 # TODO: native filter on extra groups
+
+
 @dataclass
 class PlatformInfo:
     """
@@ -308,6 +310,8 @@ class UnsupportedWidgetValueTypeError(TypeError):
     """
 
 # TODO: real time replay with relative time stamps
+
+
 class LiveProcessResult(subprocess.CompletedProcess):
     """
     A CompletedProcess-compatible result object with real-time captured output.
@@ -500,6 +504,8 @@ class CheckableListView(QtWidgets.QWidget):
                 item.setCheckState(QtCore.Qt.Unchecked)
 
 # #TODO: simplification needed
+
+
 @dataclass
 class GitSolver:
     """
@@ -1178,7 +1184,7 @@ class REvoDesignPackageManager:
         """
         # Create a new dialog window
         dialog = QtWidgets.QDialog()
-        
+
         ui_file = run_worker_thread_with_progress(
             worker_function=self.ensure_ui_file
         )
@@ -1691,19 +1697,21 @@ class REvoDesignPackageManager:
 
 # TODO: 1. add interrupt signal and slot
 # TODO: 2. bind trigger button(s) and interact w/ abort buttons:
-#    when running: 
+#    when running:
 #      a. prepare red abort buttons, connect them to interrupt signal;
 #      b. when mouse cursor is on it, show abort button, hide trigger buttons; do the reverse while mouse cursor is out of it;
 #    when finished or aborted:
 #      a. cleanup abord buttons
 #      b. recover trigger buttons
-# TODO: 3. register to thread pool and show on thread dashboard 
+# TODO: 3. register to thread pool and show on thread dashboard
 # TODO: 4. add notification slot
 # TODO: 5. add progress bar setting slot
 # TODO: add abort button
 # self.abortbutton = QtWidgets.QPushButton('Abort')
 # self.abortbutton.setStyleSheet("background: #FF0000; color: #FFFFFF")
 # self.abortbutton.released.connect(cmd.interrupt)
+
+
 class WorkerThread(QtCore.QThread):
     """
     Custom worker thread for executing a function in a separate thread.
@@ -2121,6 +2129,8 @@ def filter_sensitive_data(env):
     return filtered_env
 
 # TODO: dynamically collections of based on extra groups object
+
+
 def issue_collection(
         collect_dummy: bool = False,
         network: bool = True,
@@ -2318,9 +2328,6 @@ def issue_collection(
     return issue_dict
 
 
-
-
-
 @contextmanager
 def hold_trigger_button(
     buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],
@@ -2392,6 +2399,8 @@ def hold_trigger_button(
             logging.debug(f"Released button: {b.text()}: ({b.objectName()})")
 
 # TODO: cleanups
+
+
 def solve_installation_config(
     source: str,
     git_url: str,

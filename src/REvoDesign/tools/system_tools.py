@@ -58,6 +58,8 @@ class SystemInfoReduced(SingletonAbstract):
         self.initialized = True
 
 # TODO: refactor needed
+
+
 @dataclass
 class CLIENT_INFO:
     '''

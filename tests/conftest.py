@@ -13,6 +13,7 @@ import warnings
 from dataclasses import dataclass
 from typing import Literal, Optional
 from unittest.mock import MagicMock, patch
+
 import psutil
 import pytest
 from _pytest.nodes import Item
@@ -505,8 +506,8 @@ class TestWorker:
         if self.is_in_ci_runner:
             return
         png_file = self.qtbot.screenshot(widget=widget)
-        dist_file=os.path.join(self.SCREENSHOT_DIR, f"{basename}.png")
-        dist_dir=os.path.dirname(dist_file)
+        dist_file = os.path.join(self.SCREENSHOT_DIR, f"{basename}.png")
+        dist_dir = os.path.dirname(dist_file)
         if not os.path.isdir(dist_dir):
             os.makedirs(dist_dir)
         moved_file = os.rename(

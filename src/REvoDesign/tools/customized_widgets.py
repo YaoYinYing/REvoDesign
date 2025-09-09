@@ -44,19 +44,20 @@ class ImageWidget(QtWidgets.QWidget):
         image = QtGui.QImage(self.image_path)
         painter.drawImage(self.rect(), image)
 
+
 def pick_color(
-        parent: QtWidgets.QWidget, 
-        init_color: Optional[str]="", 
-        disable_native_picker:bool=False,
-        alpha:bool=False) -> Optional[str]:
-    
-    opts= QtWidgets.QColorDialog.ColorDialogOption()
+        parent: QtWidgets.QWidget,
+        init_color: Optional[str] = "",
+        disable_native_picker: bool = False,
+        alpha: bool = False) -> Optional[str]:
+
+    opts = QtWidgets.QColorDialog.ColorDialogOption()
     if disable_native_picker:
         opts |= QtWidgets.QColorDialog.ColorDialogOption.DontUseNativeDialog
     if alpha:
         opts |= QtWidgets.QColorDialog.ColorDialogOption.ShowAlphaChannel
 
-    color = QtWidgets.QColorDialog.getColor(QtGui.QColor(init_color or "#2f6e36"), parent, options=opts) # type: ignore
+    color = QtWidgets.QColorDialog.getColor(QtGui.QColor(init_color or "#2f6e36"), parent, options=opts)  # type: ignore
 
     if color.isValid():
         print(f"Selected Color: {color.name()}")
@@ -884,7 +885,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
 
 
 def getExistingDirectory():
-    return QtWidgets.QFileDialog.getExistingDirectory( 
+    return QtWidgets.QFileDialog.getExistingDirectory(
         None,
         "Open Directory",
         os.path.expanduser("~"),
@@ -1280,7 +1281,7 @@ class QtParallelExecutor(QtCore.QThread):
         args,
         n_jobs,
         backend="auto",
-        verbose:bool=False,
+        verbose: bool = False,
     ):
         super().__init__()
         self.func = func
@@ -1737,7 +1738,8 @@ class ValueDialog(REvoDesignWidget):
             # filter and generator should be deepcopied to avoid side effects
             choices = tuple(choices) if not isinstance(choices, filter) else tuple(deepcopy(choices))
             if not choices:
-                raise issues.InternalError(f"Drop-down field must have a valid choices, not {choices}. Asked by: {asked_value}")
+                raise issues.InternalError(
+                    f"Drop-down field must have a valid choices, not {choices}. Asked by: {asked_value}")
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
@@ -1784,7 +1786,11 @@ class ValueDialog(REvoDesignWidget):
         elif asked_value.source == "ColorPicker":
             action_button = QtWidgets.QPushButton("Pick Color")
             action_button.setToolTip("Pick a color and return it as a hexadecimal string")
-            action_button.clicked.connect(lambda: widget.setText(pick_color(widget, widget.text() or "") or widget.text() or ""))
+            action_button.clicked.connect(
+                lambda: widget.setText(
+                    pick_color(
+                        widget,
+                        widget.text() or "") or widget.text() or ""))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "JsonInput":
             # Create a container widget for the layout
