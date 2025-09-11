@@ -223,10 +223,7 @@ class Mutant(RpMutant):
             sequence[pos - 1] = mutant.mut_res
 
         if ignore_missing:
-            while True:
-                if "X" not in sequence:
-                    break
-                sequence.remove("X")
+            sequence=[aa for aa in sequence if aa != "X"]
 
         return Chain(chain_id=chain_id, sequence="".join(sequence))
 
