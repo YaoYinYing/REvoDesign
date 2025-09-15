@@ -3,8 +3,8 @@ Data classes for menu items and menu collections.
 '''
 
 from dataclasses import dataclass
-from functools import partial
-from typing import Callable, Mapping, Optional, Tuple
+from functools import cached_property
+from typing import Callable, Mapping, Optional, Tuple, Union
 
 from REvoDesign.Qt import QtWidgets
 
@@ -26,9 +26,20 @@ class MenuItem:
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
     action: QtWidgets.QAction
-    func: Callable
+    func: Union[Callable, str]
     args: Optional[Tuple] = None
     kwargs: Optional[Mapping] = None
+
+    @property
+    def func_to_call(self):
+        if isinstance(self.func, str):
+            from REvoDesign.tools.utils import resolve_dotted_function
+            return resolve_dotted_function(self.func)
+        return self.func
+    
+    @property
+    def trigger(self):
+        return lambda: self.func_to_call(*self.args or (), **self.kwargs or {})
 
 
 @dataclass(frozen=True)
@@ -55,6 +66,6 @@ class MenuCollection:
 
         for m in self.menu_items:
             try:
-                m.action.triggered.connect(partial(m.func, *m.args if m.args else (), **m.kwargs if m.kwargs else {}))
+                m.action.triggered.connect(m.trigger)
             except AttributeError as e:
                 print(f"Skipping binding menu item due to error: {m}: {e}")

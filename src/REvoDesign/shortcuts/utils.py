@@ -2,7 +2,7 @@
 Dialog wrapper registry
 '''
 import atexit
-import importlib
+
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -11,11 +11,11 @@ import yaml
 from immutabledict import immutabledict
 
 from REvoDesign import issues
-from REvoDesign.common import file_extensions as Fext
+from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
                                                  dialog_wrapper)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
-from REvoDesign.tools.utils import timing
+from REvoDesign.tools.utils import timing,resolve_dotted_function
 
 from ..logger import ROOT_LOGGER
 
@@ -34,75 +34,6 @@ asked_value_typing_dict: immutabledict[str, type] = immutabledict({
 
 REGISTRY_DIR = Path(__file__).parent / "registry"
 
-
-def resolve_extension(extension: str) -> Fext.ExtColl:
-    """
-    Converts an extension string into an `ExtColl` object for file type handling.
-
-    This function supports two types of input:
-
-    1. **Predefined Extension**:
-       - If the input matches a predefined attribute in `Fext`, it returns the corresponding value directly.
-
-    2. **Custom Extension**:
-       - If the input does not match any predefined attribute, it treats the input as a custom extension string,
-         splits it by semicolons (`;`), and constructs a dictionary mapping lowercase extensions to
-         user-friendly names with a prefix `'Customized - '`.
-
-    Args:
-        extension (str): The extension string to be resolved. It can be a predefined name or a custom list like `"pdb;csv"`.
-
-    Returns:
-        Fext.ExtColl: An object representing the file extension collection, either from predefined values or custom input.
-
-    Example:
-        Given input `"pdb;csv"`, this will generate:
-        {'pdb': 'PDB File', 'csv': 'CSV File'} under a custom prefix.
-    """
-    if hasattr(Fext, extension):
-        return getattr(Fext, extension)
-
-    ext_dict = {_e.lower(): f'{_e.upper()} File' for _e in extension.split(';')}
-    return Fext.ExtColl.from_dict(ext_dict, prefix='Customized - ')
-
-
-def resolve_dotted_function(dotted_str: str) -> Callable:
-    """
-    Resolves a dotted string into a callable Python object (function or method).
-
-    The input string must follow one of these formats:
-
-    - `<module_path>:<function_name>` (for module-level functions)
-      Example: `"my_module.submodule:my_function"`
-
-    - `<module_path>:<class_name>.<method_name>` (for class methods)
-      Example: `"my_module.submodule:MyClass.my_method"`
-
-    Args:
-        dotted_str (str): A string representing the fully qualified path to a callable.
-
-    Returns:
-        Callable: The resolved callable function or method.
-
-    Raises:
-        issues.InvalidInputError: If the string does not contain a colon (`:`) or does not follow the expected format.
-        AttributeError: If the specified module, class, or function does not exist.
-    """
-    if ":" not in dotted_str:
-        raise issues.InvalidInputError(
-            'dotted function expect an input string in pattern <import-path>:(<class>.)<function>',
-            f'not `{dotted_str}`'
-        )
-    module_path, func_name = dotted_str.rsplit(":", 1)
-    module = importlib.import_module(module_path)
-    if "." not in func_name:
-        return getattr(module, func_name)
-    # maybe a class method?
-
-    _class_name, _func_name = func_name.rsplit(".")
-    logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
-    _class = getattr(module, _class_name)
-    return getattr(_class, _func_name)
 
 
 def resolve_choice_from(input_str: str):

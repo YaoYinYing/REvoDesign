@@ -166,3 +166,35 @@ class FileExtensionCollection:
     @classmethod
     def from_dict(cls, dic: dict, prefix: str = '') -> 'FileExtensionCollection':
         return cls(tuple([FileExtension(d[0], f'{prefix}{d[1].lstrip("*.")}') for d in dic.items()]))
+
+
+
+def resolve_extension(extension: str) -> FileExtensionCollection:
+    """
+    Converts an extension string into an `FileExtensionCollection` object for file type handling.
+
+    This function supports two types of input:
+
+    1. **Predefined Extension**:
+       - If the input matches a predefined attribute in `Fext`, it returns the corresponding value directly.
+
+    2. **Custom Extension**:
+       - If the input does not match any predefined attribute, it treats the input as a custom extension string,
+         splits it by semicolons (`;`), and constructs a dictionary mapping lowercase extensions to
+         user-friendly names with a prefix `'Customized - '`.
+
+    Args:
+        extension (str): The extension string to be resolved. It can be a predefined name or a custom list like `"pdb;csv"`.
+
+    Returns:
+        Fext.ExtColl: An object representing the file extension collection, either from predefined values or custom input.
+
+    Example:
+        Given input `"pdb;csv"`, this will generate:
+        {'pdb': 'PDB File', 'csv': 'CSV File'} under a custom prefix.
+    """
+    if hasattr(FileExtension, extension):
+        return getattr(FileExtension, extension)
+
+    ext_dict = {_e.lower(): f'{_e.upper()} File' for _e in extension.split(';')}
+    return FileExtensionCollection.from_dict(ext_dict, prefix='Customized - ')
