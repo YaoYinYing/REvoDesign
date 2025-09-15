@@ -23,6 +23,7 @@ from REvoDesign import (ConfigBus, file_extensions, issues, reload_config_file,
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
+from REvoDesign.application.menu import TOOLS_MENU_LINKS
 from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, REVODESIGN_CONFIG_FILE
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
@@ -255,56 +256,56 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # TODO: need to be managed in menu tree system
         # TODO: issue: menu system translations
 
-        MenuCollection(
+        MenuCollection(self.bus.ui,
             (
                 MenuItem(
-                    self.bus.ui.actionSet_Working_Directory,
+                    'actionSet_Working_Directory',
                     self.set_working_directory,
                 ),
                 MenuItem(
-                    self.bus.ui.actionReconfigure,
+                    'actionReconfigure',
                     self.reload_configurations,
                 ),
                 MenuItem(
-                    self.bus.ui.actionEdit_Configuration,
+                    'actionEdit_Configuration',
                     menu_edit_file,
                     kwargs={'file_path': REVODESIGN_CONFIG_FILE}
                 ),
                 MenuItem(
-                    self.bus.ui.actionSave_Configurations,
+                    'actionSave_Configurations',
                     self.save_configuration_from_ui,
                     kwargs={'experiment': "global_config"}
                 ),
                 MenuItem(
-                    self.bus.ui.action_LoadExperiment,
+                    'action_LoadExperiment',
                     self.load_and_save_experiment,
                     kwargs={'mode': "r"},
                 ),
                 MenuItem(
-                    self.bus.ui.action_Save_to_Experiment,
+                    'action_Save_to_Experiment',
                     self.load_and_save_experiment,
                     kwargs={'mode': "w"},
                 ),
                 MenuItem(
-                    self.bus.ui.actionReinitialize,
+                    'actionReinitialize',
                     self.reinitialize,
                     kwargs={'delete': True},
                 ),
                 MenuItem(
-                    self.bus.ui.actionAddEnvironVar,
+                    'actionAddEnvironVar',
                     add_new_environment_variables,
                 ),
                 MenuItem(
-                    self.bus.ui.actionDropEnvironVar,
+                    'actionDropEnvironVar',
                     drop_environment_variables,
                 ),
                 MenuItem(
-                    self.bus.ui.actionSource_Code,
+                    'actionSource_Code',
                     QtGui.QDesktopServices.openUrl,
                     (QtCore.QUrl(REPO_URL),)
                 ),
                 MenuItem(
-                    self.bus.ui.actionVersion,
+                    'actionVersion',
                     notify_box,
                     kwargs={'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
                 ),
@@ -312,113 +313,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             ),
         )
         # TODO: dynamic created menu item tree system
-        MenuCollection(
-            (
-                MenuItem(
-                    self.bus.ui.actionRenderPickedSidechainGroup,
-                    "REvoDesign.shortcuts.shortcuts_on_menu:menu_dump_sidechains",
-                    kwargs={'dump_all': False},
-                ),
-                MenuItem(
-                    self.bus.ui.actionRenderAllSidechains,
-                    "REvoDesign.shortcuts.shortcuts_on_menu:menu_dump_sidechains",
-                    kwargs={'dump_all': True},
-                ),
-                MenuItem(
-                    self.bus.ui.actionColor_by_pLDDT,
-                    "REvoDesign.shortcuts.wrappers.represents:wrapped_color_by_plddt"
-                ),
-                MenuItem(
-                    self.bus.ui.actionShow_Real_Sidechain,
-                    "REvoDesign.shortcuts.wrappers.represents:wrapped_real_sc"
-                ),
-                MenuItem(
-                    self.bus.ui.actionColor_by_Mutations,
-                    "REvoDesign.shortcuts.wrappers.represents:wrapped_color_by_mutation"
-                ),
-                MenuItem(
-                    self.bus.ui.actionPSSM_to_CSV,
-                    "REvoDesign.shortcuts.wrappers.designs:wrapped_pssm2csv"
-                ),
-                MenuItem(
-                    self.bus.ui.actionProfile_Design,
-                    "REvoDesign.shortcuts.wrappers.designs:wrapped_profile_pick_design"
-                ),
-                MenuItem(
-                    self.bus.ui.actionSMILES_Conformers,
-                    "REvoDesign.shortcuts.wrappers.ligand_converters:wrapped_smiles_conformer_single"
-                ),
-                MenuItem(
-                    self.bus.ui.actionSMILES_Conformers_Batch,
-                    "REvoDesign.shortcuts.wrappers.ligand_converters:wrapped_smiles_conformer_batch"
-                ),
-                MenuItem(
-                    self.bus.ui.actionSDF_to_Rosetta_Parameters,
-                    "REvoDesign.shortcuts.wrappers.ligand_converters:wrapper_sdf2rosetta_params"
-                ),
-                MenuItem(
-                    self.bus.ui.actionRosettaLigand,
-                    "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_rosettaligand"
-                ),
-                MenuItem(
-                    self.bus.ui.actionFastRelax,
-                    "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_fast_relax"
-                ),
-                MenuItem(
-                    self.bus.ui.actionRelax_w_Ca_Constraints,
-                    "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_relax_w_ca_constraints"
-                ),
-                MenuItem(
-                    self.bus.ui.actionPROSS,
-                    "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_pross"
-                ),
-                MenuItem(
-                    self.bus.ui.actionThermoMPNN,
-                    "REvoDesign.shortcuts.wrappers.mutation_effect_predictors:wrapped_thermompnn"
-                ),
-                MenuItem(
-                    self.bus.ui.actionESM_1v,
-                    "REvoDesign.shortcuts.wrappers.esm2:wrapped_esm1v"
-                ),
-                MenuItem(
-                    self.bus.ui.actionAlter_Box,
-                    "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_alter_box"
-                ),
-                MenuItem(
-                    self.bus.ui.actionGet_PCA_Box,
-                    "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_get_pca_box"
-                ),
-                MenuItem(
-                    self.bus.ui.actionGet_Box,
-                    "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_alter_box"
-                ),
-                MenuItem(
-                    self.bus.ui.actionRemove_Het_Atoms,
-                    "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_rmhet"
-                ),
-                MenuItem(
-                    self.bus.ui.actionRFdiffusion_General_Task,
-                    "REvoDesign.shortcuts.wrappers.rfdiffusion_tasks:wrapped_general_rfdiffusion_task"
-                ),
-                MenuItem(
-                    self.bus.ui.actionSubstrate_Potential,
-                    "REvoDesign.shortcuts.wrappers.rfdiffusion_tasks:wrapped_visualize_substrate_potentials"
-                ),
-                
-                MenuItem(
-                    self.bus.ui.actionRenumber_Residue_Index,
-                    "REvoDesign.shortcuts.wrappers.structure:wrapped_resi_renumber"
-                ),
-                MenuItem(
-                    self.bus.ui.actionDump_Sequence,
-                    "REvoDesign.shortcuts.wrappers.exports:wrapped_dump_fasta_from_struct"
-                ),
-                MenuItem(
-                    self.bus.ui.actionSetLogLevel,
-                    "REvoDesign.shortcuts.wrappers.utils:wrapped_logger_level_setter"
-                ),
-            )
-        )
+        MenuCollection(self.bus.ui,TOOLS_MENU_LINKS)
             
         # TODO: refactor needed
         # TODO: skip register if headless

@@ -25,13 +25,17 @@ class MenuItem:
         args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
-    action: QtWidgets.QAction
+    action: str
     func: Union[Callable, str]
     args: Optional[Tuple] = None
     kwargs: Optional[Mapping] = None
 
     @property
     def func_to_call(self):
+        '''
+        Returns the real callable function to be executed.
+        If the function is a string, it will be resolved to a callable function.
+        '''
         if isinstance(self.func, str):
             from REvoDesign.tools.utils import resolve_dotted_function
             return resolve_dotted_function(self.func)
@@ -39,6 +43,9 @@ class MenuItem:
     
     @property
     def trigger(self):
+        '''
+        Returns a triggered function that is lazy resolved
+        '''
         return lambda: self.func_to_call(*self.args or (), **self.kwargs or {})
 
 
@@ -48,6 +55,7 @@ class MenuCollection:
     A data class representing a collection of menu items.
     This class registers the menu items and their associated functions while instantiating the class.
     """
+    ui: QtWidgets.QWidget
     menu_items: tuple[MenuItem, ...]
 
     def __post_init__(self):
@@ -65,7 +73,11 @@ class MenuCollection:
         """
 
         for m in self.menu_items:
+            if not hasattr(self.ui, m.action):
+                print(f"Skipping binding menu item: {m.action} is missing in the {self.ui}.")
+                continue
             try:
-                m.action.triggered.connect(m.trigger)
+                action: QtWidgets.QAction = getattr(self.ui, m.action)
+                action.triggered.connect(m.trigger)
             except AttributeError as e:
                 print(f"Skipping binding menu item due to error: {m}: {e}")
