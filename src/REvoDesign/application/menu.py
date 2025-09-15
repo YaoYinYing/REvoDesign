@@ -2,7 +2,7 @@
 from REvoDesign.basic.menu_item import MenuItem
 
 
-TOOLS_MENU_LINK = (
+TOOLS_MENU_LINKS = (
         MenuItem(
             'actionRenderPickedSidechainGroup',
             "REvoDesign.shortcuts.shortcuts_on_menu:menu_dump_sidechains",
