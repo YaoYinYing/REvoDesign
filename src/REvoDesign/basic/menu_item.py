@@ -3,7 +3,6 @@ Data classes for menu items and menu collections.
 '''
 
 from dataclasses import dataclass
-from functools import cached_property
 from typing import Callable, Mapping, Optional, Tuple, Union
 
 from REvoDesign.Qt import QtWidgets
@@ -19,8 +18,7 @@ class MenuItem:
     The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
 
     Attributes:
-        name (str): The name of the menu item, used for display and identification.
-        action (QtWidgets.QAction): The action associated with the menu item.
+        action (str): The action attr name associated with the menu item.
         func (Callable): The function associated with the menu item, which is executed when the item is selected.
         args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.

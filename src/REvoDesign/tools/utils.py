@@ -69,6 +69,7 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     module_path, func_name = dotted_str.rsplit(":", 1)
     module = importlib.import_module(module_path)
     if "." not in func_name:
+        logging.debug(f'Dotted function resolving `{func_name}` from {module}')
         return getattr(module, func_name)
     # maybe a class method?
 
