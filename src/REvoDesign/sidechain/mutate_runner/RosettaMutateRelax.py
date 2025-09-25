@@ -1,5 +1,9 @@
 '''
 Wrapper for MutateRelax Sidechain Builder
+
+TODO:
+known issue:
+    - when running with xtal structure, missing residues are not counted
 '''
 import os
 from typing import List, Optional, Union
