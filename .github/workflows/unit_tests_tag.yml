@@ -11,7 +11,8 @@ on:
 
 env: 
   conda_env: REvoDesign
-  ENABLE_ROSETTA_CONTAINER_NODE_TEST: "YES" # Github Actions: run python against container node
+  
+  ENABLE_ROSETTA_CONTAINER_NODE_TEST: "NO" # Github Actions: run python against container node
 
 jobs:
   BareTests:
@@ -91,9 +92,14 @@ jobs:
           make setup-display-gha
 
       - name: Verify Docker Version and Pull Rosetta Image
+        # the GHA runner windows does not support docker in linux, which requires nested VM under Hyper-V.
+        if: startsWith(matrix.os, 'ubuntu')
         run: |
           docker --version
           docker pull --platform=linux/amd64 rosettacommons/rosetta:mpi
+          # set environment variable ENABLE_ROSETTA_CONTAINER_NODE_TEST to run REvoDesign against container node
+          echo "ENABLE_ROSETTA_CONTAINER_NODE_TEST=YES" >> $GITHUB_ENV
+      
 
       - name: setup Qt headless Display on Windows
         if: startsWith(matrix.os, 'windows')
