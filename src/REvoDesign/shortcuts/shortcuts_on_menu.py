@@ -2,7 +2,6 @@
 This module contains the menu shortcuts for REvoDesign.
 '''
 from REvoDesign.shortcuts.wrappers.exports import wrapped_menu_dump_sidechains
-
 from REvoDesign.tools.customized_widgets import AskedValue
 from REvoDesign.tools.pymol_utils import get_all_groups
 

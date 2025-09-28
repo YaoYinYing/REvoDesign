@@ -38,7 +38,7 @@ class MenuItem:
             from REvoDesign.tools.utils import resolve_dotted_function
             return resolve_dotted_function(self.func)
         return self.func
-    
+
     @property
     def trigger(self):
         '''

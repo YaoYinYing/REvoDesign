@@ -57,7 +57,7 @@ def save_screenshot(widget, name):
     (4, QtWidgets.QComboBox),
     (5, MultiCheckableComboBox),
 ])
-def test_dialog_wrapper_field_widget_types(dialog, index, expected_widget_type,test_worker):
+def test_dialog_wrapper_field_widget_types(dialog, index, expected_widget_type, test_worker):
     """
     Validates the widget type assigned to each field and captures a screenshot.
     """
@@ -66,7 +66,7 @@ def test_dialog_wrapper_field_widget_types(dialog, index, expected_widget_type,t
     save_screenshot(dialog, f"field_widget_types_row_{index}")
 
 
-def test_dialog_wrapper_dialog_initialization(dialog,test_worker):
+def test_dialog_wrapper_dialog_initialization(dialog, test_worker):
     """
     Verifies that the dialog initializes correctly and captures a screenshot.
     """
@@ -76,7 +76,7 @@ def test_dialog_wrapper_dialog_initialization(dialog,test_worker):
     save_screenshot(dialog, "dialog_initialization")
 
 
-def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch,test_worker):
+def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch, test_worker):
     """
     Tests that required fields are validated and QMessageBox is triggered. Captures a screenshot.
     """
@@ -115,7 +115,7 @@ def test_dialog_wrapper_valid_field_submission(
         updated_value,
         expected_value,
         dialog,
-        qtbot,test_worker):
+        qtbot, test_worker):
     """
     Tests that valid fields are correctly submitted and captures a screenshot.
     """
@@ -133,7 +133,7 @@ def test_dialog_wrapper_valid_field_submission(
     save_screenshot(dialog, f"valid_field_submission-{index}-{expected_widget_type.__name__}")
 
 
-def test_dialog_wrapper_dialog_rejection(test_worker,dialog, qtbot):
+def test_dialog_wrapper_dialog_rejection(test_worker, dialog, qtbot):
     """
     Ensures dialog rejection works as expected and captures a screenshot.
     """
@@ -159,7 +159,7 @@ AskedValue(key="field6", val='', typing=list, reason="Field 6 Reason", choices=[
 '''
 
 
-def test_dialog_wrapper_field_populates_correctly(test_worker,dialog):
+def test_dialog_wrapper_field_populates_correctly(test_worker, dialog):
     """
     Tests that fields are populated with the correct initial values and captures a screenshot.
     """

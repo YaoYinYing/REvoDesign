@@ -6,11 +6,9 @@ from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.common.file_extensions import ExtColl
 from REvoDesign.shortcuts.tools.esm2 import \
     list_all_esm_variant_predict_model_names
-from REvoDesign.shortcuts.utils import (REGISTRY_DIR,
-                                        _build_asked_value,
+from REvoDesign.shortcuts.utils import (REGISTRY_DIR, _build_asked_value,
                                         resolve_choice_from,
                                         resolve_default_value)
-
 from REvoDesign.tools.utils import resolve_dotted_function
 
 # --- Test resolve_extension --- #

@@ -418,7 +418,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         Returns:
             QtWidgets.QPushButton: Button object
         """
-        if  button_id not in self.w2c.run_button_ids:
+        if button_id not in self.w2c.run_button_ids:
             raise issues.UnknownWidgetError(f'Button ID not found: {button_id}')
         return self.w2c.push_buttons.get(button_id)
 

@@ -484,7 +484,7 @@ def task_dashboard():
                     fasta_seq = f.read().strip()
                 except UnicodeDecodeError as e:
                     fasta_seq = f"Unable to decode sequence: {e}"
-            
+
             task_statuses.append(
                 {
                     "id": i,

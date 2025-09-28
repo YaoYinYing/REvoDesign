@@ -78,6 +78,7 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     _class = getattr(module, _class_name)
     return getattr(_class, _func_name)
 
+
 def pairwise_loop(iterable: Iterable):
     """
     Generate a looped pairwise iterable from the input iterable.

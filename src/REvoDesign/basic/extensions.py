@@ -168,7 +168,6 @@ class FileExtensionCollection:
         return cls(tuple([FileExtension(d[0], f'{prefix}{d[1].lstrip("*.")}') for d in dic.items()]))
 
 
-
 def resolve_extension(extension: str) -> FileExtensionCollection:
     """
     Converts an extension string into an `FileExtensionCollection` object for file type handling.

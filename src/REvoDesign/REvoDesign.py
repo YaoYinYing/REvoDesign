@@ -43,8 +43,6 @@ from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
-
-
 from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
@@ -74,7 +72,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
         self,
     ):
-        
+
         super().__init__()
         # global reference to avoid garbage collection of our dialog
         self.window = None
@@ -257,64 +255,64 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # TODO: issue: menu system translations
 
         MenuCollection(self.bus.ui,
-            (
-                MenuItem(
-                    'actionSet_Working_Directory',
-                    self.set_working_directory,
-                ),
-                MenuItem(
-                    'actionReconfigure',
-                    self.reload_configurations,
-                ),
-                MenuItem(
-                    'actionEdit_Configuration',
-                    menu_edit_file,
-                    kwargs={'file_path': REVODESIGN_CONFIG_FILE}
-                ),
-                MenuItem(
-                    'actionSave_Configurations',
-                    self.save_configuration_from_ui,
-                    kwargs={'experiment': "global_config"}
-                ),
-                MenuItem(
-                    'action_LoadExperiment',
-                    self.load_and_save_experiment,
-                    kwargs={'mode': "r"},
-                ),
-                MenuItem(
-                    'action_Save_to_Experiment',
-                    self.load_and_save_experiment,
-                    kwargs={'mode': "w"},
-                ),
-                MenuItem(
-                    'actionReinitialize',
-                    self.reinitialize,
-                    kwargs={'delete': True},
-                ),
-                MenuItem(
-                    'actionAddEnvironVar',
-                    add_new_environment_variables,
-                ),
-                MenuItem(
-                    'actionDropEnvironVar',
-                    drop_environment_variables,
-                ),
-                MenuItem(
-                    'actionSource_Code',
-                    QtGui.QDesktopServices.openUrl,
-                    (QtCore.QUrl(REPO_URL),)
-                ),
-                MenuItem(
-                    'actionVersion',
-                    notify_box,
-                    kwargs={'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
-                ),
-                
-            ),
-        )
+                       (
+                           MenuItem(
+                               'actionSet_Working_Directory',
+                               self.set_working_directory,
+                           ),
+                           MenuItem(
+                               'actionReconfigure',
+                               self.reload_configurations,
+                           ),
+                           MenuItem(
+                               'actionEdit_Configuration',
+                               menu_edit_file,
+                               kwargs={'file_path': REVODESIGN_CONFIG_FILE}
+                           ),
+                           MenuItem(
+                               'actionSave_Configurations',
+                               self.save_configuration_from_ui,
+                               kwargs={'experiment': "global_config"}
+                           ),
+                           MenuItem(
+                               'action_LoadExperiment',
+                               self.load_and_save_experiment,
+                               kwargs={'mode': "r"},
+                           ),
+                           MenuItem(
+                               'action_Save_to_Experiment',
+                               self.load_and_save_experiment,
+                               kwargs={'mode': "w"},
+                           ),
+                           MenuItem(
+                               'actionReinitialize',
+                               self.reinitialize,
+                               kwargs={'delete': True},
+                           ),
+                           MenuItem(
+                               'actionAddEnvironVar',
+                               add_new_environment_variables,
+                           ),
+                           MenuItem(
+                               'actionDropEnvironVar',
+                               drop_environment_variables,
+                           ),
+                           MenuItem(
+                               'actionSource_Code',
+                               QtGui.QDesktopServices.openUrl,
+                               (QtCore.QUrl(REPO_URL),)
+                           ),
+                           MenuItem(
+                               'actionVersion',
+                               notify_box,
+                               kwargs={'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
+                           ),
+
+                       ),
+                       )
         # TODO: dynamic created menu item tree system
-        MenuCollection(self.bus.ui,TOOLS_MENU_LINKS)
-            
+        MenuCollection(self.bus.ui, TOOLS_MENU_LINKS)
+
         # TODO: refactor needed
         # TODO: skip register if headless
         # TODO: atexit register

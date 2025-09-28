@@ -2,7 +2,6 @@
 Dialog wrapper registry
 '''
 import atexit
-
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -15,7 +14,7 @@ from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
                                                  dialog_wrapper)
 from REvoDesign.tools.package_manager import run_worker_thread_with_progress
-from REvoDesign.tools.utils import timing,resolve_dotted_function
+from REvoDesign.tools.utils import resolve_dotted_function, timing
 
 from ..logger import ROOT_LOGGER
 
@@ -33,7 +32,6 @@ asked_value_typing_dict: immutabledict[str, type] = immutabledict({
 })
 
 REGISTRY_DIR = Path(__file__).parent / "registry"
-
 
 
 def resolve_choice_from(input_str: str):
