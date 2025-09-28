@@ -5,30 +5,6 @@
     ],
     "entities": [
         {
-            "name" : "Basic Dependencies",
-            "description": "Basic Dependencies",
-            "extras": [
-                {
-                    "name": "OpenMPI",
-                    "extras_id":"openmpi",
-                    "description": "OpenMPI is a Message Passing Interface implementation",
-                    "depts": ["openmpi"]
-                },
-                {
-                    "name": "mpich",
-                    "extras_id":"mpich",
-                    "description": "MPICH is a Message Passing Interface implementation",
-                    "depts": ["mpich"]
-                },
-                {
-                    "name": "DGL",
-                    "extras_id":"dgl",
-                    "description": "DGL is a graph neural network library",
-                    "depts": ["dgl"]
-                }
-            ]
-        },
-        {
             "name" : "Sidechain Solvers",
             "description": "Third Party Sidechain Solvers",
             "extras": [
@@ -37,13 +13,6 @@
                     "extras_id":"dlpacker",
                     "description": "DLPacker is a GNN-based sidechain solver",
                     "depts": ["DLPacker"]
-                },
-                {
-                    "name": "DLPacker (MPS)",
-                    "extras_id":"dlpacker_mps",
-                    "description": "DLPacker is a GNN-based sidechain solver, MPS",
-                    "depts": ["DLPacker"],
-                    "platform": ["MPS"]
                 },
                 {
                     "name": "PIPPack",
@@ -103,14 +72,6 @@
                     "name": "OpenMM",
                     "extras_id":"openmm",
                     "depts": ["openmm","asgiref","pdbfixer","openmm-setup"]
-                },
-                {
-                    "name": "Gromacs-Copilot",
-                    "extras_id":"gromacs_copilot",
-                    "depts": ["gromacs-copilot","acpype","gmx_MMPBSA","seaborn", "mpi4py", "openmpi", "mcp"],
-                    "recipe": [
-                        {"conda": ["ambertools", "gromacs", "pocl"]}
-                    ]
                 }
             ]
         },
