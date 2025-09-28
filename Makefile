@@ -78,7 +78,7 @@ install:
 	python -m pip install ".[$(PIP_EXTRAS_2)]" -U --no-cache-dir
 
 install-dgl-linux:
-	python -m pip install dgl -f https://data.dgl.ai/wheels/torch-2.3/repo.html
+	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html
 
 # only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:
