@@ -1,8 +1,10 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 
-PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,test
-PIP_EXTRAS_2=rfdiffusion_cpu,esm2
+# basic extras for ci
+PIP_EXTRAS_BASIC=dlpacker,pippack,colabdesign,thermompnn,test
+# additional extras for ci in Ubuntu
+PIP_EXTRAS_OPTIONAL=rfdiffusion_cpu,esm2
 
 
 TESTDIR=tmp-test-dir-with-unique-name
@@ -76,8 +78,8 @@ upload-gists:
 
 # only for test on runner or local machine.
 install:
-	python -m pip install ".[$(PIP_EXTRAS)]" -U --no-cache-dir
-	python -m pip install ".[$(PIP_EXTRAS_2)]" -U --no-cache-dir
+	python -m pip install ".[$(PIP_EXTRAS_BASIC)]" -U --no-cache-dir
+	python -m pip install ".[$(PIP_EXTRAS_OPTIONAL)]" -U --no-cache-dir || echo Extras "$(PIP_EXTRAS_OPTIONAL)" is not installed.
 
 install-dgl-linux:
 	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html
