@@ -147,6 +147,11 @@ spark = [
     "pyspark>=3.0.0"
 ]
 
+memray = [
+    "memray",
+    "pytest-memray",
+]
+
 
 test = [
     
@@ -169,8 +174,6 @@ test = [
     "pytest<=8.3.3",
     "pytest-order",
     "pytest-emoji",
-    "memray",
-    "pytest-memray",
     "pytest-github-actions-annotate-failures",
     "shellcheck-py==0.10.0.1",
     "pre-commit",
