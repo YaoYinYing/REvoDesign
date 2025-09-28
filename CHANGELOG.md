@@ -24,11 +24,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - caver for future uses.
 - test cases:
   - `test_window_pops` for all window pop wrappers
+  - `test_version`: test version parses.
 - prompts:
   - codex review
   - codex plugin migration
+- doc:
+  - guide for calling mutate runners in Python
 
 ### Changed
+- ci:
+  - main workflow test w/ PyMOL v3.1
+  - flexible CI timeout limit for windows: 60 minutes
+  - install dgl at windows step
+  - set var `ENABLE_ROSETTA_CONTAINER_NODE_TEST` to `NO` by default, enable it after docker pull
+- menu binding:
+  - use str for lazy registers
 
 ### Fixed
 - shortcuts:
@@ -48,6 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - removed repetative calls of `detach` and `close`.
 - `Makefile`: 
   - unused shortcuts
+- Depts: DLPacker in MPS: no performance improvement at all.
+- tests:
+  - obsolete tests: `test_menu_item`
+
+### Known Issues
+- CI failed on ubuntu w/ PyMOL Open Source v2.5.0, Python 3.10/3.11
 
 ## [1.8.3] - 2025-08-19
 ### Added
