@@ -115,8 +115,7 @@ jobs:
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           make install
-          # make install-dgl-linux
-          conda install -c dglteam/label/th23_cpu dgl
+          make install-dgl-linux
           
 
 
