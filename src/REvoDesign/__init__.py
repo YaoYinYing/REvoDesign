@@ -26,7 +26,7 @@ from REvoDesign.shortcuts import __all__ as all_shortcuts
 
 # 8. Set version info
 ## version number checker: https://regex101.com/r/6AoOI9/1
-__version__ = "1.8.3+igem2025"
+__version__ = "1.8.3"
 
 
 
