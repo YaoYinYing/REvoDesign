@@ -23,7 +23,7 @@ jobs:
         conda-channel:
           - -c conda-forge
         pymol-version:
-          - "pymol-open-source<3.1"
+          - "pymol-open-source"
         pymol-tag:
           - 'latest pymol open source'
         python-version: 
@@ -32,12 +32,12 @@ jobs:
           # - "3.11"
           - "3.12"
         include:
-        # #   # windows
-        # #   - os: windows-latest
-        # #     python-version: "3.11"
-        # #     conda-channel: -c conda-forge
-        # #     pymol-version: "pymol-open-source"
-        # #     pymol-tag: 'latest pymol open source'
+          # windows
+          - os: windows-latest
+            python-version: "3.11"
+            conda-channel: -c conda-forge
+            pymol-version: "pymol-open-source"
+            pymol-tag: 'latest pymol open source'
           
           # latest bundled pymol 
           - os: ubuntu-latest
@@ -46,24 +46,27 @@ jobs:
             pymol-tag: 'latest pymol bundle'
             conda-channel: -c schrodinger -c conda-forge
           
-        #   # pymol-open-source, v2
-        #   - os: ubuntu-latest
-        #     python-version: "3.11"
-        #     pymol-version: "pymol-open-source<3"
-        #     conda-channel: -c conda-forge
-        #     pymol-tag:
-        #       - 'legacy (v2) pymol open source'
+          # pymol-open-source, v2
+          - os: ubuntu-latest
+            python-version: "3.11"
+            pymol-version: "pymol-open-source<3"
+            conda-channel: -c conda-forge
+            pymol-tag:
+              - 'legacy (v2) pymol open source'
 
-        #   # bundled pymol, v2
-        #   - os: ubuntu-latest
-        #     python-version: "3.10"
-        #     pymol-version: "pymol-bundle<3"
-        #     conda-channel: -c schrodinger -c conda-forge
-        #     pymol-tag:
-        #       - 'legacy (v2) pymol bundle'
+          # bundled pymol, v2
+          - os: ubuntu-latest
+            python-version: "3.10"
+            pymol-version: "pymol-bundle<3"
+            conda-channel: -c schrodinger -c conda-forge
+            pymol-tag:
+              - 'legacy (v2) pymol bundle'
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    # set time limits according to the runner os. 
+    # if the runner os is windows, set it to 60,
+    # otherwise, set it to 35
+    timeout-minutes: ${{ matrix.os == 'windows-latest' && 60 || 35 }}
 
 
     env:
@@ -115,9 +118,16 @@ jobs:
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
           make install
+      
+      - name: Install DGL on Ubuntu
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
           make install-dgl-linux
           
-
+      - name: Install DGL on Windows
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          make install-dgl-win
 
       - name: Full Unit Test on Ubuntu
         run: |

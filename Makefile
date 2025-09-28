@@ -39,6 +39,8 @@ help:
 	@echo "  install                Install from pip "
 	@echo "  install-no-dept        Install from pip, no dependencies"
 	@echo "  install-pytorch-cpu    Install torch-cpu for ci runner image"
+	@echo "  install-dgl-linux      Install DGL(<=2.4.0) for Ubuntu"
+	@echo "  install-dgl-win        Install DGL(<=2.2.1) for Windows and macOS"
 	@echo "  reinstall              Reinstall after code changes"
 	@echo "  translate              Translate UI"
 	@echo "  prepare-test           Run pip to install pytest-related packages"
@@ -79,6 +81,10 @@ install:
 
 install-dgl-linux:
 	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html
+
+# this also works with macos
+install-dgl-win:
+	python -m pip install  dgl -f https://data.dgl.ai/wheels/repo.html
 
 # only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:
