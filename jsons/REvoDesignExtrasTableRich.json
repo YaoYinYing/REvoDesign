@@ -15,13 +15,6 @@
                     "depts": ["DLPacker"]
                 },
                 {
-                    "name": "DLPacker (MPS)",
-                    "extras_id":"dlpacker_mps",
-                    "description": "DLPacker is a GNN-based sidechain solver, MPS",
-                    "depts": ["DLPacker"],
-                    "platform": ["MPS"]
-                },
-                {
                     "name": "PIPPack",
                     "extras_id":"pippack",
                     "depts": ["PIPPack"]
@@ -98,7 +91,10 @@
                     "extras_id":"rfdiffusion_mps",
                     "description": "RFdiffusion on MacOS, Apple Silicon",
                     "depts": ["rfdiffusion","nvtx","se3-transformer","nvtx-mock","wandb"],
-                    "platform": ["MPS"]
+                    "platform": ["MPS"],
+                    "recipe": [
+                        {"pip": ["dgl -f https://data.dgl.ai/wheels/repo.html"]}
+                    ]
                 },
                 {
                     "name": "RFdiffusion",
@@ -110,6 +106,9 @@
                         "se3-transformer",
                         "nvtx-mock",
                         "wandb"
+                    ],
+                    "recipe": [
+                        {"pip": ["dgl -f https://data.dgl.ai/wheels/repo.html"]}
                     ]
                 }
             ]

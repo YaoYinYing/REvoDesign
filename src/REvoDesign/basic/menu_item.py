@@ -3,8 +3,7 @@ Data classes for menu items and menu collections.
 '''
 
 from dataclasses import dataclass
-from functools import partial
-from typing import Callable, Mapping, Optional, Tuple
+from typing import Callable, Mapping, Optional, Tuple, Union
 
 from REvoDesign.Qt import QtWidgets
 
@@ -19,16 +18,33 @@ class MenuItem:
     The frozen parameter ensures that instances of the class are immutable, enhancing thread safety and consistency.
 
     Attributes:
-        name (str): The name of the menu item, used for display and identification.
-        action (QtWidgets.QAction): The action associated with the menu item.
+        action (str): The action attr name associated with the menu item.
         func (Callable): The function associated with the menu item, which is executed when the item is selected.
         args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
-    action: QtWidgets.QAction
-    func: Callable
+    action: str
+    func: Union[Callable, str]
     args: Optional[Tuple] = None
     kwargs: Optional[Mapping] = None
+
+    @property
+    def func_to_call(self):
+        '''
+        Returns the real callable function to be executed.
+        If the function is a string, it will be resolved to a callable function.
+        '''
+        if isinstance(self.func, str):
+            from REvoDesign.tools.utils import resolve_dotted_function
+            return resolve_dotted_function(self.func)
+        return self.func
+
+    @property
+    def trigger(self):
+        '''
+        Returns a triggered function that is lazy resolved
+        '''
+        return lambda: self.func_to_call(*self.args or (), **self.kwargs or {})
 
 
 @dataclass(frozen=True)
@@ -37,6 +53,7 @@ class MenuCollection:
     A data class representing a collection of menu items.
     This class registers the menu items and their associated functions while instantiating the class.
     """
+    ui: QtWidgets.QWidget
     menu_items: tuple[MenuItem, ...]
 
     def __post_init__(self):
@@ -54,7 +71,11 @@ class MenuCollection:
         """
 
         for m in self.menu_items:
+            if not hasattr(self.ui, m.action):
+                print(f"Skipping binding menu item: {m.action} is missing in the {self.ui}.")
+                continue
             try:
-                m.action.triggered.connect(partial(m.func, *m.args if m.args else (), **m.kwargs if m.kwargs else {}))
+                action: QtWidgets.QAction = getattr(self.ui, m.action)
+                action.triggered.connect(m.trigger)
             except AttributeError as e:
                 print(f"Skipping binding menu item due to error: {m}: {e}")

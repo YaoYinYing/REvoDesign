@@ -20,11 +20,9 @@ def _color_by_mutation(**kwargs):
         **kwargs: Parameters collected from the dialog.
     """
     if kwargs["obj1"] == kwargs["obj2"]:
-        notify_box(
-            "The two objects cannot be the same.",
-            issues.InvalidInputError,
-            details=f'obj1={kwargs["obj1"]}, obj2={kwargs["obj2"]}'
-
+        raise issues.InvalidInputError(
+            "The two objects cannot be the same. "
+            f'obj1={kwargs["obj1"]}, obj2={kwargs["obj2"]}'
         )
 
     shortcut_color_by_mutation(**kwargs)

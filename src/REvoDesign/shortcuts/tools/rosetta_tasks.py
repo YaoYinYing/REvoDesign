@@ -9,7 +9,7 @@ from pymol import cmd
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
                        RosettaScriptsVariableGroup)
 from RosettaPy.app.abc import RosettaAppBase
-from RosettaPy.app.fastrelax import FastRelax
+from RosettaPy.app.fastrelax import FastRelax as FastRelax_Original
 from RosettaPy.app.pross import PROSS as PROSS_Original
 from RosettaPy.app.rosettaligand import RosettaLigand as RosettaLigandOriginal
 from RosettaPy.node import NodeHintT
@@ -91,7 +91,7 @@ eprint = {https://academic.oup.com/bioinformatics/article-pdf/37/1/123/50321722/
     })
 
 
-class FastRelaxOpts(FastRelax, CitableModuleAbstract):
+class FastRelax(FastRelax_Original, CitableModuleAbstract):
 
     __bibtex__ = MutateRelax_worker.__bibtex__
 
@@ -261,7 +261,7 @@ def shortcut_fast_relax(
         relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
 ):
 
-    fast_relax = FastRelaxOpts(
+    fast_relax = FastRelax(
         pdb=pdb,
         relax_script=relax_script,
         dualspace=dualspace,

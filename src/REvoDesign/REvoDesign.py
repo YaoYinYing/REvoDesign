@@ -23,6 +23,7 @@ from REvoDesign import (ConfigBus, file_extensions, issues, reload_config_file,
 from REvoDesign.application.font import FontSetter
 from REvoDesign.application.i18n import LanguageSwitch
 from REvoDesign.application.icon import IconSetter
+from REvoDesign.application.menu import TOOLS_MENU_LINKS
 from REvoDesign.basic import MenuActionServerMonitor, MenuCollection, MenuItem
 from REvoDesign.bootstrap import EXPERIMENTS_CONFIG_DIR, REVODESIGN_CONFIG_FILE
 from REvoDesign.clients.QtSocketConnector import (REvoDesignWebSocketClient,
@@ -42,18 +43,6 @@ from REvoDesign.logger import ROOT_LOGGER, LoggerT
 from REvoDesign.phylogenetics import (GremlinAnalyser, MutateWorker,
                                       VisualizingWorker)
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
-# TODO: dynamic created menu item tree system
-# TODO: dont import first, use abs <module-path>.<func> to register.
-from REvoDesign.shortcuts.shortcuts_on_menu import (
-    menu_alterbox, menu_color_by_mutation, menu_color_by_plddt,
-    menu_dump_fasta_from_struct, menu_dump_sidechains, menu_esm1v,
-    menu_fast_relax, menu_general_rfdiffusion_task, menu_get_pca_box,
-    menu_getbox, menu_logger_level_setter, menu_profile_pick_design,
-    menu_pross, menu_pssm2csv, menu_real_sc, menu_relax_w_ca_constraints,
-    menu_resi_renumber, menu_rmhet, menu_rosettaligand,
-    menu_sdf2rosetta_params, menu_smiles_conformer_batch,
-    menu_smiles_conformer_single, menu_thermompnn,
-    menu_visualize_substrate_potentials)
 from REvoDesign.shortcuts.tools.openmm_utils import OpenmmSetupServerControl
 from REvoDesign.structure import PocketSearcher, SurfaceFinder
 from REvoDesign.tools.customized_widgets import (WorkerThread, decide,
@@ -83,6 +72,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
     def __init__(
         self,
     ):
+
         super().__init__()
         # global reference to avoid garbage collection of our dialog
         self.window = None
@@ -241,7 +231,6 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # ui_file=os.path.join(installed_dir, 'UI','REvoDesign.ui')
         # self.ui=loadUi(ui_file, main_window)
 
-
         # TODO: move tab config as a standalone setting ui widget
         self.ui = REvoDesignMainUI()
         self.ui.setupUi(main_window)
@@ -265,171 +254,71 @@ class REvoDesignPlugin(QtWidgets.QWidget):
         # TODO: need to be managed in menu tree system
         # TODO: issue: menu system translations
 
-        MenuCollection(
-            (
-                MenuItem(
-                    self.bus.ui.actionSet_Working_Directory,
-                    self.set_working_directory,
-                ),
-                MenuItem(
-                    self.bus.ui.actionReconfigure,
-                    self.reload_configurations,
-                ),
-                MenuItem(
-                    self.bus.ui.actionEdit_Configuration,
-                    menu_edit_file,
-                    kwargs={'file_path': REVODESIGN_CONFIG_FILE}
-                ),
-                MenuItem(
-                    self.bus.ui.actionSave_Configurations,
-                    self.save_configuration_from_ui,
-                    kwargs={'experiment': "global_config"}
-                ),
-                MenuItem(
-                    self.bus.ui.action_LoadExperiment,
-                    self.load_and_save_experiment,
-                    kwargs={'mode': "r"},
-                ),
-                MenuItem(
-                    self.bus.ui.action_Save_to_Experiment,
-                    self.load_and_save_experiment,
-                    kwargs={'mode': "w"},
-                ),
-                MenuItem(
-                    self.bus.ui.actionReinitialize,
-                    self.reinitialize,
-                    kwargs={'delete': True},
-                ),
-                MenuItem(
-                    self.bus.ui.actionAddEnvironVar,
-                    add_new_environment_variables,
-                ),
-                MenuItem(
-                    self.bus.ui.actionDropEnvironVar,
-                    drop_environment_variables,
-                ),
-                MenuItem(
-                    self.bus.ui.actionRenderPickedSidechainGroup,
-                    menu_dump_sidechains,
-                    kwargs={'dump_all': False},
-                ),
-                MenuItem(
-                    self.bus.ui.actionRenderAllSidechains,
-                    menu_dump_sidechains,
-                    kwargs={'dump_all': True},
-                ),
-                MenuItem(
-                    self.bus.ui.actionColor_by_pLDDT,
-                    menu_color_by_plddt
-                ),
-                MenuItem(
-                    self.bus.ui.actionShow_Real_Sidechain,
-                    menu_real_sc
-                ),
-                MenuItem(
-                    self.bus.ui.actionColor_by_Mutations,
-                    menu_color_by_mutation
-                ),
-                MenuItem(
-                    self.bus.ui.actionPSSM_to_CSV,
-                    menu_pssm2csv
-                ),
-                MenuItem(
-                    self.bus.ui.actionSMILES_Conformers,
-                    menu_smiles_conformer_single
-                ),
-                MenuItem(
-                    self.bus.ui.actionSMILES_Conformers_Batch,
-                    menu_smiles_conformer_batch
-                ),
-                MenuItem(
-                    self.bus.ui.actionSDF_to_Rosetta_Parameters,
-                    menu_sdf2rosetta_params
-                ),
-                MenuItem(
-                    self.bus.ui.actionRosettaLigand,
-                    menu_rosettaligand
-                ),
-                MenuItem(
-                    self.bus.ui.actionFastRelax,
-                    menu_fast_relax
-                ),
-                MenuItem(
-                    self.bus.ui.actionRelax_w_Ca_Constraints,
-                    menu_relax_w_ca_constraints
-                ),
-                MenuItem(
-                    self.bus.ui.actionThermoMPNN,
-                    menu_thermompnn
-                ),
-                MenuItem(
-                    self.bus.ui.actionESM_1v,
-                    menu_esm1v
-                ),
-                MenuItem(
-                    self.bus.ui.actionAlter_Box,
-                    menu_alterbox
-                ),
-                MenuItem(
-                    self.bus.ui.actionGet_PCA_Box,
-                    menu_get_pca_box
-                ),
-                MenuItem(
-                    self.bus.ui.actionGet_Box,
-                    menu_getbox
-                ),
-                MenuItem(
-                    self.bus.ui.actionRemove_Het_Atoms,
-                    menu_rmhet
-                ),
-                MenuItem(
-                    self.bus.ui.actionRFdiffusion_General_Task,
-                    menu_general_rfdiffusion_task
-                ),
-                MenuItem(
-                    self.bus.ui.actionSubstrate_Potential,
-                    menu_visualize_substrate_potentials
-                ),
+        MenuCollection(self.bus.ui,
+                       (
+                           MenuItem(
+                               'actionSet_Working_Directory',
+                               self.set_working_directory,
+                           ),
+                           MenuItem(
+                               'actionReconfigure',
+                               self.reload_configurations,
+                           ),
+                           MenuItem(
+                               'actionEdit_Configuration',
+                               menu_edit_file,
+                               kwargs={'file_path': REVODESIGN_CONFIG_FILE}
+                           ),
+                           MenuItem(
+                               'actionSave_Configurations',
+                               self.save_configuration_from_ui,
+                               kwargs={'experiment': "global_config"}
+                           ),
+                           MenuItem(
+                               'action_LoadExperiment',
+                               self.load_and_save_experiment,
+                               kwargs={'mode': "r"},
+                           ),
+                           MenuItem(
+                               'action_Save_to_Experiment',
+                               self.load_and_save_experiment,
+                               kwargs={'mode': "w"},
+                           ),
+                           MenuItem(
+                               'actionReinitialize',
+                               self.reinitialize,
+                               kwargs={'delete': True},
+                           ),
+                           MenuItem(
+                               'actionAddEnvironVar',
+                               add_new_environment_variables,
+                           ),
+                           MenuItem(
+                               'actionDropEnvironVar',
+                               drop_environment_variables,
+                           ),
+                           MenuItem(
+                               'actionSource_Code',
+                               QtGui.QDesktopServices.openUrl,
+                               (QtCore.QUrl(REPO_URL),)
+                           ),
+                           MenuItem(
+                               'actionVersion',
+                               notify_box,
+                               kwargs={'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
+                           ),
 
-                MenuItem(
-                    self.bus.ui.actionPROSS,
-                    menu_pross
-                ),
-                MenuItem(
-                    self.bus.ui.actionProfile_Design,
-                    menu_profile_pick_design
-                ),
-                MenuItem(
-                    self.bus.ui.actionRenumber_Residue_Index,
-                    menu_resi_renumber
-                ),
-                MenuItem(
-                    self.bus.ui.actionDump_Sequence,
-                    menu_dump_fasta_from_struct
-                ),
-                MenuItem(
-                    self.bus.ui.actionSource_Code,
-                    QtGui.QDesktopServices.openUrl,
-                    (QtCore.QUrl(REPO_URL),)
-                ),
-                MenuItem(
-                    self.bus.ui.actionVersion,
-                    notify_box,
-                    kwargs={'message': f"REvoDesign v.{REvoDesign.__version__}\nSrc: {REPO_URL}"}
-                ),
-                MenuItem(
-                    self.bus.ui.actionSetLogLevel,
-                    menu_logger_level_setter
-                ),
-            ),
-        )
+                       ),
+                       )
+        # TODO: dynamic created menu item tree system
+        MenuCollection(self.bus.ui, TOOLS_MENU_LINKS)
 
         # TODO: refactor needed
         # TODO: skip register if headless
         # TODO: atexit register
         # TODO: store to bus if not headless
         # TODO: move this to somewhere else
-        
+
         stores = StoresWidget()
 
         # TODO: need to be managed in menu tree system

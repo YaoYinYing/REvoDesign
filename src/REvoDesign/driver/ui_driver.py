@@ -418,7 +418,8 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         Returns:
             QtWidgets.QPushButton: Button object
         """
-        assert button_id in self.w2c.run_button_ids
+        if button_id not in self.w2c.run_button_ids:
+            raise issues.UnknownWidgetError(f'Button ID not found: {button_id}')
         return self.w2c.push_buttons.get(button_id)
 
     @require_non_headless
@@ -432,9 +433,12 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             tuple[QtWidgets.QPushButton]: Button objects in the same order as
                 the given IDs.
         """
-        assert all(
-            button_id in self.w2c.run_button_ids for button_id in button_ids
-        )
+        if any(
+            button_id not in self.w2c.run_button_ids for button_id in button_ids
+        ):
+            raise issues.UnknownWidgetError(
+                f"Unknown button IDs: {', '.join(button_id for button_id in button_ids)}"
+            )
         return tuple(
             self.w2c.push_buttons.get(button_id) for button_id in button_ids
         )

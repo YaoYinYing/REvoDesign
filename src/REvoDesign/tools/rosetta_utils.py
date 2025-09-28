@@ -292,6 +292,8 @@ abstract = {We have recently completed a full rearchitecturing of the Rosetta mo
 }
 
 # TODO: refactor as general citation merging function
+
+
 def copy_rosetta_citation(citetation: dict[str, Union[str, tuple]]) -> dict[str, Union[str, tuple]]:
     """
     Copy Rosetta citation information and update with custom citation content

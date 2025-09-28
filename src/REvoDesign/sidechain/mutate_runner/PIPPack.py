@@ -1,5 +1,9 @@
 '''
 Wrapper of PIPPack
+
+TODO:
+known issue:
+    - when running with xtal structure, missing residues are not counted
 '''
 import os
 from typing import List, Tuple

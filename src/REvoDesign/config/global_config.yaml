@@ -8,7 +8,7 @@ work_dir: '.'
 
 ui:
   header_panel: 
-    input: 
+    input: # TODO: move to a separate config file `runtime`
       molecule: ''
       chain_id: ''
     cmap: 
@@ -132,8 +132,8 @@ ui:
   config: 
     sidechain_solver:
       use: "Dunbrack Rotamer Library"
-      model: ''
-      repack_radius: 0.0
+      model: '' # TODO: deprecated
+      repack_radius: 0.0 # TODO: deprecated
 
 editor:
   backend:
@@ -146,6 +146,10 @@ editor:
     html_dir: 
   token:
 
+# for deep learning frameworks like pytorch, tensorflow, etc.
+# unified device setting across all deep learning frameworks
+accelerator: cpu
+
 # TODO: config setting triggers
 config_settings:
   auto_save: False
@@ -157,6 +161,7 @@ rosetta:
 
   opts: 
     general: -ignore_unrecognized_res # -extra_res_fa XXX
+    extra_res: # TODO: window pop
 
   cart_ddg:
     use_legacy: False
@@ -164,7 +169,7 @@ rosetta:
       nstruct: 4
     iterations: 3
 
-# TODO: move to a separate config file
+# TODO: move to a separate config file `openmm`
 openmmsetup:
   host: '127.0.0.1'
   port: 5050
@@ -173,11 +178,12 @@ openmmsetup:
 # register all variables here
 # TODO: dynamic variables loading and saving
 # TODO: load preset variables on bootstrap
+# TODO: move to a separate config file `environ`
 environment:
   variables:
     # ROSETTA_BIN: /Users/yyy/rosetta/rosetta_binary/rosetta.source.release-371/main/source/bin/
 
-# TODO: move to a separate config file
+# TODO: move to a separate config file `logger`
 log:
   version: 1
   disable_existing_loggers: true
@@ -231,4 +237,5 @@ cache_dir:
   under_home_dir: True
   customized: 
 
+# TODO: move to a separate config file `runtime`
 designable_sequences: 

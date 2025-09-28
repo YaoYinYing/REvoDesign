@@ -1,8 +1,10 @@
 # Build, package, test, and clean
 PROJECT=REvoDesign
 
-PIP_EXTRAS=dlpacker,pippack,colabdesign,thermompnn,test
-PIP_EXTRAS_2=rfdiffusion_cpu,esm2
+# basic extras for ci
+PIP_EXTRAS_BASIC=dlpacker,pippack,colabdesign,thermompnn,test
+# additional extras for ci in Ubuntu
+PIP_EXTRAS_OPTIONAL=rfdiffusion_cpu,esm2
 
 
 TESTDIR=tmp-test-dir-with-unique-name
@@ -34,13 +36,13 @@ help:
 	@echo "Commands:"
 	@echo ""
 	@echo "  help                   Print this message and exit"
-	@echo "  build                  Build source and wheel distributions"
 	@echo "  setup-display-gha      Setup ubuntu display for GitHub Actions and CircleCI"
-	@echo "  setup-display          Setup ubuntu display for CircleCI, retired"
 	@echo "  upload-gists           Upload Gist files"
 	@echo "  install                Install from pip "
 	@echo "  install-no-dept        Install from pip, no dependencies"
 	@echo "  install-pytorch-cpu    Install torch-cpu for ci runner image"
+	@echo "  install-dgl-linux      Install DGL(<=2.4.0) for Ubuntu"
+	@echo "  install-dgl-win        Install DGL(<=2.2.1) for Windows and macOS"
 	@echo "  reinstall              Reinstall after code changes"
 	@echo "  translate              Translate UI"
 	@echo "  prepare-test           Run pip to install pytest-related packages"
@@ -52,7 +54,6 @@ help:
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
 	@echo "  memray                 Memoray profile for leakage, saved as html file"
 	@echo "  memray-live            Memoray profile for leakage in live mode"
-	@echo "  format                 Automatically format the code"
 	@echo "  tag                    Bump a new tag from package version to github tag"
 	@echo "  black                  Reformat the code with pre-commit hook"
 	@echo "  reverse                Run pyreverse for package and methods and create SVGs"
@@ -61,18 +62,10 @@ help:
 	@echo "  clean                  Clean up build and generated files" 
 	@echo ""
 
-build:
-	python -m build .
 
 setup-display-gha:
 	sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
 	/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
-
-# old setup for circleci
-setup-display:
-	Xvfb :99 -screen 0 1280x1024x24 &
-	fluxbox &
-	sleep 3
 
 upload-gists:
 	# installer
@@ -85,11 +78,15 @@ upload-gists:
 
 # only for test on runner or local machine.
 install:
-	python -m pip install ".[$(PIP_EXTRAS)]" -U --no-cache-dir
-	python -m pip install ".[$(PIP_EXTRAS_2)]" -U --no-cache-dir
+	python -m pip install ".[$(PIP_EXTRAS_BASIC)]" -U --no-cache-dir
+	python -m pip install ".[$(PIP_EXTRAS_OPTIONAL)]" -U --no-cache-dir || echo Extras "$(PIP_EXTRAS_OPTIONAL)" is not installed.
 
 install-dgl-linux:
-	python -m pip install dgl -f https://data.dgl.ai/wheels/torch-2.3/repo.html
+	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html
+
+# this also works with macos
+install-dgl-win:
+	python -m pip install  dgl -f https://data.dgl.ai/wheels/repo.html
 
 # only for test on ci runner or local machine that already have all depencies installed.
 install-no-dept:
@@ -189,25 +186,20 @@ macos-rosetta-test:
 memray:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH)/tabs/;  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
+	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --native -m pytest  $(PYTEST_CASES_PATH);  memray flamegraph --leak --split-threads --temporal `ls memray-pytest.*.bin`  
 
 
 memray-live:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
-	cd $(TESTDIR);memray run --live -m pytest  $(PYTEST_CASES_PATH)/tabs/;
+	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --live -m pytest  $(PYTEST_CASES_PATH)/;
 
-format: license-update black
 
 tag:
 	bash tools/release_tag.sh
 
 black:
 	pre-commit run --all-files
-
-reverse-class:
-	mkdir -p $(PYREVERSE_DIR)
-	cd $(PYREVERSE_DIR); pyreverse $(PROJECT) $(PYREVERSE_CLASS_OPT) --class $(class); dot $(PYREVERSE_DOT_OPTS) -Tsvg $(class).dot > $(class).svg
 
 reverse:
 	mkdir -p $(PYREVERSE_DIR)
@@ -219,10 +211,6 @@ license-update:
 
 license-check:
 	python tools/license_notice.py --check
-
-
-
-
 
 clean:
 	find . -name "*.pyc" -exec rm -v {} \;

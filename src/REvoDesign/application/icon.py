@@ -4,14 +4,13 @@ This module contains the icon setter class.
 import os
 import platform
 
-from REvoDesign.Qt import QtGui
+from REvoDesign.Qt import QtGui, QtWidgets
 
 
 class IconSetter:
-    def __init__(self, main_window):
+    def __init__(self, main_window: QtWidgets.QWidget):
         installed_dir = os.path.join(
             os.path.dirname(__file__),
-            "..",
             "..",
         )
         icon_path = os.path.join(

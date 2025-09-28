@@ -479,6 +479,11 @@ def task_dashboard():
             walltime = get_task_walltime(
                 submitted_time=submitted_time, finished_time=finished_time
             )
+            with open(os.path.join(UPLOAD_FOLDER, fasta_fn)) as f:
+                try:
+                    fasta_seq = f.read().strip()
+                except UnicodeDecodeError as e:
+                    fasta_seq = f"Unable to decode sequence: {e}"
 
             task_statuses.append(
                 {
@@ -492,9 +497,7 @@ def task_dashboard():
                     else "-",
                     "walltime": int(walltime) if status == "finished" else "-",
                     "submitted_timestamp": submitted_time,
-                    "sequence": open(os.path.join(UPLOAD_FOLDER, fasta_fn))
-                    .read()
-                    .strip(),
+                    "sequence": fasta_seq,
                 }
             )
             i += 1

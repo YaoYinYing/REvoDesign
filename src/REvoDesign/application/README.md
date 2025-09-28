@@ -1,0 +1,1 @@
+This module stores the Qt Application settings.

@@ -3,12 +3,12 @@ Orphaneous functions for REvoDesign
 '''
 
 import contextlib
+import importlib
 import itertools
 import random
 import string
 import tarfile
 import time
-import warnings
 import zipfile
 from functools import wraps
 from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
@@ -39,6 +39,46 @@ pairwise: Callable[[Iterable], Iterable[Tuple]] = _pairwise
 logging = ROOT_LOGGER.getChild(__name__)
 
 
+def resolve_dotted_function(dotted_str: str) -> Callable:
+    """
+    Resolves a dotted string into a callable Python object (function or method).
+
+    The input string must follow one of these formats:
+
+    - `<module_path>:<function_name>` (for module-level functions)
+      Example: `"my_module.submodule:my_function"`
+
+    - `<module_path>:<class_name>.<method_name>` (for class methods)
+      Example: `"my_module.submodule:MyClass.my_method"`
+
+    Args:
+        dotted_str (str): A string representing the fully qualified path to a callable.
+
+    Returns:
+        Callable: The resolved callable function or method.
+
+    Raises:
+        issues.InvalidInputError: If the string does not contain a colon (`:`) or does not follow the expected format.
+        AttributeError: If the specified module, class, or function does not exist.
+    """
+    if ":" not in dotted_str:
+        raise issues.InvalidInputError(
+            'dotted function expect an input string in pattern <import-path>:(<class>.)<function>',
+            f'not `{dotted_str}`'
+        )
+    module_path, func_name = dotted_str.rsplit(":", 1)
+    module = importlib.import_module(module_path)
+    if "." not in func_name:
+        logging.debug(f'Dotted function resolving `{func_name}` from {module}')
+        return getattr(module, func_name)
+    # maybe a class method?
+
+    _class_name, _func_name = func_name.rsplit(".")
+    logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
+    _class = getattr(module, _class_name)
+    return getattr(_class, _func_name)
+
+
 def pairwise_loop(iterable: Iterable):
     """
     Generate a looped pairwise iterable from the input iterable.
@@ -61,6 +101,7 @@ def pairwise_loop(iterable: Iterable):
         return []
     # Add the first element to the end of the list to form a loop structure and generate pairwise combinations
     return pairwise(seq + [seq[0]])
+
 
 # a slice of arguments to be passed to a class
 CLASS_ARGSLICE = slice(1, None)
@@ -300,13 +341,10 @@ def cmap_reverser(cmap: str, reverse: bool = False) -> str:
     Returns:
     - str: Reversed colormap name if 'reverse' is True, otherwise returns the original colormap name.
     """
-    if reverse:
-        if cmap.endswith("_r"):
-            cmap = cmap.replace("_r", "")
-        else:
-            cmap += "_r"
+    if not reverse:
+        return cmap
 
-    return cmap
+    return cmap.replace("_r", "") if cmap.endswith("_r") else cmap + "_r"
 
 
 def rescale_number(
@@ -435,6 +473,8 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
         logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
 
 # TODO: support JAX and TensorFlow; need refactor
+
+
 def device_picker() -> List[str]:
     """
     Detects and returns a list of available devices for deep learning frameworks.

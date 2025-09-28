@@ -26,8 +26,7 @@ from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
 
 from .package_manager import (WorkerThread, decide, hold_trigger_button,
-                              notify_box, refresh_window,
-                              run_worker_thread_with_progress)
+                              notify_box, refresh_window)
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -44,6 +43,26 @@ class ImageWidget(QtWidgets.QWidget):
         painter = QtGui.QPainter(self)
         image = QtGui.QImage(self.image_path)
         painter.drawImage(self.rect(), image)
+
+
+def pick_color(
+        parent: QtWidgets.QWidget,
+        init_color: Optional[str] = "",
+        disable_native_picker: bool = False,
+        alpha: bool = False) -> Optional[str]:
+
+    opts = QtWidgets.QColorDialog.ColorDialogOption()
+    if disable_native_picker:
+        opts |= QtWidgets.QColorDialog.ColorDialogOption.DontUseNativeDialog
+    if alpha:
+        opts |= QtWidgets.QColorDialog.ColorDialogOption.ShowAlphaChannel
+
+    color = QtWidgets.QColorDialog.getColor(QtGui.QColor(init_color or "#2f6e36"), parent, options=opts)  # type: ignore
+
+    if color.isValid():
+        print(f"Selected Color: {color.name()}")
+        return color.name()
+
 # Class REvoDesignWidget
 # This class represents a custom widget in the REvoDesign application. It inherits from QtWidgets.QWidget.
 # The widget can be named and optionally allows multiple instances with the same name.
@@ -99,10 +118,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
             a0 (QCloseEvent): The close event object.
         """
         logging.debug(f"[closeEvent] Window {self.objectName()} closing...")
-        try:
-            self.detach()
-        except Exception as e:
-            logging.warning(e)
+        self.detach()
         return super().closeEvent(a0)
 
     def show(self):
@@ -111,17 +127,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
         """
         super().show()
         self.attach()
-
-    def close(self):
-        """
-        Closes the widget and detaches it from the UI bus.
-
-        Returns:
-            bool: True if the widget was closed successfully, False otherwise.
-        """
-        logging.debug(f"[close] Window {self.objectName()} closing...")
-        self.detach()
-        return super().close()
 
     def check_repeat(self):
         """
@@ -153,12 +158,14 @@ class REvoDesignWidget(QtWidgets.QWidget):
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
-            return
+            raise issues.UnexpectedWorkflowError("Attaching window in headless mode is not allowed.")
+
         logging.debug(f"Window {self.objectName()} attaching...")
 
         # Ensure the open_windows list exists and add this widget to it
         if not hasattr(bus.ui, 'open_windows'):
-            bus.ui.open_windows = []
+            logging.debug(f"Creating open_windows list under ui for {self.objectName()}")
+            setattr(bus.ui, 'open_windows', [])
         bus.ui.open_windows.append(self)
         logging.debug(f'Window {self.objectName()} attached.')
 
@@ -169,12 +176,16 @@ class REvoDesignWidget(QtWidgets.QWidget):
         from REvoDesign.driver.ui_driver import ConfigBus
         bus = ConfigBus()
         if bus.headless:
-            return
+            raise issues.UnexpectedWorkflowError("Detaching window in headless mode is not allowed.")
+
         logging.debug(f"Window {self.objectName()} detaching...")
 
         # Remove this widget from the open_windows list if it exists
         if hasattr(bus.ui, 'open_windows') and self in bus.ui.open_windows:
             bus.ui.open_windows.remove(self)
+            if bus.ui.open_windows == []:
+                delattr(bus.ui, 'open_windows')
+                logging.debug('Empty open_windows list from ui is deleted.')
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
 
 
@@ -860,7 +871,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
 
 
 def getExistingDirectory():
-    return QtWidgets.QFileDialog.getExistingDirectory( 
+    return QtWidgets.QFileDialog.getExistingDirectory(
         None,
         "Open Directory",
         os.path.expanduser("~"),
@@ -1256,7 +1267,7 @@ class QtParallelExecutor(QtCore.QThread):
         args,
         n_jobs,
         backend="auto",
-        verbose:bool=False,
+        verbose: bool = False,
     ):
         super().__init__()
         self.func = func
@@ -1410,7 +1421,7 @@ class AskedValue:
     reason: Optional[str] = None
     required: bool = False
     choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
-    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput"] = "None"
+    source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"] = "None"
     ext: Optional[FExCol] = None
     multiple_choices: bool = False
 
@@ -1713,7 +1724,8 @@ class ValueDialog(REvoDesignWidget):
             # filter and generator should be deepcopied to avoid side effects
             choices = tuple(choices) if not isinstance(choices, filter) else tuple(deepcopy(choices))
             if not choices:
-                raise issues.InternalError(f"Drop-down field must have a valid choices, not {choices}")
+                raise issues.InternalError(
+                    f"Drop-down field must have a valid choices, not {choices}. Asked by: {asked_value}")
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
@@ -1756,6 +1768,15 @@ class ValueDialog(REvoDesignWidget):
             action_button = QtWidgets.QPushButton("Browse")
             action_button.setToolTip("Browse for a directory")
             action_button.clicked.connect(lambda: widget.setText(getExistingDirectory()))
+            self.table.setCellWidget(row, 3, action_button)
+        elif asked_value.source == "ColorPicker":
+            action_button = QtWidgets.QPushButton("Pick Color")
+            action_button.setToolTip("Pick a color and return it as a hexadecimal string")
+            action_button.clicked.connect(
+                lambda: widget.setText(
+                    pick_color(
+                        widget,
+                        widget.text() or "") or widget.text() or ""))
             self.table.setCellWidget(row, 3, action_button)
         elif asked_value.source == "JsonInput":
             # Create a container widget for the layout
@@ -2196,6 +2217,7 @@ def dialog_wrapper(
                 func(**values.typing_fixed.asdict)
 
             dialog.ok_signal.connect(set_values)
+            logging.debug(f"Dialog is ready: {dialog}")
 
             dialog.show()
 

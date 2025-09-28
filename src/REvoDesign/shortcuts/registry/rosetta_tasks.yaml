@@ -58,7 +58,7 @@ rosettaligand:
       type: str
       default: ""
       reason: "Startpoint selection from XYZ coordinates."
-      choices_from: "REvoDesign.shortcuts.dialog_hooks.get_selections"
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_selections"
 
 pross:
   title: "PROSS design"
@@ -114,7 +114,7 @@ fast_relax:
     - name: "relax_script"
       type: str
       reason: "Name of the fastrelax script."
-      choices_from: "REvoDesign.tools.rosetta_utils.list_fastrelax_scripts"
+      choices_from: "REvoDesign.tools.rosetta_utils:list_fastrelax_scripts"
       default: "MonomerRelax2019"
       required: true
     - name: "dualspace"
