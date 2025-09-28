@@ -193,8 +193,9 @@ def resolve_extension(extension: str) -> FileExtensionCollection:
         Given input `"pdb;csv"`, this will generate:
         {'pdb': 'PDB File', 'csv': 'CSV File'} under a custom prefix.
     """
-    if hasattr(FileExtension, extension):
-        return getattr(FileExtension, extension)
+    from REvoDesign.common import file_extensions
+    if hasattr(file_extensions, extension):
+        return getattr(file_extensions, extension)
 
     ext_dict = {_e.lower(): f'{_e.upper()} File' for _e in extension.split(';')}
     return FileExtensionCollection.from_dict(ext_dict, prefix='Customized - ')
