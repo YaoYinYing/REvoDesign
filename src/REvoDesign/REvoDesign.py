@@ -62,7 +62,7 @@ from REvoDesign.tools.utils import (generate_strong_password, require_not_none,
                                     run_worker_thread_with_progress, timing)
 from REvoDesign.UI import Ui_REvoDesignPyMOL_UI as REvoDesignMainUI
 
-REPO_URL = "https://github.com/YaoYinYing/REvoDesign"
+REPO_URL = "https://gitlab.igem.org/2025/software-tools/ynnu-china"
 
 # only when the window is activated by user can this logger be initialized.
 logging: LoggerT = None  # type: ignore

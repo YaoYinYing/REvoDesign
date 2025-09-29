@@ -60,7 +60,7 @@ dependencies = [
 colabdesign = [
     "colabdesign @ git+https://github.com/sokrypton/ColabDesign.git@v1.1.3#egg=colabdesign",
     "jax<0.6.0,>=0.4.25",
-    "dm_haiku<=0.0.14",
+    "dm_haiku<=0.0.14"
 ]
 
 pippack = [
@@ -189,9 +189,9 @@ test = [
 
 
 [project.urls]
-Documentation = "https://github.com/YaoYinYing/REvoDesign/tree/main#readme"
-Source = "https://github.com/YaoYinYing/REvoDesign"
-Tracker = "https://github.com/YaoYinYing/REvoDesign/issues"
+Documentation = "https://gitlab.igem.org/2025/software-tools/ynnu-china"
+Source = "https://gitlab.igem.org/2025/software-tools/ynnu-china"
+Tracker = "https://gitlab.igem.org/2025/software-tools/ynnu-china/-/issues"
 
 
 [tool.flit.module]

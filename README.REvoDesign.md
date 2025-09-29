@@ -1,0 +1,220 @@
+# REvoDesign
+
+![portrait](https://raw.githubusercontent.com/YaoYinYing/artworks/main/DALL%C2%B7E%202024-01-22%2018.09.07%20-%20A%20sleek%20logo%20design%20with%20a%20human%20pilot%20dressed%20in%20yellow-pink%20uniform%20and%20a%20robot%20co-pilot%20in%20blue%2C%20both%20exhibiting%20friendly%20smiles.%20Abstract%20style.%20T.png)
+
+---
+
+## Platforms supported
+
+![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-blue?logo=microsoft&color=blue&logoColor=blue)
+![macOS](https://img.shields.io/badge/macOS-%3E=12,%3C26-silver?logo=apple)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-orange?logo=ubuntu)
+![architecture](https://img.shields.io/badge/Architecture-win--64%20%7C%20linux--64%20%7C%20osx--64%20%7C%20osx--arm64-6A5FBB)
+![python-version](https://img.shields.io/badge/Python-3.9_%7C_3.10_%7C_3.11_%7C_3.12-3776AB?logo=python&logoColor=yellow)
+[![pymol-bundle](https://tinyurl.com/pymol-bundle)](https://pymol.org/2/)
+[![pymol-bundle-v3](https://tinyurl.com/pymol-bundle-v3)](https://pymol.org/)
+[![pymol-open-source](https://tinyurl.com/pymol-open-source)](https://anaconda.org/conda-forge/pymol-open-source)
+![pyqt](https://img.shields.io/badge/PyQt-5-41CD52?logo=qt)
+[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+
+---
+
+## CI Status
+
+
+## Docker images
+
+[![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin)
+
+## Code checkings
+
+[![pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/REvoDesign/pylint/pylint_scan.svg)](https://github.com/Silleellie/pylint-github-action)
+[![Maintainability](https://qlty.sh/badges/8a669407-26a2-45aa-8323-b5567c391cbf/maintainability.svg)](https://qlty.sh/gh/YaoYinYing/projects/REvoDesign)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/3583a7e4923d4116931fcbab21492f21)](https://app.codacy.com?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
+
+---
+
+## Introduction
+
+Welcome to **REvoDesign** - a PyMOL plugin that makes enzyme redesign tasks easier for everyone. **REvoDesign** aims at facilitating enzyme redesign using a combination of structural and phylogenetic information, serving as a co-pilot for protein designers and leveraging the wealth of human knowledge in enzyme design.
+
+### About the Plugin
+
+Enzyme redesign is a complex task that requires a deep understanding of protein structures, substrate binding sites, and evolutionary relationships. **REvoDesign** Toolkit is designed to streamline this process by offering a range of tools and functionalities to assist protein designers in their endeavors.
+
+---
+
+### Basic Architecture Design
+
+![software design](https://github-image-cache.yaoyy.moe/2024/04/9593eb8fc02494a9d2327e82eb52de0e.jpg)
+
+### Key Features
+
+In brief, the **REvoDesign** PyMOL plugin provides a set of essential tools to help protein designers with the following tasks:
+
+1. **Surface Residue Analysis**: Identify surface residues exposed as solvent-accessible surface area (SASA) and design pocket identification based on substrates and/or cofactors, with customizable cutoffs.
+
+2. **Mutant Loading**: Load available designable mutants through a PSSM-like table in CSV format, allowing for customizable rejections and preferences.
+
+3. **Human Knowledge Supervision**: Perform human knowledge-supervised mutant selection within the PyMOL interface, utilizing structural views.
+
+4. **Scale Reduction**: Reduce the scale of your design, making it suitable for low-throughput wet-lab validation by leveraging sequence clustering.
+
+5. **Visualization**: Visualize mutant tables in PyMOL, whether they have been scored or not.
+
+6. **Co-Evolution Analysis**: Search for possible inter-residue co-evolved residue pairs for effective mutants using the GREMLIN Markov random field profile.
+
+**REvoDesign** is your indispensable companion in the intricate journey of enzyme redesign. Whether you are a seasoned protein designer or just beginning your exploration, **REvoDesign** Toolkit is here to simplify your workflow and enhance your enzyme engineering endeavors.
+
+Please refer to the [documentation(WIP)](link_to_documentation) for detailed instructions on how to use the toolkit and make the most of its features.
+
+---
+
+## Installation
+
+**REvoDesign** offers a user-friendly installation process using a graphical user interface (GUI).
+
+### Step 1: Install the REvoDesign Package Manager
+
+Before installing the main program, you need to install the REvoDesign Package Manager as a PyMOL plugin.
+
+1. Open PyMOL.
+2. Navigate to **Plugin > Plugin Manager** and select **Install New Plugin**.
+3. Choose **Install from PyMOLWiki or any URL**.
+4. Paste the following URL:
+
+   ```text
+   https://gitlab.igem.org/2025/software-tools/ynnu-china/-/raw/main/package-manager/REvoDesign_PyMOL.py
+   ```
+
+5. Click **Fetch**.
+
+   ![Install from URL](https://static.igem.wiki/teams/5915/software-repo/install-pm-url.webp)
+
+6. Confirm the installation when prompted.
+
+   ![Proceed Installation](https://static.igem.wiki/teams/5915/software-repo/install-pm-confirm.webp)
+
+7. Set the installation location (use the default if unsure) and click **OK**.
+
+   ![Setup Location](https://static.igem.wiki/teams/5915/software-repo/install-pm-setloc.webp)
+
+Once installed, the REvoDesign Package Manager will appear in the PyMOL menu.
+
+![REvoDesign Package Manager](https://static.igem.wiki/teams/5915/software-repo/pm-entry.webp)
+
+---
+
+### Step 2: Install the Main Program
+
+The REvoDesign Package Manager simplifies the installation of the core **REvoDesign** program. It supports various installation methods and configurations:
+
+#### Features
+
+- **Installation Sources:**
+  - **Repository:** Install directly from the remote repository.
+  - **Local clone/directory:** Install from a local source code or cloned repository.
+  - **Local file:** Install from a `.zip` or `.tar.gz` archive.
+- **Options:**
+  - **Upgrade:** Update to the latest release version.
+  - **Verbose:** Show detailed installation logs.
+  - **Version/Commit:** Install a specific version or commit from the repository.
+- **Network Control:**
+  - **Proxy Support:** Configure HTTP, HTTPS, SOCKS5, or SOCKS5h proxies.
+  - **Mirror:** Use a PyPI mirror for installations.
+- **Extras:**
+  - **Basic:** Default installation.
+  - **Customized:** Select additional features.
+  - **Everything:** Install all extras (excluding test packages).
+- **Cache:** Choose a custom cache directory or use the default.
+- **Self-Upgrades:** Upgrade the package manager and UI directly.
+
+---
+
+#### Installation Methods
+
+1. **Remote Repository:**
+   Select **Repository** and click **Install**. It's recommended for iGEMers to use this method.
+
+2. **Local Clone:**
+   Use **Local clone** to install from a local repository or unzipped source code.
+
+   ![Local Clone](https://static.igem.wiki/teams/5915/software-repo/from-local.webp)
+
+3. **Local File:**
+   Select **Local file** to install from a `.zip` or `.tar.gz` file.
+
+   ![Local File](https://static.igem.wiki/teams/5915/software-repo/from-local-file.webp)
+
+4. **Specific Version/Commit:**
+   Check **Version** or **Commit** to install a specific release.
+
+   ![Version/Commit](https://static.igem.wiki/teams/5915/software-repo/from-commit.webp)
+
+5. **Customized/Extras:**
+   Use **Customized** to select specific features or **Everything** for a full installation.
+
+   ![Install with Extras](https://static.igem.wiki/teams/5915/software-repo/use-extras.webp)
+
+---
+
+#### Uninstallation
+
+Use the **Remove** button in the manager to uninstall. You can also remove selected extras.
+
+---
+
+#### Network Settings
+
+Set up proxies and mirrors to bypass network restrictions. For example, create a SOCKS5 proxy using SSH:
+
+```bash
+ssh -D 7899 -C root@<your.vps.ip> -p<ssh-port>
+```
+
+Configure the proxy in the manager:
+
+![Proxy Configuration](https://static.igem.wiki/teams/5915/software-repo/set-proxy.webp)
+
+---
+
+#### Self-Upgrades
+
+Right-click any non-editing area of the manager and select **Upgrade this manager** to fetch the latest version.
+
+![Self Upgrade](https://static.igem.wiki/teams/5915/software-repo/selfup.webp)
+
+After confirming, the script will replace the existing manager with the updated version.
+
+![Upgrade Confirmation](https://static.igem.wiki/teams/5915/software-repo/selfup-confirm.webp)
+
+---
+
+You are now ready to use **REvoDesign** for your enzyme redesign projects!
+
+**Extras table**
+
+You will see the full extras table in the package manager.
+
+> [!WARNING]
+> ColabDesign uses Jax, which requires **Python >= 3.9**
+
+> [!IMPORTANT]
+> Please make sure that modern PyMOL version is fetched from [pymol-open-source](https://github.com/schrodinger/pymol-open-source) channel, instead of obsolete PyMOL bundle (_< v2.5.7_, shipped with **Python 3.7**) from [offical website](https://pymol.org/) or [schrodinger's conda channel](https://anaconda.org/schrodinger/pymol-bundle).
+
+> [!IMPORTANT]
+> ALSO, for MacOS users work with **Apple Silicon** and PyMOL bundle >2.5.7, `jaxlib` builded with `AVX` will not work under `Rosetta-2` translation.
+> Please consider using native build of `pymol-open-source` or building `jaxlib` from source.
+
+**Doc**: [Building jaxlib from source](https://jax.readthedocs.io/en/latest/developer.html#building-jaxlib-from-source)
+
+**Issue**: [CPU Support / Necessary AVX Instructions](https://github.com/google/jax/discussions/11436#discussioncomment-3121063)
+
+## Usage
+Please check the documentation for detailed usage instructions.
+
+--- 
+
+
+Happy enzyme redesigning with **REvoDesign**! If you encounter any issues during installation or usage, please consult the documentation or seek assistance from **REvoDesign** toolkit's support resources.

@@ -6,7 +6,6 @@ PIP_EXTRAS_BASIC=dlpacker,pippack,colabdesign,thermompnn,test
 # additional extras for ci in Ubuntu
 PIP_EXTRAS_OPTIONAL=rfdiffusion_cpu,esm2
 
-
 TESTDIR=tmp-test-dir-with-unique-name
 PYTEST_ARGS=--cov-config=../.coveragerc --cov-report=term-missing --cov=$(PROJECT) -v --pyargs --durations=0 -vv --emoji
 PYTEST_CASES_PATH=../tests
@@ -37,7 +36,6 @@ help:
 	@echo ""
 	@echo "  help                   Print this message and exit"
 	@echo "  setup-display-gha      Setup ubuntu display for GitHub Actions and CircleCI"
-	@echo "  upload-gists           Upload Gist files"
 	@echo "  install                Install from pip "
 	@echo "  install-no-dept        Install from pip, no dependencies"
 	@echo "  install-pytorch-cpu    Install torch-cpu for ci runner image"
@@ -54,7 +52,6 @@ help:
 	@echo "  macos-rosetta-test     Run UI tests versus PyMOL incentive installation (MacOS Application)"
 	@echo "  memray                 Memoray profile for leakage, saved as html file"
 	@echo "  memray-live            Memoray profile for leakage in live mode"
-	@echo "  tag                    Bump a new tag from package version to github tag"
 	@echo "  black                  Reformat the code with pre-commit hook"
 	@echo "  reverse                Run pyreverse for package and methods and create SVGs"
 	@echo "  license-update         License updates for all files"
@@ -67,13 +64,6 @@ setup-display-gha:
 	sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
 	/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
 
-upload-gists:
-	# installer
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign_PyMOL.py src/REvoDesign/tools/package_manager.py
-	# installer ui
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesign-PyMOL-entry.ui src/REvoDesign/UI/REvoDesign-PyMOL-entry.ui
-	# JSONs for installer
-	gh gist edit c1e8bfe0fc0b9c60bf49ea04a550a044 -f REvoDesignExtrasTableRich.json jsons/REvoDesignExtrasTableRich.json
 
 
 # only for test on runner or local machine.
@@ -120,7 +110,6 @@ test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)/UnitTests.py
-
 
 
 # ui test with pymol
@@ -194,9 +183,6 @@ memray-live:
 	mkdir -p $(TESTDIR)
 	cd $(TESTDIR);PYTHONMALLOC=malloc memray run --live -m pytest  $(PYTEST_CASES_PATH)/;
 
-
-tag:
-	bash tools/release_tag.sh
 
 black:
 	pre-commit run --all-files
