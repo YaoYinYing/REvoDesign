@@ -21,37 +21,38 @@ jobs:
       matrix:
         os: 
           - ubuntu-latest
-        conda-channel:
-          - -c conda-forge
-        pymol-version:
-          - "pymol-open-source"
-        pymol-tag:
-          - 'latest pymol open source'
         python-version: 
           - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
+        pymol-tag:
+          - 'latest pymol open source'
+        conda-channel:
+          - -c conda-forge
+        pymol-version:
+          - "pymol-open-source"
+
         include:
           # windows
           # - os: windows-latest
           #   python-version: "3.11"
+          #   pymol-tag: 'latest pymol open source'
           #   conda-channel: -c conda-forge
           #   pymol-version: "pymol-open-source"
-          #   pymol-tag: 'latest pymol open source'
 
           # macos latest, latest pymol open source and py312
           # - os: macos-15
           #   python-version: "3.12"
-          #   pymol-version: "pymol-open-source"
           #   pymol-tag: 'latest pymol open source'
+          #   pymol-version: "pymol-open-source"
           #   conda-channel: -c conda-forge
 
           # # macos tahoe, latest pymol open source and py312
           # - os: macos-26
           #   python-version: "3.12"
-          #   pymol-version: "pymol-open-source"
           #   pymol-tag: 'latest pymol open source'
+          #   pymol-version: "pymol-open-source"
           #   conda-channel: -c conda-forge
 
 
@@ -59,32 +60,32 @@ jobs:
           # not available for private repos
           # - os: ubuntu-24.04-arm
           #   python-version: "3.12"
-          #   pymol-version: "pymol-open-source"
           #   pymol-tag: 'latest pymol open source'
+          #   pymol-version: "pymol-open-source"
           #   conda-channel: -c conda-forge
           
           # latest bundled pymol 
           - os: ubuntu-latest
             python-version: "3.10"
-            pymol-version: "pymol-bundle"
             pymol-tag: 'latest pymol bundle'
+            pymol-version: "pymol-bundle"
             conda-channel: -c schrodinger -c conda-forge
           
           # pymol-open-source, v2
           - os: ubuntu-latest
             python-version: "3.10"
+            pymol-tag: 'legacy (v2) pymol open source'
             pymol-version: "pymol-open-source<3"
             conda-channel: -c conda-forge
-            pymol-tag:
-              - 'legacy (v2) pymol open source'
+            
 
           # bundled pymol, v2
           - os: ubuntu-latest
             python-version: "3.10"
+            pymol-tag: 'legacy (v2) pymol bundle'
             pymol-version: "pymol-bundle<3"
             conda-channel: -c schrodinger -c conda-forge
-            pymol-tag:
-              - 'legacy (v2) pymol bundle'
+            
 
     runs-on: ${{ matrix.os }}
     # set time limits according to the runner os. 
