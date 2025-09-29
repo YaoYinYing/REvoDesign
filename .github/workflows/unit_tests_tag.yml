@@ -41,18 +41,25 @@ jobs:
           #   pymol-tag: 'latest pymol open source'
 
           # macos latest, latest pymol open source and py312
-          - os: macos-15
+          # - os: macos-15
+          #   python-version: "3.12"
+          #   pymol-version: "pymol-open-source"
+          #   pymol-tag: 'latest pymol open source'
+          #   conda-channel: -c conda-forge
+
+          # ubuntu arm 
+          - os: ubuntu-24.04-arm
             python-version: "3.12"
             pymol-version: "pymol-open-source"
             pymol-tag: 'latest pymol open source'
             conda-channel: -c conda-forge
 
-          # macos tahoe, latest pymol open source and py312
-          - os: macos-26
-            python-version: "3.12"
-            pymol-version: "pymol-open-source"
-            pymol-tag: 'latest pymol open source'
-            conda-channel: -c conda-forge
+          # # macos tahoe, latest pymol open source and py312
+          # - os: macos-26
+          #   python-version: "3.12"
+          #   pymol-version: "pymol-open-source"
+          #   pymol-tag: 'latest pymol open source'
+          #   conda-channel: -c conda-forge
           
           # latest bundled pymol 
           # - os: ubuntu-latest
@@ -144,8 +151,8 @@ jobs:
         run: |
           make install-dgl-linux
           
-      - name: Install DGL on Windows
-        if: startsWith(matrix.os, 'windows')
+      - name: Install DGL on Windows or macOS
+        if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
         run: |
           make install-dgl-win
 
