@@ -4,39 +4,25 @@
 
 ---
 
-## Platforms supported
+## Basic Information
 
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-blue?logo=microsoft&color=blue&logoColor=blue)
-![MacOS](https://img.shields.io/badge/MacOS-Sonoma-silver?logo=apple)
-![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04-orange?logo=ubuntu)
-![architecture](https://img.shields.io/badge/Architecture-win--64%20%7C%20linux--64%20%7C%20osx--64%20%7C%20osx--arm64-6A5FBB)
-![python-version](https://img.shields.io/badge/Python-3.9_%7C_3.10_%7C_3.11_%7C_3.12-3776AB?logo=python&logoColor=yellow)
-[![pymol-bundle](https://tinyurl.com/pymol-bundle)](https://pymol.org/2/)
-[![pymol-bundle-v3](https://tinyurl.com/pymol-bundle-v3)](https://pymol.org/)
-[![pymol-open-source](https://tinyurl.com/pymol-open-source)](https://anaconda.org/conda-forge/pymol-open-source)
-![pyqt](https://img.shields.io/badge/PyQt-5-41CD52?logo=qt)
-[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+| Basic | Badges|
+| --- | --- |
+| OS | ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-blue?logo=microsoft&color=blue&logoColor=blue) ![MacOS](https://img.shields.io/badge/macOS-%3E=12,%3C26-silver?logo=apple) ![Ubuntu](https://img.shields.io/badge/Ubuntu-20.04%20%7C%2022.04%20%7C%2024.04-orange?logo=ubuntu)|
+| Architecture | ![architecture](https://img.shields.io/badge/Architecture-win--64%20%7C%20linux--64%20%7C%20osx--64%20%7C%20osx--arm64-6A5FBB) |
+| Python | ![python-version](https://img.shields.io/badge/Python-3.9_%7C_3.10_%7C_3.11_%7C_3.12-3776AB?logo=python&logoColor=yellow)|
+| PyMOL | [![pymol-bundle](https://tinyurl.com/pymol-bundle)](https://pymol.org/2/) [![pymol-bundle-v3](https://tinyurl.com/pymol-bundle-v3)](https://pymol.org/) [![pymol-open-source](https://tinyurl.com/pymol-open-source)](https://anaconda.org/conda-forge/pymol-open-source/files?version=2.5.0) [![PyMOL Open Source v3](https://tinyurl.com/pymol-open-source-v3)](https://anaconda.org/conda-forge/pymol-open-source) |
+| Dependencies | ![pyqt](https://img.shields.io/badge/PyQt-5-41CD52?logo=qt) [![RosettaPy](https://img.shields.io/badge/Powered_by-RosettaPy-lime?labelColor=black&link=https%3A%2F%2Fgithub.com%2FYaoYinYing%2FRosettaPy&link=https%3A%2F%2Fpypi.org%2Fproject%2FRosettaPy)](https://pypi.org/project/RosettaPy) |
+| CI status | [![Unit Test on tagging](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml) [![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)|
+| Code Quality Status | [![pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/REvoDesign/pylint/pylint_scan.svg)](https://github.com/Silleellie/pylint-github-action) [![Maintainability](https://qlty.sh/badges/8a669407-26a2-45aa-8323-b5567c391cbf/maintainability.svg)](https://qlty.sh/gh/YaoYinYing/projects/REvoDesign) [![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign) [![DeepSource](https://app.deepsource.com/gh/YaoYinYing/REvoDesign.svg/?label=active+issues&show_trend=true&token=OGYjIrCzCfLD9zjBpSXPCMeu)](https://app.deepsource.com/gh/YaoYinYing/REvoDesign/) [![DeepSource](https://app.deepsource.com/gh/YaoYinYing/REvoDesign.svg/?label=resolved+issues&show_trend=true&token=OGYjIrCzCfLD9zjBpSXPCMeu)](https://app.deepsource.com/gh/YaoYinYing/REvoDesign/) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=license) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=security)|
+| Server Docker Image | [![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin) |
+| Code Quality Control | [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint) [![imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/) [![syntax upgrade: pyupgrade](https://img.shields.io/badge/pyupgrade-white?style=plastic&logo=python&logoColor=ebedf0&label=syntax&labelColor=da394b&color=white&link=https%3A%2F%2Fgithub.com%2Fasottile%2Fpyupgrade)](https://github.com/asottile/pyupgrade) [![pycln](https://img.shields.io/badge/pycln-white?style=plastic&logo=python&logoColor=35475c&label=imports&labelColor=c4fcfd&color=c6fdbc&link=https%3A%2F%2Fgithub.com%2Fhadialqattan%2Fpycln)](https://github.com/hadialqattan/pycln) [![Flake8](https://img.shields.io/badge/flake8-white?style=plastic&logo=python&logoColor=silver&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fflake8)](https://github.com/PyCQA/flake8) [![autoflake](https://img.shields.io/badge/autoflake-yellow?style=plastic&logo=python&logoColor=cyan&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fautoflake)](https://github.com/PyCQA/autoflake) [![autopep8](https://img.shields.io/badge/autopep8-orange?style=plastic&logo=python&logoColor=red&label=style&link=https%3A%2F%2Fgithub.com%2FPyCQA%2Fautopep8)](https://github.com/hhatto/autopep8)| 
 
----
 
-## CI Status
 
-[![Unit Test on tagging](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/unit_tests_tag.yml)
-[![Docker Image](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml/badge.svg)](https://github.com/YaoYinYing/REvoDesign/actions/workflows/docker-image.yml)
-[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/5R2YJrFV1L31sGti9Prtr2/Rzn5wDdkWvsvNweRbMD9Fa/tree/main.svg?style=svg&circle-token=CCIPRJ_L85MsaTT4udg9SpnKdXZsq_473d46b1be75d792f1d691b22b219cebfd4a4726)](https://dl.circleci.com/status-badge/redirect/circleci/5R2YJrFV1L31sGti9Prtr2/Rzn5wDdkWvsvNweRbMD9Fa/tree/main)
 
-## Docker images
-
-[![Docker Image Size](https://img.shields.io/docker/image-size/yaoyinying/revodesign-pssm-gremlin?style=social&logo=docker&label=server%20image%20size)](https://hub.docker.com/r/yaoyinying/revodesign-pssm-gremlin)
 
 ## Code checkings
-
-[![pylint](https://github-image-cache.yaoyy.moe/badge_dir_with_uniq_name/REvoDesign/pylint/pylint_scan.svg)](https://github.com/Silleellie/pylint-github-action)
-[![Maintainability](https://qlty.sh/badges/8a669407-26a2-45aa-8323-b5567c391cbf/maintainability.svg)](https://qlty.sh/gh/YaoYinYing/projects/REvoDesign)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/3583a7e4923d4116931fcbab21492f21)](https://app.codacy.com?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-[![codecov](https://codecov.io/gh/YaoYinYing/REvoDesign/graph/badge.svg?token=2qSJ7cgk1b)](https://codecov.io/gh/YaoYinYing/REvoDesign)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=license)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2FYaoYinYing%2FREvoDesign?ref=badge_shield&issueType=security)
 
 ---
 
