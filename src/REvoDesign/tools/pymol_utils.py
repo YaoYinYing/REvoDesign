@@ -277,7 +277,7 @@ def renumber_chain_ids(target_protein):
         )
 
 
-def get_molecule_sequence(molecule, chain_id, keep_missing=True):
+def get_molecule_sequence(molecule, chain_id, keep_missing=True) -> str:
     """
     Function: get_molecule_sequence
     Usage: sequence = get_molecule_sequence(molecule, chain_id)

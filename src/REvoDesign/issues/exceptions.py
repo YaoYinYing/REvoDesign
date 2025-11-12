@@ -103,3 +103,7 @@ class UninstalledPackageError(Exception):
 
 class MissingExternalToolError(Exception):
     """Exception raised when a required external tool is not installed"""
+
+
+class FileFormatError(REvoDesignException):
+    """Exception raised when a file format is incorrect or unsupported"""

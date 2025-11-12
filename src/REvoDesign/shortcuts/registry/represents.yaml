@@ -55,3 +55,43 @@ color_by_mutation:
       type: bool
       default: false
       reason: "Display mutation labels."
+
+
+load_b_factors:
+  title: "Load B-factors"
+  banner: "Load a custom B-factor file to a structure and visualize it."
+  options:
+    - name: mol
+      type: str
+      reason: "The PyMOL selection of the object to modify."
+      choices_from: "REvoDesign.shortcuts.dialog_hooks:get_all_object_names"
+    - name: chain_ids
+      type: str
+      default: "A"
+      reason: "Chain identifiers to modify. Multiple chain IDs can be specified separated by commas."
+    - name: keep_missing
+      type: bool
+      default: true
+      reason: "Whether to keep residues with missing B-factor values as is (True) or set them to zero (False)."
+    - name: source
+      type: str
+      reason: "Path to the B-factor source file."
+      required: true
+      source: File
+      ext: Mutable
+    - name: label
+      type: str
+      default: 
+      reason: "Column label for the loaded B-factors."
+    - name: pos_slice
+      type: str
+      default: ""
+      reason: "Position slice to load B-factors for (e.g., '10-50,60-80'). Leave empty to load all positions."
+    - name: offset
+      type: int
+      default: 0
+      reason: "Offset to add to residue numbers when mapping B-factors."
+    - name: visual
+      type: bool
+      default: true
+      reason: "Whether to create a visual representation of the B-factors after loading."

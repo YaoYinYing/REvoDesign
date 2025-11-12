@@ -3,12 +3,20 @@ Shortcut functions of structure representation
 '''
 
 
+from typing import List
 from Bio.Align import substitution_matrices
 from Bio.Data import IUPACData
+from git import Optional
 from immutabledict import immutabledict
 from pymol import cmd, util
+import numpy as np
+import pandas as pd
+from REvoDesign import ROOT_LOGGER, issues
+from ...citations import CitableModuleAbstract
 
-from REvoDesign import ROOT_LOGGER
+from ...tools.mutant_tools import expand_range
+from ...tools.pymol_utils import get_molecule_sequence
+from ...tools.utils import get_cited
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -361,3 +369,140 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     )
     cmd.delete(aln)
     cmd.deselect()
+
+
+def _read_b_factors(file_path: str, label:Optional[str]=None) -> List[float]:
+    """Reads B-factor values from a text file.
+
+    Args:
+        file_path (str): Path to the text file containing B-factor values.
+        label (Optional[str]): Optional label for logging purposes.
+    Returns:
+        List[float]: A list of B-factor values.
+    """
+    if file_path.endswith('.csv'):
+        # read floats from csv file, in col `label` if provided, else first column
+        df = pd.read_csv(file_path)
+        if label and label in df.columns:
+            return df[label].astype(float).tolist()
+        return df.iloc[:, 0].astype(float).tolist()
+    elif file_path.endswith('.xlsx') or file_path.endswith('.xls'):
+        # read floats from excel file, in col `label` if provided, else first column
+        df = pd.read_excel(file_path)
+        if label and label in df.columns:
+            return df[label].astype(float).tolist()
+        return df.iloc[:, 0].astype(float).tolist()
+    else:
+        try:
+            # read floats from plain text file
+            with open(file_path, 'r') as inFile:
+                return [float(line.strip()) for line in inFile.readlines()]
+        except Exception as e:
+            raise issues.FileFormatError(f"Failed to read B-factors from file {file_path}: {e}") from e
+
+# adapted from pymol script loadBfacts.py
+# https://wiki.pymol.org/index.php/Load_new_B-factors
+# Gatti-Lafranconi, Pietro (2014). Pymol script: loadBfacts.py. figshare. Software. https://doi.org/10.6084/m9.figshare.1176991.v1
+
+
+
+
+@get_cited
+def load_b_factors(
+        mol: str, 
+        chain_ids: str,
+        keep_missing: bool,
+        source: str,
+        label: Optional[str]=None, 
+        pos_slice: Optional[str]=None, 
+        offset: int=0, 
+        visual: bool=True)  -> None:
+    """
+    Replaces B-factors with a list of values contained in a plain txt file
+
+    Parameters:
+    mol (str): Object selection.
+    chain_id (str): Chain ID.
+    keep_missing (bool): Whether to keep missing residues in sequence.
+    source (str): Path to the file containing new B-factor values.
+    label (Optional[str]): Column label for B-factors in case of CSV/Excel file.
+    pos_slice (Optional[str]): Range of positions to apply B-factors to (e.g. "1-100,150-200").
+    offset (int): Offset to apply to positions (default is 0).
+    visual (bool): Whether to update visual representation (default is True
+    
+    Returns:
+    None
+
+    Raises:
+    MoleculeError: If no object is found for the given selection.
+    """
+    logging.debug(f"Loading B-factors from {source} for {mol}, chain {chain_ids}")
+    objs=cmd.get_object_list(mol)
+    logging.debug(f"Found {len(objs)} objects: {objs}")
+    
+    if not objs:
+        raise issues.MoleculeError(f"No found object: {mol}")
+    obj = objs[0]
+
+    _chain_ids=chain_ids.strip().split(',')
+
+    for chain_id in _chain_ids:
+        obj_sel=f"{mol} and c. {chain_id}"
+        logging.debug(f"Using object {obj} for selection {mol}")
+
+
+        # fetch sequence info
+        seq = get_molecule_sequence(obj, chain_id=chain_id, keep_missing=keep_missing)
+        logging.debug(f"Sequence: {seq}")
+
+        # set all b-factors to -1.0 before loading new ones
+        cmd.alter(obj_sel,"b=-1.0")
+        
+        # read new b factor data from csv file or excel file or txt file
+        
+        newbfact_data=_read_b_factors(source,label)
+        logging.debug(f"Read {len(newbfact_data)} B-factor values from {source}")
+
+        positions=expand_range(pos_slice if pos_slice else f"1-{len(seq)}")
+        # correct positions with offset, from one-based to zero-based indexing
+        positions_offset=[p+offset-1 for p in positions]
+        logging.debug(f"Using positions (with offset {offset}, zero-indexed): {positions_offset}")
+        
+        bfacts=[]
+
+        for pos in positions_offset:
+            try:
+                bfact=float(newbfact_data[pos])
+            except IndexError:
+                logging.warning(f"Position {pos+1} (zero-indexed {pos}) exceeds the length of new B-factor data ({len(newbfact_data)}); setting B-factor to -1.0")
+                continue
+            bfacts.append(bfact)
+            # fix pos to one-based indexing for pymol
+            logging.debug(f"Setting B-factor for position {pos+1} (zero-indexed {pos}) to {bfact}")
+            cmd.alter(f"{obj_sel} and i. {pos+1} and n. CA", f"b={bfact}")
+        
+        if not visual:
+            return
+
+        logging.debug(f"Setting visual representation for {mol} (chain {chain_id}) based on B-factors")
+        cmd.show_as("cartoon",obj_sel)
+        cmd.cartoon("putty", obj_sel)
+        cmd.set("cartoon_putty_scale_min", min(bfacts),obj)
+        cmd.set("cartoon_putty_scale_max", max(bfacts),obj)
+        cmd.set("cartoon_putty_transform", 0,obj)
+        cmd.set("cartoon_putty_radius", 0.2, obj)
+        cmd.spectrum("b","rainbow", f"{obj_sel} and n. CA " )
+        cmd.ramp_new("count", obj, [min(bfacts), max(bfacts)], "rainbow")
+        cmd.recolor()
+
+setattr(load_b_factors, '__bibtex__', {
+    'loadBfacts.py': """@article{Gatti-Lafranconi2014,
+author = "Pietro Gatti-Lafranconi",
+title = "{Pymol script: loadBfacts.py}",
+year = "2014",
+month = "9",
+url = "https://figshare.com/articles/software/Pymol_script_loadBfacts_py/1176991",
+doi = "10.6084/m9.figshare.1176991.v1"
+}"""
+}
+)

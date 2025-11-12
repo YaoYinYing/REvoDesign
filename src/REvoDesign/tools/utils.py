@@ -8,6 +8,8 @@ import itertools
 import random
 import string
 import tarfile
+import inspect
+import sys
 import time
 import zipfile
 from functools import wraps
@@ -174,19 +176,191 @@ def require_installed(cls):
     cls.__init__ = __init__
     return cls
 
+MethodKind = Literal["InstanceMethod", "ClassMethod", "StaticMethod", "Function"]
+
+def inspect_method_types(method: Callable) -> MethodKind:
+    """
+    Inspect the type of a callable: instance method, class method,
+    static method, or plain function.
+
+    Args:
+        method (Callable): The callable to inspect.
+
+    Returns:
+        Literal['InstanceMethod', 'ClassMethod', 'StaticMethod', 'Function']:
+        The inferred kind of method.
+
+    Raises:
+        TypeError: If the method type cannot be determined or the object
+        is not callable.
+    """
+    if not callable(method):
+        raise TypeError(f"Cannot inspect method type for non-callable {method!r}")
+
+    # --- 1. Bound methods: have a non-None __self__ -------------------------
+    #   obj.method      -> bound instance method ( __self__ is instance )
+    #   cls.method      -> bound class method    ( __self__ is class )
+    if hasattr(method, "__self__") and getattr(method, "__self__", None) is not None:
+        self_obj = method.__self__  # type: ignore[attr-defined]
+        # Bound to a class -> classmethod
+        if isinstance(self_obj, type):
+            return "ClassMethod"
+        # Bound to an instance -> instance method
+        return "InstanceMethod"
+
+    # --- 2. Unbound functions (no binding) -----------------------------------
+    # At this point, typical Python methods accessed from the class are plain
+    # function objects (unbound). We must check how they are stored on the class.
+    if inspect.isfunction(method):
+        qualname = getattr(method, "__qualname__", "")
+
+        # Try to resolve the owning class from qualname: "MyClass.method"
+        if "." in qualname:
+            owner_path, func_name = qualname.rsplit(".", 1)
+
+            owner_cls = None
+            module = inspect.getmodule(method)
+            if module is not None:
+                obj = module
+                # Walk the dotted path "Outer.Inner" etc.
+                for part in owner_path.split("."):
+                    if not hasattr(obj, part):
+                        obj = None
+                        break
+                    obj = getattr(obj, part)
+                if isinstance(obj, type):
+                    owner_cls = obj
+
+            if owner_cls is not None:
+                # Look at the raw attribute on the class dict
+                attr = owner_cls.__dict__.get(func_name)
+                # Static method is stored as a staticmethod descriptor
+                if isinstance(attr, staticmethod):
+                    return "StaticMethod"
+                # A normal "def" on the class body: unbound instance method
+                if inspect.isfunction(attr):
+                    return "Function"
+
+            # Fallback: dotted qualname but class not resolvable
+            # (e.g. local classes with '<locals>' in qualname).
+            # In your semantics we still treat this as a static-style method.
+            return "StaticMethod"
+
+        # No dot in qualname: a plain top-level function
+        return "Function"
+
+    # --- 3. Rare cases: method-like objects not covered above ---------------
+    if inspect.ismethod(method):
+        # This branch is mostly for odd cases / builtins.
+        self_obj = method.__self__
+        if isinstance(self_obj, type):
+            return "ClassMethod"
+        return "InstanceMethod"
+    
+    # --- 4. Give up ----------------------------------------------------------
+    raise TypeError(f"Cannot inspect method type for {method!r}")
+
+
+def get_owner_class_from_static(func):
+    """
+    Best-effort: get the class that owns a staticmethod given `MyClass.static`.
+
+    This works for normal top-level classes, but is not guaranteed for all cases.
+    """
+    if not inspect.isfunction(func):
+        raise TypeError("Expected a function object (e.g. MyClass.static).")
+
+    # Example: "MyClass.static" or "Outer.Inner.static"
+    qualname = func.__qualname__
+
+    # Strip any '<locals>' part for nested definitions.
+    qualname = qualname.split('.<locals>.', 1)[0]
+
+    # Drop the last component (the function name itself).
+    # e.g. "MyClass.static" -> "MyClass"
+    #      "Outer.Inner.static" -> "Outer.Inner"
+    parts = qualname.split('.')
+    if len(parts) < 2:
+        raise LookupError(f"Cannot infer an owning class from qualname {qualname!r}")
+
+    class_path = parts[:-1]  # everything except the function name
+    module = sys.modules.get(func.__module__)
+    if module is None:
+        raise LookupError(f"Module {func.__module__!r} not found in sys.modules")
+
+    # Walk down the dotted path in the module namespace.
+    obj = module
+    for name in class_path:
+        try:
+            obj = getattr(obj, name)
+        except AttributeError as exc:
+            raise LookupError(f"Failed to resolve {'.'.join(class_path)!r} in module {module.__name__}") from exc
+
+    if not isinstance(obj, type):
+        raise LookupError(f"Resolved {obj!r} is not a class")
+
+    return obj
+
 
 def get_cited(method):
     """
     Decorator to call `self.cite()` after executing `self.process()`.
     """
+    from ..citations import CitableModuleAbstract
+    # instance method, having a self argument
     @wraps(method)
-    def wrapper(self, *args, **kwargs):
+    def wrapper_instance_method(self: CitableModuleAbstract, *args, **kwargs):
         result = method(self, *args, **kwargs)
         if hasattr(self, 'cite') and callable(getattr(self, 'cite')):
             self.cite()
         return result
-
-    return wrapper
+    
+    #class method, having a cls argument
+    # the class must instantiate an object to call cite()
+    @wraps(method)
+    def wrapper_class_method(cls:type[CitableModuleAbstract], *args, **kwargs):
+        result = method(cls, *args, **kwargs)
+        if hasattr(cls, 'cite') and callable(getattr(cls, 'cite')):
+            cls().cite()
+        return result
+        
+    # static method, no self or cls argument
+    # get the class and instantiate an object to call cite()
+    @wraps(method)
+    def wrapper_static_method(*args, **kwargs):
+        result = method(*args, **kwargs)
+        # try to get the class from the first argument if possible
+        if len(args) > 0:
+            possible_cls:type[CitableModuleAbstract] = get_owner_class_from_static(method)
+            if hasattr(possible_cls, 'cite') and callable(getattr(possible_cls, 'cite')):
+                possible_cls().cite()
+        return result
+    
+    # normal function, no self or cls argument
+    # create an anonymous citable class to call cite()
+    # the method must have a `__bibtex__` attribute
+    @wraps(method)
+    def wrapper_function(*args, **kwargs):
+        result = method(*args, **kwargs)
+        try:
+            anonymous_citable_class=CitableModuleAbstract.get_citable_class(func=method)
+            anonymous_citable_class().cite()
+        except Exception as e:
+            logging.debug(f"Failed to cite function {method} due to {e}")
+        finally:
+            return result
+    
+    guessed_method_type=inspect_method_types(method=method)
+    if guessed_method_type=='ClassMethod':
+        return wrapper_class_method
+    if guessed_method_type=='StaticMethod':
+        return wrapper_static_method
+    if guessed_method_type=='InstanceMethod':
+        return wrapper_instance_method
+    if guessed_method_type=='Function':
+        return wrapper_function
+    
+    raise issues.InternalError(f"Cannot apply get_cited decorator to method {method}")
 
 
 def minibatches(inputs_data, batch_size):

@@ -4524,7 +4524,7 @@
      <x>0</x>
      <y>0</y>
      <width>660</width>
-     <height>24</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -4699,7 +4699,14 @@
       <addaction name="actionStart_SetupOpenMM"/>
       <addaction name="actionStop_SetupOpenMM"/>
      </widget>
+     <widget class="QMenu" name="menuMD_analysis">
+      <property name="title">
+       <string>MD analysis</string>
+      </property>
+      <addaction name="actionRMSF_to_b_factor"/>
+     </widget>
      <addaction name="menuOpenMM"/>
+     <addaction name="menuMD_analysis"/>
     </widget>
     <widget class="QMenu" name="menuModeling_Tools">
      <property name="title">
@@ -5191,6 +5198,11 @@
   <action name="actionRFdiffusion_General_Task">
    <property name="text">
     <string>General Task</string>
+   </property>
+  </action>
+  <action name="actionRMSF_to_b_factor">
+   <property name="text">
+    <string>RMSF to b-factor</string>
    </property>
   </action>
  </widget>

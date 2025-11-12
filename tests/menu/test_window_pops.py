@@ -16,7 +16,7 @@ from REvoDesign.shortcuts.wrappers.ligand_converters import (
 from REvoDesign.shortcuts.wrappers.mutation_effect_predictors import \
     wrapped_thermompnn
 from REvoDesign.shortcuts.wrappers.represents import (
-    wrapped_color_by_mutation, wrapped_color_by_plddt, wrapped_real_sc)
+    wrapped_color_by_mutation, wrapped_color_by_plddt, wrapped_real_sc, wrapped_load_b_factors)
 from REvoDesign.shortcuts.wrappers.rfdiffusion_tasks import (
     wrapped_general_rfdiffusion_task, wrapped_visualize_substrate_potentials)
 from REvoDesign.shortcuts.wrappers.rosetta_tasks import (
