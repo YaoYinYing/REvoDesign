@@ -4,12 +4,12 @@ Orphaneous functions for REvoDesign
 
 import contextlib
 import importlib
+import inspect
 import itertools
 import random
 import string
-import tarfile
-import inspect
 import sys
+import tarfile
 import time
 import zipfile
 from functools import wraps
@@ -176,7 +176,9 @@ def require_installed(cls):
     cls.__init__ = __init__
     return cls
 
+
 MethodKind = Literal["InstanceMethod", "ClassMethod", "StaticMethod", "Function"]
+
 
 def inspect_method_types(method: Callable) -> MethodKind:
     """
@@ -256,7 +258,7 @@ def inspect_method_types(method: Callable) -> MethodKind:
         if isinstance(self_obj, type):
             return "ClassMethod"
         return "InstanceMethod"
-    
+
     # --- 4. Give up ----------------------------------------------------------
     raise TypeError(f"Cannot inspect method type for {method!r}")
 
@@ -307,23 +309,25 @@ def get_cited(method):
     Decorator to call `self.cite()` after executing `self.process()`.
     """
     from ..citations import CitableModuleAbstract
+
     # instance method, having a self argument
+
     @wraps(method)
     def wrapper_instance_method(self: CitableModuleAbstract, *args, **kwargs):
         result = method(self, *args, **kwargs)
         if hasattr(self, 'cite') and callable(getattr(self, 'cite')):
             self.cite()
         return result
-    
-    #class method, having a cls argument
+
+    # class method, having a cls argument
     # the class must instantiate an object to call cite()
     @wraps(method)
-    def wrapper_class_method(cls:type[CitableModuleAbstract], *args, **kwargs):
+    def wrapper_class_method(cls: type[CitableModuleAbstract], *args, **kwargs):
         result = method(cls, *args, **kwargs)
         if hasattr(cls, 'cite') and callable(getattr(cls, 'cite')):
             cls().cite()
         return result
-        
+
     # static method, no self or cls argument
     # get the class and instantiate an object to call cite()
     @wraps(method)
@@ -331,11 +335,11 @@ def get_cited(method):
         result = method(*args, **kwargs)
         # try to get the class from the first argument if possible
         if len(args) > 0:
-            possible_cls:type[CitableModuleAbstract] = get_owner_class_from_static(method)
+            possible_cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
             if hasattr(possible_cls, 'cite') and callable(getattr(possible_cls, 'cite')):
                 possible_cls().cite()
         return result
-    
+
     # normal function, no self or cls argument
     # create an anonymous citable class to call cite()
     # the method must have a `__bibtex__` attribute
@@ -343,23 +347,23 @@ def get_cited(method):
     def wrapper_function(*args, **kwargs):
         result = method(*args, **kwargs)
         try:
-            anonymous_citable_class=CitableModuleAbstract.get_citable_class(func=method)
+            anonymous_citable_class = CitableModuleAbstract.get_citable_class(func=method)
             anonymous_citable_class().cite()
         except Exception as e:
             logging.debug(f"Failed to cite function {method} due to {e}")
         finally:
             return result
-    
-    guessed_method_type=inspect_method_types(method=method)
-    if guessed_method_type=='ClassMethod':
+
+    guessed_method_type = inspect_method_types(method=method)
+    if guessed_method_type == 'ClassMethod':
         return wrapper_class_method
-    if guessed_method_type=='StaticMethod':
+    if guessed_method_type == 'StaticMethod':
         return wrapper_static_method
-    if guessed_method_type=='InstanceMethod':
+    if guessed_method_type == 'InstanceMethod':
         return wrapper_instance_method
-    if guessed_method_type=='Function':
+    if guessed_method_type == 'Function':
         return wrapper_function
-    
+
     raise issues.InternalError(f"Cannot apply get_cited decorator to method {method}")
 
 

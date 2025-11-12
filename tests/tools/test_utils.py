@@ -16,10 +16,11 @@ from REvoDesign.citations import CitableModuleAbstract, CitationManager
 from REvoDesign.tools.utils import (_pairwise, cmap_reverser,
                                     count_and_sort_characters, extract_archive,
                                     generate_strong_password, get_cited,
-                                    get_color, minibatches,
+                                    get_color, get_owner_class_from_static,
+                                    inspect_method_types, minibatches,
                                     minibatches_generator, pairwise_loop,
                                     random_deduplicate, require_installed,
-                                    rescale_number, timing,get_owner_class_from_static,inspect_method_types)
+                                    rescale_number, timing)
 
 matplotlib.use('Agg')  # Use the Agg backend to avoid GUI requirements for testing
 
@@ -516,9 +517,7 @@ def test__pairwise(input_data, expected_output):
     assert list(_pairwise(input_data)) == expected_output
 
 
-
 # --- Test data setup ---------------------------------------------------------
-
 
 
 class MyClass:
@@ -566,6 +565,7 @@ def make_local_class():
             return "local"
 
     return LocalClass
+
 
 def plain_function():
     """A top-level plain function, not attached to any class."""
@@ -632,7 +632,6 @@ def test_get_owner_class_with_local_class_may_fail():
     else:
         assert cls is LocalClass
         assert cls.local_static() == "local"
-
 
 
 # --- Tests: instance methods --------------------------------------------------

@@ -2,9 +2,10 @@
 Shortcut wrappers of structure representation
 '''
 from REvoDesign import issues
-from REvoDesign.shortcuts.tools.represents import (shortcut_color_by_mutation,
+from REvoDesign.shortcuts.tools.represents import (load_b_factors,
+                                                   shortcut_color_by_mutation,
                                                    shortcut_color_by_plddt,
-                                                   shortcut_real_sc, load_b_factors)
+                                                   shortcut_real_sc)
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
 from REvoDesign.tools.package_manager import notify_box
 
@@ -31,4 +32,4 @@ def _color_by_mutation(**kwargs):
 wrapped_color_by_plddt = registry.register("color_by_plddt", shortcut_color_by_plddt, use_thread=True)
 wrapped_real_sc = registry.register("real_sc", shortcut_real_sc, use_thread=True)
 wrapped_color_by_mutation = registry.register("color_by_mutation", _color_by_mutation, use_thread=True)
-wrapped_load_b_factors = registry.register("load_b_factors",load_b_factors) 
+wrapped_load_b_factors = registry.register("load_b_factors", load_b_factors)
