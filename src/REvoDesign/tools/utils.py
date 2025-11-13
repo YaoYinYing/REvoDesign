@@ -279,6 +279,7 @@ def get_owner_class_from_static(func):
 
     This works for normal top-level classes, but is not guaranteed for all cases.
     """
+    logging.debug(f"Getting owner class from static method {func!r}")
     if not inspect.isfunction(func):
         raise TypeError("Expected a function object (e.g. MyClass.static).")
 
@@ -343,13 +344,13 @@ def get_cited(method: Callable) -> Callable:
     @wraps(method)
     def wrapper_static_method(*args, **kwargs):
         result = method(*args, **kwargs)
-        if len(args) > 0:
-            # try to get the class from the first argument if possible
-            possible_cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
-            if hasattr(possible_cls, 'cite') and callable(getattr(possible_cls, 'cite')):
-                possible_cls().cite()
-            else:
-                raise TypeError(f'{method.__name__} is not a citable module, or its class({possible_cls.__name__}) does not have a cite() method.')
+        #if len(args) > 0:
+        # try to get the class from the first argument if possible
+        possible_cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
+        if hasattr(possible_cls, 'cite') and callable(getattr(possible_cls, 'cite')):
+            possible_cls().cite()
+        else:
+            raise TypeError(f'{method.__name__} is not a citable module, or its class({possible_cls.__name__}) does not have a cite() method.')
         return result
 
     # normal function, no self or cls argument
@@ -367,6 +368,7 @@ def get_cited(method: Callable) -> Callable:
             return result
 
     guessed_method_type = inspect_method_types(method=method)
+    logging.warning(f"Guessed method type: {method!r}: {guessed_method_type}")
     if guessed_method_type == 'ClassMethod':
         return wrapper_class_method
     if guessed_method_type == 'StaticMethod':

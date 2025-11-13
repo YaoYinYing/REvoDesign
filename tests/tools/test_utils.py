@@ -451,31 +451,30 @@ def test_require_installed(package_name, expected_raise):
     else:
         TestClass()
 
+class CitableClass(CitableModuleAbstract):
+    def __init__(self):
+        ...
+
+    def config(self):
+        print('Awesome module is under configuration!')
+
+    @get_cited
+    def run(self):
+        print('Awesome module got run and the paper will be cited!')
+
+    __bibtex__ = {'AwesomePaper': """@article {goodpaper2025.01.01.awesomej1009,
+author = {You and Me},
+title = {Good Title is All You Need},
+elocation-id = {2025.01.01.awesomej1009},
+year = {2024},
+doi = {10.1101/2025.01.01.awesomej1009},
+publisher = {Unlimited Sci-Hub Publishing Hard-Drive},
+URL = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009},
+eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
+journal = {Awesome Journal}
+}"""}
 
 def test_get_cited():
-
-    class CitableClass(CitableModuleAbstract):
-        def __init__(self):
-            ...
-
-        def config(self):
-            print('Awesome module is under configuration!')
-
-        @get_cited
-        def run(self):
-            print('Awesome module got run and the paper will be cited!')
-
-        __bibtex__ = {'AwesomePaper': """@article {goodpaper2025.01.01.awesomej1009,
-    author = {You and Me},
-    title = {Good Title is All You Need},
-    elocation-id = {2025.01.01.awesomej1009},
-    year = {2024},
-    doi = {10.1101/2025.01.01.awesomej1009},
-    publisher = {Unlimited Sci-Hub Publishing Hard-Drive},
-    URL = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009},
-    eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
-    journal = {Awesome Journal}
-}"""}
 
     expected_citation = CitableClass.__bibtex__
 
