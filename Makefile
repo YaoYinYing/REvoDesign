@@ -82,7 +82,7 @@ install:
 	python -m pip install ".[$(PIP_EXTRAS_OPTIONAL)]" -U --no-cache-dir || echo Extras "$(PIP_EXTRAS_OPTIONAL)" is not installed.
 
 install-dgl-linux:
-	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html
+	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html || echo Never mind.
 
 # this also works with macos
 install-dgl-win:
