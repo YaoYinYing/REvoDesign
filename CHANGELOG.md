@@ -30,15 +30,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - codex plugin migration
 - doc:
   - guide for calling mutate runners in Python
+- menu:
+  - MD analysis:
+    - load b-factors to struture (postprocessing and visualizing from r-bio3d output)
+- citation:
+  - `CitableModuleAbstract`: `get_citable_class` for generating anonymous citable class for functions. 
+  - documentation about `CitableModuleAbstract` and `get_cited`
+- tools:
+  - utils: 
+    - `inspect_method_types`: for guessing method types ("InstanceMethod", "ClassMethod", "StaticMethod", "Function")
+    - `get_owner_class_from_static`: for gussing owner class of static methods for citation checking.
 
 ### Changed
 - ci:
   - main workflow test w/ PyMOL v3.1
   - flexible CI timeout limit for windows: 60 minutes
-  - install dgl at windows step
+  - install dgl at windows step and macos
   - set var `ENABLE_ROSETTA_CONTAINER_NODE_TEST` to `NO` by default, enable it after docker pull
+  - re-arranged matrix labels for clearances
 - menu binding:
   - use str for lazy registers
+- doc:
+  - readme: re-arranged badge table
+- tools:
+  - utils: 
+    - `get_cited`: enhanced for classmethods, staticmethods, normal functions
+- citation:
+  - `CitableModuleAbstract`: `cite` and `notice` are now classmethods, because citing is not relevant to the module functionality. It should always be citable.
 
 ### Fixed
 - shortcuts:
@@ -52,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - clean up `bus.ui.open_windows` if its empty
 - utils:
   - refactored `cmap_reverser`
+- typing hints:
+  - gremlin tool
 
 ### Removed
 - `REvoDesignWidget`: 

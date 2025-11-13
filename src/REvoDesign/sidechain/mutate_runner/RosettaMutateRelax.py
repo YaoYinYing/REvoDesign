@@ -104,7 +104,7 @@ class MutateRelax(ScoreClusters):
 
         return rosetta
 
-    def run(self, mutants: List[Mutant], opts: Optional[List[str | RosettaScriptsVariableGroup]] = None):  # type: ignore
+    def run(self, mutants: List[Mutant], opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None):  # type: ignore
         """
         Execute the mutant scoring process
 

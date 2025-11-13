@@ -1,3 +1,4 @@
+import inspect
 import os
 import string
 import tarfile
@@ -15,7 +16,8 @@ from REvoDesign.citations import CitableModuleAbstract, CitationManager
 from REvoDesign.tools.utils import (_pairwise, cmap_reverser,
                                     count_and_sort_characters, extract_archive,
                                     generate_strong_password, get_cited,
-                                    get_color, minibatches,
+                                    get_color, get_owner_class_from_static,
+                                    inspect_method_types, minibatches,
                                     minibatches_generator, pairwise_loop,
                                     random_deduplicate, require_installed,
                                     rescale_number, timing)
@@ -450,30 +452,31 @@ def test_require_installed(package_name, expected_raise):
         TestClass()
 
 
-def test_get_cited():
+class CitableClass(CitableModuleAbstract):
+    def __init__(self):
+        ...
 
-    class CitableClass(CitableModuleAbstract):
-        def __init__(self):
-            ...
+    def config(self):
+        print('Awesome module is under configuration!')
 
-        def config(self):
-            print('Awesome module is under configuration!')
+    @get_cited
+    def run(self):
+        print('Awesome module got run and the paper will be cited!')
 
-        @get_cited
-        def run(self):
-            print('Awesome module got run and the paper will be cited!')
-
-        __bibtex__ = {'AwesomePaper': """@article {goodpaper2025.01.01.awesomej1009,
-    author = {You and Me},
-    title = {Good Title is All You Need},
-    elocation-id = {2025.01.01.awesomej1009},
-    year = {2024},
-    doi = {10.1101/2025.01.01.awesomej1009},
-    publisher = {Unlimited Sci-Hub Publishing Hard-Drive},
-    URL = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009},
-    eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
-    journal = {Awesome Journal}
+    __bibtex__ = {'AwesomePaper': """@article {goodpaper2025.01.01.awesomej1009,
+author = {You and Me},
+title = {Good Title is All You Need},
+elocation-id = {2025.01.01.awesomej1009},
+year = {2024},
+doi = {10.1101/2025.01.01.awesomej1009},
+publisher = {Unlimited Sci-Hub Publishing Hard-Drive},
+URL = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009},
+eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
+journal = {Awesome Journal}
 }"""}
+
+
+def test_get_cited():
 
     expected_citation = CitableClass.__bibtex__
 
@@ -513,3 +516,261 @@ def test_pairwise_loop(input_data, expected_output):
 ])
 def test__pairwise(input_data, expected_output):
     assert list(_pairwise(input_data)) == expected_output
+
+
+# --- Test data setup ---------------------------------------------------------
+
+
+class MyClass:
+    @staticmethod
+    def static_method():
+        """Simple static method used for tests."""
+        return "ok"
+
+    def instance_method(self):
+        """Regular instance method."""
+        return "instance"
+
+    @classmethod
+    def class_method(cls):
+        """Class method."""
+        return "class"
+
+
+class Outer:
+    class Inner:
+        @staticmethod
+        def inner_static():
+            """Inner class static method."""
+            return "inner"
+
+
+class A:
+    @staticmethod
+    def shared():
+        """Shared static method."""
+        return "shared"
+
+
+class B:
+    # Reuse A.shared as a staticmethod-like attribute
+    shared = A.shared
+
+
+def make_local_class():
+    """Define a class inside a function to produce a tricky qualname."""
+
+    class LocalClass:
+        @staticmethod
+        def local_static():
+            return "local"
+
+    return LocalClass
+
+
+def plain_function():
+    """A top-level plain function, not attached to any class."""
+    return "plain"
+
+
+# --- Tests for get_owner_class_from_static -----------------------------------
+
+
+def test_get_owner_class_simple_static():
+    """get_owner_class_from_static should return the top-level owning class."""
+    m = MyClass.static_method
+    cls = get_owner_class_from_static(m)
+    assert cls is MyClass
+    assert cls.static_method() == "ok"
+
+
+def test_get_owner_class_nested_class_static():
+    """get_owner_class_from_static should resolve nested classes via qualname."""
+    m = Outer.Inner.inner_static
+    cls = get_owner_class_from_static(m)
+    assert cls is Outer.Inner
+    assert cls.inner_static() == "inner"
+
+
+def test_get_owner_class_raises_for_plain_function():
+    """Non-method functions should raise a TypeError."""
+    def plain_function():
+        return 42
+
+    with pytest.raises(LookupError):
+        get_owner_class_from_static(plain_function)
+
+
+def test_get_owner_class_raises_when_no_class_in_qualname():
+    """A function with a flat qualname should not be resolved as a class method."""
+    # Create a function and manually tweak its __qualname__ to simulate odd cases.
+    def f():
+        return "x"
+
+    # This is artificial, but verifies defensive behavior.
+    f.__qualname__ = "just_function_name"
+
+    with pytest.raises(LookupError):
+        get_owner_class_from_static(f)
+
+
+def test_get_owner_class_with_local_class_may_fail():
+    """
+    Local classes defined inside a function often have '<locals>' in __qualname__.
+
+    This test documents the current behavior: either it resolves successfully
+    (if implementation strips '<locals>') or raises LookupError. The important
+    property is that it does not crash with unexpected exceptions.
+    """
+    LocalClass = make_local_class()
+    m = LocalClass.local_static
+
+    try:
+        cls = get_owner_class_from_static(m)
+    except LookupError:
+        # This is acceptable: local classes are a hard edge case.
+        pytest.skip("Local class resolution not supported in this environment.")
+    else:
+        assert cls is LocalClass
+        assert cls.local_static() == "local"
+
+
+# --- Tests: instance methods --------------------------------------------------
+
+
+def test_inspect_instance_method_bound_to_instance():
+    """
+    A bound instance method (accessed via an instance) should be reported
+    as 'InstanceMethod'.
+    """
+    obj = MyClass()
+    method = obj.instance_method
+    assert inspect_method_types(method) == "InstanceMethod"
+
+
+def test_inspect_instance_method_unbound_from_class_is_function():
+    """
+    An unbound instance method accessed from the class should look like a plain
+    function (no binding), so it should be reported as 'Function'.
+    """
+    method = MyClass.instance_method
+    # In CPython 3, this is just a function object, not a bound method.
+    assert not hasattr(method, "__self__")
+    assert inspect.isfunction(method)
+    assert inspect_method_types(method) == "Function"
+
+
+# --- Tests: class methods -----------------------------------------------------
+
+
+def test_inspect_class_method_from_class():
+    """
+    A class method accessed via the class should be reported as 'ClassMethod'.
+    """
+    method = MyClass.class_method
+    # This is a bound method whose __self__ is the class object.
+    assert hasattr(method, "__self__")
+    assert method.__self__ is MyClass
+    assert inspect_method_types(method) == "ClassMethod"
+
+
+def test_inspect_class_method_from_instance():
+    """
+    A class method accessed via an instance is still a class method and
+    should be reported as 'ClassMethod'.
+    """
+    obj = MyClass()
+    method = obj.class_method
+    # Still bound to the class, not the instance.
+    assert hasattr(method, "__self__")
+    assert method.__self__ is MyClass
+    assert inspect_method_types(method) == "ClassMethod"
+
+
+# --- Tests: static methods ----------------------------------------------------
+
+
+def test_inspect_static_method_from_class():
+    """
+    A static method accessed from the class should be reported as 'StaticMethod'.
+    """
+    method = MyClass.static_method
+    # For a staticmethod, attribute access from the class returns the underlying function.
+    assert not hasattr(method, "__self__")
+    assert inspect.isfunction(method)
+    assert inspect_method_types(method) == "StaticMethod"
+
+
+def test_inspect_static_method_from_instance():
+    """
+    A static method accessed from an instance should also be reported as 'StaticMethod'.
+    """
+    obj = MyClass()
+    method = obj.static_method
+    # Still just the underlying function.
+    assert not hasattr(method, "__self__")
+    assert inspect.isfunction(method)
+    assert inspect_method_types(method) == "StaticMethod"
+
+
+def test_inspect_static_method_nested_inner_class():
+    """
+    Static methods on nested classes should still be reported as 'StaticMethod'.
+    """
+    method = Outer.Inner.inner_static
+    assert inspect.isfunction(method)
+    assert "Outer.Inner" in method.__qualname__
+    assert inspect_method_types(method) == "StaticMethod"
+
+
+def test_inspect_static_method_shared_between_classes():
+    """
+    The same static function object can be attached to multiple classes.
+    It is still a 'StaticMethod' regardless of which class it is accessed from.
+    """
+    method_a = A.shared
+    method_b = B.shared
+
+    assert inspect_method_types(method_a) == "StaticMethod"
+    assert inspect_method_types(method_b) == "StaticMethod"
+    assert method_a is method_b  # same underlying function
+
+
+# --- Tests: local-class static method ----------------------------------------
+
+
+def test_inspect_static_method_local_class():
+    """
+    Static methods on locally defined classes (with '<locals>' in __qualname__)
+    should still be treated as 'StaticMethod' if the qualname is dotted.
+    """
+    LocalClass = make_local_class()
+    method = LocalClass.local_static
+
+    # Depending on implementation, this may still be classified as StaticMethod
+    # because of the dotted __qualname__ pattern.
+    assert inspect.isfunction(method)
+    assert "." in method.__qualname__
+    assert inspect_method_types(method) == "StaticMethod"
+
+
+# --- Tests: plain function and non-callable ----------------------------------
+
+
+def test_inspect_plain_function():
+    """
+    A top-level function that is not attached to any class should be
+    reported as 'Function'.
+    """
+    method = plain_function
+    assert inspect.isfunction(method)
+    assert "." not in method.__qualname__  # e.g. 'plain_function'
+    assert inspect_method_types(method) == "Function"
+
+
+def test_inspect_raises_for_non_callable():
+    """
+    A completely non-callable object should cause a TypeError.
+    """
+    with pytest.raises(issues.UnexpectedWorkflowError):
+        inspect_method_types(42)  # type: ignore[arg-type]

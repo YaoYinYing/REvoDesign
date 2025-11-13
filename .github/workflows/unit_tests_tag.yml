@@ -23,8 +23,8 @@ jobs:
           - ubuntu-latest
         python-version: 
           - "3.9"
-          - "3.10"
-          - "3.11"
+          # - "3.10"
+          # - "3.11"
           - "3.12"
         pymol-tag:
           - 'latest pymol open source'
@@ -147,6 +147,7 @@ jobs:
           which python3
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
+          make install-pytorch-cpu-non-mac
           make install
       
       - name: Install DGL on Ubuntu

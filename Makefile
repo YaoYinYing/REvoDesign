@@ -82,7 +82,7 @@ install:
 	python -m pip install ".[$(PIP_EXTRAS_OPTIONAL)]" -U --no-cache-dir || echo Extras "$(PIP_EXTRAS_OPTIONAL)" is not installed.
 
 install-dgl-linux:
-	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html
+	python -m pip install 'dgl<=2.4.0' -f https://data.dgl.ai/wheels/torch-2.3/repo.html || echo Never mind.
 
 # this also works with macos
 install-dgl-win:
@@ -93,8 +93,12 @@ install-no-dept:
 	python -m pip install . --no-dependencies --no-cache-dir
 
 # ci docker image, before make install
-install-pytorch-cpu:
-	python -m pip install 'torch>2.0.1+cpu' 'torchvision>0.16.0+cpu' 'torchaudio>2.0.1+cpu' -i https://download.pytorch.org/whl/cpu --no-cache-dir
+install-pytorch-cpu-mac:
+	python -m pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --no-cache-dir
+
+install-pytorch-cpu-non-mac:
+	python -m pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+
 
 # local dev
 reinstall:
@@ -162,7 +166,7 @@ kw-test:
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
-	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)  -k $(PYTEST_KW) -vv -x
+	cd $(TESTDIR); python -m pytest $(PYTEST_ARGS) $(PYTEST_CASES_PATH)  -k $(PYTEST_KW) -vvv -x
 	cp $(TESTDIR)/.coverage* .
 
 # all test with keyword, under pdb

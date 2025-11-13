@@ -104,4 +104,8 @@ TOOLS_MENU_LINKS = (
         'actionSetLogLevel',
         "REvoDesign.shortcuts.wrappers.utils:wrapped_logger_level_setter"
     ),
+    MenuItem(
+        'actionRMSF_to_b_factor',
+        "REvoDesign.shortcuts.wrappers.represents:wrapped_load_b_factors"
+    )
 )
