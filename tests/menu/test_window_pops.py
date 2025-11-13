@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from pymol import cmd
 
-# simply import the wrapper you want to test
+# simply import the wrappers you want to test
 from REvoDesign.shortcuts.wrappers.designs import (wrapped_profile_pick_design,
                                                    wrapped_pssm2csv)
 from REvoDesign.shortcuts.wrappers.esm2 import wrapped_esm1v
