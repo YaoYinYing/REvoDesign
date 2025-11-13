@@ -8,6 +8,7 @@ import inspect
 import itertools
 import random
 import string
+import gc
 import sys
 import tarfile
 import time
@@ -323,35 +324,32 @@ def get_cited(method: Callable) -> Callable:
 
     # instance method, having a self argument
 
+    def _cite_for_cls(cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract]) -> None:
+        try:
+            if not (hasattr(cls_or_obj, 'cite') and callable(getattr(cls_or_obj, 'cite'))):
+                raise TypeError(
+                    f'{cls_or_obj.__name__} is not a citable module, or its class({cls_or_obj.__name__}) does not have a cite() method.')
+            cls_or_obj.cite()
+
+        except Exception as e:
+            logging.warning(f'Ignore cite() error: {e}')
     @wraps(method)
-    def wrapper_instance_method(self: CitableModuleAbstract, *args, **kwargs):
-        result = method(self, *args, **kwargs)
-        if hasattr(self, 'cite') and callable(getattr(self, 'cite')):
-            self.cite()
+    def wrapper_instance_method_or_classmethod(
+        cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract], 
+        *args, **kwargs
+        ):
+        result = method(cls_or_obj, *args, **kwargs)
+        _cite_for_cls(cls_or_obj)
         return result
 
-    # class method, having a cls argument
-    # the class must instantiate an object to call cite()
-    @wraps(method)
-    def wrapper_class_method(cls: type[CitableModuleAbstract], *args, **kwargs):
-        result = method(cls, *args, **kwargs)
-        if hasattr(cls, 'cite') and callable(getattr(cls, 'cite')):
-            cls().cite()
-        return result
 
     # static method, no self or cls argument
     # get the class and instantiate an object to call cite()
     @wraps(method)
     def wrapper_static_method(*args, **kwargs):
         result = method(*args, **kwargs)
-        # if len(args) > 0:
-        # try to get the class from the first argument if possible
-        possible_cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
-        if hasattr(possible_cls, 'cite') and callable(getattr(possible_cls, 'cite')):
-            possible_cls().cite()
-        else:
-            raise TypeError(
-                f'{method.__name__} is not a citable module, or its class({possible_cls.__name__}) does not have a cite() method.')
+        cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
+        _cite_for_cls(cls)
         return result
 
     # normal function, no self or cls argument
@@ -370,12 +368,10 @@ def get_cited(method: Callable) -> Callable:
 
     guessed_method_type = inspect_method_types(method=method)
     logging.warning(f"Guessed method type: {method!r}: {guessed_method_type}")
-    if guessed_method_type == 'ClassMethod':
-        return wrapper_class_method
+    if guessed_method_type in ('ClassMethod', 'InstanceMethod'):
+        return wrapper_instance_method_or_classmethod
     if guessed_method_type == 'StaticMethod':
         return wrapper_static_method
-    if guessed_method_type == 'InstanceMethod':
-        return wrapper_instance_method
     if guessed_method_type == 'Function':
         return wrapper_function
 

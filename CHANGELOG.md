@@ -55,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - tools:
   - utils: 
     - `get_cited`: enhanced for classmethods, staticmethods, normal functions
+- citation:
+  - `CitableModuleAbstract`: `cite` and `notice` are now classmethods, because citing is not relevant to the module functionality. It should always be citable.
 
 ### Fixed
 - shortcuts:

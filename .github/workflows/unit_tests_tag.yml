@@ -23,8 +23,8 @@ jobs:
           - ubuntu-latest
         python-version: 
           - "3.9"
-          - "3.10"
-          - "3.11"
+          # - "3.10"
+          # - "3.11"
           - "3.12"
         pymol-tag:
           - 'latest pymol open source'
@@ -65,11 +65,11 @@ jobs:
           #   conda-channel: -c conda-forge
           
           # latest bundled pymol 
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pymol-tag: 'latest pymol bundle'
-            pymol-version: "pymol-bundle"
-            conda-channel: -c schrodinger -c conda-forge
+          # - os: ubuntu-latest
+          #   python-version: "3.10"
+          #   pymol-tag: 'latest pymol bundle'
+          #   pymol-version: "pymol-bundle"
+          #   conda-channel: -c schrodinger -c conda-forge
           
           # pymol-open-source, v2
           - os: ubuntu-latest
@@ -79,12 +79,12 @@ jobs:
             conda-channel: -c conda-forge
             
 
-          # bundled pymol, v2
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pymol-tag: 'legacy (v2) pymol bundle'
-            pymol-version: "pymol-bundle<3"
-            conda-channel: -c schrodinger -c conda-forge
+          # # bundled pymol, v2
+          # - os: ubuntu-latest
+          #   python-version: "3.10"
+          #   pymol-tag: 'legacy (v2) pymol bundle'
+          #   pymol-version: "pymol-bundle<3"
+          #   conda-channel: -c schrodinger -c conda-forge
             
 
     runs-on: ${{ matrix.os }}
