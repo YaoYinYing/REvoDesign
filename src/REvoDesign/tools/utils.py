@@ -14,7 +14,7 @@ import time
 import zipfile
 from functools import wraps
 from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
-                    Union)
+                    Union,overload)
 
 import matplotlib
 import numpy as np
@@ -197,7 +197,7 @@ def inspect_method_types(method: Callable) -> MethodKind:
         is not callable.
     """
     if not callable(method):
-        raise TypeError(f"Cannot inspect method type for non-callable {method!r}")
+        raise issues.UnexpectedWorkflowError(f"Cannot inspect method type for non-callable {method!r}")
 
     # --- 1. Bound methods: have a non-None __self__ -------------------------
     #   obj.method      -> bound instance method ( __self__ is instance )
@@ -206,7 +206,9 @@ def inspect_method_types(method: Callable) -> MethodKind:
         self_obj = method.__self__  # type: ignore[attr-defined]
         # Bound to a class -> classmethod
         if isinstance(self_obj, type):
+            logging.debug(f'{method!r} is a classmethod bound to {self_obj!r}')
             return "ClassMethod"
+        logging.debug(f'{method!r} is an instancemethod bound to {self_obj!r}')
         # Bound to an instance -> instance method
         return "InstanceMethod"
 
@@ -215,6 +217,7 @@ def inspect_method_types(method: Callable) -> MethodKind:
     # function objects (unbound). We must check how they are stored on the class.
     if inspect.isfunction(method):
         qualname = getattr(method, "__qualname__", "")
+        logging.debug(f"Checking unbound function {method}: {getattr(method, '__module__', '')!r}")
 
         # Try to resolve the owning class from qualname: "MyClass.method"
         if "." in qualname:
@@ -238,17 +241,21 @@ def inspect_method_types(method: Callable) -> MethodKind:
                 attr = owner_cls.__dict__.get(func_name)
                 # Static method is stored as a staticmethod descriptor
                 if isinstance(attr, staticmethod):
+                    logging.debug(f'{method!r} is a staticmethod on {owner_cls!r}')
                     return "StaticMethod"
                 # A normal "def" on the class body: unbound instance method
                 if inspect.isfunction(attr):
+                    logging.debug(f'{method!r} is a function on {owner_cls!r}')
                     return "Function"
 
             # Fallback: dotted qualname but class not resolvable
             # (e.g. local classes with '<locals>' in qualname).
             # In your semantics we still treat this as a static-style method.
+            logging.debug(f'{method!r} is a dotted qualname but class is not resolvable')
             return "StaticMethod"
 
         # No dot in qualname: a plain top-level function
+        logging.debug(f'{method!r} is a plain top-level function')
         return "Function"
 
     # --- 3. Rare cases: method-like objects not covered above ---------------
@@ -256,10 +263,13 @@ def inspect_method_types(method: Callable) -> MethodKind:
         # This branch is mostly for odd cases / builtins.
         self_obj = method.__self__
         if isinstance(self_obj, type):
+            logging.debug(f'{method!r} is a method-like classmethod object')
             return "ClassMethod"
+        logging.debug(f'{method!r} is a method-like instancemethod object')
         return "InstanceMethod"
 
     # --- 4. Give up ----------------------------------------------------------
+    logging.error(f"Giving up for inpection on method type! {method!r}")
     raise TypeError(f"Cannot inspect method type for {method!r}")
 
 
@@ -283,7 +293,7 @@ def get_owner_class_from_static(func):
     #      "Outer.Inner.static" -> "Outer.Inner"
     parts = qualname.split('.')
     if len(parts) < 2:
-        raise LookupError(f"Cannot infer an owning class from qualname {qualname!r}")
+        raise LookupError(f"Cannot infer an owning class from qualname {qualname!r} ({func.__qualname__!r})")
 
     class_path = parts[:-1]  # everything except the function name
     module = sys.modules.get(func.__module__)
@@ -304,7 +314,7 @@ def get_owner_class_from_static(func):
     return obj
 
 
-def get_cited(method):
+def get_cited(method: Callable) -> Callable:
     """
     Decorator to call `self.cite()` after executing `self.process()`.
     """
@@ -333,11 +343,13 @@ def get_cited(method):
     @wraps(method)
     def wrapper_static_method(*args, **kwargs):
         result = method(*args, **kwargs)
-        # try to get the class from the first argument if possible
         if len(args) > 0:
+            # try to get the class from the first argument if possible
             possible_cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
             if hasattr(possible_cls, 'cite') and callable(getattr(possible_cls, 'cite')):
                 possible_cls().cite()
+            else:
+                raise TypeError(f'{method.__name__} is not a citable module, or its class({possible_cls.__name__}) does not have a cite() method.')
         return result
 
     # normal function, no self or cls argument
