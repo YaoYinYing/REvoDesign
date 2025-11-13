@@ -772,5 +772,5 @@ def test_inspect_raises_for_non_callable():
     """
     A completely non-callable object should cause a TypeError.
     """
-    with pytest.raises(TypeError):
+    with pytest.raises(issues.UnexpectedWorkflowError):
         inspect_method_types(42)  # type: ignore[arg-type]
