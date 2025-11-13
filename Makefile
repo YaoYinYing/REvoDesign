@@ -93,8 +93,12 @@ install-no-dept:
 	python -m pip install . --no-dependencies --no-cache-dir
 
 # ci docker image, before make install
-install-pytorch-cpu:
-	python -m pip install 'torch>2.0.1+cpu' 'torchvision>0.16.0+cpu' 'torchaudio>2.0.1+cpu' -i https://download.pytorch.org/whl/cpu --no-cache-dir
+install-pytorch-cpu-mac:
+	python -m pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --no-cache-dir
+
+install-pytorch-cpu-non-mac:
+	python -m pip install torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+
 
 # local dev
 reinstall:

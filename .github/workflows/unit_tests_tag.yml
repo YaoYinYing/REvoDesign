@@ -147,6 +147,7 @@ jobs:
           which python3
       - name: Install REvoDesign on ${{ matrix.os }}
         run: |
+          make install-pytorch-cpu-non-mac
           make install
       
       - name: Install DGL on Ubuntu
