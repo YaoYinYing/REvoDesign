@@ -3,7 +3,7 @@ Shortcut functions of structure representation
 '''
 
 
-from typing import List
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -407,9 +407,19 @@ def _read_b_factors(file_path: str, label: Optional[str] = None) -> List[float]:
 # Gatti-Lafranconi, Pietro (2014). Pymol script: loadBfacts.py. figshare.
 # Software. https://doi.org/10.6084/m9.figshare.1176991.v1
 
+load_b_factors_citation : dict[str, Union[str, tuple]] = {
+    'loadBfacts.py': """@article{Gatti-Lafranconi2014,
+author = "Pietro Gatti-Lafranconi",
+title = "{Pymol script: loadBfacts.py}",
+year = "2014",
+month = "9",
+url = "https://figshare.com/articles/software/Pymol_script_loadBfacts_py/1176991",
+doi = "10.6084/m9.figshare.1176991.v1"
+}"""
+}
 
-@get_cited
-def load_b_factors(
+
+def _load_b_factors(
         mol: str,
         chain_ids: str,
         keep_missing: bool,
@@ -497,14 +507,5 @@ def load_b_factors(
         cmd.recolor()
 
 
-setattr(load_b_factors, '__bibtex__', {
-    'loadBfacts.py': """@article{Gatti-Lafranconi2014,
-author = "Pietro Gatti-Lafranconi",
-title = "{Pymol script: loadBfacts.py}",
-year = "2014",
-month = "9",
-url = "https://figshare.com/articles/software/Pymol_script_loadBfacts_py/1176991",
-doi = "10.6084/m9.figshare.1176991.v1"
-}"""
-}
-)
+setattr(_load_b_factors, '__bibtex__', load_b_factors_citation)
+load_b_factors=get_cited(_load_b_factors)
