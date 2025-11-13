@@ -79,3 +79,14 @@ def test_citable_module_abstract_cite():
 
         mock_update.assert_called_once_with(new_citations={"modulex": "citationx"})
         mock_notice.assert_called_once()
+
+def test_citable_module_abstract_get_citable_class():
+    def _myfunction():
+        print("Hello World")
+
+    cite_my_function = {"myfunction": "citation1"}
+    setattr(_myfunction, "__bibtex__", cite_my_function)
+
+    anonymous_citable_class = CitableModuleAbstract.get_citable_class(func=_myfunction)
+    assert anonymous_citable_class.__bibtex__ == cite_my_function
+    

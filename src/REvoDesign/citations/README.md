@@ -52,16 +52,20 @@ my_class.my_method()
 
 ### Cite a classmethod or a staticmethod
 
+One can use `get_cited` to cite classmethod or staticmethod.
+Please note that the order of decoration matters. The `get_cited` decorator must be placed before (which means at the **bottom** of) the classmethod or staticmethod decorator.
+
 ```python
 class MyClass:
-    __bibtex__: dict[str, Union[str, tuple]] = {'Awesome Tool': """@article{Awesome Tool, }"""
+    __bibtex__: dict[str, Union[str, tuple]] = {'Awesome Tool': """@article{Awesome Tool, ...}"""
 }
     @classmethod
     @get_cited
     def my_classmethod(cls, *args, **kwargs):
         print('I am a classmethod.')
-    
+
     @staticmethod
+    @get_cited
     def my_staticmethod(*args, **kwargs):
         print('I am a staticmethod.')
     
@@ -74,6 +78,9 @@ my_class.my_staticmethod()
 ### Cite a function
 
 As the decorator returns a function w/ exactly the same name yet different from the original function, one must add the citation note to the function as `<function>.__bibtex__` manually. After that, use `get_cited` to generate a citable function wrapper.
+
+
+Here is an real case we are using in REvoDesign:
 
 ```python
 
@@ -114,3 +121,9 @@ setattr(_load_b_factors, '__bibtex__', load_b_factors_citation)
 # 4. generate a citable function wrapper. Only the wrapper is called can the citation note be added.
 load_b_factors=get_cited(_load_b_factors)
 ```
+
+
+## Troubleshooting
+
+1. Please DO avoid citing class that in a private scope (inside a function, etc.), as solving the parent class from the method is hard. This means that all citable classes/functions must be visible from public scope (importable to other modules).
+2. The current class solving and method guessing mechanism is not perfect and far to complicated. It may fit the most cases, but it is not guaranteed to work for all, unless you know what you are doing.
