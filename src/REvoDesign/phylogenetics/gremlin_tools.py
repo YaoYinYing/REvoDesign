@@ -456,16 +456,15 @@ class GREMLIN_Tools(CitableModuleAbstract):
             j_aa = self.top.iloc[n]["j_aa"]
             zscore = self.top.iloc[n]["zscore"]
 
-            pair = self.plot_w(i, j, i_aa, j_aa, n)
+            pair: CoevolvedPair = self.plot_w(i, j, i_aa, j_aa, n)
             if not pair:
-                logging.warning(f"Skipping {i_aa}{j_aa}")
                 continue
             pair.zscore = zscore
 
             plot_w_fps.append(pair)
         return tuple(plot_w_fps)
 
-    def plot_w_o2a(self, resi) -> tuple[CoevolvedPair, ...]:
+    def plot_w_o2a(self, resi) -> tuple[CoevolvedPair]:
         # Step 1: Find all items where i is in either column of "w_idx"
         matching_indices = np.where(
             (self.mrf["w_idx"][:, 0] == resi)
@@ -478,7 +477,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         for idx in matching_indices:
             w_idx = self.mrf["w_idx"][idx]
 
-            if abs(self.pd_mtx["j"][idx] - self.pd_mtx["i"][idx]) > 3:
+            if abs(self.pd_mtx["j"][idx] - self.pd_mtx["i"][idx]) > 5:
                 coevolving_pairs.append(
                     (
                         int(w_idx[0]),
@@ -487,10 +486,6 @@ class GREMLIN_Tools(CitableModuleAbstract):
                         self.pd_mtx["j_aa"][idx],
                         self.pd_mtx["zscore"][idx],
                     )
-                )
-            else:
-                logging.warning(
-                    f"Pair {w_idx[0]}-{w_idx[1]} is too close to the diagonal, skipped"
                 )
 
         # Step 3: Sort the coevolving_pairs by zscore in descending order
@@ -505,7 +500,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
             warnings.warn(
                 issues.NoResultsWarning("No coevolving pairs found!")
             )
-            return ()
+            return {}
 
         logging.info(f"top {self.topN} items selected: {str(top_N_pairs)}")
 
@@ -515,9 +510,8 @@ class GREMLIN_Tools(CitableModuleAbstract):
         for n, pair in enumerate(top_N_pairs):
             (i, j, i_aa, j_aa, zscore) = pair
             # if i>j, the i and j in `CoevolvedPair` will be swapped.
-            pair_i = self.plot_w(i, j, i_aa, j_aa, n)
+            pair_i: CoevolvedPair = self.plot_w(i, j, i_aa, j_aa, n)
             if not pair_i:
-                logging.warning(f"Skipping {i_aa} {j_aa}")
                 continue
             pair_i.zscore = zscore
             plot_w_fps.append(pair_i)
