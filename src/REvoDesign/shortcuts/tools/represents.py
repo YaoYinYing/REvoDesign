@@ -5,7 +5,6 @@ Shortcut functions of structure representation
 
 from typing import List, Union
 
-import numpy as np
 import pandas as pd
 from Bio.Align import substitution_matrices
 from Bio.Data import IUPACData
@@ -15,7 +14,6 @@ from pymol import cmd, util
 
 from REvoDesign import ROOT_LOGGER, issues
 
-from ...citations import CitableModuleAbstract
 from ...tools.mutant_tools import expand_range
 from ...tools.pymol_utils import get_molecule_sequence
 from ...tools.utils import get_cited

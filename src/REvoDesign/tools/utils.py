@@ -8,7 +8,6 @@ import inspect
 import itertools
 import random
 import string
-import gc
 import sys
 import tarfile
 import time
