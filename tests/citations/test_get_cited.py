@@ -1,7 +1,7 @@
-from REvoDesign.tools.utils import get_cited
-from REvoDesign.citations import CitableModuleAbstract, CitationManager
 import pytest
 
+from REvoDesign.citations import CitableModuleAbstract, CitationManager
+from REvoDesign.tools.utils import get_cited
 
 
 class MyModule(CitableModuleAbstract):
@@ -16,8 +16,9 @@ class MyModule(CitableModuleAbstract):
 
     @staticmethod
     @get_cited
-    def test_staticmethod(key: str ='awesome!'):
+    def test_staticmethod(key: str = 'awesome!'):
         print(f"Test staticmethod called: {key}")
+
 
 def my_function():
     print("My function called")
@@ -35,11 +36,12 @@ def my_function():
 ])
 def test_get_cited_class(citation_header, method_name):
     MyModule.__bibtex__ = {citation_header: "citationx"}
-    module= MyModule() if 'object' in citation_header else MyModule
+    module = MyModule() if 'object' in citation_header else MyModule
     assert citation_header not in CitationManager().called_citations
-    method=getattr(module, method_name)
+    method = getattr(module, method_name)
     method()
     assert citation_header in CitationManager().called_citations
+
 
 def test_get_cited_function():
     citation_header = "modulex_function"
@@ -50,4 +52,3 @@ def test_get_cited_function():
     citable_my_function = get_cited(my_function)
     citable_my_function()
     assert citation_header in CitationManager().called_citations
-    

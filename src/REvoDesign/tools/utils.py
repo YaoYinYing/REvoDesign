@@ -14,7 +14,7 @@ import time
 import zipfile
 from functools import wraps
 from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
-                    Union,overload)
+                    Union)
 
 import matplotlib
 import numpy as np
@@ -344,13 +344,14 @@ def get_cited(method: Callable) -> Callable:
     @wraps(method)
     def wrapper_static_method(*args, **kwargs):
         result = method(*args, **kwargs)
-        #if len(args) > 0:
+        # if len(args) > 0:
         # try to get the class from the first argument if possible
         possible_cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
         if hasattr(possible_cls, 'cite') and callable(getattr(possible_cls, 'cite')):
             possible_cls().cite()
         else:
-            raise TypeError(f'{method.__name__} is not a citable module, or its class({possible_cls.__name__}) does not have a cite() method.')
+            raise TypeError(
+                f'{method.__name__} is not a citable module, or its class({possible_cls.__name__}) does not have a cite() method.')
         return result
 
     # normal function, no self or cls argument

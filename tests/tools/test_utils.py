@@ -451,6 +451,7 @@ def test_require_installed(package_name, expected_raise):
     else:
         TestClass()
 
+
 class CitableClass(CitableModuleAbstract):
     def __init__(self):
         ...
@@ -473,6 +474,7 @@ URL = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009},
 eprint = {https://www.biorxiv.org/content/early/2025/01/01/awesomej1009.full.pdf},
 journal = {Awesome Journal}
 }"""}
+
 
 def test_get_cited():
 
