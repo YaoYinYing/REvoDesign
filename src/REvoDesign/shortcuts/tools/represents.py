@@ -407,7 +407,8 @@ def _read_b_factors(file_path: str, label: Optional[str] = None) -> List[float]:
 # Gatti-Lafranconi, Pietro (2014). Pymol script: loadBfacts.py. figshare.
 # Software. https://doi.org/10.6084/m9.figshare.1176991.v1
 
-load_b_factors_citation : dict[str, Union[str, tuple]] = {
+
+load_b_factors_citation: dict[str, Union[str, tuple]] = {
     'loadBfacts.py': """@article{Gatti-Lafranconi2014,
 author = "Pietro Gatti-Lafranconi",
 title = "{Pymol script: loadBfacts.py}",
@@ -508,4 +509,4 @@ def _load_b_factors(
 
 
 setattr(_load_b_factors, '__bibtex__', load_b_factors_citation)
-load_b_factors=get_cited(_load_b_factors)
+load_b_factors = get_cited(_load_b_factors)
