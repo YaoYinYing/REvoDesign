@@ -1,12 +1,14 @@
 import os
+import random
 
+import pandas as pd
 import pytest
 from pymol import cmd
-import random
-import pandas as pd
-from REvoDesign.shortcuts.tools.represents import shortcut_color_by_mutation, _load_b_factors
-from tests.conftest import TestWorker
+
+from REvoDesign.shortcuts.tools.represents import (_load_b_factors,
+                                                   shortcut_color_by_mutation)
 from REvoDesign.tools.pymol_utils import get_molecule_sequence
+from tests.conftest import TestWorker
 
 
 @pytest.mark.serial
@@ -42,6 +44,7 @@ def test_shortcut_color_by_mutation(test_worker: TestWorker):
         assert ca_1.resi == ca_2.resi, f'{ca_1.resi} != {ca_2.resi}'
         assert ca_1.resn != ca_2.resn, f'{ca_1.resn} == {ca_2.resn}'
 
+
 @pytest.mark.parametrize("table_file_name,pos_slice,offset", [
     ['b_factors.bfactors.csv', None, 0],
     ['b_factors.bfactors.csv', '1-11', 0],
@@ -52,7 +55,7 @@ def test_shortcut_color_by_mutation(test_worker: TestWorker):
 
 
 ])
-def test_load_b_factors(table_file_name,pos_slice,offset, test_worker: TestWorker, test_tmp_dir):
+def test_load_b_factors(table_file_name, pos_slice, offset, test_worker: TestWorker, test_tmp_dir):
 
     pdb_path = '../tests/data/3fap_hf3_A_short.pdb'
     test_worker.test_id = test_worker.method_name()
@@ -67,17 +70,16 @@ def test_load_b_factors(table_file_name,pos_slice,offset, test_worker: TestWorke
     # before loading b-factors, all b-factors should be zero
     model = cmd.get_model(obj_name)
 
-    
     for atom in model.atom:
         assert atom.b == 0.0, f"Expected b-factor 0.0, got {atom.b} for atom {atom.name} in residue {atom.resi}"
 
-    seq=get_molecule_sequence(obj_name,'A')
-    randb=random.sample(range(1,20),len(seq))
+    seq = get_molecule_sequence(obj_name, 'A')
+    randb = random.sample(range(1, 20), len(seq))
 
-    table_file_path=os.path.join(test_tmp_dir, table_file_name)
+    table_file_path = os.path.join(test_tmp_dir, table_file_name)
     with open(table_file_path, 'w') as bf:
-        df=pd.DataFrame({'b_factor':randb})
-        df.to_csv(bf,index=False)
+        df = pd.DataFrame({'b_factor': randb})
+        df.to_csv(bf, index=False)
 
     test_worker.save_pymol_png(f'before_load_b_{pos_slice}_{offset}_{test_worker.method_name()}')
 
@@ -91,9 +93,8 @@ def test_load_b_factors(table_file_name,pos_slice,offset, test_worker: TestWorke
         pos_slice=pos_slice,
         offset=offset
     )
-    
-    test_worker.save_pymol_png(f'after_load_b_factors_{pos_slice}_{offset}_{test_worker.method_name()}')
 
+    test_worker.save_pymol_png(f'after_load_b_factors_{pos_slice}_{offset}_{test_worker.method_name()}')
 
     # after loading b-factors, check that they are updated
     model = cmd.get_model(obj_name)

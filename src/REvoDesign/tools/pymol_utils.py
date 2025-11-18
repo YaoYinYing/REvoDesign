@@ -623,7 +623,9 @@ def get_pymol_settings(keyword: str, obj: Optional[str] = '') -> Dict[str, PyMOL
         if keyword in key_name
     }
 
-palette_tuple= tuple(palette_dict.keys())
 
-def list_palettes() -> tuple[str,...]:
+palette_tuple = tuple(palette_dict.keys())
+
+
+def list_palettes() -> tuple[str, ...]:
     return palette_tuple

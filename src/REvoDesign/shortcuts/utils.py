@@ -8,9 +8,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 from immutabledict import immutabledict
-from REvoDesign.basic.data_structure import FloatRange
 
 from REvoDesign import issues
+from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
                                                  dialog_wrapper)

@@ -20,8 +20,8 @@ import numpy as np
 import pandas as pd
 
 from REvoDesign import issues
-from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic import FileExtensionCollection as FExCol
+from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
 from REvoDesign.Qt import QtCore, QtGui, QtWidgets
@@ -1709,7 +1709,7 @@ class ValueDialog(REvoDesignWidget):
                 widget = QtWidgets.QDoubleSpinBox()
             else:
                 widget = QtWidgets.QSpinBox()
-            
+
             widget.setRange(choices.start, choices.stop)
             widget.setSingleStep(choices.step)
 

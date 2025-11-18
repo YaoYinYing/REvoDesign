@@ -332,18 +332,19 @@ def get_cited(method: Callable) -> Callable:
 
         except Exception as e:
             logging.warning(f'Ignore cite() error: {e}')
+
     @wraps(method)
     def wrapper_instance_method_or_classmethod(
-        cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract], 
+        cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract],
         *args, **kwargs
-        ):
+    ):
         result = method(cls_or_obj, *args, **kwargs)
         _cite_for_cls(cls_or_obj)
         return result
 
-
     # static method, no self or cls argument
     # get the class and instantiate an object to call cite()
+
     @wraps(method)
     def wrapper_static_method(*args, **kwargs):
         result = method(*args, **kwargs)
@@ -666,7 +667,7 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
 
 
 def convert_residue_ranges(
-        residue_ranges: str, 
+        residue_ranges: str,
 
         res_prefix: str = "",
         resr_prefix: str = "",
@@ -674,15 +675,15 @@ def convert_residue_ranges(
         res_suffix: str = "",
         resr_suffix: str = "",
 
-        connector: str= ' | ',
-        ) -> str:
+        connector: str = ' | ',
+) -> str:
     '''
     Converts a string of residue ranges into a string of residue segments.
     Example:
     >>> convert_residue_ranges('1-5+7-9+10-12+13', res_prefix='r ', resr_prefix='ri ', connector=' | ')
     ri 1-5 | r 7-9 | r 10-12 | r 13
 
-    
+
     Args:
         residue_ranges: String of residue ranges.
         res_prefix: Prefix to add to each residue.
@@ -695,19 +696,17 @@ def convert_residue_ranges(
 
     '''
 
-    converted=[]
+    converted = []
     for residue_seg in residue_ranges.split('+'):
         if '-' in residue_seg:
             converted.append(resr_prefix + residue_seg + resr_suffix)
         else:
             converted.append(res_prefix + residue_seg + res_suffix)
 
-    converted_str=connector.join(converted)
+    converted_str = connector.join(converted)
     logging.info(f"Converted residue ranges to segments: {converted_str}")
 
     return converted_str
-    
-    
 
 
 # TODO: support JAX and TensorFlow; need refactor

@@ -3,14 +3,14 @@ Shortcut functions of structure representation
 '''
 
 
-from typing import Iterable, List, Union
 from dataclasses import dataclass
 from functools import cached_property
+from typing import List, Optional, Union
+
 import numpy as np
 import pandas as pd
 from Bio.Align import substitution_matrices
 from Bio.Data import IUPACData
-from typing import Optional
 from immutabledict import immutabledict
 from pymol import cmd, util
 
@@ -19,7 +19,6 @@ from REvoDesign import ROOT_LOGGER, issues
 from ...tools.mutant_tools import expand_range
 from ...tools.pymol_utils import get_molecule_sequence
 from ...tools.utils import get_cited
-
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -420,13 +419,13 @@ doi = "10.6084/m9.figshare.1176991.v1"
 }""",
     'PyMOL - putty': """
 @misc{mura2014developmentimplementationpymol,
-      title={Development & Implementation of a PyMOL 'putty' Representation}, 
+      title={Development & Implementation of a PyMOL 'putty' Representation},
       author={Cameron Mura},
       year={2014},
       eprint={1407.5211},
       archivePrefix={arXiv},
       primaryClass={q-bio.BM},
-      url={https://arxiv.org/abs/1407.5211}, 
+      url={https://arxiv.org/abs/1407.5211},
 }"""
 }
 
@@ -439,14 +438,13 @@ class BFactor:
 
     bfactor_data: np.ndarray
 
-
     @cached_property
     def obj_sel_pymol(self) -> str:
         '''
         Return the PyMOL selection string for the object
         '''
         return f'{self.mol} and c. {self.chain_id}'
-    
+
     def get(self, pos_zero_idx: int) -> float:
         """
         Get the bfactor value at the given position
@@ -459,12 +457,12 @@ class BFactor:
             float: Bfactor value
         """
         return self.bfactor_data[pos_zero_idx]
-    
-    __getitem__ = get
-    
 
-    # this method assumes that the bfactor_data[pos_zero_idx] is the 
+    __getitem__ = get
+
+    # this method assumes that the bfactor_data[pos_zero_idx] is the
     # the bfactor value for resi pos_zero_idx+1
+
     def assign_to_res_pymol(self, pos_zero_idx: int) -> float:
         """
         Assigns the bfactor value to the residue at pos_zero_idx+1
@@ -478,17 +476,16 @@ class BFactor:
         float
             The bfactor value
         """
-        bfact=self.get(pos_zero_idx)
+        bfact = self.get(pos_zero_idx)
         logging.debug(f"Setting B-factor for position {pos_zero_idx+1} (zero-indexed {pos_zero_idx}) to {bfact}")
         cmd.alter(f'{self.obj_sel_pymol} and i. {pos_zero_idx+1}', f'b={bfact}')
         return bfact
 
-    
     def _rescaled_bfactor_data(
-            self, 
-            scale_from: tuple[float, float], 
-            scale_dst: tuple[float,float]
-            ) -> np.ndarray:
+            self,
+            scale_from: tuple[float, float],
+            scale_dst: tuple[float, float]
+    ) -> np.ndarray:
         """
         Rescale the B-factor data to a new range.
         Args:
@@ -499,8 +496,8 @@ class BFactor:
             np.ndarray: The rescaled B-factor data.
         """
         return np.interp(self.bfactor_data, scale_from, scale_dst)
-    
-    def rescaled(self, scale_from: tuple[float, float], scale_dst: tuple[float,float]) -> 'BFactor':
+
+    def rescaled(self, scale_from: tuple[float, float], scale_dst: tuple[float, float]) -> 'BFactor':
         """
         Returns a new BFactor object with the B-factor data scaled to a new range.
         Parameters:
@@ -516,11 +513,12 @@ class BFactor:
             sequence=self.sequence,
             bfactor_data=self._rescaled_bfactor_data(scale_from, scale_dst)
         )
-    
+
     _read_b_factors = staticmethod(_read_b_factors)
 
+
 def _load_b_factors(
-        
+
         mol: str,
         chain_ids: str,
         keep_missing: bool,
@@ -535,7 +533,7 @@ def _load_b_factors(
         rescale_min: float = 0.0,
         rescale_max: float = 100.0,
         visual: bool = True,
-        putty_transform_mode: int=3 ) -> None:
+        putty_transform_mode: int = 3) -> None:
     """
     Replaces B-factors with a list of values contained in a plain txt file
 
@@ -574,13 +572,13 @@ def _load_b_factors(
 
     for chain_id in _chain_ids:
 
-        bf_chain= BFactor(
-            mol=mol, 
-            chain_id=chain_id, 
+        bf_chain = BFactor(
+            mol=mol,
+            chain_id=chain_id,
             sequence=get_molecule_sequence(obj, chain_id=chain_id, keep_missing=keep_missing),
             bfactor_data=np.array(_read_b_factors(source, label))
-            )
-        
+        )
+
         logging.debug(f"Using object {obj} for selection {mol}")
 
         # fetch sequence info
@@ -592,18 +590,18 @@ def _load_b_factors(
 
         # read new b factor data from csv file or excel file or txt file
 
-
         logging.debug(f"Read {len(bf_chain.bfactor_data)} B-factor values from {source}")
 
-        bf_rescale: Optional[BFactor] =None
-        
+        bf_rescale: Optional[BFactor] = None
+
         if do_rescale:
             bf_rescale = bf_chain.rescaled((scale_min, scale_max), (rescale_min, rescale_max))
-            logging.debug(f"Rescaling B-factor values from [{scale_min}, {scale_max}] to [{rescale_min}, {rescale_max}]")
-            
+            logging.debug(
+                f"Rescaling B-factor values from [{scale_min}, {scale_max}] to [{rescale_min}, {rescale_max}]")
+
             logging.warning(f"B-factor values rescaled: ({scale_min}, {scale_max}) -> ({rescale_min}, {rescale_max}).")
 
-        bfact_assign: BFactor=bf_rescale or bf_chain
+        bfact_assign: BFactor = bf_rescale or bf_chain
 
         positions = expand_range(pos_slice if pos_slice else f"1-{len(seq)}")
         # correct positions with offset, from one-based to zero-based indexing
@@ -613,11 +611,10 @@ def _load_b_factors(
         bfacts_orignal = []
         bfacts_rescaled = []
 
-
         for pos in positions_offset:
             try:
                 bfact = bfact_assign.get(pos)
-                bfact_ori= bf_chain.get(pos)
+                bfact_ori = bf_chain.get(pos)
             except IndexError:
                 logging.warning(
                     f"Position {pos+1} (zero-indexed {pos}) exceeds the length of new B-factor data ({len(newbfact_data)}); setting B-factor to -1.0")
@@ -631,17 +628,17 @@ def _load_b_factors(
         if not visual:
             return
 
-
         logging.debug(f"Setting visual representation for {mol} (chain {chain_id}) based on B-factors")
         cmd.show_as("cartoon", bfact_assign.obj_sel_pymol)
         cmd.cartoon("putty", bfact_assign.obj_sel_pymol)
         cmd.set("cartoon_putty_scale_min", min(bfacts_rescaled), obj)
         cmd.set("cartoon_putty_scale_max", max(bfacts_rescaled), obj)
-        cmd.set("cartoon_putty_transform", putty_transform_mode, obj) 
-        cmd.set("cartoon_putty_radius", 0.2, obj) # type: ignore
+        cmd.set("cartoon_putty_transform", putty_transform_mode, obj)
+        cmd.set("cartoon_putty_radius", 0.2, obj)  # type: ignore
         cmd.spectrum("b", palette=palette_code, selection=f"{bfact_assign.obj_sel_pymol} and n. CA ")
-        cmd.ramp_new(f"count_{mol}_{chain_id}_{'rescaled' if bf_rescale else 'ori'}", obj, [min(bfacts_rescaled), max(bfacts_rescaled)], palette_code)
-        
+        cmd.ramp_new(f"count_{mol}_{chain_id}_{'rescaled' if bf_rescale else 'ori'}",
+                     obj, [min(bfacts_rescaled), max(bfacts_rescaled)], palette_code)
+
         if do_rescale:
             cmd.ramp_new(f"count_{mol}_{chain_id}_ori", obj, [min(bfacts_orignal), max(bfacts_orignal)], palette_code)
         cmd.recolor()

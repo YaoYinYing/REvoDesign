@@ -1,13 +1,15 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtCore import QUrl, QObject, pyqtSlot
 import plotly.graph_objects as go
+from PyQt5.QtCore import QObject, QUrl, pyqtSlot
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QApplication, QMainWindow
+
 
 class PlotlyHandler(QObject):
     @pyqtSlot(str, int)
     def handle_plotly_click(self, point_name, index):
         print(f"Plotly point '{point_name}' clicked at index {index}!")
         # Perform actions in your Python app based on the click event
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -44,14 +46,14 @@ class MainWindow(QMainWindow):
         """
         html_content = html_content.replace('</head>', js_injection + '</head>')
 
-
         # Load the HTML content into QWebEngineView
         self.browser.setHtml(html_content)
 
         # Expose Python object to JavaScript
         self.plotly_handler = PlotlyHandler()
-        self.browser.page().profile().setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies) # Needed for setWebChannel to work reliably
-        self.browser.page().setWebChannel(self.plotly_handler, "plotlyHandler") # Expose 'plotlyHandler' to JS
+        self.browser.page().profile().setPersistentCookiesPolicy(
+            QWebEngineProfile.NoPersistentCookies)  # Needed for setWebChannel to work reliably
+        self.browser.page().setWebChannel(self.plotly_handler, "plotlyHandler")  # Expose 'plotlyHandler' to JS
 
 
 if __name__ == '__main__':

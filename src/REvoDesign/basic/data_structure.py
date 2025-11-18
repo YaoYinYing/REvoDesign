@@ -2,7 +2,7 @@
 This module contains the definition of the IterableLoop class, which manages an iterable with looping behavior.
 '''
 from dataclasses import dataclass
-from typing import Generic, Iterable, Tuple, TypeVar
+from typing import Generic, Tuple, TypeVar
 
 T = TypeVar("T")
 
@@ -87,7 +87,7 @@ class IterableLoop(Generic[T]):
 class FloatRange:
     start: float
     stop: float
-    step: float=0.1
+    step: float = 0.1
 
     @classmethod
     def from_str(cls, input_str: str) -> 'FloatRange':
@@ -95,4 +95,3 @@ class FloatRange:
         Resolve a FloatRange object from a string.
         '''
         return cls(*map(float, input_str.split(',')))
-    
