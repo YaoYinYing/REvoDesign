@@ -403,6 +403,9 @@ def refresh_all_selections():
 
     for sel in selections:
         _resi = sorted(list({at.resi for at in cmd.get_model(sel).atom}))
+        if not _resi:
+            logging.warning(f"{sel} is empty.")
+            continue
         logging.info(f"{sel}: i. {shorter_range([int(x) for x in _resi])}")
     return selections
 
