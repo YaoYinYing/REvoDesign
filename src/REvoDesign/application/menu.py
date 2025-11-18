@@ -108,4 +108,9 @@ TOOLS_MENU_LINKS = (
         'actionRMSF_to_b_factor',
         "REvoDesign.shortcuts.wrappers.represents:wrapped_load_b_factors"
     )
+    ,
+    MenuItem(
+        'actionMake_Residue_Range',
+        "REvoDesign.shortcuts.wrappers.utils:wrapped_convert_residue_ranges"
+    )
 )

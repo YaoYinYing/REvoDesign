@@ -1,0 +1,28 @@
+convert_residue_ranges:
+  title: "Convert Residue Ranges"
+  banner: "Convert residue ranges into a specific format"
+  options:
+    - name: residue_ranges
+      type: str
+      required: true
+      reason: "Residue ranges to be converted. e.g. 1-5,7-9,10-12,15,18"
+    - name: res_prefix
+      type: str
+      default: "r "
+      reason: "Prefix to be added to each residue."
+    - name: res_suffix
+      type: str
+      default: ""
+      reason: "Suffix to be added to each residue."
+    - name: resr_prefix
+      type: str
+      default: "ri "
+      reason: "Prefix to be added to each residue range."
+    - name: resr_suffix
+      type: str
+      default: ""
+      reason: "Suffix to be added to each residue range."
+    - name: connector
+      type: str
+      default: " | "
+      reason: "Connector between each residue segment."

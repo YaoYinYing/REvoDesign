@@ -4705,8 +4705,16 @@
       </property>
       <addaction name="actionRMSF_to_b_factor"/>
      </widget>
+     <widget class="QMenu" name="menuGromacs_Utils">
+      <property name="title">
+       <string>Gromacs Utils</string>
+      </property>
+      <addaction name="actionMake_Residue_Range"/>
+     </widget>
      <addaction name="menuOpenMM"/>
      <addaction name="menuMD_analysis"/>
+     <addaction name="separator"/>
+     <addaction name="menuGromacs_Utils"/>
     </widget>
     <widget class="QMenu" name="menuModeling_Tools">
      <property name="title">
@@ -5203,6 +5211,16 @@
   <action name="actionRMSF_to_b_factor">
    <property name="text">
     <string>RMSF to b-factor</string>
+   </property>
+  </action>
+  <action name="actionUtils">
+   <property name="text">
+    <string>Utils</string>
+   </property>
+  </action>
+  <action name="actionMake_Residue_Range">
+   <property name="text">
+    <string>Make Residue Range</string>
    </property>
   </action>
  </widget>

@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 from immutabledict import immutabledict
+from REvoDesign.basic.data_structure import FloatRange
 
 from REvoDesign import issues
 from REvoDesign.basic.extensions import resolve_extension
@@ -69,7 +70,12 @@ def resolve_choice_from(input_str: str):
     """
     if input_str.startswith('range:'):  # range:1,10 or range:1,10,2
         try:
-            return range(*map(int, input_str.removeprefix('range:').split(",")))
+            input_str = input_str.removeprefix('range:')
+            range_input = input_str.split(",")
+            if all(x.isdigit() for x in range_input):
+                return range(*map(int, input_str.removeprefix('range:').split(",")))
+            else:
+                return FloatRange.from_str(input_str)
         except TypeError as e:
             raise issues.InvalidInputError(
                 'range input expect an input string in pattern range:[<start>,]<end>[,<step>]',

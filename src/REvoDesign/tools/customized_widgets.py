@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from REvoDesign import issues
+from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic import FileExtensionCollection as FExCol
 from REvoDesign.common import file_extensions as Fext
 from REvoDesign.logger import ROOT_LOGGER
@@ -1701,16 +1702,16 @@ class ValueDialog(REvoDesignWidget):
             widget = QtWidgets.QCheckBox()
             widget.setChecked(bool(asked_value.val))
 
-        # a range
-        elif isinstance(choices, range):
+        # a range or Float range
+        elif isinstance(choices, (range, FloatRange)):
             # QSpinBox or QDoubleSpinBox for range of numbers
             if asked_value.typing == float:
                 widget = QtWidgets.QDoubleSpinBox()
-                widget.setRange(choices.start, choices.stop)
-                widget.setSingleStep(0.1)  # Increment step for floating-point numbers
             else:
                 widget = QtWidgets.QSpinBox()
-                widget.setRange(choices.start, choices.stop)
+            
+            widget.setRange(choices.start, choices.stop)
+            widget.setSingleStep(choices.step)
 
             # Avoid not setting a value if it is a zero (bool(0) == False)
             if asked_value.val is not None:
