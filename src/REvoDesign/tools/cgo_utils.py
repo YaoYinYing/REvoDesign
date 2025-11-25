@@ -259,14 +259,14 @@ class Point:
         Create a Point object from a NumPy array.
         '''
         return cls(*array)
-    
+
     @classmethod
     def from_atom(cls, atom: str) -> 'Point':
         '''
         Create a Point object from a PyMOL atom.
         '''
         return cls(*cmd.get_coords(atom)[0])
-    
+
     @classmethod
     def from_com(cls, selection: str = '(all)') -> 'Point':
         """
@@ -2141,7 +2141,7 @@ class GraphicObjectCollection(GraphicObject):
 # cyl.load_as('my_cyl')
 
 
-Doughnut(samples=100).load_as('my_treasure')
+# Doughnut(samples=100).load_as('my_treasure')
 
 
 # for i, j in itertools.product(range(2), repeat=2):
