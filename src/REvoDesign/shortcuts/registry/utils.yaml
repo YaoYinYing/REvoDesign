@@ -26,3 +26,23 @@ convert_residue_ranges:
       type: str
       default: " | "
       reason: "Connector between each residue segment."
+
+short_residue_ranges:
+  title: "Short Residue Ranges"
+  banner: "Convert residue ranges (1,2,3,5) into a short format(1-3,5)"
+  options:
+    - name: input_string
+      type: str
+      required: true
+      reason: "Input string to be converted. e.g. 1,2,3,5"
+    - name: separator
+      type: str
+      default: ","
+      reason: "Separator between each edge residue range."
+      required: true
+    - name: connector
+      type: str
+      reason: "Connector between each residue segment."
+      required: true
+    
+

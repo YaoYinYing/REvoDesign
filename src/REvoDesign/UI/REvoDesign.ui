@@ -4753,6 +4753,18 @@
      </widget>
      <addaction name="menuRFdiffusion"/>
     </widget>
+    <widget class="QMenu" name="menuUtils">
+     <property name="title">
+      <string>Utils</string>
+     </property>
+     <widget class="QMenu" name="menuFormatters">
+      <property name="title">
+       <string>Formatters</string>
+      </property>
+      <addaction name="actionShorten_Range"/>
+     </widget>
+     <addaction name="menuFormatters"/>
+    </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
@@ -4765,6 +4777,7 @@
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
     <addaction name="separator"/>
+    <addaction name="menuUtils"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5221,6 +5234,11 @@
   <action name="actionMake_Residue_Range">
    <property name="text">
     <string>Make Residue Range</string>
+   </property>
+  </action>
+  <action name="actionShorten_Range">
+   <property name="text">
+    <string>Shorten Range</string>
    </property>
   </action>
  </widget>

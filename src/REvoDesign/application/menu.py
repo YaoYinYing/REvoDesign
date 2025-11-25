@@ -111,5 +111,9 @@ TOOLS_MENU_LINKS = (
     MenuItem(
         'actionMake_Residue_Range',
         "REvoDesign.shortcuts.wrappers.utils:wrapped_convert_residue_ranges"
+    ),
+    MenuItem(
+        'actionShorten_Range',
+        "REvoDesign.shortcuts.wrappers.utils:wrapped_short_range"
     )
 )
