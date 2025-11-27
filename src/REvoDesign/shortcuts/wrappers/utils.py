@@ -3,8 +3,8 @@ Shortcut wrappers of other utility functions
 '''
 from REvoDesign.logger.logger import logger_level_setter
 from REvoDesign.shortcuts.utils import DialogWrapperRegistry
-from REvoDesign.tools.utils import convert_residue_ranges
 from REvoDesign.tools.mutant_tools import shorter_range
+from REvoDesign.tools.utils import convert_residue_ranges
 
 from ...logger import ROOT_LOGGER
 
