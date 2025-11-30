@@ -760,6 +760,7 @@ def device_picker() -> List[str]:
 
     return device_list
 
+
 def xvg2df(xvg_file: str) -> pd.DataFrame:
     """
     Converts an xvg file to a pandas dataframe.
@@ -771,8 +772,9 @@ def xvg2df(xvg_file: str) -> pd.DataFrame:
         pd.DataFrame: DataFrame containing the data from the xvg file.
     """
     data = np.loadtxt(xvg_file, comments=['#', '@'])
-    df=pd.DataFrame(data=data)
+    df = pd.DataFrame(data=data)
     return df
+
 
 __all__ = [
     "run_command",

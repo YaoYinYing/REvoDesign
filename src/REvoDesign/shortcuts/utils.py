@@ -148,7 +148,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
             val = val()
 
     # Handle choices dynamically
-    choices:Any = entry.get("choices")
+    choices: Any = entry.get("choices")
     if "choices_from" in entry:
         choices_from: str = entry["choices_from"]
         try:

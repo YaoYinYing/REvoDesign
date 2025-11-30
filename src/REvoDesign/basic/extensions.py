@@ -193,7 +193,7 @@ def resolve_extension(extension: str) -> FileExtensionCollection:
         {'pdb': 'PDB File', 'csv': 'CSV File'} under a custom prefix.
     """
     from REvoDesign.common import file_extensions
-    resolved_ext: list[FileExtensionCollection]=[]
+    resolved_ext: list[FileExtensionCollection] = []
     for e in extension.split(';'):
         if hasattr(file_extensions, e):
             # Is a predefined extension that is an instance of FileExtensionCollection
@@ -202,7 +202,7 @@ def resolve_extension(extension: str) -> FileExtensionCollection:
                 continue
         # otherwise, treat it as a custom extension
         else:
-            resolved_ext.append(FileExtensionCollection.from_dict({e.lower(): f'{e.upper()} File'}, prefix='Customized - '))
+            resolved_ext.append(FileExtensionCollection.from_dict(
+                {e.lower(): f'{e.upper()} File'}, prefix='Customized - '))
 
-    
     return FileExtensionCollection.squeeze(tuple(resolved_ext))
