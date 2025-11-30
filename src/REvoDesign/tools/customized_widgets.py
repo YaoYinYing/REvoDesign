@@ -1699,7 +1699,7 @@ class ValueDialog(REvoDesignWidget):
         ok_button.setObjectName("OK")
         cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.setObjectName("Cancel")
-        ok_button.clicked.connect(self._on_submit_complete_form)
+        ok_button.clicked.connect(self._on_ok_clicked)
         cancel_button.clicked.connect(self._on_cancel_clicked)
 
         button_layout.addWidget(ok_button)
