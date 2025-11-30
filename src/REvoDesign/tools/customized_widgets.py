@@ -2,6 +2,7 @@
 Custom widgets for REvoDesign.
 """
 
+from contextlib import contextmanager
 import gc
 import json
 import os
@@ -189,6 +190,20 @@ class REvoDesignWidget(QtWidgets.QWidget):
                 logging.debug('Empty open_windows list from ui is deleted.')
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
 
+
+    @contextmanager
+    def freeze_to_wait(self):
+        """
+        Freezes the dialog while the plugin is running.
+        """
+        self.setEnabled(False)
+        logging.debug("Dialog locked.")
+        try:
+            yield
+        except Exception as e:
+            logging.error(f"Error occurred: {e}")
+        self.setEnabled(True)
+        logging.debug("Dialog unlocked.")
 
 @dataclass(frozen=True)
 class ButtonCoords:
@@ -1559,6 +1574,7 @@ class AskedValueCollection:
 
 class ValueDialog(REvoDesignWidget):
     ok_signal = QtCore.pyqtSignal(list)
+    update_signal = QtCore.pyqtSignal(list)
     close_signal = QtCore.pyqtSignal()
     cancel_signal = QtCore.pyqtSignal()
 
@@ -1694,11 +1710,14 @@ class ValueDialog(REvoDesignWidget):
 
     def _on_real_time_update_changed(self, state: bool):
         self.enable_real_time_update = state
+        logging.debug(f"Real-time update is {'enabled' if state else 'disabled'} for this dialog.")
 
     def _on_wiget_changed(self):
         if not self.enable_real_time_update:
             return
-        self._on_submit_complete_form()
+        logging.debug("Real-time update triggered.")
+        self.submit_complete_form()
+        self.update_signal.emit(self.updated_values)
 
     def _connect_widget_change(self, widget: QtWidgets.QWidget):
         if not self.allow_real_time_update:
@@ -1909,10 +1928,11 @@ class ValueDialog(REvoDesignWidget):
             widget.setText(selected_file)
 
     def _on_ok_clicked(self):
-        self._on_submit_complete_form()
-        self.close_signal.emit()
+        self.submit_complete_form()
+        self.ok_signal.emit(self.updated_values)
+        
 
-    def _on_submit_complete_form(self):
+    def submit_complete_form(self):
         """
         Handles the OK button click. Collects user inputs and validates required fields.
         """
@@ -1940,7 +1960,7 @@ class ValueDialog(REvoDesignWidget):
                         multiple_choices=original.multiple_choices,
                     )
                 )
-        self.ok_signal.emit(self.updated_values)
+        
 
 
     def _on_cancel_clicked(self):
@@ -1948,7 +1968,7 @@ class ValueDialog(REvoDesignWidget):
         Handles the Cancel button click. Closes the dialog without saving changes.
         """
         self.cancel_signal.emit()
-        self.close_signal.emit()
+        self.close()
         gc.collect()
 
     def _on_save_clicked(self):
@@ -2278,14 +2298,19 @@ def dialog_wrapper(
             def real_time_update(x: List[AskedValue]):
                 nonlocal values
                 values = AskedValueCollection.from_list(x)
+                with dialog.freeze_to_wait():
+                    func(**values.typing_fixed.asdict)
+
+            def complete_form(x: List[AskedValue]):
+                nonlocal values
+                values = AskedValueCollection.from_list(x)
+                dialog.close()
                 func(**values.typing_fixed.asdict)
 
 
-            def close_dialog():
-                dialog.close()
 
-            dialog.ok_signal.connect(real_time_update)
-            dialog.close_signal.connect(close_dialog)
+            dialog.update_signal.connect(real_time_update)
+            dialog.ok_signal.connect(complete_form)
             logging.debug(f"Dialog is ready: {dialog}")
 
             dialog.show()
