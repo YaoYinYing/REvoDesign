@@ -18,6 +18,7 @@ from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
 
 import matplotlib
 import numpy as np
+import pandas as pd
 
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
@@ -759,6 +760,19 @@ def device_picker() -> List[str]:
 
     return device_list
 
+def xvg2df(xvg_file: str) -> pd.DataFrame:
+    """
+    Converts an xvg file to a pandas dataframe.
+
+    Args:
+        xvg_file (str): Path to the xvg file.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the data from the xvg file.
+    """
+    data = np.loadtxt(xvg_file, comments=['#', '@'])
+    df=pd.DataFrame(data=data)
+    return df
 
 __all__ = [
     "run_command",
