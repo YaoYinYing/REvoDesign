@@ -597,27 +597,27 @@ def _load_b_factors(
     Replaces B-factors with a list of values contained in a plain txt file
 
     Parameters:
-    mol (str): Object selection.
-    chain_id (str): Chain ID.
-    keep_missing (bool): Whether to keep missing residues in sequence.
-    source (str): Path to the file containing new B-factor values.
-    label (Optional[str]): Column label for B-factors in case of CSV/Excel file.
-    pos_slice (Optional[str]): Range of positions to apply B-factors to (e.g. "1-100,150-200").
-    offset (int): Offset to apply to positions (default is 0).
-    palette (str): Color palette to use for coloring residues.
-    do_rescale (bool): Whether to rescale B-factors to a custom range.
-    scale_min (float): Minimum original value for rescaling B-factors.
-    scale_max (float): Maximum original value for rescaling B-factors.
-    rescale_min (float): Minimum target value for rescaling B-factors.
-    rescale_max (float): Maximum target value for rescaling B-factors.
-    visual (bool): Whether to update visual representation (default is True).
-    putty_transform_code (str): Code for Putty transformation (default is 3, absolute nonlinear scaling).
+        mol (str): Object selection.
+        chain_id (str): Chain ID.
+        keep_missing (bool): Whether to keep missing residues in sequence.
+        source (str): Path to the file containing new B-factor values.
+        label (Optional[str]): Column label for B-factors in case of CSV/Excel file.
+        pos_slice (Optional[str]): Range of positions to apply B-factors to (e.g. "1-100,150-200").
+        offset (int): Offset to apply to positions (default is 0).
+        palette (str): Color palette to use for coloring residues.
+        do_rescale (bool): Whether to rescale B-factors to a custom range.
+        scale_min (float): Minimum original value for rescaling B-factors.
+        scale_max (float): Maximum original value for rescaling B-factors.
+        rescale_min (float): Minimum target value for rescaling B-factors.
+        rescale_max (float): Maximum target value for rescaling B-factors.
+        visual (bool): Whether to update visual representation (default is True).
+        putty_transform_code (str): Code for Putty transformation (default is 3, absolute nonlinear scaling).
 
     Returns:
-    None
+        None
 
     Raises:
-    MoleculeError: If no object is found for the given selection.
+        MoleculeError: If no object is found for the given selection.
 
 
     Note:
@@ -625,9 +625,29 @@ def _load_b_factors(
             - `red yellow blue violet`
         ramp_new uses list-like strings: 
             - `['red', 'yellow','blue','violet']`
+
+        Color name definition example:
+        ```pymol
+
+        # define custom colors
+        set_color c1, [0,0,0]
+        set_color c2, [1,0,0]
+        set_color c3, [1,1,0]
+        set_color c4, [1,1,1]
+
+        # set a ramp using a list of colors
+        ramp_new count_start_A_ori, start, [0.0472, 0.353], ['c1', 'c2','c3','c4']
+
+        # show spectrum using custom colors
+        spectrum b, c1 c2 c3 c4
+        ```
+
+        This provide a possible way to use custom colors in both the spectrum and the ramp.
+
+        How about the cmap from matplotlib?
     """
     from pymol.creating import ramp_spectrum_dict
-    
+
     logging.debug(f"Loading B-factors from {source} for {mol}, chain {chain_ids}")
     objs = cmd.get_object_list(mol)
     logging.debug(f"Found {len(objs)} objects: {objs}")
