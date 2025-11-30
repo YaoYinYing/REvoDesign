@@ -618,8 +618,16 @@ def _load_b_factors(
 
     Raises:
     MoleculeError: If no object is found for the given selection.
+
+
+    Note:
+        spectrum uses space-separated color names.
+            - `red yellow blue violet`
+        ramp_new uses list-like strings: 
+            - `['red', 'yellow','blue','violet']`
     """
     from pymol.creating import ramp_spectrum_dict
+    
     logging.debug(f"Loading B-factors from {source} for {mol}, chain {chain_ids}")
     objs = cmd.get_object_list(mol)
     logging.debug(f"Found {len(objs)} objects: {objs}")
@@ -700,12 +708,17 @@ def _load_b_factors(
             logging.debug(f"Not updating visual representation for {mol} (chain {chain_id})")
             return
         
-        if palette_code not in ramp_spectrum_dict:
+        ramp_color: Union[str,List[str]] = palette_code
+        
+        if palette_code.startswith('rainbow'):
+            logging.debug(f"Using rainbow palette {palette_code}")
+
+        elif palette_code not in ramp_spectrum_dict:
             logging.warning(f"Palette {palette_code} not found in ramp_spectrum_dict, try to create it.")
-            ramp_color: Union[str,List[str]]=palette_code.split('-')
+            ramp_color: Union[str,List[str]]=palette_code.split('_')
             logging.debug(f"Ramp color: {ramp_color}")
         else:
-            ramp_color = palette_code
+            logging.warning(f"Palette {palette_code} found in ramp_spectrum_dict, .")
 
         logging.debug(f"Setting visual representation for {mol} (chain {chain_id}) based on B-factors")
         cmd.show_as("cartoon", bfact_assign.obj_sel_pymol)
@@ -715,10 +728,13 @@ def _load_b_factors(
         cmd.set("cartoon_putty_transform", putty_transform_mode, obj)
         cmd.set("cartoon_putty_radius", 0.2, obj)  # type: ignore
         cmd.spectrum("b", palette=palette_code, selection=f"{bfact_assign.obj_sel_pymol} and n. CA ")
-        cmd.ramp_new(f"count_{mol}_{chain_id}_{'rescaled' if bf_rescale else 'ori'}",
-                     obj, [min(bfacts_rescaled), max(bfacts_rescaled)], color=ramp_color)
+        _ramp_name=f"count_{mol}_{chain_id}_{'rescaled' if bf_rescale else 'ori'}"
+        logging.debug(f'ramp_new {f"{_ramp_name}, {obj}, [{min(bfacts_rescaled)}, {max(bfacts_rescaled)}], {ramp_color}"}')
+        
+        cmd.ramp_new(f"{_ramp_name}", obj, [min(bfacts_rescaled), max(bfacts_rescaled)], color=ramp_color)
 
         if do_rescale:
+            logging.debug(f'ramp_new {f"count_{mol}_{chain_id}_ori, {obj}, [{min(bfacts_orignal)}, {max(bfacts_orignal)}], {ramp_color}"}')
             cmd.ramp_new(f"count_{mol}_{chain_id}_ori", obj, [min(bfacts_orignal), max(bfacts_orignal)], color=ramp_color)
         cmd.recolor()
 
