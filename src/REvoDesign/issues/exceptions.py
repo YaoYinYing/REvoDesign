@@ -107,3 +107,6 @@ class MissingExternalToolError(Exception):
 
 class FileFormatError(REvoDesignException):
     """Exception raised when a file format is incorrect or unsupported"""
+
+class BadDataError(REvoDesignException):
+    """Exception raised when a data is bad"""

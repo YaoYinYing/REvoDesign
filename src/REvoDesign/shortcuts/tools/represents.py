@@ -6,6 +6,7 @@ Shortcut functions of structure representation
 from dataclasses import dataclass
 from functools import cached_property
 from typing import List, Optional, Union
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -473,6 +474,7 @@ class BFactor:
     
 
     bfactor_data: pd.DataFrame
+    offset: int = 0
 
     @cached_property
     def obj_sel_pymol(self) -> str:
@@ -493,7 +495,7 @@ class BFactor:
             float: Bfactor value
         """
         #retrieve the bfactor value at col 1 where [0] == pos_zero_idx+1 
-        val=self.bfactor_data[self.bfactor_data.iloc[:,0]== pos_one_idx].iloc[0,1]
+        val=self.bfactor_data[self.bfactor_data.iloc[:,0]== pos_one_idx+self.offset].iloc[0,1]
         if not isinstance(val, float):
             logging.warning(f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})")
             raise issues.InvalidInputError(f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})")
@@ -519,7 +521,11 @@ class BFactor:
         """
         bfact = self.get(pos_one_idx)
         logging.debug(f"Setting B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}) to {bfact}")
-        cmd.alter(f'{self.obj_sel_pymol} and i. {pos_one_idx}', f'b={bfact}')
+        try:
+            cmd.alter(f'{self.obj_sel_pymol} and i. {pos_one_idx}', f'b={bfact}')
+        except Exception as e:
+            logging.error(f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}): {e}")
+            warnings.warn(issues.BadDataWarning(f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1})")) 
         return bfact
 
     def _rescaled_bfactor_data(
@@ -573,6 +579,7 @@ def _load_b_factors(
         chain_ids: str,
         keep_missing: bool,
         source: str,
+        offset: int = 0,
         label_x: Optional[str] = None,
         label_y: Optional[str] = None,
         index_x: Optional[int] = None,
@@ -612,6 +619,7 @@ def _load_b_factors(
     Raises:
     MoleculeError: If no object is found for the given selection.
     """
+    from pymol.creating import ramp_spectrum_dict
     logging.debug(f"Loading B-factors from {source} for {mol}, chain {chain_ids}")
     objs = cmd.get_object_list(mol)
     logging.debug(f"Found {len(objs)} objects: {objs}")
@@ -638,7 +646,8 @@ def _load_b_factors(
             mol=mol,
             chain_id=chain_id,
             sequence=get_molecule_sequence(obj, chain_id=chain_id, keep_missing=keep_missing),
-            bfactor_data=bfactor_df
+            bfactor_data=bfactor_df,
+            offset=offset,
         )
         logging.debug(f'B-factor chain: {bf_chain}')
         
@@ -690,6 +699,13 @@ def _load_b_factors(
         if not visual:
             logging.debug(f"Not updating visual representation for {mol} (chain {chain_id})")
             return
+        
+        if palette_code not in ramp_spectrum_dict:
+            logging.warning(f"Palette {palette_code} not found in ramp_spectrum_dict, try to create it.")
+            ramp_color: Union[str,List[str]]=palette_code.split('-')
+            logging.debug(f"Ramp color: {ramp_color}")
+        else:
+            ramp_color = palette_code
 
         logging.debug(f"Setting visual representation for {mol} (chain {chain_id}) based on B-factors")
         cmd.show_as("cartoon", bfact_assign.obj_sel_pymol)
@@ -700,10 +716,10 @@ def _load_b_factors(
         cmd.set("cartoon_putty_radius", 0.2, obj)  # type: ignore
         cmd.spectrum("b", palette=palette_code, selection=f"{bfact_assign.obj_sel_pymol} and n. CA ")
         cmd.ramp_new(f"count_{mol}_{chain_id}_{'rescaled' if bf_rescale else 'ori'}",
-                     obj, [min(bfacts_rescaled), max(bfacts_rescaled)], palette_code)
+                     obj, [min(bfacts_rescaled), max(bfacts_rescaled)], color=ramp_color)
 
         if do_rescale:
-            cmd.ramp_new(f"count_{mol}_{chain_id}_ori", obj, [min(bfacts_orignal), max(bfacts_orignal)], palette_code)
+            cmd.ramp_new(f"count_{mol}_{chain_id}_ori", obj, [min(bfacts_orignal), max(bfacts_orignal)], color=ramp_color)
         cmd.recolor()
 
 

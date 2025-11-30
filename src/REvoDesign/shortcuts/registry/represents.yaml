@@ -100,11 +100,15 @@ load_b_factors:
     - name: pos_slice
       type: str
       default: ""
-      reason: "Position slice to load B-factors for (e.g., '10-50,60-80'). Leave empty to load all positions."
-    # - name: offset
-    #   type: int
-    #   default: 0
-    #   reason: "Offset to add to residue numbers when mapping B-factors."
+      reason: | 
+        Position slice to load B-factors for (e.g., '1,10-50,60-80'). Leave empty to load all positions.
+        Note: The indexes are 1-based according to the structure model in PyMOL session.
+    - name: offset
+      type: int
+      default: 0
+      reason:  |
+        Offset to be applied to the position values from the source file. 
+        e.g.: For zero-based numbering(0), set this to 1, so that the indexes will be 1-based."
     - name: palette_code
       reason: "Palette code for the color map."
       type: str
