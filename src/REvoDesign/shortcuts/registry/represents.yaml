@@ -60,6 +60,7 @@ color_by_mutation:
 load_b_factors:
   title: "Load B-factors"
   banner: "Load a custom B-factor file to a structure and visualize it."
+  real_time: true
   options:
     - name: mol
       type: str

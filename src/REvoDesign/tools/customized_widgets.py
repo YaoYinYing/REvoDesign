@@ -1114,7 +1114,7 @@ def get_widget_value(widget: QtWidgets.QWidget) -> Any:
     raise ValueError(f"Widget type {type(widget).__name__} is not supported for value retrieval.")
 
 
-def widget_signal_tape(widget: QtWidgets.QWidget, event):
+def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = False):
     """
     Connects the appropriate signal of a QWidget to the specified event handler.
 
@@ -1139,21 +1139,40 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event):
             QtWidgets.QProgressBar,
         ),
     ):
+        if disconnect:
+            widget.valueChanged.disconnect(event)
+            return
         widget.valueChanged.connect(event)
+        return
+
 
     # Handle combo box widgets with text change signals
     elif isinstance(widget, QtWidgets.QComboBox):
+        if disconnect:
+            widget.currentTextChanged.disconnect(event)
+            widget.editTextChanged.disconnect(event)
+            return
         widget.currentTextChanged.connect(event)
         widget.editTextChanged.connect(event)
+        return
 
     # Handle line edit widgets with text change signals
     elif isinstance(widget, QtWidgets.QLineEdit):
+        if disconnect:
+            widget.textChanged.disconnect(event)
+            widget.textEdited.disconnect(event)
+            return
         widget.textChanged.connect(event)
         widget.textEdited.connect(event)
+        return
 
     # Handle checkbox widgets with state change signals
     elif isinstance(widget, QtWidgets.QCheckBox):
+        if disconnect:
+            widget.stateChanged.disconnect(event)
+            return
         widget.stateChanged.connect(event)
+        return
 
     # Raise an error for unsupported widget types
     else:
@@ -1483,6 +1502,8 @@ class AskedValueCollection:
 
     asked_values: List[AskedValue] = field(default_factory=list)
     banner: Optional[str] = None  # a banner message
+    allow_real_time_update: bool = False
+
 
     @property
     def need_action(self) -> bool:
@@ -1538,7 +1559,9 @@ class AskedValueCollection:
 
 class ValueDialog(REvoDesignWidget):
     ok_signal = QtCore.pyqtSignal(list)
+    close_signal = QtCore.pyqtSignal()
     cancel_signal = QtCore.pyqtSignal()
+
 
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
@@ -1553,6 +1576,8 @@ class ValueDialog(REvoDesignWidget):
 
         self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
+        self.allow_real_time_update: bool=key_dict.allow_real_time_update
+        self.enable_real_time_update: bool=False
         self.updated_values = []
         self.setAcceptDrops(True)
 
@@ -1625,6 +1650,14 @@ class ValueDialog(REvoDesignWidget):
 
         self.layout.addWidget(self.table)
 
+        if key_dict.allow_real_time_update:
+            logging.debug("Real-time update is enabled for this dialog.")
+
+            enable_real_time_update_checkbox = QtWidgets.QCheckBox("Enable Real-Time Update")
+            enable_real_time_update_checkbox.setChecked(self.enable_real_time_update)
+            enable_real_time_update_checkbox.stateChanged.connect(self._on_real_time_update_changed)
+            self.layout.addWidget(enable_real_time_update_checkbox)
+
         # Add a load and save button layout
         load_save_layout = QtWidgets.QHBoxLayout()
         load_button = QtWidgets.QPushButton("Load")
@@ -1650,7 +1683,7 @@ class ValueDialog(REvoDesignWidget):
         ok_button.setObjectName("OK")
         cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.setObjectName("Cancel")
-        ok_button.clicked.connect(self._on_ok_clicked)
+        ok_button.clicked.connect(self._on_submit_complete_form)
         cancel_button.clicked.connect(self._on_cancel_clicked)
 
         button_layout.addWidget(ok_button)
@@ -1658,6 +1691,19 @@ class ValueDialog(REvoDesignWidget):
         self.layout.addLayout(button_layout)
 
         self.setLayout(self.layout)
+
+    def _on_real_time_update_changed(self, state: bool):
+        self.enable_real_time_update = state
+
+    def _on_wiget_changed(self):
+        if not self.enable_real_time_update:
+            return
+        self._on_submit_complete_form()
+
+    def _connect_widget_change(self, widget: QtWidgets.QWidget):
+        if not self.allow_real_time_update:
+            return
+        widget_signal_tape(widget, self._on_wiget_changed)
 
     def _add_field_to_table(self, row: int, asked_value: AskedValue):
         """
@@ -1696,11 +1742,13 @@ class ValueDialog(REvoDesignWidget):
                 raise issues.InternalError(f"Multi-choice field must have a valid choices, not {choices}")
             # MultiCheckableComboBox for list of choices
             widget = MultiCheckableComboBox(choices=list(choices))
+            # currently, MultiCheckableComboBox does not support real-time update
             if asked_value.val:
                 widget.set_checked_items(asked_value.val if isinstance(asked_value.val, list) else [asked_value.val])
         elif asked_value.typing == bool:
             widget = QtWidgets.QCheckBox()
             widget.setChecked(bool(asked_value.val))
+
 
         # a range or Float range
         elif isinstance(choices, (range, FloatRange)):
@@ -1730,6 +1778,7 @@ class ValueDialog(REvoDesignWidget):
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
+            
 
         # a normal text input
         else:
@@ -1745,6 +1794,8 @@ class ValueDialog(REvoDesignWidget):
         self.input_fields[asked_value.key] = widget
         self.input_fields_data_pair[asked_value.key] = asked_value
         self.table.setCellWidget(row, 2, widget)
+        if self.allow_real_time_update:
+            self._connect_widget_change(widget)
 
         action_button_size_policy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Policy.Minimum,
@@ -1858,6 +1909,10 @@ class ValueDialog(REvoDesignWidget):
             widget.setText(selected_file)
 
     def _on_ok_clicked(self):
+        self._on_submit_complete_form()
+        self.close_signal.emit()
+
+    def _on_submit_complete_form(self):
         """
         Handles the OK button click. Collects user inputs and validates required fields.
         """
@@ -1887,12 +1942,13 @@ class ValueDialog(REvoDesignWidget):
                 )
         self.ok_signal.emit(self.updated_values)
 
+
     def _on_cancel_clicked(self):
         """
         Handles the Cancel button click. Closes the dialog without saving changes.
         """
         self.cancel_signal.emit()
-        self.close()
+        self.close_signal.emit()
         gc.collect()
 
     def _on_save_clicked(self):
@@ -1944,7 +2000,12 @@ class ValueDialog(REvoDesignWidget):
         logging.info(f'Recipe created at: {contents_to_load["metadata"]["__date__"]}')
         for key, val in contents_to_load['__asked_values__'].items():
             widget = self.input_fields[key]
-            set_widget_value(widget, val)
+            try:
+                set_widget_value(widget, val)
+            except Exception as e:
+                logging.error(f"Error setting value to widget {widget}: {e}. ")
+                logging.warning(f'You may have been using an incompatible recipe. The field ({key}) will be ignored.')
+                
 
         logging.info(f"Loaded recipe: {selected_file}")
 
@@ -2180,6 +2241,7 @@ class AskedValueDynamic(TypedDict):
 def dialog_wrapper(
     title: str,
     banner: str,
+    allow_real_time_update:bool,
     options: Tuple[AskedValue, ...],
 ) -> Callable:
     """
@@ -2208,16 +2270,22 @@ def dialog_wrapper(
                 all_options.insert(index, dynamic_value["value"])
 
             values: Optional[AskedValueCollection] = None
-            dialog = ValueDialog(title, AskedValueCollection(all_options, banner=banner))
-
-            def set_values(x: List[AskedValue]):
+            dialog = ValueDialog(title, AskedValueCollection(
+                all_options, 
+                banner=banner, 
+                allow_real_time_update=allow_real_time_update))
+            
+            def real_time_update(x: List[AskedValue]):
                 nonlocal values
                 values = AskedValueCollection.from_list(x)
-
-                dialog.close()
                 func(**values.typing_fixed.asdict)
 
-            dialog.ok_signal.connect(set_values)
+
+            def close_dialog():
+                dialog.close()
+
+            dialog.ok_signal.connect(real_time_update)
+            dialog.close_signal.connect(close_dialog)
             logging.debug(f"Dialog is ready: {dialog}")
 
             dialog.show()

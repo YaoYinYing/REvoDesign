@@ -300,6 +300,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         wrapped_func_window = dialog_wrapper(
             title=conf.get("title", func_id),
             banner=conf.get("banner", ""),
+            allow_real_time_update=conf.get('real_time', False),
             options=tuple(asked_values),
         )(self.funcs[func_id])
         logging.debug(f"Dialog is ready: {wrapped_func_window}")
