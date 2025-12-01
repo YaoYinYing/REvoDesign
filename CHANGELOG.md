@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - menu:
   - MD analysis:
     - load b-factors to struture (postprocessing and visualizing from r-bio3d output or Gromacs XVG figure)
+    - Data sources:
+      - `XvgGromacs`: for Gromacs XVG figure
+      - Table file: CSV, TSV, XLS, XLSX
+      - Plain text: TXT
+      - PDB structure: PDB
 - citation:
   - `CitableModuleAbstract`: `get_citable_class` for generating anonymous citable class for functions. 
   - documentation about `CitableModuleAbstract` and `get_cited`
