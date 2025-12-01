@@ -107,27 +107,27 @@ A developer can follow these steps to integrate a function into a window popup:
 
    Example YAML (`logger.yaml`), where `logger` is the name of the catagory and `logger_level_setter` is the function-id:
 
-	```yaml
-	logger_level_setter:
-		title: "Set Logger Level"
-		banner: "Set the logger level"
-		options:
-			- name: "level"
-				type: str
-				reason: "Level to set the logger to."
-				choices: ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-				default: "INFO"
-				required: true
-			- name: "channel"
-				type: str
-				reason: "Channel to set the logger to."
-				choices: ['stdout','stderr','file','notebook']
-				default: ""
-			- name: "apply_to_root_logger"
-				type: bool
-				default: true
-				reason: "Whether to apply the logger to the root logger."
-	```
+    ```yaml
+    logger_level_setter:
+      title: "Set Logger Level"
+      banner: "Set the logger level"
+      options:
+        - name: "level"
+          type: str
+          reason: "Level to set the logger to."
+          choices: ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+          default: "INFO"
+          required: true
+        - name: "channel"
+          type: str
+          reason: "Channel to set the logger to."
+          choices: ['stdout','stderr','file','notebook']
+          default: ""
+        - name: "apply_to_root_logger"
+          type: bool
+          default: true
+          reason: "Whether to apply the logger to the root logger."
+    ```
 
    Also, one must sure that all the options used by the function is present in the function options.
 
@@ -177,36 +177,37 @@ The YAML options are used to define the structure and behavior of the dialog. He
 
   ```yaml
   relax_w_ca_constraints:
-		title: "RelaxWithCaConstraints" # the title of the dialog
-		banner: "Perform Rosetta Relax With Ca Constraints" # the banner text of function description
-		options: # option list, each aligned with `REvoDesign.tools.customized_widgets.AskedValue`
-			- name: "pdb" # option name, passed as kwargs key. `key`
-				type: str # option type, used for typing checking before passing to the function. `typing`
-				reason: "Path to the PDB file" # reason for the option, displayed in the dialog. `reason`
-				source: "File" # source of the option, used for filtering options in the dialog. `source`
-				default: "" # default value. `val`
-				required: true # whether the option is mandatory. `required`
-				ext: "PDB_STRICT" # File extension. attributes from `REvoDesign.common.file_extensions`, or customized semi-colon-separated string like `pdb;sdf;mol2`, `ext`
-				choices: ... # list choices. `choices`
-				choices_from: ... # Optional choices alternative source, could be: a `importpath:function` string to reference a function to get choices; a range expression `range:1,10` or `range:1,20,2`; a quoted expression of list, tuple or dict like `"[1, 2, 4]"`. 
+   title: "RelaxWithCaConstraints" # the title of the dialog
+   banner: "Perform Rosetta Relax With Ca Constraints" # the banner text of function description
+   real_time: false # Whether to open a toggle to run the function in real-time mode as value changed. Should only be used for functions that can be run in very fast speed.
+   options: # option list, each aligned with `REvoDesign.tools.customized_widgets.AskedValue`
+    - name: "pdb" # option name, passed as kwargs key. `key`
+          type: str # option type, used for typing checking before passing to the function. `typing`
+          reason: "Path to the PDB file" # reason for the option, displayed in the dialog. `reason`
+          source: "File" # source of the option, used for filtering options in the dialog. `source`
+          default: "" # default value. `val`
+          required: true # whether the option is mandatory. `required`
+          ext: "PDB_STRICT" # File extension. attributes from `REvoDesign.common.file_extensions`, or customized semi-colon-separated string like `pdb;sdf;mol2`, `ext`
+          choices: ... # list choices. `choices`
+          choices_from: ... # Optional choices alternative source, could be: a `importpath:function` string to reference a function to get choices; a range expression `range:1,10` or `range:1,20,2`; a quoted expression of list, tuple or dict like `"[1, 2, 4]"`. 
   ```
 
    **Note**: The `choices_from` parameter override the `choices` parameter.
 
    Enable multiple selections:
 
-		```yaml
-		esm1v:
-			title: "ESM1v"
-			banner: "Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)"
-			options:
-				- name: "model_alias"
-					type: str
-					reason: "Model(s) used to generate predictions."
-					required: true
-					choices_from: "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names"
-					multiple_choices: true
-		```
+   ```yaml
+   esm1v:
+      title: "ESM1v"
+      banner: "Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)"
+      options:
+        - name: "model_alias"
+          type: str
+          reason: "Model(s) used to generate predictions."
+          required: true
+          choices_from: "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names"
+          multiple_choices: true
+   ```
 
    In brief, the `choices_from` returns a list of choices for the user to choose from, while `multiple_choices` allows the user to select multiple choices. This is useful when you want to provide a list of choices that are generated dynamically at runtime. The type of each of the choices can be specified using the `type` parameter.
 
@@ -230,35 +231,35 @@ The YAML options are used to define the structure and behavior of the dialog. He
    See also the `AskedValueDynamic` definition.
 
    ```python
-   def menu_dump_sidechains(dump_all=False):
-      """
-      Prepares and launches the sidechain dumping menu.
+    def menu_dump_sidechains(dump_all=False):
+        """
+        Prepares and launches the sidechain dumping menu.
 
-      Args:
-         dump_all (bool): If True, preselects all groups for sidechain dumping.
-      """
-      dynamic_value = {
-         "value": AskedValue(
-               "sele",
-               val=get_all_groups() if dump_all else None,
-               typing=str,
-               reason="Select the models to dump sidechains.",
-               choices=get_all_groups(),
-							 multiple_chpoice=True,
-         ),
-         "index": 0,  # Specify the position in the options list
-      }
+        Args:
+          dump_all (bool): If True, preselects all groups for sidechain dumping.
+        """
+        dynamic_value = {
+          "value": AskedValue(
+                "sele",
+                val=get_all_groups() if dump_all else None,
+                typing=str,
+                reason="Select the models to dump sidechains.",
+                choices=get_all_groups(),
+                              multiple_chpoice=True,
+          ),
+          "index": 0,  # Specify the position in the options list
+        }
 
-      wrapped_menu_dump_sidechains([dynamic_value])
-   ```
+        wrapped_menu_dump_sidechains([dynamic_value])
+    ```
    #### **7.2. Threading**
    If the function is time-consuming, enable threading by setting `use_thread=True`. This will ensure the function runs in a separate thread, keeping the UI responsive.
 
    For example:
 
-   ```python
-   wrapped_rosettaligand = registry.register("rosettaligand", rosettaligand, use_thread=True)
-   ```
+    ```python
+    wrapped_rosettaligand = registry.register("rosettaligand", rosettaligand, use_thread=True)
+    ```
 
    The task will be executed in a separate thread, and the result will be returned to the main thread. During the execution, the progress bar will be updated automatically.
 

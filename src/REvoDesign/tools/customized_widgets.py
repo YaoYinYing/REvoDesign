@@ -1663,16 +1663,36 @@ class ValueDialog(REvoDesignWidget):
 
         self.layout.addWidget(self.table)
 
+        apply_now_layout= QtWidgets.QHBoxLayout()
+        
+
         if key_dict.allow_real_time_update:
             logging.debug("Real-time update is enabled for this dialog.")
 
-            enable_real_time_update_checkbox = QtWidgets.QCheckBox("Enable Real-Time Update")
+            enable_real_time_update_checkbox = QtWidgets.QCheckBox("Real-Time Update")
             enable_real_time_update_checkbox.setChecked(self.enable_real_time_update)
             enable_real_time_update_checkbox.stateChanged.connect(self._on_real_time_update_changed)
             enable_real_time_update_checkbox.setToolTip(
                 'When enabled, the dialog will be run in real-time as you type or change the values.'
             )
-            self.layout.addWidget(enable_real_time_update_checkbox)
+            enable_real_time_update_checkbox.setObjectName("EnableRealTimeUpdateCheckbox")
+            apply_now_layout.addWidget(enable_real_time_update_checkbox)
+        else:
+            # a placeholder to ensure the layout is not empty
+            placeholder = QtWidgets.QLabel("")
+            placeholder.setObjectName("Placeholder")
+            apply_now_layout.addWidget(placeholder)
+            
+
+        apply_now_button = QtWidgets.QPushButton("Apply Now")
+        apply_now_button.setObjectName("ApplyNow")
+        apply_now_button.setToolTip(
+            'Click to apply the current values to the dialog. '
+        )
+        apply_now_button.clicked.connect(self._on_apply_now_clicked)
+        apply_now_layout.addWidget(apply_now_button)
+
+        self.layout.addLayout(apply_now_layout)
 
         # Add a load and save button layout
         load_save_layout = QtWidgets.QHBoxLayout()
@@ -1711,6 +1731,10 @@ class ValueDialog(REvoDesignWidget):
     def _on_real_time_update_changed(self, state: bool):
         self.enable_real_time_update = state
         logging.debug(f"Real-time update is {'enabled' if state else 'disabled'} for this dialog.")
+    
+    def _on_apply_now_clicked(self):
+        self.submit_complete_form()
+        self.update_signal.emit(self.updated_values)
 
     def _on_wiget_changed(self):
         if not self.enable_real_time_update:

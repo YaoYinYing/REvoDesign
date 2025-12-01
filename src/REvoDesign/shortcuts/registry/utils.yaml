@@ -1,6 +1,7 @@
 convert_residue_ranges:
   title: "Convert Residue Ranges"
   banner: "Convert residue ranges into a specific format"
+  real_time: true
   options:
     - name: residue_ranges
       type: str
@@ -30,6 +31,7 @@ convert_residue_ranges:
 short_residue_ranges:
   title: "Short Residue Ranges"
   banner: "Convert residue ranges (1,2,3,5) into a short format(1-3,5)"
+  real_time: true
   options:
     - name: input_string
       type: str
