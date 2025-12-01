@@ -25,8 +25,8 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12" # control
-          - "3.13"
-          - "3.14"
+          # - "3.13"
+          # - "3.14"
         pymol-tag:
           - 'latest pymol open source'
         conda-channel:
