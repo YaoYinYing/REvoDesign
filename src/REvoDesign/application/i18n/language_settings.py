@@ -5,7 +5,7 @@ Internationalization settings
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Tuple
+from typing import Any
 
 from REvoDesign.Qt import QtWidgets
 
@@ -101,7 +101,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         self.switch_language(language=lan)
         self._set_action_checked(language=lan)
 
-    def get_language_items(self) -> Tuple[LanguageItem, ...]:
+    def get_language_items(self) -> tuple[LanguageItem, ...]:
         """
         Returns a tuple of all language items.
 

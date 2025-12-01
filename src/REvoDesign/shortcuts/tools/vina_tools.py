@@ -5,7 +5,7 @@ GetBox Plugin.py --  Draws a box surrounding a selection and gets box informatio
 '''
 from dataclasses import dataclass
 from random import randint
-from typing import Dict, Literal, Optional, Tuple, Union, overload
+from typing import Literal, overload
 
 import numpy as np
 from chempy import cpv
@@ -306,9 +306,9 @@ Center: {self.cen_xyz[0]:.3f}, {self.cen_xyz[1]:.3f}, {self.cen_xyz[2]:.3f}"""
     def from_selection(
             cls,
             selection: str = "(sele)",
-            box_name: Optional[str] = None,
+            box_name: str | None = None,
             extending: float = 5.0,
-            offset: Tuple[float, float, float] = (0, 0, 0)):
+            offset: tuple[float, float, float] = (0, 0, 0)):
         """
         Creates a box object from a PyMOL selection, with optional name, extension, and offset.
 
@@ -389,22 +389,22 @@ def showbox(
 
 @overload
 def showbox(box: CgoBox,
-            minX: Optional[Union[float, str]] = None,
-            maxX: Optional[Union[float, str]] = None,
-            minY: Optional[Union[float, str]] = None,
-            maxY: Optional[Union[float, str]] = None,
-            minZ: Optional[Union[float, str]] = None,
-            maxZ: Optional[Union[float, str]] = None) -> CgoBox: ...
+            minX: float | str | None = None,
+            maxX: float | str | None = None,
+            minY: float | str | None = None,
+            maxY: float | str | None = None,
+            minZ: float | str | None = None,
+            maxZ: float | str | None = None) -> CgoBox: ...
 
 
 def showbox(
-        box: Union[str, CgoBox],
-        minX: Optional[Union[float, str]] = None,
-        maxX: Optional[Union[float, str]] = None,
-        minY: Optional[Union[float, str]] = None,
-        maxY: Optional[Union[float, str]] = None,
-        minZ: Optional[Union[float, str]] = None,
-        maxZ: Optional[Union[float, str]] = None) -> CgoBox:
+        box: str | CgoBox,
+        minX: float | str | None = None,
+        maxX: float | str | None = None,
+        minY: float | str | None = None,
+        maxY: float | str | None = None,
+        minZ: float | str | None = None,
+        maxZ: float | str | None = None) -> CgoBox:
     """
     Displays box information and loads it into PyMOL.
 
@@ -521,7 +521,7 @@ def enlargebox(box_name: str, x: float = 0, y: float = 0, z: float = 0):
     new_box.load_to_pymol()
 
 
-def getbox(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
+def getbox(selection="(sele)", new_box_name: str | None = None, extending=5.0):
     """
     Creates a box based on a selection and displays it in PyMOL.
 
@@ -698,7 +698,7 @@ def plot_pca_box(orig_vertices, new_box_name: str = 'pca_box'):
     goc.load_as(new_box_name)
 
 
-def get_pca_box(selection="(sele)", new_box_name: Optional[str] = None, extending=5.0):
+def get_pca_box(selection="(sele)", new_box_name: str | None = None, extending=5.0):
     """
     Generates a PCA box for the given selection.
 
@@ -838,7 +838,7 @@ Press Up/Right/A/W or Down/Left/S/D to change the values.'''
             f"""Box {box_name} info:\n{repr(box)}\n\nAutoDock Vina:\n{box.to_vina}\n\nAutoGrid:\n{box.to_autogrid}"""
         )
 
-    def action_wrapper(params: Dict[str, float]):
+    def action_wrapper(params: dict[str, float]):
         """
         Calls the current action method (movebox or enlargebox) with the specified parameters.
         After performing the action, refresh the box info in the banner.

@@ -2,8 +2,8 @@
 Data classes for menu items and menu collections.
 '''
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Callable, Mapping, Optional, Tuple, Union
 
 from REvoDesign.Qt import QtWidgets
 
@@ -24,9 +24,9 @@ class MenuItem:
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
     action: str
-    func: Union[Callable, str]
-    args: Optional[Tuple] = None
-    kwargs: Optional[Mapping] = None
+    func: Callable | str
+    args: tuple | None = None
+    kwargs: Mapping | None = None
 
     @property
     def func_to_call(self):

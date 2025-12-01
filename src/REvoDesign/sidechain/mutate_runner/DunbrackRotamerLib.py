@@ -4,7 +4,6 @@ Wrapper for PyMOL-buildin Dunbrack Rotamer Library and mutagenesis wizard.
 '''
 
 import os
-from typing import List
 
 from Bio.Data import IUPACData
 from joblib import Parallel, delayed
@@ -108,8 +107,8 @@ class PyMOL_mutate(MutateRunnerAbstract):
         return temp_mutant_path
 
     def run_mutate_parallel(
-        self, mutants: List[Mutant], nproc: int = 2
-    ) -> List[str]:
+        self, mutants: list[Mutant], nproc: int = 2
+    ) -> list[str]:
         """
         Perform mutation on the protein in parallel.
 

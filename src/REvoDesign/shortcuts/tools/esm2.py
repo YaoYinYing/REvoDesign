@@ -10,7 +10,7 @@ ESM-1v variant predict
 import itertools
 import os
 import string
-from typing import List, Literal, Optional, Tuple
+from typing import Literal
 
 import pandas as pd
 from Bio import SeqIO
@@ -72,7 +72,7 @@ def remove_insertions(sequence: str) -> str:
     return sequence.translate(translation)
 
 
-def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
+def read_msa(filename: str, nseq: int) -> list[tuple[str, str]]:
     """ Reads the first nseq sequences from an MSA file, automatically removes insertions.
 
     The input file must be in a3m format (although we use the SeqIO fasta parser)
@@ -105,15 +105,15 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
     # skipcq: PYL-W0231
     def __init__(
             self,
-            model_names: List[str],
+            model_names: list[str],
             sequence: str,
             dms_output: str,
-            checkpoint_dir: Optional[str] = None,
+            checkpoint_dir: str | None = None,
             skip_wt: bool = True,
             mutation_col: str = 'mutation',
             offset_idx: int = 0,
             scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
-            msa_path: Optional[str] = None,
+            msa_path: str | None = None,
             msa_samples: int = 400,
             device: str = 'cpu',
     ):
@@ -366,15 +366,15 @@ class Esm1v(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
 
 def shortcut_esm1v(
-        model_names: List[str],
+        model_names: list[str],
         sequence: str,
         dms_output: str,
-        checkpoint_dir: Optional[str] = None,
+        checkpoint_dir: str | None = None,
         skip_wt: bool = True,
         mutation_col: str = 'mutation',
         offset_idx: int = 0,
         scoring_strategy: ESM1V_SCORING_STRATEGY_T = "wt-marginals",
-        msa_path: Optional[str] = None,
+        msa_path: str | None = None,
         msa_samples: int = 400,
         device: str = 'cpu',
 ):

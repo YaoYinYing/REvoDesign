@@ -3,7 +3,6 @@ This module contains the definitions of the push button IDs and configuration-wi
 '''
 
 from dataclasses import dataclass
-from typing import Tuple
 
 from immutabledict import immutabledict
 
@@ -19,7 +18,7 @@ class PushButtons:
         button_ids (list[str]): A list of button IDs.
     """
 
-    button_ids: Tuple = (
+    button_ids: tuple = (
         "open_output_pse_pocket",
         "open_output_pse_surface",
         "run_surface_refresh",

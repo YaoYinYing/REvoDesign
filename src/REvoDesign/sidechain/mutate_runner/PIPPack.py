@@ -6,7 +6,6 @@ known issue:
     - when running with xtal structure, missing residues are not counted
 '''
 import os
-from typing import List, Tuple
 
 from REvoDesign import reload_config_file, set_cache_dir
 from REvoDesign.basic import MutateRunnerAbstract
@@ -28,7 +27,7 @@ class PIPPack_worker(MutateRunnerAbstract):
     name: str = "PIPPack"
     installed: bool = is_package_installed("pippack")
 
-    weights_preset: Tuple[str, ...] = (
+    weights_preset: tuple[str, ...] = (
         "pippack_model_1",
         "pippack_model_2",
         "pippack_model_3",
@@ -100,8 +99,8 @@ class PIPPack_worker(MutateRunnerAbstract):
         return temp_pdb_path
 
     def run_mutate_parallel(
-        self, mutants: List[Mutant], nproc: int = 2
-    ) -> List[str]:
+        self, mutants: list[Mutant], nproc: int = 2
+    ) -> list[str]:
         mutant_sequences = [
             [
                 chain.sequence.replace("X", "")

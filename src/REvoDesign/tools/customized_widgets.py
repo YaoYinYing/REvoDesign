@@ -6,14 +6,13 @@ import gc
 import json
 import os
 import warnings
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
 from functools import wraps
-from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple,
-                    TypedDict, Union, overload)
+from typing import Any, Literal, TypedDict, overload
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -49,9 +48,9 @@ class ImageWidget(QtWidgets.QWidget):
 
 def pick_color(
         parent: QtWidgets.QWidget,
-        init_color: Optional[str] = "",
+        init_color: str | None = "",
         disable_native_picker: bool = False,
-        alpha: bool = False) -> Optional[str]:
+        alpha: bool = False) -> str | None:
 
     opts = QtWidgets.QColorDialog.ColorDialogOption()
     if disable_native_picker:
@@ -84,7 +83,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
 
     '''
 
-    def __init__(self, object_name: Optional[str] = None, allow_repeat: bool = False, parent=None):
+    def __init__(self, object_name: str | None = None, allow_repeat: bool = False, parent=None):
         """
         Initializes the REvoDesignWidget.
 
@@ -242,10 +241,10 @@ class QButtonBrick(QtWidgets.QPushButton):  # type: ignore
         self,
         coords: ButtonCoords,
         color: QtGui.QColor,
-        label: Optional[str] = None,
-        tooltip_text: Optional[str] = None,
-        is_wt: Optional[bool] = False,
-        size_policy: Optional[QtWidgets.QSizePolicy] = None,  # type: ignore
+        label: str | None = None,
+        tooltip_text: str | None = None,
+        is_wt: bool | None = False,
+        size_policy: QtWidgets.QSizePolicy | None = None,  # type: ignore
         parent=None,
     ):
         """
@@ -479,7 +478,7 @@ class QButtonMatrix(QtWidgets.QWidget):
 
     """
 
-    label_size: Optional[List[int]] = [18, 12]
+    label_size: list[int] | None = [18, 12]
 
     # Define a custom signal for reporting axes
     report_axes_signal = QtCore.pyqtSignal(int, int)
@@ -488,7 +487,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         self,
         df_matrix: pd.DataFrame,
         sequence: str,
-        func: Optional[Callable[[int, int], None]] = None,
+        func: Callable[[int, int], None] | None = None,
         parent=None,
         cmap: str = 'bwr',
         flip_cmap: bool = False,
@@ -606,7 +605,7 @@ class QButtonMatrix(QtWidgets.QWidget):
         return row_name
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         return (len(self.alphabet_row), len(self.alphabet_col))
 
     def _make_button_tip(
@@ -614,8 +613,8 @@ class QButtonMatrix(QtWidgets.QWidget):
             row_name: str,
             col_name: str,
             value: float,
-            row: Optional[int] = None,
-            col: Optional[int] = None,
+            row: int | None = None,
+            col: int | None = None,
             is_wt_pair: bool = False):
         """
         Constructs a tooltip for a button.
@@ -739,7 +738,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
         is_wt_button: Redefines wild type button criteria for Gremlin.
         _make_button_tip: Custom tooltip generation for Gremlin.
     """
-    label_size: Optional[List[int]] = [12, 12]
+    label_size: list[int] | None = [12, 12]
 
     def __init__(
             self,
@@ -748,7 +747,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
             pair_i: int,
             pair_j: int,
             parent=None,
-            func: Optional[Callable] = None,
+            func: Callable | None = None,
             cmap='bwr',
             button_size=12):
         """
@@ -791,8 +790,8 @@ class QButtonMatrixGremlin(QButtonMatrix):
             row_name: str,
             col_name: str,
             value: float,
-            row: Optional[int] = None,
-            col: Optional[int] = None,
+            row: int | None = None,
+            col: int | None = None,
             is_wt_pair: bool = False):
         """
         Constructs a tooltip for a button in Gremlin.
@@ -823,7 +822,7 @@ class QButtonMatrixGremlin(QButtonMatrix):
 
 
 class MultiCheckableComboBox(QtWidgets.QComboBox):
-    def __init__(self, choices: List[str], parent=None):
+    def __init__(self, choices: list[str], parent=None):
         super().__init__(parent)
         self.choices = choices
         self.checked_items = set()
@@ -860,7 +859,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
             item.setData(QtCore.Qt.Checked if current_state ==
                          QtCore.Qt.Unchecked else QtCore.Qt.Unchecked, QtCore.Qt.CheckStateRole)
 
-    def get_checked_items(self) -> List[str]:
+    def get_checked_items(self) -> list[str]:
         """Retrieve all checked items."""
         checked = []
         for row in range(self.model().rowCount()):
@@ -869,7 +868,7 @@ class MultiCheckableComboBox(QtWidgets.QComboBox):
                 checked.append(item.text())
         return checked
 
-    def set_checked_items(self, items: List[str]):
+    def set_checked_items(self, items: list[str]):
         """Set initial checked items."""
         for row in range(self.model().rowCount()):
             item = self.model().item(row)
@@ -895,7 +894,7 @@ def getExistingDirectory():
     )
 
 
-def getMultipleFiles(parent=None, exts: Optional[tuple[FExCol, ...]] = None):
+def getMultipleFiles(parent=None, exts: tuple[FExCol, ...] | None = None):
     # Create the dialog instance
     dialog = QtWidgets.QFileDialog(parent, "Select file(s)")
 
@@ -941,22 +940,22 @@ def set_widget_value(widget: QtWidgets.QStackedWidget, value: list): ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QProgressBar, value: Union[int, List[int], tuple[int, int]]): ...
+def set_widget_value(widget: QtWidgets.QProgressBar, value: int | list[int] | tuple[int, int]): ...
 
 
 @overload
-def set_widget_value(widget: Union[
-    QtWidgets.QDoubleSpinBox,
-    QtWidgets.QSpinBox],
-    value: Union[int, float, list[str], tuple[str, str]]): ...
+def set_widget_value(widget: (
+    QtWidgets.QDoubleSpinBox |
+    QtWidgets.QSpinBox),
+    value: int | float | list[str] | tuple[str, str]): ...
 
 
 @overload
-def set_widget_value(widget: MultiCheckableComboBox, value: Union[list, tuple, str, int, float]): ...
+def set_widget_value(widget: MultiCheckableComboBox, value: list | tuple | str | int | float): ...
 
 
 @overload
-def set_widget_value(widget: QtWidgets.QComboBox, value: Union[list, tuple, dict, str, int, float, bool]): ...
+def set_widget_value(widget: QtWidgets.QComboBox, value: list | tuple | dict | str | int | float | bool): ...
 
 
 @overload
@@ -964,11 +963,11 @@ def set_widget_value(widget: QtWidgets.QGridLayout, value: str): ...
 
 
 @overload
-def set_widget_value(widget: Union[
-    QtWidgets.QLineEdit,
-    QtWidgets.QLCDNumber,
+def set_widget_value(widget: (
+    QtWidgets.QLineEdit |
+    QtWidgets.QLCDNumber |
     QtWidgets.QCheckBox
-], value: Any): ...
+), value: Any): ...
 
 
 def set_widget_value(widget, value):
@@ -1068,22 +1067,22 @@ def get_widget_value(widget: QtWidgets.QCheckBox) -> bool: ...  # type: ignore
 
 
 @overload
-def get_widget_value(widget: Union[  # type: ignore
-    QtWidgets.QComboBox,
-    QtWidgets.QLineEdit]) -> str: ...
+def get_widget_value(widget: (  # type: ignore
+    QtWidgets.QComboBox |
+    QtWidgets.QLineEdit)) -> str: ...
 
 
 @overload
-def get_widget_value(widget: Union[  # type: ignore
-    QtWidgets.QDoubleSpinBox,
+def get_widget_value(widget: (  # type: ignore
+    QtWidgets.QDoubleSpinBox |
     QtWidgets.QLCDNumber
-]) -> float: ...
+)) -> float: ...
 
 
 @overload
-def get_widget_value(widget: Union[  # type: ignore
-    QtWidgets.QSpinBox,
-    QtWidgets.QProgressBar]) -> int: ...
+def get_widget_value(widget: (  # type: ignore
+    QtWidgets.QSpinBox |
+    QtWidgets.QProgressBar)) -> int: ...
 
 
 @overload
@@ -1196,7 +1195,7 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = Fals
 
 
 def refresh_widget_while_another_changed(
-    trigger_widget_id: str, target_widget_id: str, target_data_group: Dict[str, tuple]
+    trigger_widget_id: str, target_widget_id: str, target_data_group: dict[str, tuple]
 ):
 
     from REvoDesign import ConfigBus, reload_config_file
@@ -1221,7 +1220,7 @@ class ParallelExecutor:
         n_jobs: int,
         backend: str = "auto",
         verbose: bool = False,
-        kwargs: Union[tuple[dict], list[dict], None] = None,
+        kwargs: tuple[dict] | list[dict] | None = None,
     ):
 
         super().__init__()
@@ -1365,7 +1364,7 @@ def create_cmap_icon(cmap: str):
     return pixmap
 
 
-def refresh_tree_widget(user_tree: Dict[str, Dict], treeWidget_ws_peers):
+def refresh_tree_widget(user_tree: dict[str, dict], treeWidget_ws_peers):
     """
     Refreshes a given tree widget with user data.
 
@@ -1450,13 +1449,13 @@ class AskedValue:
     """
 
     key: str
-    val: Optional[Any] = None
+    val: Any | None = None
     typing: type = str
-    reason: Optional[str] = None
+    reason: str | None = None
     required: bool = False
-    choices: Optional[Union[Iterable, Callable[[], Optional[Iterable]]]] = None
+    choices: Iterable | Callable[[], Iterable | None] | None = None
     source: Literal["None", "File", "FileO", "Files", "Directory", "JsonInput", "ColorPicker"] = "None"
-    ext: Optional[FExCol] = None
+    ext: FExCol | None = None
     multiple_choices: bool = False
 
 
@@ -1514,8 +1513,8 @@ class AskedValueCollection:
         banner (Optional[str]): A message to be displayed at the top of the dialog.
     """
 
-    asked_values: List[AskedValue] = field(default_factory=list)
-    banner: Optional[str] = None  # a banner message
+    asked_values: list[AskedValue] = field(default_factory=list)
+    banner: str | None = None  # a banner message
     allow_real_time_update: bool = False
 
     @property
@@ -1546,7 +1545,7 @@ class AskedValueCollection:
         return self_mirror
 
     @property
-    def asdict(self) -> Dict[str, Any]:
+    def asdict(self) -> dict[str, Any]:
         """
         Converts the collection into a dictionary where the keys are the field labels
         and the values are their corresponding inputs.
@@ -1566,7 +1565,7 @@ class AskedValueCollection:
         return bool(self.asked_values)
 
     @classmethod
-    def from_list(cls, list_of_asked_value: List[AskedValue]):
+    def from_list(cls, list_of_asked_value: list[AskedValue]):
         return cls(asked_values=list_of_asked_value)
 
 
@@ -1654,8 +1653,8 @@ class ValueDialog(REvoDesignWidget):
             self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
             self.table.setMinimumHeight(len(self.key_dict) * row_height)
 
-        self.input_fields: Dict[str, Any] = {}
-        self.input_fields_data_pair: Dict[str, AskedValue] = {}
+        self.input_fields: dict[str, Any] = {}
+        self.input_fields_data_pair: dict[str, AskedValue] = {}
 
         # Add fields to the table
         for row, item in enumerate(key_dict.asked_values):
@@ -1921,7 +1920,7 @@ class ValueDialog(REvoDesignWidget):
 
             self.table.setCellWidget(row, 3, container_widget)
 
-    def _browse_file(self, widget, exts: Optional[FExCol] = None,
+    def _browse_file(self, widget, exts: FExCol | None = None,
                      multiple: bool = False, mode: Literal['r', 'w'] = 'r'):
         """
         Opens a file dialog to select a file and updates the input field.
@@ -1955,7 +1954,7 @@ class ValueDialog(REvoDesignWidget):
         """
         Handles the OK button click. Collects user inputs and validates required fields.
         """
-        self.updated_values: List[AskedValue] = []
+        self.updated_values: list[AskedValue] = []
         for key, widget in self.input_fields.items():
             try:
                 value = get_widget_value(widget)
@@ -2025,7 +2024,7 @@ class ValueDialog(REvoDesignWidget):
         from REvoDesign import __version__
 
         # load back all asked values from a json file
-        contents_to_load: Dict[str, Dict[str, Any]] = json.load(open(selected_file))
+        contents_to_load: dict[str, dict[str, Any]] = json.load(open(selected_file))
         if contents_to_load['metadata']['__window__'] != self.windowTitle():
             logging.error(f"The recipe is made for Dialog `{contents_to_load['metadata']['__window__']}`, "
                           f"which is not compatible with the current window `{self.windowTitle()}`")
@@ -2240,7 +2239,7 @@ class AppendableValueDialog(QtWidgets.QDialog):
         return AskedValueCollection(getattr(self, "updated_values", []))
 
 
-def ask_for_appendable_values() -> Optional[AskedValueCollection]:
+def ask_for_appendable_values() -> AskedValueCollection | None:
     dialog = AppendableValueDialog()
     if dialog.exec_() == QtWidgets.QDialog.Accepted:
         return dialog.get_values()
@@ -2278,7 +2277,7 @@ def dialog_wrapper(
     title: str,
     banner: str,
     allow_real_time_update: bool,
-    options: Tuple[AskedValue, ...],
+    options: tuple[AskedValue, ...],
 ) -> Callable:
     """
     A decorator to wrap a function and generate a dialog for user input.
@@ -2296,7 +2295,7 @@ def dialog_wrapper(
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Prepare dynamic values with optional index
-            dynamic_values_with_index: List[AskedValueDynamic] = kwargs.pop("dynamic_values", [])
+            dynamic_values_with_index: list[AskedValueDynamic] = kwargs.pop("dynamic_values", [])
             dynamic_values_with_index = sorted(dynamic_values_with_index, key=lambda x: x.get("index", len(options)))
 
             # Merge static and dynamic options based on index
@@ -2305,19 +2304,19 @@ def dialog_wrapper(
                 index = dynamic_value.get("index", len(all_options))
                 all_options.insert(index, dynamic_value["value"])
 
-            values: Optional[AskedValueCollection] = None
+            values: AskedValueCollection | None = None
             dialog = ValueDialog(title, AskedValueCollection(
                 all_options,
                 banner=banner,
                 allow_real_time_update=allow_real_time_update))
 
-            def real_time_update(x: List[AskedValue]):
+            def real_time_update(x: list[AskedValue]):
                 nonlocal values
                 values = AskedValueCollection.from_list(x)
                 with dialog.freeze_to_wait():
                     func(**values.typing_fixed.asdict)
 
-            def complete_form(x: List[AskedValue]):
+            def complete_form(x: list[AskedValue]):
                 nonlocal values
                 values = AskedValueCollection.from_list(x)
                 dialog.close()

@@ -3,7 +3,7 @@ File Dialog
 '''
 import os
 from functools import partial
-from typing import Any, List, Literal, Optional
+from typing import Any, Literal
 
 from pymol.Qt.utils import getSaveFileNameWithExt
 
@@ -26,7 +26,7 @@ class FileDialog(SingletonAbstract):
     This ensures that file dialog operations are centralized and shareable across different tabs.
     """
 
-    def singleton_init(self, window: Optional[Any], pwd: Optional[str]):
+    def singleton_init(self, window: Any | None, pwd: str | None):
         """
         Initializes the singleton instance of FileDialog.
 
@@ -47,13 +47,13 @@ class FileDialog(SingletonAbstract):
     # class public function that can be shared with each tab
     # callback for the "Browse" button
 
-    def browse_multiple_files(self, exts: Optional[tuple[FileExtensionCollection, ...]] = (file_extensions.Any,)
-                              ) -> List[str]:
+    def browse_multiple_files(self, exts: tuple[FileExtensionCollection, ...] | None = (file_extensions.Any,)
+                              ) -> list[str]:
         return getMultipleFiles(self.window, exts)
 
     def browse_filename(
         self, mode: IO_MODE = "r", exts: tuple[FileExtensionCollection, ...] = (file_extensions.Any,)
-    ) -> Optional[str]:
+    ) -> str | None:
         """Open Finder/Explorer to browse from a filename
 
         Args:
@@ -115,7 +115,7 @@ class FileDialog(SingletonAbstract):
     # A universal and versatile function for input file path browsing.
 
     def open_file(self, cfg_item: str, exts: tuple[FileExtensionCollection, ...] = (
-            file_extensions.Any,)) -> Optional[str]:
+            file_extensions.Any,)) -> str | None:
         """Open Any File
 
         Args:
@@ -242,7 +242,7 @@ class FileDialog(SingletonAbstract):
         )
 
 
-def flatten_compressed_files(compressed_file: str, target_dir: Optional[str] = None) -> str:
+def flatten_compressed_files(compressed_file: str, target_dir: str | None = None) -> str:
     """
     Flattens and extracts the contents of a compressed file.
 

@@ -20,12 +20,11 @@ import threading
 import time
 import urllib.request
 import warnings
+from collections.abc import Callable, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, partial
-from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
-                    Mapping, NoReturn, Optional, Tuple, Type, TypeVar, Union,
-                    overload)
+from typing import TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 from urllib.error import HTTPError, URLError
 
 from pymol import cmd, get_version_message
@@ -135,8 +134,8 @@ class ExtrasItem:
     name: str
     extras_id: str
     depts: list[str]
-    description: Optional[str] = None
-    platform: Optional[list[str]] = None
+    description: str | None = None
+    platform: list[str] | None = None
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ExtrasItem':
@@ -322,9 +321,9 @@ class LiveProcessResult(subprocess.CompletedProcess):
 
 
 def run_command(
-    cmd: Union[Tuple[str], List[str]],
+    cmd: tuple[str] | list[str],
     verbose: bool = False,
-    env: Optional[Mapping[str, str]] = None,
+    env: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """
     Execute a command with real-time output streaming, while capturing stdout and stderr.
@@ -348,10 +347,10 @@ def run_command(
     if env:
         patched_env.update(env)
 
-    stdout_lines: List[str] = []
-    stderr_lines: List[str] = []
+    stdout_lines: list[str] = []
+    stderr_lines: list[str] = []
 
-    def stream_reader(pipe: io.IOBase, collector: List[str], label: str):
+    def stream_reader(pipe: io.IOBase, collector: list[str], label: str):
         for line in iter(pipe.readline, ''):
             if verbose:
                 logging.info(f"[{label}] {line.rstrip()}")
@@ -512,12 +511,12 @@ class GitSolver:
     A class that checks for the presence of Git, Conda, and Winget on the system and can install Git if necessary.
     """
 
-    has_git: Optional[str] = None
-    has_conda: Optional[str] = None
-    has_mamba: Optional[str] = None
-    has_winget: Optional[str] = None
-    has_brew: Optional[str] = None
-    has_choco: Optional[str] = None
+    has_git: str | None = None
+    has_conda: str | None = None
+    has_mamba: str | None = None
+    has_winget: str | None = None
+    has_brew: str | None = None
+    has_choco: str | None = None
 
     def __post_init__(self):
         """
@@ -535,7 +534,7 @@ class GitSolver:
             logging.debug(f"Command tool check: {cmd_tool}: {getattr(self, f'has_{cmd_tool}')}")
 
     @property
-    def where_to_install(self) -> Optional[List[str]]:
+    def where_to_install(self) -> list[str] | None:
         if self.has_winget:
             return [
                 self.has_winget,
@@ -562,7 +561,7 @@ class GitSolver:
 
         return None
 
-    def fetch_git(self, git_fetch_command: List[str], env: Optional[Mapping[str, str]] = None) -> Tuple[bool, str]:
+    def fetch_git(self, git_fetch_command: list[str], env: Mapping[str, str] | None = None) -> tuple[bool, str]:
         """
         Installs Git if it is not present on the system.
 
@@ -614,7 +613,7 @@ class PIPInstaller:
 
     python_exe: str = ''
     # run_command args
-    env: Optional[Mapping[str, str]] = None
+    env: Mapping[str, str] | None = None
     verbose_level: int = 0
 
     def ensurepip(self):
@@ -639,12 +638,12 @@ class PIPInstaller:
 
     def install(self,
                 package_name: str = 'REvoDesign',
-                source: Optional[str] = None,
+                source: str | None = None,
                 upgrade: bool = False,
-                extras: Optional[str] = None,
-                mirror: Optional[str] = "",
+                extras: str | None = None,
+                mirror: str | None = "",
                 verbose_level: int = 0,
-                env: Optional[Mapping[str, str]] = None,
+                env: Mapping[str, str] | None = None,
                 ):
         """
         Install a package in the current Python environment.
@@ -747,7 +746,7 @@ class PIPInstaller:
         return result
 
     def ensure_package(self, package_string: str,
-                       env: Optional[Mapping[str, str]] = None, mirror: Optional[str] = None):
+                       env: Mapping[str, str] | None = None, mirror: str | None = None):
         """
         Ensure a package is installed in the current Python environment.
         If the package is not installed or needs to be upgraded, run the pip install command.
@@ -784,8 +783,8 @@ class MenuItem:
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
     name: str
-    func: Optional[Callable] = None
-    kwargs: Optional[Mapping] = None
+    func: Callable | None = None
+    kwargs: Mapping | None = None
 
 
 @dataclass
@@ -999,7 +998,7 @@ class REvoDesignPackageManager:
         self.fetch_tags()
         logging.debug("Package manager initialized.")
 
-    def proxy_in_env(self, proxy: Optional[str] = None, mirror: Optional[str] = None) -> Dict[str, str]:
+    def proxy_in_env(self, proxy: str | None = None, mirror: str | None = None) -> dict[str, str]:
         """
         Generates an environment mapping based on the provided proxy string.
 
@@ -1133,7 +1132,7 @@ class REvoDesignPackageManager:
             details=diagnostic_data_json,
         )
 
-    def add_right_click_menu(self, items: List[MenuItem]):
+    def add_right_click_menu(self, items: list[MenuItem]):
         """
         Adds a right-click context menu to the installer UI.
 
@@ -1578,7 +1577,7 @@ class REvoDesignPackageManager:
         else:
             notify_box("Installation configuration is failed. Aborded. ", ValueError)
 
-        env: Dict[str, str] = {}
+        env: dict[str, str] = {}
 
         # Update environment variables based on proxy settings
         env.update(self.proxy_in_env(
@@ -1803,13 +1802,13 @@ class WorkerThread(QtCore.QThread):
 
 @overload
 def run_worker_thread_with_progress(
-    worker_function: Callable[..., R], *args, progress_bar: Optional[Any] = None, **kwargs
+    worker_function: Callable[..., R], *args, progress_bar: Any | None = None, **kwargs
 ) -> R: ...
 
 
 def run_worker_thread_with_progress(
-    worker_function: Callable[..., Optional[R]], *args, progress_bar: Optional[Any] = None, **kwargs
-) -> Optional[R]:
+    worker_function: Callable[..., R | None], *args, progress_bar: Any | None = None, **kwargs
+) -> R | None:
     """
     Runs a worker function in a separate thread and optionally updates a progress bar.
 
@@ -1979,8 +1978,8 @@ def refresh_window():
 @overload
 def notify_box(
     message: str = "",
-    error_type: Union[None, Type[Warning]] = None,
-    details: Optional[str] = None
+    error_type: None | type[Warning] = None,
+    details: str | None = None
 ) -> None:
     ...
 
@@ -1990,17 +1989,17 @@ def notify_box(
 @overload
 def notify_box(
     message: str,
-    error_type: Type[Exception],
-    details: Optional[str] = None
+    error_type: type[Exception],
+    details: str | None = None
 ) -> NoReturn:
     ...
 
 
 def notify_box(
     message: str = "",
-    error_type: Optional[Type[Exception]] = None,
-    details: Optional[str] = None
-) -> Union[None, NoReturn]:
+    error_type: type[Exception] | None = None,
+    details: str | None = None
+) -> None | NoReturn:
     """
     Display a notification message box.
 
@@ -2042,7 +2041,7 @@ def notify_box(
     raise_error(error_type, message)
 
 
-def raise_error(error_type: Type[Exception], message: str) -> NoReturn:
+def raise_error(error_type: type[Exception], message: str) -> NoReturn:
     """
     Raises an error of the specified type with the given message.
 
@@ -2053,7 +2052,7 @@ def raise_error(error_type: Type[Exception], message: str) -> NoReturn:
     raise error_type(message)
 
 
-def decide(title="", description="", rich: bool = False, details: Optional[str] = None):
+def decide(title="", description="", rich: bool = False, details: str | None = None):
     """
     Function: decide
     Usage: result = decide(title='', description='', rich=True)
@@ -2135,7 +2134,7 @@ def issue_collection(
         collect_dummy: bool = False,
         network: bool = True,
         drop_sensitives: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Collects system and environment information and returns it as a dictionary.
 
@@ -2310,8 +2309,8 @@ def issue_collection(
 
         issue_dict.update({'Dummy::Environ': env_dict})
 
-        pip_list_stdout: List[str] = run_command(['pip', 'list']).stdout.split('\n')
-        pip_list_stdout_body: List[List[str]] = [l.split(' ') for l in pip_list_stdout[2:]]
+        pip_list_stdout: list[str] = run_command(['pip', 'list']).stdout.split('\n')
+        pip_list_stdout_body: list[list[str]] = [l.split(' ') for l in pip_list_stdout[2:]]
 
         issue_dict.update({'Dummy::Pip::List': {
             line[0]: line[-1]
@@ -2330,7 +2329,7 @@ def issue_collection(
 
 @contextmanager
 def hold_trigger_button(
-    buttons: Union[tuple[QtWidgets.QPushButton, ...], QtWidgets.QPushButton],
+    buttons: tuple[QtWidgets.QPushButton, ...] | QtWidgets.QPushButton,
     animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
 ):
     """
@@ -2405,7 +2404,7 @@ def solve_installation_config(
     source: str,
     git_url: str,
     git_tag: str,
-    extras: Optional[str],
+    extras: str | None,
     package_name: str = 'REvoDesign',
 ):
     """

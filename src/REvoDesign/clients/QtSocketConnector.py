@@ -11,10 +11,11 @@ import socket
 import time
 import traceback
 import warnings
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from functools import partial
 from types import MappingProxyType
-from typing import Any, Dict, Iterable, List, Literal, Mapping, Union
+from typing import Any, Literal
 
 import msgpack
 from pymol import cmd
@@ -78,7 +79,7 @@ class MeetingRoom:
         return
 
     @property
-    def user_tree(self) -> Dict[str, Any]:
+    def user_tree(self) -> dict[str, Any]:
         return {
             uuid: {
                 k: v for k, v in client.client_info.items() if k != "client"
@@ -94,7 +95,7 @@ class MeetingRoom:
         return client in self.current_clients
 
     @property
-    def peer_table(self) -> Dict[str, Any]:
+    def peer_table(self) -> dict[str, Any]:
         if self.empty:
             return {}
 
@@ -127,7 +128,7 @@ class Broadcaster:
                 "UUID": str,
                 "PyMOL_session": bytes,
                 "Color": Any,
-                "MessageStack": List,
+                "MessageStack": list,
             }
         )
     )
@@ -171,7 +172,7 @@ class Broadcaster:
 
     def compose_dict(
         self, obj: Any, datatype: supported_datatypes, final: bool = True
-    ) -> Dict[str, Union[supported_datatypes, str, bool]]:
+    ) -> dict[str, supported_datatypes | str | bool]:
         if datatype not in self.supported_datatypes_mapping:
             raise issues.FobbidenDataTypeError(f"{datatype=} is not allowed.")
         return {"datatype": datatype, "obj": self.encode(obj), "final": final}
@@ -186,7 +187,7 @@ class Broadcaster:
 
     def digest_dict(
         self, unpacked_msg_dict: dict[str, str]
-    ) -> tuple[Union[supported_datatypes, None], Any]:
+    ) -> tuple[supported_datatypes | None, Any]:
         datatype: self.supported_datatypes = unpacked_msg_dict.get("datatype")
         if not datatype:
             warnings.warn(
@@ -210,17 +211,17 @@ class Broadcaster:
 
     def broadcast(
         self,
-        meetingroom: Union[
-            Client,
-            QtWebSockets.QWebSocket,
-            MeetingRoom,
-            List[Client],
-            List[QtWebSockets.QWebSocket],
-        ],
-        obj_type: Union[
-            supported_datatypes, List[supported_datatypes]
-        ] = "Text",
-        obj: Union[Any, List[Any]] = None,
+        meetingroom: (
+            Client |
+            QtWebSockets.QWebSocket |
+            MeetingRoom |
+            list[Client] |
+            list[QtWebSockets.QWebSocket]
+        ),
+        obj_type: (
+            supported_datatypes | list[supported_datatypes]
+        ) = "Text",
+        obj: Any | list[Any] = None,
         final=True,
     ) -> None:
         # typing checks for broad cast group
@@ -235,7 +236,7 @@ class Broadcaster:
                 )
                 return
             all_clients = meetingroom.current_clients
-        elif isinstance(meetingroom, List):
+        elif isinstance(meetingroom, list):
             all_clients = [
                 c.client if isinstance(c, Client) else c for c in meetingroom
             ]
@@ -244,7 +245,7 @@ class Broadcaster:
                 f"typing of {meetingroom=} ({type(meetingroom)} is not supported.)"
             )
 
-        if not isinstance(obj_type, List):
+        if not isinstance(obj_type, list):
             msg_dict = self.compose_dict(
                 obj=obj, datatype=obj_type, final=final
             )
@@ -264,7 +265,7 @@ class Broadcaster:
 
     def wisper(
         self,
-        client: Union[Client, QtWebSockets.QWebSocket],
+        client: Client | QtWebSockets.QWebSocket,
         obj_type: supported_datatypes = "Text",
         obj: Any = None,
         final: bool = True,
@@ -292,7 +293,7 @@ class Broadcaster:
 
     def received(
         self, packed_msg: bytes
-    ) -> Union[tuple[None, None], tuple[str, Any], tuple[str, Iterable]]:
+    ) -> tuple[None, None] | tuple[str, Any] | tuple[str, Iterable]:
         unpacked_msg = self.unpack(packed_msg)
         (datatype, obj) = self.digest_dict(unpacked_msg_dict=unpacked_msg)
         if not datatype:
@@ -305,7 +306,7 @@ class Broadcaster:
         if datatype != "MessageStack":
             return datatype, obj
 
-        assert isinstance(obj, List)
+        assert isinstance(obj, list)
         stacked_data = [
             {_t: _o for _t, _o in self.digest_dict(unpacked_msg_dict=d)}
             for d in obj
@@ -448,7 +449,7 @@ class REvoDesignWebSocketServer(SingletonAbstract):
         return self.meetingroom.get_user_uuid(client)
 
     def processTextMessage(
-        self, client: QtWebSockets.QWebSocket, message: Union[str, Any]
+        self, client: QtWebSockets.QWebSocket, message: str | Any
     ):
         """
         Processes incoming text messages from clients.

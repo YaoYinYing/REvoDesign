@@ -2,7 +2,7 @@
 This module contains the definition of the IterableLoop class, which manages an iterable with looping behavior.
 '''
 from dataclasses import dataclass
-from typing import Generic, Tuple, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -13,7 +13,7 @@ class IterableLoop(Generic[T]):
     A class for managing an iterable with looping behavior.
     """
 
-    iterable: Tuple[T]
+    iterable: tuple[T]
     current_idx: int = -1
 
     @property

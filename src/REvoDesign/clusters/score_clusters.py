@@ -2,7 +2,6 @@
 Score the clustered sequences with Rosetta
 '''
 import os
-from typing import List
 
 import pandas as pd
 from RosettaPy.analyser import RosettaEnergyUnitAnalyser
@@ -19,7 +18,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 def score_clusters(
     pdb, chain_id, node_hint: NodeHintT, tasks_dir: str
-) -> List[RosettaEnergyUnitAnalyser]:
+) -> list[RosettaEnergyUnitAnalyser]:
     if not IS_ROSETTA_RUNNABLE:
         raise issues.DependencyError(
             "Rosetta is not runnable on this machine. "

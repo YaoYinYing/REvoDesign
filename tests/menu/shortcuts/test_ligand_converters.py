@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Dict
 
 import pytest
 
@@ -42,7 +41,7 @@ def test_shortcut_smiles_conformer_batch(test_worker: TestWorker):
     smiles = '../tests/data/json/sm_input/12968814160.json'
     res_dir = os.path.abspath('./ligands_conformers_batch/')
 
-    smi: Dict[str, str] = json.load(open(smiles))
+    smi: dict[str, str] = json.load(open(smiles))
     shortcut_smiles_conformer_batch(
         smiles=smiles,
         num_conformer=20,

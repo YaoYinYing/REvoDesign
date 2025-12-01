@@ -4,7 +4,6 @@ Wrapper for DLPacker
 '''
 import gc
 import os
-from typing import List
 
 from joblib import Parallel, delayed
 
@@ -196,9 +195,9 @@ class DLPacker_worker(MutateRunnerAbstract):
 
     def run_mutate_parallel(
         self,
-        mutants: List[Mutant],
+        mutants: list[Mutant],
         nproc: int = 2,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Perform mutation on the protein in parallel.
 

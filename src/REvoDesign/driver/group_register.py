@@ -3,7 +3,6 @@ This module contains all grouped values from widgets for the GUI.
 '''
 
 import os
-from typing import Dict, List, Tuple
 
 import matplotlib
 from Bio.Align import substitution_matrices
@@ -19,11 +18,11 @@ from ..tools.customized_widgets import create_cmap_icon
 class CallableGroupValues:
 
     @staticmethod
-    def list_some_blanks(n=1) -> List[str]:
+    def list_some_blanks(n=1) -> list[str]:
         return [''] * n
 
     @staticmethod
-    def list_score_matrix() -> List:
+    def list_score_matrix() -> list:
         score_matrix = [
             mtx
             for mtx in os.listdir(
@@ -33,7 +32,7 @@ class CallableGroupValues:
         return score_matrix
 
     @staticmethod
-    def list_color_map() -> Dict:
+    def list_color_map() -> dict:
         cmap_group = {
             _cmap: QtGui.QIcon(create_cmap_icon(cmap=_cmap))
             for _cmap in matplotlib.colormaps()
@@ -41,19 +40,19 @@ class CallableGroupValues:
         return cmap_group
 
     @staticmethod
-    def list_installed_mutate_runners() -> List[str]:
+    def list_installed_mutate_runners() -> list[str]:
         from REvoDesign.sidechain.sidechain_solver import ALL_RUNNER_CLASSES
 
         return [c.name for c in ALL_RUNNER_CLASSES if c.installed]
 
     @staticmethod
-    def list_all_profile_parsers() -> List[str]:
+    def list_all_profile_parsers() -> list[str]:
         from REvoDesign.common.profile_parsers import ALL_PARSER_CLASSES
 
         return [p.name for p in ALL_PARSER_CLASSES]
 
     @staticmethod
-    def list_all_designers() -> List[str]:
+    def list_all_designers() -> list[str]:
         from REvoDesign.magician import ALL_DESIGNER_CLASSES
 
         return [
@@ -63,17 +62,17 @@ class CallableGroupValues:
         ]
 
     @staticmethod
-    def list_all_scorers() -> List[str]:
+    def list_all_scorers() -> list[str]:
         from REvoDesign.magician import ALL_DESIGNER_CLASSES
 
         return [dc.name for dc in ALL_DESIGNER_CLASSES if dc.installed]
 
     @staticmethod
-    def list_all_rosetta_node_hints() -> List[str]:
+    def list_all_rosetta_node_hints() -> list[str]:
 
         from REvoDesign.tools.rosetta_utils import is_run_node_available
 
-        node_hints: List[NodeHintT] = [
+        node_hints: list[NodeHintT] = [
             "native",
             "docker",
             "docker_mpi",
@@ -119,7 +118,7 @@ GroupRosettaNodeHint = GR("comboBox_rosetta_node_hint", (CallableGroupValues.lis
 
 
 # collect all together
-GroupRegistryCollection: Tuple[GR, ...] = (
+GroupRegistryCollection: tuple[GR, ...] = (
     GroupCmap,
     GroupScoreMatrix,
     GroupProfileTypeTabMutate,

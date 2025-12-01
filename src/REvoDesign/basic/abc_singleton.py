@@ -120,7 +120,7 @@ Resetting Instance
 
 '''
 from abc import ABC, abstractmethod
-from typing import Type, TypeVar, cast
+from typing import TypeVar, cast
 
 T = TypeVar('T', bound='SingletonAbstract')
 
@@ -202,7 +202,7 @@ class SingletonAbstract(ABC):
                 setattr(cls._instance, key, value)
 
     @classmethod
-    def derive(cls: Type[T], name: str) -> Type[T]:
+    def derive(cls: type[T], name: str) -> type[T]:
         """
         Dynamically creates a derived class with independent singleton behavior.
 
@@ -237,7 +237,7 @@ class SingletonAbstract(ABC):
                     self.initialized = True
 
         DerivedSingleton.__name__ = name
-        return cast(Type[T], DerivedSingleton)
+        return cast(type[T], DerivedSingleton)
 
     @classmethod
     def reset_instance(cls):

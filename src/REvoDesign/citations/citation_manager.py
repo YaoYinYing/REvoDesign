@@ -10,7 +10,8 @@ import os
 import time
 import warnings
 from abc import ABC
-from typing import Any, Callable, Mapping, Union
+from collections.abc import Callable, Mapping
+from typing import Any
 
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
@@ -141,7 +142,7 @@ class CitableModuleAbstract(ABC):
     # A dictionary containing citation information, where the key is the
     # citation name and the value is the citation content or a tuple of
     # multiple citation contents.
-    __bibtex__: dict[str, Union[str, tuple]] = {}
+    __bibtex__: dict[str, str | tuple] = {}
 
     @classmethod
     def notice(cls):

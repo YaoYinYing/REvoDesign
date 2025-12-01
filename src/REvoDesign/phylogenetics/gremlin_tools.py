@@ -21,7 +21,7 @@ import pickle
 import traceback
 import warnings
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Optional
+from typing import Literal
 
 import matplotlib
 import matplotlib.pylab as plt
@@ -49,7 +49,7 @@ class CoevolvedPair:
     i_aa: str
     j_aa: str
 
-    homochains_dist: Dict[str, float] = field(default_factory=dict)
+    homochains_dist: dict[str, float] = field(default_factory=dict)
 
     zscore: float = 0.0
     transposed: bool = False
@@ -346,7 +346,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
 
     def plot_w(
         self, i: int, j: int, i_aa: str, j_aa: str, idx: int = 0
-    ) -> Optional[CoevolvedPair]:
+    ) -> CoevolvedPair | None:
         # mark if the df should be transposed
         transposed = True
 
@@ -447,7 +447,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         return a_pair
 
     def plot_w_a2a(self) -> tuple[CoevolvedPair, ...]:
-        plot_w_fps: List[CoevolvedPair] = []
+        plot_w_fps: list[CoevolvedPair] = []
 
         for n in range(self.topN):
             i = int(self.top.iloc[n]["i"])
@@ -505,7 +505,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         logging.info(f"top {self.topN} items selected: {str(top_N_pairs)}")
 
         # Step 5: Calculate and plot for each pair
-        plot_w_fps: List[CoevolvedPair] = []
+        plot_w_fps: list[CoevolvedPair] = []
 
         for n, pair in enumerate(top_N_pairs):
             (i, j, i_aa, j_aa, zscore) = pair

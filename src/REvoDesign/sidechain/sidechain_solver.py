@@ -1,9 +1,9 @@
 '''
 Module for sidechain solvers manipulation and management.
 '''
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from types import MappingProxyType
-from typing import List, Mapping, Optional
 
 from RosettaPy.utils.escape import print_diff
 
@@ -21,7 +21,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 # 2. collect all the runners here
 # TODO: automatically register the runner class
-ALL_RUNNER_CLASSES: List[type[MutateRunnerAbstract]] = [
+ALL_RUNNER_CLASSES: list[type[MutateRunnerAbstract]] = [
     PyMOL_mutate,
     DLPacker_worker,
     PIPPack_worker,
@@ -48,7 +48,7 @@ __all__ = [
 @dataclass(frozen=True)
 class MutateRunnerManager:
     # create list of installed runners here
-    installed_worker: List[str] = field(
+    installed_worker: list[str] = field(
         default_factory=lambda: [c.name for c in ALL_RUNNER_CLASSES if c.installed]
     )
 
@@ -63,8 +63,8 @@ class MutateRunnerManager:
 class SidechainSolverConfig:
     molecule: str
     sidechain_solver_name: str
-    sidechain_solver_radius: Optional[float]
-    sidechain_solver_model: Optional[str]
+    sidechain_solver_radius: float | None
+    sidechain_solver_model: str | None
 
     def reconfigured(self, new_config: "SidechainSolverConfig") -> bool:
         reconfigured = False

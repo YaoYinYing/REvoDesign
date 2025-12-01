@@ -3,9 +3,9 @@ Module to manage external design tools.
 Collect, Register, Heat up and Cool down.
 '''
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import List, Mapping, Optional
 
 from REvoDesign import ConfigBus, issues
 from REvoDesign.basic import ExternalDesignerAbstract
@@ -20,7 +20,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 # 2. add the designer class to this list
 # TODO: automatically register the designer class
-ALL_DESIGNER_CLASSES: List[type[ExternalDesignerAbstract]] = [
+ALL_DESIGNER_CLASSES: list[type[ExternalDesignerAbstract]] = [
     ColabDesigner_MPNN,
     ddg,
 ]
@@ -38,7 +38,7 @@ class MagicianAssistant:
     A class to manage the installation and usage of external design tools.
     """
 
-    installed_worker: List[str] = field(
+    installed_worker: list[str] = field(
         default_factory=lambda: [
             c.name for c in ALL_DESIGNER_CLASSES if c.installed
         ]
@@ -64,15 +64,15 @@ class Magician(SingletonAbstract):
         # Initialize the configuration bus for accessing configuration information
         self.bus: ConfigBus = ConfigBus()
         # Initialize the gimmick as None, to be set up later
-        self.gimmick: Optional[ExternalDesignerAbstract] = None
+        self.gimmick: ExternalDesignerAbstract | None = None
         # Create an instance of the assistant for helping with gimmick management
         self.magician_assistant = MagicianAssistant()
 
     def setup(
         self,
-        name_badget_id: Optional[str] = "",
-        name_cfg_term: Optional[str] = "",
-        gimmick_name: Optional[str] = "",
+        name_badget_id: str | None = "",
+        name_cfg_term: str | None = "",
+        gimmick_name: str | None = "",
         **kwargs,
     ) -> "Magician":
         """

@@ -11,7 +11,6 @@ import os
 import random
 import re
 import time
-from typing import List, Union
 
 import matplotlib
 import matplotlib.pylab as plt
@@ -108,7 +107,7 @@ class REvoDesigner:
         """
         df = df_ori.copy()
 
-        first_idx: Union[str, int] = df.columns.tolist()[0]
+        first_idx: str | int = df.columns.tolist()[0]
         if first_idx in (0, '0'):
             logging.debug("Input profile is zero-indexed, convert to 1-indexed")
             df.columns = df.columns.map(lambda x: int(x) + 1)
@@ -150,7 +149,7 @@ class REvoDesigner:
             df_trunc, cmap=self.cmap, vmin=-max_abs_value, vmax=max_abs_value
         )
 
-        alphabet_row: List[str] = df_trunc.index.to_list()
+        alphabet_row: list[str] = df_trunc.index.to_list()
 
         x_ax = list(map(str, custom_indices))
         plt.xticks(range(len(x_ax)), x_ax, rotation=45)

@@ -4,7 +4,7 @@ Shortcut functions of results exporting
 
 
 import os
-from typing import List, Mapping, Optional, Union
+from collections.abc import Mapping
 
 import Bio
 from Bio import SeqIO
@@ -20,7 +20,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 
 def shortcut_dump_sidechains(
-    sele: Union[str, List[str]],
+    sele: str | list[str],
     enabled_only: bool = False,
     save_dir: str = "png/sidechain_dump/",
     height: int = 1280,
@@ -117,7 +117,7 @@ def shortcut_dump_fasta_from_struct(
     if not chain_ids:
         logging.warning("No chain selected. Dumping the chain picked on UI.")
         chain_ids = [bus.get_value('ui.header_panel.input.chain_id', str, reject_none=True)]
-    designable_sequences: Optional[Mapping] = bus.get_value("designable_sequences", dict, reject_none=True)
+    designable_sequences: Mapping | None = bus.get_value("designable_sequences", dict, reject_none=True)
 
     os.makedirs(output_dir, exist_ok=True)
     if suffix:
@@ -125,7 +125,7 @@ def shortcut_dump_fasta_from_struct(
     output_path = os.path.join(output_dir, f"{molecule}_{''.join(chain_ids)}{suffix}.{format}")
     all_seq_records = []
     for chain_id in chain_ids:
-        sequence: Optional[str] = designable_sequences.get(chain_id)
+        sequence: str | None = designable_sequences.get(chain_id)
         if sequence is None:
             raise issues.NoResultsError(f"No designable sequence found for chain {chain_id}")
         if drop_missing_residue:

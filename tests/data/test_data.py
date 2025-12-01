@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 import pytest
 
@@ -213,7 +212,7 @@ class TestData:
     def multi_mut_txt_mpnn(self):
         return f"{self.test_data_repo}/mutagenese/1SUO.surf.entro.multi_mpnn_mut.txt"
 
-    gremlin_monomer_clicks_a2a: Tuple = (
+    gremlin_monomer_clicks_a2a: tuple = (
         2,
         (
             6,
@@ -223,7 +222,7 @@ class TestData:
         2,
         -7,
     )
-    gremlin_monomer_clicks_o2a: Tuple = (
+    gremlin_monomer_clicks_o2a: tuple = (
         1,
         (
             0,
@@ -252,7 +251,7 @@ class TestData:
 
     gremlin_homomer_chains: str = "ABCD"
 
-    gremlin_homomer_clicks_a2a: Tuple = (
+    gremlin_homomer_clicks_a2a: tuple = (
         2,
         (1, 6),
         14,
@@ -261,7 +260,7 @@ class TestData:
         (3, 11),
     )
 
-    gremlin_homomer_clicks_o2a: Tuple = (
+    gremlin_homomer_clicks_o2a: tuple = (
         2,
         (15, 15),
         1,
@@ -302,7 +301,7 @@ class KeyData:
     design_shell_file: str = '../tests/data/pockets/1SUO_design_shell_CPZ_8.0_01_residues.txt'
     surface_file: str = '../tests/data/surface_residue_records/1SUO_residues_cutoff_30.0.txt'
     pssm_file: str = None  # type: ignore
-    gremlin_pkl_fp: Optional[str] = None
+    gremlin_pkl_fp: str | None = None
     mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.besthits.mut.txt'
     minimum_mutant_file: str = '../tests/data/mutagenese/evaluate_pssm_ent_surf.mannual.mut.txt'
     ddg_file: str = '../tests/data/pytia_ddg/1SUO_pred_mask.csv'

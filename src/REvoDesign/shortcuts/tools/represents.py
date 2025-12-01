@@ -6,7 +6,6 @@ Shortcut functions of structure representation
 import warnings
 from dataclasses import dataclass
 from functools import cached_property
-from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -375,8 +374,8 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
 
 
 def _read_b_factors(file_path: str,
-                    label_x: Optional[str] = None,
-                    label_y: Optional[str] = None,
+                    label_x: str | None = None,
+                    label_y: str | None = None,
                     index_x: int = 0,
                     index_y: int = 1) -> pd.DataFrame:
     """Reads B-factor values from a text file.
@@ -481,7 +480,7 @@ def _read_b_factors(file_path: str,
 # Software. https://doi.org/10.6084/m9.figshare.1176991.v1
 
 
-load_b_factors_citation: dict[str, Union[str, tuple]] = {
+load_b_factors_citation: dict[str, str | tuple] = {
     'loadBfacts.py': """@article{Gatti-Lafranconi2014,
 author = "Pietro Gatti-Lafranconi",
 title = "{Pymol script: loadBfacts.py}",
@@ -666,11 +665,11 @@ def _load_b_factors(
         keep_missing: bool,
         source: str,
         offset: int = 0,
-        label_x: Optional[str] = None,
-        label_y: Optional[str] = None,
+        label_x: str | None = None,
+        label_y: str | None = None,
         index_x: int = 0,
         index_y: int = 1,
-        pos_slice: Optional[str] = None,
+        pos_slice: str | None = None,
         palette_code: str = 'rainbow',
         do_rescale: bool = False,
         scale_min: float = 0.0,
@@ -780,7 +779,7 @@ def _load_b_factors(
 
         logging.debug(f"Read {len(bf_chain.bfactor_data)} B-factor values from {source}")
 
-        bf_rescale: Optional[BFactor] = None
+        bf_rescale: BFactor | None = None
 
         if do_rescale:
             bf_rescale = bf_chain.rescaled((scale_min, scale_max), (rescale_min, rescale_max))
@@ -815,14 +814,14 @@ def _load_b_factors(
             logging.debug(f"Not updating visual representation for {mol} (chain {chain_id})")
             return
 
-        ramp_color: Union[str, List[str]] = palette_code
+        ramp_color: str | list[str] = palette_code
 
         if palette_code.startswith('rainbow'):
             logging.debug(f"Using rainbow palette {palette_code}")
 
         elif palette_code not in ramp_spectrum_dict:
             logging.warning(f"Palette {palette_code} not found in ramp_spectrum_dict, try to create it.")
-            ramp_color: Union[str, List[str]] = palette_code.split('_')
+            ramp_color: str | list[str] = palette_code.split('_')
             logging.debug(f"Ramp color: {ramp_color}")
         else:
             logging.warning(f"Palette {palette_code} found in ramp_spectrum_dict, .")

@@ -20,7 +20,7 @@ repos:
     hooks:
       - id: pyupgrade
         args:
-          - --py38-plus
+          - --py310-plus
           - --keep-runtime-typing
 
   - repo: https://github.com/hadialqattan/pycln

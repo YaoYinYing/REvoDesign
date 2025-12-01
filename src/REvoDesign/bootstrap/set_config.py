@@ -6,7 +6,7 @@ import glob
 import importlib.util
 import os
 import shutil
-from typing import Any, List, Optional
+from typing import Any
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -45,7 +45,7 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
 
 
 def reload_config_file(config_name: str = "global_config",
-                       overrides: Optional[List[str]] = None,
+                       overrides: list[str] | None = None,
                        return_hydra_config: bool = False) -> DictConfig:
     return hydra.compose(
         config_name=config_name,

@@ -11,7 +11,7 @@ import traceback
 import warnings
 # using partial module to reduce duplicate code.
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 from omegaconf import OmegaConf
 from pymol import cmd
@@ -142,7 +142,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 self.set_working_directory(pwd)
                 return
 
-    def set_working_directory(self, new_dir: Optional[str] = None):
+    def set_working_directory(self, new_dir: str | None = None):
         """Set working directory for the current REvoDesign Session
 
         Args:
@@ -779,7 +779,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
                 "designable_sequences", self.designable_sequences.as_dict, force_add=True
             )
 
-    def find_session_path(self) -> Optional[str]:
+    def find_session_path(self) -> str | None:
         """Find and validate if current session is saved as a session file.
 
         Returns:
@@ -1147,7 +1147,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
 
     def reduce_current_session(
         self,
-        session: Optional[str] = None,
+        session: str | None = None,
         reduce_disabled: bool = False,
         overwrite: bool = False,
     ):
@@ -1531,7 +1531,7 @@ class REvoDesignPlugin(QtWidgets.QWidget):
             return
         self.ws_client.close_connection()
 
-    def reload_configurations(self, experiment: Optional[str] = None):
+    def reload_configurations(self, experiment: str | None = None):
         """Reloading configurations based on different scenarios such as
         reconfiguring with changes, initializing configurations, loading
         specific experiment configurations, or reloading from default

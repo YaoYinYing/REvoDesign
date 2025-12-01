@@ -3,7 +3,6 @@ Module for abstract base class for mutation runners.
 '''
 import os
 from abc import abstractmethod
-from typing import List, Tuple
 
 from ..basic.abc_third_party_module import ThirdPartyModuleAbstract
 from ..common.mutant import Mutant
@@ -21,7 +20,7 @@ class MutateRunnerAbstract(ThirdPartyModuleAbstract):
     name: str = ""
     installed: bool = False
 
-    weights_preset: Tuple[str, ...] = ()
+    weights_preset: tuple[str, ...] = ()
     default_weight_preset: str = ""
 
     def __init__(self, pdb_file: str):
@@ -42,7 +41,7 @@ class MutateRunnerAbstract(ThirdPartyModuleAbstract):
 
     @staticmethod
     def mutated_pdb_mapping(
-        mutant_tree: MutantTree, pdb_fps: List[str]
+        mutant_tree: MutantTree, pdb_fps: list[str]
     ) -> MutantTree:
         if mutant_tree.mutant_num != len(pdb_fps):
             raise RuntimeError(
@@ -80,9 +79,9 @@ class MutateRunnerAbstract(ThirdPartyModuleAbstract):
     @abstractmethod
     def run_mutate_parallel(
         self,
-        mutants: List[Mutant],
+        mutants: list[Mutant],
         nproc: int = 2,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Perform mutation on the protein in parallel and return the PDB paths
 

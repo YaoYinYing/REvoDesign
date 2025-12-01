@@ -2,7 +2,7 @@
 Custom Qt Wrapper: Uses pymol.Qt when available, supports typing checks
 """
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 # ** Type checking: Declare static types (fixes type checkers)**
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 else:
     # ** Runtime branch**
     _QtCore = _QtGui = _QtWidgets = None  # Predefine to avoid UnboundLocalError
-    QtSource: Optional[str] = None  # Track the Qt backend being used
+    QtSource: str | None = None  # Track the Qt backend being used
 
     # ** Try importing pymol.Qt first (Preferred)**
     try:

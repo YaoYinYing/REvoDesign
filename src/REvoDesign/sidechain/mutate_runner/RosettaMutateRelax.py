@@ -6,7 +6,6 @@ known issue:
     - when running with xtal structure, missing residues are not counted
 '''
 import os
-from typing import List, Optional, Union
 
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup
 from RosettaPy.app.mutate_relax import ScoreClusters, script_dir
@@ -34,8 +33,8 @@ class MutateRelax(ScoreClusters):
     def score(  # type: ignore
             self,
             branch: str,
-            variants: List[Mutant],
-            opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None
+            variants: list[Mutant],
+            opts: list[str | RosettaScriptsVariableGroup] | None = None
     ) -> Rosetta:
         """
         Scores the provided variants within a specific branch.
@@ -104,7 +103,7 @@ class MutateRelax(ScoreClusters):
 
         return rosetta
 
-    def run(self, mutants: List[Mutant], opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None):  # type: ignore
+    def run(self, mutants: list[Mutant], opts: list[str | RosettaScriptsVariableGroup] | None = None):  # type: ignore
         """
         Execute the mutant scoring process
 
@@ -165,7 +164,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
         # Check if the run node is available
         self.installed = is_run_node_available(self.node_hint)
 
-        self.rosetta_general_opts: List[str] = read_rosetta_config()
+        self.rosetta_general_opts: list[str] = read_rosetta_config()
 
         # Initialize MutateRelax instance
         self.mutate_relax_instance = MutateRelax(
@@ -196,9 +195,9 @@ class MutateRelax_worker(MutateRunnerAbstract):
 
     def run_mutate_parallel(
         self,
-        mutants: List[Mutant],
+        mutants: list[Mutant],
         nproc: int = 2,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Process multiple mutants' MutateRelax operations in parallel.
 

@@ -3,7 +3,6 @@ This module is used to search pocket residues for a given molecule.
 """
 
 import os
-from typing import Tuple
 
 from pymol import cmd
 
@@ -42,7 +41,7 @@ class PocketSearcher:
         self.save_dir = save_dir
 
     @staticmethod
-    def process_multiple_resn(selection: str) -> Tuple[str, str]:
+    def process_multiple_resn(selection: str) -> tuple[str, str]:
         """
         Processes a selection string to generate formatted outputs.
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -35,7 +35,7 @@ test_asked_values = [
     AskedValue(key="is_active", val=True, typing=bool),
 ]
 
-dynamic_asked_values_with_index: List[Dict[str, Any]] = [
+dynamic_asked_values_with_index: list[dict[str, Any]] = [
     {
         "value": AskedValue(key="email", val="alice@example.com", typing=str),
         "index": 1,
@@ -50,7 +50,7 @@ dynamic_asked_values_with_index: List[Dict[str, Any]] = [
 
 
 @pytest.mark.parametrize("input_dict", dynamic_asked_values_with_index)
-def test_asked_value_dynamic_type_check(input_dict: Dict[str, Any]):
+def test_asked_value_dynamic_type_check(input_dict: dict[str, Any]):
     """Ensure that AskedValueDynamic accepts valid dicts."""
     try:
         _: AskedValueDynamic = input_dict  # type: ignore
@@ -86,9 +86,9 @@ def test_asked_value_dynamic_type_check(input_dict: Dict[str, Any]):
     ],
 )
 def test_asked_value_dynamic_merge_static_and_dynamic_values(
-    static_options: List[AskedValue],
-    dynamic_options: List[Dict[str, Any]],
-    expected_order: List[str],
+    static_options: list[AskedValue],
+    dynamic_options: list[dict[str, Any]],
+    expected_order: list[str],
 ):
     """Ensure that dynamic values are inserted correctly into static list."""
     all_options = list(static_options)

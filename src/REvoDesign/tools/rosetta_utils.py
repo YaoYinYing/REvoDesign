@@ -6,7 +6,8 @@ import os
 import platform
 import shutil
 import warnings
-from typing import Any, Dict, List, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any
 
 import docker
 import docker.errors
@@ -56,7 +57,7 @@ def setup_minimal_rosetta_db(subdirectory_to_clone: str):
     return rosetta3_db_path
 
 
-def list_fastrelax_scripts() -> List[str]:
+def list_fastrelax_scripts() -> list[str]:
     """
     Lists the fast relax scripts in the Rosetta database.
 
@@ -77,7 +78,7 @@ def list_fastrelax_scripts() -> List[str]:
     return all_relax_scripts
 
 
-def extra_res_to_opts(ligands_params: Union[List[str], str]) -> List[str]:
+def extra_res_to_opts(ligands_params: list[str] | str) -> list[str]:
     """
     Generates options for ligand parameters.
 
@@ -106,7 +107,7 @@ def extra_res_to_opts(ligands_params: Union[List[str], str]) -> List[str]:
     return ligands
 
 
-def is_run_node_available(node_hint: Optional[NodeHintT]) -> bool:
+def is_run_node_available(node_hint: NodeHintT | None) -> bool:
     """
     Determine if the specified runtime environment indicated by `node_hint` is available.
 
@@ -205,7 +206,7 @@ def is_rosetta_runnable() -> bool:
 IS_ROSETTA_RUNNABLE: bool = is_rosetta_runnable()
 
 
-def read_rosetta_config(key_path: str = "rosetta.opts.general") -> List[str]:
+def read_rosetta_config(key_path: str = "rosetta.opts.general") -> list[str]:
     """
     Read Rosetta configuration options and parse them into a list of strings
 
@@ -220,7 +221,7 @@ def read_rosetta_config(key_path: str = "rosetta.opts.general") -> List[str]:
 
     logging.warning(f"Got Rosetta opts: {opts}")
     # Split the configuration string by spaces into a list of options
-    rosetta_general_opts: List[str] = opts.split(" ")
+    rosetta_general_opts: list[str] = opts.split(" ")
     # Handle empty configuration case, ensuring an empty list is returned instead of a list containing an empty string
     if rosetta_general_opts == [''] or not rosetta_general_opts:
         rosetta_general_opts = []
@@ -228,7 +229,7 @@ def read_rosetta_config(key_path: str = "rosetta.opts.general") -> List[str]:
     return rosetta_general_opts
 
 
-def read_rosetta_node_config() -> Dict[str, Any]:
+def read_rosetta_node_config() -> dict[str, Any]:
     '''
     Read the Rosetta node configuration from the configuration bus.
 
@@ -253,7 +254,7 @@ def read_rosetta_node_config() -> Dict[str, Any]:
     return ConfigConverter.convert(node_config)
 
 
-ROSETTA_COMMON_CITATION: dict[str, Union[str, tuple]] = {
+ROSETTA_COMMON_CITATION: dict[str, str | tuple] = {
     'Rosetta': """@article{10.1038/s41592-020-0848-2, author = {Leman, J. K. and Weitzner, B. D. and Lewis, S. M. and Adolf‐Bryfogle, J. and Alam, N. and Alford, R. F. and Aprahamian, M. L. and Baker, D. and Barlow, K. A. and Barth, P. and Basanta, B. and Bender, B. J. and Blacklock, K. and Bonet, J. and Boyken, S. E. and Bradley, P. and Bystroff, C. and Conway, P. and Cooper, S. and Correia, B. E. and Coventry, B. and Das, R. and Jong, R. M. d. and DiMaio, F. and Dsilva, L. and Dunbrack, R. L. and Ford, A. S. and Frenz, B. and Fu, D. and Geniesse, C. and Goldschmidt, L. and Gowthaman, R. and Gray, J. J. and Gront, D. and Guffy, S. L. and Horowitz, S. and Huang, P. and Huber, T. and Jacobs, T. M. and Jeliazkov, J. R. and Johnson, D. K. and Kappel, K. and Karanicolas, J. and Khakzad, H. and Khar, K. R. and Khare, S. D. and Khatib, F. and Khramushin, A. and King, C. and Kleffner, R. and Koepnick, B. and Kortemme, T. and Kuenze, G. and Kuhlman, B. and Kuroda, D. and Labonte, J. W. and Lai, J. and Lapidoth, G. and Leaver‐Fay, A. and Lindert, S. and Linsky, T. W. and London, N. and Lubin, J. H. and Lyskov, S. and Maguire, J. B. and Malmström, L. and Marcos, E. and Marcu, O. and Marze, N. and Meiler, J. and Moretti, R. and Mulligan, V. K. and Nerli, S. and Norn, C. and Ó’Conchúir, S. and Ollikainen, N. and Ovchinnikov, S. and Pacella, M. S. and Pan, X. and Park, H. and Pavlovicz, R. E. and Pethe, M. A. and Pierce, B. G. and Pilla, K. B. and Raveh, B. and Renfrew, P. D. and Burman, S. S. R. and Rubenstein, A. B. and Sauer, M. F. and Scheck, A. and Schief, W. R. and Schueler‐Furman, O. and Sedan, Y. and Sevy, A. M. and Sgourakis, N. G. and Shi, L. and Siegel, J. B. and Silva, D. and Smith, S. T. and Song, Y. and Stein, A. and Szegedy, M. and Teets, F. D. and Thyme, S. B. and Wang, R. Y. and Watkins, A. M. and Zimmerman, L. and Bonneau, R.}, title = {Macromolecular modeling and design in rosetta: recent methods and frameworks}, journal = {Nature Methods}, year = {2020}, volume = {17}, issue = {7}, pages = {665-680}, doi = {10.1038/s41592-020-0848-2} }""",
     'Rosetta3': """
 @incollection{LEAVERFAY2011545,
@@ -294,7 +295,7 @@ abstract = {We have recently completed a full rearchitecturing of the Rosetta mo
 # TODO: refactor as general citation merging function
 
 
-def copy_rosetta_citation(citetation: dict[str, Union[str, tuple]]) -> dict[str, Union[str, tuple]]:
+def copy_rosetta_citation(citetation: dict[str, str | tuple]) -> dict[str, str | tuple]:
     """
     Copy Rosetta citation information and update with custom citation content
 

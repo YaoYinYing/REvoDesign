@@ -57,9 +57,10 @@ import itertools
 import math
 import string
 from abc import abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Iterable, List, Literal, Optional, Union
+from typing import Literal
 
 import numpy as np
 import tree
@@ -89,7 +90,7 @@ XKCD_COLORS: immutabledict[str, str] = immutabledict(
 COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
 
 
-def not_none_float(*args: Optional[float]):
+def not_none_float(*args: float | None):
     """
     Returns the first non-None float value from the given arguments.
 
@@ -189,7 +190,7 @@ class Point:
         '''
         return np.insert(cgo.NORMAL, 1, self.array)
 
-    def move(self, x: Optional[float] = None, y: Optional[float] = None, z: Optional[float] = None) -> 'Point':
+    def move(self, x: float | None = None, y: float | None = None, z: float | None = None) -> 'Point':
         '''
         Move the point
         This method allows the point to be moved along the x, y, and z axes. If a coordinate is not provided, the original value is used.
@@ -399,7 +400,7 @@ class GraphicObject:
         """
         Rebuild the CGO data.
         """
-        self._data: List[float] = []
+        self._data: list[float] = []
 
     def __post_init__(self):
         """
@@ -451,14 +452,14 @@ class PseudoCurve(GraphicObject):
         color (Optional[str]): The color of the curve (optional).
         steps (int): The number of segments the curve is divided into for drawing (default is 50).
     '''
-    control_points: List[Point]
-    color: Optional[str] = None
+    control_points: list[Point]
+    color: str | None = None
     steps: int = 50
 
     def check_control_points(
             self,
-            num_min: Optional[int] = None,
-            num_max: Optional[int] = None,
+            num_min: int | None = None,
+            num_max: int | None = None,
             attr_name: str = 'control_points'):
         '''
         Check if the number of control points meets the minimum and maximum requirements.
@@ -475,7 +476,7 @@ class PseudoCurve(GraphicObject):
             raise ValueError(f'Number of Control Points mismatch. Required {num_max} as maximum but got {len_cp}')
 
     @abstractmethod
-    def sample(self) -> List["Point"]:
+    def sample(self) -> list["Point"]:
         '''
         Abstract method sample, used to calculate the discrete sampling points of the curve.
 
@@ -511,7 +512,7 @@ class PseudoBezier(PseudoCurve):
     PseudoBezier pseudocurve implementation using the Bezier curve formula with four control points.
     '''
 
-    def sample(self) -> List[Point]:
+    def sample(self) -> list[Point]:
         self.check_control_points(4, 4)
         control_points = self.control_points
         n = len(control_points) - 1
@@ -540,7 +541,7 @@ class PseudoCatmullRom(PseudoCurve):
     This curve passes through all the control points and requires at least 4 control points.
     '''
 
-    def sample(self) -> List[Point]:
+    def sample(self) -> list[Point]:
         self.check_control_points(num_min=4)
         points = []
         # Iterate through segments defined by 4 consecutive control points
@@ -585,9 +586,9 @@ class PseudoBSpline(PseudoCurve):
         knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
     '''
     degree: int = 3
-    knots: Optional[List[float]] = None
+    knots: list[float] | None = None
 
-    def sample(self) -> List[Point]:
+    def sample(self) -> list[Point]:
         from scipy.interpolate import BSpline
         n = len(self.control_points) - 1
         p = self.degree
@@ -617,9 +618,9 @@ class PseudoHermite(PseudoCurve):
         control_points (List[Point]): Exactly 2 control points (start and end).
         tangents (List[Point]): Two tangent vectors corresponding to the control points.
     '''
-    tangents: List[Point] = field(default_factory=list)
+    tangents: list[Point] = field(default_factory=list)
 
-    def sample(self) -> List[Point]:
+    def sample(self) -> list[Point]:
         self.check_control_points(2, 2)
         self.check_control_points(2, 2, 'tangents')
         A = self.control_points[0]
@@ -657,9 +658,9 @@ class PseudoArc(PseudoCurve):
         angles (List[float]): A list with two elements [start_angle, end_angle] in radians.
     '''
     radius: float = 0.0
-    angles: List[float] = field(default_factory=lambda: [0.0, 0.0])
+    angles: list[float] = field(default_factory=lambda: [0.0, 0.0])
 
-    def sample(self) -> List[Point]:
+    def sample(self) -> list[Point]:
         self.check_control_points(1, 1)
         self.check_control_points(2, 2, 'angles')
         center = self.control_points[0]
@@ -688,11 +689,11 @@ class PseudoNURBS(PseudoCurve):
         degree (int): Degree of the NURBS curve (default is 3).
         knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
     '''
-    weights: List[float] = field(default_factory=list)
+    weights: list[float] = field(default_factory=list)
     degree: int = 3
-    knots: Optional[List[float]] = None
+    knots: list[float] | None = None
 
-    def sample(self) -> List[Point]:
+    def sample(self) -> list[Point]:
         n = len(self.control_points) - 1
         p = self.degree
         if len(self.weights) != n + 1:
@@ -718,7 +719,7 @@ class PseudoNURBS(PseudoCurve):
             points.append(Point(pt[0], pt[1], pt[2]))
         return points
 
-    def basis(self, i: int, p: int, u: float, knots: List[float]) -> float:
+    def basis(self, i: int, p: int, u: float, knots: list[float]) -> float:
         '''
         Recursive Cox-de Boor basis function.
         '''
@@ -752,9 +753,9 @@ class LineVertex(GraphicObject):
     - width: An optional float, representing the line width. If not provided, the default is None.
     - color: An optional string, representing the line color. If not provided, the default is None.
     """
-    point: Union[Point, PseudoCurve]
-    width: Optional[float] = None
-    color: Optional[str] = None
+    point: Point | PseudoCurve
+    width: float | None = None
+    color: str | None = None
 
     def rebuild(self):
         """
@@ -783,8 +784,8 @@ class LineVertex(GraphicObject):
             raise NotImplementedError('this curve is not currently supported')
 
     @classmethod
-    def from_points(cls, points: Iterable[Union[Point, Iterable[float]]], width: Optional[float]
-                    = None, color: Optional[str] = None) -> tuple['LineVertex', ...]:
+    def from_points(cls, points: Iterable[Point | Iterable[float]], width: float | None
+                    = None, color: str | None = None) -> tuple['LineVertex', ...]:
         return tuple(cls(p if isinstance(p, Point) else Point(*p), width=width, color=color) for p in points)
 
 
@@ -1141,7 +1142,7 @@ class Cube(GraphicObject):
         用 6 个 Square，合并出一个立方体(或长方体)外表。
         """
         # 简易函数：构造一个纯色的 Square（四个角都用 self.color）
-        def make_face(a: Point, b: Point, c: Point, d: Point) -> List[float]:
+        def make_face(a: Point, b: Point, c: Point, d: Point) -> list[float]:
             face = Square(
                 corner_a=a, corner_b=b, corner_c=c, corner_d=d,
                 # 给四个角都指定同一个颜色 => 整个面都是 uniform color
@@ -1620,7 +1621,7 @@ class Polygon(GraphicObject):
         vertices (List[Point]): A list of points that define the polygon's perimeter (in order).
         color (str): The fill color of the polygon.
     """
-    vertices: List[Point]
+    vertices: list[Point]
     color: str
 
     def rebuild(self) -> None:
@@ -1652,8 +1653,8 @@ class Polyhedron(GraphicObject):
         faces (List[List[int]]): A list of faces, each face is a list of indices (into the vertices list).
         color (str): The fill color of the polyhedron.
     """
-    vertices: List[Point]
-    faces: List[List[int]]
+    vertices: list[Point]
+    faces: list[list[int]]
     color: str
 
     def rebuild(self) -> None:
@@ -1728,8 +1729,8 @@ class PolygonPen:
     """
 
     def __init__(self, sample_num: int = 10):
-        self.contours: List[List[Point]] = []
-        self.current_contour: List[Point] = []
+        self.contours: list[list[Point]] = []
+        self.current_contour: list[Point] = []
         self.sample_num = sample_num
 
     def moveTo(self, pt):
@@ -1793,7 +1794,7 @@ class TextCharPolygon(GraphicObject):
     font_path: str
     color: str
     scale: float = 1.0
-    offset: Optional[Point] = None
+    offset: Point | None = None
 
     width: float = 1.0
     format: Literal['LINE_LOOP', 'SAUSAGE', 'TRIANGLE_FAN'] = 'LINE_LOOP'
@@ -1815,9 +1816,9 @@ class TextCharPolygon(GraphicObject):
         polygons = pen.contours
 
         # Apply scale and offset
-        scaled_polygons: List[List[Point]] = []
+        scaled_polygons: list[list[Point]] = []
         for contour in polygons:
-            scaled_contour: List[Point] = []
+            scaled_contour: list[Point] = []
             for pt in contour:
                 x = pt.x * self.scale
                 y = pt.y * self.scale
@@ -2108,7 +2109,7 @@ class GraphicObjectCollection(GraphicObject):
         objects (List[GraphicObject]): A list of GraphicObject instances.
         force_to_rebuild (bool): Whether to rebuild everything before merging data.
     """
-    objects: List[GraphicObject]
+    objects: list[GraphicObject]
     force_to_rebuild: bool = False
 
     def rebuild(self):

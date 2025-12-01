@@ -3,7 +3,6 @@ Data classes with file extensions used in the REvoDesign plugin.
 '''
 import os
 from dataclasses import dataclass
-from typing import Union
 
 from .. import issues
 
@@ -46,7 +45,7 @@ class FileExtensionCollection:
     def __add__(self, extension_collection: 'FileExtensionCollection') -> 'FileExtensionCollection':
         return FileExtensionCollection(tuple(set(self.extensions + extension_collection.extensions)))
 
-    def __contains__(self, extension: Union[FileExtension, str]) -> bool:
+    def __contains__(self, extension: FileExtension | str) -> bool:
         """
         Check if the given extension is present in the current object's list of extensions.
 
@@ -82,7 +81,7 @@ class FileExtensionCollection:
         # Generate the list of extensions with a leading dot
         return [f".{e.ext}" for e in self.extensions]
 
-    def match(self, ext: Union[FileExtension, str]) -> bool:
+    def match(self, ext: FileExtension | str) -> bool:
         """
         Check if the given file extension matches any of the extensions in the current object's list.
 

@@ -3,9 +3,9 @@ The heart of REvoDesign. A UI-Configuration Bus
 '''
 
 import os
+from collections.abc import Callable
 from functools import partial, wraps
-from typing import (Any, Callable, Dict, Optional, Protocol, Type, TypeVar,
-                    Union, overload)
+from typing import Any, Protocol, TypeVar, overload
 
 import omegaconf.errors
 from immutabledict import immutabledict
@@ -34,7 +34,7 @@ ValueFromConfigT = TypeVar("ValueFromConfigT")
 
 class StoresWidget(SingletonAbstract):
     def singleton_init(self):
-        self.server_switches: Dict[str, MenuActionServerMonitor] = {}
+        self.server_switches: dict[str, MenuActionServerMonitor] = {}
 
     @classmethod
     def reset_instance(cls):
@@ -47,7 +47,7 @@ class StoresWidget(SingletonAbstract):
             if attr.startswith('_'):
                 continue
 
-            attr_dict: Union[Dict, Any] = getattr(myinstance, attr)
+            attr_dict: dict | Any = getattr(myinstance, attr)
             if not isinstance(attr_dict, dict):
                 continue
 
@@ -288,7 +288,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                   reject_none: bool, default_value: None = ...) -> ValueFromConfigT: ...
 
     @overload
-    def get_value(self, cfg_item: str, converter: Type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
+    def get_value(self, cfg_item: str, converter: type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
 
     @overload
     def get_value(self,
@@ -296,7 +296,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                   converter: Callable[[Any],
                                       ValueFromConfigT],
                   reject_none: bool = True,
-                  default_value: Optional[ValueFromConfigT] = ...) -> ValueFromConfigT: ...
+                  default_value: ValueFromConfigT | None = ...) -> ValueFromConfigT: ...
 
     @overload
     def get_value(self, cfg_item: str, converter=None) -> Any: ...
@@ -304,10 +304,10 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     def get_value(
         self,
         cfg_item: str,
-        converter: Optional[Callable[[Any], ValueFromConfigT]] = None,
+        converter: Callable[[Any], ValueFromConfigT] | None = None,
         reject_none: bool = False,
-        default_value: Optional[ValueFromConfigT] = None,
-    ) -> Optional[ValueFromConfigT]:
+        default_value: ValueFromConfigT | None = None,
+    ) -> ValueFromConfigT | None:
         """
         Retrieves the value of a configuration item with optional type casting.
 

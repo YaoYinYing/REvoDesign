@@ -13,7 +13,7 @@ import traceback
 import warnings
 from dataclasses import dataclass
 from functools import partial
-from typing import List, Literal, Optional, Tuple, Union
+from typing import Literal
 
 import Bio.PDB.PDBParser as PDBParser
 import matplotlib
@@ -412,7 +412,7 @@ class ChainBinder:
         self.structure = parser.get_structure(self.design_molecule, pdb_file)
         return self.structure
 
-    def _get_ca_atom(self, chain_id: str, residue_id: Union[int, str]):
+    def _get_ca_atom(self, chain_id: str, residue_id: int | str):
         """
         Retrieve the alpha-carbon (CA) atom for a given chain and residue.
 
@@ -438,8 +438,8 @@ class ChainBinder:
         self,
         chain_1: str,
         chain_2: str,
-        i_1: Union[int, str],
-        j_1: Union[int, str],
+        i_1: int | str,
+        j_1: int | str,
     ) -> float:
         """
         Calculate the distance between two alpha-carbon (CA) atoms.
@@ -461,7 +461,7 @@ class ChainBinder:
             warnings.warn(f"Error calculating distance: {e}", category=UserWarning)
             return -1
 
-    def bind_chains(self, coevolved_pairs: Tuple[CoevolvedPair]) -> Tuple[CoevolvedPair]:
+    def bind_chains(self, coevolved_pairs: tuple[CoevolvedPair]) -> tuple[CoevolvedPair]:
         """
         Record chain binding: distances and maximum distance to be accepted.
 
@@ -833,8 +833,8 @@ class GremlinAnalyser:
         cmd.hide("cartoon", _tmp_obj)
         cmd.hide("surface", _tmp_obj)
 
-        i_out_of_range: List[CoevolvedPair] = []
-        discarded: List[CoevolvedPair] = []
+        i_out_of_range: list[CoevolvedPair] = []
+        discarded: list[CoevolvedPair] = []
         set_widget_value(
             self.bus.ui.progressBar, (0, len(self.coevolved_pairs.iterable))
         )
@@ -967,7 +967,7 @@ class GremlinAnalyser:
 
     def mark_pair_state(
         self,
-        pairs: Union[CoevolvedPair, List[CoevolvedPair], Tuple[CoevolvedPair]],
+        pairs: CoevolvedPair | list[CoevolvedPair] | tuple[CoevolvedPair],
         state: CoevolvedPairState.state_type = "available",
     ):
         if not self.ce_object_group_valid:
@@ -1036,7 +1036,7 @@ class GremlinAnalyser:
             mut_j = self.alphabet[row]
 
             # construct this Mutant obj from scratch.
-            _mutant: List[Mutation] = []
+            _mutant: list[Mutation] = []
 
             for chain_id_pair in pair.homochains:
                 for chain_id, mut, idx, wt in zip(
@@ -1288,7 +1288,7 @@ class GremlinAnalyser:
         )
 
     @staticmethod
-    def show_mutant(mutant_id: str, group_id: Optional[str] = None):
+    def show_mutant(mutant_id: str, group_id: str | None = None):
         cmd.enable(mutant_id)
         cmd.show(
             "sticks",
