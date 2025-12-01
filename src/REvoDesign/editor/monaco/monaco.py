@@ -13,6 +13,7 @@ from ...logger import ROOT_LOGGER
 from ...tools.package_manager import get_github_repo_tags, notify_box
 from ...tools.utils import run_worker_thread_with_progress
 from .config import ConfigStore
+from ...tools.download_registry import FileDownloadRegistry,DownloadedFile
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -89,33 +90,47 @@ class MonacoEditorManager:
         Args:
             version (str): The version to download, or "latest" for the latest version.
         """
-        cdn_base_url = "https://registry.npmjs.org/monaco-editor/-/monaco-editor-"
-        tarball_url = f"{cdn_base_url}{version}.tgz"
-        tarball_path = os.path.join(self.editor_path, f"monaco-editor-{version}.tgz")
+        # https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.55.1.tgz
+        cdn_base_url = "https://registry.npmjs.org/monaco-editor/-/"
         extract_path = os.path.join(self.editor_path, f"monaco-editor-{version}")
+
+        down_registry = FileDownloadRegistry(
+            name="monaco-editor",
+            base_url=cdn_base_url,
+            registry={
+                f'monaco-editor-{version}.tgz': None
+            },
+            version=version,
+            customized_directory=self.editor_path,
+            # https://github.com/amio/npm-mirrors/blob/master/index.js
+            alternative_base_urls=[
+                "https://skimdb.npmjs.com/registry/monaco-editor/-/",
+                "https://r.cnpmjs.org/monaco-editor/-/",
+                "https://registry.npm.taobao.org/monaco-editor/-/",
+                "https://registry.yarnpkg.com/monaco-editor/-/"
+
+            ]
+        )
 
         # Download tarball
         try:
-            logging.info(f"Downloading tarball from {tarball_url}")
-            urllib.request.urlretrieve(tarball_url, tarball_path)
-        except (
-                urllib.error.ContentTooShortError,
-                urllib.error.HTTPError,
-                urllib.error.URLError) as e:
+            logging.info(f"Downloading tarball from {down_registry}")
+            downloaded_file: DownloadedFile = down_registry.setup(f'monaco-editor-{version}.tgz')
+        except issues.NetworkError as e:
             logging.error(f"Error downloading tarball: {e}, cleaning up...")
-            os.remove(tarball_path)
+            # os.remove(tarball_path)
             raise issues.NetworkError from e
 
         # Extract tarball
         logging.info(f"Extracting tarball to {extract_path}")
-        with tarfile.open(tarball_path, "r:gz") as tar_ref:
+        with tarfile.open(downloaded_file.downloaded, "r:gz") as tar_ref:
             tar_ref.extractall(extract_path)
 
         # Move the `vs` directory to the expected location
         shutil.move(os.path.join(extract_path, "package", "min", "vs"), os.path.join(extract_path, "vs"))
 
         # Clean up tarball
-        os.remove(tarball_path)
+        os.remove(downloaded_file.downloaded)
         logging.info("Monaco Editor downloaded and extracted successfully.")
 
     def copy_html_template(self, version_dir):

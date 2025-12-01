@@ -86,7 +86,7 @@ class TestFileDownloadRegistry:
             version="1.0",
             base_url="http://example.com",
             registry={"file.txt": "md5:abc123"},
-            retry_if_failed=99,
+            retry_if_failed=5,
         )
 
     @patch('REvoDesign.tools.download_registry.user_data_dir')
@@ -108,7 +108,7 @@ class TestFileDownloadRegistry:
             version="1.0",
             base_url="http://example.com",
             registry={"file.txt": "md5:abc123"},
-            retry_if_failed=99,
+            retry_if_failed=5,
         )
 
     @pytest.mark.parametrize("item, registry_files, expected", [

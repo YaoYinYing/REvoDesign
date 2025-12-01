@@ -377,8 +377,8 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
 def _read_b_factors(file_path: str,
                     label_x: Optional[str] = None,
                     label_y: Optional[str] = None,
-                    index_x: Optional[int] = 0,
-                    index_y: Optional[int] = 1) -> pd.DataFrame:
+                    index_x: int = 0,
+                    index_y: int = 1) -> pd.DataFrame:
     """Reads B-factor values from a text file.
 
     Args:
@@ -468,7 +468,7 @@ def _read_b_factors(file_path: str,
         logging.debug(f"Selected columns: {label_x}, {label_y}")
         df_bfactors = df[[label_x, label_y]]
     # otherwise, select columns by index
-    elif index_x is not None and index_y is not None:
+    elif index_x != index_y:
         logging.debug(f"Selected columns by index: {df.columns[index_x]}, {df.columns[index_y]}")
         df_bfactors = df[[df.columns[index_x], df.columns[index_y]]]
     else:
@@ -505,6 +505,53 @@ doi = "10.6084/m9.figshare.1176991.v1"
 
 @dataclass(frozen=True)
 class BFactor:
+    '''
+    B-factor dataclass
+
+    Attributes:
+        mol (str): PyMOL object name
+        chain_id (str): Chain ID
+        sequence (str): Sequence string
+        bfactor_data (pd.DataFrame): B-factor dataframe (N * 2)
+            where col 0 is the position column and col 1 is the bfactor colum
+            (one-indexed)
+
+        offset (int): Offset to add to the position column. 
+            If the position column in `bfactor_data` is not zero-indexed, 
+            set this to the offset to add to the position column so that it can align to the one-indexed. 
+            Default is 0.
+    
+
+    Normal usage:
+
+        | position | bfactor |
+        | -------- | ------- |
+        |     1    |   0.1   |
+        |     2    |   0.1   |
+        |     N    |   0.2   |
+
+        The position column is one-indexed. If not so, a non-zero offset must be set to fix the position column.
+
+        e.g.: 
+
+        In original dataframe:             
+        
+        | position | bfactor |
+        | -------- | ------- |
+        |     0    |   0.1   |
+        |     1    |   0.1   |
+        |    N-1   |   0.2   |
+
+        In this case, set `offset` to 1.
+
+        Adjusted dataframe:
+
+        | position | bfactor |
+        | -------- | ------- |
+        |     1    |   0.1   |
+        |     2    |   0.1   |
+        |     N    |   0.2   |
+    '''
     mol: str
     chain_id: str
     sequence: str
@@ -621,8 +668,8 @@ def _load_b_factors(
         offset: int = 0,
         label_x: Optional[str] = None,
         label_y: Optional[str] = None,
-        index_x: Optional[int] = None,
-        index_y: Optional[int] = None,
+        index_x: int = 0,
+        index_y: int = 1,
         pos_slice: Optional[str] = None,
         palette_code: str = 'rainbow',
         do_rescale: bool = False,
@@ -640,11 +687,11 @@ def _load_b_factors(
         chain_id (str): Chain ID.
         keep_missing (bool): Whether to keep missing residues in sequence.
         source (str): Path to the file containing new B-factor values.
-        pos_slice (Optional[str]): Range of positions to apply B-factors to (e.g. "1-100,150-200").
+        pos_slice (Optional[str]): Range of one-index positions to apply B-factors to (e.g. "1-100,150-200").
         label_x (Optional[str]): Label for resi column. Will not be used if None.
         label_y (Optional[str]): Label for bfactor column. Will not be used if None.
-        index_x (Optional[int]): Index of resi column. Default is 0 for the first column.
-        index_y (Optional[int]): Index of bfactor column. Default is 1 for the second column.
+        index_x (int): Index of resi column. Default is 0 for the first column.
+        index_y (int): Index of bfactor column. Default is 1 for the second column.
         offset (int): Offset to apply to positions (default is 0).
         palette (str): Color palette to use for coloring residues.
         do_rescale (bool): Whether to rescale B-factors to a custom range.

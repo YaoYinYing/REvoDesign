@@ -94,7 +94,7 @@ def test_dialog_wrapper_required_field_validation(dialog, qtbot, monkeypatch, te
     monkeypatch.setattr(QtWidgets.QMessageBox, "warning", mock_warning)
 
     # Simulate OK button click
-    ok_button = dialog.layout.itemAt(3).itemAt(0).widget()
+    ok_button = dialog.layout.itemAt(4).itemAt(0).widget()
 
     with patch.object(dialog, 'close') as close_mock:
         qtbot.mouseClick(ok_button, QtCore.Qt.LeftButton)

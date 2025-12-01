@@ -45,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - utils: 
     - `inspect_method_types`: for guessing method types ("InstanceMethod", "ClassMethod", "StaticMethod", "Function")
     - `get_owner_class_from_static`: for gussing owner class of static methods for citation checking.
+  - download_registry:
+    - `FileDownloadRegistry` now supports `alternative_base_urls` and `retry_count` for a much more certain way of fetching files.
 - shortcuts:
   - dialog window pop:
     - support `real_time` mode to run the downstream tasks in real-time mode (triggered by value changes in the window forms)
@@ -90,6 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - refactored `cmap_reverser`
 - typing hints:
   - gremlin tool
+- editor:
+  - fix tarball downloading w/ retry and mirror urls.
 
 ### Removed
 - `REvoDesignWidget`: 
@@ -99,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Depts: DLPacker in MPS: no performance improvement at all.
 - tests:
   - obsolete tests: `test_menu_item`
+  - obsolete tests: `test_download_monaco_editor`
 
 ### Known Issues
 - CI failed on ubuntu w/ PyMOL Open Source v2.5.0, Python 3.10/3.11
