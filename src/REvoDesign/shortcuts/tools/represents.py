@@ -401,25 +401,25 @@ def _read_b_factors(file_path: str,
         # read floats from excel file, in col `label` if provided, else first column
         df = pd.read_excel(file_path)
     elif file_path.endswith('.tsv'):
-        df = pd.read_csv(file_path, sep='\t') 
+        df = pd.read_csv(file_path, sep='\t')
 
     elif file_path.endswith('.xvg'):
         df = xvg2df(file_path)
 
     elif file_path.endswith('.pdb'):
-        logging.warning("PDB file detected. Assuming positions are in the ATOM lines and B-factors are in the B-factor column")
-        
+        logging.warning(
+            "PDB file detected. Assuming positions are in the ATOM lines and B-factors are in the B-factor column")
+
         logging.warning('A dataframe with the following columns will be created: position, bfactor')
         # create empty dataframe
         df = pd.DataFrame()
         # read floats from PDB file
         with open(file_path) as inFile:
             # read lines and find the ATOM lines with atom name as 'CA'
-            # collect the residue index and bfactor columns, respectively. 
+            # collect the residue index and bfactor columns, respectively.
             # convert resi to int and bfactor to float and add them to the dataframe
 
             logging.debug(f"Reading PDB file {file_path}")
-
 
             for line in inFile.readlines():
                 if line.startswith('ATOM'):
@@ -453,10 +453,10 @@ def _read_b_factors(file_path: str,
             logging.debug(f"Positions: {pos_data}")
 
             # 2 * N
-            df = pd.DataFrame([pos_data, bfactor_data], index=['position','bfactor'])
+            df = pd.DataFrame([pos_data, bfactor_data], index=['position', 'bfactor'])
 
             # transpose to N * 2
-            df=df.T
+            df = df.T
 
             logging.debug(f"Dataframe: {df}")
 

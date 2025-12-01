@@ -1663,8 +1663,7 @@ class ValueDialog(REvoDesignWidget):
 
         self.layout.addWidget(self.table)
 
-        apply_now_layout= QtWidgets.QHBoxLayout()
-        
+        apply_now_layout = QtWidgets.QHBoxLayout()
 
         if key_dict.allow_real_time_update:
             logging.debug("Real-time update is enabled for this dialog.")
@@ -1682,7 +1681,6 @@ class ValueDialog(REvoDesignWidget):
             placeholder = QtWidgets.QLabel("")
             placeholder.setObjectName("Placeholder")
             apply_now_layout.addWidget(placeholder)
-            
 
         apply_now_button = QtWidgets.QPushButton("Apply Now")
         apply_now_button.setObjectName("ApplyNow")
@@ -1731,7 +1729,7 @@ class ValueDialog(REvoDesignWidget):
     def _on_real_time_update_changed(self, state: bool):
         self.enable_real_time_update = state
         logging.debug(f"Real-time update is {'enabled' if state else 'disabled'} for this dialog.")
-    
+
     def _on_apply_now_clicked(self):
         self.submit_complete_form()
         self.update_signal.emit(self.updated_values)

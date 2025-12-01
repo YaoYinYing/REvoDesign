@@ -46,41 +46,54 @@ def test_shortcut_color_by_mutation(test_worker: TestWorker):
 
 
 @pytest.mark.parametrize("test_name,table_file_name,pos_slice,offset,label_x,label_y,index_x,index_y,palette_code,do_rescale", [
-    
+
     # test formats
-    ['CSV','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, None, False],
-    ['Excel Modern','csv/3fap_hf3_A_short.Backbone.rmsf_res.xlsx', None, 0, None, None, None, None, None, False],
-    ['Excel Legacy','csv/3fap_hf3_A_short.Backbone.rmsf_res.xls', None, 0, None, None, None, None, None, False],
-    ['TSV','tsv/3fap_hf3_A_short.Backbone.rmsf_res.tsv', None, 0, None, None, None, None, None, False],
-    ['TXT','txt/3fap_hf3_A_short.Backbone.rmsf_res.txt', None, 0, None, None, None, None, None, False],
-    ['PDB','pdb/3fap_hf3_A_short_lig.rmsf.pdb', None, 0, None, None, None, None, None, False],
+    ['CSV', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, None, False],
+    ['Excel Modern', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.xlsx', None, 0, None, None, None, None, None, False],
+    ['Excel Legacy', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.xls', None, 0, None, None, None, None, None, False],
+    ['TSV', 'tsv/3fap_hf3_A_short.Backbone.rmsf_res.tsv', None, 0, None, None, None, None, None, False],
+    ['TXT', 'txt/3fap_hf3_A_short.Backbone.rmsf_res.txt', None, 0, None, None, None, None, None, False],
+    ['PDB', 'pdb/3fap_hf3_A_short_lig.rmsf.pdb', None, 0, None, None, None, None, None, False],
 
 
     # test slices and offsets
-    ['CSV-explict-full-length','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1-11', 0, None, None, None, None, None, False],
-    ['CSV-custom-range-1','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '2-9', 0, None, None, None, None, None, False],
-    ['CSV-four-signel','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5+7', 0, None, None, None, None, None, False],
-    ['CSV-single-seg','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5-7', 0, None, None, None, None, None, False],
-    ['CSV-single-seg-offset','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5-7', 1, None, None, None, None, None, False],
+    ['CSV-explict-full-length', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1-11', 0, None, None, None, None, None, False],
+    ['CSV-custom-range-1', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '2-9', 0, None, None, None, None, None, False],
+    ['CSV-four-signel', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5+7', 0, None, None, None, None, None, False],
+    ['CSV-single-seg', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5-7', 0, None, None, None, None, None, False],
+    ['CSV-single-seg-offset', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5-7', 1, None, None, None, None, None, False],
 
     # test labels
-    ['CSV_text_label','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, 'position', 'rmsf', None, None, None, False],
-    ['CSV_numeric_col_idx','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, 0, 1, None, False],
+    ['CSV_text_label', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, 'position', 'rmsf', None, None, None, False],
+    ['CSV_numeric_col_idx', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, 0, 1, None, False],
 
     # test palette
-    ['CSV-magenta_white_blue','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, 'magenta_white_blue', False],
-    ['CSV-cyan_magenta','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, 'cyan_magenta', False],
+    ['CSV-magenta_white_blue', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv',
+        None, 0, None, None, None, None, 'magenta_white_blue', False],
+    ['CSV-cyan_magenta', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv',
+        None, 0, None, None, None, None, 'cyan_magenta', False],
 
     # test rescaling
-    ['CSV-rescale','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, None, True],
+    ['CSV-rescale', 'csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, None, True],
 
 
 
 ])
-def test_load_b_factors(test_name,table_file_name, pos_slice, offset,label_x,label_y,index_x,index_y,palette_code,do_rescale, test_worker: TestWorker):
+def test_load_b_factors(
+        test_name,
+        table_file_name,
+        pos_slice,
+        offset,
+        label_x,
+        label_y,
+        index_x,
+        index_y,
+        palette_code,
+        do_rescale,
+        test_worker: TestWorker):
 
     pdb_path = '../tests/data/3fap_hf3_A_short.pdb'
-    test_data_path='../tests/data/'
+    test_data_path = '../tests/data/'
     test_worker.test_id = test_worker.method_name()
     test_worker.load_session_and_check(customized_session=pdb_path)
 
@@ -95,7 +108,6 @@ def test_load_b_factors(test_name,table_file_name, pos_slice, offset,label_x,lab
 
     for atom in model.atom:
         assert atom.b == 0.0, f"Expected b-factor 0.0, got {atom.b} for atom {atom.name} in residue {atom.resi}"
-
 
     test_worker.save_pymol_png(f'{test_name}.before_load_b_{pos_slice}_{offset}_{test_worker.method_name()}')
 
