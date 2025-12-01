@@ -68,9 +68,9 @@ def resolve_choice_from(range_str: str):
         issues.InvalidInputError: If the input format for 'range:' or 'CFG:' is invalid.
         issues.ConfigurationError: If the input doesn't match any known pattern or expected type.
     """
-    if range_str.startswith(('range:', 'FloatRange:' )):  # range:1,10 or range:1,10,2 or FloatRange:1,10
+    if range_str.startswith(('range:', 'FloatRange:')):  # range:1,10 or range:1,10,2 or FloatRange:1,10
         try:
-            range_type,range_str = range_str.split(":", 1)
+            range_type, range_str = range_str.split(":", 1)
             if range_type == 'range':
                 return range(*map(int, range_str.split(",")))
             else:

@@ -642,7 +642,7 @@ def _load_b_factors(
         source (str): Path to the file containing new B-factor values.
         pos_slice (Optional[str]): Range of positions to apply B-factors to (e.g. "1-100,150-200").
         label_x (Optional[str]): Label for resi column. Will not be used if None.
-        label_y (Optional[str]): Label for bfactor column. Will not be used if None. 
+        label_y (Optional[str]): Label for bfactor column. Will not be used if None.
         index_x (Optional[int]): Index of resi column. Default is 0 for the first column.
         index_y (Optional[int]): Index of bfactor column. Default is 1 for the second column.
         offset (int): Offset to apply to positions (default is 0).
