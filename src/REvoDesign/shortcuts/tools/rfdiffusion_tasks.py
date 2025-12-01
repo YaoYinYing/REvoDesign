@@ -8,7 +8,6 @@ import sys
 import time
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional
 
 import numpy as np
 from hydra import errors as hydra_errors
@@ -100,11 +99,11 @@ RFD_WEIGHTS = FileDownloadRegistry(
 RFDIFFUSION_CONFIG_DIR = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), 'rfdiffusion')
 
 
-def list_all_rfd_models() -> List[str]:
+def list_all_rfd_models() -> list[str]:
     return RFD_WEIGHTS.list_all_files
 
 
-def list_all_config_preset() -> List[str]:
+def list_all_config_preset() -> list[str]:
     return [f[:-5] for f in os.listdir(RFDIFFUSION_CONFIG_DIR) if f.endswith('.yaml')]
 
 
@@ -132,7 +131,7 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
             logging.info(f"Using ckpt_override_path from model name ({model_name}): {ckpt_path}")
             return
 
-    def pick_model(self, model_name: Optional[str] = None) -> None:
+    def pick_model(self, model_name: str | None = None) -> None:
         '''
         Pick a model.
         Override Priority:
@@ -204,8 +203,8 @@ class RfDiffusion(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
     def __init__(self,
                  config_preset: str = 'base',
-                 model_name: Optional[str] = None,
-                 overrides: Optional[List[str]] = None):
+                 model_name: str | None = None,
+                 overrides: list[str] | None = None):
         '''
         Instantiate RFDiffusion app with config preset and overrides.
 
@@ -476,8 +475,8 @@ def visualize_substrate_potentials(pdb_path,
 
 
 def run_general_rfdiffusion_task(config_preset: str = 'base',
-                                 model_name: Optional[str] = None,
-                                 overrides: Optional[List[str]] = None):
+                                 model_name: str | None = None,
+                                 overrides: list[str] | None = None):
 
     app = RfDiffusion(
         config_preset=config_preset,

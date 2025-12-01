@@ -1,7 +1,6 @@
 '''
 Clustering workflow
 '''
-from typing import Optional
 
 from RosettaPy.node import NodeHintT
 
@@ -114,7 +113,7 @@ class ClusterRunner:
                     reload=False,
                 )
 
-                node_hint: Optional[NodeHintT] = bus.get_value(
+                node_hint: NodeHintT | None = bus.get_value(
                     "rosetta.node_hint", default_value="native")  # type: ignore
 
                 run_worker_thread_with_progress(

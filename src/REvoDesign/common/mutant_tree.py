@@ -2,7 +2,8 @@
 Module for managing mutant trees.
 '''
 
-from typing import List, Mapping, Optional, Protocol, Tuple, TypedDict, Union
+from collections.abc import Mapping
+from typing import Optional, Protocol, TypedDict, Union
 
 from joblib_progress import joblib_progress
 from RosettaPy.utils.tools import squeeze
@@ -19,11 +20,11 @@ class MutantDict(TypedDict):
 
 class MutateRunner(Protocol):
     def run_mutate_parallel(
-        self, mutants: List[Mutant], nproc: int = 2
-    ) -> List[str]: ...
+        self, mutants: list[Mutant], nproc: int = 2
+    ) -> list[str]: ...
 
     def mutated_pdb_mapping(
-        self, mutant_tree: "MutantTree", pdb_fps: List[str]
+        self, mutant_tree: "MutantTree", pdb_fps: list[str]
     ) -> "MutantTree": ...
 
     def cite(self) -> None: ...
@@ -147,7 +148,7 @@ class MutantTree:
         """
         return self.all_mutant_branch_ids.index(branch_id)
 
-    def has(self, obj: Union[str, Mutant]) -> bool:
+    def has(self, obj: str | Mutant) -> bool:
         """
         Check if the given object exists in the instance.
 
@@ -412,7 +413,7 @@ class MutantTree:
         ) = self._walk_the_mutants(walk_forward=walf_forward)
 
     # internal function that returns instead of changes the current stored values
-    def _walk_the_mutants(self, walk_forward: bool = True) -> Tuple[int, int]:
+    def _walk_the_mutants(self, walk_forward: bool = True) -> tuple[int, int]:
         # store the last one
         last_branch_id = self.current_branch_id
         last_mutant_id = self.current_mutant_id
@@ -495,7 +496,7 @@ class MutantTree:
             self.mutant_tree[self.current_branch_id].keys()
         )[0]
 
-    def list_mutants(self) -> List[MutantDict]:
+    def list_mutants(self) -> list[MutantDict]:
         if self.empty:
             return []
 
@@ -557,7 +558,7 @@ class MutantTree:
 
         return diff_tree if not diff_tree.empty else None
 
-    def pop(self) -> Optional[tuple[str, str, Mutant]]:
+    def pop(self) -> tuple[str, str, Mutant] | None:
         """
         Pops out the last mutant from the last branch of the MutantTree object.
 

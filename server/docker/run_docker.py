@@ -4,7 +4,6 @@
 
 import os
 import signal
-from typing import Tuple
 
 import docker
 from absl import app, flags, logging
@@ -41,7 +40,7 @@ except BaseException:
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
 
-def _create_mount(mount_name: str, path: str, read_only=True) -> Tuple[types.Mount, str]:
+def _create_mount(mount_name: str, path: str, read_only=True) -> tuple[types.Mount, str]:
     """Create a mount point for each file and directory used by the model."""
     path = os.path.abspath(path)
     target_path = os.path.join(_ROOT_MOUNT_DIRECTORY, mount_name)

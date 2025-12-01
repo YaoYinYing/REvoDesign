@@ -7,7 +7,7 @@ import os
 import re
 import time
 import warnings
-from typing import List, Mapping, Optional, Tuple, Union
+from collections.abc import Mapping
 
 import numpy as np
 import pandas as pd
@@ -46,7 +46,7 @@ NOT_ALLOWED_GROUP_ID_PREFIX: tuple = (
 
 def extract_mutants_from_mutant_id(
     mutant_string: str,
-    sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
+    sequences: Mapping[str, str] | RosettaPyProteinSequence,
     wt_before_chain: bool = False
 ) -> Mutant:
     """
@@ -153,7 +153,7 @@ def extract_mutants_from_mutant_id(
 # TODO: static method of mutant class
 
 
-def extract_mutant_score_from_string(mutant_string: str) -> Optional[float]:
+def extract_mutant_score_from_string(mutant_string: str) -> float | None:
     """
     Extract mutant score from an mutant string
 
@@ -181,7 +181,7 @@ def extract_mutant_from_sequences(
     wt_sequences: RosettaPyProteinSequence,
     chain_id: str = "A",
     fix_missing: bool = False,
-) -> Optional[Mutant]:
+) -> Mutant | None:
     """
     Extract mutant from mutant sequence.
 
@@ -251,7 +251,7 @@ def extract_mutant_from_sequences(
 
 
 def shorter_range(
-    input_list: Union[List[int], Tuple[int]],
+    input_list: list[int] | tuple[int],
     connector: str = "-",
     seperator: str = "+",
 ) -> str:
@@ -309,7 +309,7 @@ def shorter_range(
 
 def expand_range(
     shortened_str: str, connector: str = "-", seperator: str = "+"
-) -> List[int]:
+) -> list[int]:
     """
     Expand a shortened string expression representing a list of integers to the original list.
 
@@ -494,8 +494,8 @@ def read_profile_design_mutations(filename):
 
 
 def existed_mutant_tree(
-    sequences: Union[Mapping[str, str], RosettaPyProteinSequence],
-    enabled_only: Union[int, bool] = 1,
+    sequences: Mapping[str, str] | RosettaPyProteinSequence,
+    enabled_only: int | bool = 1,
 ) -> MutantTree:
     """
     Creates a tree structure of existing mutants based on PyMOL objects.
@@ -787,7 +787,7 @@ def pick_design_from_profile(
 
     df = profile_parser.parse_profile(profile_fp=profile, profile_format=profile_type)
 
-    first_idx: Union[str, int] = df.columns.tolist()[0]
+    first_idx: str | int = df.columns.tolist()[0]
     if first_idx in (0, "0"):
         logging.debug("Input profile is zero-indexed, convert to 1-indexed")
         df.columns = df.columns.map(lambda x: int(x) + 1)

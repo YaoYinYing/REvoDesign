@@ -38,7 +38,7 @@ def test_resolve_extension(extension, expected_pattern):
     ]
 )
 def test_resolve_dotted_function_pass(dotted_str):
-    from typing import Callable
+    from collections.abc import Callable
 
     result = resolve_dotted_function(dotted_str)
     assert isinstance(result, Callable)

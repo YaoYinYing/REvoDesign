@@ -9,7 +9,7 @@ import logging as python_logging
 import logging.handlers as python_logging_handlers
 import os
 import queue
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from omegaconf import DictConfig
 from platformdirs import user_log_path
@@ -48,7 +48,7 @@ class REvoDesignLogFormatter(python_logging.Formatter):
     def __init__(
         self,
         *,
-        fmt_keys: Union[dict[str, str], None] = None,
+        fmt_keys: dict[str, str] | None = None,
     ):
         super().__init__()
         self.fmt_keys = fmt_keys or {}
@@ -92,7 +92,7 @@ class NonErrorFilter(python_logging.Filter):
     @override
     def filter(
         self, record: python_logging.LogRecord
-    ) -> Union[bool, python_logging.LogRecord]:
+    ) -> bool | python_logging.LogRecord:
         return record.levelno <= python_logging.INFO
 
 
@@ -220,7 +220,7 @@ LoggerT = python_logging.Logger
 
 def logger_level_setter(
         level: str = 'info',
-        channel: Optional[Literal['stdout', 'stderr', 'file', 'notebook']] = None,
+        channel: Literal['stdout', 'stderr', 'file', 'notebook'] | None = None,
         apply_to_root_logger: bool = False) -> None:
     """Set the logger level to the given value.
 

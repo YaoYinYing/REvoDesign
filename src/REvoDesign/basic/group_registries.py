@@ -2,8 +2,9 @@
 Data classes for Group Registry.
 '''
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Union
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -17,4 +18,4 @@ class GroupRegistryItem:
             A tuple of callables that generate groups. Each callable returns either a list of strings or a dictionary.
     """
     cfg_item: str
-    group_generators: tuple[Callable[[], Union[List[str], Dict[str, Any]]], ...]
+    group_generators: tuple[Callable[[], list[str] | dict[str, Any]], ...]

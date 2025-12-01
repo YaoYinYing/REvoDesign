@@ -5,7 +5,6 @@ Module for handling mutants.
 import hashlib
 import os
 from dataclasses import dataclass
-from typing import Union
 
 from RosettaPy.common.mutation import Chain
 from RosettaPy.common.mutation import Mutant as RpMutant
@@ -151,7 +150,7 @@ class Mutant(RpMutant):
         return self._mutant_score
 
     @mutant_score.setter
-    def mutant_score(self, value: Union[float, str, int]):
+    def mutant_score(self, value: float | str | int):
         """
         Set the mutant score to a new value.
         """
@@ -165,7 +164,7 @@ class Mutant(RpMutant):
         return self._wt_score
 
     @wt_score.setter
-    def wt_score(self, value: Union[float, str, int]):
+    def wt_score(self, value: float | str | int):
         """
         Set the wild-type score to a new value.
         """

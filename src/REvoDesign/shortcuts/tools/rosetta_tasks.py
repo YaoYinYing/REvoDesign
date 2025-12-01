@@ -3,7 +3,8 @@ Shortcut functions on Rosetta-related tasks
 '''
 
 import os
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Union
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from pymol import cmd
 from RosettaPy import (Rosetta, RosettaEnergyUnitAnalyser,
@@ -28,7 +29,7 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 class RosettaLigand(RosettaLigandOriginal, CitableModuleAbstract):
 
-    __bibtex__: dict[str, Union[str, tuple]] = copy_rosetta_citation({
+    __bibtex__: dict[str, str | tuple] = copy_rosetta_citation({
         "RosettaLigand": """
 @article{https://doi.org/10.1002/prot.21086,
 author = {Meiler, Jens and Baker, David},
@@ -97,7 +98,7 @@ class FastRelax(FastRelax_Original, CitableModuleAbstract):
 
     @get_cited
     def run(self, nstruct: int = 8, default_repeats: int = 15,
-            opts: Optional[Sequence[Union[str, RosettaScriptsVariableGroup]]] = None) -> RosettaEnergyUnitAnalyser:
+            opts: Sequence[str | RosettaScriptsVariableGroup] | None = None) -> RosettaEnergyUnitAnalyser:
         """
         Runs the fast relaxation process using the specified parameters.
 
@@ -155,16 +156,16 @@ class FastRelax(FastRelax_Original, CitableModuleAbstract):
 
 def shortcut_rosettaligand(
         pdb: str,
-        ligands: List[str],
+        ligands: list[str],
         nstruct: int = 10,
         save_dir: str = "tests/outputs",
         job_id: str = "rosettaligand",
-        cst: Optional[str] = None,
+        cst: str | None = None,
         box_size: int = 30,
         move_distance: float = 0.5,
         gridwidth: int = 45,
         chain_id_for_dock="B",
-        start_from_xyz: Optional[Tuple[float, float, float]] = None,
+        start_from_xyz: tuple[float, float, float] | None = None,
 ):
     '''
     Runs the rosettaligand function with parameters collected from the dialog.
@@ -258,7 +259,7 @@ def shortcut_fast_relax(
         default_repeats: int = 3,
         job_id: str = 'fastrelax',
         save_dir: str = 'relaxed',
-        relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
+        relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
 ):
 
     fast_relax = FastRelax(
@@ -291,12 +292,12 @@ class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
             pdb: str,
             job_id: str = "relax_w_ca_constraints",
             save_dir: str = "tests/outputs",
-            user_opts: Optional[List[str]] = None,
+            user_opts: list[str] | None = None,
             node_hint: NodeHintT = "native",
-            node_config: Optional[Mapping[str, Any]] = None,
+            node_config: Mapping[str, Any] | None = None,
             nstructs_per_round: int = 1,
             ncycles: int = 10,
-            relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
+            relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
             **kwargs):
         super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
@@ -365,7 +366,7 @@ def shortcut_relax_w_ca_constraints(
         ncycles: int = 10,
         save_dir: str = "tests/outputs",
         job_id: str = "relax_w_ca_constraints",
-        relax_opts: Optional[List[Union[str, RosettaScriptsVariableGroup]]] = None,
+        relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
         load_to_preview=False,
 ):
 

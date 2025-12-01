@@ -7,7 +7,6 @@ import shutil
 import signal
 import subprocess
 from datetime import datetime
-from typing import Tuple
 
 import docker
 from absl import app, logging
@@ -66,7 +65,7 @@ except BaseException:
 
 def _create_mount(
     mount_name: str, path: str, read_only=True
-) -> Tuple[types.Mount, str]:
+) -> tuple[types.Mount, str]:
     """Create a mount point for each file and directory used by the model."""
     path = os.path.abspath(path)
     target_path = os.path.join(_ROOT_MOUNT_DIRECTORY, mount_name)

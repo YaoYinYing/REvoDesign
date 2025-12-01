@@ -1,10 +1,9 @@
-from typing import Optional
 
 from pymol import cmd
 
 
 def visualize_hydrophobic_hydrophilic(
-    pdb_id: Optional[str] = None,
+    pdb_id: str | None = None,
     remove_hoh: bool = True,
     rezoom: bool = True,
     reorient: bool = True
@@ -63,7 +62,7 @@ def visualize_hydrophobic_hydrophilic(
 
 
 def visualize_cartoon_settings(
-    pdb_id: Optional[str] = None,
+    pdb_id: str | None = None,
     remove_hoh: bool = True,
     rezoom: bool = True,
     reorient: bool = True
@@ -119,7 +118,7 @@ def visualize_cartoon_settings(
 
 
 def visualize_cartoon_loops(
-    pdb_id: Optional[str] = None,
+    pdb_id: str | None = None,
     remove_hoh: bool = True,
     rezoom: bool = True,
     reorient: bool = True

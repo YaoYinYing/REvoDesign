@@ -1,9 +1,10 @@
 '''
 Module to register parameter changes in the UI.
 '''
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Dict, Tuple
+from typing import Any
 
 from REvoDesign.Qt import QtCore, QtWidgets
 
@@ -31,7 +32,7 @@ class ParamChangeRegistryItem:
     source_cfg_item: str
     target_cfg_item: str
 
-    param_mapping: Dict[Any, Tuple]
+    param_mapping: dict[Any, tuple]
 
     def widget_signal(self, ui) -> QtCore.pyqtBoundSignal:
         """
@@ -54,7 +55,7 @@ class ParamChangeRegistryItem:
             raise issues.InternalError(
                 f"Widget {self.widget_name} does not have signal {self.widget_signal_name}") from e
 
-    def register(self, register_func: Callable[[str, str, Dict[str, Tuple]], None], ui: Any):
+    def register(self, register_func: Callable[[str, str, dict[str, tuple]], None], ui: Any):
         """
         Registers the mapping between two configuration items by connecting the widget signal to the registration function.
 
@@ -84,7 +85,7 @@ class ParamChangeRegister:
     - registry: tuple[ParamChangeRegistryItem, ...]
         A tuple of items to be registered.
     """
-    register_func: Callable[[str, str, Dict[str, Tuple]], None]
+    register_func: Callable[[str, str, dict[str, tuple]], None]
     registry: tuple[ParamChangeRegistryItem, ...]
 
     def register_all(self, ui):

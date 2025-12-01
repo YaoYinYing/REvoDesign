@@ -12,9 +12,9 @@ import sys
 import tarfile
 import time
 import zipfile
+from collections.abc import Callable, Iterable
 from functools import wraps
-from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
-                    Union)
+from typing import Any, Literal
 
 import matplotlib
 import numpy as np
@@ -37,7 +37,7 @@ except ImportError:
         return zip(a, b)
 
 
-pairwise: Callable[[Iterable], Iterable[Tuple]] = _pairwise
+pairwise: Callable[[Iterable], Iterable[tuple]] = _pairwise
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -112,7 +112,7 @@ CLASS_ARGSLICE = slice(1, None)
 
 def require_not_none(
     attribute_name: str,
-    fallback_setup: Optional[Union[Callable[[], Any], str]] = None,
+    fallback_setup: Callable[[], Any] | str | None = None,
     error_type: type[Exception] = issues.UnexpectedWorkflowError
 ):
     """
@@ -139,7 +139,7 @@ def require_not_none(
                 elif isinstance(fallback_setup, str):
                     if not hasattr(self, fallback_setup):
                         raise AttributeError(f"Attribute '{fallback_setup}' not found in {self}")
-                    fallback_setup_: Optional[Callable[[], Any]] = getattr(self, fallback_setup)
+                    fallback_setup_: Callable[[], Any] | None = getattr(self, fallback_setup)
                     # not a callable, raise error
                     if not callable(fallback_setup_):
                         raise AttributeError(f"Attribute '{fallback_setup}' is not callable in {self}")
@@ -324,7 +324,7 @@ def get_cited(method: Callable) -> Callable:
 
     # instance method, having a self argument
 
-    def _cite_for_cls(cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract]) -> None:
+    def _cite_for_cls(cls_or_obj: type[CitableModuleAbstract] | CitableModuleAbstract) -> None:
         try:
             if not (hasattr(cls_or_obj, 'cite') and callable(getattr(cls_or_obj, 'cite'))):
                 raise TypeError(
@@ -336,7 +336,7 @@ def get_cited(method: Callable) -> Callable:
 
     @wraps(method)
     def wrapper_instance_method_or_classmethod(
-        cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract],
+        cls_or_obj: type[CitableModuleAbstract] | CitableModuleAbstract,
         *args, **kwargs
     ):
         result = method(cls_or_obj, *args, **kwargs)
@@ -495,9 +495,9 @@ def extract_archive(archive_file: str, extract_to: str):
 
 def get_color(
     cmap: str,
-    data: Union[int, float],
-    min_value: Union[int, float],
-    max_value: Union[int, float],
+    data: int | float,
+    min_value: int | float,
+    max_value: int | float,
 ) -> tuple[float, float, float]:
     """
     Get color value from a colormap based on given data.
@@ -542,9 +542,9 @@ def cmap_reverser(cmap: str, reverse: bool = False) -> str:
 
 
 def rescale_number(
-    number: Union[int, float],
-    min_value: Union[int, float],
-    max_value: Union[int, float],
+    number: int | float,
+    min_value: int | float,
+    max_value: int | float,
 ) -> float:
     """
     Rescales a number within a specified range to a value between 0 and 1.
@@ -712,7 +712,7 @@ def convert_residue_ranges(
 
 # TODO: support JAX and TensorFlow; need refactor
 
-def device_picker() -> List[str]:
+def device_picker() -> list[str]:
     """
     Detects and returns a list of available devices for deep learning frameworks.
 

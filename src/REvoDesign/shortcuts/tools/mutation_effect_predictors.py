@@ -4,7 +4,7 @@ Shortcut functions of third-party mutant effect predictors
 
 
 import os
-from typing import List, Literal, Optional
+from typing import Literal
 
 import pandas as pd
 from RosettaPy.common.mutation import RosettaPyProteinSequence
@@ -38,9 +38,9 @@ class ThermoMpnnPredictor(ThirdPartyModuleAbstract, TorchModuleAbstract):
 
     def __init__(self,
                  pdb: str,
-                 save_dir: Optional[str] = None,
+                 save_dir: str | None = None,
                  prefix: str = 'thermompnn_ssm',
-                 chains: Optional[List[str]] = None,
+                 chains: list[str] | None = None,
                  mode: RUN_MODE_T = 'single',
                  batch_size: int = 256,
                  threshold: float = -0.5,
@@ -183,9 +183,9 @@ year = {2025}
 
 def shortcut_thermompnn(
     pdb: str,
-    save_dir: Optional[str] = './thermompnn/predicts',
+    save_dir: str | None = './thermompnn/predicts',
     prefix: str = 'ssm',
-    chains: Optional[List[str]] = None,
+    chains: list[str] | None = None,
     mode: RUN_MODE_T = 'single',
     batch_size: int = 256,
     threshold: float = -0.5,
@@ -193,7 +193,7 @@ def shortcut_thermompnn(
     ss_penalty: bool = False,
     device: str = 'cpu',
     load_to_preview: bool = False,
-    top_ranked: Optional[int] = 100,
+    top_ranked: int | None = 100,
 ):
     app = ThermoMpnnPredictor(pdb, save_dir, prefix, chains, mode, batch_size, threshold, distance, ss_penalty, device)
 

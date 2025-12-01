@@ -5,7 +5,6 @@ Utils for fetching files from the internet
 
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 from urllib.parse import urljoin
 
 import pooch
@@ -33,11 +32,11 @@ class DownloadedFile:
         registry (Optional[str]): Registry information, defaults to None
     """
     name: str
-    version: Optional[str]
+    version: str | None
     url: str
     downloaded: str
 
-    registry: Optional[str] = None
+    registry: str | None = None
 
     @property
     def flatten_dir(self) -> str:
@@ -66,12 +65,12 @@ class DownloadedFile:
         """
         dist_dir = self.flatten_dir
         # Check if destination directory is empty, if so extract archive
-        extracted_files: List[str] = os.listdir(dist_dir)
+        extracted_files: list[str] = os.listdir(dist_dir)
         if not extracted_files:
             print(f'Extracting {self.downloaded} to {dist_dir}')
             extract_archive(self.downloaded, dist_dir)
 
-        extracted_files: List[str] = os.listdir(dist_dir)
+        extracted_files: list[str] = os.listdir(dist_dir)
         print(f'Extracted {extracted_files}')
         return extracted_files
 
@@ -103,10 +102,10 @@ class FileDownloadRegistry(CitableModuleAbstract):
             self,
             name: str,
             base_url: str,
-            registry: Dict[str, Optional[str]],
-            version: Optional[str] = None,
-            alternative_base_urls: Optional[List[str]] = None,
-            customized_directory: Optional[str] = None,
+            registry: dict[str, str | None],
+            version: str | None = None,
+            alternative_base_urls: list[str] | None = None,
+            customized_directory: str | None = None,
             retry_count: int = 5,):
         self.name = name
         self.base_url = base_url
@@ -125,7 +124,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         if self.alternative_base_urls:
             all_base_urls.extend(self.alternative_base_urls)
 
-        self.pooches: List[pooch.Pooch] = []
+        self.pooches: list[pooch.Pooch] = []
 
         for base_url in all_base_urls:
             my_pooch = pooch.create(
@@ -138,7 +137,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
             self.pooches.append(my_pooch)
 
     @staticmethod
-    def _complete_varify_string(a_string: Optional[str] = None, hash_type: str = 'md5') -> Optional[str]:
+    def _complete_varify_string(a_string: str | None = None, hash_type: str = 'md5') -> str | None:
         """
         Complete hash string format, return directly if not provided or already contains type prefix.
 
@@ -153,7 +152,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         return f"{hash_type}:{a_string}"
 
     @staticmethod
-    def preprocess_registry(registry: Dict[str, Optional[str]]) -> Dict[str, Optional[str]]:
+    def preprocess_registry(registry: dict[str, str | None]) -> dict[str, str | None]:
         """
         Preprocess registry to ensure all hash values conform to pooch requirements.
 
@@ -213,7 +212,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         return item in self.pooches[0].registry_files
 
     @staticmethod
-    def prepare_registry_from_md5(md5_contents: str) -> Dict[str, Optional[str]]:
+    def prepare_registry_from_md5(md5_contents: str) -> dict[str, str | None]:
         """
         Parse and generate registry from MD5 content string.
 

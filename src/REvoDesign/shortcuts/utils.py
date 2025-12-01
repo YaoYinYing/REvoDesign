@@ -2,9 +2,10 @@
 Dialog wrapper registry
 '''
 import atexit
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import yaml
 from immutabledict import immutabledict
@@ -183,7 +184,7 @@ class DialogWrapperRegistry:
         yaml_path = REGISTRY_DIR / f"{category}.yaml"
         logging.debug(f"Loading {category} registry from {yaml_path}")
         self.config = self._load_yaml(yaml_path)
-        self.funcs: Dict[str, Callable] = {}
+        self.funcs: dict[str, Callable] = {}
 
     def _load_yaml(self, path: Path) -> dict:
         '''
@@ -205,7 +206,7 @@ class DialogWrapperRegistry:
         use_thread: bool = False,
         has_dynamic_values: bool = False,
         use_progressbar: bool = True,
-        kwargs: Optional[Dict] = None
+        kwargs: dict | None = None
     ):
         """
         Register the raw Python function under a given ID.
@@ -232,11 +233,11 @@ class DialogWrapperRegistry:
         else:
             self.funcs[func_id] = func
 
-        def window_wrapper_dynamic_values(dynamic_values: Optional[List[AskedValueDynamic]] = None):
+        def window_wrapper_dynamic_values(dynamic_values: list[AskedValueDynamic] | None = None):
 
             self.call(func_id, dynamic_values)
 
-        def window_wrapper(dynamic_values: Optional[List[AskedValueDynamic]] = None):
+        def window_wrapper(dynamic_values: list[AskedValueDynamic] | None = None):
             self.call(func_id)
 
         if has_dynamic_values:
@@ -272,7 +273,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         logging.debug(f"Unregistering function {func_id}")
         del self.funcs[func_id]
 
-    def call(self, func_id: str, dynamic_values: Optional[List[AskedValueDynamic]] = None):
+    def call(self, func_id: str, dynamic_values: list[AskedValueDynamic] | None = None):
         """
         Wrap and call the function with a dialog built from YAML config.
 
@@ -292,7 +293,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         if func_id not in self.config:
             raise ValueError(f"No dialog config for: {func_id}")
 
-        conf: Dict[str, Any] = self.config[func_id]
+        conf: dict[str, Any] = self.config[func_id]
         asked_values = [_build_asked_value(opt) for opt in conf["options"]] if conf.get("options") else []
         logging.debug(f"Asked values: {asked_values}")
         logging.debug(f"Preparing dialog for {func_id}")

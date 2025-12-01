@@ -1,5 +1,6 @@
 import os
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from omegaconf import DictConfig
 
@@ -15,7 +16,7 @@ def register_environment_variables():
 
     bus = ConfigBus()
 
-    EnvironBindItemCollection: Optional[Mapping[str, Any]] = bus.get_value('environment.variables')
+    EnvironBindItemCollection: Mapping[str, Any] | None = bus.get_value('environment.variables')
     if EnvironBindItemCollection is None:
         return
 
@@ -34,7 +35,7 @@ def add_new_environment_variables():
 
     bus = ConfigBus()
 
-    EnvironBindItemCollection: Optional[DictConfig] = bus.get_value('environment.variables')
+    EnvironBindItemCollection: DictConfig | None = bus.get_value('environment.variables')
     if EnvironBindItemCollection is None:
         EnvironBindItemCollection = DictConfig({})
 
@@ -60,7 +61,7 @@ def drop_environment_variables():
 
     AskedEnvironBindItemCollection = ask_for_appendable_values()
 
-    ev_in_cfg: Optional[DictConfig] = bus.get_value('environment.variables')
+    ev_in_cfg: DictConfig | None = bus.get_value('environment.variables')
     if not ev_in_cfg:
         print('No environment variables are currently bound to the configuration.')
         ev_in_cfg = DictConfig({})

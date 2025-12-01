@@ -3,7 +3,7 @@ import glob
 import json
 import logging as python_logging
 import os
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from absl.testing import absltest
@@ -138,7 +138,7 @@ class TestWidget2ConfigMapper(absltest.TestCase):
         self.mapper = Widget2ConfigMapper(self.mock_ui)
         super().setUp()
 
-    def _create_mock_ui(self) -> Dict[str, Any]:
+    def _create_mock_ui(self) -> dict[str, Any]:
         """
         Creates a mock UI with simulated UI components.
 

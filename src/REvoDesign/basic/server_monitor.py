@@ -1,6 +1,5 @@
 import os
 from abc import abstractmethod
-from typing import Optional, Type
 
 import uvicorn
 
@@ -84,10 +83,10 @@ class ServerControlAbstract(SingletonAbstract):
 class MenuActionServerMonitor(QtCore.QObject):
     def __init__(
         self,
-        controller: Type[ServerControlAbstract],
+        controller: type[ServerControlAbstract],
         action_on: QtWidgets.QAction,
         action_off: QtWidgets.QAction,
-        menu_item: Optional[QtWidgets.QMenu] = None,
+        menu_item: QtWidgets.QMenu | None = None,
     ):
         super().__init__()  # Initialize QObject
         try:

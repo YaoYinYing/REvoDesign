@@ -11,7 +11,7 @@ import shutil
 import time
 import warnings
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 from unittest.mock import MagicMock, patch
 
 import psutil
@@ -299,7 +299,7 @@ class TestWorker:
         return snapshot_pze
 
     def _fetch_pdb(
-        self, pdb_code: Optional[str] = None, spell: Optional[str] = None
+        self, pdb_code: str | None = None, spell: str | None = None
     ):
         if not pdb_code:
             pdb_code = self.test_data.molecule
@@ -328,10 +328,10 @@ class TestWorker:
 
     def load_session_and_check(
         self,
-        pdb_code: Optional[str] = None,
-        spell: Optional[str] = None,
+        pdb_code: str | None = None,
+        spell: str | None = None,
         from_rcsb: bool = False,
-        customized_session: Optional[str] = None,
+        customized_session: str | None = None,
     ):
         self.sleep(100)
         nproc = get_widget_value(self.plugin.ui.spinBox_nproc)
@@ -362,7 +362,7 @@ class TestWorker:
         self.check_molecule_after_loaded()
         self.check_designable_sequences()
 
-    def save_new_experiment(self, experiment_name: Optional[str] = None):
+    def save_new_experiment(self, experiment_name: str | None = None):
         import shutil
 
         if not experiment_name:
@@ -433,7 +433,7 @@ class TestWorker:
         assert self.plugin.bus.get_value(
             "designable_sequences", reject_none=True), 'Designable sequences are not in Configuration.'
 
-    def check_molecule_after_loaded(self, molecule: Optional[str] = None):
+    def check_molecule_after_loaded(self, molecule: str | None = None):
         if molecule and isinstance(molecule, str):
             assert (
                 self.plugin.bus.get_value("ui.header_panel.input.molecule")
@@ -520,7 +520,7 @@ class TestWorker:
         basename: str = "default",
         dpi: int = 300,
         use_ray: int = 0,
-        spells: Optional[str] = None,
+        spells: str | None = None,
         focus=True,
         focus_method="orient",
     ):

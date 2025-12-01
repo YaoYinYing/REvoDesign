@@ -3,7 +3,7 @@ Utils for shortcuts
 '''
 import os
 import subprocess
-from typing import Dict, Literal
+from typing import Literal
 
 from pymol import cmd
 from RosettaPy.app.utils.smiles2param import SmallMoleculeParamsGenerator
@@ -54,7 +54,7 @@ def visualize_conformer_sdf(sdf_file_path: str, show_conformer: Literal['New Win
     print(f"PyMOL launched in the background with {sdf_file_path}.")
 
 
-def smiles_conformer_batch(smi: Dict[str, str], num_conformer: int, save_dir: str, n_jobs: int = 1):
+def smiles_conformer_batch(smi: dict[str, str], num_conformer: int, save_dir: str, n_jobs: int = 1):
     """
     Generates 3D conformers for a SMILES string using RDKit.
 
