@@ -45,19 +45,42 @@ def test_shortcut_color_by_mutation(test_worker: TestWorker):
         assert ca_1.resn != ca_2.resn, f'{ca_1.resn} == {ca_2.resn}'
 
 
-@pytest.mark.parametrize("table_file_name,pos_slice,offset", [
-    ['b_factors.bfactors.csv', None, 0],
-    ['b_factors.bfactors.csv', '1-11', 0],
-    ['b_factors.bfactors.csv', '2-9', 0],
-    ['b_factors.bfactors.csv', '1+3+5+7', 0],
-    ['b_factors.bfactors.csv', '1+3+5-7', 0],
-    ['b_factors.bfactors.csv', '1+3+5-7', 1],
+@pytest.mark.parametrize("test_name,table_file_name,pos_slice,offset,label_x,label_y,index_x,index_y,palette_code,do_rescale", [
+    
+    # test formats
+    ['CSV','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, None, False],
+    ['Excel Modern','csv/3fap_hf3_A_short.Backbone.rmsf_res.xlsx', None, 0, None, None, None, None, None, False],
+    ['Excel Legacy','csv/3fap_hf3_A_short.Backbone.rmsf_res.xls', None, 0, None, None, None, None, None, False],
+    ['TSV','tsv/3fap_hf3_A_short.Backbone.rmsf_res.tsv', None, 0, None, None, None, None, None, False],
+    ['TXT','txt/3fap_hf3_A_short.Backbone.rmsf_res.txt', None, 0, None, None, None, None, None, False],
+    ['PDB','pdb/3fap_hf3_A_short_lig.rmsf.pdb', None, 0, None, None, None, None, None, False],
+
+
+    # test slices and offsets
+    ['CSV-explict-full-length','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1-11', 0, None, None, None, None, None, False],
+    ['CSV-custom-range-1','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '2-9', 0, None, None, None, None, None, False],
+    ['CSV-four-signel','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5+7', 0, None, None, None, None, None, False],
+    ['CSV-single-seg','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5-7', 0, None, None, None, None, None, False],
+    ['CSV-single-seg-offset','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', '1+3+5-7', 1, None, None, None, None, None, False],
+
+    # test labels
+    ['CSV_text_label','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, 'position', 'rmsf', None, None, None, False],
+    ['CSV_numeric_col_idx','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, 0, 1, None, False],
+
+    # test palette
+    ['CSV-magenta_white_blue','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, 'magenta_white_blue', False],
+    ['CSV-cyan_magenta','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, 'cyan_magenta', False],
+
+    # test rescaling
+    ['CSV-rescale','csv/3fap_hf3_A_short.Backbone.rmsf_res.csv', None, 0, None, None, None, None, None, True],
+
 
 
 ])
-def test_load_b_factors(table_file_name, pos_slice, offset, test_worker: TestWorker, test_tmp_dir):
+def test_load_b_factors(test_name,table_file_name, pos_slice, offset,label_x,label_y,index_x,index_y,palette_code,do_rescale, test_worker: TestWorker):
 
     pdb_path = '../tests/data/3fap_hf3_A_short.pdb'
+    test_data_path='../tests/data/'
     test_worker.test_id = test_worker.method_name()
     test_worker.load_session_and_check(customized_session=pdb_path)
 
@@ -73,28 +96,26 @@ def test_load_b_factors(table_file_name, pos_slice, offset, test_worker: TestWor
     for atom in model.atom:
         assert atom.b == 0.0, f"Expected b-factor 0.0, got {atom.b} for atom {atom.name} in residue {atom.resi}"
 
-    seq = get_molecule_sequence(obj_name, 'A')
-    randb = random.sample(range(1, 20), len(seq))
 
-    table_file_path = os.path.join(test_tmp_dir, table_file_name)
-    with open(table_file_path, 'w') as bf:
-        df = pd.DataFrame({'b_factor': randb})
-        df.to_csv(bf, index=False)
-
-    test_worker.save_pymol_png(f'before_load_b_{pos_slice}_{offset}_{test_worker.method_name()}')
+    test_worker.save_pymol_png(f'{test_name}.before_load_b_{pos_slice}_{offset}_{test_worker.method_name()}')
 
     # load b-factors
     _load_b_factors(
         mol=obj_name,
         chain_ids='A',
         keep_missing=True,
-        source=table_file_path,
-        label='b_factor',
+        source=os.path.join(test_data_path, table_file_name),
+        label_x=label_x or None,
+        label_y=label_y or None,
+        index_x=index_x or 0,
+        index_y=index_y or 1,
+        palette_code=palette_code or 'rainbow',
+        do_rescale=do_rescale,
         pos_slice=pos_slice,
         offset=offset
     )
 
-    test_worker.save_pymol_png(f'after_load_b_factors_{pos_slice}_{offset}_{test_worker.method_name()}')
+    test_worker.save_pymol_png(f'{test_name}.after_load_b_factors_{pos_slice}_{offset}_{test_worker.method_name()}')
 
     # after loading b-factors, check that they are updated
     model = cmd.get_model(obj_name)

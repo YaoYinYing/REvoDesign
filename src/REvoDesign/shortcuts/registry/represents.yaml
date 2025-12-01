@@ -76,10 +76,15 @@ load_b_factors:
       reason: "Whether to keep residues with missing B-factor values as is (True) or set them to zero (False)."
     - name: source
       type: str
-      reason: "Path to the B-factor source file."
+      reason: |
+        Path to the B-factor source file. Can be one of the following:
+          - a XVG file from gromacs, or
+          - a table file (CSV \ TSV \ Microsoft Excel XLSX or XLS), or
+          - a plain text file with one column (headless, one float per line) or 
+          - a PDB file that contains the B-factors in the CA lines.
       required: true
       source: File
-      ext: Mutable;XvgGromacs
+      ext: XvgGromacs;Mutable;PDB_STRICT
     #  for text labels
     - name: label_x
       type: str

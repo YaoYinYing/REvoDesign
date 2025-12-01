@@ -401,13 +401,46 @@ def _read_b_factors(file_path: str,
         # read floats from excel file, in col `label` if provided, else first column
         df = pd.read_excel(file_path)
     elif file_path.endswith('.tsv'):
-        df = pd.read_fwf(file_path, sep='\t')
+        df = pd.read_csv(file_path, sep='\t') 
 
     elif file_path.endswith('.xvg'):
         df = xvg2df(file_path)
 
+    elif file_path.endswith('.pdb'):
+        logging.warning("PDB file detected. Assuming positions are in the ATOM lines and B-factors are in the B-factor column")
+        
+        logging.warning('A dataframe with the following columns will be created: position, bfactor')
+        # create empty dataframe
+        df = pd.DataFrame()
+        # read floats from PDB file
+        with open(file_path) as inFile:
+            # read lines and find the ATOM lines with atom name as 'CA'
+            # collect the residue index and bfactor columns, respectively. 
+            # convert resi to int and bfactor to float and add them to the dataframe
+
+            logging.debug(f"Reading PDB file {file_path}")
+
+
+            for line in inFile.readlines():
+                if line.startswith('ATOM'):
+                    # skip non-CA lines
+                    if 'CA' not in line[13:16]:
+                        continue
+                    resi = int(line[22:26])
+                    # if befactor is missing, set it to 0
+                    try:
+                        bfactor = float(line[54:60])
+                    except ValueError:
+                        logging.warning(f"B-factor missing for residue {resi}")
+                        bfactor = 0
+                    df.loc[resi, 'position'] = resi
+                    df.loc[resi, 'bfactor'] = bfactor
+                    logging.debug(f"Read B-factor {bfactor} for residue {resi}")
+
     elif file_path.endswith('.txt'):
         logging.warning("Plain text file detected. Assuming positions are 1,2,3,... and B-factors are in the first column")
+        logging.warning('A dataframe with the following columns will be created: position, bfactor')
+        df = pd.DataFrame()
         # read floats from plain text file
         with open(file_path) as inFile:
 
@@ -416,9 +449,14 @@ def _read_b_factors(file_path: str,
             logging.debug(f"Read {len(bfactor_data)} B-factors from file {file_path}")
             logging.debug(f"B-factors: {bfactor_data}")
             # reconstruct positions according to the number of lines, a guessed value
-            pos_data = [range(1, len(bfactor_data) + 1)]
+            pos_data = [x for x in range(1, len(bfactor_data) + 1)]
             logging.debug(f"Positions: {pos_data}")
-            df = pd.DataFrame([pos_data, bfactor_data], columns=[label_x])
+
+            # 2 * N
+            df = pd.DataFrame([pos_data, bfactor_data], index=['position','bfactor'])
+
+            # transpose to N * 2
+            df=df.T
 
             logging.debug(f"Dataframe: {df}")
 

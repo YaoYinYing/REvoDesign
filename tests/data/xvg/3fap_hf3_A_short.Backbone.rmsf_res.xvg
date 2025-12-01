@@ -1,0 +1,25 @@
+# This file was created as part of the mock test data for REvoDesign
+# Created by:
+#                       :-) GROMACS - gmx rmsf, 2025.3 (-:
+# 
+# Executable:   /mnt/data/software/gromacs/2025.3-cuda-nompi-avx2_256/bin/gmx
+# Data prefix:  /mnt/data/software/gromacs/2025.3-cuda-nompi-avx2_256
+
+#
+# GROningen MAchine for Chemical Simulation
+#
+@    title "RMS fluctuation"
+@    xaxis  label "Residue"
+@    yaxis  label "(nm)"
+@TYPE xy
+    1   1.8972
+    2   1.8870
+    3   1.8555
+    4   1.7649
+    5   1.6079
+    6   1.5040
+    7   1.4549
+    8   1.3423
+    9   1.1862
+   10   1.1181
+   11   1.0795
