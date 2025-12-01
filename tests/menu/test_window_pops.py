@@ -24,12 +24,16 @@ from REvoDesign.shortcuts.wrappers.rosetta_tasks import (
     wrapped_fast_relax, wrapped_pross, wrapped_relax_w_ca_constraints,
     wrapped_rosettaligand)
 from REvoDesign.shortcuts.wrappers.structure import wrapped_resi_renumber
-from REvoDesign.shortcuts.wrappers.utils import wrapped_logger_level_setter
+from REvoDesign.shortcuts.wrappers.utils import (
+    wrapped_convert_residue_ranges, wrapped_logger_level_setter,
+    wrapped_short_range)
 from REvoDesign.shortcuts.wrappers.vina_tools import (wrapped_alter_box,
                                                       wrapped_get_pca_box,
                                                       wrapped_getbox)
 from REvoDesign.tools.customized_widgets import ValueDialog
 from tests.conftest import TestWorker
+
+# YOUR JOBS ARE DONE HERE
 
 # fetch a local snapshot to find these wrappers
 local_snapshot = locals().items()

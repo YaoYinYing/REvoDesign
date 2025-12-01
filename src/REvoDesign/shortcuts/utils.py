@@ -10,6 +10,7 @@ import yaml
 from immutabledict import immutabledict
 
 from REvoDesign import issues
+from REvoDesign.basic.data_structure import FloatRange
 from REvoDesign.basic.extensions import resolve_extension
 from REvoDesign.tools.customized_widgets import (AskedValue, AskedValueDynamic,
                                                  dialog_wrapper)
@@ -34,7 +35,7 @@ asked_value_typing_dict: immutabledict[str, type] = immutabledict({
 REGISTRY_DIR = Path(__file__).parent / "registry"
 
 
-def resolve_choice_from(input_str: str):
+def resolve_choice_from(range_str: str):
     """
     Interprets an input string and dynamically returns a corresponding value based on its prefix.
 
@@ -67,27 +68,31 @@ def resolve_choice_from(input_str: str):
         issues.InvalidInputError: If the input format for 'range:' or 'CFG:' is invalid.
         issues.ConfigurationError: If the input doesn't match any known pattern or expected type.
     """
-    if input_str.startswith('range:'):  # range:1,10 or range:1,10,2
+    if range_str.startswith(('range:', 'FloatRange:')):  # range:1,10 or range:1,10,2 or FloatRange:1,10
         try:
-            return range(*map(int, input_str.removeprefix('range:').split(",")))
+            range_type, range_str = range_str.split(":", 1)
+            if range_type == 'range':
+                return range(*map(int, range_str.split(",")))
+            else:
+                return FloatRange.from_str(range_str)
         except TypeError as e:
             raise issues.InvalidInputError(
                 'range input expect an input string in pattern range:[<start>,]<end>[,<step>]',
-                f'not `{input_str}`'
+                f'not `{range_str}`'
             ) from e
-    elif input_str.startswith("REvoDesign."):
-        resolved_callable = resolve_dotted_function(input_str)
+    elif range_str.startswith("REvoDesign."):
+        resolved_callable = resolve_dotted_function(range_str)
         if not isinstance(resolved_callable, Callable):
-            raise issues.ConfigurationError(f"Expected as a callable: {input_str}: {resolved_callable}")
+            raise issues.ConfigurationError(f"Expected as a callable: {range_str}: {resolved_callable}")
         return resolved_callable()  # Get callable dynamically
-    elif input_str.startswith("CFG:"):
+    elif range_str.startswith("CFG:"):
         from REvoDesign.driver.ui_driver import ConfigBus
 
-        if '.' not in input_str:
-            raise issues.InvalidInputError(f'Expected as a config item: {input_str}')
-        return ConfigBus().get_value(input_str.removeprefix('CFG:'))
+        if '.' not in range_str:
+            raise issues.InvalidInputError(f'Expected as a config item: {range_str}')
+        return ConfigBus().get_value(range_str.removeprefix('CFG:'))
 
-    raise issues.ConfigurationError(f"Unable to parse {input_str}")
+    raise issues.ConfigurationError(f"Unable to parse {range_str}")
 
 
 def resolve_default_value(typing: type) -> Any:
@@ -142,7 +147,7 @@ def _build_asked_value(entry: dict) -> AskedValue:
             val = val()
 
     # Handle choices dynamically
-    choices = entry.get("choices")
+    choices: Any = entry.get("choices")
     if "choices_from" in entry:
         choices_from: str = entry["choices_from"]
         try:
@@ -294,6 +299,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         wrapped_func_window = dialog_wrapper(
             title=conf.get("title", func_id),
             banner=conf.get("banner", ""),
+            allow_real_time_update=conf.get('real_time', False),
             options=tuple(asked_values),
         )(self.funcs[func_id])
         logging.debug(f"Dialog is ready: {wrapped_func_window}")

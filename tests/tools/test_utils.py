@@ -14,6 +14,7 @@ from REvoDesign import issues
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.citations import CitableModuleAbstract, CitationManager
 from REvoDesign.tools.utils import (_pairwise, cmap_reverser,
+                                    convert_residue_ranges,
                                     count_and_sort_characters, extract_archive,
                                     generate_strong_password, get_cited,
                                     get_color, get_owner_class_from_static,
@@ -774,3 +775,30 @@ def test_inspect_raises_for_non_callable():
     """
     with pytest.raises(issues.UnexpectedWorkflowError):
         inspect_method_types(42)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "residue_ranges, res_prefix, resr_prefix ,res_suffix, resr_suffix, connector, expected",
+    [
+        ['1-5+7-9+10-12+13', '', '', '', '', ' | ', '1-5 | 7-9 | 10-12 | 13'],
+        ['1-5+7-9+10-12+13', 'r ', 'ri ', '', '', ' | ', 'ri 1-5 | ri 7-9 | ri 10-12 | r 13'],
+        ['1-5+7-9+10-12+13', '', '', '+', '', ' | ', '1-5 | 7-9 | 10-12 | 13+'],
+        ['1-5+7-9+10-12+13', 'r ', 'ri ', '+', '', ' | ', 'ri 1-5 | ri 7-9 | ri 10-12 | r 13+'],
+        ['1-5+7-9+10-12+13', '', '', '', '', '; ', '1-5; 7-9; 10-12; 13'],
+        ['1-5+7-9+10-12+13', 'r ', 'ri ', '', '', '; ', 'ri 1-5; ri 7-9; ri 10-12; r 13'],
+        ['1-5+7-9+10-12+13', '', '', '', '', '; ', '1-5; 7-9; 10-12; 13'],
+        ['1-5+7-9+10-12+13', 'r ', 'ri ', '', '', '; ', 'ri 1-5; ri 7-9; ri 10-12; r 13'],
+        ['1', '', '', '', '', ' | ', '1'],
+        ['1', 'r ', 'ri ', '', '', ' | ', 'r 1'],
+        ['1', '', '', '+', '', ' | ', '1+'],
+        ['1', 'r ', 'ri ', '+', '', ' | ', 'r 1+'],
+    ]
+)
+def test_convert_residue_ranges(residue_ranges, res_prefix, resr_prefix, res_suffix, resr_suffix, connector, expected):
+    assert convert_residue_ranges(
+        residue_ranges,
+        res_prefix or '',
+        resr_prefix or '',
+        res_suffix or '',
+        resr_suffix or '',
+        connector or ' | ') == expected

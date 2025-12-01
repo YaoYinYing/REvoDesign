@@ -1,0 +1,50 @@
+convert_residue_ranges:
+  title: "Convert Residue Ranges"
+  banner: "Convert residue ranges into a specific format"
+  real_time: true
+  options:
+    - name: residue_ranges
+      type: str
+      required: true
+      reason: "Residue ranges to be converted. e.g. 1-5,7-9,10-12,15,18"
+    - name: res_prefix
+      type: str
+      default: "r "
+      reason: "Prefix to be added to each residue."
+    - name: res_suffix
+      type: str
+      default: ""
+      reason: "Suffix to be added to each residue."
+    - name: resr_prefix
+      type: str
+      default: "ri "
+      reason: "Prefix to be added to each residue range."
+    - name: resr_suffix
+      type: str
+      default: ""
+      reason: "Suffix to be added to each residue range."
+    - name: connector
+      type: str
+      default: " | "
+      reason: "Connector between each residue segment."
+
+short_residue_ranges:
+  title: "Short Residue Ranges"
+  banner: "Convert residue ranges (1,2,3,5) into a short format(1-3,5)"
+  real_time: true
+  options:
+    - name: input_string
+      type: str
+      required: true
+      reason: "Input string to be converted. e.g. 1,2,3,5"
+    - name: separator
+      type: str
+      default: ","
+      reason: "Separator between each edge residue range."
+      required: true
+    - name: connector
+      type: str
+      reason: "Connector between each residue segment."
+      required: true
+    
+

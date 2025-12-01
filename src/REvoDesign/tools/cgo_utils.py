@@ -260,6 +260,26 @@ class Point:
         '''
         return cls(*array)
 
+    @classmethod
+    def from_atom(cls, atom: str) -> 'Point':
+        '''
+        Create a Point object from a PyMOL atom.
+        '''
+        return cls(*cmd.get_coords(atom)[0])
+
+    @classmethod
+    def from_com(cls, selection: str = '(all)') -> 'Point':
+        """
+        Calculate the center of mass of a selection.
+
+        Parameters:
+        - selection: str, a PyMOL selection string.
+
+        Returns:
+        - Point: The center of mass as a Point object.
+        """
+        return cls(*cmd.centerofmass(selection))
+
 
 @dataclass(frozen=True)
 class Color:
@@ -286,6 +306,23 @@ class Color:
         """
         # Standardize the color name for lookup
         name = self.name.lower().replace(" ", "_")
+
+        # Check if the color name starts with '#', indicating a hexadecimal color
+        if name.startswith('#'):
+            if DEBUG:
+                print(f'[DEBUG] {name} has a hexadecimal format')
+            return np.array(webcolors.hex_to_rgb(name), dtype=float) / 255
+
+        # Check if the color name contains a comma, indicating a RGB color in `255,255,255` format
+        if ',' in name:
+            try:
+                assumed_rgb = [int(x) for x in name.split(',')[:3]]
+                if DEBUG:
+                    print(f'[DEBUG] {name} is assumed to be RGB: {assumed_rgb=}')
+                return np.array(assumed_rgb, dtype=float) / 255
+            except Exception as e:
+                raise ValueError(f"{name} is not a valid RGB color") from e
+
         # Iterate through the color tables to find a match
         for cdict in COLOR_TABLES:
             if name not in cdict:
@@ -2105,6 +2142,7 @@ class GraphicObjectCollection(GraphicObject):
 
 
 # Doughnut(samples=100).load_as('my_treasure')
+
 
 # for i, j in itertools.product(range(2), repeat=2):
 #     Cone(tip=Point(0, 0, 1.4),

@@ -18,6 +18,7 @@ from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
 
 import matplotlib
 import numpy as np
+import pandas as pd
 
 from REvoDesign import issues
 from REvoDesign.logger import ROOT_LOGGER
@@ -332,24 +333,29 @@ def get_cited(method: Callable) -> Callable:
 
         except Exception as e:
             logging.warning(f'Ignore cite() error: {e}')
+
     @wraps(method)
     def wrapper_instance_method_or_classmethod(
-        cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract], 
+        cls_or_obj: Union[type[CitableModuleAbstract], CitableModuleAbstract],
         *args, **kwargs
-        ):
+    ):
         result = method(cls_or_obj, *args, **kwargs)
         _cite_for_cls(cls_or_obj)
         return result
 
-
     # static method, no self or cls argument
     # get the class and instantiate an object to call cite()
+
     @wraps(method)
     def wrapper_static_method(*args, **kwargs):
         result = method(*args, **kwargs)
-        cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
-        _cite_for_cls(cls)
-        return result
+        try:
+            cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
+            _cite_for_cls(cls)
+        except Exception as e:
+            logging.debug(f"Failed to cite static method {method} due to {e}")
+        finally:
+            return result
 
     # normal function, no self or cls argument
     # create an anonymous citable class to call cite()
@@ -660,8 +666,51 @@ def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
     elif unit == 'ms':
         logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
 
-# TODO: support JAX and TensorFlow; need refactor
 
+def convert_residue_ranges(
+        residue_ranges: str,
+
+        res_prefix: str = "",
+        resr_prefix: str = "",
+
+        res_suffix: str = "",
+        resr_suffix: str = "",
+
+        connector: str = ' | ',
+) -> str:
+    '''
+    Converts a string of residue ranges into a string of residue segments.
+    Example:
+    >>> convert_residue_ranges('1-5+7-9+10-12+13', res_prefix='r ', resr_prefix='ri ', connector=' | ')
+    ri 1-5 | r 7-9 | r 10-12 | r 13
+
+
+    Args:
+        residue_ranges: String of residue ranges.
+        res_prefix: Prefix to add to each residue.
+        resr_prefix: Prefix to add to each residue range.
+        res_suffix: Suffix to add to each residue.
+        resr_suffix: Suffix to add to each residue range.
+        connector: Connector to use between each residue segment.
+    Returns:
+        String of residue segments.
+
+    '''
+
+    converted = []
+    for residue_seg in residue_ranges.split('+'):
+        if '-' in residue_seg:
+            converted.append(resr_prefix + residue_seg + resr_suffix)
+        else:
+            converted.append(res_prefix + residue_seg + res_suffix)
+
+    converted_str = connector.join(converted)
+    logging.info(f"Converted residue ranges to segments: {converted_str}")
+
+    return converted_str
+
+
+# TODO: support JAX and TensorFlow; need refactor
 
 def device_picker() -> List[str]:
     """
@@ -710,6 +759,21 @@ def device_picker() -> List[str]:
         device_list.append('cpu')
 
     return device_list
+
+
+def xvg2df(xvg_file: str) -> pd.DataFrame:
+    """
+    Converts an xvg file to a pandas dataframe.
+
+    Args:
+        xvg_file (str): Path to the xvg file.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the data from the xvg file.
+    """
+    data = np.loadtxt(xvg_file, comments=['#', '@'])
+    df = pd.DataFrame(data=data)
+    return df
 
 
 __all__ = [

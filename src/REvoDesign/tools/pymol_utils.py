@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from immutabledict import immutabledict
 from pymol import cmd, get_version_message
+from pymol.constants_palette import palette_dict
 from pymol.parsing import QuietException
 from pymol.setting import index_dict
 
@@ -402,6 +403,9 @@ def refresh_all_selections():
 
     for sel in selections:
         _resi = sorted(list({at.resi for at in cmd.get_model(sel).atom}))
+        if not _resi:
+            logging.warning(f"{sel} is empty.")
+            continue
         logging.info(f"{sel}: i. {shorter_range([int(x) for x in _resi])}")
     return selections
 
@@ -621,3 +625,10 @@ def get_pymol_settings(keyword: str, obj: Optional[str] = '') -> Dict[str, PyMOL
         for key_name in PYMOL_SETTINGS
         if keyword in key_name
     }
+
+
+palette_tuple = tuple(palette_dict.keys())
+
+
+def list_palettes() -> tuple[str, ...]:
+    return palette_tuple

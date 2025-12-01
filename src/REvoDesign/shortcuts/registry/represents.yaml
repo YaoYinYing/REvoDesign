@@ -60,6 +60,7 @@ color_by_mutation:
 load_b_factors:
   title: "Load B-factors"
   banner: "Load a custom B-factor file to a structure and visualize it."
+  real_time: true
   options:
     - name: mol
       type: str
@@ -75,23 +76,83 @@ load_b_factors:
       reason: "Whether to keep residues with missing B-factor values as is (True) or set them to zero (False)."
     - name: source
       type: str
-      reason: "Path to the B-factor source file."
+      reason: |
+        Path to the B-factor source file. Can be one of the following:
+          - a XVG file from gromacs, or
+          - a table file (CSV \ TSV \ Microsoft Excel XLSX or XLS), or
+          - a plain text file with one column (headless, one float per line) or 
+          - a PDB file that contains the B-factors in the CA lines.
       required: true
       source: File
-      ext: Mutable
-    - name: label
+      ext: XvgGromacs;Mutable;PDB_STRICT
+    #  for text labels
+    - name: label_x
       type: str
       default: 
-      reason: "Column label for the loaded B-factors."
+      reason: "Column label for the loaded B-factors, Position column. Leave empty to ignore it."
+    - name: label_y
+      type: str
+      default: 
+      reason: "Column label for the loaded B-factors, B-factor column. Leave empty to ignore it."
+
+    # for numeric indexes
+    - name: index_x
+      type: int
+      reason: "Column label for the loaded B-factors, Position column. Leave empty to use default 0."
+      default: 0
+    - name: index_y
+      type: int
+      reason: "Column index for the loaded B-factors, B-factor column. Leave empty to use default 1."
+      default: 1
+    
     - name: pos_slice
       type: str
       default: ""
-      reason: "Position slice to load B-factors for (e.g., '10-50,60-80'). Leave empty to load all positions."
+      reason: | 
+        Position slice to load B-factors for (e.g., '1,10-50,60-80'). Leave empty to load all positions.
+        Note: The indexes are 1-based according to the structure model in PyMOL session.
     - name: offset
       type: int
       default: 0
-      reason: "Offset to add to residue numbers when mapping B-factors."
+      reason:  |
+        Offset to be applied to the position values from the source file. 
+        e.g.: For zero-based numbering(0), set this to 1, so that the indexes will be 1-based."
+    - name: palette_code
+      reason: "Palette code for the color map."
+      type: str
+      default: rainbow
+      choices_from: "REvoDesign.tools.pymol_utils:list_palettes"
+    - name: do_rescale
+      type: bool
+      default: false
+      reason: "Whether to rescale the B-factors to the custom range."
+    - name: scale_min
+      type: float
+      default: 0
+      reason: "Minimum value for scaling the B-factors."
+      choices_from: FloatRange:0.0,10.0,0.1
+    - name: scale_max
+      type: float
+      default: 10
+      reason: "Maximum value for scaling the B-factors."
+      choices_from: FloatRange:0.0,100.0,0.1
+    - name: rescale_min
+      type: float
+      default: 0
+      reason: "Minimum value for rescale the B-factors."
+      choices_from: FloatRange:0.0,100.0,0.1
+    - name: rescale_max
+      type: float
+      default: 50
+      reason: "Maximum value for rescale the B-factors."
+      choices_from: FloatRange:0.0,100.0,0.1
+
     - name: visual
       type: bool
       default: true
       reason: "Whether to create a visual representation of the B-factors after loading."
+    - name: putty_transform_mode
+      type: int
+      default: 3
+      reason: "Putty transform mode for visualizing the B-factors."
+      choices_from: range:0,8

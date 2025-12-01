@@ -135,3 +135,9 @@ Pictures = ExtColl(
         Ext("pdf", "PDF image"),
     )
 )
+
+XvgGromacs = ExtColl(
+    (
+        Ext("xvg", "XVG file from Gromacs"),
+    )
+)

@@ -88,6 +88,15 @@ class FileDownloadRegistry(CitableModuleAbstract):
     :param registry: File registry where keys are filenames and values are corresponding hash values (optional).
     :param version: Optional version number for creating versioned data directories.
     :param customized_directory: Optional custom download directory path. If not provided, uses the default user data directory.
+    :param alternative_base_urls: Optional list of alternative base URLs for downloading files.
+    :param retry_count: Number of retries for downloading files.
+
+    Retry mechanism:
+        The function will run a nested loop to retry downloading files.
+        It firstly tries to download files from the primary base URL.
+        If the download fails, it will retry with the alternative base URLs if provided.
+        For each base url, a certain number of retries will be attempted.
+
     """
 
     def __init__(
@@ -96,9 +105,13 @@ class FileDownloadRegistry(CitableModuleAbstract):
             base_url: str,
             registry: Dict[str, Optional[str]],
             version: Optional[str] = None,
-            customized_directory: Optional[str] = None):
+            alternative_base_urls: Optional[List[str]] = None,
+            customized_directory: Optional[str] = None,
+            retry_count: int = 5,):
         self.name = name
         self.base_url = base_url
+        self.alternative_base_urls = alternative_base_urls
+        self.retry_count = retry_count
         self.version = version
 
         # Preprocess registry to ensure all hash values are in correct format
@@ -108,14 +121,21 @@ class FileDownloadRegistry(CitableModuleAbstract):
         self.customized_directory = customized_directory or user_data_dir(
             self.name, version=self.version, ensure_exists=True)
 
-        # Create pooch instance for file downloading and management
-        self.pooch: pooch.Pooch = pooch.create(
-            path=self.customized_directory,
-            version=self.version,
-            base_url=self.base_url,
-            registry=self.registry,
-            retry_if_failed=99,
-        )
+        all_base_urls = [self.base_url]
+        if self.alternative_base_urls:
+            all_base_urls.extend(self.alternative_base_urls)
+
+        self.pooches: List[pooch.Pooch] = []
+
+        for base_url in all_base_urls:
+            my_pooch = pooch.create(
+                path=self.customized_directory,
+                version=self.version,
+                base_url=base_url,
+                registry=self.registry,
+                retry_if_failed=self.retry_count,
+            )
+            self.pooches.append(my_pooch)
 
     @staticmethod
     def _complete_varify_string(a_string: Optional[str] = None, hash_type: str = 'md5') -> Optional[str]:
@@ -151,20 +171,28 @@ class FileDownloadRegistry(CitableModuleAbstract):
         :return: DownloadedFile object containing file information.
         :raises NetworkError: Raises network error exception if download fails.
         """
-        url = urljoin(self.base_url.rstrip('/') + '/', item)
-        try:
-            downloaded_path = self.pooch.fetch(item, progressbar=True)
-        except Exception as e:
-            logging.error(f"Failed to fetch {item}: {e}")
-            raise issues.NetworkError(f"Failed to fetch {item}: {e}") from e
-        registry_entry = self.pooch.registry.get(item, None)
-        return DownloadedFile(
-            name=item,
-            version=self.version,
-            url=url,
-            downloaded=downloaded_path,
-            registry=registry_entry
-        )
+        for my_pooch in self.pooches:
+            url = urljoin(self.base_url.rstrip('/') + '/', item)
+            try:
+                # each-base-url retry will be performed sequentially in pooch
+                downloaded_path = my_pooch.fetch(item, progressbar=True)
+            except Exception as e:
+                logging.error(f"Failed to fetch {item}: {e}")
+                # all retries failed, use the next base url
+                continue
+
+            # download succeeded and return early
+            registry_entry = my_pooch.registry.get(item, None)
+            return DownloadedFile(
+                name=item,
+                version=self.version,
+                url=url,
+                downloaded=downloaded_path,
+                registry=registry_entry
+            )
+
+        # all retry attempts failed, raise an error
+        raise issues.NetworkError(f"Failed to download {item}")
 
     @property
     def list_all_files(self) -> list[str]:
@@ -173,7 +201,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
 
         :return: List of filenames.
         """
-        return self.pooch.registry_files
+        return self.pooches[0].registry_files
 
     def has(self, item: str) -> bool:
         """
@@ -182,7 +210,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         :param item: Filename.
         :return: True if exists, False otherwise.
         """
-        return item in self.pooch.registry_files
+        return item in self.pooches[0].registry_files
 
     @staticmethod
     def prepare_registry_from_md5(md5_contents: str) -> Dict[str, Optional[str]]:

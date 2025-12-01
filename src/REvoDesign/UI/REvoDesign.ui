@@ -4705,8 +4705,16 @@
       </property>
       <addaction name="actionRMSF_to_b_factor"/>
      </widget>
+     <widget class="QMenu" name="menuGromacs_Utils">
+      <property name="title">
+       <string>Gromacs Utils</string>
+      </property>
+      <addaction name="actionMake_Residue_Range"/>
+     </widget>
      <addaction name="menuOpenMM"/>
      <addaction name="menuMD_analysis"/>
+     <addaction name="separator"/>
+     <addaction name="menuGromacs_Utils"/>
     </widget>
     <widget class="QMenu" name="menuModeling_Tools">
      <property name="title">
@@ -4745,6 +4753,18 @@
      </widget>
      <addaction name="menuRFdiffusion"/>
     </widget>
+    <widget class="QMenu" name="menuUtils">
+     <property name="title">
+      <string>Utils</string>
+     </property>
+     <widget class="QMenu" name="menuFormatters">
+      <property name="title">
+       <string>Formatters</string>
+      </property>
+      <addaction name="actionShorten_Range"/>
+     </widget>
+     <addaction name="menuFormatters"/>
+    </widget>
     <addaction name="menuDesign_Tools"/>
     <addaction name="menuSmall_Molecule"/>
     <addaction name="menuStructure_Tools"/>
@@ -4757,6 +4777,7 @@
     <addaction name="separator"/>
     <addaction name="menuEditor_Backend"/>
     <addaction name="separator"/>
+    <addaction name="menuUtils"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -5203,6 +5224,21 @@
   <action name="actionRMSF_to_b_factor">
    <property name="text">
     <string>RMSF to b-factor</string>
+   </property>
+  </action>
+  <action name="actionUtils">
+   <property name="text">
+    <string>Utils</string>
+   </property>
+  </action>
+  <action name="actionMake_Residue_Range">
+   <property name="text">
+    <string>Make Residue Range</string>
+   </property>
+  </action>
+  <action name="actionShorten_Range">
+   <property name="text">
+    <string>Shorten Range</string>
    </property>
   </action>
  </widget>

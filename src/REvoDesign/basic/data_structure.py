@@ -81,3 +81,17 @@ class IterableLoop(Generic[T]):
         """
         self.current_idx = -1
         return self.current_idx
+
+
+@dataclass(frozen=True)
+class FloatRange:
+    start: float
+    stop: float
+    step: float = 0.1
+
+    @classmethod
+    def from_str(cls, input_str: str) -> 'FloatRange':
+        '''
+        Resolve a FloatRange object from a string.
+        '''
+        return cls(*map(float, input_str.split(',')))

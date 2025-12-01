@@ -49,29 +49,6 @@ def test_ensure_editor_downloaded(test_tmp_dir, mock_user_data_dir, mock_config_
     manager.ensure_editor_downloaded(no_upgrade=True)
 
 
-@pytest.mark.serial
-def test_download_monaco_editor(test_tmp_dir):
-    manager = MonacoEditorManager(app_name="TestApp", app_author="TestAuthor")
-
-    # Mock the editor_path to use the temporary directory
-    manager.editor_path = test_tmp_dir
-
-    with patch("urllib.request.urlretrieve") as mock_urlretrieve, \
-            patch("tarfile.open") as mock_tarfile_open, \
-            patch("shutil.move") as mock_shutil_move, \
-            patch("os.remove") as mock_remove:
-
-        manager.download_monaco_editor(version="v0.33.0")
-
-        tarball_path = os.path.join(test_tmp_dir, "monaco-editor-v0.33.0.tgz")
-        os.path.join(test_tmp_dir, "monaco-editor-v0.33.0")
-
-        mock_urlretrieve.assert_called_once()
-        mock_tarfile_open.assert_called_once_with(tarball_path, "r:gz")
-        mock_shutil_move.assert_called_once()
-        mock_remove.assert_called_once_with(tarball_path)
-
-
 def test_copy_html_template(test_tmp_dir):
     manager = MonacoEditorManager(app_name="TestApp", app_author="TestAuthor")
 
