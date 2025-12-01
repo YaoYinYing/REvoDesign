@@ -124,7 +124,7 @@ def test_dialog_wrapper_valid_field_submission(
     set_widget_value(widget, updated_value)
 
     # Simulate OK button click
-    qtbot.mouseClick(dialog.layout.itemAt(3).itemAt(0).widget(), QtCore.Qt.LeftButton)
+    qtbot.mouseClick(dialog.layout.itemAt(4).itemAt(0).widget(), QtCore.Qt.LeftButton)
 
     # Verify updated values
     assert len(dialog.updated_values) == 6
@@ -137,7 +137,7 @@ def test_dialog_wrapper_dialog_rejection(test_worker, dialog, qtbot):
     """
     Ensures dialog rejection works as expected and captures a screenshot.
     """
-    cancel_button = dialog.layout.itemAt(3).itemAt(1).widget()
+    cancel_button = dialog.layout.itemAt(4).itemAt(1).widget()
     save_screenshot(dialog, "dialog_rejection")
 
     # Verify dialog is rejected

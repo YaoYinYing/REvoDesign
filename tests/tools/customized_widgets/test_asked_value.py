@@ -92,7 +92,7 @@ def test_value_dialog_ok_button(qtbot, sample_asked_value_collection):
         widget.setText("updated_value")
 
     # Simulate OK button click
-    qtbot.mouseClick(dialog.layout.itemAt(3).itemAt(0).widget(), QtCore.Qt.LeftButton)
+    qtbot.mouseClick(dialog.layout.itemAt(4).itemAt(0).widget(), QtCore.Qt.LeftButton)
 
     # Verify updated values
     assert len(dialog.updated_values) == 3

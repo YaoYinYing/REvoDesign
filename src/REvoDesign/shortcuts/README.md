@@ -182,14 +182,14 @@ The YAML options are used to define the structure and behavior of the dialog. He
    real_time: false # Whether to open a toggle to run the function in real-time mode as value changed. Should only be used for functions that can be run in very fast speed.
    options: # option list, each aligned with `REvoDesign.tools.customized_widgets.AskedValue`
     - name: "pdb" # option name, passed as kwargs key. `key`
-          type: str # option type, used for typing checking before passing to the function. `typing`
-          reason: "Path to the PDB file" # reason for the option, displayed in the dialog. `reason`
-          source: "File" # source of the option, used for filtering options in the dialog. `source`
-          default: "" # default value. `val`
-          required: true # whether the option is mandatory. `required`
-          ext: "PDB_STRICT" # File extension. attributes from `REvoDesign.common.file_extensions`, or customized semi-colon-separated string like `pdb;sdf;mol2`, `ext`
-          choices: ... # list choices. `choices`
-          choices_from: ... # Optional choices alternative source, could be: a `importpath:function` string to reference a function to get choices; a range expression `range:1,10` or `range:1,20,2`; a quoted expression of list, tuple or dict like `"[1, 2, 4]"`. 
+      type: str # option type, used for typing checking before passing to the function. `typing`
+      reason: "Path to the PDB file" # reason for the option, displayed in the dialog. `reason`
+      source: "File" # source of the option, used for filtering options in the dialog. `source`
+      default: "" # default value. `val`
+      required: true # whether the option is mandatory. `required`
+      ext: "PDB_STRICT" # File extensions. attributes from `REvoDesign.common.file_extensions`, or customized semi-colon-separated string like `pdb;sdf;mol2`, `ext` or `PDB_STRICT;A3M`
+      choices: ... # list choices. `choices`
+      choices_from: ... # Optional choices alternative source, could be: a `importpath:function` string to reference a function to get choices; a range expression `range:1,10` or `range:1,20,2`;a float range expression `FloatRange:1.0,2.0` or `FloatRange:0.1,1.0,0.1`; a quoted expression of list, tuple or dict like `"[1, 2, 4]"`. 
   ```
 
    **Note**: The `choices_from` parameter override the `choices` parameter.
@@ -198,15 +198,15 @@ The YAML options are used to define the structure and behavior of the dialog. He
 
    ```yaml
    esm1v:
-      title: "ESM1v"
-      banner: "Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)"
-      options:
-        - name: "model_alias"
-          type: str
-          reason: "Model(s) used to generate predictions."
-          required: true
-          choices_from: "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names"
-          multiple_choices: true
+    title: "ESM1v"
+    banner: "Run ESM1v/ESM2/MSA1b Variant Predictions (At least 32 GB RAM/GPU-RAM is recommended)"
+    options:
+      - name: "model_alias"
+        type: str
+        reason: "Model(s) used to generate predictions."
+        required: true
+        choices_from: "REvoDesign.shortcuts.tools.esm2:list_all_esm_variant_predict_model_names"
+        multiple_choices: true
    ```
 
    In brief, the `choices_from` returns a list of choices for the user to choose from, while `multiple_choices` allows the user to select multiple choices. This is useful when you want to provide a list of choices that are generated dynamically at runtime. The type of each of the choices can be specified using the `type` parameter.
@@ -263,7 +263,7 @@ The YAML options are used to define the structure and behavior of the dialog. He
 
    The task will be executed in a separate thread, and the result will be returned to the main thread. During the execution, the progress bar will be updated automatically.
 
-   **Note**: The threading feature conflicts with any UI operations, as these UI operations must be performed in the main thread. Forcing the subthread to update the UI will cause an bus error. To avoid this, you can use thread against the time-consuming inner functions instead of the working function.
+   **Note**: The threading feature conflicts with any UI operations, as these UI operations must be performed in the main thread. Forcing the subthread to update the UI will cause an bus error. To avoid this, you can use thread against the time-consuming inner functions instead of the entire working function.
 ### **8. Conclusion**
 
 In this document, we have discussed how to turn functions into interactive window popups, highlighting the DialogWrapperRegistry system that automates much of the process. This design makes it easier to integrate interactive dialogs, improving flexibility, maintainability, and user experience.

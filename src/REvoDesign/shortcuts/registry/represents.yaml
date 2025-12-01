@@ -128,22 +128,22 @@ load_b_factors:
       type: float
       default: 0
       reason: "Minimum value for scaling the B-factors."
-      choices_from: range:0.0,10.0,0.1
+      choices_from: FloatRange:0.0,10.0,0.1
     - name: scale_max
       type: float
       default: 10
       reason: "Maximum value for scaling the B-factors."
-      choices_from: range:0.0,100.0,0.1
+      choices_from: FloatRange:0.0,100.0,0.1
     - name: rescale_min
       type: float
       default: 0
       reason: "Minimum value for rescale the B-factors."
-      choices_from: range:0.0,100.0,0.1
+      choices_from: FloatRange:0.0,100.0,0.1
     - name: rescale_max
       type: float
       default: 50
       reason: "Maximum value for rescale the B-factors."
-      choices_from: range:0.0,100.0,0.1
+      choices_from: FloatRange:0.0,100.0,0.1
 
     - name: visual
       type: bool
