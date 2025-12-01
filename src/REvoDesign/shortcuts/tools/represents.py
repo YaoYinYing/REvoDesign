@@ -640,8 +640,11 @@ def _load_b_factors(
         chain_id (str): Chain ID.
         keep_missing (bool): Whether to keep missing residues in sequence.
         source (str): Path to the file containing new B-factor values.
-        label (Optional[str]): Column label for B-factors in case of CSV/Excel file.
         pos_slice (Optional[str]): Range of positions to apply B-factors to (e.g. "1-100,150-200").
+        label_x (Optional[str]): Label for resi column. Will not be used if None.
+        label_y (Optional[str]): Label for bfactor column. Will not be used if None. 
+        index_x (Optional[int]): Index of resi column. Default is 0 for the first column.
+        index_y (Optional[int]): Index of bfactor column. Default is 1 for the second column.
         offset (int): Offset to apply to positions (default is 0).
         palette (str): Color palette to use for coloring residues.
         do_rescale (bool): Whether to rescale B-factors to a custom range.
