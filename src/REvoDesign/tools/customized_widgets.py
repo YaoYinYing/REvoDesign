@@ -2,12 +2,12 @@
 Custom widgets for REvoDesign.
 """
 
-from contextlib import contextmanager
 import gc
 import json
 import os
 import warnings
 from collections.abc import Iterable
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -190,7 +190,6 @@ class REvoDesignWidget(QtWidgets.QWidget):
                 logging.debug('Empty open_windows list from ui is deleted.')
         logging.debug(f"Window {self.objectName()} destroyed and cleaned up.")
 
-
     @contextmanager
     def freeze_to_wait(self):
         """
@@ -204,6 +203,7 @@ class REvoDesignWidget(QtWidgets.QWidget):
             logging.error(f"Error occurred: {e}")
         self.setEnabled(True)
         logging.debug("Dialog unlocked.")
+
 
 @dataclass(frozen=True)
 class ButtonCoords:
@@ -1160,7 +1160,6 @@ def widget_signal_tape(widget: QtWidgets.QWidget, event, disconnect: bool = Fals
         widget.valueChanged.connect(event)
         return
 
-
     # Handle combo box widgets with text change signals
     elif isinstance(widget, QtWidgets.QComboBox):
         if disconnect:
@@ -1519,7 +1518,6 @@ class AskedValueCollection:
     banner: Optional[str] = None  # a banner message
     allow_real_time_update: bool = False
 
-
     @property
     def need_action(self) -> bool:
         return any(asked.source != "None" for asked in self.asked_values) or any(
@@ -1578,7 +1576,6 @@ class ValueDialog(REvoDesignWidget):
     close_signal = QtCore.pyqtSignal()
     cancel_signal = QtCore.pyqtSignal()
 
-
     def __init__(self, title: str, key_dict: AskedValueCollection, parent=None):
         """
         Initializes the ValueDialog with specified size policies to ensure a compact and clear layout.
@@ -1592,8 +1589,8 @@ class ValueDialog(REvoDesignWidget):
 
         self.setWindowTitle(title)
         self.key_dict = key_dict.asked_values
-        self.allow_real_time_update: bool=key_dict.allow_real_time_update
-        self.enable_real_time_update: bool=False
+        self.allow_real_time_update: bool = key_dict.allow_real_time_update
+        self.enable_real_time_update: bool = False
         self.updated_values = []
         self.setAcceptDrops(True)
 
@@ -1672,6 +1669,9 @@ class ValueDialog(REvoDesignWidget):
             enable_real_time_update_checkbox = QtWidgets.QCheckBox("Enable Real-Time Update")
             enable_real_time_update_checkbox.setChecked(self.enable_real_time_update)
             enable_real_time_update_checkbox.stateChanged.connect(self._on_real_time_update_changed)
+            enable_real_time_update_checkbox.setToolTip(
+                'When enabled, the dialog will be run in real-time as you type or change the values.'
+            )
             self.layout.addWidget(enable_real_time_update_checkbox)
 
         # Add a load and save button layout
@@ -1768,7 +1768,6 @@ class ValueDialog(REvoDesignWidget):
             widget = QtWidgets.QCheckBox()
             widget.setChecked(bool(asked_value.val))
 
-
         # a range or Float range
         elif isinstance(choices, (range, FloatRange)):
             # QSpinBox or QDoubleSpinBox for range of numbers
@@ -1797,7 +1796,6 @@ class ValueDialog(REvoDesignWidget):
             widget = QtWidgets.QComboBox()
             widget.addItems(map(str, choices))
             widget.setCurrentText(str(asked_value.val) or str(choices[0]))
-            
 
         # a normal text input
         else:
@@ -1930,7 +1928,6 @@ class ValueDialog(REvoDesignWidget):
     def _on_ok_clicked(self):
         self.submit_complete_form()
         self.ok_signal.emit(self.updated_values)
-        
 
     def submit_complete_form(self):
         """
@@ -1960,8 +1957,6 @@ class ValueDialog(REvoDesignWidget):
                         multiple_choices=original.multiple_choices,
                     )
                 )
-        
-
 
     def _on_cancel_clicked(self):
         """
@@ -2025,7 +2020,6 @@ class ValueDialog(REvoDesignWidget):
             except Exception as e:
                 logging.error(f"Error setting value to widget {widget}: {e}. ")
                 logging.warning(f'You may have been using an incompatible recipe. The field ({key}) will be ignored.')
-                
 
         logging.info(f"Loaded recipe: {selected_file}")
 
@@ -2261,7 +2255,7 @@ class AskedValueDynamic(TypedDict):
 def dialog_wrapper(
     title: str,
     banner: str,
-    allow_real_time_update:bool,
+    allow_real_time_update: bool,
     options: Tuple[AskedValue, ...],
 ) -> Callable:
     """
@@ -2291,10 +2285,10 @@ def dialog_wrapper(
 
             values: Optional[AskedValueCollection] = None
             dialog = ValueDialog(title, AskedValueCollection(
-                all_options, 
-                banner=banner, 
+                all_options,
+                banner=banner,
                 allow_real_time_update=allow_real_time_update))
-            
+
             def real_time_update(x: List[AskedValue]):
                 nonlocal values
                 values = AskedValueCollection.from_list(x)
@@ -2306,8 +2300,6 @@ def dialog_wrapper(
                 values = AskedValueCollection.from_list(x)
                 dialog.close()
                 func(**values.typing_fixed.asdict)
-
-
 
             dialog.update_signal.connect(real_time_update)
             dialog.ok_signal.connect(complete_form)
