@@ -99,9 +99,11 @@ load_b_factors:
     - name: index_x
       type: int
       reason: "Column label for the loaded B-factors, Position column. Leave empty to use default 0."
+      default: 0
     - name: index_y
       type: int
       reason: "Column index for the loaded B-factors, B-factor column. Leave empty to use default 1."
+      default: 1
     
     - name: pos_slice
       type: str

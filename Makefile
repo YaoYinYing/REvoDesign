@@ -14,6 +14,7 @@ PYTEST_XDIST_ARGS=-n 4 -m "not serial"
 PYTEST_NON_DIST_SERIAL_ARGS=-m "serial and not very_slow" --cov-append
 PYTEST_NON_DIST_SLOW_SERIAL_ARGS=-m "serial and very_slow" --cov-append
 
+# default keyword test keyword for all tests
 PYTEST_KW=all
 
 PYTEST_RUN_FIRST_ARGS=$(PYTEST_ARGS) $(PYTEST_XDIST_ARGS) $(PYTEST_CASES_PATH)
@@ -163,6 +164,9 @@ fast-test:
 
 # all test with keyword
 kw-test:
+	# eg: 
+	#    make kw-test PYTEST_KW='test_menu_window_pops' # single keyword
+	#    make kw-test PYTEST_KW='"citable or citation"' # multiple keywords, should be in double quotes
 	# Run a tmp folder to make sure the tests are run on the installed version
 	mkdir -p $(TESTDIR)
 	# https://stackoverflow.com/questions/36804181/long-running-py-test-stop-at-first-failure
@@ -200,6 +204,9 @@ memray-live:
 
 
 tag:
+	# Steps:
+	# 1. modify the version number in `src/REvoDesign/__init__.py` and save it
+	# 2. run `make tag`
 	bash tools/release_tag.sh
 
 black:
