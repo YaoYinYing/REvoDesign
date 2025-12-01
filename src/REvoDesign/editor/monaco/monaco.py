@@ -1,8 +1,6 @@
 import os
 import shutil
 import tarfile
-import urllib.error
-import urllib.request
 
 from platformdirs import user_data_dir
 
@@ -10,10 +8,10 @@ from REvoDesign import issues
 
 from ...driver.ui_driver import ConfigBus, StoresWidget
 from ...logger import ROOT_LOGGER
+from ...tools.download_registry import DownloadedFile, FileDownloadRegistry
 from ...tools.package_manager import get_github_repo_tags, notify_box
 from ...tools.utils import run_worker_thread_with_progress
 from .config import ConfigStore
-from ...tools.download_registry import FileDownloadRegistry,DownloadedFile
 
 logging = ROOT_LOGGER.getChild(__name__)
 

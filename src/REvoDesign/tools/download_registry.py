@@ -96,7 +96,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         It firstly tries to download files from the primary base URL.
         If the download fails, it will retry with the alternative base URLs if provided.
         For each base url, a certain number of retries will be attempted.
-    
+
     """
 
     def __init__(
@@ -121,7 +121,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
         self.customized_directory = customized_directory or user_data_dir(
             self.name, version=self.version, ensure_exists=True)
 
-        all_base_urls= [self.base_url]
+        all_base_urls = [self.base_url]
         if self.alternative_base_urls:
             all_base_urls.extend(self.alternative_base_urls)
 
@@ -136,7 +136,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
                 retry_if_failed=self.retry_count,
             )
             self.pooches.append(my_pooch)
-        
+
     @staticmethod
     def _complete_varify_string(a_string: Optional[str] = None, hash_type: str = 'md5') -> Optional[str]:
         """
@@ -180,7 +180,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
                 logging.error(f"Failed to fetch {item}: {e}")
                 # all retries failed, use the next base url
                 continue
-            
+
             # download succeeded and return early
             registry_entry = my_pooch.registry.get(item, None)
             return DownloadedFile(
@@ -190,7 +190,7 @@ class FileDownloadRegistry(CitableModuleAbstract):
                 downloaded=downloaded_path,
                 registry=registry_entry
             )
-        
+
         # all retry attempts failed, raise an error
         raise issues.NetworkError(f"Failed to download {item}")
 

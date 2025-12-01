@@ -48,6 +48,7 @@ def test_ensure_editor_downloaded(test_tmp_dir, mock_user_data_dir, mock_config_
     Path(manager.html_template_path).touch()  # Create a dummy template
     manager.ensure_editor_downloaded(no_upgrade=True)
 
+
 def test_copy_html_template(test_tmp_dir):
     manager = MonacoEditorManager(app_name="TestApp", app_author="TestAuthor")
 

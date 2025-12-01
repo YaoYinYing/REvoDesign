@@ -516,11 +516,11 @@ class BFactor:
             where col 0 is the position column and col 1 is the bfactor colum
             (one-indexed)
 
-        offset (int): Offset to add to the position column. 
-            If the position column in `bfactor_data` is not zero-indexed, 
-            set this to the offset to add to the position column so that it can align to the one-indexed. 
+        offset (int): Offset to add to the position column.
+            If the position column in `bfactor_data` is not zero-indexed,
+            set this to the offset to add to the position column so that it can align to the one-indexed.
             Default is 0.
-    
+
 
     Normal usage:
 
@@ -532,10 +532,10 @@ class BFactor:
 
         The position column is one-indexed. If not so, a non-zero offset must be set to fix the position column.
 
-        e.g.: 
+        e.g.:
 
-        In original dataframe:             
-        
+        In original dataframe:
+
         | position | bfactor |
         | -------- | ------- |
         |     0    |   0.1   |
