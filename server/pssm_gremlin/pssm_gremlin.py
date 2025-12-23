@@ -15,8 +15,30 @@ from celery.result import AsyncResult
 from docker import types
 from flask import (Flask, jsonify, redirect, render_template, request,
                    send_from_directory)
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
+
+THIS_FILE = os.path.abspath(__file__)
+THIS_DIR = os.path.dirname(THIS_FILE)
 
 app = Flask(__name__, template_folder="./templates")
+auth = HTTPBasicAuth()
+user_file=os.path.join(THIS_DIR, 'users.txt')
+
+
+# A dictionary of users and their hashed passwords
+users = {}
+
+with open(user_file) as f:
+    for line in f:
+        if line.strip() == "":
+            continue
+        if line.strip().startswith(("#", ";")):
+            continue
+        username, password = line.strip().split(":")
+        users[username] = generate_password_hash(password)
+
+
 
 # Celery configurations
 celery = Celery(
@@ -62,6 +84,11 @@ except BaseException:
     _ROOT_MOUNT_DIRECTORY = os.path.abspath("/tmp/")
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and check_password_hash(users.get(username), password):
+        return username
+    return None
 
 def _create_mount(
     mount_name: str, path: str, read_only=True
@@ -220,11 +247,13 @@ def run_gremlin_task(md5sum, filename):
 
 
 @app.route("/PSSM_GREMLIN/create_task", methods=["GET"])
+@auth.login_required
 def create_task():
     return render_template("create_task.html")
 
 
 @app.route("/PSSM_GREMLIN/api/post", methods=["POST"])
+@auth.login_required
 def upload_file():
     if "file" not in request.files:
         return jsonify({"error": "No file part"}), 400
@@ -292,6 +321,7 @@ def upload_file():
 
 
 @app.route("/PSSM_GREMLIN/api/running/<md5sum>", methods=["GET"])
+@auth.login_required
 def run_gremlin(md5sum):
     output_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
     state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
@@ -325,6 +355,7 @@ def run_gremlin(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/api/results/<md5sum>", methods=["GET"])
+@auth.login_required
 def get_results(md5sum):
     result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
     state_file = os.path.join(app.config["STATE_FOLDER"], md5sum + ".state")
@@ -362,6 +393,7 @@ def get_results(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/api/download/<md5sum>", methods=["GET"])
+@auth.login_required
 def download_results(md5sum):
     result_dir = os.path.join(app.config["RESULTS_FOLDER"], md5sum)
     fasta_fn = os.path.basename(glob.glob(f"{result_dir}/*.fasta")[0])
@@ -393,6 +425,7 @@ def download_results(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/api/cancel/<md5sum>", methods=["POST", "GET"])
+@auth.login_required
 def cancel_task(md5sum):
     # Check if the task with the specified MD5sum exists and is not finished
     state_file = os.path.join(STATE_FOLDER, f"{md5sum}.state")
@@ -457,6 +490,7 @@ def cancel_task(md5sum):
 
 
 @app.route("/PSSM_GREMLIN/dashboard", methods=["GET"])
+@auth.login_required
 def task_dashboard():
     # Query state marker files to gather task status information
     state_folder = app.config["STATE_FOLDER"]

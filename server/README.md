@@ -20,6 +20,7 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    conda env create -f server/env/REvoDesign.yml
    conda activate REvoDesign
    pip install -U "celery[redis]"
+   pip install Flask-HTTPAuth
    ```
 3. Prepare the sequence databases required by the run script. :
 
@@ -76,7 +77,13 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
 - `server/run/restart_pssm_flask.sh`: 
   - `WORK_DIR`: Directory where the uploaded files will be stored and processed
   - `DOMAIN_NAME`: domain name the REvoDesign server uses to communicate.
-7. (Re)Start the REvoDesign server:
+7. Add `server/pssm_gremlin/users.txt` to allow limited user access
+   **IMPORTANT**: Create a http user for basic authentication from accessing the server
+   ```txt
+   # conmment
+   username:password
+   ```
+8. (Re)Start the REvoDesign server:
    
    By default REvoDesign uses `8080`. You can check if port `8080` is occupied by other process.
    ```shell
@@ -88,53 +95,55 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
    ```shell
    bash /path/to/REvoDesign/server/run/restart_pssm_flask.sh
    ```
-8. Optional: Install `NGINX` as a production server:
+9.  Optional: Run as a production server
+   - Option A: Use NGINX as a reverse proxy
+      ```shell
+      sudo apt-get install nginx
+      sudo service nginx start
+      ```
+
+
+      Setup NGINX proxy to REvoDesign server:
+      ```
+      NGINX_CONFIG_FILE="/etc/nginx/sites-available/REvoDesign_PSSM_GREMLIN.app"
+      cd REvoDesign
+      cp server/nginx_sites/REvoDesign_PSSM_GREMLIN.app $NGINX_CONFIG_FILE
+      sudo ln -s $NGINX_CONFIG_FILE /etc/nginx/sites-enabled/$(basename $NGINX_CONFIG_FILE)
+      ```
+      
+      **IMPORTANT**: SSL certificate for HTTPS is recommended for security purposes.
+      ```
+      # SSL certificate for https. Here we use lego and Cloudflare DNS
+      # lego: https://go-acme.github.io/lego/
+      CLOUDFLARE_EMAIL=your.cloudflare_account@email.address CLOUDFLARE_API_KEY=YOUR-CLOUDFLARE-API-KEY lego --email your@email.address  -a --key-type rsa4096 --dns cloudflare --domains 'revodesign.your-domain.name' --path /path/to/certificates/ run
+      
+      openssl dhparam -out /path/to/certificates/dhparam.pem 2048
+      ```
+
+      To schedule certificate renew task, use `crontab -e` to create a monthly renew task:
+      ```crontab
+      0 5 1 * * CLOUDFLARE_EMAIL=your.cloudflare_account@email.address CLOUDFLARE_API_KEY=YOUR-CLOUDFLARE-API-KEY lego --email your@email.address  -a --key-type rsa4096 --dns cloudflare --domains 'revodesign.your-domain.name' --path /path/to/certificates/ renew
+      ```
+
+
+      **IMPORTANT**: replace server domain name/port, certificate and basic authentication. 
+      ```shell
+      vim /etc/nginx/sites-available/REvoDesign_PSSM_GREMLIN.app
+      ```
+
+      after the configuration is done, restart NGINX to apply these changes.
+      ```shell
+      systemctl restart nginx
+      ```
+
+      Now, a production server with basic authentication and SSL encrypt is ready to use.
+
+
+   - Option B: Use Cloudflare Tunnel
+      Setup Cloudflare Tunnel Connector according to [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/).
+
+      Setup a public domain for public access to Published application routes.
    
-   ```shell
-   sudo apt-get install nginx
-   sudo service nginx start
-   ```
-
-   Setup NGINX proxy to REvoDesign server:
-   ```
-   NGINX_CONFIG_FILE="/etc/nginx/sites-available/REvoDesign_PSSM_GREMLIN.app"
-   cd REvoDesign
-   cp server/nginx_sites/REvoDesign_PSSM_GREMLIN.app $NGINX_CONFIG_FILE
-   sudo ln -s $NGINX_CONFIG_FILE /etc/nginx/sites-enabled/$(basename $NGINX_CONFIG_FILE)
-   ```
-   
-   **IMPORTANT**: SSL certificate for HTTPS is recommended for security purposes.
-   ```
-   # SSL certificate for https. Here we use lego and Cloudflare DNS
-   # lego: https://go-acme.github.io/lego/
-   CLOUDFLARE_EMAIL=your.cloudflare_account@email.address CLOUDFLARE_API_KEY=YOUR-CLOUDFLARE-API-KEY lego --email your@email.address  -a --key-type rsa4096 --dns cloudflare --domains 'revodesign.your-domain.name' --path /path/to/certificates/ run
-   
-   openssl dhparam -out /path/to/certificates/dhparam.pem 2048
-   ```
-
-   To schedule certificate renew task, use `crontab -e` to create a monthly renew task:
-   ```crontab
-   0 5 1 * * CLOUDFLARE_EMAIL=your.cloudflare_account@email.address CLOUDFLARE_API_KEY=YOUR-CLOUDFLARE-API-KEY lego --email your@email.address  -a --key-type rsa4096 --dns cloudflare --domains 'revodesign.your-domain.name' --path /path/to/certificates/ renew
-   ```
-   
-
-   **IMPORTANT**: Create a http user for basic authentication from accessing the server
-   ```shell
-   htpasswd -c /etc/apache2/.htpasswd revodesign_users
-   ```
-
-   **IMPORTANT**: replace server domain name/port, certificate and basic authentication. 
-   ```shell
-   vim /etc/nginx/sites-available/REvoDesign_PSSM_GREMLIN.app
-   ```
-
-   after the configuration is done, restart NGINX to apply these changes.
-   ```shell
-   systemctl restart nginx
-   ```
-
-   Now, a production server with basic authentication and SSL encrypt is ready to use.
-
 
 ## Usage
 
