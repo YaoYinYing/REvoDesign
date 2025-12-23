@@ -1,0 +1,4 @@
+# REvoDesign PSSM_GREMLIN server authentication file
+# DO NOT UPLOAD THIS FILE TO GITHUB
+admin:admin_password
+guest:guess_password
