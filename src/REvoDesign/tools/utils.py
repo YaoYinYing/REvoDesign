@@ -30,18 +30,7 @@ from REvoDesign.logger import ROOT_LOGGER
 from ..bootstrap.set_config import is_package_installed
 from .package_manager import run_command, run_worker_thread_with_progress
 
-try:
-    from itertools import pairwise as _pairwise  # type: ignore
-except ImportError:
-
-    def _pairwise(iterable: Iterable):
-        """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
-        a, b = itertools.tee(iterable)
-        next(b, None)
-        return zip(a, b)
-
-
-pairwise: Callable[[Iterable], Iterable[tuple]] = _pairwise
+from itertools import pairwise
 
 logging = ROOT_LOGGER.getChild(__name__)
 

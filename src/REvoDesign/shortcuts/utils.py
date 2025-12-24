@@ -5,7 +5,7 @@ import atexit
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from typing import Any,cast
+from typing import Any
 
 import yaml
 from immutabledict import immutabledict
