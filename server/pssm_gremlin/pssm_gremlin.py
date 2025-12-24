@@ -16,14 +16,14 @@ from docker import types
 from flask import (Flask, jsonify, redirect, render_template, request,
                    send_from_directory)
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 THIS_FILE = os.path.abspath(__file__)
 THIS_DIR = os.path.dirname(THIS_FILE)
 
 app = Flask(__name__, template_folder="./templates")
 auth = HTTPBasicAuth()
-user_file=os.path.join(THIS_DIR, 'users.txt')
+user_file = os.path.join(THIS_DIR, 'users.txt')
 
 
 # A dictionary of users and their hashed passwords
@@ -37,7 +37,6 @@ with open(user_file) as f:
             continue
         username, password = line.strip().split(":")
         users[username] = generate_password_hash(password)
-
 
 
 # Celery configurations
@@ -84,11 +83,13 @@ except BaseException:
     _ROOT_MOUNT_DIRECTORY = os.path.abspath("/tmp/")
     os.makedirs(_ROOT_MOUNT_DIRECTORY, exist_ok=True)
 
+
 @auth.verify_password
 def verify_password(username, password):
     if username in users and check_password_hash(users.get(username), password):
         return username
     return None
+
 
 def _create_mount(
     mount_name: str, path: str, read_only=True

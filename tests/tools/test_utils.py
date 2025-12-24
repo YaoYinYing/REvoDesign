@@ -13,8 +13,7 @@ import pytest
 from REvoDesign import issues
 from REvoDesign.bootstrap.set_config import is_package_installed
 from REvoDesign.citations import CitableModuleAbstract, CitationManager
-from REvoDesign.tools.utils import (cmap_reverser,
-                                    convert_residue_ranges,
+from REvoDesign.tools.utils import (cmap_reverser, convert_residue_ranges,
                                     count_and_sort_characters, extract_archive,
                                     generate_strong_password, get_cited,
                                     get_color, get_owner_class_from_static,
@@ -506,7 +505,6 @@ def test_get_cited():
 ])
 def test_pairwise_loop(input_data, expected_output):
     assert list(pairwise_loop(input_data)) == expected_output
-
 
 
 # --- Test data setup ---------------------------------------------------------

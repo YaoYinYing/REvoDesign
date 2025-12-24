@@ -1,4 +1,3 @@
-
 from pymol import cmd
 
 

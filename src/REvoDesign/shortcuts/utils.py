@@ -36,7 +36,6 @@ asked_value_typing_dict: immutabledict[str, type] = immutabledict({
 REGISTRY_DIR = Path(__file__).parent / "registry"
 
 
-
 def resolve_choice_from(range_str: str):
     """
     Interprets an input string and dynamically returns a corresponding value based on its prefix.
@@ -260,7 +259,7 @@ Arguments:
 dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
     Will be ignored if has_dynamic_values=False.
 '''
-    
+
         atexit.register(self.unregister, func_id)
         return func
 

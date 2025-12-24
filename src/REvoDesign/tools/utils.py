@@ -15,7 +15,8 @@ import time
 import zipfile
 from collections.abc import Callable, Iterable
 from functools import wraps
-from typing import Any, Literal, cast,ParamSpec, TypeVar
+from itertools import pairwise
+from typing import Any, Literal, ParamSpec, TypeVar, cast
 
 import matplotlib
 import numpy as np
@@ -26,8 +27,6 @@ from REvoDesign.logger import ROOT_LOGGER
 
 from ..bootstrap.set_config import is_package_installed
 from .package_manager import run_command, run_worker_thread_with_progress
-
-from itertools import pairwise
 
 logging = ROOT_LOGGER.getChild(__name__)
 
@@ -305,6 +304,7 @@ def get_owner_class_from_static(func):
 
     return obj
 
+
 # parameter specification for the original method
 P = ParamSpec("P")
 
@@ -312,16 +312,18 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 # Annotate the decorator with the original method's parameters and return type
+
+
 def get_cited(method: Callable[P, R]) -> Callable[P, R]:
     """
     A decorator that adds citation functionality to a method, automatically calling the appropriate cite() method.
-    
-    This decorator determines which object's cite() method should be called based on the method type 
+
+    This decorator determines which object's cite() method should be called based on the method type
     (class method, instance method, static method, or function) and automatically records citation information.
-    
+
     Args:
         method: The method to be decorated, can be a class method, instance method, static method, or regular function
-        
+
     Returns:
         Returns a wrapped method that calls the appropriate cite() method after executing the original method
     """
@@ -330,7 +332,7 @@ def get_cited(method: Callable[P, R]) -> Callable[P, R]:
     def _cite_for_cls(cls_or_obj: type[CitableModuleAbstract] | CitableModuleAbstract) -> None:
         """
         Calls the cite() method on the given class or object.
-        
+
         Args:
             cls_or_obj: A class or instance object of type CitableModuleAbstract
         """
@@ -350,7 +352,7 @@ def get_cited(method: Callable[P, R]) -> Callable[P, R]:
     def _impl(*args: P.args, **kwargs: P.kwargs) -> R:
         """
         Actual decorator implementation function.
-        
+
         Executes the original method, then calls the appropriate cite() method based on the method type.
         """
         result = method(*args, **kwargs)
@@ -379,6 +381,7 @@ def get_cited(method: Callable[P, R]) -> Callable[P, R]:
 
     wrapped = wraps(method)(_impl)
     return cast(Callable[P, R], wrapped)
+
 
 def minibatches(inputs_data, batch_size):
     """

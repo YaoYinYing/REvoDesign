@@ -77,8 +77,8 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
 - `server/run/restart_pssm_flask.sh`: 
   - `WORK_DIR`: Directory where the uploaded files will be stored and processed
   - `DOMAIN_NAME`: domain name the REvoDesign server uses to communicate.
-7. Add `server/pssm_gremlin/users.txt` to allow limited user access
-   **IMPORTANT**: Create a http user for basic authentication from accessing the server
+7. Add `server/pssm_gremlin/users.txt` to allow limited user access (see `server/pssm_gremlin/users.template.txt`)
+   **IMPORTANT**: Create at least one http user for basic authentication from accessing the server
    ```txt
    # conmment
    username:password
@@ -147,19 +147,12 @@ This README provides an overview and documentation for the PSSM GREMLIN Flask ap
 
 ## Usage
 
-### Submit FASTA Files via REvoDesign
+### Submit FASTA File via webpage
+Use the following webpage to submit FASTA files:
 
-To submit tasks for GREMLIN_PSSM analysis, follow these steps:
+http://your-server-ip:8080/PSSM_GREMLIN/create_task
 
-1. Start the PyMOL application and launch REvoDesign plugin.
-
-2. Load a session/structure. Navigate to REvoDesign's menubar, click `REvoDesign` -> `Import PyMOL session` to load the protein info to REvoDesign. 
-
-3. Select a target molecule and chain id, click `Client` tab.
-   - Setup correct server URL, username and password(if the server requires `base_auth`).
-   - Click the "Submit" button to submit the task.
-   - If you wish to cancel in-queue or kill in-running tasks, click "Cancel"
-   - After the task is done, click "Download" to fetch the zipped results.
+A successful submission will return a task ID and the task status.
 
 ### Submit FASTA Files via commandline tools
 Use the following cURL command to batch submit FASTA files:
