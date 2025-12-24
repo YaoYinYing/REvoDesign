@@ -17,6 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 ## [Unreleased]
 
+### Added
+- Server: 
+  - Basic authentication guide and implementation
+  - Documentation: Cloudflare tunnel as production public cloud service
+- Typing annotations:
+  - `get_cited`: broadcast typing hints from input function to wrapper
+
+### Changed
+- `AGENTS.md`: refined installation guide
+- Simplifed `get_cited` implementation, thanks to ChatGPT.
+
+### Fixed
+- package meta: `pyproject.toml`
+  - `pyright`: `pythonVersion = "3.10"`
+- logging:
+  - remove logging statements for `DialogWrapperRegistry.unregister` as logger has already exit when unregistering.
+
+### Removed
+- Py39 related:
+  - pairwise implementation and tests, as it can be imported from `itertools` module
+- README: drop Py39 from badge
+
 ## [1.8.4] - 2025-12-02
 ### Added
 - Customized widget: 
@@ -106,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - tests:
   - obsolete tests: `test_menu_item`
   - obsolete tests: `test_download_monaco_editor`
+- Python vession: 3.9 dropped
 
 ### Known Issues
 - CI failed on ubuntu w/ PyMOL Open Source v2.5.0, Python 3.10/3.11
