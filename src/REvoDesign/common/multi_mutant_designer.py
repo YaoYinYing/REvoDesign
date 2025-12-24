@@ -5,6 +5,7 @@ Running Randomized Multi-Design
 import os
 import random
 import warnings
+from itertools import pairwise
 
 from pymol import cmd, util
 from RosettaPy.common.mutation import RosettaPyProteinSequence
@@ -14,7 +15,7 @@ from REvoDesign.common import Mutant, MutantTree
 from REvoDesign.magician import Magician
 from REvoDesign.tools.mutant_tools import existed_mutant_tree
 from REvoDesign.tools.pymol_utils import is_distal_residue_pair
-from REvoDesign.tools.utils import cmap_reverser, get_color, pairwise
+from REvoDesign.tools.utils import cmap_reverser, get_color
 
 logging = ROOT_LOGGER.getChild(__name__)
 
