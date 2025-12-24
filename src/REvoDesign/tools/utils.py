@@ -15,10 +15,7 @@ import time
 import zipfile
 from collections.abc import Callable, Iterable
 from functools import wraps
-from typing import Any, Literal, cast
-
-from typing_extensions import ParamSpec, TypeVar
-
+from typing import Any, Literal, cast,ParamSpec, TypeVar
 
 import matplotlib
 import numpy as np
