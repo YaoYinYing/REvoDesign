@@ -5,7 +5,7 @@ import atexit
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any,cast
 
 import yaml
 from immutabledict import immutabledict
@@ -34,6 +34,7 @@ asked_value_typing_dict: immutabledict[str, type] = immutabledict({
 })
 
 REGISTRY_DIR = Path(__file__).parent / "registry"
+
 
 
 def resolve_choice_from(range_str: str):
@@ -207,7 +208,7 @@ class DialogWrapperRegistry:
         has_dynamic_values: bool = False,
         use_progressbar: bool = True,
         kwargs: dict | None = None
-    ):
+    ) -> Callable:
         """
         Register the raw Python function under a given ID.
 
@@ -259,7 +260,7 @@ Arguments:
 dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
     Will be ignored if has_dynamic_values=False.
 '''
-
+    
         atexit.register(self.unregister, func_id)
         return func
 
