@@ -270,7 +270,7 @@ dynamic_values (Optional[List[Any]]): Dynamic values to pass to the function.
         Args:
             func_id (str): The ID of the function to unregister.
         """
-        logging.debug(f"Unregistering function {func_id}")
+        # logging.debug(f"Unregistering function {func_id}")
         del self.funcs[func_id]
 
     def call(self, func_id: str, dynamic_values: list[AskedValueDynamic] | None = None):

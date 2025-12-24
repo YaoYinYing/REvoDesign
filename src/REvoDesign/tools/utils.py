@@ -1,6 +1,7 @@
 '''
 Orphaneous functions for REvoDesign
 '''
+from __future__ import annotations
 
 import contextlib
 import importlib
@@ -14,7 +15,10 @@ import time
 import zipfile
 from collections.abc import Callable, Iterable
 from functools import wraps
-from typing import Any, Literal
+from typing import Any, Literal, cast
+
+from typing_extensions import ParamSpec, TypeVar
+
 
 import matplotlib
 import numpy as np
@@ -315,73 +319,80 @@ def get_owner_class_from_static(func):
 
     return obj
 
+# parameter specification for the original method
+P = ParamSpec("P")
 
-def get_cited(method: Callable) -> Callable:
+# return type for the original method
+R = TypeVar("R")
+
+# Annotate the decorator with the original method's parameters and return type
+def get_cited(method: Callable[P, R]) -> Callable[P, R]:
     """
-    Decorator to call `self.cite()` after executing `self.process()`.
+    A decorator that adds citation functionality to a method, automatically calling the appropriate cite() method.
+    
+    This decorator determines which object's cite() method should be called based on the method type 
+    (class method, instance method, static method, or function) and automatically records citation information.
+    
+    Args:
+        method: The method to be decorated, can be a class method, instance method, static method, or regular function
+        
+    Returns:
+        Returns a wrapped method that calls the appropriate cite() method after executing the original method
     """
     from ..citations import CitableModuleAbstract
 
-    # instance method, having a self argument
-
     def _cite_for_cls(cls_or_obj: type[CitableModuleAbstract] | CitableModuleAbstract) -> None:
+        """
+        Calls the cite() method on the given class or object.
+        
+        Args:
+            cls_or_obj: A class or instance object of type CitableModuleAbstract
+        """
         try:
-            if not (hasattr(cls_or_obj, 'cite') and callable(getattr(cls_or_obj, 'cite'))):
-                raise TypeError(
-                    f'{cls_or_obj.__name__} is not a citable module, or its class({cls_or_obj.__name__}) does not have a cite() method.')
+            if not (hasattr(cls_or_obj, "cite") and callable(getattr(cls_or_obj, "cite"))):
+                name = getattr(cls_or_obj, "__name__", type(cls_or_obj).__name__)
+                raise TypeError(f"{name} is not citable or missing cite()")
             cls_or_obj.cite()
+        except Exception as e:
+            logging.warning(f"Ignore cite() error: {e}")
+
+    # Determine method type and log it
+    guessed_method_type = inspect_method_types(method=cast(Callable[..., Any], method))
+    logging.warning(f"Guessed method type: {method!r}: {guessed_method_type}")
+
+    # broadcast typing from the original method to the wrapper
+    def _impl(*args: P.args, **kwargs: P.kwargs) -> R:
+        """
+        Actual decorator implementation function.
+        
+        Executes the original method, then calls the appropriate cite() method based on the method type.
+        """
+        result = method(*args, **kwargs)
+
+        try:
+            # Determine how to call cite() based on method type
+            if guessed_method_type in ("ClassMethod", "InstanceMethod"):
+                if args:
+                    _cite_for_cls(cast(type[CitableModuleAbstract] | CitableModuleAbstract, args[0]))
+
+            elif guessed_method_type == "StaticMethod":
+                cls = get_owner_class_from_static(cast(Callable[..., Any], method))
+                _cite_for_cls(cls)
+
+            elif guessed_method_type == "Function":
+                anonymous = CitableModuleAbstract.get_citable_class(func=cast(Callable[..., Any], method))
+                anonymous().cite()
+
+            else:
+                raise issues.InternalError(f"Cannot apply get_cited decorator to {method!r}")
 
         except Exception as e:
-            logging.warning(f'Ignore cite() error: {e}')
+            logging.debug(f"Failed to cite {method!r} due to {e}")
 
-    @wraps(method)
-    def wrapper_instance_method_or_classmethod(
-        cls_or_obj: type[CitableModuleAbstract] | CitableModuleAbstract,
-        *args, **kwargs
-    ):
-        result = method(cls_or_obj, *args, **kwargs)
-        _cite_for_cls(cls_or_obj)
         return result
 
-    # static method, no self or cls argument
-    # get the class and instantiate an object to call cite()
-
-    @wraps(method)
-    def wrapper_static_method(*args, **kwargs):
-        result = method(*args, **kwargs)
-        try:
-            cls: type[CitableModuleAbstract] = get_owner_class_from_static(method)
-            _cite_for_cls(cls)
-        except Exception as e:
-            logging.debug(f"Failed to cite static method {method} due to {e}")
-        finally:
-            return result
-
-    # normal function, no self or cls argument
-    # create an anonymous citable class to call cite()
-    # the method must have a `__bibtex__` attribute
-    @wraps(method)
-    def wrapper_function(*args, **kwargs):
-        result = method(*args, **kwargs)
-        try:
-            anonymous_citable_class = CitableModuleAbstract.get_citable_class(func=method)
-            anonymous_citable_class().cite()
-        except Exception as e:
-            logging.debug(f"Failed to cite function {method} due to {e}")
-        finally:
-            return result
-
-    guessed_method_type = inspect_method_types(method=method)
-    logging.warning(f"Guessed method type: {method!r}: {guessed_method_type}")
-    if guessed_method_type in ('ClassMethod', 'InstanceMethod'):
-        return wrapper_instance_method_or_classmethod
-    if guessed_method_type == 'StaticMethod':
-        return wrapper_static_method
-    if guessed_method_type == 'Function':
-        return wrapper_function
-
-    raise issues.InternalError(f"Cannot apply get_cited decorator to method {method}")
-
+    wrapped = wraps(method)(_impl)
+    return cast(Callable[P, R], wrapped)
 
 def minibatches(inputs_data, batch_size):
     """
