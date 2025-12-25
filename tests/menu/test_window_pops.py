@@ -1,3 +1,4 @@
+# pyright: reportUnusedImport=false
 import os
 from unittest.mock import patch
 
