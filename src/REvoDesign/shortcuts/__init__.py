@@ -23,11 +23,19 @@ cmd.extend("pssm2csv", shortcut_pssm2csv)
 # How to set up autocompletion for a extend command with multiple arguments?
 # The general format is:
 # `cmd.auto_arg[<arg_id>]["<extend_command_name>"]=[<lambda_returning_Shortcut_object >, '<label_for_arg>', '<following_string>']` where
-# <arg_id> is the argument index (starting from 0) that we want to set autocompletion for in the extend command
-# <extend_command_name> is the name of the extend command
-# <lambda_returning_Shortcut_object> is a lambda function that returns a Shortcut object
-# '<label_for_arg>' is a string label for the argument that will be displayed in the autocomplete output
-# '<following_string>' is a string that will be appended to the argument value
+#   <arg_id> is the argument index (starting from 0) that we want to set autocompletion for in the extend command
+#   <extend_command_name> is the name of the extend command
+#   <lambda_returning_Shortcut_object> is a lambda function that returns a Shortcut object
+#   <label_for_arg> is a string label for the argument that will be displayed in the autocomplete output, 
+#       which can be humanly readable and multiple lines separated by '\n'
+#       Note that a following colon ':' is not necessary, it will be added automatically by PyMOL
+#       parser: matching Target object:
+#           1suo  8x3e
+#       parser: matching Enable waters
+#       0 for no waters
+#       1 for waters:
+#           0  1
+#   '<following_string>' is a string that will be appended to the argument value
 
 # Normally, to support autocomplete dynamically during runtime, PyMOL uses a lambda function that returns a Shortcut object
 # A shortcut object defines the possible keywords for autocompletion of arguments.
@@ -36,16 +44,16 @@ cmd.extend("pssm2csv", shortcut_pssm2csv)
 # To bollow the existing ones, we need to find the corresponding dict in the `cmd.auto_arg` list
 # The autocompletion must be added after the extend command is defined
 cmd.extend("real_sc", shortcut_real_sc)
-cmd.auto_arg[0]["real_sc"]=[cmd.auto_arg[1]['select'][0], 'selection', ' ']
-cmd.auto_arg[1]["real_sc"]=[cmd.auto_arg[0]['show'][0], 'representation', ' ']
+cmd.auto_arg[0]["real_sc"]=[cmd.auto_arg[1]['select'][0], 'Selections', ' ']
+cmd.auto_arg[1]["real_sc"]=[cmd.auto_arg[0]['show'][0], 'What representation to use', ' ']
 
 
 cmd.extend("color_by_mutation", shortcut_color_by_mutation)
 # To build a new one, we can create a lambda function that returns a Shortcut object
-cmd.auto_arg[0]["color_by_mutation"]=[cmd.auto_arg[0]['enable'][0], 'obj1', '']
-cmd.auto_arg[1]["color_by_mutation"]=[cmd.auto_arg[0]['enable'][0], 'obj2', '']
-cmd.auto_arg[2]["color_by_mutation"]=[lambda : Shortcut(keywords=['0', '1']), 'waters', '']
-cmd.auto_arg[3]["color_by_mutation"]=[lambda : Shortcut(keywords=['0', '1']), 'labels', '']
+cmd.auto_arg[0]["color_by_mutation"]=[cmd.auto_arg[0]['enable'][0], 'Target object', '']
+cmd.auto_arg[1]["color_by_mutation"]=[cmd.auto_arg[0]['enable'][0], 'Reference object', '']
+cmd.auto_arg[2]["color_by_mutation"]=[lambda : Shortcut(keywords=['0', '1']), 'Enable waters\n0 for no waters\n1 for waters', '']
+cmd.auto_arg[3]["color_by_mutation"]=[lambda : Shortcut(keywords=['0', '1']), 'Enable labels\n0 for no labels\n1 for labels', '']
 # In this case of color_by_mutation, we have 4 arguments:
 # arg0: obj1 - autocompleted using the existing 'enable' shortcut
 # arg1: obj2 - autocompleted using the existing 'enable' shortcut

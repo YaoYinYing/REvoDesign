@@ -61,7 +61,7 @@ Where:
 * `<arg_id>`: which argument you are defining completion for (0-based)
 * `<command_name>`: your `cmd.extend` name
 * `<shortcut_factory>`: typically a `lambda` returning a `Shortcut`, or reused from another command
-* `"<label>"`: hints what the argument represents (e.g., `"selection"`)
+* `"<label>"`: hints what the argument represents (e.g., `"selection"`), which can be a humman-readable text. To make it multiline, use `\n` to separate lines.
 * `"<postfix>"`: appended after the inserted token (commonly `' '` or `''`)
 
 ---
@@ -77,8 +77,8 @@ This is the fastest path and usually the most consistent with PyMOL’s UX.
 Example: reuse the completion provider already defined for `select` or `show`.
 
 ```python
-cmd.auto_arg[0]["real_sc"] = [cmd.auto_arg[1]["select"][0], "selection", " "]
-cmd.auto_arg[1]["real_sc"] = [cmd.auto_arg[0]["show"][0], "representation", " "]
+cmd.auto_arg[0]["real_sc"] = [cmd.auto_arg[1]["select"][0], "Selections", " "]
+cmd.auto_arg[1]["real_sc"] = [cmd.auto_arg[0]["show"][0], "What representation to use", " "]
 ```
 
 Notes:
@@ -98,8 +98,8 @@ Use this when:
 Use this when your argument tokens are domain-specific (e.g., flags `0/1`, custom modes, named presets).
 
 ```python
-cmd.auto_arg[2]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "waters", ""]
-cmd.auto_arg[3]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "labels", ""]
+cmd.auto_arg[2]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "Enable waters\n0 for no waters\n1 for waters'", ""]
+cmd.auto_arg[3]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "Enable labels\n0 for no labels\n1 for labels", ""]
 ```
 
 Use this when:
@@ -132,10 +132,10 @@ Interpretation:
 ```python
 cmd.extend("color_by_mutation", shortcut_color_by_mutation)
 
-cmd.auto_arg[0]["color_by_mutation"] = [cmd.auto_arg[0]["enable"][0], "obj1", ""]
-cmd.auto_arg[1]["color_by_mutation"] = [cmd.auto_arg[0]["enable"][0], "obj2", ""]
-cmd.auto_arg[2]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "waters", ""]
-cmd.auto_arg[3]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "labels", ""]
+cmd.auto_arg[0]["color_by_mutation"] = [cmd.auto_arg[0]["enable"][0], "Target object", ""]
+cmd.auto_arg[1]["color_by_mutation"] = [cmd.auto_arg[0]["enable"][0], "Reference object", ""]
+cmd.auto_arg[2]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "Enable waters\n0 for no waters\n1 for waters'", ""]
+cmd.auto_arg[3]["color_by_mutation"] = [lambda: Shortcut(keywords=["0", "1"]), "Enable labels\n0 for no labels\n1 for labels", ""]
 ```
 
 Interpretation:
@@ -245,7 +245,7 @@ cmd.extend("mycmd", mycmd_impl)
 cmd.auto_arg[0]["mycmd"] = [cmd.auto_arg[1]["select"][0], "selection", " "]
 
 # arg1: custom enum (new)
-cmd.auto_arg[1]["mycmd"] = [lambda: Shortcut(keywords=["modeA", "modeB"]), "mode", " "]
+cmd.auto_arg[1]["mycmd"] = [lambda: Shortcut(keywords=["modeA", "modeB"]), "mode description", " "]
 ```
 
 ---
