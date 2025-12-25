@@ -1,10 +1,10 @@
-'''
+"""
 Module for citation management.
 CitationManager:
     A singleton class that manages citation information.
 CitableModules:
     A base class for modules that can be cited, which should contain a `__bibtex__` attribute.
-'''
+"""
 
 import os
 import time
@@ -63,9 +63,7 @@ class CitationManager(SingletonAbstract):
             elif isinstance(c, (list, tuple)):
                 _.extend(c)
             else:
-                raise issues.BadDataWarning(
-                    f"{c=} must be either a dict or a str, instead of {type(c)}"
-                )
+                raise issues.BadDataWarning(f"{c=} must be either a dict or a str, instead of {type(c)}")
 
         return _
 
@@ -77,11 +75,7 @@ class CitationManager(SingletonAbstract):
             new_citations (dict): A dictionary containing new citations.
         """
         if not (new_citations and isinstance(new_citations, dict)):
-            warnings.warn(
-                issues.NoInputWarning(
-                    f"{new_citations=} is not a valid dictionary."
-                )
-            )
+            warnings.warn(issues.NoInputWarning(f"{new_citations=} is not a valid dictionary."))
             return
 
         self.called_citations.update(new_citations)
@@ -101,15 +95,9 @@ class CitationManager(SingletonAbstract):
         """
         import bibtexparser
 
-        library = bibtexparser.parse_string(
-            "\n".join(self.collected_citations)
-        )
+        library = bibtexparser.parse_string("\n".join(self.collected_citations))
         if library.failed_blocks:
-            warnings.warn(
-                issues.REvoDesignWarning(
-                    f"Could not parse {library.failed_blocks=}"
-                )
-            )
+            warnings.warn(issues.REvoDesignWarning(f"Could not parse {library.failed_blocks=}"))
 
         citation_output = os.path.join(
             cwd,
@@ -117,9 +105,7 @@ class CitationManager(SingletonAbstract):
             f'{time.strftime("%Y%m%d", time.localtime())}.bib',
         )
         os.makedirs(os.path.dirname(citation_output), exist_ok=True)
-        bibtexparser.write_file(
-            file=open(citation_output, "w", encoding="utf8"), library=library
-        )
+        bibtexparser.write_file(file=open(citation_output, "w", encoding="utf8"), library=library)
         logging.info(f"Citation is created at {citation_output}")
 
     def dismiss(self, modulename: str):
@@ -139,6 +125,7 @@ class CitableModuleAbstract(ABC):
 
     This class provides methods to handle the citation notice and citation information in a standardized way.
     """
+
     # A dictionary containing citation information, where the key is the
     # citation name and the value is the citation content or a tuple of
     # multiple citation contents.
@@ -156,16 +143,11 @@ class CitableModuleAbstract(ABC):
             logging.debug("Nothing has to be cited with this module.")
             return
         # If all citation items of the current module have been silenced, return directly.
-        if all(
-            k in CitationManager().silenced_citation_modules
-            for k in cls.__bibtex__
-        ):
+        if all(k in CitationManager().silenced_citation_modules for k in cls.__bibtex__):
             return
 
         # Log the citation notice header.
-        logging.info(
-            f"{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n"
-        )
+        logging.info(f"{CYAN_BG}{BOLD}[Citation Notice]{RESET}{RESET}\nThe following publications should be cited:\n")
         # Iterate through the citation items of the current module.
         for i, citation_item in cls.__bibtex__.items():
             # If the current citation item has been silenced, skip it.
@@ -173,15 +155,11 @@ class CitableModuleAbstract(ABC):
                 continue
             # If the citation item is a single string, log it directly.
             if isinstance(citation_item, str):
-                logging.info(
-                    f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{citation_item}{RESET}\n"
-                )
+                logging.info(f"{RED_BG}{BOLD}{i}{RESET}{RESET}: {MAGENTA_BG}{citation_item}{RESET}\n")
             # If the citation item is a tuple or list, log each citation content.
             elif isinstance(citation_item, (tuple, list)):
                 for j, _c in enumerate(citation_item):
-                    logging.info(
-                        f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n"
-                    )
+                    logging.info(f"{RED_BG}{BOLD}{i}-{j}{RESET}{RESET}: {MAGENTA_BG}{_c}{RESET}\n")
             # Dismiss the current citation item to avoid displaying it again.
             CitationManager().dismiss(i)
 
@@ -202,7 +180,7 @@ class CitableModuleAbstract(ABC):
         cls.notice()
 
     @classmethod
-    def get_citable_class(cls, func: Callable) -> type['CitableModuleAbstract']:
+    def get_citable_class(cls, func: Callable) -> type["CitableModuleAbstract"]:
         """
         Get the citable class from a function.
 
@@ -211,14 +189,14 @@ class CitableModuleAbstract(ABC):
         Returns:
             CitableModuleAbstract: The citable class associated with the function.
         """
-        if not hasattr(func, '__bibtex__'):
+        if not hasattr(func, "__bibtex__"):
             raise issues.InternalError(
                 f"Function {func.__name__} does not have __bibtex__ attribute. Make sure to use `setattr` to set the `__bibtex__`."
             )
 
         class AnonymousCitableModule(cls):
-            __name__ = f'{func.__name__}_CitableModule'
-            __bibtex__ = getattr(func, '__bibtex__')
+            __name__ = f"{func.__name__}_CitableModule"
+            __bibtex__ = getattr(func, "__bibtex__")
 
         AnonymousCitableModule.__doc__ = f"""Citable module for function {func.__name__}, auto generated by CitableModuleAbstract."""  # type: ignore[assignment]
 

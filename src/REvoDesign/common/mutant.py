@@ -1,6 +1,6 @@
-'''
+"""
 Module for handling mutants.
-'''
+"""
 
 import hashlib
 import os
@@ -17,9 +17,7 @@ from REvoDesign import issues
 class Mutant(RpMutant):
 
     def __str__(self):
-        return (
-            f"Mutant Info: {self.mutations}, Mutant Score: {self.mutant_score}"
-        )
+        return f"Mutant Info: {self.mutations}, Mutant Score: {self.mutant_score}"
 
     @property
     def empty(self) -> bool:
@@ -113,10 +111,7 @@ class Mutant(RpMutant):
                                 separated by underscores.
         """
         _raw_mutant_id = "_".join(
-            [
-                f"{mutant.chain_id}{mutant.wt_res}{mutant.position}{mutant.mut_res}"
-                for mutant in self.mutations
-            ]
+            [f"{mutant.chain_id}{mutant.wt_res}{mutant.position}{mutant.mut_res}" for mutant in self.mutations]
         )
         return _raw_mutant_id
 
@@ -170,9 +165,7 @@ class Mutant(RpMutant):
         """
         self._wt_score = float(value)
 
-    def get_mutant_sequence_single_chain(
-        self, chain_id: str, ignore_missing=False
-    ) -> Chain:
+    def get_mutant_sequence_single_chain(self, chain_id: str, ignore_missing=False) -> Chain:
         """
         Generates a mutated sequence for a single chain based on the provided chain ID and mutation information.
 
@@ -192,15 +185,11 @@ class Mutant(RpMutant):
         Note: If `ignore_missing` is True, any 'X' residues in the sequence will be removed.
         """
         if chain_id not in self.wt_protein_sequence.all_chain_ids:
-            raise issues.InvalidInputError(
-                f"Chain {chain_id} does not exist in wt sequence."
-            )
+            raise issues.InvalidInputError(f"Chain {chain_id} does not exist in wt sequence.")
 
         wt_sequence = self.wt_protein_sequence.get_sequence_by_chain(chain_id)
         if not self.mutations or not wt_sequence:
-            raise issues.InvalidInputError(
-                "No available mutant information or WT sequence is empty."
-            )
+            raise issues.InvalidInputError("No available mutant information or WT sequence is empty.")
 
         sequence = list(wt_sequence)
         for mutant in self.mutations:
@@ -208,12 +197,8 @@ class Mutant(RpMutant):
                 continue
             pos = int(mutant.position)
             if pos > (len_seq := len(sequence)):
-                raise issues.MoleculeError(
-                    f"Position {pos} out of sequence range ({len_seq})."
-                )
-            if (wt_res_in_seq := sequence[pos - 1]) != (
-                wt_res_in_mut := mutant.wt_res
-            ):
+                raise issues.MoleculeError(f"Position {pos} out of sequence range ({len_seq}).")
+            if (wt_res_in_seq := sequence[pos - 1]) != (wt_res_in_mut := mutant.wt_res):
                 raise issues.MoleculeError(
                     f"WT residue at position {pos} does not match mutant info: {wt_res_in_seq=} - {wt_res_in_mut=}."
                 )

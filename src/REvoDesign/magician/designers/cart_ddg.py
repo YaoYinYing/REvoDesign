@@ -1,6 +1,6 @@
-'''
+"""
 Cartesian-ddG, driven by RosettaPy Package
-'''
+"""
 
 import logging
 import os
@@ -22,17 +22,12 @@ from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
 
 
 def get_ddg_mut_id(mutations: list[Mutation]) -> str:
-    return "MUT_" + "_".join(
-        f"{_m.position}{IUPACData.protein_letters_1to3[_m.mut_res].upper()}"
-        for _m in mutations
-    )
+    return "MUT_" + "_".join(f"{_m.position}{IUPACData.protein_letters_1to3[_m.mut_res].upper()}" for _m in mutations)
 
 
 def preprocess_ddg_values(ddg_value_df) -> dict[str, float]:
     # Create a dictionary for quick lookup
-    ddg_dict = {
-        row["Baseline"]: row["ddG_cart"] for _, row in ddg_value_df.iterrows()
-    }
+    ddg_dict = {row["Baseline"]: row["ddG_cart"] for _, row in ddg_value_df.iterrows()}
     return ddg_dict
 
 
@@ -75,9 +70,7 @@ class ddg(ExternalDesignerAbstract):
         if self.node_config is None:
             self.node_config = {}
 
-        if self.unrelaxed_pdb is None or not os.path.isfile(
-            self.unrelaxed_pdb
-        ):
+        if self.unrelaxed_pdb is None or not os.path.isfile(self.unrelaxed_pdb):
             self.unrelaxed_pdb = make_temperal_input_pdb(
                 molecule=self.molecule, reload=False  # , selection="not hetatm"
             )
@@ -91,22 +84,14 @@ class ddg(ExternalDesignerAbstract):
         )
 
         # skip relax if it has been done
-        if (
-            isinstance(self.relaxed_pdb, str)
-            and os.path.isfile(self.relaxed_pdb)
-            and not self.reload
-        ):
+        if isinstance(self.relaxed_pdb, str) and os.path.isfile(self.relaxed_pdb) and not self.reload:
             return
         logging.info(f"Relaxing {self.molecule} ...")
-        self.relaxed_pdb = self.ddg_runner.relax(
-            nstruct_relax=self.relax_nstruct
-        )
+        self.relaxed_pdb = self.ddg_runner.relax(nstruct_relax=self.relax_nstruct)
 
         self.initialized = True
 
-    def parallel_scorer(
-        self, mutants: list[Mutant], nproc=2, **kwargs
-    ) -> list[Mutant]:
+    def parallel_scorer(self, mutants: list[Mutant], nproc=2, **kwargs) -> list[Mutant]:
 
         mutfile_paths = [
             os.path.abspath(
@@ -149,9 +134,7 @@ class ddg(ExternalDesignerAbstract):
 
         return mutants
 
-    def scorer(
-        self, mutant: Mutant | RosettaPyProteinSequence, **kwargs
-    ) -> float:
+    def scorer(self, mutant: Mutant | RosettaPyProteinSequence, **kwargs) -> float:
         if isinstance(mutant, RosettaPyProteinSequence):
             raise NotImplementedError
 
@@ -159,8 +142,9 @@ class ddg(ExternalDesignerAbstract):
 
         return float(updated_mutant[0].mutant_score)
 
-    __bibtex__ = copy_rosetta_citation({
-        "Cartesian-ddG": """@article{doi:10.1021/acs.jctc.6b00819,
+    __bibtex__ = copy_rosetta_citation(
+        {
+            "Cartesian-ddG": """@article{doi:10.1021/acs.jctc.6b00819,
 author = {Park, Hahnbeom and Bradley, Philip and Greisen, Per Jr. and Liu, Yuan and Mulligan, Vikram Khipple and Kim, David E. and Baker, David and DiMaio, Frank},
 title = {Simultaneous Optimization of Biomolecular Energy Functions on Features from Small Molecules and Macromolecules},
 journal = {Journal of Chemical Theory and Computation},
@@ -174,4 +158,5 @@ URL = {https://doi.org/10.1021/acs.jctc.6b00819},
 eprint = {https://doi.org/10.1021/acs.jctc.6b00819}
 }
 """
-    })
+        }
+    )

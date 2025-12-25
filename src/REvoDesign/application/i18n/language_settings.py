@@ -92,11 +92,7 @@ class LanguageSwitch(QtWidgets.QWidget):
 
         if lan_id := self.bus.get_value("language", str, reject_none=True):
             print(f"Language {lan_id} is loaded from configuration.")
-            lan = [
-                _language
-                for _language in self.language_items
-                if _language.id == lan_id
-            ][0]
+            lan = [_language for _language in self.language_items if _language.id == lan_id][0]
 
         self.switch_language(language=lan)
         self._set_action_checked(language=lan)
@@ -126,9 +122,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         Args:
             language: Language item to bind the action to.
         """
-        language.action.triggered.connect(
-            partial(self.switch_language, language)
-        )
+        language.action.triggered.connect(partial(self.switch_language, language))
 
     def add_lan_to_menu(self, action_name: str):
         """
@@ -146,9 +140,7 @@ class LanguageSwitch(QtWidgets.QWidget):
         Registers all languages.
         """
         for lan in self.language_items:
-            print(
-                f"Registering language {lan.name} by {lan.id} from {lan.language_file}"
-            )
+            print(f"Registering language {lan.name} by {lan.id} from {lan.language_file}")
             self._bind_to_action(language=lan)
 
     def switch_language(self, language: LanguageItem):
@@ -160,17 +152,11 @@ class LanguageSwitch(QtWidgets.QWidget):
         """
         if language.id and os.path.exists(language.language_file):
             self.bus.ui.trans.load(language.language_file)
-            print(
-                f"loading {language.name} ({language.id}) from {language.language_file}"
-            )
-            QtWidgets.QApplication.instance().installTranslator(
-                self.bus.ui.trans
-            )
+            print(f"loading {language.name} ({language.id}) from {language.language_file}")
+            QtWidgets.QApplication.instance().installTranslator(self.bus.ui.trans)
 
         else:
-            QtWidgets.QApplication.instance().removeTranslator(
-                self.bus.ui.trans
-            )
+            QtWidgets.QApplication.instance().removeTranslator(self.bus.ui.trans)
         self.bus.ui.retranslateUi(self.window)
         self._set_action_checked(language=language)
         self.bus.set_value("language", language.id)
@@ -190,8 +176,6 @@ class LanguageSwitch(QtWidgets.QWidget):
         Sets the clickable state of the language actions.
         """
         for lan in self.language_items:
-            lan_available = (
-                os.path.exists(lan.language_file) or lan.name == "English"
-            )
+            lan_available = os.path.exists(lan.language_file) or lan.name == "English"
             lan.action.setEnabled(lan_available)
             lan.action.setCheckable(lan_available)

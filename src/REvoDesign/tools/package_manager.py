@@ -41,7 +41,7 @@ else:
     from pymol.Qt import QtCore, QtGui, QtWidgets
 
 
-if not __file__.endswith('package_manager.py'):
+if not __file__.endswith("package_manager.py"):
     # PyMOL plugin branch, set docstring to describe the plugin
     __doc__ = """Described at GitHub:
 https://github.com/YaoYinYing/REvoDesign
@@ -57,56 +57,56 @@ REvoDesign -- Makes enzyme redesign tasks easier to all."""
     class MockLogger:
 
         def debug(self, msg: str, *args, **kwargs):
-            print(f'[DEBUG]: {msg}') if LOGGER_LEVEL < 10 else None
+            print(f"[DEBUG]: {msg}") if LOGGER_LEVEL < 10 else None
 
         def info(self, msg: str, *args, **kwargs):
-            print(f'[INFO]: {msg}') if LOGGER_LEVEL < 20 else None
+            print(f"[INFO]: {msg}") if LOGGER_LEVEL < 20 else None
 
         def warning(self, msg: str, *args, **kwargs):
-            print(f'[WARNING]: {msg}') if LOGGER_LEVEL < 30 else None
+            print(f"[WARNING]: {msg}") if LOGGER_LEVEL < 30 else None
 
         def error(self, msg: str, *args, **kwargs):
-            print(f'[ERROR]: {msg}') if LOGGER_LEVEL < 40 else None
+            print(f"[ERROR]: {msg}") if LOGGER_LEVEL < 40 else None
 
         def critical(self, msg: str, *args, **kwargs):
-            print(f'[CRITICAL]: {msg}') if LOGGER_LEVEL < 50 else None
+            print(f"[CRITICAL]: {msg}") if LOGGER_LEVEL < 50 else None
 
     logging = MockLogger()
-    logging.info(f'Package manager is running via PyMOL: {__file__}.')
+    logging.info(f"Package manager is running via PyMOL: {__file__}.")
 
 
 else:
     # REvoDesign runtime branch, set docstring to describe the module
-    __doc__ = '''
+    __doc__ = """
 Module that contains key functions of constructing the REvoDesign Package Manager
 
 This module also serves as standalone REvoDesign Package Manager,
 meaning that any tools existed here is part of the manager.
 To make any of them importable in certain modules, import them from here
 and add to the `__all__` attributes so that they can be discoverable.
-'''
+"""
     # enable logger from REvoDesign if it is a submodule not a script
     from REvoDesign.logger import ROOT_LOGGER
 
     logging = ROOT_LOGGER.getChild(__name__)
-    logging.info('Package manager is running via REvoDesign.')
+    logging.info("Package manager is running via REvoDesign.")
 
 
 REPO_URL: str = "https://github.com/YaoYinYing/REvoDesign"
 
-GIST_BASE_URL: str = 'https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw'
+GIST_BASE_URL: str = "https://gist.githubusercontent.com/YaoYinYing/c1e8bfe0fc0b9c60bf49ea04a550a044/raw"
 
 # uploaded with `make upload-gists`
-UI_FILE_URL = f'{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui'
+UI_FILE_URL = f"{GIST_BASE_URL}/REvoDesign-PyMOL-entry.ui"
 
 # refer to THIS file, an installable package manager via pymol's plugin manager.
-THIS_FILE_URL = f'{GIST_BASE_URL}/REvoDesign_PyMOL.py'
+THIS_FILE_URL = f"{GIST_BASE_URL}/REvoDesign_PyMOL.py"
 # Define the URL of the JSON file
-RICH_TABLE_JSON = f'{GIST_BASE_URL}/REvoDesignExtrasTableRich.json'
+RICH_TABLE_JSON = f"{GIST_BASE_URL}/REvoDesignExtrasTableRich.json"
 
 
 # Define the proxy protocols allowed
-ALLOWED_PROXY_PROTOCOLS = ["http", "https", 'socks5', 'socks5h']
+ALLOWED_PROXY_PROTOCOLS = ["http", "https", "socks5", "socks5h"]
 
 # TODO: native filter on extra groups
 
@@ -117,20 +117,21 @@ class PlatformInfo:
     A dataclass representing platform information.
     """
 
-    HAS_CUDA = shutil.which('nvidia-smi') is not None
-    HAS_MPS = platform.system() == 'Darwin' and platform.mac_ver()[-1] == 'arm64'
+    HAS_CUDA = shutil.which("nvidia-smi") is not None
+    HAS_MPS = platform.system() == "Darwin" and platform.mac_ver()[-1] == "arm64"
 
 
 @dataclass
 class ExtrasItem:
-    '''
+    """
     A dataclass representing an extras item.
 
     Attributes:
     - name (str): The name of the extras item.
     - extras_id (str): The unique identifier for the extras item.
     - depts (list[str]): The departments associated with the extras item.
-    '''
+    """
+
     name: str
     extras_id: str
     depts: list[str]
@@ -138,7 +139,7 @@ class ExtrasItem:
     platform: list[str] | None = None
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'ExtrasItem':
+    def from_dict(cls, data: dict) -> "ExtrasItem":
         """
         Create an ExtrasItem instance from a dictionary.
 
@@ -149,17 +150,17 @@ class ExtrasItem:
         ExtrasItem: An instance of ExtrasItem created from the provided data.
         """
         return cls(
-            name=data['name'],
-            extras_id=data['extras_id'],
-            depts=data['depts'],
-            description=data.get('description', data['name']),
-            platform=data.get('platform', None),
+            name=data["name"],
+            extras_id=data["extras_id"],
+            depts=data["depts"],
+            description=data.get("description", data["name"]),
+            platform=data.get("platform", None),
         )
 
 
 @dataclass
 class ExtrasGroup:
-    '''
+    """
     A dataclass representing an extras group.
 
     Attributes:
@@ -167,13 +168,14 @@ class ExtrasGroup:
     - description (str): The description of the extras group.
     - extras (ExtrasItem): The extras item associated with this group.
 
-    '''
+    """
+
     name: str
     description: str
     extras: list[ExtrasItem]
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'ExtrasGroup':
+    def from_dict(cls, data: dict) -> "ExtrasGroup":
         """
         Create an ExtrasGroup instance from a dictionary.
 
@@ -184,9 +186,9 @@ class ExtrasGroup:
         ExtrasGroup: An instance of ExtrasGroup created from the provided data.
         """
         return cls(
-            name=data['name'],
-            description=data['description'],
-            extras=[ExtrasItem.from_dict(item) for item in data['extras']]
+            name=data["name"],
+            description=data["description"],
+            extras=[ExtrasItem.from_dict(item) for item in data["extras"]],
         )
 
     @cached_property
@@ -199,7 +201,7 @@ class ExtrasGroups:
     entities: tuple[ExtrasGroup, ...]
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'ExtrasGroups':
+    def from_dict(cls, d: dict) -> "ExtrasGroups":
         """
         Create an ExtrasGroups object from a dictionary.
 
@@ -210,13 +212,8 @@ class ExtrasGroups:
         ExtrasGroups: An ExtrasGroups object.
         """
 
-        if d and 'entities' in d:
-            return cls(
-                tuple(
-                    ExtrasGroup.from_dict(_d)
-                    for _d in d['entities']
-                )
-            )
+        if d and "entities" in d:
+            return cls(tuple(ExtrasGroup.from_dict(_d) for _d in d["entities"]))
 
         return cls(())
 
@@ -253,19 +250,20 @@ def fetch_gist_file(ui_file_url: str, save_to_file: str) -> None:
     None
     """
     # Validate and sanitize the URL
-    if not ui_file_url.startswith('https'):
+    if not ui_file_url.startswith("https"):
         raise ValueError("URL must start with 'https'")
 
     try:
         # Fetch the file content and write it to the temporary file
-        with urllib.request.urlopen(ui_file_url) as response, open(save_to_file, 'w') as ui_handle:
-            ui_data = response.read().decode('utf-8')
+        with urllib.request.urlopen(ui_file_url) as response, open(save_to_file, "w") as ui_handle:
+            ui_data = response.read().decode("utf-8")
             ui_handle.write(ui_data)
 
     except (URLError, HTTPError) as e:
         raise URLError(f"Failed to download file: {e}") from e
     except ValueError as e:
         raise ValueError(f"Invalid URL: {e}") from e
+
 
 # Fetch and validate JSON data
 
@@ -282,10 +280,9 @@ def fetch_gist_json(url: str) -> dict[str, Any]:
     """
     try:
         with urllib.request.urlopen(url, timeout=10) as response:  # Set a timeout for safety
-            data = response.read().decode('utf-8')
+            data = response.read().decode("utf-8")
             json_data = json.loads(data)
-            logging.debug('Extras table is fetched and parsed: \n'
-                          f'{json_data}')
+            logging.debug("Extras table is fetched and parsed: \n" f"{json_data}")
 
             # Validate the structure of the fetched data
             if not isinstance(json_data, dict):
@@ -307,6 +304,7 @@ class UnsupportedWidgetValueTypeError(TypeError):
     This exception class inherits from TypeError and is used to indicate that the value type
     assigned to a Widget instance is not supported.
     """
+
 
 # TODO: real time replay with relative time stamps
 
@@ -351,7 +349,7 @@ def run_command(
     stderr_lines: list[str] = []
 
     def stream_reader(pipe: io.IOBase, collector: list[str], label: str):
-        for line in iter(pipe.readline, ''):
+        for line in iter(pipe.readline, ""):
             if verbose:
                 logging.info(f"[{label}] {line.rstrip()}")
             collector.append(line)
@@ -375,13 +373,11 @@ def run_command(
     t1.join()
     t2.join()
 
-    stdout_text = ''.join(stdout_lines)
-    stderr_text = ''.join(stderr_lines)
+    stdout_text = "".join(stdout_lines)
+    stderr_text = "".join(stderr_lines)
 
     if process.returncode != 0 and verbose:
-        raise RuntimeError(
-            f"--> Command failed:\n{'-' * 79}\n{stderr_text.strip()}\n{'-' * 79}"
-        )
+        raise RuntimeError(f"--> Command failed:\n{'-' * 79}\n{stderr_text.strip()}\n{'-' * 79}")
 
     return LiveProcessResult(
         args=cmd,
@@ -389,6 +385,7 @@ def run_command(
         stdout=stdout_text,
         stderr=stderr_text,
     )
+
 
 # Additional widget for extra selection
 
@@ -437,21 +434,21 @@ class CheckableListView(QtWidgets.QWidget):
             separator_item.setSelectable(False)  # Non-selectable
             separator_item.setCheckable(False)  # Non-checkable
             separator_item.setForeground(QtGui.QBrush(QtCore.Qt.yellow))
-            separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))   # Different background
+            separator_item.setBackground(QtGui.QBrush(QtCore.Qt.blue))  # Different background
             separator_item.setFont(QtGui.QFont("Arial", weight=QtGui.QFont.Bold))  # Bold text
             separator_item.setToolTip(e.description or e.name)
             self.model.appendRow(separator_item)
 
             for _e in e.extras:
                 if _e.platform:
-                    if any(not getattr(filter, f'HAS_{p}') for p in _e.platform):
+                    if any(not getattr(filter, f"HAS_{p}") for p in _e.platform):
                         logging.debug(f"Skipping {_e.name} for {_e.platform}")
                         continue
 
                 # Add as a regular checkable item
                 item = QtGui.QStandardItem(_e.name)
                 item.setCheckable(True)
-                item.setCheckState(QtCore.Qt.Unchecked)   # Default unchecked
+                item.setCheckState(QtCore.Qt.Unchecked)  # Default unchecked
                 item.setToolTip(_e.description or _e.name)
                 self.model.appendRow(item)
 
@@ -465,7 +462,7 @@ class CheckableListView(QtWidgets.QWidget):
         Returns:
             A list of strings representing the texts of items with the specified check state.
         """
-        items = ExtrasGroup(f'{"" if check_state else "un" }checked', '', [])
+        items = ExtrasGroup(f'{"" if check_state else "un" }checked', "", [])
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
             if item.isCheckable() and item.checkState() == check_state:
@@ -481,7 +478,7 @@ class CheckableListView(QtWidgets.QWidget):
             A list of strings representing the texts of all checked items.
         """
         checked_items = self._get_items_by_check_state(QtCore.Qt.Checked)
-        logging.debug(f'Checked: {checked_items}')
+        logging.debug(f"Checked: {checked_items}")
         return checked_items.extras_id_list
 
     def check_all(self):
@@ -490,7 +487,7 @@ class CheckableListView(QtWidgets.QWidget):
         """
         for row in range(self.model.rowCount()):
             item = self.model.item(row)
-            if item.isCheckable() and item.text() != 'Test':
+            if item.isCheckable() and item.text() != "Test":
                 item.setCheckState(QtCore.Qt.Checked)
 
     def uncheck_all(self):
@@ -501,6 +498,7 @@ class CheckableListView(QtWidgets.QWidget):
             item = self.model.item(row)
             if item.isCheckable():
                 item.setCheckState(QtCore.Qt.Unchecked)
+
 
 # #TODO: simplification needed
 
@@ -529,7 +527,7 @@ class GitSolver:
         # subprocess.run on Windows treat conda as a excutable file and will check its existence
         # however conda is AKA a alias in shell and does not exist as a file.
         # shutil.which will return the real path of conda script
-        for cmd_tool in ["git", "conda", "mamba", "winget", "brew", 'choco']:
+        for cmd_tool in ["git", "conda", "mamba", "winget", "brew", "choco"]:
             setattr(self, f"has_{cmd_tool}", shutil.which(cmd_tool))
             logging.debug(f"Command tool check: {cmd_tool}: {getattr(self, f'has_{cmd_tool}')}")
 
@@ -574,7 +572,7 @@ class GitSolver:
 
         # Check if Git is already installed
         if self.has_git:
-            return True, ''
+            return True, ""
 
         # Execute the Git installation command in a worker thread and monitor progress
         git_install_std = run_command(
@@ -584,9 +582,9 @@ class GitSolver:
         )
 
         # Check if the Git installation was successful
-        if (git_install_std and git_install_std.returncode == 0) or shutil.which('git'):
-            self.has_git = shutil.which('git')
-            return True, ''
+        if (git_install_std and git_install_std.returncode == 0) or shutil.which("git"):
+            self.has_git = shutil.which("git")
+            return True, ""
 
         # If installation failed, show error information and return False
 
@@ -611,7 +609,7 @@ class PIPInstaller:
             1~3:  Minimum - Maximum noisy
     """
 
-    python_exe: str = ''
+    python_exe: str = ""
     # run_command args
     env: Mapping[str, str] | None = None
     verbose_level: int = 0
@@ -627,7 +625,8 @@ class PIPInstaller:
             notify_box(
                 f"ensurepip failed.",
                 RuntimeError,
-                details=f'\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}')
+                details=f"\nSTDOUT:\n{ensurepip.stdout}\n\nSTDERR:\n{ensurepip.stderr}",
+            )
 
     def __post_init__(self):
         """
@@ -636,15 +635,16 @@ class PIPInstaller:
         self.python_exe = os.path.realpath(sys.executable)
         self.ensurepip()
 
-    def install(self,
-                package_name: str = 'REvoDesign',
-                source: str | None = None,
-                upgrade: bool = False,
-                extras: str | None = None,
-                mirror: str | None = "",
-                verbose_level: int = 0,
-                env: Mapping[str, str] | None = None,
-                ):
+    def install(
+        self,
+        package_name: str = "REvoDesign",
+        source: str | None = None,
+        upgrade: bool = False,
+        extras: str | None = None,
+        mirror: str | None = "",
+        verbose_level: int = 0,
+        env: Mapping[str, str] | None = None,
+    ):
         """
         Install a package in the current Python environment.
 
@@ -662,9 +662,9 @@ class PIPInstaller:
         """
         logging.info("Installation is started. This may take a while.")
 
-        if package_name != 'pip':
-            logging.info('Upgrading pip to the latest version...')
-            self.install('pip', upgrade=True, verbose_level=verbose_level, env=self.env)
+        if package_name != "pip":
+            logging.info("Upgrading pip to the latest version...")
+            self.install("pip", upgrade=True, verbose_level=verbose_level, env=self.env)
 
         def get_source_and_tag(source: str):
             """
@@ -683,20 +683,16 @@ class PIPInstaller:
                 git_tag = ""
             return git_dir, git_tag
 
-        if package_name != 'REvoDesign':
+        if package_name != "REvoDesign":
             # use package_name as package_string for other packages then 'REvoDesign'
             package_string = package_name
         else:
-            if source is None or source == '':
+            if source is None or source == "":
                 raise ValueError("Source must be specified for REvoDesign")
 
             git_url, git_tag = get_source_and_tag(source=source)
             package_string = solve_installation_config(
-                source=source,
-                git_url=git_url,
-                git_tag=git_tag,
-                extras=extras,
-                package_name=package_name
+                source=source, git_url=git_url, git_tag=git_tag, extras=extras, package_name=package_name
             )
 
         pip_cmd = [
@@ -718,13 +714,12 @@ class PIPInstaller:
         elif verbose_level > 0:
             pip_cmd.append(f"-{'v' * verbose_level}")
 
-        logging.debug(f'Using verbose level {verbose_level}')
+        logging.debug(f"Using verbose level {verbose_level}")
 
-        result = run_command(
-            pip_cmd, verbose=self.verbose_level > -1, env=env or self.env)
+        result = run_command(pip_cmd, verbose=self.verbose_level > -1, env=env or self.env)
         return result
 
-    def uninstall(self, package_name: str = 'REvoDesign'):
+    def uninstall(self, package_name: str = "REvoDesign"):
         """
         Uninstall a package from the current Python environment.
 
@@ -745,8 +740,7 @@ class PIPInstaller:
         result = run_command(pip_cmd, verbose=self.verbose_level > -1, env=self.env)
         return result
 
-    def ensure_package(self, package_string: str,
-                       env: Mapping[str, str] | None = None, mirror: str | None = None):
+    def ensure_package(self, package_string: str, env: Mapping[str, str] | None = None, mirror: str | None = None):
         """
         Ensure a package is installed in the current Python environment.
         If the package is not installed or needs to be upgraded, run the pip install command.
@@ -763,8 +757,7 @@ class PIPInstaller:
             notify_box(
                 f"Failed to ensure {package_string}. Please upgrade/downgrade manually.\n"
                 f'Run this command in your shell - `{" ".join(result.args)}`',
-                details=f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
-
+                details=f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}",
             )
 
 
@@ -782,6 +775,7 @@ class MenuItem:
         func (Callable): The function associated with the menu item, which is executed when the item is selected.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
+
     name: str
     func: Callable | None = None
     kwargs: Mapping | None = None
@@ -814,11 +808,8 @@ class REvoDesignPackageManager:
 
     def ensure_ui_file(self, upgrade: bool = False):
         ui_file = os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                'REvoDesign-manager',
-                'UI',
-                'REvoDesign_installer.ui'))
+            os.path.join(os.path.dirname(__file__), "REvoDesign-manager", "UI", "REvoDesign_installer.ui")
+        )
         os.makedirs(os.path.dirname(ui_file), exist_ok=True)
 
         # if not exists,  preform the first fetch
@@ -830,18 +821,14 @@ class REvoDesignPackageManager:
 
         # otherwise, if the user not requires an upgrade, return
         if not upgrade:
-            logging.debug(f'pre-downloaded UI file found: {ui_file}')
+            logging.debug(f"pre-downloaded UI file found: {ui_file}")
             return ui_file
 
         # otherwise, preform the upgrade
-        new_ui_file = f'{ui_file}.swp'
+        new_ui_file = f"{ui_file}.swp"
 
         fetch_gist_file(ui_file_url=UI_FILE_URL, save_to_file=new_ui_file)
-        self.upgrade_check(
-            original_file=ui_file,
-            new_file=new_ui_file,
-            title='REvoDesign Manager UI file'
-        )
+        self.upgrade_check(original_file=ui_file, new_file=new_ui_file, title="REvoDesign Manager UI file")
         return ui_file
 
     @staticmethod
@@ -860,40 +847,37 @@ class REvoDesignPackageManager:
         Returns:
         - None
         """
-        diff_file = f'{original_file}.diff'
+        diff_file = f"{original_file}.diff"
 
         # Open the original, new fetched, and diff files
         with open(original_file) as original, open(new_file) as new_fetched:
             diffs = tuple(
                 difflib.context_diff(
-                    original.readlines(),
-                    new_fetched.readlines(),
-                    fromfile=original_file,
-                    tofile=new_file
+                    original.readlines(), new_fetched.readlines(), fromfile=original_file, tofile=new_file
                 )
             )
             if not diffs:
-                return notify_box(f'{title} is already up to date.')
+                return notify_box(f"{title} is already up to date.")
 
-            num_added_lines = len([l for l in diffs if l.startswith('+ ')])
-            num_chged_lines = len([l for l in diffs if l.startswith('! ')])
-            num_deled_lines = len([l for l in diffs if l.startswith('- ')])
+            num_added_lines = len([l for l in diffs if l.startswith("+ ")])
+            num_chged_lines = len([l for l in diffs if l.startswith("! ")])
+            num_deled_lines = len([l for l in diffs if l.startswith("- ")])
 
-            with open(diff_file, 'w') as diff:
+            with open(diff_file, "w") as diff:
                 diff.writelines(diffs)
 
         # Prompt the user to confirm the upgrade
         accept_upgraded = decide(
-            title='Upgrade', description='Do you REALLY want to apply the upgrade?<p><p>'
+            title="Upgrade", description="Do you REALLY want to apply the upgrade?<p><p>"
             '<a style="background-color:yellow;color:blue;">:::::Upgrade Summary:::::</a><p>'
-            '<table>'
-            '<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>'
+            "<table>"
+            "<tr><th><b>Event</b></th><th>-</th><th><b>Affected Lines<b></th></tr>"
             f'<tr><td><a style="background-color:green;color:white">Added  </a></td><td>:</td><td><a style="background-color:white;color:green;">{num_added_lines}</a></td></tr>'
             f'<tr><td><a style="background-color:blue; color:white">Changed</a></td><td>:</td><td><a style="background-color:white;color:blue ;">{num_chged_lines}</a></td></tr>'
             f'<tr><td><a style="background-color:red;  color:white">Deleted</a></td><td>:</td><td><a style="background-color:white;color:red  ;">{num_deled_lines}</a></td></tr>'
-            '</table>'
-            'You must check out these changes carefully.<p>'
-            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", rich=True, details='\n'.join(diffs))
+            "</table>"
+            "You must check out these changes carefully.<p>"
+            f"See all changes in this <a href=file://{diff_file}>diff file of {title}</a>.", rich=True, details="\n".join(diffs), )
 
         # Clean up the diff file
         if os.path.isfile(diff_file):
@@ -902,33 +886,26 @@ class REvoDesignPackageManager:
         # Handle user response
         if not accept_upgraded:
             os.remove(new_file)
-            return notify_box('Upgrade cancelled.')
+            return notify_box("Upgrade cancelled.")
 
         shutil.move(new_file, original_file)
 
-        return notify_box(
-            f'{title} has been upgraded successfully, please restart PyMOL to take effects.'
-        )
+        return notify_box(f"{title} has been upgraded successfully, please restart PyMOL to take effects.")
 
     def self_upgrade(self):
         confirmed = decide(
-            title='Upgrade REvoDesign',
-            description='[WARNING]\n'
-            'Do you want to upgrade REvoDesign Manager to the latest version?'
+            title="Upgrade REvoDesign",
+            description="[WARNING]\n" "Do you want to upgrade REvoDesign Manager to the latest version?",
         )
 
         if not confirmed:
-            return notify_box('Upgrade cancelled.')
+            return notify_box("Upgrade cancelled.")
 
-        new_py_file = f'{__file__}.swp'
+        new_py_file = f"{__file__}.swp"
 
         fetch_gist_file(THIS_FILE_URL, new_py_file)
 
-        self.upgrade_check(
-            original_file=__file__,
-            new_file=new_py_file,
-            title='REvoDesign Manager'
-        )
+        self.upgrade_check(original_file=__file__, new_file=new_py_file, title="REvoDesign Manager")
 
         self.ensure_ui_file(upgrade=True)
 
@@ -962,19 +939,19 @@ class REvoDesignPackageManager:
         - Connect the 'Everything' radio button to check all items in the checkbox list.
         - Run a worker thread to fetch tags with a progress bar.
         """
-        logging.debug('Initializing dialog window...')
+        logging.debug("Initializing dialog window...")
         if self.dialog is None:
             self.dialog = self.make_window()
 
         self.dialog.show()
-        logging.debug('Dialog window initialized.')
+        logging.debug("Dialog window initialized.")
 
         with self.freeze_manager():
             self.initialize_manager()
 
     def initialize_manager(self):
 
-        logging.debug('Run pre-fetching tasks... ')
+        logging.debug("Run pre-fetching tasks... ")
 
         self.refresh_remote_json()
 
@@ -1014,17 +991,21 @@ class REvoDesignPackageManager:
             return {}
 
         if not any(proxy.startswith(prefix) for prefix in ALLOWED_PROXY_PROTOCOLS):
-            notify_box(f'Unsupported proxy type: {proxy}\nPlease use one of the following protocols: \n'
-                       + "\n".join(f"{p}://..." for p in ALLOWED_PROXY_PROTOCOLS), ValueError)
+            notify_box(
+                f"Unsupported proxy type: {proxy}\nPlease use one of the following protocols: \n"
+                + "\n".join(f"{p}://..." for p in ALLOWED_PROXY_PROTOCOLS),
+                ValueError,
+            )
 
-        if proxy.startswith('socks5'):
-            logging.info('Ensuring pysocks is installed...')
+        if proxy.startswith("socks5"):
+            logging.info("Ensuring pysocks is installed...")
             run_worker_thread_with_progress(
                 worker_function=self.pip_installer.ensure_package,
-                package_string='pysocks',
+                package_string="pysocks",
                 mirror=mirror,
                 env={},
-                progress_bar=self.installer_ui.progressBar)
+                progress_bar=self.installer_ui.progressBar,
+            )
 
         logging.info(f"using proxy: {proxy}")
         proxy_env = {
@@ -1041,25 +1022,30 @@ class REvoDesignPackageManager:
         This method uses a worker thread to fetch extras data with a progress bar indication.
         If fetching fails, it shows an error notification and sets up an empty extras list.
         """
-        d_placeholder = {'entities': [{
-            "name": "No Extras is Fetched",
-            "description": "No Extras is Fetched, please check the internet connection",
-            "extras": []
-        }], }
+        d_placeholder = {
+            "entities": [
+                {
+                    "name": "No Extras is Fetched",
+                    "description": "No Extras is Fetched, please check the internet connection",
+                    "extras": [],
+                }
+            ],
+        }
         remote_data = run_worker_thread_with_progress(
-            worker_function=fetch_gist_json,
-            url=RICH_TABLE_JSON,
-            progress_bar=self.installer_ui.progressBar)
+            worker_function=fetch_gist_json, url=RICH_TABLE_JSON, progress_bar=self.installer_ui.progressBar
+        )
 
         self.notification_channel(remote_data)
 
         if not remote_data:
-            notify_box("Error fetching or validating the JSON data. \n"
-                       "Please reconfigure your network and press <Refresh> to try again "
-                       "if you wish to continue installation with extra packages")
+            notify_box(
+                "Error fetching or validating the JSON data. \n"
+                "Please reconfigure your network and press <Refresh> to try again "
+                "if you wish to continue installation with extra packages"
+            )
 
-        if 'entities' not in remote_data:
-            notify_box('Fetched data is not valid. The data is expected to have an `entities` key.')
+        if "entities" not in remote_data:
+            notify_box("Fetched data is not valid. The data is expected to have an `entities` key.")
 
         self.remote_extra_group_data = ExtrasGroups.from_dict(remote_data or d_placeholder)
 
@@ -1079,11 +1065,11 @@ class REvoDesignPackageManager:
             None
         """
         # Check if input dictionary is valid and contains notification key
-        if not d or 'notification' not in d:
+        if not d or "notification" not in d:
             return
 
         # Iterate through all notification messages and send to notification box
-        for n in d['notification']:
+        for n in d["notification"]:
             notify_box(message=f'[{n.get("level", "unknown")}]: {n.get("message")}')
 
     def collect_diagnostic_data(self, collect_dummy: bool = False, drop_sensitives=True):
@@ -1103,12 +1089,12 @@ class REvoDesignPackageManager:
         """
         if not drop_sensitives:
             confirmed = decide(
-                title='Agree to collect SENSITIVE data?',
-                description='[!!!CAUSION!!!]Do you REALLY want to collect diagnostic information INCLUDING ALL SENSITIVE data?\n'
-                'Please DO NOT share this information with anyone else or post it to public channels.',
+                title="Agree to collect SENSITIVE data?",
+                description="[!!!CAUSION!!!]Do you REALLY want to collect diagnostic information INCLUDING ALL SENSITIVE data?\n"
+                "Please DO NOT share this information with anyone else or post it to public channels.",
             )
             if not confirmed:
-                return notify_box('Diagnostic information collection cancelled.')
+                return notify_box("Diagnostic information collection cancelled.")
 
         # Clear the clipboard to ensure no old data is mixed in
         cb = QtWidgets.QApplication.clipboard()
@@ -1119,7 +1105,7 @@ class REvoDesignPackageManager:
             worker_function=issue_collection,
             collect_dummy=collect_dummy,
             drop_sensitives=drop_sensitives,
-            progress_bar=self.installer_ui.progressBar
+            progress_bar=self.installer_ui.progressBar,
         )
         diagnostic_data_json = json.dumps(diagnostic_data, indent=2)
         # Copy the collected diagnostic data to the clipboard in JSON format
@@ -1167,7 +1153,7 @@ class REvoDesignPackageManager:
             pos (QPoint): The position where the menu should be shown, in widget coordinates.
         """
         # Show the menu at the position of the mouse cursor
-        logging.debug(f'showing menu at {pos}')
+        logging.debug(f"showing menu at {pos}")
         global_pos = self.installer_ui.mapToGlobal(pos)
         self.menu.exec_(global_pos)
 
@@ -1184,17 +1170,16 @@ class REvoDesignPackageManager:
         # Create a new dialog window
         dialog = QtWidgets.QDialog()
 
-        ui_file = run_worker_thread_with_progress(
-            worker_function=self.ensure_ui_file
-        )
+        ui_file = run_worker_thread_with_progress(worker_function=self.ensure_ui_file)
         # Set up the UI for the dialog
         try:
             self.installer_ui = loadUi(ui_file, dialog)
         except Exception as e:
             decided = decide(
-                'UI Error',
-                f'Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?',
-                details=str(e),)
+                "UI Error",
+                f"Error Occurs while loading UI file, this UI may out-of-dated.\nCleanup and fetch the latest?",
+                details=str(e),
+            )
             if decided:
                 os.remove(ui_file)
                 return self.make_window()
@@ -1203,34 +1188,29 @@ class REvoDesignPackageManager:
         # add right-click menu on `self.installer_ui.label_header`,
         # add a item `Upgrade UI` and connect `partial(self.ensure_ui_file, upgrade=True)`
         menuitems = [
-            MenuItem('Upgrades'),
+            MenuItem("Upgrades"),
             MenuItem("Upgrade this manager", self.self_upgrade),
-
-            MenuItem('Fetch remote data'),
-            MenuItem('Refresh GitHub Release tags', self.fetch_tags),
-
-            MenuItem('Diagnostics'),
+            MenuItem("Fetch remote data"),
+            MenuItem("Refresh GitHub Release tags", self.fetch_tags),
+            MenuItem("Diagnostics"),
             MenuItem(
-                'Collect diagnostic data (reduced)',
-                self.collect_diagnostic_data,
-                kwargs={'collect_dummy': False}
+                "Collect diagnostic data (reduced)", self.collect_diagnostic_data, kwargs={"collect_dummy": False}
             ),
             MenuItem(
-                'Collect diagnostic data (full, non-sensitive)',
+                "Collect diagnostic data (full, non-sensitive)",
                 self.collect_diagnostic_data,
-                kwargs={'collect_dummy': True}
+                kwargs={"collect_dummy": True},
             ),
             MenuItem(
-                'Collect diagnostic data (full, with sensitive)',
+                "Collect diagnostic data (full, with sensitive)",
                 self.collect_diagnostic_data,
-                kwargs={'collect_dummy': True, 'drop_sensitives': False}
+                kwargs={"collect_dummy": True, "drop_sensitives": False},
             ),
-
-            MenuItem('Configuration Force Reset'),
+            MenuItem("Configuration Force Reset"),
             MenuItem(
-                'Reset REvoDesign\'s Configuration',
+                "Reset REvoDesign's Configuration",
                 self.reinitialize_config,
-            )
+            ),
         ]
         self.add_right_click_menu(menuitems)
 
@@ -1323,13 +1303,12 @@ class REvoDesignPackageManager:
         """
         # Run a worker thread to fetch tags with a progress bar
         tags = run_worker_thread_with_progress(
-            worker_function=get_github_repo_tags,
-            repo_url=REPO_URL,
-            progress_bar=self.installer_ui.progressBar)
+            worker_function=get_github_repo_tags, repo_url=REPO_URL, progress_bar=self.installer_ui.progressBar
+        )
         if tags and isinstance(tags, list):
             return set_widget_value(self.installer_ui.comboBox_version, tags)
 
-        return notify_box(f'Failed to fetch version tags from GitHub repo: \n{REPO_URL}')
+        return notify_box(f"Failed to fetch version tags from GitHub repo: \n{REPO_URL}")
 
     # a copy from `REvoDesign/tools/customized_widgets.py`
 
@@ -1450,7 +1429,7 @@ class REvoDesignPackageManager:
             # Run the uninstallation process in a separate thread and monitor its progress
             ret = run_worker_thread_with_progress(
                 worker_function=self.pip_installer.uninstall,
-                package_name='REvoDesign',
+                package_name="REvoDesign",
                 progress_bar=self.installer_ui.progressBar,
             )
 
@@ -1458,13 +1437,9 @@ class REvoDesignPackageManager:
                 # If the uninstallation fails, notify the user of the failure and raise an error
                 return notify_box(message="Failed to remove REvoDesign.", error_type=RuntimeError, details=ret.stdout)
 
-            remove_deps = decide(
-                'Clean up warning', 'Do you want to remove all the dependencies?')
+            remove_deps = decide("Clean up warning", "Do you want to remove all the dependencies?")
             if remove_deps:
-                run_worker_thread_with_progress(
-                    self.remove_depts,
-                    progress_bar=self.installer_ui.progressBar
-                )
+                run_worker_thread_with_progress(self.remove_depts, progress_bar=self.installer_ui.progressBar)
 
             # If the uninstallation is successful, notify the user
             return notify_box(
@@ -1494,7 +1469,7 @@ class REvoDesignPackageManager:
         # Iterate over the dependency table
         for e in self.remote_extra_group_data.all_extras:
             if e.extras_id not in checked_depts_to_uninstall:
-                logging.debug(f'Skip unchecked item: {e.name}')
+                logging.debug(f"Skip unchecked item: {e.name}")
                 continue
             # Uninstall each package associated with the checked dependency
             for _p in e.depts:
@@ -1580,9 +1555,12 @@ class REvoDesignPackageManager:
         env: dict[str, str] = {}
 
         # Update environment variables based on proxy settings
-        env.update(self.proxy_in_env(
-            proxy=proxy_url if (use_proxy and proxy_url) else None,
-            mirror=mirror_url if (use_mirror and mirror_url) else None))
+        env.update(
+            self.proxy_in_env(
+                proxy=proxy_url if (use_proxy and proxy_url) else None,
+                mirror=mirror_url if (use_mirror and mirror_url) else None,
+            )
+        )
 
         # pass env to installer
         self.pip_installer.env = env
@@ -1609,9 +1587,7 @@ class REvoDesignPackageManager:
                 )
 
                 if not git_solver.has_git:
-                    notify_box(
-                        message=f"Git not installed. \n{git_solver_res[-1] if git_solver_res else ''}"
-                    )
+                    notify_box(message=f"Git not installed. \n{git_solver_res[-1] if git_solver_res else ''}")
                     return
                 # If successful, show a notification and return True
                 notify_box(message="Git installed successfully.")
@@ -1622,7 +1598,7 @@ class REvoDesignPackageManager:
                 upgrade=upgrade,
                 extras=extras,
                 verbose_level=verbose_level,
-                mirror=mirror_url if (use_mirror and mirror_url) else '',
+                mirror=mirror_url if (use_mirror and mirror_url) else "",
                 progress_bar=self.installer_ui.progressBar,
             )
             # Provide feedback on the installation result
@@ -1630,12 +1606,21 @@ class REvoDesignPackageManager:
                 notify_box(
                     message="Installation succeeded. \nIf this is an upgrade, "
                     "please restart PyMOL for it to take effect.",
-                    details=f'CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT:\n{installed.stdout}\n\nSTDERR:\n{installed.stderr}' if installed else None)
+                    details=(
+                        f"CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT:\n{installed.stdout}\n\nSTDERR:\n{installed.stderr}"
+                        if installed
+                        else None
+                    ),
+                )
                 return
 
             notify_box(
                 message=f"Installation failed from: {install_source} \n",
-                details=f'CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT: \n{installed.stderr}\n\nSTDERR: \n{installed.stderr}' if installed else None,
+                details=(
+                    f"CMD:\n{installed.args}\n\nRETURN_CODE:\n{installed.returncode}\n\nSTDOUT: \n{installed.stderr}\n\nSTDERR: \n{installed.stderr}"
+                    if installed
+                    else None
+                ),
             )
 
     def setup_cache_dir(self):
@@ -1685,14 +1670,16 @@ class REvoDesignPackageManager:
 
     def reinitialize_config(self):
         comfirmed = decide(
-            "Reinitialize REvoDesign configuration?",
-            '[WARNING] This will delete your current configuration files.')
+            "Reinitialize REvoDesign configuration?", "[WARNING] This will delete your current configuration files."
+        )
 
         if not comfirmed:
             return
 
         from REvoDesign.bootstrap.set_config import set_REvoDesign_config_file
+
         set_REvoDesign_config_file(delete_user_config_tree=True)
+
 
 # TODO: 1. add interrupt signal and slot
 # TODO: 2. bind trigger button(s) and interact w/ abort buttons:
@@ -1975,33 +1962,23 @@ def refresh_window():
     """
     QtWidgets.QApplication.processEvents()
 
+
 # Overload #1: None or Warning => returns bool
 
 
 @overload
-def notify_box(
-    message: str = "",
-    error_type: None | type[Warning] = None,
-    details: str | None = None
-) -> None:
-    ...
+def notify_box(message: str = "", error_type: None | type[Warning] = None, details: str | None = None) -> None: ...
+
 
 # Overload #2: Exception => NoReturn
 
 
 @overload
-def notify_box(
-    message: str,
-    error_type: type[Exception],
-    details: str | None = None
-) -> NoReturn:
-    ...
+def notify_box(message: str, error_type: type[Exception], details: str | None = None) -> NoReturn: ...
 
 
 def notify_box(
-    message: str = "",
-    error_type: type[Exception] | None = None,
-    details: str | None = None
+    message: str = "", error_type: type[Exception] | None = None, details: str | None = None
 ) -> None | NoReturn:
     """
     Display a notification message box.
@@ -2120,23 +2097,22 @@ def filter_sensitive_data(env):
         r"access_key|accesskey|secret_key|secretkey|auth_token|authtoken|"
         r"session_id|session_token|private_key|ssh_key|key|login|cred|"
         r"credential|authenticator|certificate|cert|identity|oauth|jwt|bearer|csrf)",
-        re.IGNORECASE
+        re.IGNORECASE,
     )
 
     # Filter out sensitive keys
-    filtered_env = {
-        key: value for key, value in env.items() if not sensitive_pattern.search(key)
-    }
+    filtered_env = {key: value for key, value in env.items() if not sensitive_pattern.search(key)}
 
     return filtered_env
+
 
 # TODO: dynamically collections of based on extra groups object
 
 
 def issue_collection(
-        collect_dummy: bool = False,
-        network: bool = True,
-        drop_sensitives: bool = True,
+    collect_dummy: bool = False,
+    network: bool = True,
+    drop_sensitives: bool = True,
 ) -> dict[str, Any]:
     """
     Collects system and environment information and returns it as a dictionary.
@@ -2155,185 +2131,222 @@ def issue_collection(
     platform_info = platform.uname()
 
     # Platform
-    issue_dict.update({'Platform::Platform': sys.platform})
-    issue_dict.update({'Platform::Architecture': platform.architecture()[0]})
-    issue_dict.update({'Platform::OS': platform_info.system})
-    if platform_info.system == 'Darwin':
-        issue_dict.update({'Platform::MacOS::Version': platform.mac_ver()[0]})
-    elif platform_info.system == 'Windows':
-        issue_dict.update({'Platform::Windows::Version': platform.win32_ver()})
-        issue_dict.update({'Platform::Windows::Edition': platform.win32_edition()})
-        issue_dict.update({'Platform::Windows::IsIotDevice': platform.win32_is_iot()})
-    elif platform_info.system == 'Linux':
-        issue_dict.update({'Platform::Linux::Version': platform.freedesktop_os_release()
-                          if hasattr(platform, 'freedesktop_os_release') else None})
-    issue_dict.update({'Platform::Release': platform_info.release})
-    issue_dict.update({'Platform::Version': platform_info.version})
+    issue_dict.update({"Platform::Platform": sys.platform})
+    issue_dict.update({"Platform::Architecture": platform.architecture()[0]})
+    issue_dict.update({"Platform::OS": platform_info.system})
+    if platform_info.system == "Darwin":
+        issue_dict.update({"Platform::MacOS::Version": platform.mac_ver()[0]})
+    elif platform_info.system == "Windows":
+        issue_dict.update({"Platform::Windows::Version": platform.win32_ver()})
+        issue_dict.update({"Platform::Windows::Edition": platform.win32_edition()})
+        issue_dict.update({"Platform::Windows::IsIotDevice": platform.win32_is_iot()})
+    elif platform_info.system == "Linux":
+        issue_dict.update(
+            {
+                "Platform::Linux::Version": (
+                    platform.freedesktop_os_release() if hasattr(platform, "freedesktop_os_release") else None
+                )
+            }
+        )
+    issue_dict.update({"Platform::Release": platform_info.release})
+    issue_dict.update({"Platform::Version": platform_info.version})
 
-    if platform_info.system == 'Windows':
-        issue_dict.update({'Platform::CPU': platform_info.processor})
-    elif platform_info.system == 'Linux':
-        cpuinfo = run_command(['cat', '/proc/cpuinfo']).stdout.strip()
-        cpu_model = re.search(r'model name\s+:\s+(.+)', cpuinfo)
-        issue_dict.update({'Platform::CPU': cpu_model.group(1) if cpu_model else 'Unknown'})
-    elif platform_info.system == 'Darwin':
-        issue_dict.update({'Platform::CPU': run_command(['sysctl', '-n', 'machdep.cpu.brand_string']).stdout.strip()})
+    if platform_info.system == "Windows":
+        issue_dict.update({"Platform::CPU": platform_info.processor})
+    elif platform_info.system == "Linux":
+        cpuinfo = run_command(["cat", "/proc/cpuinfo"]).stdout.strip()
+        cpu_model = re.search(r"model name\s+:\s+(.+)", cpuinfo)
+        issue_dict.update({"Platform::CPU": cpu_model.group(1) if cpu_model else "Unknown"})
+    elif platform_info.system == "Darwin":
+        issue_dict.update({"Platform::CPU": run_command(["sysctl", "-n", "machdep.cpu.brand_string"]).stdout.strip()})
     else:
-        issue_dict.update({'Platform::CPU': 'Unknown'})
+        issue_dict.update({"Platform::CPU": "Unknown"})
 
-    issue_dict.update({'Platform::CPU::Num': os.cpu_count()})
-    issue_dict.update({'Platform::Machine': platform_info.machine})
-    issue_dict.update({'Platform::Hostname': platform_info.node})
+    issue_dict.update({"Platform::CPU::Num": os.cpu_count()})
+    issue_dict.update({"Platform::Machine": platform_info.machine})
+    issue_dict.update({"Platform::Hostname": platform_info.node})
 
-    is_rosetta_mac = "ARM64" in platform_info.version and platform_info.machine == "x86_64" if platform_info.system == "Darwin" else False
-    issue_dict.update({'Platform::IsRosettaTranlated': is_rosetta_mac})
+    is_rosetta_mac = (
+        "ARM64" in platform_info.version and platform_info.machine == "x86_64"
+        if platform_info.system == "Darwin"
+        else False
+    )
+    issue_dict.update({"Platform::IsRosettaTranlated": is_rosetta_mac})
     which_chcp = shutil.which("chcp")
     if which_chcp:
         try:
-            issue_dict.update({'Platform::Windows::Chcp': run_command(['chcp']).stdout.strip()})
+            issue_dict.update({"Platform::Windows::Chcp": run_command(["chcp"]).stdout.strip()})
         except Exception as e:
-            issue_dict.update({'Platform::Windows::Chcp': f"Error: {e}"})
+            issue_dict.update({"Platform::Windows::Chcp": f"Error: {e}"})
 
     # Shell
-    issue_dict.update({'Shell::Name': os.getenv('SHELL')})
-    issue_dict.update({'Shell::Encoding': sys.stdout.encoding})
-    issue_dict.update({'Shell::IsCygwin': 'CYGWIN' in os.environ.get('MSYSTEM', '')})
+    issue_dict.update({"Shell::Name": os.getenv("SHELL")})
+    issue_dict.update({"Shell::Encoding": sys.stdout.encoding})
+    issue_dict.update({"Shell::IsCygwin": "CYGWIN" in os.environ.get("MSYSTEM", "")})
 
     # Python
-    issue_dict.update({'Python::Version': sys.version})
-    issue_dict.update({'Python::PythonPath': sys.executable})
-    issue_dict.update({'Python::PIP': run_command([sys.executable, '-m', 'pip', '--version']).stdout.strip()})
-    issue_dict.update({'Python::Compiler': platform.python_compiler()})
-    issue_dict.update({'Python::Implementation': platform.python_implementation()})
+    issue_dict.update({"Python::Version": sys.version})
+    issue_dict.update({"Python::PythonPath": sys.executable})
+    issue_dict.update({"Python::PIP": run_command([sys.executable, "-m", "pip", "--version"]).stdout.strip()})
+    issue_dict.update({"Python::Compiler": platform.python_compiler()})
+    issue_dict.update({"Python::Implementation": platform.python_implementation()})
 
     # PyQt
-    issue_dict.update({'PyQt::Version': QtCore.PYQT_VERSION_STR})
-    issue_dict.update({'PyQt::QtPath': QtCore.__file__})
+    issue_dict.update({"PyQt::Version": QtCore.PYQT_VERSION_STR})
+    issue_dict.update({"PyQt::QtPath": QtCore.__file__})
 
     # Tools
 
     git_solver = GitSolver()
 
     try:
-        conda_version = run_command([git_solver.has_conda, '--version']
-                                    ).stdout.strip() if git_solver.has_conda else 'Not Found'
+        conda_version = (
+            run_command([git_solver.has_conda, "--version"]).stdout.strip() if git_solver.has_conda else "Not Found"
+        )
     except Exception:
-        conda_version = 'Not Found'
-    issue_dict.update({'Tools::Conda': conda_version})
+        conda_version = "Not Found"
+    issue_dict.update({"Tools::Conda": conda_version})
 
     try:
-        mamba_version = run_command([git_solver.has_mamba, '--version']
-                                    ).stdout.strip() if git_solver.has_mamba else 'Not Found'
+        mamba_version = (
+            run_command([git_solver.has_mamba, "--version"]).stdout.strip() if git_solver.has_mamba else "Not Found"
+        )
     except Exception:
-        mamba_version = 'Not Found'
+        mamba_version = "Not Found"
 
-    issue_dict.update({'Tools::Mamba': mamba_version})
-    issue_dict.update({'Tools::Git': git_solver.has_git})
-    issue_dict.update({'Tools::Git::Version': run_command(
-        [git_solver.has_git, '--version']).stdout.strip() if git_solver.has_git else 'Not Found'})
-    issue_dict.update({'Tools::Homebrew': git_solver.has_brew})
-    issue_dict.update({'Tools::Homebrew::Version': run_command(
-        [git_solver.has_brew, '--version']).stdout.strip() if git_solver.has_brew else 'Not Found'})
-    issue_dict.update({'Tools::Win-Get': git_solver.has_winget})
-    issue_dict.update({'Tools::Win-Get::Version': run_command(
-        [git_solver.has_winget, '--version']).stdout.strip() if git_solver.has_winget else 'Not Found'})
+    issue_dict.update({"Tools::Mamba": mamba_version})
+    issue_dict.update({"Tools::Git": git_solver.has_git})
+    issue_dict.update(
+        {
+            "Tools::Git::Version": (
+                run_command([git_solver.has_git, "--version"]).stdout.strip() if git_solver.has_git else "Not Found"
+            )
+        }
+    )
+    issue_dict.update({"Tools::Homebrew": git_solver.has_brew})
+    issue_dict.update(
+        {
+            "Tools::Homebrew::Version": (
+                run_command([git_solver.has_brew, "--version"]).stdout.strip() if git_solver.has_brew else "Not Found"
+            )
+        }
+    )
+    issue_dict.update({"Tools::Win-Get": git_solver.has_winget})
+    issue_dict.update(
+        {
+            "Tools::Win-Get::Version": (
+                run_command([git_solver.has_winget, "--version"]).stdout.strip()
+                if git_solver.has_winget
+                else "Not Found"
+            )
+        }
+    )
 
     # Env Vars
-    issue_dict.update({'Env::CondaPath::0': os.getenv('CONDA_PREFIX')})
-    issue_dict.update({'Env::CondaPath::1': os.getenv('CONDA_PREFIX_1')})
-    issue_dict.update({'Env::CondaPath::2': os.getenv('CONDA_PREFIX_2')})
-    issue_dict.update({'Env::CondaEnvName': os.getenv('CONDA_DEFAULT_ENV')})
-    issue_dict.update({'Env::CondaPython': os.getenv('CONDA_PYTHON_EXE')})
+    issue_dict.update({"Env::CondaPath::0": os.getenv("CONDA_PREFIX")})
+    issue_dict.update({"Env::CondaPath::1": os.getenv("CONDA_PREFIX_1")})
+    issue_dict.update({"Env::CondaPath::2": os.getenv("CONDA_PREFIX_2")})
+    issue_dict.update({"Env::CondaEnvName": os.getenv("CONDA_DEFAULT_ENV")})
+    issue_dict.update({"Env::CondaPython": os.getenv("CONDA_PYTHON_EXE")})
 
-    issue_dict.update({'User::HomeDir': os.getenv('HOME')})
+    issue_dict.update({"User::HomeDir": os.getenv("HOME")})
     try:
-        issue_dict.update({'User::Username': os.getlogin()})
+        issue_dict.update({"User::Username": os.getlogin()})
     except OSError:
-        issue_dict.update({'User::Username': 'Unknown'})
+        issue_dict.update({"User::Username": "Unknown"})
 
     # Network
     try:
         ip = socket.gethostbyname_ex(socket.gethostname())[2]
     except Exception as e:
-        ip = f'Failed to fetch client ip: {e}'
+        ip = f"Failed to fetch client ip: {e}"
 
-    issue_dict.update({'Network::IP': ip})
+    issue_dict.update({"Network::IP": ip})
 
     if network:
-        ip_location = fetch_gist_json('https://ipinfo.io')
+        ip_location = fetch_gist_json("https://ipinfo.io")
         if ip_location:
-            issue_dict.update({'Network::Location': ip_location})
+            issue_dict.update({"Network::Location": ip_location})
         else:
-            issue_dict.update({'Network::Location': 'Failed to fetch client location'})
+            issue_dict.update({"Network::Location": "Failed to fetch client location"})
 
     # PyMOL
-    issue_dict.update({'PyMOL::Version': cmd.get_version()[0]})
-    issue_dict.update({'PyMOL::Build': get_version_message()})
+    issue_dict.update({"PyMOL::Version": cmd.get_version()[0]})
+    issue_dict.update({"PyMOL::Build": get_version_message()})
 
     # REvoDesign
-    issue_dict.update({'REvoDesign::Installer': __file__})
+    issue_dict.update({"REvoDesign::Installer": __file__})
 
-    if is_package_installed('REvoDesign'):
+    if is_package_installed("REvoDesign"):
         import REvoDesign
         from REvoDesign.driver.ui_driver import ConfigBus
         from REvoDesign.magician import ALL_DESIGNER_CLASSES
         from REvoDesign.sidechain.sidechain_solver import ALL_RUNNER_CLASSES
 
-        issue_dict.update({'REvoDesign::Version': REvoDesign.__version__})
-        issue_dict.update({'REvoDesign::Config': REvoDesign.REVODESIGN_CONFIG_FILE})
-        issue_dict.update({'REvoDesign::UI::Language': ConfigBus(
-        ).cfg.language if ConfigBus._instance is not None else 'N/A'})
+        issue_dict.update({"REvoDesign::Version": REvoDesign.__version__})
+        issue_dict.update({"REvoDesign::Config": REvoDesign.REVODESIGN_CONFIG_FILE})
+        issue_dict.update(
+            {"REvoDesign::UI::Language": ConfigBus().cfg.language if ConfigBus._instance is not None else "N/A"}
+        )
 
-        logfile_in_cfg = ConfigBus().cfg.log.handlers.file.filename if ConfigBus._instance is not None else 'N/A'
-        if logfile_in_cfg == 'AUTO':
+        logfile_in_cfg = ConfigBus().cfg.log.handlers.file.filename if ConfigBus._instance is not None else "N/A"
+        if logfile_in_cfg == "AUTO":
             from platformdirs import user_log_path
+
             logdir = user_log_path("REvoDesign")
             logfile = os.path.join(logdir, "REvoDesign.runtime.log")
         else:
             logfile = logfile_in_cfg
 
-        issue_dict.update({'REvoDesign::Logger::File': logfile})
-        issue_dict.update({'REvoDesign::Extras::SidechainSolver': [
-                          runner.name for runner in ALL_RUNNER_CLASSES if runner.installed]})
-        issue_dict.update({'REvoDesign::Extras::Designers': [
-                          designer.name for designer in ALL_DESIGNER_CLASSES if designer.installed]})
-        issue_dict.update({'REvoDesign::Extras::TestSuite': is_package_installed('pytest')})
+        issue_dict.update({"REvoDesign::Logger::File": logfile})
+        issue_dict.update(
+            {"REvoDesign::Extras::SidechainSolver": [runner.name for runner in ALL_RUNNER_CLASSES if runner.installed]}
+        )
+        issue_dict.update(
+            {
+                "REvoDesign::Extras::Designers": [
+                    designer.name for designer in ALL_DESIGNER_CLASSES if designer.installed
+                ]
+            }
+        )
+        issue_dict.update({"REvoDesign::Extras::TestSuite": is_package_installed("pytest")})
     else:
-        issue_dict.update({'REvoDesign::Version': 'Not Installed'})
+        issue_dict.update({"REvoDesign::Version": "Not Installed"})
 
     # Dummy
     if collect_dummy:
         if drop_sensitives:
             env_dict = filter_sensitive_data(os.environ)
-            logging.info('Sensitive data are removed.')
+            logging.info("Sensitive data are removed.")
         else:
             env_dict = dict(os.environ)
-            logging.warning('Sensitive data may be kept.')
+            logging.warning("Sensitive data may be kept.")
 
-        issue_dict.update({'Dummy::Environ': env_dict})
+        issue_dict.update({"Dummy::Environ": env_dict})
 
-        pip_list_stdout: list[str] = run_command(['pip', 'list']).stdout.split('\n')
-        pip_list_stdout_body: list[list[str]] = [l.split(' ') for l in pip_list_stdout[2:]]
+        pip_list_stdout: list[str] = run_command(["pip", "list"]).stdout.split("\n")
+        pip_list_stdout_body: list[list[str]] = [l.split(" ") for l in pip_list_stdout[2:]]
 
-        issue_dict.update({'Dummy::Pip::List': {
-            line[0]: line[-1]
-            for line in pip_list_stdout_body
-            if line[0]
-        }})
-        if is_package_installed('REvoDesign'):
+        issue_dict.update({"Dummy::Pip::List": {line[0]: line[-1] for line in pip_list_stdout_body if line[0]}})
+        if is_package_installed("REvoDesign"):
             import REvoDesign
             from REvoDesign.bootstrap.set_config import ConfigConverter
             from REvoDesign.driver.ui_driver import ConfigBus
 
-            issue_dict.update({'Dummy::REvoDesign::Configurations': ConfigConverter().convert(
-                ConfigBus().cfg) if ConfigBus._instance is not None else 'N/A'})
+            issue_dict.update(
+                {
+                    "Dummy::REvoDesign::Configurations": (
+                        ConfigConverter().convert(ConfigBus().cfg) if ConfigBus._instance is not None else "N/A"
+                    )
+                }
+            )
     return issue_dict
 
 
 @contextmanager
 def hold_trigger_button(
     buttons: tuple[QtWidgets.QPushButton, ...] | QtWidgets.QPushButton,
-    animation_duration: int = 1000  # Duration of the breathing cycle (in milliseconds)
+    animation_duration: int = 1000,  # Duration of the breathing cycle (in milliseconds)
 ):
     """
     A context manager for holding and releasing trigger buttons with a breathing effect
@@ -2400,6 +2413,7 @@ def hold_trigger_button(
             b.setEnabled(True)  # Re-enable the button
             logging.debug(f"Released button: {b.text()}: ({b.objectName()})")
 
+
 # TODO: cleanups
 
 
@@ -2408,7 +2422,7 @@ def solve_installation_config(
     git_url: str,
     git_tag: str,
     extras: str | None,
-    package_name: str = 'REvoDesign',
+    package_name: str = "REvoDesign",
 ):
     """
     Solves the installation configuration based on the provided parameters.
@@ -2422,7 +2436,7 @@ def solve_installation_config(
     Returns:
     - str: The formatted package string for installation.
     """
-    extra_string = f'[{extras}]' if extras else ''
+    extra_string = f"[{extras}]" if extras else ""
     package_string = f"{package_name}{extra_string}"
     logging.info(f"Installing as {package_string}...")
 
@@ -2466,6 +2480,7 @@ def solve_installation_config(
 
     notify_box(f"Unknown installation source {source}({package_name})!", ValueError)
 
+
 # entrypoint of PyMOL plugin
 
 
@@ -2478,7 +2493,7 @@ def __init_plugin__(app=None):
     plugin = REvoDesignPackageManager()
     addmenuitemqt("REvoDesign Package Manager", plugin.run_plugin_gui)
 
-    if is_package_installed('REvoDesign'):
+    if is_package_installed("REvoDesign"):
         try:
             from REvoDesign import REvoDesignPlugin
 

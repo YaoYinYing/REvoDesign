@@ -1,6 +1,7 @@
-'''
+"""
 This module contains functions for finding surface residues
-'''
+"""
+
 import os
 
 from pymol import cmd
@@ -54,9 +55,7 @@ def findSurfaceAtoms(selection="all", cutoff=2.5, quiet=1):
     return selName
 
 
-def findSurfaceResidues(
-    selection="all", cutoff=2.5, doShow=0, quiet=1, return_selection=1
-):
+def findSurfaceResidues(selection="all", cutoff=2.5, doShow=0, quiet=1, return_selection=1):
     """
     DESCRIPTION
 
@@ -114,37 +113,20 @@ class SurfaceFinder:
         # TODO: remove bus from instance variables, as heres no need for it
         self.bus = ConfigBus()
         self.input_pse = input_pse
-        self.output_pse = self.bus.get_value(
-            "ui.prepare.input.surface.to_pse", str
-        )
-        self.molecule = self.bus.get_value(
-            "ui.header_panel.input.molecule", str
-        )
-        self.chain_id = self.bus.get_value(
-            "ui.header_panel.input.chain_id", str
-        )
+        self.output_pse = self.bus.get_value("ui.prepare.input.surface.to_pse", str)
+        self.molecule = self.bus.get_value("ui.header_panel.input.molecule", str)
+        self.chain_id = self.bus.get_value("ui.header_panel.input.chain_id", str)
 
-        self.exclude_residue_selection = self.bus.get_value(
-            "ui.prepare.input.surface.exclusion", str, default_value=""
-        )
-        self.cutoff = self.bus.get_value(
-            "ui.prepare.surface_probe_radius", float, default_value=15.0
-        )
+        self.exclude_residue_selection = self.bus.get_value("ui.prepare.input.surface.exclusion", str, default_value="")
+        self.cutoff = self.bus.get_value("ui.prepare.surface_probe_radius", float, default_value=15.0)
         self.do_show_surf_CA = True
 
     def process_surface_residues(self):
         cmd.save(self.input_pse)
-        logging.debug(
-            f"exclude_residue_selection = {self.exclude_residue_selection}"
-        )
+        logging.debug(f"exclude_residue_selection = {self.exclude_residue_selection}")
 
-        if (
-            self.exclude_residue_selection
-            or self.exclude_residue_selection != ""
-        ):
-            sel_exclude_residue_selection = (
-                f"and (not {self.exclude_residue_selection})"
-            )
+        if self.exclude_residue_selection or self.exclude_residue_selection != "":
+            sel_exclude_residue_selection = f"and (not {self.exclude_residue_selection})"
             ray_selection_list = [
                 self.exclude_residue_selection,
                 self.molecule,
@@ -162,14 +144,10 @@ class SurfaceFinder:
 
         cmd.scene("initial_scene", "store")
 
-        os.makedirs(
-            "surface_residue_records", exist_ok=True
-        )  # Create a directory for residue records
+        os.makedirs("surface_residue_records", exist_ok=True)  # Create a directory for residue records
 
         cmd.scene("initial_scene")
-        surface_selection = findSurfaceResidues(
-            selection=self.molecule, cutoff=self.cutoff, return_selection=1
-        )
+        surface_selection = findSurfaceResidues(selection=self.molecule, cutoff=self.cutoff, return_selection=1)
 
         ner_ca_selection = f"ner_ca_{self.cutoff:.1f}"
         er_ca_selection = f"er_ca_{self.cutoff:.1f}"
@@ -194,16 +172,12 @@ class SurfaceFinder:
             cmd.zoom(obj)
             scene_id = f"{obj[:20]}_cutoff_{self.cutoff:.1f}"
             cmd.refresh()
-            cmd.scene(
-                scene_id, "store", message=f"surface_cutoff: {self.cutoff:.1f}"
-            )
+            cmd.scene(scene_id, "store", message=f"surface_cutoff: {self.cutoff:.1f}")
 
         cmd.refresh()
 
         # Save residue IDs to a text file
-        surface_residue_ids = list(
-            {int(atom.resi) for atom in cmd.get_model(er_ca_selection).atom}
-        )
+        surface_residue_ids = list({int(atom.resi) for atom in cmd.get_model(er_ca_selection).atom})
         surface_residue_ids.sort()
         residue_filename = os.path.join(
             "surface_residue_records",

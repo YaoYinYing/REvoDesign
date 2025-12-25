@@ -1,6 +1,6 @@
-'''
+"""
 Abstract Designer module.
-'''
+"""
 
 from abc import abstractmethod
 from typing import Any
@@ -71,9 +71,7 @@ class ExternalDesignerAbstract(ThirdPartyModuleAbstract):
         """
         raise NotImplementedError("Designer method not implemented")
 
-    def scorer(
-        self, mutant: Mutant | RosettaPyProteinSequence, **kwargs
-    ) -> float:
+    def scorer(self, mutant: Mutant | RosettaPyProteinSequence, **kwargs) -> float:
         """
         Abstract method to evaluate or score a given sequence design.
         Determines the quality or fitness of the designed sequence.
@@ -89,25 +87,20 @@ class ExternalDesignerAbstract(ThirdPartyModuleAbstract):
         Method to setup amino acids that are preferred for substitution in further design.
         """
         raise NotImplementedError(
-            f"Preffer_substitutions method not implemented in this subclass of {self.__class__.__name__}")
+            f"Preffer_substitutions method not implemented in this subclass of {self.__class__.__name__}"
+        )
 
-    def parallel_scorer(
-        self, mutants: list[Mutant], nproc: int = 2, **kwargs
-    ) -> list[Mutant]:
+    def parallel_scorer(self, mutants: list[Mutant], nproc: int = 2, **kwargs) -> list[Mutant]:
         """
         Parallelize the scoring of a list of mutants.
         """
         mutants = [mutant for mutant in mutants if not mutant.empty]
-        res = Parallel(n_jobs=nproc)(
-            delayed(self.scorer)(mutant) for mutant in mutants
-        )
+        res = Parallel(n_jobs=nproc)(delayed(self.scorer)(mutant) for mutant in mutants)
         scores: list[float] = list(res)  # type: ignore
         return self.score_mutant_mapping(mutants, scores)
 
     @staticmethod
-    def score_mutant_mapping(
-        mutants: list[Mutant], scores: list[float]
-    ) -> list[Mutant]:
+    def score_mutant_mapping(mutants: list[Mutant], scores: list[float]) -> list[Mutant]:
         """
         Assign scores to mutants.
         """

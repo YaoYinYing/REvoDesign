@@ -1,6 +1,7 @@
-'''
+"""
 Importing stack for REvoDesign
-'''
+"""
+
 # -=-=-=-=-=-=-=-= the importing stack begins -=-=-=-=-=-=-=-=
 
 # 0. build-in plugin: garbage collector

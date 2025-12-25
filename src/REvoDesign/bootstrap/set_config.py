@@ -1,6 +1,6 @@
-'''
+"""
 Module for bootstrapping REvoDesign with Hydra and OmegaConf.
-'''
+"""
 
 import glob
 import importlib.util
@@ -24,18 +24,12 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     config_dir = os.path.join(default_storage_path, "config")
 
     if delete_user_config_tree and os.path.exists(config_dir):
-        print(
-            "WARNING: The configuration directory will be deleted as required"
-        )
+        print("WARNING: The configuration directory will be deleted as required")
         shutil.rmtree(config_dir)
 
     if not glob.glob(os.path.join(config_dir, "*.yaml")):
-        print(
-            f"Copied configuratiosn from {template_config_dir} to {config_dir}"
-        )
-        shutil.copytree(
-            src=template_config_dir, dst=config_dir, dirs_exist_ok=True
-        )
+        print(f"Copied configuratiosn from {template_config_dir} to {config_dir}")
+        shutil.copytree(src=template_config_dir, dst=config_dir, dirs_exist_ok=True)
     else:
         print(f"Config file is already located at `{config_dir}`, do nothing.")
 
@@ -44,9 +38,9 @@ def set_REvoDesign_config_file(delete_user_config_tree: bool = False):
     return main_config_file
 
 
-def reload_config_file(config_name: str = "global_config",
-                       overrides: list[str] | None = None,
-                       return_hydra_config: bool = False) -> DictConfig:
+def reload_config_file(
+    config_name: str = "global_config", overrides: list[str] | None = None, return_hydra_config: bool = False
+) -> DictConfig:
     return hydra.compose(
         config_name=config_name,
         overrides=overrides,
@@ -54,9 +48,7 @@ def reload_config_file(config_name: str = "global_config",
     )
 
 
-def save_configuration(
-    new_cfg: DictConfig, config_name: str = "global_config"
-):
+def save_configuration(new_cfg: DictConfig, config_name: str = "global_config"):
     from . import REVODESIGN_CONFIG_FILE
 
     cfg_save_dir = os.path.dirname(REVODESIGN_CONFIG_FILE)
@@ -69,9 +61,7 @@ def save_configuration(
 def experiment_config():
     from . import REVODESIGN_CONFIG_FILE
 
-    experiments_dir = os.path.join(
-        os.path.dirname(REVODESIGN_CONFIG_FILE), "experiments"
-    )
+    experiments_dir = os.path.join(os.path.dirname(REVODESIGN_CONFIG_FILE), "experiments")
     os.makedirs(experiments_dir, exist_ok=True)
     return experiments_dir
 
@@ -122,14 +112,9 @@ class ConfigConverter:
         :return: A standard Python dictionary or the original type if not DictConfig.
         """
         if isinstance(config, DictConfig):
-            return {
-                key: ConfigConverter._recursive_convert(value)
-                for key, value in config.items()
-            }
+            return {key: ConfigConverter._recursive_convert(value) for key, value in config.items()}
         if isinstance(config, list):
-            return [
-                ConfigConverter._recursive_convert(item) for item in config
-            ]
+            return [ConfigConverter._recursive_convert(item) for item in config]
         return config
 
 

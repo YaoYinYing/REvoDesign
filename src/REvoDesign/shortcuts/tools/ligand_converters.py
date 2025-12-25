@@ -1,7 +1,6 @@
-'''
+"""
 Shortcut functions of ligand file converting
-'''
-
+"""
 
 import json
 import os
@@ -21,11 +20,12 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 
 def shortcut_smiles_conformer_single(
-        ligand_name: str,
-        smiles: str,
-        num_conformer: int = 100,
-        save_dir: str = './ligands/',
-        show_conformer: Literal['None', 'Current Window', 'New Window'] = 'New Window'):
+    ligand_name: str,
+    smiles: str,
+    num_conformer: int = 100,
+    save_dir: str = "./ligands/",
+    show_conformer: Literal["None", "Current Window", "New Window"] = "New Window",
+):
     """
     Runs the smiles_conformer_single function with parameters collected from the dialog.
     """
@@ -37,7 +37,7 @@ def shortcut_smiles_conformer_single(
             num_conformer=num_conformer,
             save_dir=save_dir,
         )
-    if show_conformer == 'None':
+    if show_conformer == "None":
         return
 
     sdf_path = os.path.join(save_dir, f"{ligand_name}.sdf")
@@ -49,11 +49,11 @@ def shortcut_smiles_conformer_single(
 
 
 def shortcut_smiles_conformer_batch(
-        smiles: str,
-        num_conformer: int = 100,
-        save_dir: str = './ligands/',
-        show_conformer: Literal['None', 'Current Window', 'New Window'] = 'None',
-        n_jobs: int = 1,
+    smiles: str,
+    num_conformer: int = 100,
+    save_dir: str = "./ligands/",
+    show_conformer: Literal["None", "Current Window", "New Window"] = "None",
+    n_jobs: int = 1,
 ):
     """
     Runs the smiles_conformer_batch function with parameters collected from the dialog.
@@ -67,7 +67,7 @@ def shortcut_smiles_conformer_batch(
             save_dir=save_dir,
             n_jobs=n_jobs,
         )
-    if show_conformer == 'None':
+    if show_conformer == "None":
         return
 
     for k in smi:
@@ -76,17 +76,17 @@ def shortcut_smiles_conformer_batch(
 
 
 def shortcut_sdf2rosetta_params(
-        ligand_name: str,
-        sdf_path: str,
-        charge: int = 0,
-        save_dir: str = './ligands_sdf/',
+    ligand_name: str,
+    sdf_path: str,
+    charge: int = 0,
+    save_dir: str = "./ligands_sdf/",
 ):
-    '''
+    """
     Runs the sdf2rosetta_params function with parameters collected from the dialog.
 
     Args:
 
-        '''
+    """
     converter = SmallMoleculeParamsGenerator(save_dir=save_dir)
     if not os.path.isfile(sdf_path):
         raise issues.InvalidInputError(f"No found ligand: {ligand_name}. Expected file: {sdf_path}")

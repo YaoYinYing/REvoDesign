@@ -1,6 +1,7 @@
-'''
+"""
 Merge PyMOL sessions into one with commandline interface
-'''
+"""
+
 import argparse
 import os
 
@@ -81,20 +82,14 @@ if __name__ == "__main__":
         nargs="+",
         help="Paths to PyMOL sessions to be merged.",
     )
-    parser.add_argument(
-        "--save_path", required=True, help="Path to save the merged session."
-    )
-    parser.add_argument(
-        "--mode", type=int, default=1, help="Loading mode (default: 1)."
-    )
+    parser.add_argument("--save_path", required=True, help="Path to save the merged session.")
+    parser.add_argument("--mode", type=int, default=1, help="Loading mode (default: 1).")
     parser.add_argument(
         "--delete",
         action="store_true",
         help="Delete session files after loading.",
     )
-    parser.add_argument(
-        "--quiet", action="store_true", help="Run in quiet mode."
-    )
+    parser.add_argument("--quiet", action="store_true", help="Run in quiet mode.")
 
     args = parser.parse_args()
 

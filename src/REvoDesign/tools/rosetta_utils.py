@@ -1,6 +1,7 @@
-'''
+"""
 Utils for Rosetta
-'''
+"""
+
 import copy
 import os
 import platform
@@ -47,7 +48,7 @@ def setup_minimal_rosetta_db(subdirectory_to_clone: str):
     # Partially clone the Rosetta database
     rosetta3_db_path = partial_clone(
         repo_url="https://github.com/RosettaCommons/rosetta",
-        target_dir=user_cache_dir('rosetta_db_clone', ensure_exists=True),
+        target_dir=user_cache_dir("rosetta_db_clone", ensure_exists=True),
         subdirectory_as_env="database",
         subdirectory_to_clone=subdirectory_to_clone,
         env_variable="ROSETTA3_DB",
@@ -71,10 +72,10 @@ def list_fastrelax_scripts() -> list[str]:
 
     # List all the relax scripts in the specified subdirectory and remove the .txt extension
     all_relax_scripts = [
-        f[:-4] for f in os.listdir(
-            os.path.join(
-                rosetta3_db_path,
-                subdirectory)) if f.endswith('.txt') and not f.startswith('README') and '.dualspace' not in f]
+        f[:-4]
+        for f in os.listdir(os.path.join(rosetta3_db_path, subdirectory))
+        if f.endswith(".txt") and not f.startswith("README") and ".dualspace" not in f
+    ]
     return all_relax_scripts
 
 
@@ -91,7 +92,7 @@ def extra_res_to_opts(ligands_params: list[str] | str) -> list[str]:
     if not ligands_params:
         return []
     if isinstance(ligands_params, str):
-        ligands_params = ligands_params.split('|')
+        ligands_params = ligands_params.split("|")
 
     ligands = []
     for _, l in enumerate(ligands_params):
@@ -156,11 +157,7 @@ def is_wsl_available():
         return wsl_bin is not None
     except RuntimeError:
         # If an error occurs, it indicates that WSL may not be available
-        warnings.warn(
-            issues.PlatformNotSupportedWarning(
-                "WSL is not available on this machine."
-            )
-        )
+        warnings.warn(issues.PlatformNotSupportedWarning("WSL is not available on this machine."))
         # Return False, indicating that WSL is not available
         return False
 
@@ -184,8 +181,11 @@ def is_docker_available() -> bool:
         return True
     except docker.errors.DockerException as e:
         # If Docker is not available, issue a warning and return False.
-        warnings.warn(issues.PlatformNotSupportedWarning(
-            f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"))
+        warnings.warn(
+            issues.PlatformNotSupportedWarning(
+                f"Docker is not available(uninstalled or unlaunched) on this machine: {e}"
+            )
+        )
         return False
 
 
@@ -223,30 +223,31 @@ def read_rosetta_config(key_path: str = "rosetta.opts.general") -> list[str]:
     # Split the configuration string by spaces into a list of options
     rosetta_general_opts: list[str] = opts.split(" ")
     # Handle empty configuration case, ensuring an empty list is returned instead of a list containing an empty string
-    if rosetta_general_opts == [''] or not rosetta_general_opts:
+    if rosetta_general_opts == [""] or not rosetta_general_opts:
         rosetta_general_opts = []
     logging.warning(f"Using Rosetta opts: {rosetta_general_opts}")
     return rosetta_general_opts
 
 
 def read_rosetta_node_config() -> dict[str, Any]:
-    '''
+    """
     Read the Rosetta node configuration from the configuration bus.
 
     Returns:
         Dict[str, str]: Dictionary containing the Rosetta node configuration.
             If no node config is found, it returns an empty dictionary.
-    '''
+    """
 
     bus = ConfigBus()
-    rosetta_node_hint = bus.get_value('rosetta.node_hint', str)
+    rosetta_node_hint = bus.get_value("rosetta.node_hint", str)
     logging.info(f"Using Rosetta node: {rosetta_node_hint}")
 
     try:
-        node_config: DictConfig = reload_config_file(f'rosetta-node/{rosetta_node_hint}')['rosetta-node']['node_config']
+        node_config: DictConfig = reload_config_file(f"rosetta-node/{rosetta_node_hint}")["rosetta-node"]["node_config"]
     except hydra_errors.MissingConfigException as e:
         raise issues.ConfigureOutofDateError(
-            f'Rosetta node config not found. Please check your configuration files.') from e
+            f"Rosetta node config not found. Please check your configuration files."
+        ) from e
 
     logging.info(f"Using node config: {node_config}")
     node_config.update({"nproc": bus.get_value("ui.header_panel.nproc", int)})
@@ -255,8 +256,8 @@ def read_rosetta_node_config() -> dict[str, Any]:
 
 
 ROSETTA_COMMON_CITATION: dict[str, str | tuple] = {
-    'Rosetta': """@article{10.1038/s41592-020-0848-2, author = {Leman, J. K. and Weitzner, B. D. and Lewis, S. M. and Adolf‐Bryfogle, J. and Alam, N. and Alford, R. F. and Aprahamian, M. L. and Baker, D. and Barlow, K. A. and Barth, P. and Basanta, B. and Bender, B. J. and Blacklock, K. and Bonet, J. and Boyken, S. E. and Bradley, P. and Bystroff, C. and Conway, P. and Cooper, S. and Correia, B. E. and Coventry, B. and Das, R. and Jong, R. M. d. and DiMaio, F. and Dsilva, L. and Dunbrack, R. L. and Ford, A. S. and Frenz, B. and Fu, D. and Geniesse, C. and Goldschmidt, L. and Gowthaman, R. and Gray, J. J. and Gront, D. and Guffy, S. L. and Horowitz, S. and Huang, P. and Huber, T. and Jacobs, T. M. and Jeliazkov, J. R. and Johnson, D. K. and Kappel, K. and Karanicolas, J. and Khakzad, H. and Khar, K. R. and Khare, S. D. and Khatib, F. and Khramushin, A. and King, C. and Kleffner, R. and Koepnick, B. and Kortemme, T. and Kuenze, G. and Kuhlman, B. and Kuroda, D. and Labonte, J. W. and Lai, J. and Lapidoth, G. and Leaver‐Fay, A. and Lindert, S. and Linsky, T. W. and London, N. and Lubin, J. H. and Lyskov, S. and Maguire, J. B. and Malmström, L. and Marcos, E. and Marcu, O. and Marze, N. and Meiler, J. and Moretti, R. and Mulligan, V. K. and Nerli, S. and Norn, C. and Ó’Conchúir, S. and Ollikainen, N. and Ovchinnikov, S. and Pacella, M. S. and Pan, X. and Park, H. and Pavlovicz, R. E. and Pethe, M. A. and Pierce, B. G. and Pilla, K. B. and Raveh, B. and Renfrew, P. D. and Burman, S. S. R. and Rubenstein, A. B. and Sauer, M. F. and Scheck, A. and Schief, W. R. and Schueler‐Furman, O. and Sedan, Y. and Sevy, A. M. and Sgourakis, N. G. and Shi, L. and Siegel, J. B. and Silva, D. and Smith, S. T. and Song, Y. and Stein, A. and Szegedy, M. and Teets, F. D. and Thyme, S. B. and Wang, R. Y. and Watkins, A. M. and Zimmerman, L. and Bonneau, R.}, title = {Macromolecular modeling and design in rosetta: recent methods and frameworks}, journal = {Nature Methods}, year = {2020}, volume = {17}, issue = {7}, pages = {665-680}, doi = {10.1038/s41592-020-0848-2} }""",
-    'Rosetta3': """
+    "Rosetta": """@article{10.1038/s41592-020-0848-2, author = {Leman, J. K. and Weitzner, B. D. and Lewis, S. M. and Adolf‐Bryfogle, J. and Alam, N. and Alford, R. F. and Aprahamian, M. L. and Baker, D. and Barlow, K. A. and Barth, P. and Basanta, B. and Bender, B. J. and Blacklock, K. and Bonet, J. and Boyken, S. E. and Bradley, P. and Bystroff, C. and Conway, P. and Cooper, S. and Correia, B. E. and Coventry, B. and Das, R. and Jong, R. M. d. and DiMaio, F. and Dsilva, L. and Dunbrack, R. L. and Ford, A. S. and Frenz, B. and Fu, D. and Geniesse, C. and Goldschmidt, L. and Gowthaman, R. and Gray, J. J. and Gront, D. and Guffy, S. L. and Horowitz, S. and Huang, P. and Huber, T. and Jacobs, T. M. and Jeliazkov, J. R. and Johnson, D. K. and Kappel, K. and Karanicolas, J. and Khakzad, H. and Khar, K. R. and Khare, S. D. and Khatib, F. and Khramushin, A. and King, C. and Kleffner, R. and Koepnick, B. and Kortemme, T. and Kuenze, G. and Kuhlman, B. and Kuroda, D. and Labonte, J. W. and Lai, J. and Lapidoth, G. and Leaver‐Fay, A. and Lindert, S. and Linsky, T. W. and London, N. and Lubin, J. H. and Lyskov, S. and Maguire, J. B. and Malmström, L. and Marcos, E. and Marcu, O. and Marze, N. and Meiler, J. and Moretti, R. and Mulligan, V. K. and Nerli, S. and Norn, C. and Ó’Conchúir, S. and Ollikainen, N. and Ovchinnikov, S. and Pacella, M. S. and Pan, X. and Park, H. and Pavlovicz, R. E. and Pethe, M. A. and Pierce, B. G. and Pilla, K. B. and Raveh, B. and Renfrew, P. D. and Burman, S. S. R. and Rubenstein, A. B. and Sauer, M. F. and Scheck, A. and Schief, W. R. and Schueler‐Furman, O. and Sedan, Y. and Sevy, A. M. and Sgourakis, N. G. and Shi, L. and Siegel, J. B. and Silva, D. and Smith, S. T. and Song, Y. and Stein, A. and Szegedy, M. and Teets, F. D. and Thyme, S. B. and Wang, R. Y. and Watkins, A. M. and Zimmerman, L. and Bonneau, R.}, title = {Macromolecular modeling and design in rosetta: recent methods and frameworks}, journal = {Nature Methods}, year = {2020}, volume = {17}, issue = {7}, pages = {665-680}, doi = {10.1038/s41592-020-0848-2} }""",
+    "Rosetta3": """
 @incollection{LEAVERFAY2011545,
 title = {Chapter nineteen - Rosetta3: An Object-Oriented Software Suite for the Simulation and Design of Macromolecules},
 editor = {Michael L. Johnson and Ludwig Brand},
@@ -272,7 +273,7 @@ url = {https://www.sciencedirect.com/science/article/pii/B9780123812704000196},
 author = {Andrew Leaver-Fay and Michael Tyka and Steven M. Lewis and Oliver F. Lange and James Thompson and Ron Jacak and Kristian W. Kaufman and P. Douglas Renfrew and Colin A. Smith and Will Sheffler and Ian W. Davis and Seth Cooper and Adrien Treuille and Daniel J. Mandell and Florian Richter and Yih-En Andrew Ban and Sarel J. Fleishman and Jacob E. Corn and David E. Kim and Sergey Lyskov and Monica Berrondo and Stuart Mentzer and Zoran Popović and James J. Havranek and John Karanicolas and Rhiju Das and Jens Meiler and Tanja Kortemme and Jeffrey J. Gray and Brian Kuhlman and David Baker and Philip Bradley},
 abstract = {We have recently completed a full rearchitecturing of the Rosetta molecular modeling program, generalizing and expanding its existing functionality. The new architecture enables the rapid prototyping of novel protocols by providing easy-to-use interfaces to powerful tools for molecular modeling. The source code of this rearchitecturing has been released as Rosetta3 and is freely available for academic use. At the time of its release, it contained 470,000 lines of code. Counting currently unpublished protocols at the time of this writing, the source includes 1,285,000 lines. Its rapid growth is a testament to its ease of use. This chapter describes the requirements for our new architecture, justifies the design decisions, sketches out central classes, and highlights a few of the common tasks that the new software can perform.}
 }""",
-    'RosettaScripts': """
+    "RosettaScripts": """
 @article{10.1371/journal.pone.0020161,
     doi = {10.1371/journal.pone.0020161},
     author = {Fleishman, Sarel J. AND Leaver-Fay, Andrew AND Corn, Jacob E. AND Strauch, Eva-Maria AND Khare, Sagar D. AND Koga, Nobuyasu AND Ashworth, Justin AND Murphy, Paul AND Richter, Florian AND Lemmon, Gordon AND Meiler, Jens AND Baker, David},
@@ -288,8 +289,8 @@ abstract = {We have recently completed a full rearchitecturing of the Rosetta mo
     number = {6},
 
 }""",
-    'Rosetta All-Atom Energy Function': """
-@article{10.1021/acs.jctc.7b00125, author = {Alford, R. F. and Leaver‐Fay, A. and Jeliazkov, J. R. and O’Meara, M. J. and DiMaio, F. and Park, H. and Shapovalov, M. V. and Renfrew, P. D. and Mulligan, V. K. and Kappel, K. and Labonte, J. W. and Pacella, M. S. and Bonneau, R. and Bradley, P. and Dunbrack, R. L. and Das, R. and Baker, D. and Kuhlman, B. and Kortemme, T. and Gray, J. J.}, title = {The rosetta all-atom energy function for macromolecular modeling and design}, journal = {Journal of Chemical Theory and Computation}, year = {2017}, volume = {13}, issue = {6}, pages = {3031-3048}, doi = {10.1021/acs.jctc.7b00125} }"""
+    "Rosetta All-Atom Energy Function": """
+@article{10.1021/acs.jctc.7b00125, author = {Alford, R. F. and Leaver‐Fay, A. and Jeliazkov, J. R. and O’Meara, M. J. and DiMaio, F. and Park, H. and Shapovalov, M. V. and Renfrew, P. D. and Mulligan, V. K. and Kappel, K. and Labonte, J. W. and Pacella, M. S. and Bonneau, R. and Bradley, P. and Dunbrack, R. L. and Das, R. and Baker, D. and Kuhlman, B. and Kortemme, T. and Gray, J. J.}, title = {The rosetta all-atom energy function for macromolecular modeling and design}, journal = {Journal of Chemical Theory and Computation}, year = {2017}, volume = {13}, issue = {6}, pages = {3031-3048}, doi = {10.1021/acs.jctc.7b00125} }""",
 }
 
 # TODO: refactor as general citation merging function

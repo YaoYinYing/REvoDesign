@@ -1,6 +1,6 @@
-'''
+"""
 Data classes for menu items and menu collections.
-'''
+"""
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -23,6 +23,7 @@ class MenuItem:
         args (Optional[Tuple]): Optional arguments passed to the associated function when it is executed. Defaults to None.
         kwargs (Optional[Mapping]): Optional arguments passed to the associated function when it is executed. Defaults to None.
     """
+
     action: str
     func: Callable | str
     args: tuple | None = None
@@ -30,20 +31,21 @@ class MenuItem:
 
     @property
     def func_to_call(self):
-        '''
+        """
         Returns the real callable function to be executed.
         If the function is a string, it will be resolved to a callable function.
-        '''
+        """
         if isinstance(self.func, str):
             from REvoDesign.tools.utils import resolve_dotted_function
+
             return resolve_dotted_function(self.func)
         return self.func
 
     @property
     def trigger(self):
-        '''
+        """
         Returns a triggered function that is lazy resolved
-        '''
+        """
         return lambda: self.func_to_call(*self.args or (), **self.kwargs or {})
 
 
@@ -53,6 +55,7 @@ class MenuCollection:
     A data class representing a collection of menu items.
     This class registers the menu items and their associated functions while instantiating the class.
     """
+
     ui: QtWidgets.QWidget
     menu_items: tuple[MenuItem, ...]
 

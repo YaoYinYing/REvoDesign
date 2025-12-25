@@ -1,4 +1,4 @@
-'''
+"""
 GREMLIN utils: Everything but GREMLIN function
 
 Original License:
@@ -13,8 +13,7 @@ is worth it, you can buy us a beer in return.
 
 from:
     https://github.com/sokrypton/GREMLIN_CPP/blob/master/GREMLIN_TF_simple.ipynb
-'''
-
+"""
 
 import os
 import pickle
@@ -40,9 +39,8 @@ matplotlib.use("Agg")
 
 @dataclass
 class CoevolvedPair:
-    """A data class that represents a coevolved pair of amino acids.
+    """A data class that represents a coevolved pair of amino acids."""
 
-    """
     # zero-indexed positions
     i: int
     j: int
@@ -80,18 +78,14 @@ class CoevolvedPair:
     @property
     def min_dist(self):
         if self.empty:
-            warnings.warn(
-                issues.NoInputWarning(f"Pair {repr(self)} is empty! ")
-            )
+            warnings.warn(issues.NoInputWarning(f"Pair {repr(self)} is empty! "))
             return -1
         return min(d for d in self.homochains_dist.values() if d > 0)
 
     def dist(self, chain_pair: str) -> float:
         dist = self.homochains_dist.get(chain_pair)
         if not dist:
-            raise issues.NoResultsError(
-                f"{chain_pair=} not in {self.homochains_dist=}"
-            )
+            raise issues.NoResultsError(f"{chain_pair=} not in {self.homochains_dist=}")
         return float(dist)
 
     @property
@@ -134,9 +128,7 @@ class CoevolvedPair:
         chain_pair: str,
     ) -> tuple[str]:
         if chain_pair not in self.homochains_dist:
-            raise ValueError(
-                f"No such {chain_pair=} in {self.homochains_dist=}"
-            )
+            raise ValueError(f"No such {chain_pair=} in {self.homochains_dist=}")
 
         assert len(chain_pair) == 2, f"{len(chain_pair)=} != 2"
         res_pair = (
@@ -157,17 +149,12 @@ class CoevolvedPair:
 
     @property
     def all_res_pairs(self) -> dict[str, tuple[str]]:
-        all_res_pairs = {
-            cc: self.res_pair(chain_pair=cc) for cc in self.homochains_dist
-        }
+        all_res_pairs = {cc: self.res_pair(chain_pair=cc) for cc in self.homochains_dist}
         return all_res_pairs
 
     @property
     def all_res_pairs_selections(self) -> dict[str, str]:
-        all_res_pairs_selections = {
-            cc: self.res_pair_selection(chain_pair=cc)
-            for cc in self.homochains_dist
-        }
+        all_res_pairs_selections = {cc: self.res_pair_selection(chain_pair=cc) for cc in self.homochains_dist}
         return all_res_pairs_selections
 
     @property
@@ -186,16 +173,12 @@ class GREMLIN_Tools(CitableModuleAbstract):
         self.pwd = os.getcwd()
         self.bus = ConfigBus()
 
-        self._cmap: str = self.bus.get_value(
-            "ui.header_panel.cmap.default", str
-        )
+        self._cmap: str = self.bus.get_value("ui.header_panel.cmap.default", str)
 
         # follow the original cmap style. bwr_r -> bwr
         self.cmap = cmap_reverser(
             cmap=self._cmap,
-            reverse=not self.bus.get_value(
-                "ui.header_panel.cmap.reverse_score", bool
-            ),
+            reverse=not self.bus.get_value("ui.header_panel.cmap.reverse_score", bool),
         )
 
         self.alphabet = "ARNDCQEGHILKMFPSTWYV-"
@@ -219,9 +202,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
             raise issues.NoInputError(f"Sequence not valid: {self.sequence}")
 
         if not os.path.exists(mrf_path):
-            raise issues.InvalidInputError(
-                f"Could not find GREMLIN mrf file: {mrf_path}"
-            )
+            raise issues.InvalidInputError(f"Could not find GREMLIN mrf file: {mrf_path}")
 
         logging.info("GREMLIN mrf is loading ...")
         self.mrf = self.load_mrf(mrf_path)
@@ -253,11 +234,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         raw_sq = squareform(raw)
 
         # apc (average product correction)
-        ap_sq = (
-            np.sum(raw_sq, 0, keepdims=True)
-            * np.sum(raw_sq, 1, keepdims=True)
-            / np.sum(raw_sq)
-        )
+        ap_sq = np.sum(raw_sq, 0, keepdims=True) * np.sum(raw_sq, 1, keepdims=True) / np.sum(raw_sq)
         apc = squareform(raw_sq - ap_sq, checks=False)
 
         mtx = {
@@ -282,9 +259,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         plt.grid(False)
         # plt.show()
 
-        plot_gremlin_mtx_fp = (
-            f"{self.pwd}/{self.molecule}_GREMLIN_mtx_{key}.png"
-        )
+        plot_gremlin_mtx_fp = f"{self.pwd}/{self.molecule}_GREMLIN_mtx_{key}.png"
 
         plt.savefig(plot_gremlin_mtx_fp)
         return plot_gremlin_mtx_fp
@@ -303,23 +278,15 @@ class GREMLIN_Tools(CitableModuleAbstract):
         #   for this index use i_aa and j_aa!
 
         # adding amino acid to index
-        self.mtx["i_aa"] = np.array(
-            [self.sequence[i] + "_" + str(i + 1) for i in self.mtx["i"]]
-        )
-        self.mtx["j_aa"] = np.array(
-            [self.sequence[j] + "_" + str(j + 1) for j in self.mtx["j"]]
-        )
+        self.mtx["i_aa"] = np.array([self.sequence[i] + "_" + str(i + 1) for i in self.mtx["i"]])
+        self.mtx["j_aa"] = np.array([self.sequence[j] + "_" + str(j + 1) for j in self.mtx["j"]])
 
         # load mtx into pandas dataframe
-        self.pd_mtx = pd.DataFrame(
-            self.mtx, columns=["i", "j", "apc", "zscore", "i_aa", "j_aa"]
-        )
+        self.pd_mtx = pd.DataFrame(self.mtx, columns=["i", "j", "apc", "zscore", "i_aa", "j_aa"])
 
         # get contacts with sequence seperation > 5
         # sort by zscore, show top 10
-        self.top = self.pd_mtx.loc[
-            self.pd_mtx["j"] - self.pd_mtx["i"] > 5
-        ].sort_values("zscore", ascending=False)
+        self.top = self.pd_mtx.loc[self.pd_mtx["j"] - self.pd_mtx["i"] > 5].sort_values("zscore", ascending=False)
         self.top.head(5)
 
     # ## Explore the MRF
@@ -334,9 +301,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         plt.yticks(np.arange(0, 21))
         plt.grid(False)
         ax = plt.gca()
-        ax.xaxis.set_major_formatter(
-            plt.FuncFormatter(lambda x, y: self.mrf["v_idx"][x])
-        )
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, y: self.mrf["v_idx"][x]))
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, y: al_a[x]))
 
         plot_mrf_fp = f"{self.pwd}/{self.molecule}_GREMLIN_MRF.png"
@@ -344,9 +309,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         plt.savefig(plot_mrf_fp)
         return plot_mrf_fp
 
-    def plot_w(
-        self, i: int, j: int, i_aa: str, j_aa: str, idx: int = 0
-    ) -> CoevolvedPair | None:
+    def plot_w(self, i: int, j: int, i_aa: str, j_aa: str, idx: int = 0) -> CoevolvedPair | None:
         # mark if the df should be transposed
         transposed = True
 
@@ -356,20 +319,14 @@ class GREMLIN_Tools(CitableModuleAbstract):
             i_aa, j_aa = j_aa, i_aa
             transposed = False
 
-        a_pair = CoevolvedPair(
-            i=i, j=j, i_aa=i_aa, j_aa=j_aa, transposed=transposed
-        )
+        a_pair = CoevolvedPair(i=i, j=j, i_aa=i_aa, j_aa=j_aa, transposed=transposed)
 
-        matching_indices = np.where(
-            (self.mrf["w_idx"][:, 0] == i) & (self.mrf["w_idx"][:, 1] == j)
-        )[0]
+        matching_indices = np.where((self.mrf["w_idx"][:, 0] == i) & (self.mrf["w_idx"][:, 1] == j))[0]
 
         if not matching_indices:
             # No matching pairs found, handle this case
             warnings.warn(
-                issues.NoResultsWarning(
-                    f"No matching co-evolutionary pairs found for positions {i} and {j}."
-                )
+                issues.NoResultsWarning(f"No matching co-evolutionary pairs found for positions {i} and {j}.")
             )
 
             return None
@@ -387,9 +344,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         data = {k: w[i] for i, k in enumerate(self.alphabet)}
 
         # Create a DataFrame from the data dictionary
-        df = pd.DataFrame(
-            data, index=list(self.alphabet), columns=list(self.alphabet)
-        )
+        df = pd.DataFrame(data, index=list(self.alphabet), columns=list(self.alphabet))
 
         a_pair.df = df
 
@@ -418,9 +373,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
             wt_j_index = self.alphabet.index(wt_j_aa)
         except ValueError:
             traceback.print_exc()
-            logging.error(
-                f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}"
-            )
+            logging.error(f"Error occured while processing '{wt_i_aa=}' or '{wt_j_aa=}' from {self.alphabet=}")
             # early return to skip ploting
             warnings.warn(issues.BadDataWarning(f"Bad pair: {str(a_pair)}"))
             return None
@@ -435,9 +388,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
             fontsize=6,
         )
 
-        plt.title(
-            f"Top.{idx:02}: W for positions {a_pair.i_aa} and {a_pair.j_aa}"
-        )
+        plt.title(f"Top.{idx:02}: W for positions {a_pair.i_aa} and {a_pair.j_aa}")
         plot_fp = f"{self.pwd}/Top.{idx:02}.W_for_positions_{a_pair.i_aa}_and_{a_pair.j_aa}.png"
         plt.savefig(plot_fp)
         matplotlib.pyplot.close()
@@ -466,10 +417,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
 
     def plot_w_o2a(self, resi) -> tuple[CoevolvedPair]:
         # Step 1: Find all items where i is in either column of "w_idx"
-        matching_indices = np.where(
-            (self.mrf["w_idx"][:, 0] == resi)
-            | (self.mrf["w_idx"][:, 1] == resi)
-        )[0]
+        matching_indices = np.where((self.mrf["w_idx"][:, 0] == resi) | (self.mrf["w_idx"][:, 1] == resi))[0]
         logging.info(f"Found {len(matching_indices)} matching pairs")
 
         # Step 2: Loop through the matching indices and filter based on sequence separation
@@ -497,9 +445,7 @@ class GREMLIN_Tools(CitableModuleAbstract):
         top_N_pairs = coevolving_pairs[: self.topN]
 
         if not top_N_pairs:
-            warnings.warn(
-                issues.NoResultsWarning("No coevolving pairs found!")
-            )
+            warnings.warn(issues.NoResultsWarning("No coevolving pairs found!"))
             return {}
 
         logging.info(f"top {self.topN} items selected: {str(top_N_pairs)}")

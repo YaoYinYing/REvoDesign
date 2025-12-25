@@ -179,7 +179,8 @@ class Ui_REvoDesignPyMOL_UI:
         self.label_surface_cutoff_2.setSizePolicy(sizePolicy)
         self.label_surface_cutoff_2.setMaximumSize(QtCore.QSize(120, 16777215))
         self.label_surface_cutoff_2.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.label_surface_cutoff_2.setObjectName("label_surface_cutoff_2")
         self.horizontalLayout_27.addWidget(self.label_surface_cutoff_2)
         self.doubleSpinBox_interface_cutoff = QtWidgets.QDoubleSpinBox(self.verticalLayoutWidget_8)
@@ -221,7 +222,8 @@ class Ui_REvoDesignPyMOL_UI:
         sizePolicy.setHeightForWidth(self.label_surface_exclusion.sizePolicy().hasHeightForWidth())
         self.label_surface_exclusion.setSizePolicy(sizePolicy)
         self.label_surface_exclusion.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.label_surface_exclusion.setObjectName("label_surface_exclusion")
         self.horizontalLayout_10.addWidget(self.label_surface_exclusion)
         self.comboBox_surface_exclusion = QtWidgets.QComboBox(self.verticalLayoutWidget_8)
@@ -334,7 +336,8 @@ class Ui_REvoDesignPyMOL_UI:
         self.gridLayout_IO.addLayout(self.horizontalLayout_18, 0, 1, 1, 1)
         self.label_input_pssm_csv_2 = QtWidgets.QLabel(self.layoutWidget)
         self.label_input_pssm_csv_2.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.label_input_pssm_csv_2.setObjectName("label_input_pssm_csv_2")
         self.gridLayout_IO.addWidget(self.label_input_pssm_csv_2, 1, 0, 1, 1)
         self.horizontalLayout_19 = QtWidgets.QHBoxLayout()
@@ -493,7 +496,8 @@ class Ui_REvoDesignPyMOL_UI:
         sizePolicy.setHeightForWidth(self.doubleSpinBox_designer_temperature.sizePolicy().hasHeightForWidth())
         self.doubleSpinBox_designer_temperature.setSizePolicy(sizePolicy)
         self.doubleSpinBox_designer_temperature.setAlignment(
-            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+        )
         self.doubleSpinBox_designer_temperature.setMinimum(0.05)
         self.doubleSpinBox_designer_temperature.setMaximum(0.6)
         self.doubleSpinBox_designer_temperature.setSingleStep(0.05)
@@ -524,7 +528,8 @@ class Ui_REvoDesignPyMOL_UI:
         sizePolicy.setHeightForWidth(self.spinBox_designer_num_samples.sizePolicy().hasHeightForWidth())
         self.spinBox_designer_num_samples.setSizePolicy(sizePolicy)
         self.spinBox_designer_num_samples.setAlignment(
-            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+        )
         self.spinBox_designer_num_samples.setMinimum(1)
         self.spinBox_designer_num_samples.setMaximum(999)
         self.spinBox_designer_num_samples.setObjectName("spinBox_designer_num_samples")
@@ -657,7 +662,8 @@ class Ui_REvoDesignPyMOL_UI:
         self.horizontalLayout_20.setObjectName("horizontalLayout_20")
         self.label_input_mut_table_2 = QtWidgets.QLabel(self.verticalLayoutWidget)
         self.label_input_mut_table_2.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.label_input_mut_table_2.setObjectName("label_input_mut_table_2")
         self.horizontalLayout_20.addWidget(self.label_input_mut_table_2)
         self.lineEdit_output_mut_table = QtWidgets.QLineEdit(self.verticalLayoutWidget)
@@ -847,7 +853,8 @@ class Ui_REvoDesignPyMOL_UI:
         self.spinBox_num_mut_minimun.setSizePolicy(sizePolicy)
         self.spinBox_num_mut_minimun.setMaximumSize(QtCore.QSize(40, 16777215))
         self.spinBox_num_mut_minimun.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.spinBox_num_mut_minimun.setMinimum(1)
         self.spinBox_num_mut_minimun.setMaximum(3)
         self.spinBox_num_mut_minimun.setObjectName("spinBox_num_mut_minimun")
@@ -1039,7 +1046,8 @@ class Ui_REvoDesignPyMOL_UI:
         self.gridLayout_16.addLayout(self.horizontalLayout_25, 1, 1, 1, 1)
         self.label_input_pssm_csv_3 = QtWidgets.QLabel(self.horizontalLayoutWidget_7)
         self.label_input_pssm_csv_3.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.label_input_pssm_csv_3.setObjectName("label_input_pssm_csv_3")
         self.gridLayout_16.addWidget(self.label_input_pssm_csv_3, 2, 0, 1, 1)
         self.label_42 = QtWidgets.QLabel(self.horizontalLayoutWidget_7)
@@ -1233,7 +1241,8 @@ class Ui_REvoDesignPyMOL_UI:
         self.checkBox_multi_design_check_sidechain_orientations = QtWidgets.QCheckBox(self.verticalLayoutWidget_12)
         self.checkBox_multi_design_check_sidechain_orientations.setChecked(True)
         self.checkBox_multi_design_check_sidechain_orientations.setObjectName(
-            "checkBox_multi_design_check_sidechain_orientations")
+            "checkBox_multi_design_check_sidechain_orientations"
+        )
         self.verticalLayout_14.addWidget(self.checkBox_multi_design_check_sidechain_orientations)
         self.checkBox_multi_design_use_external_scorer = QtWidgets.QCheckBox(self.verticalLayoutWidget_12)
         self.checkBox_multi_design_use_external_scorer.setChecked(True)
@@ -1328,14 +1337,16 @@ class Ui_REvoDesignPyMOL_UI:
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(
-            self.pushButton_multi_design_export_mutants_from_table.sizePolicy().hasHeightForWidth())
+            self.pushButton_multi_design_export_mutants_from_table.sizePolicy().hasHeightForWidth()
+        )
         self.pushButton_multi_design_export_mutants_from_table.setSizePolicy(sizePolicy)
         self.pushButton_multi_design_export_mutants_from_table.setMaximumSize(QtCore.QSize(45, 16777215))
         font = QtGui.QFont()
         font.setPointSize(13)
         self.pushButton_multi_design_export_mutants_from_table.setFont(font)
         self.pushButton_multi_design_export_mutants_from_table.setObjectName(
-            "pushButton_multi_design_export_mutants_from_table")
+            "pushButton_multi_design_export_mutants_from_table"
+        )
         self.horizontalLayout_23.addWidget(self.pushButton_multi_design_export_mutants_from_table)
         spacerItem = QtWidgets.QSpacerItem(10, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
         self.horizontalLayout_23.addItem(spacerItem)
@@ -2328,36 +2339,44 @@ class Ui_REvoDesignPyMOL_UI:
         self.retranslateUi(REvoDesignPyMOL_UI)
         self.tabWidget.setCurrentIndex(0)
         self.stackedWidget.setCurrentIndex(1)
-        self.checkBox_ws_server_mode.toggled['bool'].connect(
-            self.groupBox_ws_server_settings.setEnabled)  # type: ignore
-        self.checkBox_ws_server_mode.toggled['bool'].connect(
-            self.groupBox_ws_client_settings.setDisabled)  # type: ignore
-        self.checkBox_ws_server_use_key.toggled['bool'].connect(self.lineEdit_ws_server_key.setEnabled)  # type: ignore
-        self.checkBox_randomized_sampling.toggled['bool'].connect(
-            self.spinBox_randomized_sampling.setEnabled)  # type: ignore
+        self.checkBox_ws_server_mode.toggled["bool"].connect(
+            self.groupBox_ws_server_settings.setEnabled
+        )  # type: ignore
+        self.checkBox_ws_server_mode.toggled["bool"].connect(
+            self.groupBox_ws_client_settings.setDisabled
+        )  # type: ignore
+        self.checkBox_ws_server_use_key.toggled["bool"].connect(self.lineEdit_ws_server_key.setEnabled)  # type: ignore
+        self.checkBox_randomized_sampling.toggled["bool"].connect(
+            self.spinBox_randomized_sampling.setEnabled
+        )  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(REvoDesignPyMOL_UI)
 
     def retranslateUi(self, REvoDesignPyMOL_UI):
         _translate = QtCore.QCoreApplication.translate
         REvoDesignPyMOL_UI.setWindowTitle(_translate("REvoDesignPyMOL_UI", "REvoDesign - PyMOL Interface"))
-        self.tab_prepare.setStatusTip(_translate("REvoDesignPyMOL_UI",
-                                                 "Determine surfaces, pockets, interfaces and evolutionary profile."))
+        self.tab_prepare.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Determine surfaces, pockets, interfaces and evolutionary profile.")
+        )
         self.groupBox_functional.setTitle(_translate("REvoDesignPyMOL_UI", "Functional pocket options"))
-        self.comboBox_ligand_sel.setStatusTip(_translate("REvoDesignPyMOL_UI",
-                                                         "Substrate/Product molecule. Comma separated if multiple, eg. `XXX,YYY`"))
+        self.comboBox_ligand_sel.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Substrate/Product molecule. Comma separated if multiple, eg. `XXX,YYY`")
+        )
         self.label_cofactor_radius.setText(_translate("REvoDesignPyMOL_UI", "radius:"))
         self.label_cofactor_sel.setText(_translate("REvoDesignPyMOL_UI", "Cofactor:"))
         self.label_ligand_radius.setText(_translate("REvoDesignPyMOL_UI", "radius:"))
         self.label_ligand_sel.setText(_translate("REvoDesignPyMOL_UI", "Substrate:"))
         self.comboBox_cofactor_sel.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Co-factor or co-enzyme, HEM/FAD/NAD. Comma separated if multiple, eg. `XXX,YYY`"))
-        self.doubleSpinBox_ligand_radius.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance from ligand to pocket residue."))
+                "REvoDesignPyMOL_UI", "Co-factor or co-enzyme, HEM/FAD/NAD. Comma separated if multiple, eg. `XXX,YYY`"
+            )
+        )
+        self.doubleSpinBox_ligand_radius.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Max distance from ligand to pocket residue.")
+        )
         self.doubleSpinBox_ligand_radius.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.doubleSpinBox_cofactor_radius.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance from cofactor to pocket residue."))
+        self.doubleSpinBox_cofactor_radius.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Max distance from cofactor to pocket residue.")
+        )
         self.doubleSpinBox_cofactor_radius.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
         self.pushButton_run_pocket_detection.setText(_translate("REvoDesignPyMOL_UI", "Detect !"))
         self.label_output_pse_4.setText(_translate("REvoDesignPyMOL_UI", "Save as:"))
@@ -2365,8 +2384,9 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_open_output_pse_pocket.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.groupBox_surface.setTitle(_translate("REvoDesignPyMOL_UI", "Surface exposure options"))
         self.label_surface_cutoff_2.setText(_translate("REvoDesignPyMOL_UI", "Chain Dist.: "))
-        self.doubleSpinBox_interface_cutoff.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance from chain to chain."))
+        self.doubleSpinBox_interface_cutoff.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Max distance from chain to chain.")
+        )
         self.doubleSpinBox_interface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
         self.pushButton_dump_interfaces.setToolTip(_translate("REvoDesignPyMOL_UI", "Dump chain-chain interface"))
         self.pushButton_dump_interfaces.setText(_translate("REvoDesignPyMOL_UI", "Find"))
@@ -2374,14 +2394,18 @@ class Ui_REvoDesignPyMOL_UI:
         self.comboBox_surface_exclusion.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Excluded selection. Use PyMOL selection syntax(eg. ((sele_1 and sele_2) or (sele_3 and sele_4)))"))
+                "Excluded selection. Use PyMOL selection syntax(eg. ((sele_1 and sele_2) or (sele_3 and sele_4)))",
+            )
+        )
         self.label_surface_cutoff.setStatusTip(_translate("REvoDesignPyMOL_UI", "Surface area exposure cutoff."))
         self.label_surface_cutoff.setText(_translate("REvoDesignPyMOL_UI", "Exposure area ≧"))
-        self.doubleSpinBox_surface_cutoff.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Surface area exposure cutoff."))
+        self.doubleSpinBox_surface_cutoff.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Surface area exposure cutoff.")
+        )
         self.doubleSpinBox_surface_cutoff.setSuffix(_translate("REvoDesignPyMOL_UI", "Å²"))
-        self.pushButton_run_surface_refresh.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Refresh PyMOL selection list in REvoDesign"))
+        self.pushButton_run_surface_refresh.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Refresh PyMOL selection list in REvoDesign")
+        )
         self.pushButton_run_surface_refresh.setText(_translate("REvoDesignPyMOL_UI", "Refresh Selection"))
         self.pushButton_run_surface_detection.setText(_translate("REvoDesignPyMOL_UI", "Detect !"))
         self.label_output_pse.setText(_translate("REvoDesignPyMOL_UI", "Save as:"))
@@ -2391,22 +2415,24 @@ class Ui_REvoDesignPyMOL_UI:
         self.tab_mutate.setStatusTip(_translate("REvoDesignPyMOL_UI", "Load Mutants from PSSM with biases."))
         self.lineEdit_input_csv.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Input protein profile. eg. PSSM/DMS/CSV. Ignored if external designer is used."))
+                "REvoDesignPyMOL_UI", "Input protein profile. eg. PSSM/DMS/CSV. Ignored if external designer is used."
+            )
+        )
         self.pushButton_open_input_csv.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.comboBox_profile_type.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Format of profile, automatically determined. Profile will be ignored if choosing external designer."))
+                "Format of profile, automatically determined. Profile will be ignored if choosing external designer.",
+            )
+        )
         self.label_input_pssm_csv_2.setText(_translate("REvoDesignPyMOL_UI", "Residue ID: "))
         self.lineEdit_output_pse_mutate.setStatusTip(_translate("REvoDesignPyMOL_UI", "Output session path"))
         self.pushButton_open_output_pse_mutate.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.pushButton_run_PSSM_to_pse.setText(_translate("REvoDesignPyMOL_UI", "Run !"))
         self.label_output_pse_2.setText(_translate("REvoDesignPyMOL_UI", "Save as: "))
         self.lineEdit_input_customized_indices.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Design residue indices, text file or string like `16-78,99,103,192-199`"))
+            _translate("REvoDesignPyMOL_UI", "Design residue indices, text file or string like `16-78,99,103,192-199`")
+        )
         self.pushButton_open_customized_indices.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.label_input_pssm_csv.setText(_translate("REvoDesignPyMOL_UI", "Profile: "))
         self.groupBox_2.setTitle(_translate("REvoDesignPyMOL_UI", "Score cutoff"))
@@ -2415,11 +2441,12 @@ class Ui_REvoDesignPyMOL_UI:
         self.label_output_pse_3.setText(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "<html><head/><body><p><span style=\" font-size:18pt;\">≤ </span><span style=\" font-size:18pt; font-style:italic;\">Δ</span><span style=\" font-size:18pt;\">Score </span><span style=\" font-size:18pt; vertical-align:sub;\">Sub-WT </span><span style=\" font-size:18pt;\">≤</span></p></body></html>"))
+                '<html><head/><body><p><span style=" font-size:18pt;">≤ </span><span style=" font-size:18pt; font-style:italic;">Δ</span><span style=" font-size:18pt;">Score </span><span style=" font-size:18pt; vertical-align:sub;">Sub-WT </span><span style=" font-size:18pt;">≤</span></p></body></html>',
+            )
+        )
         self.lineEdit_score_maxima.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Scoring criteria for profile designer."))
+            _translate("REvoDesignPyMOL_UI", "Scoring criteria for profile designer.")
+        )
         self.lineEdit_score_maxima.setText(_translate("REvoDesignPyMOL_UI", "10"))
         self.groupBox_11.setTitle(_translate("REvoDesignPyMOL_UI", "Designer options"))
         self.label_3.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of sequence to sample."))
@@ -2427,51 +2454,61 @@ class Ui_REvoDesignPyMOL_UI:
         self.spinBox_designer_batch.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of sequence to sample."))
         self.label.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Temperature of external designer. Higher values will lead to more diversity."))
+                "REvoDesignPyMOL_UI", "Temperature of external designer. Higher values will lead to more diversity."
+            )
+        )
         self.label.setText(_translate("REvoDesignPyMOL_UI", "Temp:"))
         self.doubleSpinBox_designer_temperature.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Temperature of external designer. Higher values will lead to more diversity."))
-        self.checkBox_deduplicate_designs.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Drop duplicated design randomly"))
+                "REvoDesignPyMOL_UI", "Temperature of external designer. Higher values will lead to more diversity."
+            )
+        )
+        self.checkBox_deduplicate_designs.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Drop duplicated design randomly")
+        )
         self.checkBox_deduplicate_designs.setText(_translate("REvoDesignPyMOL_UI", "De-duplicated"))
         self.label_4.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`"))
+                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`",
+            )
+        )
         self.label_4.setText(_translate("REvoDesignPyMOL_UI", "Batch:"))
         self.spinBox_designer_num_samples.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`"))
-        self.checkBox_designer_homooligomeric.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Homo-oligomeric binding of design chain_id"))
+                "Batch of parallelized sampling.  For ProteinMPNN, `total_num = batch * num_sample`",
+            )
+        )
+        self.checkBox_designer_homooligomeric.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Homo-oligomeric binding of design chain_id")
+        )
         self.checkBox_designer_homooligomeric.setText(_translate("REvoDesignPyMOL_UI", "Homooligomer"))
-        self.checkBox_randomized_sampling.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant"))
+        self.checkBox_randomized_sampling.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant")
+        )
         self.checkBox_randomized_sampling.setText(_translate("REvoDesignPyMOL_UI", "Random:"))
-        self.spinBox_randomized_sampling.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant"))
+        self.spinBox_randomized_sampling.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Randomized sampling of few shot mutant")
+        )
         self.groupBox_reject_substitution.setTitle(_translate("REvoDesignPyMOL_UI", "Substitutions to:"))
         self.label_2.setStatusTip(_translate("REvoDesignPyMOL_UI", "Reject some substitutions"))
         self.label_2.setText(_translate("REvoDesignPyMOL_UI", "Reject:"))
         self.lineEdit_reject_substitution.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Substitutions to reject. eg. `PC` to reject proline and cysteine."))
+            _translate("REvoDesignPyMOL_UI", "Substitutions to reject. eg. `PC` to reject proline and cysteine.")
+        )
         self.label_5.setStatusTip(_translate("REvoDesignPyMOL_UI", "Allow some substitutions."))
         self.label_5.setText(_translate("REvoDesignPyMOL_UI", "Accept:"))
         self.lineEdit_preffer_substitution.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY`. For external designers: `DNEQKRHHH`. "))
+                "Preferred substitutions. For PSSM and CSV: `E:DATY K:RATY`. For external designers: `DNEQKRHHH`. ",
+            )
+        )
         self.groupBox.setTitle(_translate("REvoDesignPyMOL_UI", "Design Case"))
         self.lineEdit_design_case.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "You should name this design case with a proper label."))
+            _translate("REvoDesignPyMOL_UI", "You should name this design case with a proper label.")
+        )
         self.lineEdit_design_case.setText(_translate("REvoDesignPyMOL_UI", "default"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_mutate), _translate("REvoDesignPyMOL_UI", "Mutate"))
         self.tab_evaluate.setStatusTip(_translate("REvoDesignPyMOL_UI", "Choose mutant from structural insights"))
@@ -2481,14 +2518,17 @@ class Ui_REvoDesignPyMOL_UI:
         self.lcdNumber_total_mutant.setStatusTip(_translate("REvoDesignPyMOL_UI", "Total number of design candidates"))
         self.lcdNumber_selected_mutant.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of accepted mutants"))
         self.label_input_mut_table_2.setText(_translate("REvoDesignPyMOL_UI", "Save Mutants: "))
-        self.lineEdit_output_mut_table.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Output mutant table [*.mut.txt] path"))
+        self.lineEdit_output_mut_table.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Output mutant table [*.mut.txt] path")
+        )
         self.pushButton_open_mut_table.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.pushButton_reinitialize_mutant_choosing.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Initialize the design work space."))
+            _translate("REvoDesignPyMOL_UI", "Initialize the design work space.")
+        )
         self.pushButton_reinitialize_mutant_choosing.setText(_translate("REvoDesignPyMOL_UI", "Initialize"))
-        self.pushButton_load_mutant_choice_checkpoint.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Load selection from a checkpoint backup."))
+        self.pushButton_load_mutant_choice_checkpoint.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Load selection from a checkpoint backup.")
+        )
         self.pushButton_load_mutant_choice_checkpoint.setText(_translate("REvoDesignPyMOL_UI", "Load Checkpoint"))
         self.checkBox_show_wt.setStatusTip(_translate("REvoDesignPyMOL_UI", "Show WT sidechain for comparing"))
         self.checkBox_show_wt.setText(_translate("REvoDesignPyMOL_UI", "Show WT"))
@@ -2496,85 +2536,87 @@ class Ui_REvoDesignPyMOL_UI:
         self.comboBox_group_ids.setStatusTip(_translate("REvoDesignPyMOL_UI", "Jump to a specific mutant group."))
         self.comboBox_mutant_ids.setStatusTip(_translate("REvoDesignPyMOL_UI", "Jump to a specific mutant."))
         self.pushButton_next_mutant.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Go To Next Mutant. Shortcut: Shift+Opt+] "))
+            _translate("REvoDesignPyMOL_UI", "Go To Next Mutant. Shortcut: Shift+Opt+] ")
+        )
         self.pushButton_next_mutant.setText(_translate("REvoDesignPyMOL_UI", "Next"))
         self.pushButton_next_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+]"))
-        self.pushButton_reject_this_mutant.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Reject This Mutant. Shortcut: Shift+Opt+- "))
+        self.pushButton_reject_this_mutant.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Reject This Mutant. Shortcut: Shift+Opt+- ")
+        )
         self.pushButton_reject_this_mutant.setText(_translate("REvoDesignPyMOL_UI", "Reject"))
         self.pushButton_reject_this_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+-"))
-        self.pushButton_accept_this_mutant.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Accept This Mutant. Shortcut: Shift+Opt++ "))
+        self.pushButton_accept_this_mutant.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Accept This Mutant. Shortcut: Shift+Opt++ ")
+        )
         self.pushButton_accept_this_mutant.setText(_translate("REvoDesignPyMOL_UI", "Accept"))
         self.pushButton_accept_this_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+="))
         self.pushButton_previous_mutant.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Go To Previous Mutant. Shortcut: Shift+Opt+[ "))
+            _translate("REvoDesignPyMOL_UI", "Go To Previous Mutant. Shortcut: Shift+Opt+[ ")
+        )
         self.pushButton_previous_mutant.setText(_translate("REvoDesignPyMOL_UI", "Previous"))
         self.pushButton_previous_mutant.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+["))
         self.pushButton_goto_best_hit_in_group.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Jump to the best hit in this mutant group. Shortcut: Shift+Opt+\\"))
+            _translate("REvoDesignPyMOL_UI", "Jump to the best hit in this mutant group. Shortcut: Shift+Opt+\\")
+        )
         self.pushButton_goto_best_hit_in_group.setText(_translate("REvoDesignPyMOL_UI", "Find the Best Hit"))
         self.pushButton_goto_best_hit_in_group.setShortcut(_translate("REvoDesignPyMOL_UI", "Alt+Shift+\\"))
-        self.pushButton_choose_lucky_mutant.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Always pick the best hits for you!"))
-        self.pushButton_choose_lucky_mutant.setText(_translate("REvoDesignPyMOL_UI", "I\'m Lucky!"))
+        self.pushButton_choose_lucky_mutant.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Always pick the best hits for you!")
+        )
+        self.pushButton_choose_lucky_mutant.setText(_translate("REvoDesignPyMOL_UI", "I'm Lucky!"))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(
-                self.tab_evaluate), _translate(
-                "REvoDesignPyMOL_UI", "Evaluate"))
+            self.tabWidget.indexOf(self.tab_evaluate), _translate("REvoDesignPyMOL_UI", "Evaluate")
+        )
         self.tab_cluster.setStatusTip(_translate("REvoDesignPyMOL_UI", "Cluster mutagenesis space."))
         self.groupBox_14.setTitle(_translate("REvoDesignPyMOL_UI", "Calculating options"))
         self.label_input_mut_table.setText(_translate("REvoDesignPyMOL_UI", "Mutants: "))
-        self.lineEdit_input_mut_table.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Input mutant table [*.mut.txt] path"))
+        self.lineEdit_input_mut_table.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Input mutant table [*.mut.txt] path")
+        )
         self.pushButton_open_mut_table_2.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.spinBox_num_mut_minimun.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "MInimun number of mutations for each variant."))
+            _translate("REvoDesignPyMOL_UI", "MInimun number of mutations for each variant.")
+        )
         self.label_28.setText(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "<html><head/><body><p><span style=\" font-size:18pt;\">≤ Num </span><span style=\" font-size:18pt; vertical-align:sub;\">MUT</span><span style=\" font-size:18pt; vertical-align:sub;\"/><span style=\" font-size:18pt;\">≤</span></p></body></html>"))
+                '<html><head/><body><p><span style=" font-size:18pt;">≤ Num </span><span style=" font-size:18pt; vertical-align:sub;">MUT</span><span style=" font-size:18pt; vertical-align:sub;"/><span style=" font-size:18pt;">≤</span></p></body></html>',
+            )
+        )
         self.spinBox_num_mut_maximum.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Maximum number of mutations for each variant."))
+            _translate("REvoDesignPyMOL_UI", "Maximum number of mutations for each variant.")
+        )
         self.label_41.setText(_translate("REvoDesignPyMOL_UI", "Clusters:"))
         self.spinBox_num_cluster.setStatusTip(_translate("REvoDesignPyMOL_UI", "Number of clusters to generate."))
         self.label_40.setText(_translate("REvoDesignPyMOL_UI", "Batch:"))
-        self.spinBox_cluster_batchsize.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Batch number used in clustering."))
+        self.spinBox_cluster_batchsize.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Batch number used in clustering.")
+        )
         self.label_30.setText(_translate("REvoDesignPyMOL_UI", "Matrix: "))
         self.comboBox_cluster_matrix.setStatusTip(_translate("REvoDesignPyMOL_UI", "Sequence alignment matrix"))
         self.checkBox_shuffle_clustering.setStatusTip(_translate("REvoDesignPyMOL_UI", "Shuffle the sequence."))
         self.checkBox_shuffle_clustering.setText(_translate("REvoDesignPyMOL_UI", "Shuffle"))
-        self.checkBox_cluster_mutate_and_relax.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Run Mutate\'n\'Relax scoring via Rosetta"))
+        self.checkBox_cluster_mutate_and_relax.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Run Mutate'n'Relax scoring via Rosetta")
+        )
         self.checkBox_cluster_mutate_and_relax.setText(_translate("REvoDesignPyMOL_UI", "Mutate & Relax"))
         self.pushButton_run_cluster.setText(_translate("REvoDesignPyMOL_UI", "Run !"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_cluster), _translate("REvoDesignPyMOL_UI", "Cluster"))
         self.tab_visualize.setStatusTip(_translate("REvoDesignPyMOL_UI", "Visualize mutants in structure model."))
         self.label_43.setText(_translate("REvoDesignPyMOL_UI", "Mutants:"))
         self.lineEdit_input_csv_2.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Input protein profile. eg. PSSM/DMS/CSV"))
+            _translate("REvoDesignPyMOL_UI", "Input protein profile. eg. PSSM/DMS/CSV")
+        )
         self.pushButton_open_input_csv_2.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.comboBox_profile_type_2.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Format of profile, automatically determined. Ignore profile if choosing external scorers."))
+                "Format of profile, automatically determined. Ignore profile if choosing external scorers.",
+            )
+        )
         self.lineEdit_input_mut_table_csv.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Input mutant table file [*.mut.txt / best_leaf.csv]"))
+            _translate("REvoDesignPyMOL_UI", "Input mutant table file [*.mut.txt / best_leaf.csv]")
+        )
         self.pushButton_open_mut_table_csv.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.lineEdit_output_pse_visualize.setStatusTip(_translate("REvoDesignPyMOL_UI", "Output session path"))
         self.pushButton_open_output_pse_visualize.setText(_translate("REvoDesignPyMOL_UI", "..."))
@@ -2583,21 +2625,22 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_run_visualizing.setText(_translate("REvoDesignPyMOL_UI", "Run !"))
         self.pushButton_save_this_mutant_table.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Save this mutant table (Mutants that are kept enabled in current PyMOL session)"))
+                "REvoDesignPyMOL_UI", "Save this mutant table (Mutants that are kept enabled in current PyMOL session)"
+            )
+        )
         self.pushButton_save_this_mutant_table.setText(_translate("REvoDesignPyMOL_UI", "Save Mutants"))
         self.pushButton_reduce_this_session.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Save this mutant table (Mutants that keep enabled in current PyMOL session)"))
+                "REvoDesignPyMOL_UI", "Save this mutant table (Mutants that keep enabled in current PyMOL session)"
+            )
+        )
         self.pushButton_reduce_this_session.setText(_translate("REvoDesignPyMOL_UI", "Reduce Session"))
         self.pushButton_export_mutant_pdbs.setStatusTip(_translate("REvoDesignPyMOL_UI", "Export mutant as pdbs."))
         self.pushButton_export_mutant_pdbs.setText(_translate("REvoDesignPyMOL_UI", "Export PDBs"))
         self.groupBox_21.setTitle(_translate("REvoDesignPyMOL_UI", "Visualizing options"))
         self.checkBox_global_score_policy.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Color the mutants by considering scores from the entire profile."))
+            _translate("REvoDesignPyMOL_UI", "Color the mutants by considering scores from the entire profile.")
+        )
         self.checkBox_global_score_policy.setText(_translate("REvoDesignPyMOL_UI", "Global Score"))
         self.label_47.setText(_translate("REvoDesignPyMOL_UI", "Mut:"))
         self.comboBox_totalscore.setStatusTip(_translate("REvoDesignPyMOL_UI", "Score column in CSV file."))
@@ -2605,39 +2648,47 @@ class Ui_REvoDesignPyMOL_UI:
         self.label_48.setText(_translate("REvoDesignPyMOL_UI", "Score:"))
         self.label_53.setText(_translate("REvoDesignPyMOL_UI", "Group:"))
         self.comboBox_group_name.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Group ID column in CSV file, or just a group id."))
+            _translate("REvoDesignPyMOL_UI", "Group ID column in CSV file, or just a group id.")
+        )
         self.comboBox_group_name.setItemText(1, _translate("REvoDesignPyMOL_UI", "default"))
         self.groupBox_10.setTitle(_translate("REvoDesignPyMOL_UI", "Multi-mutation Design"))
         self.label_44.setText(_translate("REvoDesignPyMOL_UI", "Mutants:"))
-        self.lineEdit_multi_design_mutant_table.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Input/Output mutant table file [*.mut.txt / best_leaf.csv]"))
+        self.lineEdit_multi_design_mutant_table.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Input/Output mutant table file [*.mut.txt / best_leaf.csv]")
+        )
         self.pushButton_open_mut_table_csv_2.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.label_ligand_radius_2.setText(_translate("REvoDesignPyMOL_UI", "#Mut:"))
         self.spinBox_maximal_mutant_num.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Maximum number of mutations for each variant."))
+            _translate("REvoDesignPyMOL_UI", "Maximum number of mutations for each variant.")
+        )
         self.label_chainid_14.setText(_translate("REvoDesignPyMOL_UI", "#Val:"))
-        self.spinBox_maximal_multi_design_variant_num.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Minimal distance to accept a combined mutant"))
+        self.spinBox_maximal_multi_design_variant_num.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Minimal distance to accept a combined mutant")
+        )
         self.label_chainid_11.setText(_translate("REvoDesignPyMOL_UI", "Dist: "))
-        self.doubleSpinBox_minmal_mutant_distance.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Minimal distance to accept a combined mutant"))
+        self.doubleSpinBox_minmal_mutant_distance.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Minimal distance to accept a combined mutant")
+        )
         self.doubleSpinBox_minmal_mutant_distance.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
-        self.checkBox_multi_design_bond_CA.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Visualize designs by bonding C-alpha"))
+        self.checkBox_multi_design_bond_CA.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Visualize designs by bonding C-alpha")
+        )
         self.checkBox_multi_design_bond_CA.setText(_translate("REvoDesignPyMOL_UI", "Bond CA"))
-        self.checkBox_multi_design_check_sidechain_orientations.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Use sidechain orientations from WT. Consider its center of mass."))
+        self.checkBox_multi_design_check_sidechain_orientations.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Use sidechain orientations from WT. Consider its center of mass.")
+        )
         self.checkBox_multi_design_check_sidechain_orientations.setText(
-            _translate("REvoDesignPyMOL_UI", "SC Orientations"))
-        self.checkBox_multi_design_use_external_scorer.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Use external designers as scorer for multi-mutant design. eg.: ProteinMPNN"))
+            _translate("REvoDesignPyMOL_UI", "SC Orientations")
+        )
+        self.checkBox_multi_design_use_external_scorer.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Use external designers as scorer for multi-mutant design. eg.: ProteinMPNN"
+            )
+        )
         self.checkBox_multi_design_use_external_scorer.setText(_translate("REvoDesignPyMOL_UI", "External Scorer"))
-        self.checkBox_multi_design_color_by_scores.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Color multi-design with scores from external scorer."))
+        self.checkBox_multi_design_color_by_scores.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Color multi-design with scores from external scorer.")
+        )
         self.checkBox_multi_design_color_by_scores.setText(_translate("REvoDesignPyMOL_UI", "Color by scores"))
         self.pushButton_multi_design_initialize.setStatusTip(_translate("REvoDesignPyMOL_UI", "Reinitialize"))
         self.pushButton_multi_design_initialize.setText(_translate("REvoDesignPyMOL_UI", "⏏️"))
@@ -2648,17 +2699,18 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_multi_design_right.setStatusTip(_translate("REvoDesignPyMOL_UI", "Connect to the next pair."))
         self.pushButton_multi_design_right.setText(_translate("REvoDesignPyMOL_UI", "⏩️"))
         self.pushButton_multi_design_end_this_design.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Stop current design"))
+            _translate("REvoDesignPyMOL_UI", "Stop current design")
+        )
         self.pushButton_multi_design_end_this_design.setText(_translate("REvoDesignPyMOL_UI", "⏹️"))
         self.pushButton_multi_design_export_mutants_from_table.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Save designs to mutant table"))
+            _translate("REvoDesignPyMOL_UI", "Save designs to mutant table")
+        )
         self.pushButton_multi_design_export_mutants_from_table.setText(_translate("REvoDesignPyMOL_UI", "💾"))
         self.pushButton_run_multi_design.setStatusTip(_translate("REvoDesignPyMOL_UI", "Perform automatic design."))
         self.pushButton_run_multi_design.setText(_translate("REvoDesignPyMOL_UI", "Run"))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(
-                self.tab_visualize), _translate(
-                "REvoDesignPyMOL_UI", "Visualize"))
+            self.tabWidget.indexOf(self.tab_visualize), _translate("REvoDesignPyMOL_UI", "Visualize")
+        )
         self.tab_interact.setStatusTip(_translate("REvoDesignPyMOL_UI", "Inspect co-evolved pairs"))
         self.groupBox_22.setTitle(_translate("REvoDesignPyMOL_UI", "GREMLIN profile:"))
         self.lineEdit_input_gremlin_mtx.setStatusTip(_translate("REvoDesignPyMOL_UI", "GREMLIN MRF profiles in pkl"))
@@ -2667,22 +2719,27 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_open_save_mutant_table.setText(_translate("REvoDesignPyMOL_UI", "..."))
         self.groupBox_9.setTitle(_translate("REvoDesignPyMOL_UI", "Co-evolved Pairs"))
         self.label_chainid_7.setText(_translate("REvoDesignPyMOL_UI", "Dist.: "))
-        self.doubleSpinBox_max_interact_dist.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Max distance to accept a co-evolved pair."))
+        self.doubleSpinBox_max_interact_dist.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Max distance to accept a co-evolved pair.")
+        )
         self.doubleSpinBox_max_interact_dist.setSuffix(_translate("REvoDesignPyMOL_UI", "Å"))
         self.checkBox_interact_bind_chain_mode.setStatusTip(_translate("REvoDesignPyMOL_UI", "Bind to multiple chains"))
         self.checkBox_interact_bind_chain_mode.setText(_translate("REvoDesignPyMOL_UI", "Bind Chains:"))
-        self.lineEdit_interact_chain_binding.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Chain IDs to bind together. eg. `ABCD`"))
+        self.lineEdit_interact_chain_binding.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Chain IDs to bind together. eg. `ABCD`")
+        )
         self.label_chainid_6.setText(_translate("REvoDesignPyMOL_UI", "Top:"))
         self.spinBox_gremlin_topN.setStatusTip(_translate("REvoDesignPyMOL_UI", "Select top N interact pairs"))
         self.label_chainid_13.setText(_translate("REvoDesignPyMOL_UI", "Scorer:"))
         self.comboBox_external_scorer.setStatusTip(
             _translate(
                 "REvoDesignPyMOL_UI",
-                "Format of profile, automatically determined. Profile will be ignored if choosing external designer."))
+                "Format of profile, automatically determined. Profile will be ignored if choosing external designer.",
+            )
+        )
         self.pushButton_reinitialize_interact.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Initialize design work space"))
+            _translate("REvoDesignPyMOL_UI", "Initialize design work space")
+        )
         self.pushButton_reinitialize_interact.setText(_translate("REvoDesignPyMOL_UI", "Initialize"))
         self.pushButton_run_interact_scan.setStatusTip(_translate("REvoDesignPyMOL_UI", "Scan for co-evolved pairs."))
         self.pushButton_run_interact_scan.setText(_translate("REvoDesignPyMOL_UI", "Scan"))
@@ -2703,20 +2760,21 @@ class Ui_REvoDesignPyMOL_UI:
         self.label_chainid_8.setText(_translate("REvoDesignPyMOL_UI", "Mut:"))
         self.lineEdit_current_pair_mut_score.setStatusTip(_translate("REvoDesignPyMOL_UI", "Mutant GREMLIN score"))
         self.tabWidget.setTabText(
-            self.tabWidget.indexOf(
-                self.tab_interact), _translate(
-                "REvoDesignPyMOL_UI", "Interact"))
+            self.tabWidget.indexOf(self.tab_interact), _translate("REvoDesignPyMOL_UI", "Interact")
+        )
         self.groupBox_ws_server_settings.setTitle(_translate("REvoDesignPyMOL_UI", "Host options"))
         self.label_molecule_11.setStatusTip(_translate("REvoDesignPyMOL_UI", "Broadcast time interval."))
         self.label_molecule_11.setText(_translate("REvoDesignPyMOL_UI", "Broadcast interval:"))
-        self.doubleSpinBox_ws_view_broadcast_interval.setStatusTip(_translate(
-            "REvoDesignPyMOL_UI", "Broadcast time interval. Smaller means faster."))
+        self.doubleSpinBox_ws_view_broadcast_interval.setStatusTip(
+            _translate("REvoDesignPyMOL_UI", "Broadcast time interval. Smaller means faster.")
+        )
         self.label_molecule_14.setText(_translate("REvoDesignPyMOL_UI", "sec"))
         self.groupBox_ws_client_settings.setTitle(_translate("REvoDesignPyMOL_UI", "Peer options"))
         self.label_molecule_8.setStatusTip(_translate("REvoDesignPyMOL_UI", "Server IP/domain to connect"))
         self.label_molecule_8.setText(_translate("REvoDesignPyMOL_UI", "Host:"))
         self.lineEdit_ws_server_url_to_connect.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Host IP/domain to connect"))
+            _translate("REvoDesignPyMOL_UI", "Host IP/domain to connect")
+        )
         self.lineEdit_ws_server_url_to_connect.setText(_translate("REvoDesignPyMOL_UI", "localhost"))
         self.pushButton_ws_connect_to_server.setStatusTip(_translate("REvoDesignPyMOL_UI", "Join the network"))
         self.pushButton_ws_connect_to_server.setText(_translate("REvoDesignPyMOL_UI", "Join"))
@@ -2724,42 +2782,41 @@ class Ui_REvoDesignPyMOL_UI:
         self.pushButton_ws_disconnect_from_server.setText(_translate("REvoDesignPyMOL_UI", "Leave"))
         self.groupBox_13.setTitle(_translate("REvoDesignPyMOL_UI", "Team role"))
         self.checkBox_ws_server_mode.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Start teamwork server to create a network"))
+            _translate("REvoDesignPyMOL_UI", "Start teamwork server to create a network")
+        )
         self.checkBox_ws_server_mode.setText(_translate("REvoDesignPyMOL_UI", "Host Mode"))
         self.checkBox_ws_duplex_mode.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Duplex mode: receive broadcasts from the clients."))
+            _translate("REvoDesignPyMOL_UI", "Duplex mode: receive broadcasts from the clients.")
+        )
         self.checkBox_ws_duplex_mode.setText(_translate("REvoDesignPyMOL_UI", "Duplex"))
         self.label_molecule_13.setText(_translate("REvoDesignPyMOL_UI", "Port:"))
         self.spinBox_ws_server_port.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Server port to communicate with peers"))
+            _translate("REvoDesignPyMOL_UI", "Server port to communicate with peers")
+        )
         self.checkBox_ws_server_use_key.setStatusTip(_translate("REvoDesignPyMOL_UI", "Use key in server"))
         self.checkBox_ws_server_use_key.setText(_translate("REvoDesignPyMOL_UI", "Key:"))
         self.lineEdit_ws_server_key.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Server key for client authentication."))
+            _translate("REvoDesignPyMOL_UI", "Server key for client authentication.")
+        )
         self.pushButton_ws_generate_randomized_key.setStatusTip(_translate("REvoDesignPyMOL_UI", "Generate key"))
         self.pushButton_ws_generate_randomized_key.setText(_translate("REvoDesignPyMOL_UI", "Generate"))
         self.treeWidget_ws_peers.setStatusTip(_translate("REvoDesignPyMOL_UI", "Peers in this networks"))
         self.treeWidget_ws_peers.headerItem().setText(0, _translate("REvoDesignPyMOL_UI", "Peers"))
         self.groupBox_5.setTitle(_translate("REvoDesignPyMOL_UI", "Receive"))
         self.checkBox_ws_recieve_mutagenesis_broadcast.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Receive mutant updates"))
+            _translate("REvoDesignPyMOL_UI", "Receive mutant updates")
+        )
         self.checkBox_ws_recieve_mutagenesis_broadcast.setText(_translate("REvoDesignPyMOL_UI", "Mutations"))
         self.checkBox_ws_recieve_view_broadcast.setStatusTip(_translate("REvoDesignPyMOL_UI", "Receive  view updates"))
         self.checkBox_ws_recieve_view_broadcast.setText(_translate("REvoDesignPyMOL_UI", "View Change"))
         self.checkBox_ws_recieve_mutagenesis_selection.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Receive mutant updates"))
+            _translate("REvoDesignPyMOL_UI", "Receive mutant updates")
+        )
         self.checkBox_ws_recieve_mutagenesis_selection.setText(_translate("REvoDesignPyMOL_UI", "Selection"))
         self.groupBox_12.setTitle(_translate("REvoDesignPyMOL_UI", "Broadcast"))
         self.checkBox_ws_broadcast_mutagenesis.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Broadcast mutant updates"))
+            _translate("REvoDesignPyMOL_UI", "Broadcast mutant updates")
+        )
         self.checkBox_ws_broadcast_mutagenesis.setText(_translate("REvoDesignPyMOL_UI", "Mutations"))
         self.checkBox_ws_broadcast_view.setStatusTip(_translate("REvoDesignPyMOL_UI", "Broadcast view changes"))
         self.checkBox_ws_broadcast_view.setText(_translate("REvoDesignPyMOL_UI", "View Change"))
@@ -2770,12 +2827,14 @@ class Ui_REvoDesignPyMOL_UI:
         self.label_molecule_2.setText(_translate("REvoDesignPyMOL_UI", "Solver:"))
         self.comboBox_sidechain_solver.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Sidechain solver. Default: buildin for Dunbrack rotamer library used by PyMOL "))
+                "REvoDesignPyMOL_UI", "Sidechain solver. Default: buildin for Dunbrack rotamer library used by PyMOL "
+            )
+        )
         self.label_molecule_3.setText(_translate("REvoDesignPyMOL_UI", "radius:"))
         self.label_molecule_4.setText(_translate("REvoDesignPyMOL_UI", "Model:"))
         self.comboBox_sidechain_solver_model.setStatusTip(
-            _translate("REvoDesignPyMOL_UI", "Sidechain solver options. "))
+            _translate("REvoDesignPyMOL_UI", "Sidechain solver options. ")
+        )
         self.groupBox_17.setTitle(_translate("REvoDesignPyMOL_UI", "Rosetta options"))
         self.label_molecule_5.setText(_translate("REvoDesignPyMOL_UI", "Node"))
         self.comboBox_rosetta_node_hint.setStatusTip(_translate("REvoDesignPyMOL_UI", "Node Hint for Rosetta."))
@@ -2786,19 +2845,24 @@ class Ui_REvoDesignPyMOL_UI:
         self.label_chainid.setText(_translate("REvoDesignPyMOL_UI", "Chain: "))
         self.comboBox_chain_id.setStatusTip(_translate("REvoDesignPyMOL_UI", "Chain ID for design."))
         self.groupBox_7.setTitle(_translate("REvoDesignPyMOL_UI", "Parallelism"))
-        self.label_nproc.setStatusTip(_translate("REvoDesignPyMOL_UI",
-                                                 "Number of processors used. Parallelism is enabled if CPU is set greater than 1"))
+        self.label_nproc.setStatusTip(
+            _translate(
+                "REvoDesignPyMOL_UI", "Number of processors used. Parallelism is enabled if CPU is set greater than 1"
+            )
+        )
         self.label_nproc.setText(_translate("REvoDesignPyMOL_UI", "CPUs:"))
         self.spinBox_nproc.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Number of processors used. Parallelism is enabled if CPU is set greater than 1"))
+                "REvoDesignPyMOL_UI", "Number of processors used. Parallelism is enabled if CPU is set greater than 1"
+            )
+        )
         self.groupBox_8.setTitle(_translate("REvoDesignPyMOL_UI", "Color Map"))
         self.comboBox_cmap.setStatusTip(_translate("REvoDesignPyMOL_UI", "Color map."))
         self.checkBox_reverse_mutant_effect.setStatusTip(
             _translate(
-                "REvoDesignPyMOL_UI",
-                "Lower scores will be favored in certain scoring methods, such as ddG scoring."))
+                "REvoDesignPyMOL_UI", "Lower scores will be favored in certain scoring methods, such as ddG scoring."
+            )
+        )
         self.menuFile.setTitle(_translate("REvoDesignPyMOL_UI", "File"))
         self.menuExperiment.setTitle(_translate("REvoDesignPyMOL_UI", "Experiment"))
         self.menuLanguage.setTitle(_translate("REvoDesignPyMOL_UI", "Language"))
@@ -2842,9 +2906,8 @@ class Ui_REvoDesignPyMOL_UI:
         self.actionInfo.setText(_translate("REvoDesignPyMOL_UI", "Info"))
         self.actionReconfigure.setText(_translate("REvoDesignPyMOL_UI", "Reconfigure"))
         self.actionReconfigure.setStatusTip(
-            _translate(
-                "REvoDesignPyMOL_UI",
-                "Reconfigure REvoDesign from YAML config file."))
+            _translate("REvoDesignPyMOL_UI", "Reconfigure REvoDesign from YAML config file.")
+        )
         self.actionSave_Configurations.setText(_translate("REvoDesignPyMOL_UI", "Save Configurations"))
         self.actionSave_Configurations.setShortcut(_translate("REvoDesignPyMOL_UI", "Ctrl+S"))
         self.actionLoad_Demo.setText(_translate("REvoDesignPyMOL_UI", "Load Demo"))

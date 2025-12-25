@@ -1,7 +1,8 @@
-'''
+"""
 Wrapper for DLPacker
 
-'''
+"""
+
 import gc
 import os
 
@@ -55,12 +56,8 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         cache_dir = set_cache_dir()
 
-        expected_dlpacker_weight_cache_dir = os.path.join(
-            os.path.abspath(cache_dir), "weights", "DLPacker"
-        )
-        os.environ["DLPACKER_PRETRAINED_WEIGHT"] = (
-            expected_dlpacker_weight_cache_dir
-        )
+        expected_dlpacker_weight_cache_dir = os.path.join(os.path.abspath(cache_dir), "weights", "DLPacker")
+        os.environ["DLPACKER_PRETRAINED_WEIGHT"] = expected_dlpacker_weight_cache_dir
 
         self.pdb_file = pdb_file
         self.reconstruct_area_radius = radius
@@ -82,9 +79,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             self.temp_dir,
             f'{os.path.basename(self.pdb_file).removesuffix(".pdb")}_reconstructed.pdb',
         )
-        dlpacker_worker.reconstruct_protein(
-            order="sequence", output_filename=temperal_relaxed_pdb
-        )
+        dlpacker_worker.reconstruct_protein(order="sequence", output_filename=temperal_relaxed_pdb)
         del dlpacker_worker
         return temperal_relaxed_pdb
 
@@ -115,12 +110,8 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         for mut_info in mutant.mutations:
 
-            new_residue_3 = IUPACData.protein_letters_1to3[
-                mut_info.mut_res
-            ].upper()
-            wt_residue_3 = IUPACData.protein_letters_1to3[
-                mut_info.wt_res
-            ].upper()
+            new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
+            wt_residue_3 = IUPACData.protein_letters_1to3[mut_info.wt_res].upper()
 
             dlpacker_worker.mutate_sequence(
                 target=(mut_info.position, mut_info.chain_id, wt_residue_3),
@@ -131,9 +122,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             mutant_obj=mutant,
             reconstruct_area_radius=self.reconstruct_area_radius,
         )
-        logging.debug(
-            f"Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}"
-        )
+        logging.debug(f"Reconstruct within {self.reconstruct_area_radius=}: {reconstruct_area=}")
         dlpacker_worker.reconstruct_region(
             targets=reconstruct_area,
             order="natoms" if self.reconstruct_area_radius > 0 else "sequence",
@@ -144,9 +133,7 @@ class DLPacker_worker(MutateRunnerAbstract):
 
         return temp_pdb_path
 
-    def _get_reconstruct_area(
-        self, mutant_obj: Mutant, reconstruct_area_radius: float = -1
-    ):
+    def _get_reconstruct_area(self, mutant_obj: Mutant, reconstruct_area_radius: float = -1):
         """
         Get the area for reconstruction based on mutation information.
 
@@ -165,16 +152,10 @@ class DLPacker_worker(MutateRunnerAbstract):
         reconstruct_area = []
         for mut_info in mutant_obj.mutations:
 
-            new_residue_3 = IUPACData.protein_letters_1to3[
-                mut_info.mut_res
-            ].upper()
+            new_residue_3 = IUPACData.protein_letters_1to3[mut_info.mut_res].upper()
             if reconstruct_area_radius <= 0:
-                logging.debug(
-                    f"Adding {(mut_info.position, mut_info.chain_id, new_residue_3)} for reconstruction ..."
-                )
-                reconstruct_area.append(
-                    (mut_info.position, mut_info.chain_id, new_residue_3)
-                )
+                logging.debug(f"Adding {(mut_info.position, mut_info.chain_id, new_residue_3)} for reconstruction ...")
+                reconstruct_area.append((mut_info.position, mut_info.chain_id, new_residue_3))
             else:
                 _ = dlpacker_worker.get_targets(
                     target=(
@@ -208,7 +189,7 @@ class DLPacker_worker(MutateRunnerAbstract):
         Returns:
         - List of paths to the mutated PDB files
         """
-        with timing('setting up DLPacker'):
+        with timing("setting up DLPacker"):
             # call DLPacker to initialize with cache dir
             from DLPacker.dlpacker import DLPacker
 
@@ -219,9 +200,7 @@ class DLPacker_worker(MutateRunnerAbstract):
             logging.warning(f"Fixed {nproc=} to {num_task=}")
             nproc = num_task
 
-        results = Parallel(n_jobs=nproc, return_as="list")(
-            delayed(self.run_mutate)(mutant) for mutant in mutants
-        )
+        results = Parallel(n_jobs=nproc, return_as="list")(delayed(self.run_mutate)(mutant) for mutant in mutants)
 
         gc.collect()
         return list(results)  # type: ignore

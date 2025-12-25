@@ -1,6 +1,6 @@
-'''
+"""
 Collect all the shortcuts and extend them to pymol
-'''
+"""
 
 from pymol import cmd
 from pymol.shortcut import Shortcut
@@ -44,28 +44,24 @@ cmd.extend("pssm2csv", shortcut_pssm2csv)
 # To bollow the existing ones, we need to find the corresponding dict in the `cmd.auto_arg` list
 # The autocompletion must be added after the extend command is defined
 cmd.extend("real_sc", shortcut_real_sc)
-cmd.auto_arg[0]["real_sc"] = [cmd.auto_arg[1]['select'][0], 'Selections', ' ']
-cmd.auto_arg[1]["real_sc"] = [cmd.auto_arg[0]['show'][0], 'What representation to use', ' ']
+cmd.auto_arg[0]["real_sc"] = [cmd.auto_arg[1]["select"][0], "Selections", " "]
+cmd.auto_arg[1]["real_sc"] = [cmd.auto_arg[0]["show"][0], "What representation to use", " "]
 
 
 cmd.extend("color_by_mutation", shortcut_color_by_mutation)
 # To build a new one, we can create a lambda function that returns a Shortcut object
-cmd.auto_arg[0]["color_by_mutation"] = [cmd.auto_arg[0]['enable'][0], 'Target object', '']
-cmd.auto_arg[1]["color_by_mutation"] = [cmd.auto_arg[0]['enable'][0], 'Reference object', '']
+cmd.auto_arg[0]["color_by_mutation"] = [cmd.auto_arg[0]["enable"][0], "Target object", ""]
+cmd.auto_arg[1]["color_by_mutation"] = [cmd.auto_arg[0]["enable"][0], "Reference object", ""]
 cmd.auto_arg[2]["color_by_mutation"] = [
-    lambda: Shortcut(
-        keywords=[
-            '0',
-            '1']),
-    'Enable waters\n0 for no waters\n1 for waters',
-    '']
+    lambda: Shortcut(keywords=["0", "1"]),
+    "Enable waters\n0 for no waters\n1 for waters",
+    "",
+]
 cmd.auto_arg[3]["color_by_mutation"] = [
-    lambda: Shortcut(
-        keywords=[
-            '0',
-            '1']),
-    'Enable labels\n0 for no labels\n1 for labels',
-    '']
+    lambda: Shortcut(keywords=["0", "1"]),
+    "Enable labels\n0 for no labels\n1 for labels",
+    "",
+]
 # In this case of color_by_mutation, we have 4 arguments:
 # arg0: obj1 - autocompleted using the existing 'enable' shortcut
 # arg1: obj2 - autocompleted using the existing 'enable' shortcut
@@ -86,7 +82,7 @@ cmd.extend("get_pca_box", get_pca_box)
 cmd.extend("showbox", showbox)
 
 cmd.extend("rmhet", rmhet)
-cmd.extend('movebox', movebox)
+cmd.extend("movebox", movebox)
 cmd.extend("showaxes", showaxes)
 cmd.extend("enlargebox", enlargebox)
 
@@ -98,4 +94,5 @@ __all__ = [
     "shortcut_find_interface",
     "shortcut_color_by_mutation",
     "shortcut_dump_sidechains",
-    'visualize_conformer_sdf']
+    "visualize_conformer_sdf",
+]

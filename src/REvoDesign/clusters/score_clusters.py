@@ -1,6 +1,7 @@
-'''
+"""
 Score the clustered sequences with Rosetta
-'''
+"""
+
 import os
 
 import pandas as pd
@@ -16,13 +17,11 @@ from REvoDesign.tools.rosetta_utils import (IS_ROSETTA_RUNNABLE,
 logging = ROOT_LOGGER.getChild(__name__)
 
 
-def score_clusters(
-    pdb, chain_id, node_hint: NodeHintT, tasks_dir: str
-) -> list[RosettaEnergyUnitAnalyser]:
+def score_clusters(pdb, chain_id, node_hint: NodeHintT, tasks_dir: str) -> list[RosettaEnergyUnitAnalyser]:
     if not IS_ROSETTA_RUNNABLE:
         raise issues.DependencyError(
-            "Rosetta is not runnable on this machine. "
-            "Please chech the documentation of RosettaPy for more details.")
+            "Rosetta is not runnable on this machine. " "Please chech the documentation of RosettaPy for more details."
+        )
     instance = os.path.basename(pdb)[:-4]
     task_bn = os.path.basename(tasks_dir)
     node_config = read_rosetta_node_config()
@@ -43,16 +42,16 @@ def score_clusters(
         logging.info(r.top(3))
         logging.info("-" * 79)
 
-    df_dict = {f'c.{i}': r.df for i, r in enumerate(ret)}
+    df_dict = {f"c.{i}": r.df for i, r in enumerate(ret)}
 
     # Add branch information to each dataframe
     for k, df in df_dict.items():
-        df.loc[:, 'branch'] = k
+        df.loc[:, "branch"] = k
 
     df_merge = pd.concat([df for df in df_dict.values()])
 
-    logging.info(f'Saving cluster scores to cluster.{task_bn}_rosetta.xlsx/csv')
-    df_merge.to_excel(f'cluster_scorings/output/cluster.{task_bn}_rosetta.xlsx')
-    df_merge.to_csv(f'cluster_scorings/output/cluster.{task_bn}_rosetta.csv')
+    logging.info(f"Saving cluster scores to cluster.{task_bn}_rosetta.xlsx/csv")
+    df_merge.to_excel(f"cluster_scorings/output/cluster.{task_bn}_rosetta.xlsx")
+    df_merge.to_csv(f"cluster_scorings/output/cluster.{task_bn}_rosetta.csv")
 
     return ret

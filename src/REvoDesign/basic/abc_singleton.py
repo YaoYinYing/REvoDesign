@@ -1,4 +1,4 @@
-'''
+"""
 Life of a Singleton Class
 
 +---------------------------------------------+
@@ -118,11 +118,12 @@ Resetting Instance
 +---------------------------+
 
 
-'''
+"""
+
 from abc import ABC, abstractmethod
 from typing import TypeVar, cast
 
-T = TypeVar('T', bound='SingletonAbstract')
+T = TypeVar("T", bound="SingletonAbstract")
 
 
 class SingletonAbstract(ABC):
@@ -134,6 +135,7 @@ class SingletonAbstract(ABC):
     Attributes:
         _instance: The singleton instance of the class.
     """
+
     _instance = None
 
     @classmethod
@@ -215,10 +217,12 @@ class SingletonAbstract(ABC):
         Returns:
             A dynamically created subclass with singleton behavior.
         """
+
         class DerivedSingleton(cls):
             """
             A dynamically created derived singleton class.
             """
+
             _instance = None  # Independent instance tracking for the derived class
 
             def __init__(self, *args, **kwargs):
@@ -232,7 +236,7 @@ class SingletonAbstract(ABC):
                     *args: Positional arguments for initialization.
                     **kwargs: Keyword arguments for initialization.
                 """
-                if not hasattr(self, 'initialized'):
+                if not hasattr(self, "initialized"):
                     self.singleton_init(*args, **kwargs)
                     self.initialized = True
 
@@ -261,6 +265,6 @@ def reset_singletons():
     # gracefully reset all singleton classes
     for cls in SingletonAbstract.__subclasses__():
         # check if the singleton class instance exists
-        if hasattr(cls, '_instance') and cls._instance is not None:
+        if hasattr(cls, "_instance") and cls._instance is not None:
             # reset the instance of the singleton class
             cls.reset_instance()

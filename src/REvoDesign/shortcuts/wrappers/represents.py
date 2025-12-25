@@ -1,6 +1,7 @@
-'''
+"""
 Shortcut wrappers of structure representation
-'''
+"""
+
 from REvoDesign import issues
 from REvoDesign.shortcuts.tools.represents import (load_b_factors,
                                                    shortcut_color_by_mutation,
@@ -22,8 +23,7 @@ def _color_by_mutation(**kwargs):
     """
     if kwargs["obj1"] == kwargs["obj2"]:
         raise issues.InvalidInputError(
-            "The two objects cannot be the same. "
-            f'obj1={kwargs["obj1"]}, obj2={kwargs["obj2"]}'
+            "The two objects cannot be the same. " f'obj1={kwargs["obj1"]}, obj2={kwargs["obj2"]}'
         )
 
     shortcut_color_by_mutation(**kwargs)

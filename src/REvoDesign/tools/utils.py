@@ -1,6 +1,7 @@
-'''
+"""
 Orphaneous functions for REvoDesign
-'''
+"""
+
 from __future__ import annotations
 
 import contextlib
@@ -55,18 +56,18 @@ def resolve_dotted_function(dotted_str: str) -> Callable:
     """
     if ":" not in dotted_str:
         raise issues.InvalidInputError(
-            'dotted function expect an input string in pattern <import-path>:(<class>.)<function>',
-            f'not `{dotted_str}`'
+            "dotted function expect an input string in pattern <import-path>:(<class>.)<function>",
+            f"not `{dotted_str}`",
         )
     module_path, func_name = dotted_str.rsplit(":", 1)
     module = importlib.import_module(module_path)
     if "." not in func_name:
-        logging.debug(f'Dotted function resolving `{func_name}` from {module}')
+        logging.debug(f"Dotted function resolving `{func_name}` from {module}")
         return getattr(module, func_name)
     # maybe a class method?
 
     _class_name, _func_name = func_name.rsplit(".")
-    logging.debug(f'Dotted function resolving `{_class_name}.{_func_name}` from {module}')
+    logging.debug(f"Dotted function resolving `{_class_name}.{_func_name}` from {module}")
     _class = getattr(module, _class_name)
     return getattr(_class, _func_name)
 
@@ -102,7 +103,7 @@ CLASS_ARGSLICE = slice(1, None)
 def require_not_none(
     attribute_name: str,
     fallback_setup: Callable[[], Any] | str | None = None,
-    error_type: type[Exception] = issues.UnexpectedWorkflowError
+    error_type: type[Exception] = issues.UnexpectedWorkflowError,
 ):
     """
     Decorator factory to ensure a specific attribute of the instance is not None before the method is called.
@@ -113,6 +114,7 @@ def require_not_none(
         error_type (type): Exception type to raise if the attribute is None and no fallback.
             Defaults to issues.UnexpectedWorkflowError.
     """
+
     def decorator(method):
         @wraps(method)
         def wrapper(self, *args, **kwargs):
@@ -122,7 +124,8 @@ def require_not_none(
                 if callable(fallback_setup):
                     logging.warning(
                         f"Method called {method.__name__}' with None attribute, "
-                        f"falling back to setup by {fallback_setup.__name__}")
+                        f"falling back to setup by {fallback_setup.__name__}"
+                    )
                     fallback_setup()
                 # fallback setup is a string, try call the method with the same name
                 elif isinstance(fallback_setup, str):
@@ -132,8 +135,10 @@ def require_not_none(
                     # not a callable, raise error
                     if not callable(fallback_setup_):
                         raise AttributeError(f"Attribute '{fallback_setup}' is not callable in {self}")
-                    logging.warning(f"Method called {method.__name__}' with None attribute, "
-                                    f"falling back to setup by {fallback_setup}")
+                    logging.warning(
+                        f"Method called {method.__name__}' with None attribute, "
+                        f"falling back to setup by {fallback_setup}"
+                    )
                     fallback_setup_()
                 else:
                     # no fallback setup, raise error
@@ -158,7 +163,7 @@ def require_installed(cls):
 
     def __init__(self, *args, **kwargs):
 
-        if not getattr(cls, 'installed', False):
+        if not getattr(cls, "installed", False):
             raise issues.UninstalledPackageError(f"Module '{self.name}' is not installed.")
 
         orig_init(self, *args, **kwargs)
@@ -196,9 +201,9 @@ def inspect_method_types(method: Callable) -> MethodKind:
         self_obj = method.__self__  # type: ignore[attr-defined]
         # Bound to a class -> classmethod
         if isinstance(self_obj, type):
-            logging.debug(f'{method!r} is a classmethod bound to {self_obj!r}')
+            logging.debug(f"{method!r} is a classmethod bound to {self_obj!r}")
             return "ClassMethod"
-        logging.debug(f'{method!r} is an instancemethod bound to {self_obj!r}')
+        logging.debug(f"{method!r} is an instancemethod bound to {self_obj!r}")
         # Bound to an instance -> instance method
         return "InstanceMethod"
 
@@ -231,21 +236,21 @@ def inspect_method_types(method: Callable) -> MethodKind:
                 attr = owner_cls.__dict__.get(func_name)
                 # Static method is stored as a staticmethod descriptor
                 if isinstance(attr, staticmethod):
-                    logging.debug(f'{method!r} is a staticmethod on {owner_cls!r}')
+                    logging.debug(f"{method!r} is a staticmethod on {owner_cls!r}")
                     return "StaticMethod"
                 # A normal "def" on the class body: unbound instance method
                 if inspect.isfunction(attr):
-                    logging.debug(f'{method!r} is a function on {owner_cls!r}')
+                    logging.debug(f"{method!r} is a function on {owner_cls!r}")
                     return "Function"
 
             # Fallback: dotted qualname but class not resolvable
             # (e.g. local classes with '<locals>' in qualname).
             # In your semantics we still treat this as a static-style method.
-            logging.debug(f'{method!r} is a dotted qualname but class is not resolvable')
+            logging.debug(f"{method!r} is a dotted qualname but class is not resolvable")
             return "StaticMethod"
 
         # No dot in qualname: a plain top-level function
-        logging.debug(f'{method!r} is a plain top-level function')
+        logging.debug(f"{method!r} is a plain top-level function")
         return "Function"
 
     # --- 3. Rare cases: method-like objects not covered above ---------------
@@ -253,9 +258,9 @@ def inspect_method_types(method: Callable) -> MethodKind:
         # This branch is mostly for odd cases / builtins.
         self_obj = method.__self__
         if isinstance(self_obj, type):
-            logging.debug(f'{method!r} is a method-like classmethod object')
+            logging.debug(f"{method!r} is a method-like classmethod object")
             return "ClassMethod"
-        logging.debug(f'{method!r} is a method-like instancemethod object')
+        logging.debug(f"{method!r} is a method-like instancemethod object")
         return "InstanceMethod"
 
     # --- 4. Give up ----------------------------------------------------------
@@ -277,12 +282,12 @@ def get_owner_class_from_static(func):
     qualname = func.__qualname__
 
     # Strip any '<locals>' part for nested definitions.
-    qualname = qualname.split('.<locals>.', 1)[0]
+    qualname = qualname.split(".<locals>.", 1)[0]
 
     # Drop the last component (the function name itself).
     # e.g. "MyClass.static" -> "MyClass"
     #      "Outer.Inner.static" -> "Outer.Inner"
-    parts = qualname.split('.')
+    parts = qualname.split(".")
     if len(parts) < 2:
         raise LookupError(f"Cannot infer an owning class from qualname {qualname!r} ({func.__qualname__!r})")
 
@@ -471,7 +476,7 @@ def extract_archive(archive_file: str, extract_to: str):
     """
 
     try:
-        with timing(f'extracting {archive_file} to {extract_to}'):
+        with timing(f"extracting {archive_file} to {extract_to}"):
             if archive_file.endswith(".zip"):
                 with zipfile.ZipFile(archive_file, "r") as zip_ref:
                     zip_ref.extractall(extract_to)
@@ -588,16 +593,10 @@ def count_and_sort_characters(input_string: str, characters):
     Returns:
     - dict: Dictionary containing character counts sorted in descending order.
     """
-    char_count = {
-        char: input_string.lower().count(char) for char in characters
-    }
+    char_count = {char: input_string.lower().count(char) for char in characters}
 
-    sorted_count = dict(
-        sorted(char_count.items(), key=lambda item: item[1], reverse=True)
-    )
-    sorted_count = {
-        key: value for key, value in sorted_count.items() if value != 0
-    }
+    sorted_count = dict(sorted(char_count.items(), key=lambda item: item[1], reverse=True))
+    sorted_count = {key: value for key, value in sorted_count.items() if value != 0}
     return sorted_count
 
 
@@ -614,9 +613,7 @@ def random_deduplicate(seq, score):
     - numpy.array: Randomly chosen scores corresponding to unique items.
     """
     unique_items = np.unique(seq)
-    unique_scores = [
-        np.random.choice(score[seq == item]) for item in unique_items
-    ]
+    unique_scores = [np.random.choice(score[seq == item]) for item in unique_items]
     return np.array(unique_items), np.array(unique_scores)
 
 
@@ -638,53 +635,44 @@ def generate_strong_password(length=16):
     - The password length should be between 16 and 64 characters.
     """
     if length < 16 or length > 64:
-        raise ValueError(
-            "Password length should be between 16 and 64 characters."
-        )
+        raise ValueError("Password length should be between 16 and 64 characters.")
 
     # Define the characters to use for generating the password
-    password_characters = (
-        string.ascii_letters + string.digits + '!#$%&*+-./:?@^_~'
-    )
+    password_characters = string.ascii_letters + string.digits + "!#$%&*+-./:?@^_~"
 
     # Generate the password using random characters from the defined set
-    generated_password = "".join(
-        random.choice(password_characters) for _ in range(length)
-    )
+    generated_password = "".join(random.choice(password_characters) for _ in range(length))
 
     return generated_password
 
 
 # modified from AlphaFold
 @contextlib.contextmanager
-def timing(msg: str, unit: Literal['ms', 'sec', 'min', 'hr'] = 'sec'):
+def timing(msg: str, unit: Literal["ms", "sec", "min", "hr"] = "sec"):
     logging.info(f"Started {msg}")
     tic = time.perf_counter()
     yield
     toc = time.perf_counter()
     tic_toc = toc - tic
-    if unit == 'sec':
+    if unit == "sec":
         logging.info(f"Finished {msg} in {tic_toc:.3f} seconds")
-    elif unit == 'min':
+    elif unit == "min":
         logging.info(f"Finished {msg} in {tic_toc / 60:.3f} minutes")
-    elif unit == 'hr':
+    elif unit == "hr":
         logging.info(f"Finished {msg} in {tic_toc / 3600:.3f} hours")
-    elif unit == 'ms':
+    elif unit == "ms":
         logging.info(f"Finished {msg} in {tic_toc * 1000:.3f} milliseconds")
 
 
 def convert_residue_ranges(
-        residue_ranges: str,
-
-        res_prefix: str = "",
-        resr_prefix: str = "",
-
-        res_suffix: str = "",
-        resr_suffix: str = "",
-
-        connector: str = ' | ',
+    residue_ranges: str,
+    res_prefix: str = "",
+    resr_prefix: str = "",
+    res_suffix: str = "",
+    resr_suffix: str = "",
+    connector: str = " | ",
 ) -> str:
-    '''
+    """
     Converts a string of residue ranges into a string of residue segments.
     Example:
     >>> convert_residue_ranges('1-5+7-9+10-12+13', res_prefix='r ', resr_prefix='ri ', connector=' | ')
@@ -701,11 +689,11 @@ def convert_residue_ranges(
     Returns:
         String of residue segments.
 
-    '''
+    """
 
     converted = []
-    for residue_seg in residue_ranges.split('+'):
-        if '-' in residue_seg:
+    for residue_seg in residue_ranges.split("+"):
+        if "-" in residue_seg:
             converted.append(resr_prefix + residue_seg + resr_suffix)
         else:
             converted.append(res_prefix + residue_seg + res_suffix)
@@ -717,6 +705,7 @@ def convert_residue_ranges(
 
 
 # TODO: support JAX and TensorFlow; need refactor
+
 
 def device_picker() -> list[str]:
     """
@@ -730,10 +719,10 @@ def device_picker() -> list[str]:
         List[str]: A list of available device strings (e.g., ['cuda:0', 'mps', 'gpu', 'cpu']).
     """
 
-    device_list = ['cpu']
+    device_list = ["cpu"]
 
     # Check if PyTorch is installed and configure devices accordingly
-    if is_package_installed('torch'):
+    if is_package_installed("torch"):
         import torch
 
         try:
@@ -741,28 +730,28 @@ def device_picker() -> list[str]:
             if torch.cuda.is_available():
                 cuda_device_count = torch.cuda.device_count()
                 if cuda_device_count >= 1:
-                    device_list.extend([f'cuda:{i}' for i in range(cuda_device_count)])
+                    device_list.extend([f"cuda:{i}" for i in range(cuda_device_count)])
 
             # Add MPS device if available and built into PyTorch
             if torch.backends.mps.is_available() and torch.backends.mps.is_built():
-                device_list.append('mps')
+                device_list.append("mps")
         except Exception as e:
             print(f"Error checking PyTorch devices: {e}")
 
     # Check if TensorFlow is installed and configure devices accordingly
-    elif is_package_installed('tensorflow'):
+    elif is_package_installed("tensorflow"):
         import tensorflow as tf
 
         try:
             # Add GPU device if available
-            if tf.config.list_physical_devices('GPU'):
-                device_list.append('gpu')
+            if tf.config.list_physical_devices("GPU"):
+                device_list.append("gpu")
         except Exception as e:
             print(f"Error checking TensorFlow devices: {e}")
 
     # Default to CPU if no other devices are available
     if not device_list:
-        device_list.append('cpu')
+        device_list.append("cpu")
 
     return device_list
 
@@ -777,24 +766,24 @@ def xvg2df(xvg_file: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame containing the data from the xvg file.
     """
-    data = np.loadtxt(xvg_file, comments=['#', '@'])
+    data = np.loadtxt(xvg_file, comments=["#", "@"])
     df = pd.DataFrame(data=data)
     return df
 
 
 __all__ = [
     "run_command",
-    'run_worker_thread_with_progress',
-    'timing',
-    'generate_strong_password',
-    'random_deduplicate',
-    'minibatches',
-    'minibatches_generator',
-    'extract_archive',
-    'get_color',
-    'cmap_reverser',
-    'rescale_number',
-    'count_and_sort_characters',
-    'device_picker',
-    'pairwise'
+    "run_worker_thread_with_progress",
+    "timing",
+    "generate_strong_password",
+    "random_deduplicate",
+    "minibatches",
+    "minibatches_generator",
+    "extract_archive",
+    "get_color",
+    "cmap_reverser",
+    "rescale_number",
+    "count_and_sort_characters",
+    "device_picker",
+    "pairwise",
 ]

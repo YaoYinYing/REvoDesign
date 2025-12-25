@@ -1,6 +1,7 @@
-'''
+"""
 Module for abstract base class for mutation runners.
-'''
+"""
+
 import os
 from abc import abstractmethod
 
@@ -40,13 +41,9 @@ class MutateRunnerAbstract(ThirdPartyModuleAbstract):
         return temp_dir
 
     @staticmethod
-    def mutated_pdb_mapping(
-        mutant_tree: MutantTree, pdb_fps: list[str]
-    ) -> MutantTree:
+    def mutated_pdb_mapping(mutant_tree: MutantTree, pdb_fps: list[str]) -> MutantTree:
         if mutant_tree.mutant_num != len(pdb_fps):
-            raise RuntimeError(
-                f"Mutant number does not match pdb_fps: {mutant_tree.mutant_num=} != {len(pdb_fps)=}"
-            )
+            raise RuntimeError(f"Mutant number does not match pdb_fps: {mutant_tree.mutant_num=} != {len(pdb_fps)=}")
 
         for m, fp in zip(mutant_tree.all_mutant_objects, pdb_fps):
             if not (fp and os.path.exists(fp)):

@@ -1,4 +1,4 @@
-'''
+"""
 Utilities for pymol.cgo, partially modified from `pymol.cgobuilder`
 
 This module is aimed at building programable application protocol for CGO creating via pymol.cgo module
@@ -49,7 +49,7 @@ CONE,      x1, y1, z1,
 
 
 
-'''
+"""
 
 # TODO: move as a standalone package, maybe `pymol-cgo-utils`?
 # i dont want to maintain such code w/i this package
@@ -78,16 +78,27 @@ DEBUG = True
 
 
 # name: hsv imutable dicts
-BASE_COLORS: immutabledict[str, str] = immutabledict({name: webcolors.rgb_to_hex(
-    tuple(map(lambda x: int(255 * x), value))) for name, value in _cdata.BASE_COLORS.items()})  # type: ignore
+BASE_COLORS: immutabledict[str, str] = immutabledict(
+    {
+        name: webcolors.rgb_to_hex(tuple(map(lambda x: int(255 * x), value)))
+        for name, value in _cdata.BASE_COLORS.items()
+    }
+)  # type: ignore
 TABLEAU_COLORS: immutabledict[str, str] = immutabledict(
-    {name.lstrip('tab:'): value for name, value in _cdata.TABLEAU_COLORS.items()})
+    {name.lstrip("tab:"): value for name, value in _cdata.TABLEAU_COLORS.items()}
+)
 CSS4_COLORS: immutabledict[str, str] = immutabledict(_cdata.CSS4_COLORS)
 XKCD_COLORS: immutabledict[str, str] = immutabledict(
-    {name.lstrip('xkcd:').replace(' ', '_'): value for name, value in _cdata.XKCD_COLORS.items()})
+    {name.lstrip("xkcd:").replace(" ", "_"): value for name, value in _cdata.XKCD_COLORS.items()}
+)
 
 # color tables
-COLOR_TABLES = (BASE_COLORS, TABLEAU_COLORS, CSS4_COLORS, XKCD_COLORS,)
+COLOR_TABLES = (
+    BASE_COLORS,
+    TABLEAU_COLORS,
+    CSS4_COLORS,
+    XKCD_COLORS,
+)
 
 
 def not_none_float(*args: float | None):
@@ -114,84 +125,85 @@ def not_none_float(*args: float | None):
             return float(float_in)
         except Exception as e:
             # Print an error message if conversion fails and continue to the next argument
-            print(f'Skip {idx} ({float_in}): {e}')
+            print(f"Skip {idx} ({float_in}): {e}")
     # Return the default value 0.0 if no valid float can be found
     return 0.0
 
 
 @dataclass(frozen=True)
 class Point:
-    '''
+    """
     A Point vector object in PyMOL's coordinate system
     This class represents a point in 3D space with coordinates (x, y, z).
     It provides methods to convert the point to a numpy array, and to generate CGO commands for vertices and normals.
-    '''
+    """
+
     x: float
     y: float
     z: float
 
-    def __add__(self, other: 'Point') -> 'Point':
-        '''
+    def __add__(self, other: "Point") -> "Point":
+        """
         Add two points together.
-        '''
+        """
         return Point.from_array(self.array + other.array)
 
-    def __sub__(self, other: 'Point'):
+    def __sub__(self, other: "Point"):
         return Point.from_array(self.array - other.array)
 
-    def __truediv__(self, other: float) -> 'Point':
-        '''
+    def __truediv__(self, other: float) -> "Point":
+        """
         Divide a point by a scalar.
-        '''
+        """
         return Point.from_array(self.array / other)
 
-    def __mul__(self, other: float) -> 'Point':
-        '''
+    def __mul__(self, other: float) -> "Point":
+        """
         Multiply a point by a scalar.
-        '''
+        """
         return Point.from_array(self.array * other)
 
     @property
     def copy(self):
-        '''
+        """
         Return a copy of the point.
-        '''
+        """
         return Point.from_array(self.array)
 
     @classmethod
-    def dot(cls, point1: 'Point', point2: 'Point') -> float:
+    def dot(cls, point1: "Point", point2: "Point") -> float:
         return np.dot(point1.array, point2.array)
 
     @classmethod
-    def cross(cls, point1: 'Point', point2: 'Point'):
+    def cross(cls, point1: "Point", point2: "Point"):
         return cls.from_array(np.cross(point1.array, point2.array))
 
     @cached_property
     def array(self) -> np.ndarray:
-        '''
+        """
         Convert the point to a numpy array
         This method converts the point's coordinates into a numpy array, facilitating subsequent vector operations.
-        '''
+        """
         return np.array([self.x, self.y, self.z])
 
     @cached_property
     def as_vertex(self):
-        '''
+        """
         Generate a CGO vertex command for the point
         This method inserts the point's coordinates into a CGO vertex command, used for rendering in PyMOL.
-        '''
+        """
         return np.insert(cgo.VERTEX, 1, self.array)
 
     @cached_property
     def as_normal(self):
-        '''
+        """
         Generate a CGO normal command for the point
         This method inserts the point's coordinates into a CGO normal command, used for specifying normals in PyMOL.
-        '''
+        """
         return np.insert(cgo.NORMAL, 1, self.array)
 
-    def move(self, x: float | None = None, y: float | None = None, z: float | None = None) -> 'Point':
-        '''
+    def move(self, x: float | None = None, y: float | None = None, z: float | None = None) -> "Point":
+        """
         Move the point
         This method allows the point to be moved along the x, y, and z axes. If a coordinate is not provided, the original value is used.
 
@@ -202,15 +214,12 @@ class Point:
 
         Returns:
         - Point: The new point after moving
-        '''
-        return Point(
-            not_none_float(x, self.x),
-            not_none_float(y, self.y),
-            not_none_float(z, self.z))
+        """
+        return Point(not_none_float(x, self.x), not_none_float(y, self.y), not_none_float(z, self.z))
 
     @staticmethod
-    def as_arrays(points: Iterable['Point']):
-        '''
+    def as_arrays(points: Iterable["Point"]):
+        """
         Convert a collection of points to a numpy array
         This static method converts a collection of Point objects into a single numpy array, facilitating batch processing.
 
@@ -219,12 +228,12 @@ class Point:
 
         Returns:
         - np.ndarray: A numpy array containing the coordinates of all points
-        '''
+        """
         return np.concatenate(tuple(point.array for point in points))
 
     @staticmethod
-    def as_vertexes(points: Iterable['Point']):
-        '''
+    def as_vertexes(points: Iterable["Point"]):
+        """
         Convert a collection of points to CGO vertex commands
         This static method converts a collection of Point objects into CGO vertex commands, used for batch rendering in PyMOL.
 
@@ -233,17 +242,17 @@ class Point:
 
         Returns:
         - np.ndarray: A numpy array containing the CGO vertex commands for all points
-        '''
+        """
         return np.concatenate(tuple(point.as_vertex for point in points))
 
-    def delta_xyz(self, point: 'Point') -> np.ndarray:
+    def delta_xyz(self, point: "Point") -> np.ndarray:
         return point.array - self.array
 
-    def center_xyz(self, point: 'Point') -> np.ndarray:
+    def center_xyz(self, point: "Point") -> np.ndarray:
         return (point.array - self.array) / 2
 
-    def distance_to(self, point: 'Point') -> float:
-        '''
+    def distance_to(self, point: "Point") -> float:
+        """
         Euclidean distance from a point to this Point.
 
         Parameters:
@@ -251,25 +260,25 @@ class Point:
 
         Returns:
         - float: The Euclidean distance
-        '''
+        """
         return np.linalg.norm(point.array - self.array).astype(float)
 
     @classmethod
-    def from_array(cls, array: np.ndarray) -> 'Point':
-        '''
+    def from_array(cls, array: np.ndarray) -> "Point":
+        """
         Create a Point object from a NumPy array.
-        '''
+        """
         return cls(*array)
 
     @classmethod
-    def from_atom(cls, atom: str) -> 'Point':
-        '''
+    def from_atom(cls, atom: str) -> "Point":
+        """
         Create a Point object from a PyMOL atom.
-        '''
+        """
         return cls(*cmd.get_coords(atom)[0])
 
     @classmethod
-    def from_com(cls, selection: str = '(all)') -> 'Point':
+    def from_com(cls, selection: str = "(all)") -> "Point":
         """
         Calculate the center of mass of a selection.
 
@@ -291,6 +300,7 @@ class Color:
         name (str): The name of the color.
         alpha (float): The alpha value of the color, default is 1.0 for full opacity.
     """
+
     name: str
     alpha: float = 1.0
 
@@ -309,17 +319,17 @@ class Color:
         name = self.name.lower().replace(" ", "_")
 
         # Check if the color name starts with '#', indicating a hexadecimal color
-        if name.startswith('#'):
+        if name.startswith("#"):
             if DEBUG:
-                print(f'[DEBUG] {name} has a hexadecimal format')
+                print(f"[DEBUG] {name} has a hexadecimal format")
             return np.array(webcolors.hex_to_rgb(name), dtype=float) / 255
 
         # Check if the color name contains a comma, indicating a RGB color in `255,255,255` format
-        if ',' in name:
+        if "," in name:
             try:
-                assumed_rgb = [int(x) for x in name.split(',')[:3]]
+                assumed_rgb = [int(x) for x in name.split(",")[:3]]
                 if DEBUG:
-                    print(f'[DEBUG] {name} is assumed to be RGB: {assumed_rgb=}')
+                    print(f"[DEBUG] {name} is assumed to be RGB: {assumed_rgb=}")
                 return np.array(assumed_rgb, dtype=float) / 255
             except Exception as e:
                 raise ValueError(f"{name} is not a valid RGB color") from e
@@ -329,7 +339,7 @@ class Color:
             if name not in cdict:
                 continue
             if DEBUG:
-                print(f'[DEBUG] {name}: {cdict[name]}')
+                print(f"[DEBUG] {name}: {cdict[name]}")
             # Convert the found hexadecimal color value to an RGB array
             return np.array(webcolors.hex_to_rgb(cdict[name]), dtype=float) / 255  # type: ignore
 
@@ -352,7 +362,7 @@ class Color:
         return np.append(self.array, self.alpha)
 
     @staticmethod
-    def as_arrays(colors: Iterable['Color']):
+    def as_arrays(colors: Iterable["Color"]):
         """
         Converts a series of colors to an array of RGB arrays.
 
@@ -366,7 +376,7 @@ class Color:
         return np.concatenate(tuple(color.array for color in colors))
 
     @staticmethod
-    def as_cgos(colors: Iterable['Color']):
+    def as_cgos(colors: Iterable["Color"]):
         """
         Converts a series of colors to an array suitable for CGO (Color Graphics Operations).
 
@@ -432,7 +442,7 @@ class GraphicObject:
             cmd.delete(name)
 
         if DEBUG:
-            print(f'[DEBUG]: {self.__class__.__name__}: \n{self.data}')
+            print(f"[DEBUG]: {self.__class__.__name__}: \n{self.data}")
         cmd.load_cgo(self.data, name, *args, **kwargs)
 
 
@@ -440,9 +450,10 @@ class GraphicObject:
 # Pseudocurve Base Class
 # ------------------------------------------------------------------
 
+
 @dataclass
 class PseudoCurve(GraphicObject):
-    '''
+    """
     Pseudocurve base class, from which all pseudocurves (Bezier, Catmull-Rom,
     B-Spline, Hermite, Arc, NURBS) inherit. Implements the sample method to
     calculate discrete sampling points of the curve.
@@ -451,41 +462,40 @@ class PseudoCurve(GraphicObject):
         control_points (List[Point]): A list of control points used to define the curve.
         color (Optional[str]): The color of the curve (optional).
         steps (int): The number of segments the curve is divided into for drawing (default is 50).
-    '''
+    """
+
     control_points: list[Point]
     color: str | None = None
     steps: int = 50
 
     def check_control_points(
-            self,
-            num_min: int | None = None,
-            num_max: int | None = None,
-            attr_name: str = 'control_points'):
-        '''
+        self, num_min: int | None = None, num_max: int | None = None, attr_name: str = "control_points"
+    ):
+        """
         Check if the number of control points meets the minimum and maximum requirements.
 
         Arguments:
             num_min (int): The minimum number of control points required.
             num_max (int): The maximum number of control points allowed.
             attr_name (str): The name of the attribute containing the control points.
-        '''
+        """
         len_cp = len(getattr(self, attr_name))
         if num_min and len_cp < num_min:
-            raise ValueError(f'Number of Control Points mismatch. Required {num_min} as minimum but got {len_cp}')
+            raise ValueError(f"Number of Control Points mismatch. Required {num_min} as minimum but got {len_cp}")
         if num_max and len_cp > num_max:
-            raise ValueError(f'Number of Control Points mismatch. Required {num_max} as maximum but got {len_cp}')
+            raise ValueError(f"Number of Control Points mismatch. Required {num_max} as maximum but got {len_cp}")
 
     @abstractmethod
     def sample(self) -> list["Point"]:
-        '''
+        """
         Abstract method sample, used to calculate the discrete sampling points of the curve.
 
         Returns:
             List["Point"]: A list of sampling points, containing a series of points that make up the curve.
-        '''
+        """
 
     def rebuild(self) -> None:
-        '''
+        """
         Rebuild method, used to rebuild the curve object based on sampling points.
 
         This method first calls the sample method to get a list of sampling points, then builds
@@ -493,13 +503,14 @@ class PseudoCurve(GraphicObject):
         If the color attribute exists, the color information is added to the CGO object.
         Finally, the CGO object is assigned to the _data attribute of the instance, for subsequent
         processing or rendering.
-        '''
+        """
         vertices_points = self.sample()  # Call the sample method to get a list of sampling points
         cgo_obj = []
         if self.color is not None:
             cgo_obj.extend(Color(self.color).as_cgo)  # Add color information if available
         cgo_obj.extend(Point.as_vertexes(vertices_points))  # Convert sampling points to CGO vertex format
         self._data = cgo_obj
+
 
 # ------------------------------------------------------------------
 # PseudoBezier Implementation
@@ -508,9 +519,9 @@ class PseudoCurve(GraphicObject):
 
 @dataclass
 class PseudoBezier(PseudoCurve):
-    '''
+    """
     PseudoBezier pseudocurve implementation using the Bezier curve formula with four control points.
-    '''
+    """
 
     def sample(self) -> list[Point]:
         self.check_control_points(4, 4)
@@ -522,12 +533,13 @@ class PseudoBezier(PseudoCurve):
         for t in t_values:
             x = y = z = 0.0
             for j, cp in enumerate(control_points):
-                bernstein = math.comb(n, j) * (t ** j) * ((1 - t) ** (n - j))
+                bernstein = math.comb(n, j) * (t**j) * ((1 - t) ** (n - j))
                 x += cp.x * bernstein
                 y += cp.y * bernstein
                 z += cp.z * bernstein
             points.append(Point(x, y, z))
         return points
+
 
 # ------------------------------------------------------------------
 # PseudoCatmullRom Implementation
@@ -536,10 +548,10 @@ class PseudoBezier(PseudoCurve):
 
 @dataclass
 class PseudoCatmullRom(PseudoCurve):
-    '''
+    """
     PseudoCatmullRom pseudocurve implementation using the Catmull-Rom spline formula.
     This curve passes through all the control points and requires at least 4 control points.
-    '''
+    """
 
     def sample(self) -> list[Point]:
         self.check_control_points(num_min=4)
@@ -554,22 +566,29 @@ class PseudoCatmullRom(PseudoCurve):
             for t in t_values:
                 t2 = t * t
                 t3 = t2 * t
-                x = 0.5 * ((2 * P1.x) +
-                           (-P0.x + P2.x) * t +
-                           (2 * P0.x - 5 * P1.x + 4 * P2.x - P3.x) * t2 +
-                           (-P0.x + 3 * P1.x - 3 * P2.x + P3.x) * t3)
-                y = 0.5 * ((2 * P1.y) +
-                           (-P0.y + P2.y) * t +
-                           (2 * P0.y - 5 * P1.y + 4 * P2.y - P3.y) * t2 +
-                           (-P0.y + 3 * P1.y - 3 * P2.y + P3.y) * t3)
-                z = 0.5 * ((2 * P1.z) +
-                           (-P0.z + P2.z) * t +
-                           (2 * P0.z - 5 * P1.z + 4 * P2.z - P3.z) * t2 +
-                           (-P0.z + 3 * P1.z - 3 * P2.z + P3.z) * t3)
+                x = 0.5 * (
+                    (2 * P1.x)
+                    + (-P0.x + P2.x) * t
+                    + (2 * P0.x - 5 * P1.x + 4 * P2.x - P3.x) * t2
+                    + (-P0.x + 3 * P1.x - 3 * P2.x + P3.x) * t3
+                )
+                y = 0.5 * (
+                    (2 * P1.y)
+                    + (-P0.y + P2.y) * t
+                    + (2 * P0.y - 5 * P1.y + 4 * P2.y - P3.y) * t2
+                    + (-P0.y + 3 * P1.y - 3 * P2.y + P3.y) * t3
+                )
+                z = 0.5 * (
+                    (2 * P1.z)
+                    + (-P0.z + P2.z) * t
+                    + (2 * P0.z - 5 * P1.z + 4 * P2.z - P3.z) * t2
+                    + (-P0.z + 3 * P1.z - 3 * P2.z + P3.z) * t3
+                )
                 points.append(Point(x, y, z))
         # Append the second-to-last control point to ensure correct termination.
         points.append(self.control_points[-2])
         return points
+
 
 # ------------------------------------------------------------------
 # PseudoBSpline Implementation
@@ -578,18 +597,20 @@ class PseudoCatmullRom(PseudoCurve):
 
 @dataclass
 class PseudoBSpline(PseudoCurve):
-    '''
+    """
     PseudoBSpline pseudocurve implementation using a B-Spline algorithm.
 
     Attributes:
         degree (int): Degree of the B-Spline curve (default is 3).
         knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
-    '''
+    """
+
     degree: int = 3
     knots: list[float] | None = None
 
     def sample(self) -> list[Point]:
         from scipy.interpolate import BSpline
+
         n = len(self.control_points) - 1
         p = self.degree
         # Generate a uniform clamped knot vector if not provided.
@@ -604,6 +625,7 @@ class PseudoBSpline(PseudoCurve):
         spline_pts = bspline(u_vals)
         return [Point(x, y, z) for x, y, z in spline_pts]
 
+
 # ------------------------------------------------------------------
 # PseudoHermite Implementation
 # ------------------------------------------------------------------
@@ -611,18 +633,19 @@ class PseudoBSpline(PseudoCurve):
 
 @dataclass
 class PseudoHermite(PseudoCurve):
-    '''
+    """
     PseudoHermite pseudocurve implementation using Hermite interpolation.
 
     Attributes:
         control_points (List[Point]): Exactly 2 control points (start and end).
         tangents (List[Point]): Two tangent vectors corresponding to the control points.
-    '''
+    """
+
     tangents: list[Point] = field(default_factory=list)
 
     def sample(self) -> list[Point]:
         self.check_control_points(2, 2)
-        self.check_control_points(2, 2, 'tangents')
+        self.check_control_points(2, 2, "tangents")
         A = self.control_points[0]
         B = self.control_points[1]
         T0 = self.tangents[0]
@@ -642,6 +665,7 @@ class PseudoHermite(PseudoCurve):
             points.append(Point(x, y, z))
         return points
 
+
 # ------------------------------------------------------------------
 # PseudoArc Implementation
 # ------------------------------------------------------------------
@@ -649,20 +673,21 @@ class PseudoHermite(PseudoCurve):
 
 @dataclass
 class PseudoArc(PseudoCurve):
-    '''
+    """
     PseudoArc pseudocurve implementation for drawing an arc.
 
     Attributes:
         control_points (List[Point]): Expects a single control point representing the center.
         radius (float): The radius of the arc.
         angles (List[float]): A list with two elements [start_angle, end_angle] in radians.
-    '''
+    """
+
     radius: float = 0.0
     angles: list[float] = field(default_factory=lambda: [0.0, 0.0])
 
     def sample(self) -> list[Point]:
         self.check_control_points(1, 1)
-        self.check_control_points(2, 2, 'angles')
+        self.check_control_points(2, 2, "angles")
         center = self.control_points[0]
         start_angle, end_angle = self.angles
         angles = np.linspace(start_angle, end_angle, self.steps + 1)
@@ -674,6 +699,7 @@ class PseudoArc(PseudoCurve):
             points.append(Point(x, y, z))
         return points
 
+
 # ------------------------------------------------------------------
 # PseudoNURBS Implementation
 # ------------------------------------------------------------------
@@ -681,14 +707,15 @@ class PseudoArc(PseudoCurve):
 
 @dataclass
 class PseudoNURBS(PseudoCurve):
-    '''
+    """
     PseudoNURBS pseudocurve implementation using Non-Uniform Rational B-Splines.
 
     Attributes:
         weights (List[float]): Weights corresponding to each control point.
         degree (int): Degree of the NURBS curve (default is 3).
         knots (Optional[List[float]]): Knot vector. If not provided, a uniform clamped knot vector is generated.
-    '''
+    """
+
     weights: list[float] = field(default_factory=list)
     degree: int = 3
     knots: list[float] | None = None
@@ -720,9 +747,9 @@ class PseudoNURBS(PseudoCurve):
         return points
 
     def basis(self, i: int, p: int, u: float, knots: list[float]) -> float:
-        '''
+        """
         Recursive Cox-de Boor basis function.
-        '''
+        """
         if p == 0:
             if knots[i] <= u < knots[i + 1]:
                 return 1.0
@@ -753,6 +780,7 @@ class LineVertex(GraphicObject):
     - width: An optional float, representing the line width. If not provided, the default is None.
     - color: An optional string, representing the line color. If not provided, the default is None.
     """
+
     point: Point | PseudoCurve
     width: float | None = None
     color: str | None = None
@@ -781,11 +809,12 @@ class LineVertex(GraphicObject):
             self._data.extend(self.point.data)
         else:
             # Currently, only Point type is supported. If another type is encountered, raise an exception
-            raise NotImplementedError('this curve is not currently supported')
+            raise NotImplementedError("this curve is not currently supported")
 
     @classmethod
-    def from_points(cls, points: Iterable[Point | Iterable[float]], width: float | None
-                    = None, color: str | None = None) -> tuple['LineVertex', ...]:
+    def from_points(
+        cls, points: Iterable[Point | Iterable[float]], width: float | None = None, color: str | None = None
+    ) -> tuple["LineVertex", ...]:
         return tuple(cls(p if isinstance(p, Point) else Point(*p), width=width, color=color) for p in points)
 
 
@@ -802,7 +831,7 @@ class Sphere(GraphicObject):
 
     center: Point = Point(0, 0, 0)
     radius: float = 0.0
-    color: str = 'w'
+    color: str = "w"
 
     def rebuild(self):
         """
@@ -812,9 +841,9 @@ class Sphere(GraphicObject):
         """
         self._data = [
             *Color(self.color).as_cgo,  # Convert color to CGO format and unpack it into the data list
-            cgo.SPHERE,                 # Specify the CGO object type as SPHERE
-            *self.center.array,         # Unpack the center coordinates into the data list
-            self.radius,                # Add the radius to the data list
+            cgo.SPHERE,  # Specify the CGO object type as SPHERE
+            *self.center.array,  # Unpack the center coordinates into the data list
+            self.radius,  # Add the radius to the data list
         ]
 
 
@@ -834,8 +863,8 @@ class Cylinder(GraphicObject):
     point1: Point = Point(0, 0, 0)
     point2: Point = Point(1, 1, 1)
     radius: float = 1.0
-    color1: str = 'violet'
-    color2: str = 'cyan'
+    color1: str = "violet"
+    color2: str = "cyan"
 
     def rebuild(self):
         """
@@ -884,7 +913,7 @@ class Sausage(GraphicObject):
             *self.p2.array,
             self.radius,
             *Color(self.color_1).array,
-            *Color(self.color_2).array
+            *Color(self.color_2).array,
         ]
 
 
@@ -893,7 +922,7 @@ class Doughnut(GraphicObject):  # Torus
     center: Point = Point(0.0, 0.0, 0.0)
     normal: Point = Point(0.0, 0.0, 1.0)
     radius: float = 1.0
-    color: str = 'w'
+    color: str = "w"
     cradius: float = 0.25
     samples: int = 20
     csamples: int = 20
@@ -905,13 +934,12 @@ class Doughnut(GraphicObject):  # Torus
         """
         obj = []
 
-        axis = cpv.cross_product(self.normal.array, (0., 0., 1.))
-        angle = -cpv.get_angle(self.normal.array, (0., 0., 1.))
+        axis = cpv.cross_product(self.normal.array, (0.0, 0.0, 1.0))
+        angle = -cpv.get_angle(self.normal.array, (0.0, 0.0, 1.0))
         matrix = cpv.rotation_matrix(angle, cpv.normalize(axis))
 
         def obj_vertex(x, y, z):
-            return [cgo.VERTEX] + cpv.add(self.center.array,
-                                          cpv.transform(matrix, [x, y, z]))
+            return [cgo.VERTEX] + cpv.add(self.center.array, cpv.transform(matrix, [x, y, z]))
 
         def obj_normal(x, y, z):
             return [cgo.NORMAL] + cpv.transform(matrix, [x, y, z])
@@ -943,20 +971,21 @@ class Doughnut(GraphicObject):  # Torus
                 c_vdv = math.cos(v + dv)
                 s_vdv = math.sin(v + dv)
                 obj.extend(
-                    obj_normal((r + rr * c_v) * c_w - (r + cr * c_v) * c_w,
-                               (r + rr * c_v) * s_w - (r + cr * c_v) * s_w,
-                               (rr * s_v - cr * s_v)))
-                obj.extend(
-                    obj_vertex((r + cr * c_v) * c_w, (r + cr * c_v) * s_w,
-                               cr * s_v))
+                    obj_normal(
+                        (r + rr * c_v) * c_w - (r + cr * c_v) * c_w,
+                        (r + rr * c_v) * s_w - (r + cr * c_v) * s_w,
+                        (rr * s_v - cr * s_v),
+                    )
+                )
+                obj.extend(obj_vertex((r + cr * c_v) * c_w, (r + cr * c_v) * s_w, cr * s_v))
                 obj.extend(
                     obj_normal(
                         (r + rr * c_vdv) * c_wdw - (r + cr * c_vdv) * c_wdw,
                         (r + rr * c_vdv) * s_wdw - (r + cr * c_vdv) * s_wdw,
-                        rr * s_vdv - cr * s_vdv))
-                obj.extend(
-                    obj_vertex((r + cr * c_vdv) * c_wdw,
-                               (r + cr * c_vdv) * s_wdw, cr * s_vdv))
+                        rr * s_vdv - cr * s_vdv,
+                    )
+                )
+                obj.extend(obj_vertex((r + cr * c_vdv) * c_wdw, (r + cr * c_vdv) * s_wdw, cr * s_vdv))
                 v += dv
 
             obj.append(cgo.END)
@@ -979,14 +1008,15 @@ class Cone(GraphicObject):
         color_base: The color of the cone's base. Default is 'g' for green.
         caps: A tuple indicating whether to add caps to the tip and/or base. 1 for True, 0 for False. Default is (1, 0), meaning the tip has a cap and the base does not.
     """
+
     tip: Point
     base_center: Point
 
     radius_tip: float
     radius_base: float
 
-    color_tip: str = 'w'
-    color_base: str = 'g'
+    color_tip: str = "w"
+    color_base: str = "g"
 
     # whether to add caps to tip and/or base. 1 for True, 0 for False
     caps: tuple[float, float] = (1, 0)
@@ -1001,10 +1031,11 @@ class Cone(GraphicObject):
             cgo.CONE,
             *self.tip.array,
             *self.base_center.array,
-            self.radius_tip, self.radius_base,
+            self.radius_tip,
+            self.radius_base,
             *Color(self.color_tip).array,
             *Color(self.color_base).array,
-            *self.caps
+            *self.caps,
         ]
 
 
@@ -1034,9 +1065,9 @@ class Triangle(GraphicObject):
     normal_b: Point = Point(0, 1, 0)
     normal_c: Point = Point(0, 0, 1)
 
-    color_a: str = 'r'
-    color_b: str = 'g'
-    color_c: str = 'b'
+    color_a: str = "r"
+    color_b: str = "g"
+    color_c: str = "b"
 
     def rebuild(self):
         """
@@ -1046,7 +1077,7 @@ class Triangle(GraphicObject):
         self._data = [
             *Point.as_arrays((self.vertex_a, self.vertex_b, self.vertex_c)),
             *Point.as_arrays((self.normal_a, self.normal_b, self.normal_c)),
-            *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c)))
+            *Color.as_arrays((Color(self.color_a), Color(self.color_b), Color(self.color_c))),
         ]
 
 
@@ -1068,49 +1099,46 @@ class TriangleSimple(GraphicObject):
     vertex_b: Point = Point(0, 1, 0)
     vertex_c: Point = Point(0, 0, 1)
 
-    color_a: str = 'r'
-    color_b: str = 'g'
-    color_c: str = 'b'
+    color_a: str = "r"
+    color_b: str = "g"
+    color_c: str = "b"
 
     def rebuild(self):
         """
         Rebuilds the triangle's data representation using the specified vertices and colors.
         """
         self._data = [
-            cgo.BEGIN, cgo.TRIANGLES,
-
+            cgo.BEGIN,
+            cgo.TRIANGLES,
             # Add the color and vertex data for the first point
             *Color(self.color_a).as_cgo,
             *self.vertex_a.as_vertex,
-
             # Add the color and vertex data for the second point
             *Color(self.color_b).as_cgo,
             *self.vertex_b.as_vertex,
-
             # Add the color and vertex data for the third point
             *Color(self.color_c).as_cgo,
             *self.vertex_c.as_vertex,
-
-            cgo.END
+            cgo.END,
         ]
 
 
 @dataclass
 class Cube(GraphicObject):
-    '''
+    """
     Cubic box with edges aligned with axes
 
 
-    '''
+    """
 
     p1: Point = Point(0, 0, 0)
     p2: Point = Point(1, 1, 1)
 
-    color_w: str = 'yellow'
+    color_w: str = "yellow"
 
-    color_x: str = 'red'
-    color_y: str = 'green'
-    color_z: str = 'blue'
+    color_x: str = "red"
+    color_y: str = "green"
+    color_z: str = "blue"
 
     wire_frame: bool = True
     linewidth: float = 2
@@ -1118,22 +1146,24 @@ class Cube(GraphicObject):
     def _rebuild_wireframe(self):
 
         self._data = [
-            cgo.LINEWIDTH, float(self.linewidth),
-            cgo.BEGIN, cgo.LINES,
-
+            cgo.LINEWIDTH,
+            float(self.linewidth),
+            cgo.BEGIN,
+            cgo.LINES,
         ]
 
-        for i, j in itertools.combinations('xyz', r=2):
+        for i, j in itertools.combinations("xyz", r=2):
             for _i, _j in itertools.product(
-                (getattr(self.p1, i), getattr(self.p2, i)),
-                (getattr(self.p1, j), getattr(self.p2, j))
+                (getattr(self.p1, i), getattr(self.p2, i)), (getattr(self.p1, j), getattr(self.p2, j))
             ):
                 move_dict = {i: _i, j: _j}
-                self._data.extend([
-                    *Color(getattr(self, f'color_{"xyz".replace(i, "").replace(j, "")}')).as_cgo,
-                    *self.p1.move(**move_dict).as_vertex,
-                    *self.p2.move(**move_dict).as_vertex,
-                ])
+                self._data.extend(
+                    [
+                        *Color(getattr(self, f'color_{"xyz".replace(i, "").replace(j, "")}')).as_cgo,
+                        *self.p1.move(**move_dict).as_vertex,
+                        *self.p2.move(**move_dict).as_vertex,
+                    ]
+                )
 
         self._data.append(cgo.END)
 
@@ -1141,15 +1171,19 @@ class Cube(GraphicObject):
         """
         用 6 个 Square，合并出一个立方体(或长方体)外表。
         """
+
         # 简易函数：构造一个纯色的 Square（四个角都用 self.color）
         def make_face(a: Point, b: Point, c: Point, d: Point) -> list[float]:
             face = Square(
-                corner_a=a, corner_b=b, corner_c=c, corner_d=d,
+                corner_a=a,
+                corner_b=b,
+                corner_c=c,
+                corner_d=d,
                 # 给四个角都指定同一个颜色 => 整个面都是 uniform color
                 color_a=self.color_w,
                 color_b=self.color_x,
                 color_c=self.color_y,
-                color_d=self.color_z
+                color_d=self.color_z,
             )
             face.rebuild()
             return face.data
@@ -1160,38 +1194,25 @@ class Cube(GraphicObject):
 
         # 面 1: x = x1
         #   A=(x1,y1,z1), B=(x1,y1,z2), C=(x1,y2,z2), D=(x1,y2,z1)
-        face1_data = make_face(
-            Point(x1, y1, z1), Point(x1, y1, z2), Point(x1, y2, z2), Point(x1, y2, z1)
-        )
+        face1_data = make_face(Point(x1, y1, z1), Point(x1, y1, z2), Point(x1, y2, z2), Point(x1, y2, z1))
         # 面 2: x = x2
         #   A=(x2,y1,z1), B=(x2,y2,z1), C=(x2,y2,z2), D=(x2,y1,z2)
-        face2_data = make_face(
-            Point(x2, y1, z1), Point(x2, y2, z1), Point(x2, y2, z2), Point(x2, y1, z2)
-        )
+        face2_data = make_face(Point(x2, y1, z1), Point(x2, y2, z1), Point(x2, y2, z2), Point(x2, y1, z2))
         # 面 3: y = y1
         #   A=(x1,y1,z1), B=(x2,y1,z1), C=(x2,y1,z2), D=(x1,y1,z2)
-        face3_data = make_face(
-            Point(x1, y1, z1), Point(x2, y1, z1), Point(x2, y1, z2), Point(x1, y1, z2)
-        )
+        face3_data = make_face(Point(x1, y1, z1), Point(x2, y1, z1), Point(x2, y1, z2), Point(x1, y1, z2))
         # 面 4: y = y2
         #   A=(x1,y2,z1), B=(x1,y2,z2), C=(x2,y2,z2), D=(x2,y2,z1)
-        face4_data = make_face(
-            Point(x1, y2, z1), Point(x1, y2, z2), Point(x2, y2, z2), Point(x2, y2, z1)
-        )
+        face4_data = make_face(Point(x1, y2, z1), Point(x1, y2, z2), Point(x2, y2, z2), Point(x2, y2, z1))
         # 面 5: z = z1
         #   A=(x1,y1,z1), B=(x1,y2,z1), C=(x2,y2,z1), D=(x2,y1,z1)
-        face5_data = make_face(
-            Point(x1, y1, z1), Point(x1, y2, z1), Point(x2, y2, z1), Point(x2, y1, z1)
-        )
+        face5_data = make_face(Point(x1, y1, z1), Point(x1, y2, z1), Point(x2, y2, z1), Point(x2, y1, z1))
         # 面 6: z = z2
         #   A=(x1,y1,z2), B=(x2,y1,z2), C=(x2,y2,z2), D=(x1,y2,z2)
-        face6_data = make_face(
-            Point(x1, y1, z2), Point(x2, y1, z2), Point(x2, y2, z2), Point(x1, y2, z2)
-        )
+        face6_data = make_face(Point(x1, y1, z2), Point(x2, y1, z2), Point(x2, y2, z2), Point(x1, y2, z2))
 
         # 将 6 个面的 CGO 数据合并
-        self._data = face1_data + face2_data + face3_data + \
-            face4_data + face5_data + face6_data
+        self._data = face1_data + face2_data + face3_data + face4_data + face5_data + face6_data
 
     def rebuild(self):
         if self.wire_frame:
@@ -1215,10 +1236,10 @@ class Square(GraphicObject):
     corner_c: Point = Point(1, 1, 0)
     corner_d: Point = Point(0, 1, 0)
 
-    color_a: str = 'r'
-    color_b: str = 'g'
-    color_c: str = 'b'
-    color_d: str = 'y'
+    color_a: str = "r"
+    color_b: str = "g"
+    color_c: str = "b"
+    color_d: str = "y"
 
     def rebuild(self):
         """
@@ -1229,8 +1250,8 @@ class Square(GraphicObject):
         """
         # Start drawing, defining the drawing mode as triangles
         self._data = [
-            cgo.BEGIN, cgo.TRIANGLES,
-
+            cgo.BEGIN,
+            cgo.TRIANGLES,
             # Define the first triangle, including the color and vertex of each corner
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
@@ -1238,7 +1259,6 @@ class Square(GraphicObject):
             *self.corner_b.as_vertex,
             *Color(self.color_c).as_cgo,
             *self.corner_c.as_vertex,
-
             # Define the second triangle, including the color and vertex of each corner
             *Color(self.color_a).as_cgo,
             *self.corner_a.as_vertex,
@@ -1246,9 +1266,8 @@ class Square(GraphicObject):
             *self.corner_c.as_vertex,
             *Color(self.color_d).as_cgo,
             *self.corner_d.as_vertex,
-
             # End drawing
-            cgo.END
+            cgo.END,
         ]
 
 
@@ -1265,12 +1284,13 @@ class PolyLines(GraphicObject):
         points (Iterable[LineVertex]): A collection of line vertices.
         line_type (Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN']): The drawing mode of the line, defaulting to 'LINE_STRIP'.
     """
+
     # global
     width: float
     color: str
 
     points: Iterable[LineVertex]
-    line_type: Literal['LINE_STRIP', 'LINE_LOOP', 'TRIANGLE_STRIP', 'TRIANGLE_FAN'] = 'LINE_STRIP'
+    line_type: Literal["LINE_STRIP", "LINE_LOOP", "TRIANGLE_STRIP", "TRIANGLE_FAN"] = "LINE_STRIP"
 
     def rebuild(self):
         """
@@ -1280,9 +1300,11 @@ class PolyLines(GraphicObject):
         """
         # Initialize the line drawing data, including line width and color
         self._data = [
-            cgo.LINEWIDTH, self.width,
+            cgo.LINEWIDTH,
+            self.width,
             *Color(self.color).as_cgo,
-            cgo.BEGIN, getattr(cgo, self.line_type),
+            cgo.BEGIN,
+            getattr(cgo, self.line_type),
         ]
         # Update the data for each vertex
         for pv in self.points:
@@ -1296,6 +1318,7 @@ class Arrow(GraphicObject):
     """
     Represents an arrow object for visualization in PyMOL, with properties for start and end points, line width, and color.
     """
+
     start: Point  # the start point of the arrow
     point_to: Point  # the tip of the arrow
     radius: float = 0.1  # cylinder width
@@ -1303,8 +1326,8 @@ class Arrow(GraphicObject):
     header_ratio: float = 1.618
 
     # colors
-    color_header: str = 'red'
-    color_tail: str = 'white'
+    color_header: str = "red"
+    color_tail: str = "white"
 
     @property
     def cone_base_r(self):
@@ -1330,20 +1353,8 @@ class Arrow(GraphicObject):
     def rebuild(self):
         go = GraphicObjectCollection(
             [
-                Cylinder(
-                    self.start,
-                    self.joint,
-                    self.radius,
-                    self.color_tail, self.color_tail
-                ),
-                Cone(
-                    self.point_to,
-                    self.joint,
-                    0.0,
-                    self.cone_base_r,
-                    self.color_header, self.color_header,
-                    (1, 1)
-                ),
+                Cylinder(self.start, self.joint, self.radius, self.color_tail, self.color_tail),
+                Cone(self.point_to, self.joint, 0.0, self.cone_base_r, self.color_header, self.color_header, (1, 1)),
             ]
         )
         go.rebuild()
@@ -1370,6 +1381,7 @@ class RoundedRectangle(GraphicObject):
         line_width (float): The width of the outline.
         steps (int): Number of segments used to approximate each corner.
     """
+
     center: Point
     axis1: Point
     axis2: Point
@@ -1425,62 +1437,57 @@ class RoundedRectangle(GraphicObject):
                 self.local_to_global(*edge_bottom_end),
                 self.local_to_global(*cp1_br),
                 self.local_to_global(*cp2_br),
-                self.local_to_global(*edge_right_start)
+                self.local_to_global(*edge_right_start),
             ],
             color=self.color,
-            steps=self.steps
+            steps=self.steps,
         )
         top_right_corner = PseudoBezier(
             control_points=[
                 self.local_to_global(*edge_right_end),
                 self.local_to_global(*cp1_tr),
                 self.local_to_global(*cp2_tr),
-                self.local_to_global(*edge_top_start)
+                self.local_to_global(*edge_top_start),
             ],
             color=self.color,
-            steps=self.steps
+            steps=self.steps,
         )
         top_left_corner = PseudoBezier(
             control_points=[
                 self.local_to_global(*edge_top_end),
                 self.local_to_global(*cp1_tl),
                 self.local_to_global(*cp2_tl),
-                self.local_to_global(*edge_left_start)
+                self.local_to_global(*edge_left_start),
             ],
             color=self.color,
-            steps=self.steps
+            steps=self.steps,
         )
         bottom_left_corner = PseudoBezier(
             control_points=[
                 self.local_to_global(*edge_left_end),
                 self.local_to_global(*cp1_bl),
                 self.local_to_global(*cp2_bl),
-                self.local_to_global(*edge_bottom_start)
+                self.local_to_global(*edge_bottom_start),
             ],
             color=self.color,
-            steps=self.steps
+            steps=self.steps,
         )
 
         # Assemble the vertices in order (using LineVertex to wrap both Points and PseudoBezier objects)
         vertices = [
-            LineVertex(self.local_to_global(*edge_bottom_start)),   # start of bottom edge
-            LineVertex(self.local_to_global(*edge_bottom_end)),     # end of bottom edge
-            LineVertex(bottom_right_corner),                        # bottom-right corner arc
-            LineVertex(self.local_to_global(*edge_right_end)),      # end of right edge
-            LineVertex(top_right_corner),                           # top-right corner arc
-            LineVertex(self.local_to_global(*edge_top_end)),        # end of top edge
-            LineVertex(top_left_corner),                            # top-left corner arc
-            LineVertex(self.local_to_global(*edge_left_end)),       # end of left edge
-            LineVertex(bottom_left_corner)                          # bottom-left corner arc
+            LineVertex(self.local_to_global(*edge_bottom_start)),  # start of bottom edge
+            LineVertex(self.local_to_global(*edge_bottom_end)),  # end of bottom edge
+            LineVertex(bottom_right_corner),  # bottom-right corner arc
+            LineVertex(self.local_to_global(*edge_right_end)),  # end of right edge
+            LineVertex(top_right_corner),  # top-right corner arc
+            LineVertex(self.local_to_global(*edge_top_end)),  # end of top edge
+            LineVertex(top_left_corner),  # top-left corner arc
+            LineVertex(self.local_to_global(*edge_left_end)),  # end of left edge
+            LineVertex(bottom_left_corner),  # bottom-left corner arc
         ]
 
         # Build a closed polyline (LINE_LOOP) from these vertices.
-        poly = PolyLines(
-            width=self.line_width,
-            color=self.color,
-            points=vertices,
-            line_type='LINE_LOOP'
-        )
+        poly = PolyLines(width=self.line_width, color=self.color, points=vertices, line_type="LINE_LOOP")
         poly.rebuild()
         self._data = poly._data
 
@@ -1500,6 +1507,7 @@ class Ellipse(GraphicObject):
         line_width (float): The width of the outline.
         steps (int): The number of segments used to approximate the ellipse (default is 50).
     """
+
     center: Point
     axis1: Point
     axis2: Point
@@ -1532,12 +1540,7 @@ class Ellipse(GraphicObject):
         # Wrap the points in LineVertex objects
         vertices = [LineVertex(pt) for pt in points]
         # Build a closed polyline (LINE_LOOP) for the ellipse
-        poly = PolyLines(
-            width=self.line_width,
-            color=self.color,
-            points=vertices,
-            line_type='LINE_LOOP'
-        )
+        poly = PolyLines(width=self.line_width, color=self.color, points=vertices, line_type="LINE_LOOP")
         poly.rebuild()
         self._data = poly.data
 
@@ -1557,6 +1560,7 @@ class Ellipsoid(GraphicObject):
         steps_theta (int): Number of subdivisions along the polar angle (theta).
         steps_phi (int): Number of subdivisions along the azimuthal angle (phi).
     """
+
     center: Point
     radius_x: float
     radius_y: float
@@ -1572,9 +1576,9 @@ class Ellipsoid(GraphicObject):
         """
         # Generate parameter grids using numpy (vectorized)
         theta = np.linspace(0, math.pi, self.steps_theta + 1)  # polar angle
-        phi = np.linspace(0, 2 * math.pi, self.steps_phi + 1)    # azimuthal angle
+        phi = np.linspace(0, 2 * math.pi, self.steps_phi + 1)  # azimuthal angle
         # Create meshgrid (theta: rows, phi: columns)
-        theta_grid, phi_grid = np.meshgrid(theta, phi, indexing='ij')
+        theta_grid, phi_grid = np.meshgrid(theta, phi, indexing="ij")
 
         # Compute x, y, z coordinates using vectorized operations
         x = self.center.x + self.radius_x * np.sin(theta_grid) * np.cos(phi_grid)
@@ -1621,6 +1625,7 @@ class Polygon(GraphicObject):
         vertices (List[Point]): A list of points that define the polygon's perimeter (in order).
         color (str): The fill color of the polygon.
     """
+
     vertices: list[Point]
     color: str
 
@@ -1640,6 +1645,7 @@ class Polygon(GraphicObject):
         cgo_obj.append(cgo.END)
         self._data = cgo_obj
 
+
 # --- Polyhedron Implementation ---
 
 
@@ -1653,6 +1659,7 @@ class Polyhedron(GraphicObject):
         faces (List[List[int]]): A list of faces, each face is a list of indices (into the vertices list).
         color (str): The fill color of the polyhedron.
     """
+
     vertices: list[Point]
     faces: list[list[int]]
     color: str
@@ -1703,6 +1710,7 @@ def sample_quadratic_bezier(p0, p1, p2, num=10):
     Returns:
         List of (x, y, z) tuples representing sampled points along the curve.
     """
+
     def ensure3d(pt):
         pt = np.array(pt, dtype=float)
         if pt.shape[0] == 2:
@@ -1715,9 +1723,10 @@ def sample_quadratic_bezier(p0, p1, p2, num=10):
 
     pts = []
     for t in np.linspace(0, 1, num):
-        pt = (1 - t)**2 * p0 + 2 * (1 - t) * t * p1 + t**2 * p2
+        pt = (1 - t) ** 2 * p0 + 2 * (1 - t) * t * p1 + t**2 * p2
         pts.append(tuple(pt))
     return pts
+
 
 # --- Custom Pen for Collecting Glyph Outlines ---
 
@@ -1790,6 +1799,7 @@ class TextCharPolygon(GraphicObject):
 
         sample_num: The number of samples to use for the polygon approximation in Bezeir sampling
     """
+
     char: str
     font_path: str
     color: str
@@ -1797,13 +1807,13 @@ class TextCharPolygon(GraphicObject):
     offset: Point | None = None
 
     width: float = 1.0
-    format: Literal['LINE_LOOP', 'SAUSAGE', 'TRIANGLE_FAN'] = 'LINE_LOOP'
+    format: Literal["LINE_LOOP", "SAUSAGE", "TRIANGLE_FAN"] = "LINE_LOOP"
     sample_num: int = 10
 
     def rebuild(self) -> None:
         # Open the font and get the glyph for the character.
         font = TTFont(self.font_path)
-        cmap = font['cmap'].getBestCmap()  # type: ignore # Map from Unicode codepoints to glyph names
+        cmap = font["cmap"].getBestCmap()  # type: ignore # Map from Unicode codepoints to glyph names
         glyph_name = cmap.get(ord(self.char))
         if glyph_name is None:
             raise ValueError(f"Glyph for character '{self.char}' not found in {self.font_path}")
@@ -1833,7 +1843,7 @@ class TextCharPolygon(GraphicObject):
         # Build a CGO object: for simplicity, we'll output each contour as a closed polyline.
         cgo_obj = []
         cgo_obj.extend(Color(self.color).as_cgo)
-        if self.format == 'LINE_LOOP':
+        if self.format == "LINE_LOOP":
             for contour in scaled_polygons:
                 # Ensure the contour is closed.
                 if contour[0].array.tolist() != contour[-1].array.tolist():
@@ -1846,7 +1856,7 @@ class TextCharPolygon(GraphicObject):
                 )
                 poly.rebuild()
                 cgo_obj.extend(poly.data)
-        elif self.format == 'SAUSAGE':
+        elif self.format == "SAUSAGE":
             for contour in scaled_polygons:
                 cgo_obj.extend(
                     tree.flatten(
@@ -1858,7 +1868,7 @@ class TextCharPolygon(GraphicObject):
                 )
 
         else:
-            raise NotImplementedError(f'{self.format} is not support.')
+            raise NotImplementedError(f"{self.format} is not support.")
 
         self._data = cgo_obj
 
@@ -1870,19 +1880,19 @@ class TextBoard(GraphicObject):
 
     start_point: Point = Point(0, 0, 0)
 
-    color: str = 'random'
+    color: str = "random"
 
     scale: float = 0.1
     offset = Point(0, 0, 0)
     width: float = 5
     space: float = 100
-    format: Literal['LINE_LOOP', 'SAUSAGE', 'TRIANGLE_FAN'] = 'SAUSAGE'
+    format: Literal["LINE_LOOP", "SAUSAGE", "TRIANGLE_FAN"] = "SAUSAGE"
     sample_num: int = 5
 
     def rebuild(self):
         import random
 
-        if self.color == 'random':
+        if self.color == "random":
             color = random.sample(list(CSS4_COLORS.keys()), len(self.text))
         else:
             color = [self.color for _ in self.text]
@@ -1899,22 +1909,24 @@ class TextBoard(GraphicObject):
             else:
                 space = self.space * 2
 
-            if char != '\n':
+            if char != "\n":
                 curser_point = curser_point.move(x=curser_point.x + space)
             else:
                 curser_point = curser_point.move(x=origin_point.x, y=curser_point.y - self.space * 2)
                 continue
 
-            goc.objects.append(TextCharPolygon(
-                char=char,
-                font_path=self.font_path,
-                color=c,
-                scale=self.scale,
-                offset=curser_point,
-                width=self.width,
-                format='SAUSAGE',
-                sample_num=self.sample_num
-            ))
+            goc.objects.append(
+                TextCharPolygon(
+                    char=char,
+                    font_path=self.font_path,
+                    color=c,
+                    scale=self.scale,
+                    offset=curser_point,
+                    width=self.width,
+                    format="SAUSAGE",
+                    sample_num=self.sample_num,
+                )
+            )
 
         goc.rebuild()
 
@@ -2109,6 +2121,7 @@ class GraphicObjectCollection(GraphicObject):
         objects (List[GraphicObject]): A list of GraphicObject instances.
         force_to_rebuild (bool): Whether to rebuild everything before merging data.
     """
+
     objects: list[GraphicObject]
     force_to_rebuild: bool = False
 
@@ -2477,66 +2490,57 @@ class GraphicObjectCollection(GraphicObject):
 
 # also a quick demo to construct complicated cgo object
 def __easter_egg():
-    '''
+    """
     There is always only one truth!
 
     真しん実じつはいつもひとつ!
-    '''
-    if any(not n.startswith('_') for n in cmd.get_names()):
+    """
+    if any(not n.startswith("_") for n in cmd.get_names()):
         # silently do nothing if the session is currently in use
         return
 
-    poision = GraphicObjectCollection([
-        # the APTX-4869 capsule
-        # white part
-        Sphere(
-            center=Point(-2, 0, 0),
-            radius=1,
-            color='white'
-        ),
-        Cylinder(
-            Point(-2, 0, 0),
-            Point(0.5, 0, 0),
-            radius=1,
-            color1='white',
-            color2='white'
-        ),
-        # red part that covers the white part
-        Cylinder(
-            Point(0, 0, 0),
-            Point(2, 0, 0),
-            radius=1.015,
-            color1='red',
-            color2='red'
-        ),
-        Sphere(
-            center=Point(2, 0, 0),
-            radius=1.015,
-            color='red'
-        ),
-        # printed curves (text container) on the surface
-        PolyLines(
-            5, 'black',
-            [
-                LineVertex(Point(-1.6, 0.5, 0.9)),  # left top
-                LineVertex(Point(1.6, 0.5, 0.9)),  # right top
-                LineVertex(PseudoBezier(
-                    [Point(1.6, 0.5, 0.9),  # right top
-                     Point(2.2, 0.5, 1.08),  # control point to make Bezier curve
-                     Point(2.2, -0.5, 1.08),  # control point to make Bezier curve
-                     Point(1.6, -0.5, 0.9)]  # right bottom
-                )),
-                LineVertex(Point(1.6, -0.5, 0.9)),  # right bottom
-                LineVertex(Point(-1.6, -0.5, 0.9)),  # left bottom
-                LineVertex(PseudoBezier(
-                    [Point(-1.6, -0.5, 0.9),  # left bottom
-                     Point(-2.2, -0.5, 1.05),  # control point to make Bezier curve
-                     Point(-2.2, 0.5, 1.05),  # control point to make Bezier curve
-                     Point(-1.6, 0.5, 0.9)]  # left top
-                )),
-            ], line_type='LINE_LOOP'
-        )
-    ]
+    poision = GraphicObjectCollection(
+        [
+            # the APTX-4869 capsule
+            # white part
+            Sphere(center=Point(-2, 0, 0), radius=1, color="white"),
+            Cylinder(Point(-2, 0, 0), Point(0.5, 0, 0), radius=1, color1="white", color2="white"),
+            # red part that covers the white part
+            Cylinder(Point(0, 0, 0), Point(2, 0, 0), radius=1.015, color1="red", color2="red"),
+            Sphere(center=Point(2, 0, 0), radius=1.015, color="red"),
+            # printed curves (text container) on the surface
+            PolyLines(
+                5,
+                "black",
+                [
+                    LineVertex(Point(-1.6, 0.5, 0.9)),  # left top
+                    LineVertex(Point(1.6, 0.5, 0.9)),  # right top
+                    LineVertex(
+                        PseudoBezier(
+                            [
+                                Point(1.6, 0.5, 0.9),  # right top
+                                Point(2.2, 0.5, 1.08),  # control point to make Bezier curve
+                                Point(2.2, -0.5, 1.08),  # control point to make Bezier curve
+                                Point(1.6, -0.5, 0.9),
+                            ]  # right bottom
+                        )
+                    ),
+                    LineVertex(Point(1.6, -0.5, 0.9)),  # right bottom
+                    LineVertex(Point(-1.6, -0.5, 0.9)),  # left bottom
+                    LineVertex(
+                        PseudoBezier(
+                            [
+                                Point(-1.6, -0.5, 0.9),  # left bottom
+                                Point(-2.2, -0.5, 1.05),  # control point to make Bezier curve
+                                Point(-2.2, 0.5, 1.05),  # control point to make Bezier curve
+                                Point(-1.6, 0.5, 0.9),
+                            ]  # left top
+                        )
+                    ),
+                ],
+                line_type="LINE_LOOP",
+            ),
+        ]
     )
 
     # Printed text on the capsule
@@ -2544,25 +2548,26 @@ def __easter_egg():
         poision.data,
         plain,
         Point(-1.5, -0.25, 1.01).array,
-        'APTX-4869',
+        "APTX-4869",
         0.03,
         axes=[Point(0.5, 0, 0).array, Point(0, 0.5, 0).array, Point(0, 0, 0.5).array],
-        color=Color('black').array)
+        color=Color("black").array,
+    )
 
     # from ..shortcuts.tools.vina_tools import showaxes
 
     # showaxes()
-    poision.load_as('APTX-4869')
+    poision.load_as("APTX-4869")
 
-    cmd.turn('z', 16)
+    cmd.turn("z", 16)
 
-    cmd.zoom('APTX-4869', 0)
-    cmd.movie.add_roll(8, loop=0, axis='y', start=1)
+    cmd.zoom("APTX-4869", 0)
+    cmd.movie.add_roll(8, loop=0, axis="y", start=1)
 
-    cmd.set('movie_fps', 90)
+    cmd.set("movie_fps", 90)
 
     print(__easter_egg.__doc__)
     cmd.mplay()
 
 
-cmd.extend('hello_revodesign', __easter_egg)
+cmd.extend("hello_revodesign", __easter_egg)

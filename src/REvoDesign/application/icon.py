@@ -1,6 +1,7 @@
-'''
+"""
 This module contains the icon setter class.
-'''
+"""
+
 import os
 import platform
 

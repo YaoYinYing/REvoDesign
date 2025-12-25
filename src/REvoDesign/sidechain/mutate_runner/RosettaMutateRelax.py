@@ -1,10 +1,11 @@
-'''
+"""
 Wrapper for MutateRelax Sidechain Builder
 
 TODO:
 known issue:
     - when running with xtal structure, missing residues are not counted
-'''
+"""
+
 import os
 
 from RosettaPy import Rosetta, RosettaScriptsVariableGroup
@@ -26,15 +27,12 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 
 class MutateRelax(ScoreClusters):
-    '''
+    """
     A wrapper around RosettaPy's ScoreClusters class to sample the sidechains
-    '''
+    """
 
     def score(  # type: ignore
-            self,
-            branch: str,
-            variants: list[Mutant],
-            opts: list[str | RosettaScriptsVariableGroup] | None = None
+        self, branch: str, variants: list[Mutant], opts: list[str | RosettaScriptsVariableGroup] | None = None
     ) -> Rosetta:
         """
         Scores the provided variants within a specific branch.
@@ -62,7 +60,8 @@ class MutateRelax(ScoreClusters):
                 os.path.abspath(self.pdb),
                 "-parser:protocol",
                 f"{script_dir}/deps/mutate_relax/xml/mutant_validation_temp.xml",
-            ] + opts,
+            ]
+            + opts,
             output_dir=score_dir,
             save_all_together=True,
             job_id=branch,
@@ -84,7 +83,7 @@ class MutateRelax(ScoreClusters):
                     }
                 ),
                 "-out:file:scorefile": f"{variant_name}.sc",
-                "-out:prefix": f'{variant.full_mutant_id}.',
+                "-out:prefix": f"{variant.full_mutant_id}.",
             }
             for variant_name, variant in zip(variant_names, variants)
         ]
@@ -116,7 +115,7 @@ class MutateRelax(ScoreClusters):
         Returns:
             Scoring results, the specific type depends on the implementation of the score method
         """
-        return self.score(branch='mutate_relax', variants=mutants, opts=opts)
+        return self.score(branch="mutate_relax", variants=mutants, opts=opts)
 
 
 class MutateRelax_worker(MutateRunnerAbstract):
@@ -158,8 +157,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
 
         # Read node hint information from configuration bus
         bus = ConfigBus()
-        self.node_hint: NodeHintT = bus.get_value(
-            "rosetta.node_hint", default_value="native")  # type: ignore
+        self.node_hint: NodeHintT = bus.get_value("rosetta.node_hint", default_value="native")  # type: ignore
 
         # Check if the run node is available
         self.installed = is_run_node_available(self.node_hint)
@@ -171,9 +169,10 @@ class MutateRelax_worker(MutateRunnerAbstract):
             pdb_file,
             chain_id=bus.get_value("ui.header_panel.input.chain_id"),
             save_dir=self.new_cache_dir,
-            job_id='mutate_relax',
+            job_id="mutate_relax",
             node_hint=self.node_hint,
-            node_config=read_rosetta_node_config())
+            node_config=read_rosetta_node_config(),
+        )
 
     def run_mutate(
         self,
@@ -191,7 +190,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
         # Refresh node configuration before each run
         self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
         self.mutate_relax_instance.run([mutant], opts=list(self.rosetta_general_opts))
-        return os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb')
+        return os.path.join(self.temp_dir, f"{mutant.short_mutant_id}.pdb")
 
     def run_mutate_parallel(
         self,
@@ -211,7 +210,7 @@ class MutateRelax_worker(MutateRunnerAbstract):
         # Refresh node configuration before each run
         self.mutate_relax_instance.node = self.node_hint, read_rosetta_node_config()
         self.mutate_relax_instance.run(mutants, opts=list(self.rosetta_general_opts))
-        return [os.path.join(self.temp_dir, f'{mutant.short_mutant_id}.pdb') for mutant in mutants]
+        return [os.path.join(self.temp_dir, f"{mutant.short_mutant_id}.pdb") for mutant in mutants]
 
     __bibtex__ = copy_rosetta_citation(
         {

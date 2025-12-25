@@ -8,7 +8,7 @@ from REvoDesign.tools.utils import get_cited, require_installed
 
 from .esm2 import Esm1v
 
-ESME_MODELS = Literal['esmc', 'esm1b', 'esm1v', 'esm2', 'esm2_8m']
+ESME_MODELS = Literal["esmc", "esm1b", "esm1v", "esm2", "esm2_8m"]
 
 # TODO: add testable case on ubuntu w/ cuda
 
@@ -16,7 +16,7 @@ ESME_MODELS = Literal['esmc', 'esm1b', 'esm1v', 'esm2', 'esm2_8m']
 @require_installed
 class ESM1vEfficient(ThirdPartyModuleAbstract):
     name: str = "esm1v/esm-efficient"
-    installed: bool = is_package_installed('esme')
+    installed: bool = is_package_installed("esme")
 
     def __init__(
         self,
@@ -39,7 +39,7 @@ class ESM1vEfficient(ThirdPartyModuleAbstract):
         return variant.predict_mask_margin(model=model, seq=self.sequence)
 
     __bibtex_esme__ = {
-        'ESM-Efficient': """@article {Celik2024.10.22.619563,
+        "ESM-Efficient": """@article {Celik2024.10.22.619563,
     author = {Celik, Muhammed Hasan and Xie, Xiaohui},
     title = {Efficient Inference, Training, and Fine-tuning of Protein Language Models},
     elocation-id = {2024.10.22.619563},

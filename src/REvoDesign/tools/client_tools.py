@@ -1,6 +1,6 @@
-'''
+"""
 This module contains functions and classes related to generating unique identifiers (UUIDs).
-'''
+"""
 
 import uuid
 

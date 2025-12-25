@@ -1,6 +1,6 @@
-'''
+"""
 The heart of REvoDesign. A UI-Configuration Bus
-'''
+"""
 
 import os
 from collections.abc import Callable
@@ -38,13 +38,13 @@ class StoresWidget(SingletonAbstract):
 
     @classmethod
     def reset_instance(cls):
-        '''
+        """
         Reset the instance of the class and clear all server switches dictionaries.
-        '''
+        """
         myinstance = cls()
 
         for attr in myinstance.__dict__:
-            if attr.startswith('_'):
+            if attr.startswith("_"):
                 continue
 
             attr_dict: dict | Any = getattr(myinstance, attr)
@@ -52,15 +52,15 @@ class StoresWidget(SingletonAbstract):
                 continue
 
             for k, s in attr_dict.items():
-                if hasattr(s, 'controller'):
-                    controller = getattr(s, 'controller')
+                if hasattr(s, "controller"):
+                    controller = getattr(s, "controller")
                     try:
                         if issubclass(s.controller.__class__, SingletonAbstract):
-                            print(f'Resetting {k}: {controller.__class__.__name__}', end=' ')
+                            print(f"Resetting {k}: {controller.__class__.__name__}", end=" ")
                             s.controller.__class__.reset_instance()
-                        print('done.')
+                        print("done.")
                     except Exception as e:
-                        print(f'failed: ({e}).')
+                        print(f"failed: ({e}).")
 
             del attr_dict
 
@@ -77,6 +77,7 @@ class HeadlessProtocol(Protocol):
     Attributes:
     headless: bool -- A boolean attribute indicating whether the object runs in headless mode.
     """
+
     headless: bool
 
 
@@ -148,6 +149,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             buttons based on the existence of file paths in the configuration.
 
     """
+
     headless: bool = True
 
     def singleton_init(self, ui=None):
@@ -176,9 +178,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 if callable(group_cfg):
                     values = group_cfg()
                 else:
-                    logging.debug(
-                        f"Group {j} of widget {gr.cfg_item} does not return any values"
-                    )
+                    logging.debug(f"Group {j} of widget {gr.cfg_item} does not return any values")
                     continue
 
                 # exclude blank string, blank list, or blank tuple
@@ -230,7 +230,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             try:
                 widget_signal_tape(widget, self._widget_link(widget_id))
             except Exception as e:
-                raise issues.UnknownWidgetError(f'Expect link of {widget_id} with {widget.__name__} is broken.') from e
+                raise issues.UnknownWidgetError(f"Expect link of {widget_id} with {widget.__name__} is broken.") from e
 
     @require_non_headless
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
@@ -248,15 +248,11 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
     @require_non_headless
     def get_widget_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT]) -> ValueFromConfigT:
         try:
-            value = get_widget_value(
-                widget=self.get_widget_from_cfg_item(cfg_item)
-            )
+            value = get_widget_value(widget=self.get_widget_from_cfg_item(cfg_item))
         except ValueError as e:
             # record error then re-raise it
-            logging.error(f'Error in the configuration item: {cfg_item}: {e}')
-            raise ValueError(
-                f"Error in the configuration item: {cfg_item}"
-            ) from e
+            logging.error(f"Error in the configuration item: {cfg_item}: {e}")
+            raise ValueError(f"Error in the configuration item: {cfg_item}") from e
 
         # Retrieves the value of a UI widget based on its corresponding configuration item.
         return converter(value)
@@ -284,19 +280,21 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         return cfg_item
 
     @overload
-    def get_value(self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT],
-                  reject_none: bool, default_value: None = ...) -> ValueFromConfigT: ...
+    def get_value(
+        self, cfg_item: str, converter: Callable[[Any], ValueFromConfigT], reject_none: bool, default_value: None = ...
+    ) -> ValueFromConfigT: ...
 
     @overload
     def get_value(self, cfg_item: str, converter: type[bool], reject_none: bool, default_value: bool = ...) -> bool: ...
 
     @overload
-    def get_value(self,
-                  cfg_item: str,
-                  converter: Callable[[Any],
-                                      ValueFromConfigT],
-                  reject_none: bool = True,
-                  default_value: ValueFromConfigT | None = ...) -> ValueFromConfigT: ...
+    def get_value(
+        self,
+        cfg_item: str,
+        converter: Callable[[Any], ValueFromConfigT],
+        reject_none: bool = True,
+        default_value: ValueFromConfigT | None = ...,
+    ) -> ValueFromConfigT: ...
 
     @overload
     def get_value(self, cfg_item: str, converter=None) -> Any: ...
@@ -334,7 +332,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             # Reject to raise an error
             elif reject_none:
                 # not loaded?
-                if not self.get_value('ui.header_panel.input.molecule', None):
+                if not self.get_value("ui.header_panel.input.molecule", None):
                     notify_box(
                         "No molecule is loaded in PyMOL. Please load a molecule first.", issues.UnexpectedWorkflowError
                     )
@@ -342,7 +340,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
                 notify_box(
                     "This configure file might be out of date. "
                     "Please reinitialize REvoDesign (menu->Edit->Reinitialize) and restart PyMOL to fix this.",
-                    issues.ConfigureOutofDateError
+                    issues.ConfigureOutofDateError,
                 )
             else:
                 return None  # Return None if reject_none is False and no default is provided
@@ -391,9 +389,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
         buttons_id_to_release: tuple[str, ...],
     ):
         # Locks or unlocks buttons based on the existence of file paths in the configuration.
-        self.toggle_buttons(
-            button_ids=buttons_id_to_release, set_enabled=False
-        )
+        self.toggle_buttons(button_ids=buttons_id_to_release, set_enabled=False)
 
         for cfg_fp in cfg_fps:
             _fp = self.get_value(cfg_fp)
@@ -419,7 +415,7 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             QtWidgets.QPushButton: Button object
         """
         if button_id not in self.w2c.run_button_ids:
-            raise issues.UnknownWidgetError(f'Button ID not found: {button_id}')
+            raise issues.UnknownWidgetError(f"Button ID not found: {button_id}")
         return self.w2c.push_buttons.get(button_id)
 
     @require_non_headless
@@ -433,15 +429,9 @@ class ConfigBus(SingletonAbstract, CitableModuleAbstract):
             tuple[QtWidgets.QPushButton]: Button objects in the same order as
                 the given IDs.
         """
-        if any(
-            button_id not in self.w2c.run_button_ids for button_id in button_ids
-        ):
-            raise issues.UnknownWidgetError(
-                f"Unknown button IDs: {', '.join(button_id for button_id in button_ids)}"
-            )
-        return tuple(
-            self.w2c.push_buttons.get(button_id) for button_id in button_ids
-        )
+        if any(button_id not in self.w2c.run_button_ids for button_id in button_ids):
+            raise issues.UnknownWidgetError(f"Unknown button IDs: {', '.join(button_id for button_id in button_ids)}")
+        return tuple(self.w2c.push_buttons.get(button_id) for button_id in button_ids)
 
     __bibtex__ = {
         "hydra": """@Misc{Yadan2019Hydra,
@@ -479,26 +469,15 @@ class Widget2ConfigMapper:
 
         self.run_button_ids: tuple[str] = tuple(PushButtons().button_ids)
         self.push_buttons: immutabledict[str, QtWidgets.QPushButton] = immutabledict(
-            {
-                button_id: self.get_button_from_id(button_id=button_id)
-                for button_id in self.run_button_ids
-            }
+            {button_id: self.get_button_from_id(button_id=button_id) for button_id in self.run_button_ids}
         )
         self.c2wi = Config2WidgetIds()
-        self.config_widget_id_map: immutabledict[str, str] = immutabledict(
-            self.c2wi.c2wi
-        )
+        self.config_widget_id_map: immutabledict[str, str] = immutabledict(self.c2wi.c2wi)
         self.config2widget_map: immutabledict[str, QtWidgets.QWidget] = immutabledict(
-            {
-                c: self.get_widget_from_id(wi)
-                for c, wi in self.config_widget_id_map.items()
-            }
+            {c: self.get_widget_from_id(wi) for c, wi in self.config_widget_id_map.items()}
         )
         self.widget_id2widget_map: immutabledict[str, QtWidgets.QWidget] = immutabledict(
-            {
-                self._find_widget_id(c): w
-                for c, w in self.config2widget_map.items()
-            }
+            {self._find_widget_id(c): w for c, w in self.config2widget_map.items()}
         )
 
     def find_child(self, widget_type, name):
@@ -513,18 +492,11 @@ class Widget2ConfigMapper:
             The found widget, or None if not found.
         """
         for attr in dir(self.ui):
-            if (
-                isinstance(found_widget := getattr(self.ui, attr), widget_type)
-                and attr == name
-            ):
+            if isinstance(found_widget := getattr(self.ui, attr), widget_type) and attr == name:
                 logging.debug(f"Found widget by name: {attr=}")
                 return found_widget
 
-        layouts = [
-            layout_widget
-            for layout_widget in dir(self.ui)
-            if "Layout" in layout_widget
-        ]
+        layouts = [layout_widget for layout_widget in dir(self.ui) if "Layout" in layout_widget]
 
         for layout_name in layouts:
             layout = getattr(self.ui, layout_name)
@@ -535,19 +507,12 @@ class Widget2ConfigMapper:
             logging.debug(f"Searching {layout_name=}: {dir(layout)=}")
             if found_widget := layout.findChild(widget_type, name):
                 # https://stackoverflow.com/questions/27225529/get-widgets-by-name-from-layout
-                logging.debug(
-                    f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}"
-                )
+                logging.debug(f"Found child with {name=} {found_widget=} in {layout}: {layout_name=}")
                 return found_widget
 
             for attr in dir(layout):
-                if (
-                    isinstance((found_widget := getattr(layout, attr)), widget_type)
-                    and attr == name
-                ):
-                    logging.debug(
-                        f"Found widget with by name in {layout}: {attr=}: {layout_name=}"
-                    )
+                if isinstance((found_widget := getattr(layout, attr)), widget_type) and attr == name:
+                    logging.debug(f"Found widget with by name in {layout}: {attr=}: {layout_name=}")
                     return found_widget
 
         raise issues.UnknownWidgetError(
@@ -567,9 +532,7 @@ class Widget2ConfigMapper:
 
     @property
     def widget_id2config_dict(self) -> immutabledict[str, str]:
-        return immutabledict(
-            {v: k for k, v in self.config_widget_id_map.items()}
-        )
+        return immutabledict({v: k for k, v in self.config_widget_id_map.items()})
 
     def find_config_item(self, widget_id):
         config_item = self.widget_id2config_dict.get(widget_id)
@@ -582,7 +545,5 @@ class Widget2ConfigMapper:
         return widget_id
 
     def get_widget_from_id(self, widget_id: str) -> QtWidgets.QWidget:
-        widget = self.find_child(
-            self.c2wi.get_widget_typing(widget_id=widget_id), widget_id
-        )
+        widget = self.find_child(self.c2wi.get_widget_typing(widget_id=widget_id), widget_id)
         return widget

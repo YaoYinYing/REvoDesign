@@ -1,6 +1,7 @@
-'''
+"""
 This module contains functions and classes related to managing SSL certificates and generating unique identifiers (UUIDs).
-'''
+"""
+
 import datetime
 import os
 import platform
@@ -53,9 +54,7 @@ class SSLCertificateManager:
             context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             context.load_cert_chain(self.crt_path, self.key_path)
         elif self.role == "client":
-            context = ssl.create_default_context(
-                ssl.Purpose.SERVER_AUTH, cafile=self.crt_path
-            )
+            context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=self.crt_path)
         else:
             raise ValueError(f"Unknown role of ssl context: {self.role}")
         return context
@@ -73,28 +72,20 @@ class SSLCertificateManager:
         """
         # Check if the existing certificate exists
         if not os.path.exists(self.crt_path):
-            logging.info(
-                "Certificate does not exist. Generating a new certificate."
-            )
+            logging.info("Certificate does not exist. Generating a new certificate.")
             self.create_new_certificate()
             return
 
         with open(self.crt_path, "rb") as f:
             existing_cert_data = f.read()
-            existing_cert = crypto.load_certificate(
-                crypto.FILETYPE_PEM, existing_cert_data
-            )
+            existing_cert = crypto.load_certificate(crypto.FILETYPE_PEM, existing_cert_data)
 
             # Get the expiration date of the existing certificate
-            expiration_date = datetime.datetime.strptime(
-                existing_cert.get_notAfter().decode("utf-8"), "%Y%m%d%H%M%SZ"
-            )
+            expiration_date = datetime.datetime.strptime(existing_cert.get_notAfter().decode("utf-8"), "%Y%m%d%H%M%SZ")
 
         # Check if the certificate has expired
         if expiration_date < datetime.datetime.now():
-            logging.warning(
-                "Certificate has expired. Generating a new certificate."
-            )
+            logging.warning("Certificate has expired. Generating a new certificate.")
             self.create_new_certificate()
         else:
             logging.info("Certificate is still valid.")

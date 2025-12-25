@@ -1,6 +1,6 @@
-'''
+"""
 Logger for REvoDesign
-'''
+"""
 
 import atexit
 import datetime as dt
@@ -61,9 +61,7 @@ class REvoDesignLogFormatter(python_logging.Formatter):
     def _prepare_log_dict(self, record: python_logging.LogRecord):
         always_fields = {
             "message": record.getMessage(),
-            "timestamp": dt.datetime.fromtimestamp(
-                record.created, tz=dt.timezone.utc
-            ).isoformat(),
+            "timestamp": dt.datetime.fromtimestamp(record.created, tz=dt.timezone.utc).isoformat(),
         }
         if record.exc_info is not None:
             always_fields["exc_info"] = self.formatException(record.exc_info)
@@ -72,11 +70,7 @@ class REvoDesignLogFormatter(python_logging.Formatter):
             always_fields["stack_info"] = self.formatStack(record.stack_info)
 
         message = {
-            key: (
-                msg_val
-                if (msg_val := always_fields.pop(val, None)) is not None
-                else getattr(record, val)
-            )
+            key: (msg_val if (msg_val := always_fields.pop(val, None)) is not None else getattr(record, val))
             for key, val in self.fmt_keys.items()
         }
         message.update(always_fields)
@@ -90,9 +84,7 @@ class REvoDesignLogFormatter(python_logging.Formatter):
 
 class NonErrorFilter(python_logging.Filter):
     @override
-    def filter(
-        self, record: python_logging.LogRecord
-    ) -> bool | python_logging.LogRecord:
+    def filter(self, record: python_logging.LogRecord) -> bool | python_logging.LogRecord:
         return record.levelno <= python_logging.INFO
 
 
@@ -116,9 +108,7 @@ def setup_logging_from_dictconfig(
     stdout_handler = python_logging.StreamHandler()
     # TODO: if pytest is installed, use DEBUG level instead
     stdout_handler.setLevel(log_config.handlers.stdout.level)
-    stdout_handler.setFormatter(
-        python_logging.Formatter(log_config.formatters.simple.format)
-    )
+    stdout_handler.setFormatter(python_logging.Formatter(log_config.formatters.simple.format))
     log_handlers.append(stdout_handler)
 
     # stderr_handler = python_logging.StreamHandler()
@@ -135,11 +125,7 @@ def setup_logging_from_dictconfig(
         )
         file_handler.setLevel(log_config.handlers.file.level)
         # Custom formatter needs to be implemented accordingly
-        file_handler.setFormatter(
-            REvoDesignLogFormatter(
-                fmt_keys=dict(log_config.formatters.json.fmt_keys)
-            )
-        )
+        file_handler.setFormatter(REvoDesignLogFormatter(fmt_keys=dict(log_config.formatters.json.fmt_keys)))
         log_handlers.append(file_handler)
 
     if notebook_filename is not None:
@@ -150,11 +136,7 @@ def setup_logging_from_dictconfig(
         )
         notebook_handler.setLevel(log_config.handlers.notebook.level)
         # Custom formatter needs to be implemented accordingly
-        notebook_handler.setFormatter(
-            REvoDesignLogFormatter(
-                fmt_keys=dict(log_config.formatters.json.fmt_keys)
-            )
-        )
+        notebook_handler.setFormatter(REvoDesignLogFormatter(fmt_keys=dict(log_config.formatters.json.fmt_keys)))
         log_handlers.append(notebook_handler)
 
     # Set up the QueueHandler
@@ -190,15 +172,11 @@ def setup_logging() -> python_logging.Logger:
 
     if logfile == "AUTO":
         logfile = user_log_path("REvoDesign", ensure_exists=True)
-        cfg.log.handlers.file.filename = os.path.join(
-            logfile, "REvoDesign.runtime.log"
-        )
+        cfg.log.handlers.file.filename = os.path.join(logfile, "REvoDesign.runtime.log")
 
     if notebookfile == "AUTO":
         notebookfile = user_log_path("REvoDesign", ensure_exists=True)
-        cfg.log.handlers.notebook.filename = os.path.join(
-            notebookfile, "REvoDesign.notebook.log"
-        )
+        cfg.log.handlers.notebook.filename = os.path.join(notebookfile, "REvoDesign.notebook.log")
 
     if logfile is not None:
         logging_dir = os.path.dirname(os.path.abspath(logfile))
@@ -219,9 +197,10 @@ LoggerT = python_logging.Logger
 
 
 def logger_level_setter(
-        level: str = 'info',
-        channel: Literal['stdout', 'stderr', 'file', 'notebook'] | None = None,
-        apply_to_root_logger: bool = False) -> None:
+    level: str = "info",
+    channel: Literal["stdout", "stderr", "file", "notebook"] | None = None,
+    apply_to_root_logger: bool = False,
+) -> None:
     """Set the logger level to the given value.
 
     Args:
@@ -232,7 +211,7 @@ def logger_level_setter(
 
     if channel:
         # apply to the config
-        ConfigBus().set_value(f'log.handlers.{channel}.level', level.upper())
+        ConfigBus().set_value(f"log.handlers.{channel}.level", level.upper())
         # apply to the runtime
         for handler in ROOT_LOGGER.handlers:
             if handler.name == channel:
@@ -240,6 +219,6 @@ def logger_level_setter(
                 break
     if apply_to_root_logger:
         # apply to the config
-        ConfigBus().set_value('log.loggers.root.level', level.upper())
+        ConfigBus().set_value("log.loggers.root.level", level.upper())
         # apply to the runtime
         ROOT_LOGGER.setLevel(level=level)

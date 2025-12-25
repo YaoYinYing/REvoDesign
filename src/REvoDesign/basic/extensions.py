@@ -1,6 +1,7 @@
-'''
+"""
 Data classes with file extensions used in the REvoDesign plugin.
-'''
+"""
+
 import os
 from dataclasses import dataclass
 
@@ -42,7 +43,7 @@ class FileExtensionCollection:
 
     extensions: tuple[FileExtension, ...]
 
-    def __add__(self, extension_collection: 'FileExtensionCollection') -> 'FileExtensionCollection':
+    def __add__(self, extension_collection: "FileExtensionCollection") -> "FileExtensionCollection":
         return FileExtensionCollection(tuple(set(self.extensions + extension_collection.extensions)))
 
     def __contains__(self, extension: FileExtension | str) -> bool:
@@ -96,14 +97,14 @@ class FileExtensionCollection:
             return ext in self.extensions
 
         # Check if ext is a string without a leading dot
-        if not ext.startswith('.'):
+        if not ext.startswith("."):
             return ext in self.list_all
 
         # Check if ext is a string with a leading dot
         return ext in self.list_dot_ext
 
     @classmethod
-    def squeeze(cls, exts: tuple['FileExtensionCollection', ...]) -> 'FileExtensionCollection':
+    def squeeze(cls, exts: tuple["FileExtensionCollection", ...]) -> "FileExtensionCollection":
         """
         Merge file extensions from multiple FileExtensionCollection instances and remove duplicates.
 
@@ -151,19 +152,20 @@ class FileExtensionCollection:
         fname = os.path.basename(fname)
         matched = [ext for ext in self.list_dot_ext if fname.endswith(ext)]
         if len(matched) == 1:
-            return fname[:-len(matched[0])]
+            return fname[: -len(matched[0])]
 
         if len(matched) > 1:
             # the longest win
             matched_ext = sorted(matched, key=lambda x: len(x), reverse=True)[0]
-            return fname[:-len(matched_ext[0])]
+            return fname[: -len(matched_ext[0])]
 
         # otherwise, raise no match error
         raise issues.InternalError(
-            f'Unexpect error in file extension collection: {fname} does not match any extension of {self.list_dot_ext}')
+            f"Unexpect error in file extension collection: {fname} does not match any extension of {self.list_dot_ext}"
+        )
 
     @classmethod
-    def from_dict(cls, dic: dict, prefix: str = '') -> 'FileExtensionCollection':
+    def from_dict(cls, dic: dict, prefix: str = "") -> "FileExtensionCollection":
         return cls(tuple([FileExtension(d[0], f'{prefix}{d[1].lstrip("*.")}') for d in dic.items()]))
 
 
@@ -192,8 +194,9 @@ def resolve_extension(extension: str) -> FileExtensionCollection:
         {'pdb': 'PDB File', 'csv': 'CSV File'} under a custom prefix.
     """
     from REvoDesign.common import file_extensions
+
     resolved_ext: list[FileExtensionCollection] = []
-    for e in extension.split(';'):
+    for e in extension.split(";"):
         if hasattr(file_extensions, e):
             # Is a predefined extension that is an instance of FileExtensionCollection
             if isinstance(getattr(file_extensions, e), FileExtensionCollection):
@@ -201,7 +204,8 @@ def resolve_extension(extension: str) -> FileExtensionCollection:
                 continue
         # otherwise, treat it as a custom extension
         else:
-            resolved_ext.append(FileExtensionCollection.from_dict(
-                {e.lower(): f'{e.upper()} File'}, prefix='Customized - '))
+            resolved_ext.append(
+                FileExtensionCollection.from_dict({e.lower(): f"{e.upper()} File"}, prefix="Customized - ")
+            )
 
     return FileExtensionCollection.squeeze(tuple(resolved_ext))

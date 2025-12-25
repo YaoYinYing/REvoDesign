@@ -2,118 +2,54 @@ from REvoDesign.basic.menu_item import MenuItem
 
 TOOLS_MENU_LINKS = (
     MenuItem(
-        'actionRenderPickedSidechainGroup',
+        "actionRenderPickedSidechainGroup",
         "REvoDesign.shortcuts.shortcuts_on_menu:menu_dump_sidechains",
-        kwargs={'dump_all': False},
+        kwargs={"dump_all": False},
     ),
     MenuItem(
-        'actionRenderAllSidechains',
+        "actionRenderAllSidechains",
         "REvoDesign.shortcuts.shortcuts_on_menu:menu_dump_sidechains",
-        kwargs={'dump_all': True},
+        kwargs={"dump_all": True},
+    ),
+    MenuItem("actionColor_by_pLDDT", "REvoDesign.shortcuts.wrappers.represents:wrapped_color_by_plddt"),
+    MenuItem("actionShow_Real_Sidechain", "REvoDesign.shortcuts.wrappers.represents:wrapped_real_sc"),
+    MenuItem("actionColor_by_Mutations", "REvoDesign.shortcuts.wrappers.represents:wrapped_color_by_mutation"),
+    MenuItem("actionPSSM_to_CSV", "REvoDesign.shortcuts.wrappers.designs:wrapped_pssm2csv"),
+    MenuItem("actionProfile_Design", "REvoDesign.shortcuts.wrappers.designs:wrapped_profile_pick_design"),
+    MenuItem(
+        "actionSMILES_Conformers", "REvoDesign.shortcuts.wrappers.ligand_converters:wrapped_smiles_conformer_single"
     ),
     MenuItem(
-        'actionColor_by_pLDDT',
-        "REvoDesign.shortcuts.wrappers.represents:wrapped_color_by_plddt"
+        "actionSMILES_Conformers_Batch",
+        "REvoDesign.shortcuts.wrappers.ligand_converters:wrapped_smiles_conformer_batch",
     ),
     MenuItem(
-        'actionShow_Real_Sidechain',
-        "REvoDesign.shortcuts.wrappers.represents:wrapped_real_sc"
+        "actionSDF_to_Rosetta_Parameters", "REvoDesign.shortcuts.wrappers.ligand_converters:wrapper_sdf2rosetta_params"
+    ),
+    MenuItem("actionRosettaLigand", "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_rosettaligand"),
+    MenuItem("actionFastRelax", "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_fast_relax"),
+    MenuItem(
+        "actionRelax_w_Ca_Constraints", "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_relax_w_ca_constraints"
+    ),
+    MenuItem("actionPROSS", "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_pross"),
+    MenuItem("actionThermoMPNN", "REvoDesign.shortcuts.wrappers.mutation_effect_predictors:wrapped_thermompnn"),
+    MenuItem("actionESM_1v", "REvoDesign.shortcuts.wrappers.esm2:wrapped_esm1v"),
+    MenuItem("actionAlter_Box", "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_alter_box"),
+    MenuItem("actionGet_PCA_Box", "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_get_pca_box"),
+    MenuItem("actionGet_Box", "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_alter_box"),
+    MenuItem("actionRemove_Het_Atoms", "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_rmhet"),
+    MenuItem(
+        "actionRFdiffusion_General_Task",
+        "REvoDesign.shortcuts.wrappers.rfdiffusion_tasks:wrapped_general_rfdiffusion_task",
     ),
     MenuItem(
-        'actionColor_by_Mutations',
-        "REvoDesign.shortcuts.wrappers.represents:wrapped_color_by_mutation"
+        "actionSubstrate_Potential",
+        "REvoDesign.shortcuts.wrappers.rfdiffusion_tasks:wrapped_visualize_substrate_potentials",
     ),
-    MenuItem(
-        'actionPSSM_to_CSV',
-        "REvoDesign.shortcuts.wrappers.designs:wrapped_pssm2csv"
-    ),
-    MenuItem(
-        'actionProfile_Design',
-        "REvoDesign.shortcuts.wrappers.designs:wrapped_profile_pick_design"
-    ),
-    MenuItem(
-        'actionSMILES_Conformers',
-        "REvoDesign.shortcuts.wrappers.ligand_converters:wrapped_smiles_conformer_single"
-    ),
-    MenuItem(
-        'actionSMILES_Conformers_Batch',
-        "REvoDesign.shortcuts.wrappers.ligand_converters:wrapped_smiles_conformer_batch"
-    ),
-    MenuItem(
-        'actionSDF_to_Rosetta_Parameters',
-        "REvoDesign.shortcuts.wrappers.ligand_converters:wrapper_sdf2rosetta_params"
-    ),
-    MenuItem(
-        'actionRosettaLigand',
-        "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_rosettaligand"
-    ),
-    MenuItem(
-        'actionFastRelax',
-        "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_fast_relax"
-    ),
-    MenuItem(
-        'actionRelax_w_Ca_Constraints',
-        "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_relax_w_ca_constraints"
-    ),
-    MenuItem(
-        'actionPROSS',
-        "REvoDesign.shortcuts.wrappers.rosetta_tasks:wrapped_pross"
-    ),
-    MenuItem(
-        'actionThermoMPNN',
-        "REvoDesign.shortcuts.wrappers.mutation_effect_predictors:wrapped_thermompnn"
-    ),
-    MenuItem(
-        'actionESM_1v',
-        "REvoDesign.shortcuts.wrappers.esm2:wrapped_esm1v"
-    ),
-    MenuItem(
-        'actionAlter_Box',
-        "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_alter_box"
-    ),
-    MenuItem(
-        'actionGet_PCA_Box',
-        "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_get_pca_box"
-    ),
-    MenuItem(
-        'actionGet_Box',
-        "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_alter_box"
-    ),
-    MenuItem(
-        'actionRemove_Het_Atoms',
-        "REvoDesign.shortcuts.wrappers.vina_tools:wrapped_rmhet"
-    ),
-    MenuItem(
-        'actionRFdiffusion_General_Task',
-        "REvoDesign.shortcuts.wrappers.rfdiffusion_tasks:wrapped_general_rfdiffusion_task"
-    ),
-    MenuItem(
-        'actionSubstrate_Potential',
-        "REvoDesign.shortcuts.wrappers.rfdiffusion_tasks:wrapped_visualize_substrate_potentials"
-    ),
-
-    MenuItem(
-        'actionRenumber_Residue_Index',
-        "REvoDesign.shortcuts.wrappers.structure:wrapped_resi_renumber"
-    ),
-    MenuItem(
-        'actionDump_Sequence',
-        "REvoDesign.shortcuts.wrappers.exports:wrapped_dump_fasta_from_struct"
-    ),
-    MenuItem(
-        'actionSetLogLevel',
-        "REvoDesign.shortcuts.wrappers.utils:wrapped_logger_level_setter"
-    ),
-    MenuItem(
-        'actionRMSF_to_b_factor',
-        "REvoDesign.shortcuts.wrappers.represents:wrapped_load_b_factors"
-    ),
-    MenuItem(
-        'actionMake_Residue_Range',
-        "REvoDesign.shortcuts.wrappers.utils:wrapped_convert_residue_ranges"
-    ),
-    MenuItem(
-        'actionShorten_Range',
-        "REvoDesign.shortcuts.wrappers.utils:wrapped_short_range"
-    )
+    MenuItem("actionRenumber_Residue_Index", "REvoDesign.shortcuts.wrappers.structure:wrapped_resi_renumber"),
+    MenuItem("actionDump_Sequence", "REvoDesign.shortcuts.wrappers.exports:wrapped_dump_fasta_from_struct"),
+    MenuItem("actionSetLogLevel", "REvoDesign.shortcuts.wrappers.utils:wrapped_logger_level_setter"),
+    MenuItem("actionRMSF_to_b_factor", "REvoDesign.shortcuts.wrappers.represents:wrapped_load_b_factors"),
+    MenuItem("actionMake_Residue_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_convert_residue_ranges"),
+    MenuItem("actionShorten_Range", "REvoDesign.shortcuts.wrappers.utils:wrapped_short_range"),
 )

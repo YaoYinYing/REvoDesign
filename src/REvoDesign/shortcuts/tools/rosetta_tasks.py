@@ -1,6 +1,6 @@
-'''
+"""
 Shortcut functions on Rosetta-related tasks
-'''
+"""
 
 import os
 from collections.abc import Mapping, Sequence
@@ -29,8 +29,9 @@ logging = ROOT_LOGGER.getChild(__name__)
 
 class RosettaLigand(RosettaLigandOriginal, CitableModuleAbstract):
 
-    __bibtex__: dict[str, str | tuple] = copy_rosetta_citation({
-        "RosettaLigand": """
+    __bibtex__: dict[str, str | tuple] = copy_rosetta_citation(
+        {
+            "RosettaLigand": """
 @article{https://doi.org/10.1002/prot.21086,
 author = {Meiler, Jens and Baker, David},
 title = {ROSETTALIGAND: Protein–small molecule docking with full side-chain flexibility},
@@ -46,7 +47,7 @@ abstract = {Abstract Protein–small molecule docking algorithms provide a means
 year = {2006}
 }
     """,
-        'RosettaLigand XML': r"""
+            "RosettaLigand XML": r"""
 @Inbook{Lemmon2012,
 author="Lemmon, Gordon
 and Meiler, Jens",
@@ -64,13 +65,15 @@ url="https://doi.org/10.1007/978-1-61779-465-0_10"
 }
 
 
-"""
-    })
+""",
+        }
+    )
 
 
 class PROSS(PROSS_Original, CitableModuleAbstract):
-    __bibtex__ = copy_rosetta_citation({
-        'PROSS2': """@article{10.1093/bioinformatics/btaa1071,
+    __bibtex__ = copy_rosetta_citation(
+        {
+            "PROSS2": """@article{10.1093/bioinformatics/btaa1071,
 author = {Weinstein, Jonathan Jacob and Goldenzweig, Adi and Hoch, ShlomoYakir and Fleishman, Sarel Jacob},
 title = {PROSS 2: a new server for the design of stable and highly expressed protein variants},
 journal = {Bioinformatics},
@@ -87,9 +90,10 @@ eprint = {https://academic.oup.com/bioinformatics/article-pdf/37/1/123/50321722/
 }
 
 """,
-        "PROSS": """
-@article{10.1016/j.molcel.2016.06.012, author = {Goldenzweig, A. and Goldsmith, M. and Hill, S. E. and Gertman, O. and Laurino, P. and Ashani, Y. and Dym, O. and Unger, T. and Albeck, S. and Prilusky, J. and Lieberman, R. L. and Aharoni, A. and Silman, I. and Sussman, J. L. and Tawfik, D. S. and Fleishman, S. J.}, title = {Automated structure- and sequence-based design of proteins for high bacterial expression and stability}, journal = {Molecular Cell}, year = {2016}, volume = {63}, issue = {2}, pages = {337-346}, doi = {10.1016/j.molcel.2016.06.012} }"""
-    })
+            "PROSS": """
+@article{10.1016/j.molcel.2016.06.012, author = {Goldenzweig, A. and Goldsmith, M. and Hill, S. E. and Gertman, O. and Laurino, P. and Ashani, Y. and Dym, O. and Unger, T. and Albeck, S. and Prilusky, J. and Lieberman, R. L. and Aharoni, A. and Silman, I. and Sussman, J. L. and Tawfik, D. S. and Fleishman, S. J.}, title = {Automated structure- and sequence-based design of proteins for high bacterial expression and stability}, journal = {Molecular Cell}, year = {2016}, volume = {63}, issue = {2}, pages = {337-346}, doi = {10.1016/j.molcel.2016.06.012} }""",
+        }
+    )
 
 
 class FastRelax(FastRelax_Original, CitableModuleAbstract):
@@ -97,8 +101,12 @@ class FastRelax(FastRelax_Original, CitableModuleAbstract):
     __bibtex__ = MutateRelax_worker.__bibtex__
 
     @get_cited
-    def run(self, nstruct: int = 8, default_repeats: int = 15,
-            opts: Sequence[str | RosettaScriptsVariableGroup] | None = None) -> RosettaEnergyUnitAnalyser:
+    def run(
+        self,
+        nstruct: int = 8,
+        default_repeats: int = 15,
+        opts: Sequence[str | RosettaScriptsVariableGroup] | None = None,
+    ) -> RosettaEnergyUnitAnalyser:
         """
         Runs the fast relaxation process using the specified parameters.
 
@@ -129,12 +137,13 @@ class FastRelax(FastRelax_Original, CitableModuleAbstract):
                 "ref2015_cart" if self.dualspace else "ref2015",
                 "-relax:dualspace",
                 "true" if self.dualspace else "false",
-            ] + list(opts),
+            ]
+            + list(opts),
             save_all_together=True,
             output_dir=os.path.join(self.save_dir, self.job_id),
             job_id=f"fastrelax_{self.instance}_{os.path.basename(self.relax_script)}",
             run_node=self.node,
-            verbose=True
+            verbose=True,
         )
 
         with timing("FastRelax"):
@@ -155,19 +164,19 @@ class FastRelax(FastRelax_Original, CitableModuleAbstract):
 
 
 def shortcut_rosettaligand(
-        pdb: str,
-        ligands: list[str],
-        nstruct: int = 10,
-        save_dir: str = "tests/outputs",
-        job_id: str = "rosettaligand",
-        cst: str | None = None,
-        box_size: int = 30,
-        move_distance: float = 0.5,
-        gridwidth: int = 45,
-        chain_id_for_dock="B",
-        start_from_xyz: tuple[float, float, float] | None = None,
+    pdb: str,
+    ligands: list[str],
+    nstruct: int = 10,
+    save_dir: str = "tests/outputs",
+    job_id: str = "rosettaligand",
+    cst: str | None = None,
+    box_size: int = 30,
+    move_distance: float = 0.5,
+    gridwidth: int = 45,
+    chain_id_for_dock="B",
+    start_from_xyz: tuple[float, float, float] | None = None,
 ):
-    '''
+    """
     Runs the rosettaligand function with parameters collected from the dialog.
 
     Args:
@@ -183,7 +192,7 @@ def shortcut_rosettaligand(
         chain_id_for_dock (str, optional): Chain ID for docking. Defaults to "B".
         start_from_xyz (Optional[Tuple[float, float, float]], optional): Coordinates to start from. Defaults to None.
 
-    '''
+    """
 
     node_config = read_rosetta_node_config()
 
@@ -198,8 +207,8 @@ def shortcut_rosettaligand(
         gridwidth=gridwidth,
         chain_id_for_dock=chain_id_for_dock,
         start_from_xyz=start_from_xyz,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-        node_config=node_config
+        node_hint=ConfigBus().get_value("rosetta.node_hint", str, reject_none=True),  # type: ignore
+        node_config=node_config,
     )
 
     best_pdb = app.dock(nstruct=nstruct)
@@ -209,15 +218,15 @@ def shortcut_rosettaligand(
 
 
 def shortcut_pross(
-        pdb: str,
-        pssm: str,
-        res_to_fix: str,
-        res_to_restrict: str,
-        nstruct_refine: int = 4,
-        save_dir: str = "design/pross",
-        job_id: str = "pross_design",
+    pdb: str,
+    pssm: str,
+    res_to_fix: str,
+    res_to_restrict: str,
+    nstruct_refine: int = 4,
+    save_dir: str = "design/pross",
+    job_id: str = "pross_design",
 ):
-    '''
+    """
     Runs the pross function with parameters collected from the dialog.
 
     Args:
@@ -229,7 +238,7 @@ def shortcut_pross(
         save_dir (str, optional): Directory to save the output files. Defaults to "design/pross".
         job_id (str, optional): Job ID for the output files. Defaults to "pross_design".
 
-    '''
+    """
 
     pross = PROSS(
         pdb=pdb,
@@ -238,8 +247,8 @@ def shortcut_pross(
         res_to_restrict=res_to_restrict,
         save_dir=save_dir,
         job_id=job_id,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-        node_config=read_rosetta_node_config()
+        node_hint=ConfigBus().get_value("rosetta.node_hint", str, reject_none=True),  # type: ignore
+        node_config=read_rosetta_node_config(),
     )
     best_refined = pross.refine(nstruct_refine)
 
@@ -252,14 +261,14 @@ def shortcut_pross(
 
 
 def shortcut_fast_relax(
-        pdb: str,
-        relax_script: str,
-        nstruct: int = 4,
-        dualspace: bool = False,
-        default_repeats: int = 3,
-        job_id: str = 'fastrelax',
-        save_dir: str = 'relaxed',
-        relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
+    pdb: str,
+    relax_script: str,
+    nstruct: int = 4,
+    dualspace: bool = False,
+    default_repeats: int = 3,
+    job_id: str = "fastrelax",
+    save_dir: str = "relaxed",
+    relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
 ):
 
     fast_relax = FastRelax(
@@ -268,8 +277,8 @@ def shortcut_fast_relax(
         dualspace=dualspace,
         job_id=job_id,
         save_dir=save_dir,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-        node_config=read_rosetta_node_config()
+        node_hint=ConfigBus().get_value("rosetta.node_hint", str, reject_none=True),  # type: ignore
+        node_config=read_rosetta_node_config(),
     )
 
     analyser = fast_relax.run(
@@ -288,17 +297,18 @@ class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
     __bibtex__ = MutateRelax_worker.__bibtex__
 
     def __init__(
-            self,
-            pdb: str,
-            job_id: str = "relax_w_ca_constraints",
-            save_dir: str = "tests/outputs",
-            user_opts: list[str] | None = None,
-            node_hint: NodeHintT = "native",
-            node_config: Mapping[str, Any] | None = None,
-            nstructs_per_round: int = 1,
-            ncycles: int = 10,
-            relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
-            **kwargs):
+        self,
+        pdb: str,
+        job_id: str = "relax_w_ca_constraints",
+        save_dir: str = "tests/outputs",
+        user_opts: list[str] | None = None,
+        node_hint: NodeHintT = "native",
+        node_config: Mapping[str, Any] | None = None,
+        nstructs_per_round: int = 1,
+        ncycles: int = 10,
+        relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
+        **kwargs,
+    ):
         super().__init__(job_id, save_dir, user_opts, node_hint, node_config, **kwargs)
 
         self.pdb = pdb
@@ -309,27 +319,35 @@ class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
 
     def run_a_round(self, round_id: int, newpdb: str) -> str:
         rosetta = Rosetta(
-            'relax',
+            "relax",
             opts=[
-                '-relax:constrain_relax_to_start_coords',
-                '-relax:coord_constrain_sidechains',
-                '-relax:ramp_constraints', 'false',
-                '-ignore_zero_occupancy', 'false',
-                '-ex1',
-                '-ex2',
-                '-use_input_sc',
-                '-no_nstruct_label', 'true',
-                '-suffix', f'_R{round_id}',
-                '-flip_HNQ',
-                '-no_optH', 'false',
-                '-in:file:s', os.path.abspath(newpdb)
-            ] + self.relax_opts,
-            save_all_together=True, output_dir=os.path.join(self.save_dir, self.job_id),
-            job_id=f'{self.job_id}_round_{round_id}',
+                "-relax:constrain_relax_to_start_coords",
+                "-relax:coord_constrain_sidechains",
+                "-relax:ramp_constraints",
+                "false",
+                "-ignore_zero_occupancy",
+                "false",
+                "-ex1",
+                "-ex2",
+                "-use_input_sc",
+                "-no_nstruct_label",
+                "true",
+                "-suffix",
+                f"_R{round_id}",
+                "-flip_HNQ",
+                "-no_optH",
+                "false",
+                "-in:file:s",
+                os.path.abspath(newpdb),
+            ]
+            + self.relax_opts,
+            save_all_together=True,
+            output_dir=os.path.join(self.save_dir, self.job_id),
+            job_id=f"{self.job_id}_round_{round_id}",
             run_node=self.node,
-            verbose=True
+            verbose=True,
         )
-        with timing(f'relaxing with Ca Constrains (round #{round_id})'):
+        with timing(f"relaxing with Ca Constrains (round #{round_id})"):
             rosetta.run(nstruct=self.nstructs_per_round)
 
         analyser = RosettaEnergyUnitAnalyser(rosetta.output_scorefile_dir)
@@ -361,13 +379,13 @@ class RelaxWithCaConstraints(RosettaAppBase, CitableModuleAbstract):
 
 
 def shortcut_relax_w_ca_constraints(
-        pdb: str,
-        nstructs_per_round: int = 1,
-        ncycles: int = 10,
-        save_dir: str = "tests/outputs",
-        job_id: str = "relax_w_ca_constraints",
-        relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
-        load_to_preview=False,
+    pdb: str,
+    nstructs_per_round: int = 1,
+    ncycles: int = 10,
+    save_dir: str = "tests/outputs",
+    job_id: str = "relax_w_ca_constraints",
+    relax_opts: list[str | RosettaScriptsVariableGroup] | None = None,
+    load_to_preview=False,
 ):
 
     app = RelaxWithCaConstraints(
@@ -377,8 +395,8 @@ def shortcut_relax_w_ca_constraints(
         save_dir=save_dir,
         job_id=job_id,
         relax_opts=relax_opts,
-        node_hint=ConfigBus().get_value('rosetta.node_hint', str, reject_none=True),  # type: ignore
-        node_config=read_rosetta_node_config()
+        node_hint=ConfigBus().get_value("rosetta.node_hint", str, reject_none=True),  # type: ignore
+        node_config=read_rosetta_node_config(),
     )
 
     final_pdb = app.run(load_to_preview)

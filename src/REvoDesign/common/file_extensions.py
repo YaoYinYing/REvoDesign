@@ -1,6 +1,7 @@
-'''
+"""
 File extensions used in REvoDesign
-'''
+"""
+
 from ..basic import FileExtension as Ext
 from ..basic import FileExtensionCollection as ExtColl
 
@@ -19,7 +20,6 @@ Mutable = ExtColl(
         Ext("xlsx", "Microsoft Excel (modern) file"),
         Ext("xls", "Microsoft Excel (legacy) file"),
     )
-
 )
 PDB = ExtColl(
     (
@@ -29,11 +29,7 @@ PDB = ExtColl(
         Ext("mmcif", "Macromolecular Crystallographic Information File"),
     )
 )
-PDB_STRICT = ExtColl(
-    (
-        Ext("pdb", "Protein Data Bank format file"),
-    )
-)
+PDB_STRICT = ExtColl((Ext("pdb", "Protein Data Bank format file"),))
 MOL = ExtColl(
     (
         Ext("mol", "Mol2 file"),
@@ -41,11 +37,7 @@ MOL = ExtColl(
     )
 )
 
-SDF = ExtColl(
-    (
-        Ext("sdf", "SDF file"),
-    )
-)
+SDF = ExtColl((Ext("sdf", "SDF file"),))
 
 PSSM = ExtColl(
     (
@@ -53,11 +45,7 @@ PSSM = ExtColl(
         Ext("pssm", "Raw PSSM file"),
     )
 )
-CSV = ExtColl(
-    (
-        Ext("csv", "CSV file"),
-    )
-)
+CSV = ExtColl((Ext("csv", "CSV file"),))
 MSA = ExtColl(
     (
         Ext("fas", "MSA in FASTA"),
@@ -65,23 +53,11 @@ MSA = ExtColl(
         Ext("a3m", "MSA in A3M from HH-suite"),
     )
 )
-A3M = ExtColl(
-    (
-        Ext("a3m", "MSA in A3M from HH-suite"),
-    )
-)
-TXT = ExtColl(
-    (
-        Ext("txt", "Text file"),
-    )
-)
+A3M = ExtColl((Ext("a3m", "MSA in A3M from HH-suite"),))
+TXT = ExtColl((Ext("txt", "Text file"),))
 
 # a hack of file extension filter, to enable those without explicit extension
-Any = ExtColl(
-    (
-        Ext("* *", "Any file"),
-    )
-)
+Any = ExtColl((Ext("* *", "Any file"),))
 Compressed = ExtColl(
     (
         Ext("zip", "ZIP archive"),
@@ -96,31 +72,14 @@ Compressed = ExtColl(
         Ext("bz2", "Compressed (BZ2)"),
         Ext("xz", "Compressed (XZ)"),
         Ext("rar", "RAR archive"),
+    )
+)
+PickledObject = ExtColl((Ext("pkl", "Dumpped Pickle Object"),))
+YAML = ExtColl((Ext("yaml", "Config file in YAML"),))
 
-    )
-)
-PickledObject = ExtColl(
-    (
-        Ext("pkl", "Dumpped Pickle Object"),
-    )
-)
-YAML = ExtColl(
-    (
-        Ext("yaml", "Config file in YAML"),
-    )
-)
+JSON = ExtColl((Ext("json", "JSON file"),))
 
-JSON = ExtColl(
-    (
-        Ext("json", "JSON file"),
-    )
-)
-
-RosettaParams = ExtColl(
-    (
-        Ext("params", "Rosetta Parameter file"),
-    )
-)
+RosettaParams = ExtColl((Ext("params", "Rosetta Parameter file"),))
 
 Pictures = ExtColl(
     (
@@ -136,8 +95,4 @@ Pictures = ExtColl(
     )
 )
 
-XvgGromacs = ExtColl(
-    (
-        Ext("xvg", "XVG file from Gromacs"),
-    )
-)
+XvgGromacs = ExtColl((Ext("xvg", "XVG file from Gromacs"),))

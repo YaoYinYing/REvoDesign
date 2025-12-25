@@ -1,6 +1,6 @@
-'''
+"""
 This module contains the definitions of the push button IDs and configuration-widget mapping used in the application.
-'''
+"""
 
 from dataclasses import dataclass
 
@@ -185,7 +185,5 @@ class Config2WidgetIds:
         """
         widget_type = widget_id.split("_")[0]
         if widget_type not in self.wi_types:
-            raise NotImplementedError(
-                f"widget {widget_id} is not supported yet."
-            )
+            raise NotImplementedError(f"widget {widget_id} is not supported yet.")
         return self.wi_types.get(widget_type)

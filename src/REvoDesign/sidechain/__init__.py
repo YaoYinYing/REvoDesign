@@ -1,6 +1,6 @@
-'''
+"""
 Module for sidechain solvers
-'''
+"""
 
 from ..basic import MutateRunnerAbstract
 from .sidechain_solver import SidechainSolver

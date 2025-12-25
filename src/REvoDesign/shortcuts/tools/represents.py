@@ -1,7 +1,6 @@
-'''
+"""
 Shortcut functions of structure representation
-'''
-
+"""
 
 import warnings
 from dataclasses import dataclass
@@ -92,15 +91,9 @@ def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A")
 
     if b_scale > 0:
         cmd.select("high_lddt", f"({selection}) and (b >90 or b =90)")
-        cmd.select(
-            "normal_lddt", f"({selection}) and ((b <90 and b >70) or (b =70))"
-        )
-        cmd.select(
-            "medium_lddt", f"({selection}) and ((b <70 and b >50) or (b=50))"
-        )
-        cmd.select(
-            "low_lddt", f"({selection}) and ((b <50 and b >0 ) or (b=0))"
-        )
+        cmd.select("normal_lddt", f"({selection}) and ((b <90 and b >70) or (b =70))")
+        cmd.select("medium_lddt", f"({selection}) and ((b <70 and b >50) or (b=50))")
+        cmd.select("low_lddt", f"({selection}) and ((b <50 and b >0 ) or (b=0))")
     else:
         cmd.select("high_lddt", f"({selection}) and (b >.90 or b =.90)")
         cmd.select(
@@ -111,9 +104,7 @@ def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A")
             "medium_lddt",
             f"({selection}) and ((b <.70 and b >.50) or (b=.50))",
         )
-        cmd.select(
-            "low_lddt", f"({selection}) and ((b <.50 and b >0 ) or (b=0))"
-        )
+        cmd.select("low_lddt", f"({selection}) and ((b <.50 and b >0 ) or (b=0))")
 
     cmd.delete("test_b_scale")
 
@@ -146,9 +137,7 @@ def shortcut_color_by_plddt(selection="all", align_target=0, chain_to_align="A")
         )
 
         # hide other objects if we dont align all to this align template
-        cmd.select(
-            "not_aligned_but_enabled", f"(enabled) and not ({selection})"
-        )
+        cmd.select("not_aligned_but_enabled", f"(enabled) and not ({selection})")
         cmd.disable("not_aligned_but_enabled")
         # cmd.enable(selection)
 
@@ -286,12 +275,8 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     cmd.iterate(obj1 + " and name CA and " + aln, "stored.resi1.append(resi)")
     cmd.iterate(obj2 + " and name CA and " + aln, "stored.resi2.append(resi)")
 
-    cmd.iterate(
-        obj1 + " and name CA and " + aln, "stored.chain1.append(chain)"
-    )
-    cmd.iterate(
-        obj2 + " and name CA and " + aln, "stored.chain2.append(chain)"
-    )
+    cmd.iterate(obj1 + " and name CA and " + aln, "stored.chain1.append(chain)")
+    cmd.iterate(obj2 + " and name CA and " + aln, "stored.chain2.append(chain)")
 
     mutant_selection = ""
     non_mutant_selection = "none or "
@@ -316,14 +301,10 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
                 f"(({obj1} and resi {i1} and chain {c1}) or ({obj2} and resi {i2} and chain {c2})) or "
             )
         else:
-            mutant_selection += (
-                f"(({obj1} and resi {i1} and chain {c1}) or ({obj2} and resi {i2} and chain {c2})) or "
-            )
+            mutant_selection += f"(({obj1} and resi {i1} and chain {c1}) or ({obj2} and resi {i2} and chain {c2})) or "
             # get the similarity (according to the blosum matrix) of the two residues and
             c = getBlosum90ColorName(n1, n2)
-            colors.append(
-                (c, f"{obj2} and resi {i2} and chain {c2} and elem C")
-            )
+            colors.append((c, f"{obj2} and resi {i2} and chain {c2} and elem C"))
 
     if mutant_selection == "":
         raise CmdException("No mutations found")
@@ -339,10 +320,7 @@ def shortcut_color_by_mutation(obj1, obj2, waters=0, labels=0):
     # create the view and coloring
     cmd.hide("everything", f"{obj1} or {obj2}")
     cmd.show("cartoon", f"{obj1} or {obj2}")
-    cmd.show(
-        "lines",
-        f"({obj1} or {obj2}) and ((non_mutations or not_aligned) and not name c+o+n)"
-    )
+    cmd.show("lines", f"({obj1} or {obj2}) and ((non_mutations or not_aligned) and not name c+o+n)")
     cmd.show("sticks", f"({obj1} or {obj2}) and mutations and not name c+o+n")
     cmd.color("gray", "elem C and not_aligned")
     cmd.color("white", "elem C and non_mutations")
@@ -380,12 +358,12 @@ def _load_ermsf_pkl(file_path: str) -> pd.DataFrame:
 
     with open(file_path, "rb") as f:
         data = pickle.load(f)
-    res: np.ndarray = data['ermsf']
+    res: np.ndarray = data["ermsf"]
     return pd.DataFrame(res)  # shape (n_residues, n_frames)
 
 
 _ermsf_citation = {
-    'eRMSFkit': """
+    "eRMSFkit": """
     @article{
     arantes_ligabue-braun_pedebos_2025,
     title={eRMSF: A Python Package for Ensemble-Based RMSF Analysis of Biomolecular Systems},
@@ -398,14 +376,15 @@ _ermsf_citation = {
     year={2025}, month={Nov}, pages={12648–12654} }"""
 }
 
-setattr(_load_ermsf_pkl, '__bibtex__', _ermsf_citation)
+setattr(_load_ermsf_pkl, "__bibtex__", _ermsf_citation)
 load_ermsf_pkl = get_cited(_load_ermsf_pkl)
 
 
-def _read_b_factors(file_path: str,
-                    label_x: str | int | None = 0,
-                    label_y: str | int | None = 1,
-                    ) -> pd.DataFrame:
+def _read_b_factors(
+    file_path: str,
+    label_x: str | int | None = 0,
+    label_y: str | int | None = 1,
+) -> pd.DataFrame:
     """Reads B-factor values from a text file.
 
     Args:
@@ -420,30 +399,31 @@ def _read_b_factors(file_path: str,
     from REvoDesign.tools.utils import xvg2df
 
     df_bfactors = None
-    if file_path.endswith('.csv'):
+    if file_path.endswith(".csv"):
         # read floats from csv file, in col `label` if provided, else first column
         df = pd.read_csv(file_path)
 
-    elif file_path.endswith(('.xlsx', '.xls')):
+    elif file_path.endswith((".xlsx", ".xls")):
         # read floats from excel file, in col `label` if provided, else first column
         df = pd.read_excel(file_path)
-    elif file_path.endswith('.tsv'):
-        df = pd.read_csv(file_path, sep='\t')
+    elif file_path.endswith(".tsv"):
+        df = pd.read_csv(file_path, sep="\t")
 
-    elif file_path.endswith('.xvg'):
+    elif file_path.endswith(".xvg"):
         df = xvg2df(file_path)
 
     # ermsf multiframe data
-    elif file_path.endswith('.pkl'):
+    elif file_path.endswith(".pkl"):
         df: pd.DataFrame = load_ermsf_pkl(file_path)
         # drop the first column as it is zeros
         df = df.iloc[:, 1:]
 
-    elif file_path.endswith('.pdb'):
+    elif file_path.endswith(".pdb"):
         logging.warning(
-            "PDB file detected. Assuming positions are in the ATOM lines and B-factors are in the B-factor column")
+            "PDB file detected. Assuming positions are in the ATOM lines and B-factors are in the B-factor column"
+        )
 
-        logging.warning('A dataframe with the following columns will be created: position, bfactor')
+        logging.warning("A dataframe with the following columns will be created: position, bfactor")
         # create empty dataframe
         df = pd.DataFrame()
         # read floats from PDB file
@@ -455,9 +435,9 @@ def _read_b_factors(file_path: str,
             logging.debug(f"Reading PDB file {file_path}")
 
             for line in inFile.readlines():
-                if line.startswith('ATOM'):
+                if line.startswith("ATOM"):
                     # skip non-CA lines
-                    if 'CA' not in line[13:16]:
+                    if "CA" not in line[13:16]:
                         continue
                     resi = int(line[22:26])
                     # if befactor is missing, set it to 0
@@ -466,13 +446,15 @@ def _read_b_factors(file_path: str,
                     except ValueError:
                         logging.warning(f"B-factor missing for residue {resi}")
                         bfactor = 0
-                    df.loc[resi, 'position'] = resi
-                    df.loc[resi, 'bfactor'] = bfactor
+                    df.loc[resi, "position"] = resi
+                    df.loc[resi, "bfactor"] = bfactor
                     logging.debug(f"Read B-factor {bfactor} for residue {resi}")
 
-    elif file_path.endswith('.txt'):
-        logging.warning("Plain text file detected. Assuming positions are 1,2,3,... and B-factors are in the first column")
-        logging.warning('A dataframe with the following columns will be created: position, bfactor')
+    elif file_path.endswith(".txt"):
+        logging.warning(
+            "Plain text file detected. Assuming positions are 1,2,3,... and B-factors are in the first column"
+        )
+        logging.warning("A dataframe with the following columns will be created: position, bfactor")
         df = pd.DataFrame()
         # read floats from plain text file
         with open(file_path) as inFile:
@@ -486,7 +468,7 @@ def _read_b_factors(file_path: str,
             logging.debug(f"Positions: {pos_data}")
 
             # 2 * N
-            df = pd.DataFrame([pos_data, bfactor_data], index=['position', 'bfactor'])
+            df = pd.DataFrame([pos_data, bfactor_data], index=["position", "bfactor"])
 
             # transpose to N * 2
             df = df.T
@@ -497,11 +479,14 @@ def _read_b_factors(file_path: str,
         raise issues.FileFormatError(f"Failed to read B-factors from file {file_path}")
 
     # select columns by label if provided
-    if label_x and label_x in df.columns and isinstance(
-            label_x,
-            str) and label_y and label_y in df.columns and isinstance(
-            label_y,
-            str):
+    if (
+        label_x
+        and label_x in df.columns
+        and isinstance(label_x, str)
+        and label_y
+        and label_y in df.columns
+        and isinstance(label_y, str)
+    ):
         logging.debug(f"Selected columns: {label_x}, {label_y}")
         df_bfactors = df[[label_x, label_y]]
     # otherwise, select columns by index
@@ -512,6 +497,7 @@ def _read_b_factors(file_path: str,
         raise issues.FileFormatError(f"Failed to read B-factors from file {file_path}")
     return df_bfactors
 
+
 # adapted from pymol script loadBfacts.py
 # https://wiki.pymol.org/index.php/Load_new_B-factors
 # Gatti-Lafranconi, Pietro (2014). Pymol script: loadBfacts.py. figshare.
@@ -519,7 +505,7 @@ def _read_b_factors(file_path: str,
 
 
 load_b_factors_citation: dict[str, str | tuple] = {
-    'loadBfacts.py': """@article{Gatti-Lafranconi2014,
+    "loadBfacts.py": """@article{Gatti-Lafranconi2014,
 author = "Pietro Gatti-Lafranconi",
 title = "{Pymol script: loadBfacts.py}",
 year = "2014",
@@ -527,7 +513,7 @@ month = "9",
 url = "https://figshare.com/articles/software/Pymol_script_loadBfacts_py/1176991",
 doi = "10.6084/m9.figshare.1176991.v1"
 }""",
-    'PyMOL - putty': """
+    "PyMOL - putty": """
 @misc{mura2014developmentimplementationpymol,
       title={Development & Implementation of a PyMOL 'putty' Representation},
       author={Cameron Mura},
@@ -536,13 +522,13 @@ doi = "10.6084/m9.figshare.1176991.v1"
       archivePrefix={arXiv},
       primaryClass={q-bio.BM},
       url={https://arxiv.org/abs/1407.5211},
-}"""
+}""",
 }
 
 
 @dataclass(frozen=True)
 class BFactor:
-    '''
+    """
     B-factor dataclass
 
     Attributes:
@@ -588,7 +574,8 @@ class BFactor:
         |     1    |   0.1   |
         |     2    |   0.1   |
         |     N    |   0.2   |
-    '''
+    """
+
     mol: str
     chain_id: str
     sequence: str
@@ -598,10 +585,10 @@ class BFactor:
 
     @cached_property
     def obj_sel_pymol(self) -> str:
-        '''
+        """
         Return the PyMOL selection string for the object
-        '''
-        return f'{self.mol} and c. {self.chain_id}'
+        """
+        return f"{self.mol} and c. {self.chain_id}"
 
     def get(self, pos_one_idx: int) -> float:
         """
@@ -618,11 +605,14 @@ class BFactor:
         val = self.bfactor_data[self.bfactor_data.iloc[:, 0] == pos_one_idx + self.offset].iloc[0, 1]
         if not isinstance(val, float):
             logging.warning(
-                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})")
+                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})"
+            )
             raise issues.InvalidInputError(
-                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})")
+                f"Failed to retrieve B-factor value for position {pos_one_idx} (zero-indexed {pos_one_idx-1})"
+            )
 
         return float(val)
+
     __getitem__ = get
 
     # this method assumes that the bfactor_data[pos_zero_idx] is the
@@ -645,20 +635,18 @@ class BFactor:
         logging.debug(f"Setting B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}) to {bfact}")
         try:
             cmd.alter_state(
-                state=state,
-                selection=f'{self.obj_sel_pymol} and i. {pos_one_idx}',
-                expression=f'b={bfact}')
+                state=state, selection=f"{self.obj_sel_pymol} and i. {pos_one_idx}", expression=f"b={bfact}"
+            )
         except Exception as e:
             logging.error(f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}): {e}")
-            warnings.warn(issues.BadDataWarning(
-                f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1})"))
+            warnings.warn(
+                issues.BadDataWarning(
+                    f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1})"
+                )
+            )
         return bfact
 
-    def _rescaled_bfactor_data(
-            self,
-            scale_from: tuple[float, float],
-            scale_dst: tuple[float, float]
-    ) -> pd.DataFrame:
+    def _rescaled_bfactor_data(self, scale_from: tuple[float, float], scale_dst: tuple[float, float]) -> pd.DataFrame:
         """
         Rescale the B-factor data to a new range.
         Args:
@@ -679,7 +667,7 @@ class BFactor:
         df_scaled.iloc[:, 1] = scaled_bdata
         return df_scaled
 
-    def rescaled(self, scale_from: tuple[float, float], scale_dst: tuple[float, float]) -> 'BFactor':
+    def rescaled(self, scale_from: tuple[float, float], scale_dst: tuple[float, float]) -> "BFactor":
         """
         Returns a new BFactor object with the B-factor data scaled to a new range.
         Parameters:
@@ -693,33 +681,33 @@ class BFactor:
             mol=self.mol,
             chain_id=self.chain_id,
             sequence=self.sequence,
-            bfactor_data=self._rescaled_bfactor_data(scale_from, scale_dst)
+            bfactor_data=self._rescaled_bfactor_data(scale_from, scale_dst),
         )
 
     _read_b_factors = staticmethod(_read_b_factors)
 
 
 def _load_b_factors(
-
-        mol: str,
-        chain_ids: str,
-        keep_missing: bool,
-        source: str,
-        offset: int = 0,
-        label_x: str | None = None,
-        label_y: str | None = None,
-        index_x: int = 0,
-        index_y: int = 1,
-        pos_slice: str | None = None,
-        palette_code: str = 'rainbow',
-        do_rescale: bool = False,
-        scale_min: float = 0.0,
-        scale_max: float = 10.0,
-        rescale_min: float = 0.0,
-        rescale_max: float = 100.0,
-        multi_frame: bool = False,
-        visual: bool = True,
-        putty_transform_mode: int = 3) -> None:
+    mol: str,
+    chain_ids: str,
+    keep_missing: bool,
+    source: str,
+    offset: int = 0,
+    label_x: str | None = None,
+    label_y: str | None = None,
+    index_x: int = 0,
+    index_y: int = 1,
+    pos_slice: str | None = None,
+    palette_code: str = "rainbow",
+    do_rescale: bool = False,
+    scale_min: float = 0.0,
+    scale_max: float = 10.0,
+    rescale_min: float = 0.0,
+    rescale_max: float = 100.0,
+    multi_frame: bool = False,
+    visual: bool = True,
+    putty_transform_mode: int = 3,
+) -> None:
     """
     Replaces B-factors with a list of values contained in a plain txt file
 
@@ -786,7 +774,7 @@ def _load_b_factors(
         raise issues.MoleculeError(f"No found object: {mol}")
     obj = objs[0]
 
-    _chain_ids = chain_ids.strip().split(',')
+    _chain_ids = chain_ids.strip().split(",")
 
     bfactor_df = _read_b_factors(
         file_path=source,
@@ -794,8 +782,8 @@ def _load_b_factors(
         label_y=label_y or index_y,
     )
 
-    logging.info(f'B-factor dataframe: \n{bfactor_df.head()}')
-    logging.debug(f'B-factor dataframe: \n{bfactor_df}')
+    logging.info(f"B-factor dataframe: \n{bfactor_df.head()}")
+    logging.debug(f"B-factor dataframe: \n{bfactor_df}")
 
     def _load_to_one_chain(chain_id: str, state: int = 0):
         bf_chain = BFactor(
@@ -805,7 +793,7 @@ def _load_b_factors(
             bfactor_data=bfactor_df,
             offset=offset,
         )
-        logging.debug(f'B-factor chain: {bf_chain}')
+        logging.debug(f"B-factor chain: {bf_chain}")
 
         logging.debug(f"Using object {obj} for selection {mol}")
 
@@ -825,7 +813,8 @@ def _load_b_factors(
         if do_rescale:
             bf_rescale = bf_chain.rescaled((scale_min, scale_max), (rescale_min, rescale_max))
             logging.debug(
-                f"Rescaling B-factor values from [{scale_min}, {scale_max}] to [{rescale_min}, {rescale_max}]")
+                f"Rescaling B-factor values from [{scale_min}, {scale_max}] to [{rescale_min}, {rescale_max}]"
+            )
 
             logging.warning(f"B-factor values rescaled: ({scale_min}, {scale_max}) -> ({rescale_min}, {rescale_max}).")
 
@@ -843,7 +832,8 @@ def _load_b_factors(
                 bfact_ori = bf_chain.get(pos)
             except (IndexError, KeyError, issues.InvalidInputError):
                 logging.warning(
-                    f"Position {pos} (zero-indexed {pos-1}) exceeds the length of new B-factor data ({len(bf_chain.bfactor_data)}); setting B-factor to -1.0")
+                    f"Position {pos} (zero-indexed {pos-1}) exceeds the length of new B-factor data ({len(bf_chain.bfactor_data)}); setting B-factor to -1.0"
+                )
                 continue
             bfacts_orignal.append(bfact_ori)
             bfacts_rescaled.append(bfact)
@@ -857,12 +847,12 @@ def _load_b_factors(
 
         ramp_color: str | list[str] = palette_code
 
-        if palette_code.startswith('rainbow'):
+        if palette_code.startswith("rainbow"):
             logging.debug(f"Using rainbow palette {palette_code}")
 
         elif palette_code not in ramp_spectrum_dict:
             logging.warning(f"Palette {palette_code} not found in ramp_spectrum_dict, try to create it.")
-            ramp_color: str | list[str] = palette_code.split('_')
+            ramp_color: str | list[str] = palette_code.split("_")
             logging.debug(f"Ramp color: {ramp_color}")
         else:
             logging.warning(f"Palette {palette_code} found in ramp_spectrum_dict, .")
@@ -877,21 +867,23 @@ def _load_b_factors(
         cmd.spectrum("b", palette=palette_code, selection=f"{bfact_assign.obj_sel_pymol} and n. CA ")
         _ramp_name = f"count_{mol}_{chain_id}_{'rescaled' if bf_rescale else 'ori'}"
         logging.debug(
-            f'ramp_new {f"{_ramp_name}, {obj}, [{min(bfacts_rescaled)}, {max(bfacts_rescaled)}], {ramp_color}"}')
+            f'ramp_new {f"{_ramp_name}, {obj}, [{min(bfacts_rescaled)}, {max(bfacts_rescaled)}], {ramp_color}"}'
+        )
 
         cmd.ramp_new(f"{_ramp_name}", obj, [min(bfacts_rescaled), max(bfacts_rescaled)], color=ramp_color)
 
         if do_rescale:
             logging.debug(
-                f'ramp_new {f"count_{mol}_{chain_id}_ori, {obj}, [{min(bfacts_orignal)}, {max(bfacts_orignal)}], {ramp_color}"}')
+                f'ramp_new {f"count_{mol}_{chain_id}_ori, {obj}, [{min(bfacts_orignal)}, {max(bfacts_orignal)}], {ramp_color}"}'
+            )
             cmd.ramp_new(
-                f"count_{mol}_{chain_id}_ori", obj, [
-                    min(bfacts_orignal), max(bfacts_orignal)], color=ramp_color)
+                f"count_{mol}_{chain_id}_ori", obj, [min(bfacts_orignal), max(bfacts_orignal)], color=ramp_color
+            )
         cmd.recolor()
 
     for chain_id in _chain_ids:
         _load_to_one_chain(chain_id)
 
 
-setattr(_load_b_factors, '__bibtex__', load_b_factors_citation)
+setattr(_load_b_factors, "__bibtex__", load_b_factors_citation)
 load_b_factors = get_cited(_load_b_factors)

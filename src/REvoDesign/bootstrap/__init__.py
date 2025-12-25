@@ -1,6 +1,7 @@
-'''
+"""
 Module to initialize REvoDesign Configurating system with Hydra and OmegaConf.
-'''
+"""
+
 import os
 
 import hydra
@@ -14,15 +15,13 @@ from .set_config import (experiment_config, reload_config_file,
 REVODESIGN_CONFIG_FILE = set_REvoDesign_config_file()
 
 # 2. initialize hydra with config dir
-hydra.initialize_config_dir(
-    version_base=None, config_dir=os.path.dirname(REVODESIGN_CONFIG_FILE)
-)
+hydra.initialize_config_dir(version_base=None, config_dir=os.path.dirname(REVODESIGN_CONFIG_FILE))
 
 # 3. initialize experiments directory, depending on config
 EXPERIMENTS_CONFIG_DIR = experiment_config()
 
 __all__ = [
-    'Qt',
+    "Qt",
     "experiment_config",
     "set_REvoDesign_config_file",
     "reload_config_file",

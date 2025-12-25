@@ -1,6 +1,6 @@
-'''
+"""
 Cluster sequence
-'''
+"""
 
 import decimal
 import itertools
@@ -57,9 +57,7 @@ class Clustering(CitableModuleAbstract):
         # Add other instance variables here
         self.aligner = PairwiseAligner(
             mode="global",
-            substitution_matrix=substitution_matrices.load(
-                self.substitution_matrix
-            ),
+            substitution_matrix=substitution_matrices.load(self.substitution_matrix),
             open_gap_score=self.gap_open,
             extend_gap_score=self.gap_extend,
         )
@@ -89,9 +87,7 @@ class Clustering(CitableModuleAbstract):
     def plot_score_mtx(self, mtx, vmin=1, vmax=3):
         """plot the mtx"""
         plt.figure(figsize=(5, 5))
-        plt.imshow(
-            mtx, cmap="Blues", interpolation="none", vmin=vmin, vmax=vmax
-        )
+        plt.imshow(mtx, cmap="Blues", interpolation="none", vmin=vmin, vmax=vmax)
         plt.grid(False)
         img_fp = f"{self.save_dir}/Cluster_score_mtx.png"
 
@@ -130,9 +126,7 @@ class Clustering(CitableModuleAbstract):
         seq_num = list(range(nm_seqs))
 
         # N!, reducing nearly a half of repetative works
-        paramlist = itertools.combinations_with_replacement(
-            self.records_seqs, 2
-        )
+        paramlist = itertools.combinations_with_replacement(self.records_seqs, 2)
         indexlist = itertools.combinations_with_replacement(seq_num, 2)
 
         # Generate processes equal to the number of cores
@@ -147,9 +141,7 @@ class Clustering(CitableModuleAbstract):
             logging.info(f"Job Number: {workload}")
 
             logging.info(f"Size of minibatch used: {batch_size}")
-            batch_number = (
-                workload // batch_size if batch_size < workload else 1
-            )
+            batch_number = workload // batch_size if batch_size < workload else 1
 
             res_b = []
             batch_count = 0
@@ -171,21 +163,12 @@ class Clustering(CitableModuleAbstract):
                     batch_count += 1
                     start_time = time.perf_counter()
 
-                    args_list = [
-                        (sub_param, sub_index)
-                        for sub_param, sub_index in zip(
-                            sub_paramlist, sub_indexlist
-                        )
-                    ]
+                    args_list = [(sub_param, sub_index) for sub_param, sub_index in zip(sub_paramlist, sub_indexlist)]
 
                     # parallel executor
-                    parallel_executor = QtParallelExecutor(
-                        self.global_alignment, args_list, self.num_proc - 1
-                    )
+                    parallel_executor = QtParallelExecutor(self.global_alignment, args_list, self.num_proc - 1)
 
-                    parallel_executor.result_signal.connect(
-                        self.handle_calculation_result
-                    )
+                    parallel_executor.result_signal.connect(self.handle_calculation_result)
 
                     parallel_executor.start()
                     logging.debug("Starting parallel execution...")
@@ -203,12 +186,11 @@ class Clustering(CitableModuleAbstract):
                     end_time = time.perf_counter()
                     refresh_window()
 
-                    logging.info(f"Cluster progress: {decimal.Decimal(batch_count / batch_number) * 100:{5}.{4}} %  "
-                                 f"\t{batch_count} / {batch_number}\t elapse time: {end_time - start_time}")
-                    res_b = [
-                        ",".join([str(x) for x in list(item)])
-                        for item in sub_res
-                    ]
+                    logging.info(
+                        f"Cluster progress: {decimal.Decimal(batch_count / batch_number) * 100:{5}.{4}} %  "
+                        f"\t{batch_count} / {batch_number}\t elapse time: {end_time - start_time}"
+                    )
+                    res_b = [",".join([str(x) for x in list(item)]) for item in sub_res]
 
                     # logging.info(f"Write Buffer at {time.strftime('%Y/%m/%d %H:%M:%S')}")
                     bw.write("\n".join(res_b))
@@ -237,9 +219,7 @@ class Clustering(CitableModuleAbstract):
 
         with parallel_backend("threading", n_jobs=self.num_proc):
             logging.info("Clustering in progress ...")
-            hc = AgglomerativeClustering(
-                n_clusters=self.num_clusters, linkage="ward"
-            )
+            hc = AgglomerativeClustering(n_clusters=self.num_clusters, linkage="ward")
             logging.info("Clustering is done.")
             y_hc = hc.fit_predict(self.scores)
             hc.labels_
@@ -263,9 +243,7 @@ class Clustering(CitableModuleAbstract):
         for i in range(0, nm_seqs):
             cluster[labels[i]].append(self.records[i])
 
-        cluster_centers_fp = (
-            f"{self.save_dir}/cluster_centers_stochastic.fasta"
-        )
+        cluster_centers_fp = f"{self.save_dir}/cluster_centers_stochastic.fasta"
 
         with open(cluster_centers_fp, "w") as f:
             for i in range(0, self.num_clusters):
@@ -294,11 +272,7 @@ class Clustering(CitableModuleAbstract):
     def run_clustering(self, progressbar):
         fastafile = pathlib.Path(self.fastafile).resolve()
         self.fasta_instance = fastafile.stem
-        self.save_dir = (
-            pathlib.Path(self._save_dir)
-            .resolve()
-            .joinpath(self.fasta_instance)
-        )
+        self.save_dir = pathlib.Path(self._save_dir).resolve().joinpath(self.fasta_instance)
 
         os.makedirs(self.save_dir, exist_ok=True)
 
