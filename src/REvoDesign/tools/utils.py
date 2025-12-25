@@ -374,14 +374,14 @@ def get_cited(method: Callable[P, R]) -> Callable[P, R]:
                     anonymous = CitableModuleAbstract.get_citable_class(func=cast(Callable[..., Any], method))
                     anonymous().cite()
 
-                case _ :
+                case _:
                     raise issues.InternalError(f"Cannot apply get_cited decorator to {method!r}")
 
         except Exception as e:
             logging.debug(f"Failed to cite {method!r} due to {e}")
 
-        # whether the citation is successful or not, 
-        # return the result of the original method 
+        # whether the citation is successful or not,
+        # return the result of the original method
         # because it is the real matter thing to user
         return result
 

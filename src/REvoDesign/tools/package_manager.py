@@ -1744,6 +1744,9 @@ class WorkerThread(QtCore.QThread):
     result_signal = QtCore.pyqtSignal(list)
     finished_signal = QtCore.pyqtSignal()
     interrupt_signal = QtCore.pyqtSignal()
+    notify_signal = QtCore.pyqtSignal(str)
+    progress_val_set_signal = QtCore.pyqtSignal(int)
+    progress_range_set_signal = QtCore.pyqtSignal(int, int)
 
     def __init__(self, func, args=None, kwargs=None):
         super().__init__()

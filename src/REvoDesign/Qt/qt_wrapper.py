@@ -30,6 +30,5 @@ else:
 QtCore = _QtCore
 QtGui = _QtGui
 QtWidgets = _QtWidgets
-
 # ** Define exports**
 __all__ = ["QtCore", "QtGui", "QtWidgets", "QtSource"]

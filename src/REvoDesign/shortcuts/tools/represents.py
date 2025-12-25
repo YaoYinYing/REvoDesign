@@ -405,7 +405,7 @@ load_ermsf_pkl = get_cited(_load_ermsf_pkl)
 def _read_b_factors(file_path: str,
                     label_x: str | int | None = 0,
                     label_y: str | int | None = 1,
-                ) -> pd.DataFrame:
+                    ) -> pd.DataFrame:
     """Reads B-factor values from a text file.
 
     Args:
@@ -497,7 +497,11 @@ def _read_b_factors(file_path: str,
         raise issues.FileFormatError(f"Failed to read B-factors from file {file_path}")
 
     # select columns by label if provided
-    if label_x and label_x in df.columns and isinstance(label_x, str) and label_y and label_y in df.columns and isinstance(label_y, str):
+    if label_x and label_x in df.columns and isinstance(
+            label_x,
+            str) and label_y and label_y in df.columns and isinstance(
+            label_y,
+            str):
         logging.debug(f"Selected columns: {label_x}, {label_y}")
         df_bfactors = df[[label_x, label_y]]
     # otherwise, select columns by index
@@ -640,7 +644,10 @@ class BFactor:
         bfact = self.get(pos_one_idx)
         logging.debug(f"Setting B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}) to {bfact}")
         try:
-            cmd.alter_state(state=state, selection=f'{self.obj_sel_pymol} and i. {pos_one_idx}', expression=f'b={bfact}')
+            cmd.alter_state(
+                state=state,
+                selection=f'{self.obj_sel_pymol} and i. {pos_one_idx}',
+                expression=f'b={bfact}')
         except Exception as e:
             logging.error(f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}): {e}")
             warnings.warn(issues.BadDataWarning(
@@ -779,19 +786,16 @@ def _load_b_factors(
         raise issues.MoleculeError(f"No found object: {mol}")
     obj = objs[0]
 
-    
-
     _chain_ids = chain_ids.strip().split(',')
 
     bfactor_df = _read_b_factors(
         file_path=source,
-        label_x=label_x or index_x, 
+        label_x=label_x or index_x,
         label_y=label_y or index_y,
     )
 
     logging.info(f'B-factor dataframe: \n{bfactor_df.head()}')
     logging.debug(f'B-factor dataframe: \n{bfactor_df}')
-
 
     def _load_to_one_chain(chain_id: str, state: int = 0):
         bf_chain = BFactor(
@@ -887,8 +891,6 @@ def _load_b_factors(
 
     for chain_id in _chain_ids:
         _load_to_one_chain(chain_id)
-
-        
 
 
 setattr(_load_b_factors, '__bibtex__', load_b_factors_citation)
