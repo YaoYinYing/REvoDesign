@@ -4,7 +4,7 @@ PROJECT=REvoDesign
 # basic extras for ci
 PIP_EXTRAS_BASIC=dlpacker,pippack,colabdesign,thermompnn,test
 # additional extras for ci in Ubuntu
-PIP_EXTRAS_OPTIONAL=rfdiffusion_cpu,esm2
+PIP_EXTRAS_OPTIONAL=rfdiffusion_cpu,esm2,md_analysis
 
 
 TESTDIR=tmp-test-dir-with-unique-name

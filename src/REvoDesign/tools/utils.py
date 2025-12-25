@@ -345,7 +345,11 @@ def get_cited(method: Callable[P, R]) -> Callable[P, R]:
             logging.warning(f"Ignore cite() error: {e}")
 
     # Determine method type and log it
-    guessed_method_type = inspect_method_types(method=cast(Callable[..., Any], method))
+    try:
+        guessed_method_type = inspect_method_types(method=cast(Callable[..., Any], method))
+    except Exception as e:
+        logging.warning(f"Ignore inspect_method_types() error: {e}")
+        guessed_method_type = "Unknown"
     logging.warning(f"Guessed method type: {method!r}: {guessed_method_type}")
 
     # broadcast typing from the original method to the wrapper
@@ -357,26 +361,28 @@ def get_cited(method: Callable[P, R]) -> Callable[P, R]:
         """
         result = method(*args, **kwargs)
 
+        # handle the citation method
+        # it's good to cite, yet failed to cite is not a big deal
         try:
-            # Determine how to call cite() based on method type
-            if guessed_method_type in ("ClassMethod", "InstanceMethod"):
-                if args:
+            match guessed_method_type:
+                case "ClassMethod" | "InstanceMethod":
                     _cite_for_cls(cast(type[CitableModuleAbstract] | CitableModuleAbstract, args[0]))
+                case "StaticMethod":
+                    cls = get_owner_class_from_static(cast(Callable[..., Any], method))
+                    _cite_for_cls(cls)
+                case "Function":
+                    anonymous = CitableModuleAbstract.get_citable_class(func=cast(Callable[..., Any], method))
+                    anonymous().cite()
 
-            elif guessed_method_type == "StaticMethod":
-                cls = get_owner_class_from_static(cast(Callable[..., Any], method))
-                _cite_for_cls(cls)
-
-            elif guessed_method_type == "Function":
-                anonymous = CitableModuleAbstract.get_citable_class(func=cast(Callable[..., Any], method))
-                anonymous().cite()
-
-            else:
-                raise issues.InternalError(f"Cannot apply get_cited decorator to {method!r}")
+                case _ :
+                    raise issues.InternalError(f"Cannot apply get_cited decorator to {method!r}")
 
         except Exception as e:
             logging.debug(f"Failed to cite {method!r} due to {e}")
 
+        # whether the citation is successful or not, 
+        # return the result of the original method 
+        # because it is the real matter thing to user
         return result
 
     wrapped = wraps(method)(_impl)

@@ -403,10 +403,9 @@ load_ermsf_pkl = get_cited(_load_ermsf_pkl)
 
 
 def _read_b_factors(file_path: str,
-                    label_x: str | None = None,
-                    label_y: str | None = None,
-                    index_x: int = 0,
-                    index_y: int = 1) -> pd.DataFrame:
+                    label_x: str | int | None = 0,
+                    label_y: str | int | None = 1,
+                ) -> pd.DataFrame:
     """Reads B-factor values from a text file.
 
     Args:
@@ -498,13 +497,13 @@ def _read_b_factors(file_path: str,
         raise issues.FileFormatError(f"Failed to read B-factors from file {file_path}")
 
     # select columns by label if provided
-    if label_x and label_x in df.columns:
+    if label_x and label_x in df.columns and isinstance(label_x, str) and label_y and label_y in df.columns and isinstance(label_y, str):
         logging.debug(f"Selected columns: {label_x}, {label_y}")
         df_bfactors = df[[label_x, label_y]]
     # otherwise, select columns by index
-    elif index_x != index_y:
-        logging.debug(f"Selected columns by index: {df.columns[index_x]}, {df.columns[index_y]}")
-        df_bfactors = df[[df.columns[index_x], df.columns[index_y]]]
+    elif isinstance(label_x, int) and isinstance(label_y, int) and label_x != label_y:
+        logging.debug(f"Selected columns by index: {df.columns[label_x]}, {df.columns[label_y]}")
+        df_bfactors = df[[df.columns[label_x], df.columns[label_y]]]
     else:
         raise issues.FileFormatError(f"Failed to read B-factors from file {file_path}")
     return df_bfactors
@@ -625,7 +624,7 @@ class BFactor:
     # this method assumes that the bfactor_data[pos_zero_idx] is the
     # the bfactor value for resi pos_zero_idx+1
 
-    def assign_to_res_pymol(self, pos_one_idx: int) -> float:
+    def assign_to_res_pymol(self, pos_one_idx: int, state: int = 0) -> float:
         """
         Assigns the bfactor value to the residue at pos_zero_idx+1
         Returns the bfactor value
@@ -641,7 +640,7 @@ class BFactor:
         bfact = self.get(pos_one_idx)
         logging.debug(f"Setting B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}) to {bfact}")
         try:
-            cmd.alter(f'{self.obj_sel_pymol} and i. {pos_one_idx}', f'b={bfact}')
+            cmd.alter_state(state=state, selection=f'{self.obj_sel_pymol} and i. {pos_one_idx}', expression=f'b={bfact}')
         except Exception as e:
             logging.error(f"Failed to set B-factor for position {pos_one_idx} (zero-indexed {pos_one_idx-1}): {e}")
             warnings.warn(issues.BadDataWarning(
@@ -711,6 +710,7 @@ def _load_b_factors(
         scale_max: float = 10.0,
         rescale_min: float = 0.0,
         rescale_max: float = 100.0,
+        multi_frame: bool = False,
         visual: bool = True,
         putty_transform_mode: int = 3) -> None:
     """
@@ -779,19 +779,21 @@ def _load_b_factors(
         raise issues.MoleculeError(f"No found object: {mol}")
     obj = objs[0]
 
+    
+
     _chain_ids = chain_ids.strip().split(',')
 
     bfactor_df = _read_b_factors(
         file_path=source,
-        label_x=label_x, label_y=label_y,
-        index_x=index_x, index_y=index_y,
+        label_x=label_x or index_x, 
+        label_y=label_y or index_y,
     )
 
     logging.info(f'B-factor dataframe: \n{bfactor_df.head()}')
     logging.debug(f'B-factor dataframe: \n{bfactor_df}')
 
-    for chain_id in _chain_ids:
 
+    def _load_to_one_chain(chain_id: str, state: int = 0):
         bf_chain = BFactor(
             mol=mol,
             chain_id=chain_id,
@@ -808,7 +810,7 @@ def _load_b_factors(
         logging.debug(f"Sequence: {seq}")
 
         # set all b-factors to -1.0 before loading new ones
-        cmd.alter(bf_chain.obj_sel_pymol, "b=-1.0")
+        cmd.alter_state(state=state, selection=bf_chain.obj_sel_pymol, expression="b=-1.0")
 
         # read new b factor data from csv file or excel file or txt file
 
@@ -843,7 +845,7 @@ def _load_b_factors(
             bfacts_rescaled.append(bfact)
             # fix pos to one-based indexing for pymol
             logging.debug(f"Setting B-factor for position {pos} (zero-indexed {pos-1}) to {bfact}")
-            bfact_assign.assign_to_res_pymol(pos)
+            bfact_assign.assign_to_res_pymol(pos, state=0)
 
         if not visual:
             logging.debug(f"Not updating visual representation for {mol} (chain {chain_id})")
@@ -864,10 +866,10 @@ def _load_b_factors(
         logging.debug(f"Setting visual representation for {mol} (chain {chain_id}) based on B-factors")
         cmd.show_as("cartoon", bfact_assign.obj_sel_pymol)
         cmd.cartoon("putty", bfact_assign.obj_sel_pymol)
-        cmd.set("cartoon_putty_scale_min", min(bfacts_rescaled), obj)
-        cmd.set("cartoon_putty_scale_max", max(bfacts_rescaled), obj)
-        cmd.set("cartoon_putty_transform", putty_transform_mode, obj)
-        cmd.set("cartoon_putty_radius", 0.2, obj)  # type: ignore
+        cmd.set("cartoon_putty_scale_min", min(bfacts_rescaled), obj, state=state)
+        cmd.set("cartoon_putty_scale_max", max(bfacts_rescaled), obj, state=state)
+        cmd.set("cartoon_putty_transform", putty_transform_mode, obj, state=state)
+        cmd.set("cartoon_putty_radius", 0.2, obj, state=state)  # type: ignore
         cmd.spectrum("b", palette=palette_code, selection=f"{bfact_assign.obj_sel_pymol} and n. CA ")
         _ramp_name = f"count_{mol}_{chain_id}_{'rescaled' if bf_rescale else 'ori'}"
         logging.debug(
@@ -882,6 +884,11 @@ def _load_b_factors(
                 f"count_{mol}_{chain_id}_ori", obj, [
                     min(bfacts_orignal), max(bfacts_orignal)], color=ramp_color)
         cmd.recolor()
+
+    for chain_id in _chain_ids:
+        _load_to_one_chain(chain_id)
+
+        
 
 
 setattr(_load_b_factors, '__bibtex__', load_b_factors_citation)
